@@ -1,0 +1,245 @@
+"use server";
+
+/**
+ * Admin: Provider Catalog Sync Action
+ *
+ * Quarantine trigger (per AGENTS.md Safety Floor):
+ * - If rate changes > quarantineThreshold (default 20%) → isQuarantined=true
+ * - Admin must approve/reject in /admin/catalog/quarantine
+ */
+
+import { db } from "@/lib/db";
+import { providerService } from "@/services/providers/provider.service";
+import { SmartAnalyzerLogic, CATEGORY_LABELS } from "@/services/providers/smart-analyzer.logic";
+import { applyPricingLadder } from "@/lib/financial-constants";
+import { SettingsManager } from "@/lib/settings";
+import { requireAdmin } from "@/lib/server/rbac";
+import { auditAdmin } from "@/lib/admin-audit";
+import { applyPostSyncRules } from "@/services/providers/post-sync-rules";
+
+export async function adminSyncProviderCatalog() {
+  return requireAdmin(async (admin) => {
+    try {
+      const provider = await providerService.getDefaultProvider();
+      if (!provider) {
+        return { success: false, error: "No primary provider found." };
+      }
+
+      const settings = await db.systemSettings.findUnique({ where: { id: "global" } });
+      const quarantineThreshold = settings?.quarantineThreshold ?? 0.20;
+      const usdToRub = await SettingsManager.getExchangeRateUSD();
+
+      const apiServices = await provider.getServices();
+
+      let createdCats = 0;
+      let newServices = 0;
+      let updatedServices = 0;
+      let quarantinedServices = 0;
+
+      const existingCats = await db.category.findMany({ include: { network: true } });
+      const catMap = new Map(existingCats.map(c => [`${c.network?.slug || "unknown"}__${c.name}`, c.id]));
+
+      const existingServices = await db.service.findMany({
+        select: { id: true, externalId: true, rate: true, isQuarantined: true },
+      });
+      const serviceMap = new Map(existingServices.map(s => [s.externalId, s]));
+
+      for (const apiService of apiServices) {
+        if (apiService.type !== "Default") continue;
+
+        const analysis = SmartAnalyzerLogic.detectSync(apiService.name, "", apiService.category);
+        const platform = analysis.platform;
+        const catName = CATEGORY_LABELS[analysis.category] || analysis.category;
+        const canonicalSlug = platform.toLowerCase() || "unknown";
+        const mapKey = `${canonicalSlug}__${catName}`;
+        let categoryId = catMap.get(mapKey);
+
+        if (!categoryId) {
+          const network = await db.network.upsert({
+            where: { slug: canonicalSlug },
+            update: {},
+            create: { name: platform, slug: canonicalSlug, sort: 0 },
+          });
+          const newCat = await db.category.create({
+            data: { networkId: network.id, name: catName, sort: 0 },
+          });
+          categoryId = newCat.id;
+          catMap.set(mapKey, categoryId);
+          createdCats++;
+        }
+
+        const externalId = String(apiService.service);
+        const newRate = parseFloat(apiService.rate) || 0;
+        const minInt = parseInt(apiService.min, 10) || 10;
+        const maxInt = parseInt(apiService.max, 10) || 100000;
+        const existing = serviceMap.get(externalId);
+
+        if (existing) {
+          const oldRate = existing.rate;
+          const priceDelta = oldRate > 0 ? Math.abs(newRate - oldRate) / oldRate : 0;
+
+          if (priceDelta > quarantineThreshold && !existing.isQuarantined) {
+            const direction = newRate > oldRate ? "📈 Рост" : "📉 Падение";
+            const pct = (priceDelta * 100).toFixed(1);
+            const reason = `${direction} цены на ${pct}%: ${oldRate.toFixed(4)} → ${newRate.toFixed(4)}`;
+
+            await db.service.update({
+              where: { id: existing.id },
+              data: {
+                isQuarantined: true,
+                pendingRate: newRate,
+                quarantineReason: reason,
+                quarantinedAt: new Date(),
+                minQty: minInt,
+                maxQty: maxInt,
+                lastSeenAt: new Date(),
+              },
+            });
+            quarantinedServices++;
+          } else if (!existing.isQuarantined) {
+            await db.service.update({
+              where: { id: existing.id },
+              data: { rate: newRate, minQty: minInt, maxQty: maxInt, isActive: true, lastSeenAt: new Date() },
+            });
+            updatedServices++;
+          }
+        } else {
+          const retailFromLadder = applyPricingLadder(newRate * usdToRub);
+          const calculatedMarkup =
+            newRate > 0 ? Math.round((retailFromLadder / (newRate * usdToRub)) * 100) / 100 : 3.0;
+
+          await db.service.create({
+            data: {
+              name: analysis.suggestedName || apiService.name,
+              categoryId,
+              rate: newRate,
+              markup: calculatedMarkup,
+              minQty: minInt,
+              maxQty: maxInt,
+              externalId,
+              isActive: true,
+              isDripFeedEnabled: !!apiService.dripfeed,
+              isRefillEnabled: !!apiService.refill,
+              isCancelEnabled: !!apiService.cancel,
+              lastSeenAt: new Date(),
+            },
+          });
+          newServices++;
+        }
+      }
+
+      // Apply post-sync rules (blacklist, hide, reclassify, cap maxQty)
+      const rulesResult = await applyPostSyncRules();
+
+      auditAdmin({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "CATALOG_SYNC",
+        target: "provider",
+        targetType: "SERVICE",
+        newValue: { createdCats, newServices, updatedServices, quarantinedServices, postSyncRules: rulesResult },
+      });
+
+      return {
+        success: true,
+        message: `Синхронизация: +${newServices} новых, ✓${updatedServices} обновлено, ⚠️${quarantinedServices} в карантине. Правила: ${rulesResult.reclassified} переклассифицировано, ${rulesResult.hidden} скрыто.`,
+        stats: { createdCats, newServices, updatedServices, quarantinedServices, postSyncRules: rulesResult },
+      };
+    } catch (err: unknown) {
+      console.error("Critical Sync Error:", err);
+      return { success: false, error: err instanceof Error ? err.message : "Unknown sync error" };
+    }
+  });
+}
+
+/** Approve quarantined service — apply pendingRate */
+export async function approveQuarantinedService(serviceId: string) {
+  return requireAdmin(async (admin) => {
+    const service = await db.service.findUnique({
+      where: { id: serviceId },
+      select: { id: true, rate: true, pendingRate: true, isQuarantined: true },
+    });
+
+    if (!service?.isQuarantined || service.pendingRate === null) {
+      return { success: false, error: "Service not in quarantine" };
+    }
+
+    await db.service.update({
+      where: { id: serviceId },
+      data: {
+        rate: service.pendingRate,
+        isQuarantined: false,
+        pendingRate: null,
+        quarantineReason: null,
+        quarantinedAt: null,
+      },
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "QUARANTINE_APPROVE",
+      target: serviceId,
+      targetType: "SERVICE",
+      oldValue: { rate: service.rate },
+      newValue: { rate: service.pendingRate },
+    });
+
+    return { success: true };
+  });
+}
+
+/** Reject quarantined service — keep current rate */
+export async function rejectQuarantinedService(serviceId: string) {
+  return requireAdmin(async (admin) => {
+    await db.service.update({
+      where: { id: serviceId },
+      data: { isQuarantined: false, pendingRate: null, quarantineReason: null, quarantinedAt: null },
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "QUARANTINE_REJECT",
+      target: serviceId,
+      targetType: "SERVICE",
+    });
+
+    return { success: true };
+  });
+}
+
+/** Bulk approve all quarantined */
+export async function approveAllQuarantined() {
+  return requireAdmin(async (admin) => {
+    const quarantined = await db.service.findMany({
+      where: { isQuarantined: true, pendingRate: { not: null } },
+      select: { id: true, pendingRate: true },
+    });
+
+    for (const s of quarantined) {
+      if (s.pendingRate === null) continue;
+      await db.service.update({
+        where: { id: s.id },
+        data: {
+          rate: s.pendingRate,
+          isQuarantined: false,
+          pendingRate: null,
+          quarantineReason: null,
+          quarantinedAt: null,
+        },
+      });
+    }
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "QUARANTINE_APPROVE_ALL",
+      target: `${quarantined.length} services`,
+      targetType: "SERVICE",
+      newValue: { count: quarantined.length },
+    });
+
+    return { success: true, count: quarantined.length };
+  });
+}

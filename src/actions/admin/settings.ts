@@ -1,0 +1,82 @@
+'use server';
+
+import { verifySession } from '@/lib/session';
+import { db } from '@/lib/db';
+import { settingsService } from '@/services/admin/settings.service';
+import { revalidatePath } from 'next/cache';
+import { EncryptionService } from '@/lib/encryption';
+import { z } from 'zod';
+import { roleSchema, globalSettingsSchema } from '@/validators/admin.validators';
+
+async function requireAdmin() {
+  const session = await verifySession();
+  if (!session) throw new Error('Unauthorized');
+  const user = await db.user.findUnique({ where: { id: session.userId } });
+  if (!user || (user.role !== 'ADMIN' && user.role !== 'OWNER')) throw new Error('Forbidden');
+  return { session, user };
+}
+
+// ── User Role Update ──
+export async function updateUserRole(formData: FormData) {
+  const { session } = await requireAdmin();
+  const parsed = roleSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return;
+  const { userId: targetUserId, role: newRole } = parsed.data;
+
+  if (targetUserId === session.userId) throw new Error('Cannot change own role');
+
+  await settingsService.updateUserRole(targetUserId, newRole);
+  await db.auditLog.create({
+    data: {
+      userId: session.userId,
+      action: 'USER_ROLE_CHANGE',
+      details: `Changed user ${targetUserId} role to ${newRole}`
+    }
+  });
+  revalidatePath('/admin/settings');
+}
+
+
+// ── System Settings Update ──
+export async function updateGlobalSettings(formData: FormData) {
+  const { session } = await requireAdmin();
+
+  const parsed = globalSettingsSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) throw new Error('Validation failed');
+  
+  const {
+    maintenanceMode,
+    siteName,
+    siteDescription,
+    welcomeMessage,
+    yookassaShopId,
+    yookassaSecretKey: rawYookassaSecret,
+    cryptoBotToken: rawCryptoBotToken,
+    exchangeRateUSD,
+  } = parsed.data;
+
+  const dataToUpdate: any = { maintenanceMode, siteName, siteDescription };
+  if (welcomeMessage !== null) dataToUpdate.welcomeMessage = welcomeMessage;
+  if (exchangeRateUSD !== undefined && exchangeRateUSD >= 0) {
+    if (exchangeRateUSD === 0) {
+       // if they pass 0, we can trigger an auto-sync, or just set it. 
+       // but wait, SettingsManager handles that. Let's just set it.
+    }
+    dataToUpdate.exchangeRateUSD = exchangeRateUSD;
+  }
+
+  // Only update secrets if they are provided (prevent overwriting with empty)
+  if (yookassaShopId) dataToUpdate.yookassaShopId = yookassaShopId;
+  if (rawYookassaSecret) dataToUpdate.yookassaSecretKey = EncryptionService.encrypt(rawYookassaSecret);
+  if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = EncryptionService.encrypt(rawCryptoBotToken);
+
+  await settingsService.updateSystemSettings(dataToUpdate);
+  await db.auditLog.create({
+    data: {
+      userId: session.userId,
+      action: 'SYSTEM_SETTINGS_UPDATE',
+      details: `Site: ${siteName}, Maintenance: ${maintenanceMode}`
+    }
+  });
+  revalidatePath('/admin/settings');
+}

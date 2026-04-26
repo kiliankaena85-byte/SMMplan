@@ -1,0 +1,44 @@
+# Roadmap: SMMplan_lite
+
+## Overview
+
+SMMplan_lite is an automated, smart SMM panel optimized for high margins with no automatic failover, smart link analysis, and embedded financial control. 
+**Current Development Focus:** v2.0 Extensions & Integration (B2B API & i18n).
+
+## Phases
+
+- [x] **v1.0 Milestone History:**
+  - Archived: [v1.0 ROADMAP](./milestones/v1.0-ROADMAP.md) | [v1.0 REQUIREMENTS](./milestones/v1.0-REQUIREMENTS.md)
+
+- [x] **Phase 1: B2B Reseller API Gateway**
+
+## Phase Details
+
+### Phase 1: B2B Reseller API Gateway
+**Goal**: Build public API endpoints allowing third-party panels to buy directly from Smmplan_lite using user balances.
+**Depends on**: v1.0 Core
+**Requirements**: [B2B-01, B2B-02, B2B-03, B2B-04]
+**Success Criteria**:
+  1. User can generate an API key from frontend.
+  2. External system can post to `/api/v1/order` and successfully deduct balance in cents.
+  3. API Service mapping returns a properly formatted JSON compatible with PerfectPanel specs.
+**Plans**: PLAN.md (Completed)
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. B2B Reseller API Gateway | 1/1 | Completed | x |
+
+### Phase 2: Production Hardening (Docker, CI/CD, Deployment Architecture)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 1
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 2 to break down)

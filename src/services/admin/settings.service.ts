@@ -1,0 +1,99 @@
+import { db } from '@/lib/db';
+
+export class SettingsService {
+  // ── User Management ──
+  async listUsers(search?: string) {
+    return db.user.findMany({
+      where: search ? { email: { contains: search, mode: 'insensitive' } } : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        balance: true,
+        supportLimitCents: true,
+        createdAt: true,
+        _count: { select: { orders: true, tickets: true } }
+      }
+    });
+  }
+
+  async listStaffUsers() {
+    return db.user.findMany({
+      where: { role: { in: ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'] } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        balance: true,
+        supportLimitCents: true,
+        createdAt: true,
+        _count: { select: { orders: true, tickets: true } }
+      }
+    });
+  }
+
+  async updateUserRole(userId: string, role: string) {
+    const validRoles = ['USER', 'SUPPORT', 'MANAGER', 'ADMIN'];
+    if (!validRoles.includes(role)) throw new Error(`Invalid role: ${role}`);
+    return db.user.update({
+      where: { id: userId },
+      data: { role }
+    });
+  }
+
+  // ── Provider Management ──
+  async listProviders() {
+    return db.provider.findMany({ orderBy: { createdAt: 'desc' } });
+  }
+
+  async upsertProvider(data: { id?: string; name: string; apiUrl: string; apiKey: string; isActive: boolean }) {
+    if (data.id) {
+      return db.provider.update({
+        where: { id: data.id },
+        data: { name: data.name, apiUrl: data.apiUrl, apiKey: data.apiKey, isActive: data.isActive }
+      });
+    }
+    return db.provider.create({
+      data: { name: data.name, apiUrl: data.apiUrl, apiKey: data.apiKey, isActive: data.isActive }
+    });
+  }
+
+  async deleteProvider(id: string) {
+    return db.provider.delete({ where: { id } });
+  }
+
+  // ── System Settings ──
+  async getSystemSettings() {
+    let settings = await db.systemSettings.findUnique({ where: { id: 'global' } });
+    if (!settings) {
+      settings = await db.systemSettings.create({
+        data: { id: 'global', taxRate: 6.0, opexMonthly: 0, maintenanceMode: false, siteName: 'Smmplan', siteDescription: '' }
+      });
+    }
+    return settings;
+  }
+
+  async updateSystemSettings(data: {
+    taxRate?: number;
+    opexMonthly?: number;
+    maintenanceMode?: boolean;
+    siteName?: string;
+    siteDescription?: string;
+    welcomeMessage?: string;
+    yookassaShopId?: string;
+    yookassaSecretKey?: string;
+    cryptoBotToken?: string;
+    exchangeRateUSD?: number;
+  }) {
+    return db.systemSettings.upsert({
+      where: { id: 'global' },
+      update: data,
+      create: { id: 'global', ...data }
+    });
+  }
+}
+
+export const settingsService = new SettingsService();

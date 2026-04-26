@@ -1,0 +1,143 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { WalletService } from './wallet.service';
+import { db } from '../../lib/db';
+
+vi.mock('../../lib/db', () => ({
+  db: {
+    $transaction: vi.fn(),
+  }
+}));
+
+describe('WalletService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('charge', () => {
+    it('throws error if amount <= 0', async () => {
+      await expect(WalletService.charge('user1', 0, 'test')).rejects.toThrow('Charge amount must be strictly greater than zero.');
+      await expect(WalletService.charge('user1', -50, 'test')).rejects.toThrow('Charge amount must be strictly greater than zero.');
+    });
+
+    it('returns error if db transaction fails', async () => {
+      vi.mocked(db.$transaction).mockRejectedValueOnce(new Error('DB Error'));
+      const result = await WalletService.charge('user1', 100, 'test');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('DB Error');
+    });
+
+    it('simulates actual transaction processing', async () => {
+      // Mock the callback passed to $transaction
+      vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
+        const tx = {
+          ledgerEntry: {
+            findUnique: vi.fn().mockResolvedValueOnce(null),
+            create: vi.fn().mockResolvedValueOnce({ id: 'entry1' })
+          },
+          user: {
+            findUnique: vi.fn().mockResolvedValueOnce({ id: 'user1', balance: 500 }),
+            update: vi.fn().mockResolvedValueOnce({ balance: 400 })
+          }
+        };
+        return cb(tx);
+      });
+
+      const res = await WalletService.charge('user1', 100, 'test', 'idemp_key1');
+      expect(res.success).toBe(true);
+      expect(res.balance).toBe(400);
+      expect(res.cached).toBe(false);
+    });
+
+    it('returns cached entry on idempotency hit', async () => {
+      vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
+        const tx = {
+          ledgerEntry: {
+            findUnique: vi.fn().mockResolvedValueOnce({ id: 'entry1', idempotencyKey: 'idemp_key1' }),
+          }
+        };
+        return cb(tx);
+      });
+
+      const res = await WalletService.charge('user1', 100, 'test', 'idemp_key1');
+      expect(res.success).toBe(true);
+      expect(res.cached).toBe(true);
+      expect(res.entry!.id).toBe('entry1');
+    });
+
+    it('throws inside transaction if user not found', async () => {
+      vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
+        const tx = {
+          ledgerEntry: { findUnique: vi.fn().mockResolvedValueOnce(null) },
+          user: { findUnique: vi.fn().mockResolvedValueOnce(null) }
+        };
+        return cb(tx);
+      });
+
+      const res = await WalletService.charge('userunknown', 100, 'test');
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('User userunknown not found.');
+    });
+
+    it('throws inside transaction if insufficient funds', async () => {
+      vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
+        const tx = {
+          ledgerEntry: { findUnique: vi.fn().mockResolvedValueOnce(null) },
+          user: { findUnique: vi.fn().mockResolvedValueOnce({ id: 'user1', balance: 50 }) }
+        };
+        return cb(tx);
+      });
+
+      const res = await WalletService.charge('user1', 100, 'test');
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('Insufficient funds: needed 100, got 50');
+    });
+  });
+
+  describe('credit', () => {
+    it('throws error if amount <= 0', async () => {
+      await expect(WalletService.credit('user1', 0, 'test')).rejects.toThrow('Credit amount must be strictly greater than zero.');
+    });
+
+    it('returns error if db transaction fails', async () => {
+      vi.mocked(db.$transaction).mockRejectedValueOnce(new Error('Credit DB Error'));
+      const result = await WalletService.credit('user1', 100, 'test');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Credit DB Error');
+    });
+
+    it('simulates actual credit processing', async () => {
+      vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
+        const tx = {
+          ledgerEntry: {
+            findUnique: vi.fn().mockResolvedValueOnce(null),
+            create: vi.fn().mockResolvedValueOnce({ id: 'entry2' })
+          },
+          user: {
+            update: vi.fn().mockResolvedValueOnce({ balance: 600 })
+          }
+        };
+        return cb(tx);
+      });
+
+      const res = await WalletService.credit('user1', 100, 'test', 'idemp_key2', 'admin1');
+      expect(res.success).toBe(true);
+      expect(res.balance).toBe(600);
+      expect(res.cached).toBe(false);
+    });
+
+    it('returns cached entry on idempotency hit for credit', async () => {
+      vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
+        const tx = {
+          ledgerEntry: {
+            findUnique: vi.fn().mockResolvedValueOnce({ id: 'entry1', idempotencyKey: 'idemp_key2' }),
+          }
+        };
+        return cb(tx);
+      });
+
+      const res = await WalletService.credit('user1', 100, 'test', 'idemp_key2');
+      expect(res.success).toBe(true);
+      expect(res.cached).toBe(true);
+    });
+  });
+});

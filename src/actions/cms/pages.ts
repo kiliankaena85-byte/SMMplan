@@ -1,0 +1,61 @@
+'use server';
+
+import { verifySession } from '@/lib/session';
+import { db } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import sanitizeHtml from 'sanitize-html';
+import { z } from 'zod';
+
+const pageSchema = z.object({
+  id: z.string().optional(),
+  slug: z.string().min(1),
+  title: z.string().min(1),
+  content: z.string().min(1)
+});
+
+export async function savePage(formData: FormData) {
+  const session = await verifySession();
+  if (!session) throw new Error('Unauthorized');
+
+  const user = await db.user.findUnique({ where: { id: session.userId } });
+  if (!user || (user.role !== 'ADMIN' && user.role !== 'OWNER')) throw new Error('Forbidden'); // Only ADMIN/OWNER can edit CMS
+
+  const parsed = pageSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return;
+  const { id: pageId, slug, title, content: rawContent } = parsed.data;
+
+  // Sanitize HTML to prevent XSS (OWASP A01)
+  const content = sanitizeHtml(rawContent, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'figure', 'figcaption']),
+    allowedAttributes: {
+      ...sanitizeHtml.defaults.allowedAttributes,
+      'img': ['src', 'alt', 'width', 'height', 'loading'],
+      '*': ['class', 'style']
+    },
+    allowedSchemes: ['http', 'https', 'data'],
+  });
+
+  if (pageId) {
+    await db.page.update({
+      where: { id: pageId },
+      data: { slug, title, content }
+    });
+  } else {
+    await db.page.create({
+      data: { slug, title, content }
+    });
+  }
+
+  await db.auditLog.create({
+    data: {
+      userId: session.userId,
+      action: 'CMS_PAGE_SAVE',
+      details: `Saved page: ${title} (/${slug})`
+    }
+  });
+
+  revalidatePath('/admin/pages');
+  revalidatePath(`/p/${slug}`);
+  redirect('/admin/pages');
+}

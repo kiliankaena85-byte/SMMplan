@@ -1,0 +1,54 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "scratch/**/*",
+    "src/bot/commands/**/*",
+    "src/bot/handlers/**/*",
+    "src/bot/middleware/**/*",
+    "src/bot/scenes/auto.wizard.ts",
+    "src/bot/scenes/bind-email.wizard.ts",
+    "src/bot/scenes/catalog.wizard.ts",
+    "src/bot/scenes/deposit.wizard.ts",
+    "src/bot/scenes/referral.wizard.ts",
+    "src/bot/scenes/support.wizard.ts",
+    "src/bot/utils/rate-limiter.ts",
+    "prisma/seed.ts",
+    "test/**/*"
+  ]
+}

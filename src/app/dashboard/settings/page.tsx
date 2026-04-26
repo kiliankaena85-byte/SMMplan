@@ -1,0 +1,251 @@
+import { verifySession } from '@/lib/session';
+import { db } from '@/lib/db';
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import {
+  User, Mail, Calendar, Shield,
+  CreditCard, TrendingUp, Settings, Star,
+} from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  title: 'Профиль | Smmplan',
+};
+
+export default async function ClientSettingsPage() {
+  const session = await verifySession();
+  if (!session) redirect('/login');
+
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      email: true,
+      balance: true,
+      totalSpent: true,
+      createdAt: true,
+      referralCode: true,
+      referralBalance: true,
+      _count: {
+        select: {
+          orders: true,
+          referrals: true,
+        },
+      },
+    },
+  });
+
+  if (!user) redirect('/login');
+
+  const balanceRub    = (user.balance / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+  const spentRub      = (user.totalSpent / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+  const refBalanceRub = ((user.referralBalance ?? 0) / 100).toFixed(2);
+
+  const memberSince = user.createdAt.toLocaleDateString('ru-RU', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  });
+
+  // Loyalty tier based on totalSpent
+  const spent = user.totalSpent / 100;
+  const tier = spent >= 50000
+    ? { name: 'Платиновый', color: 'text-purple-700 bg-purple-50 border-purple-200', icon: '💎' }
+    : spent >= 10000
+    ? { name: 'Золотой',    color: 'text-amber-700 bg-amber-50 border-amber-200',    icon: '🏆' }
+    : spent >= 2000
+    ? { name: 'Серебряный', color: 'text-slate-600 bg-slate-50 border-slate-200',    icon: '⭐' }
+    : { name: 'Базовый',    color: 'text-muted-foreground bg-muted border-border',   icon: '🌱' };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Профиль</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Ваш аккаунт и статистика
+        </p>
+      </div>
+
+      {/* Profile card */}
+      <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="flex items-start gap-4">
+          {/* Avatar */}
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl font-black uppercase shrink-0">
+            {user.email.substring(0, 2)}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-bold text-foreground truncate">{user.email}</p>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase ${tier.color}`}>
+                {tier.icon} {tier.name}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+              <Calendar className="w-3.5 h-3.5" />
+              Участник с {memberSince}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { icon: CreditCard, label: 'Баланс',       value: `${balanceRub} ₽`,        color: 'text-primary bg-primary/10' },
+          { icon: TrendingUp, label: 'Потрачено всего', value: `${spentRub} ₽`,        color: 'text-emerald-600 bg-emerald-50' },
+          { icon: Settings,   label: 'Заказов',       value: user._count.orders.toString(), color: 'text-blue-600 bg-blue-50' },
+          { icon: Star,       label: 'Рефералов',     value: user._count.referrals.toString(), color: 'text-amber-600 bg-amber-50' },
+        ].map(({ icon: Icon, label, value, color }) => (
+          <div key={label} className="bg-card border border-border rounded-2xl p-4 space-y-2">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${color}`}>
+              <Icon className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground">{label}</div>
+              <div className="text-lg font-black text-foreground tabular-nums">{value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+
+
+      {/* Account details */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border">
+          <h2 className="font-semibold text-foreground text-sm">Данные аккаунта</h2>
+        </div>
+        <div className="divide-y divide-border">
+          {[
+            { icon: Mail,     label: 'Email',             value: user.email },
+            { icon: Star,     label: 'Реферальный баланс', value: `${refBalanceRub} ₽` },
+            { icon: Shield,   label: 'Реф. код',          value: user.referralCode ?? '—' },
+          ].map(({ icon: Icon, label, value }) => (
+            <div key={label} className="flex items-center gap-4 px-5 py-4">
+              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-muted-foreground">{label}</div>
+                <div className="text-sm font-semibold text-foreground truncate">{value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Referral balance usage info */}
+      {(user.referralBalance ?? 0) > 0 && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-3">
+          <Star className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-emerald-800 mb-0.5">
+              У вас {refBalanceRub} ₽ реферального баланса
+            </p>
+            <p className="text-xs text-emerald-700 mb-3">
+              Реферальный баланс начисляется автоматически — 15% с каждого заказа приглашённых вами пользователей.
+              Средства зачисляются на ваш основной баланс при выводе.
+            </p>
+            <Link
+              href="/dashboard/referrals"
+              aria-label="Перейти к реферальной программе"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline hover:no-underline transition-colors"
+            >
+              Управление реферальной программой →
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Loyalty progress */}
+      <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-foreground text-sm">Уровень лояльности</h2>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase ${tier.color}`}>
+            {tier.icon} {tier.name}
+          </span>
+        </div>
+
+        {/* Tier progression */}
+        <div className="space-y-2">
+          {[
+            { label: 'Базовый',    threshold: 0,     icon: '🌱' },
+            { label: 'Серебряный', threshold: 2000,  icon: '⭐' },
+            { label: 'Золотой',    threshold: 10000, icon: '🏆' },
+            { label: 'Платиновый', threshold: 50000, icon: '💎' },
+          ].map((t, i, arr) => {
+            const next = arr[i + 1];
+            const isCurrentOrPast = spent >= t.threshold;
+            const isCurrent = isCurrentOrPast && (!next || spent < next.threshold);
+            return (
+              <div key={t.label} className="flex items-center gap-3">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 ${
+                    isCurrentOrPast ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground/40'
+                  }`}
+                >
+                  {t.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <span className={`text-xs font-semibold ${isCurrent ? 'text-primary' : isCurrentOrPast ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {t.label}
+                      {isCurrent && <span className="ml-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md font-bold">ВЫ ЗДЕСЬ</span>}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums">
+                      от {t.threshold.toLocaleString('ru-RU')} ₽
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Next tier hint */}
+        {spent < 50000 && (
+          <div className="text-xs text-muted-foreground bg-muted/50 rounded-xl px-3 py-2">
+            {spent < 2000  && `До Серебряного уровня: ещё ${(2000 - spent).toLocaleString('ru-RU')} ₽`}
+            {spent >= 2000  && spent < 10000 && `До Золотого уровня: ещё ${(10000 - spent).toLocaleString('ru-RU')} ₽`}
+            {spent >= 10000 && spent < 50000 && `До Платинового уровня: ещё ${(50000 - spent).toLocaleString('ru-RU')} ₽`}
+          </div>
+        )}
+      </div>
+
+      {/* Quick links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Link
+          href="/dashboard/referrals"
+          className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4 hover:bg-muted/30 transition-all duration-200 group"
+          aria-label="Реферальная программа"
+        >
+          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Star className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+              Реферальная программа
+            </div>
+            <div className="text-xs text-muted-foreground">Зарабатывайте 15% с каждого заказа</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/dashboard/settings/api"
+          className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4 hover:bg-muted/30 transition-all duration-200 group"
+          aria-label="API доступ"
+        >
+          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <User className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+              B2B API
+            </div>
+            <div className="text-xs text-muted-foreground">Управление API-ключом</div>
+          </div>
+        </Link>
+      </div>
+    </div>
+  );
+}
