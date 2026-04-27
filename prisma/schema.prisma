@@ -132,6 +132,7 @@ model Service {
   numericId   Int       @unique @default(autoincrement())
   name        String
   description String? // Public SEO description (shown to clients)
+  features    Json?   // Structured metadata extracted by AI (geo, speed, warranty)
   categoryId  String
   category    Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   providerId  String? // Link to Provider who fulfills this service

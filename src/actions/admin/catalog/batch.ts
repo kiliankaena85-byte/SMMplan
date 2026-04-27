@@ -10,7 +10,7 @@
  * All changes recorded in AdminAuditLog (fire-and-forget).
  */
 
-import { requireAdmin } from '@/lib/server/rbac';
+import { requireStaffPermission } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 import { auditAdmin } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
@@ -28,7 +28,7 @@ export async function batchToggleServicesAction(
   serviceIds: string[],
   isActive: boolean
 ) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const ids = batchIdsSchema.safeParse(serviceIds);
     if (!ids.success) {
       return { success: false as const, error: 'Invalid service IDs' };
@@ -58,7 +58,7 @@ export async function batchSetMarkupAction(
   serviceIds: string[],
   markup: number
 ) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const ids = batchIdsSchema.safeParse(serviceIds);
     if (!ids.success) {
       return { success: false as const, error: 'Invalid service IDs' };
@@ -96,7 +96,7 @@ export async function updateServiceMarkupAction(
   serviceId: string,
   markup: number
 ) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const markupValidation = markupSchema.safeParse(markup);
     if (!markupValidation.success) {
       return {
@@ -135,7 +135,7 @@ export async function toggleServiceActiveAction(
   serviceId: string,
   isActive: boolean
 ) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     await db.service.update({
       where: { id: serviceId },
       data: { isActive },

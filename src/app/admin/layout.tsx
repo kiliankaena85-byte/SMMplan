@@ -14,20 +14,20 @@ const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
 
 // Navigation tabs with role-based visibility
 const ADMIN_TABS = [
-  { href: '/admin/dashboard', icon: 'Home',          label: 'Дашборд',   roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-  { href: '/admin/clients',   icon: 'Users',         label: 'Клиенты',    roles: ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'] },
-  { href: '/admin/orders',    icon: 'Package',       label: 'Заказы',     roles: ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'] },
-  { href: '/admin/refills',   icon: 'RefreshCw',     label: 'Докрутки',   roles: ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'] },
-  { href: '/admin/catalog',           icon: 'ShoppingCart',  label: 'Каталог',       roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-  { href: '/admin/catalog/quarantine',icon: 'AlertTriangle', label: 'Карантин',      roles: ['OWNER', 'ADMIN'] },
-  { href: '/admin/tickets',   icon: 'MessageSquare', label: 'Тикеты',     roles: ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'] },
-  { href: '/admin/finance',   icon: 'CreditCard',    label: 'Финансы',    roles: ['OWNER', 'ADMIN'] },
-  { href: '/admin/providers', icon: 'Link',          label: 'Провайдеры', roles: ['OWNER', 'ADMIN'] },
-  { href: '/admin/marketing', icon: 'Gift',          label: 'Маркетинг',  roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-  { href: '/admin/pages',     icon: 'FileText',      label: 'Страницы',   roles: ['OWNER', 'ADMIN', 'MANAGER'] },
-  { href: '/admin/settings',        icon: 'Settings',   label: 'Настройки',     roles: ['OWNER', 'ADMIN'] },
-  { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фича-флаги',    roles: ['OWNER'] },
-  { href: '/admin/system/queues',   icon: 'Activity',   label: 'Очереди',       roles: ['OWNER', 'ADMIN'] },
+  { href: '/admin/dashboard', icon: 'Home',          label: 'Дашборд',   section: 'dashboard' },
+  { href: '/admin/clients',   icon: 'Users',         label: 'Клиенты',    section: 'clients' },
+  { href: '/admin/orders',    icon: 'Package',       label: 'Заказы',     section: 'orders' },
+  { href: '/admin/refills',   icon: 'RefreshCw',     label: 'Докрутки',   section: 'refills' },
+  { href: '/admin/catalog',           icon: 'ShoppingCart',  label: 'Каталог',       section: 'catalog' },
+  { href: '/admin/catalog/quarantine',icon: 'AlertTriangle', label: 'Карантин',      section: 'quarantine' },
+  { href: '/admin/tickets',   icon: 'MessageSquare', label: 'Тикеты',     section: 'tickets' },
+  { href: '/admin/finance',   icon: 'CreditCard',    label: 'Финансы',    section: 'finance' },
+  { href: '/admin/providers', icon: 'Link',          label: 'Провайдеры', section: 'providers' },
+  { href: '/admin/marketing', icon: 'Gift',          label: 'Маркетинг',  section: 'marketing' },
+  { href: '/admin/pages',     icon: 'FileText',      label: 'Страницы',   section: 'pages' },
+  { href: '/admin/settings',        icon: 'Settings',   label: 'Настройки',     section: 'settings' },
+  { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фича-флаги',    section: 'features' },
+  { href: '/admin/system/queues',   icon: 'Activity',   label: 'Очереди',       section: 'queues' },
 ];
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
@@ -44,13 +44,27 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/login');
   }
 
-  const user = await db.user.findUnique({ where: { id: session.userId } });
+  const user = await db.user.findUnique({ 
+    where: { id: session.userId },
+    include: { staffRole: { include: { permissions: true } } }
+  });
 
   if (!user || !ADMIN_ROLES.includes(user.role)) {
     redirect('/dashboard/new-order');
   }
 
-  const visibleTabs = ADMIN_TABS.filter(tab => tab.roles.includes(user.role));
+  let visibleTabs = [];
+  if (user.role === 'OWNER') {
+    visibleTabs = ADMIN_TABS;
+  } else if (user.staffRole) {
+    visibleTabs = ADMIN_TABS.filter(tab => 
+      user.staffRole!.permissions.some((p: any) => p.section === tab.section && p.canView)
+    );
+  } else {
+    // Graceful fallback for non-migrated users
+    visibleTabs = [];
+  }
+
   const roleInfo = ROLE_LABELS[user.role] || { label: user.role, color: 'bg-slate-100 text-slate-800' };
   const isTestMode = await SettingsManager.isTestMode();
 

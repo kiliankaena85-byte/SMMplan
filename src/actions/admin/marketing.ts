@@ -19,8 +19,25 @@ const promoCodeSchema = z.object({
 async function requireAdmin() {
   const session = await verifySession();
   if (!session) throw new Error('Unauthorized');
-  const user = await db.user.findUnique({ where: { id: session.userId } });
-  if (!user || user.role !== 'ADMIN' && user.role !== 'OWNER') throw new Error('Forbidden');
+  
+  const user = await db.user.findUnique({ 
+    where: { id: session.userId },
+    include: { staffRole: { include: { permissions: true } } }
+  });
+  
+  if (!user) throw new Error('Forbidden');
+  
+  // OWNER bypass
+  if (user.role === 'OWNER') return { session, user };
+
+  // Strict Staff Role evaluation
+  if (!user.staffRole) throw new Error('Forbidden: Staff Role required');
+  const permission = user.staffRole.permissions.find(p => p.section === 'marketing');
+  
+  if (!permission || !permission.canEdit) {
+    throw new Error('Forbidden: Missing "marketing" edit permissions');
+  }
+
   return { session, user };
 }
 

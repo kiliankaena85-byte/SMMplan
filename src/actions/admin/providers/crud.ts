@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/server/rbac";
+import { requireStaffPermission } from "@/lib/server/rbac";
 import { CryptoService } from "@/lib/crypto";
 import { auditAdmin } from "@/lib/admin-audit";
 import { providerService } from "@/services/providers/provider.service";
@@ -30,7 +30,7 @@ export async function createProvider(rawData: {
   requestType: string;
   headers: Record<string, string>;
 }) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
     const data = providerSchema.parse(rawData);
 
     // Encrypt the API key before saving!
@@ -77,7 +77,7 @@ export async function updateProvider(rawId: string, rawData: {
   requestType: string;
   headers: Record<string, string>;
 }) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     
     // Create an update schema dynamically to allow empty apikey
@@ -121,7 +121,7 @@ export async function updateProvider(rawId: string, rawData: {
 }
 
 export async function deleteProvider(rawId: string) {
-    return requireAdmin(async (admin) => {
+    return requireStaffPermission('providers', 'edit', async (admin) => {
       const id = idSchema.parse(rawId);
       // Check if it has related services
       const count = await db.service.count({ where: { providerId: id } });
@@ -144,7 +144,7 @@ export async function deleteProvider(rawId: string) {
 }
 
 export async function checkProviderConnection(rawId: string) {
-    return requireAdmin(async () => {
+    return requireStaffPermission('providers', 'view', async () => {
         try {
             const id = idSchema.parse(rawId);
             const providerRecord = await db.provider.findUnique({ where: { id } });

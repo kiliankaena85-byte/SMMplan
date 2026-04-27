@@ -128,11 +128,26 @@ function InlinePriceCell({ service }: { service: CatalogServiceDTO }) {
 
   function save(newMarkup: number) {
     if (newMarkup === service.markup) return;
+    
+    // HARD BLOCK: Zero-Defect Rule against financial loss
+    if (newMarkup < SAFETY_MULTIPLIER) {
+      toast.error(
+        <div className="flex flex-col gap-1">
+          <span className="font-bold">Критическая ошибка маржинальности</span>
+          <span>Значение <b>x{newMarkup}</b> ниже уровня безубыточности <b>x{SAFETY_MULTIPLIER.toFixed(2)}</b>. Сохранение заблокировано.</span>
+        </div>
+      );
+      setMarkup(service.markup); // Revert UI
+      return;
+    }
+
     startTransition(async () => {
       const r = await updateServiceMarkupAction(service.id, newMarkup);
       if (!r.success) {
         toast.error(r.error ?? 'Ошибка сохранения');
         setMarkup(service.markup); // revert
+      } else {
+        toast.success('Маржа обновлена');
       }
     });
   }

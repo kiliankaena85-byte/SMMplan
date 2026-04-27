@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { PrismaClient } from '@prisma/client';
 
 // Use the authenticated state we created in auth.setup.ts
 test.use({ storageState: 'e2e/playwright/.auth/user.json' });
@@ -74,20 +75,66 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     const orderId = orderIdMatch![1];
     const internalPaymentId = paymentIdMatch![1];
 
-    // 9. Simulate the YooKassa Webhook (we use the exact contract from `webhooks/yookassa/route.ts`)
-    // Because we are running local, the webhook is at http://localhost:3000/api/webhooks/yookassa
-    // The server expects `object.metadata.userId` and `object.metadata.paymentId`. Wait, we don't know userId here.
-    // However, the webhook confirms internalPaymentId natively.
-    // Let's actually post to the sandbox route to top up, as the sandbox mimics YooKassa fully.
+    // 9. Fetch userId from DB via Prisma
+    const prisma = new PrismaClient();
     
-    // NOTE: Smmplan webhook checks for YooKassa IPs in production. In dev (NODE_ENV !== 'production'), it bypasses IP checks.
-    // We can directly POST to the webhook. But wait, `confirmPayment` requires the YooKassa api to confirm (Double-Check Logic: `paymentService.confirmPayment` fetches from YooKassa).
-    // So the direct webhook POST in E2E will FAIL because `paymentService.confirmPayment` will try to call YooKassa with gatewayId = fakeId and get API error.
+    // We need to poll briefly if the payment isn't there yet, though Server Action completes synchronously.
+    const payment = await prisma.payment.findUnique({
+      where: { id: internalPaymentId }
+    });
     
-    // To bypass YooKassa double-check, we must use the DEV Sandbox route which safely fakes the payment directly via Prisma.
-    // This perfectly tests the LedgerEntry insertion (because we should fix the Sandbox route to insert ledger).
+    expect(payment).not.toBeNull();
+    const userId = payment!.userId;
+    const amountRub = payment!.amount / 100;
+
+    // 10. Simulate the YooKassa Webhook Action
+    console.log(`[E2E YooKassa] Simulating Webhook for DB Payment: ${internalPaymentId}`);
+    const mockGatewayId = 'mock_yookassa_' + Date.now();
     
-    console.log(`[E2E YooKassa] Order ID: ${orderId}, Internal Payment ID: ${internalPaymentId}`);
+    const webhookPayload = {
+      type: 'notification',
+      event: 'payment.succeeded',
+      object: {
+        id: mockGatewayId,
+        amount: {
+          value: amountRub.toFixed(2),
+          currency: 'RUB'
+        },
+        metadata: {
+          userId: userId,
+          paymentId: internalPaymentId,
+          type: 'yookassa'
+        }
+      }
+    };
+
+    const webhookResp = await request.post('/api/webhooks/yookassa', {
+      data: webhookPayload
+    });
+    
+    expect(webhookResp.status()).toBe(200);
+
+    // 11. Assert Database State Transitions
+    const finalPayment = await prisma.payment.findUnique({ where: { id: internalPaymentId } });
+    expect(finalPayment!.status).toBe('SUCCEEDED');
+    
+    const finalOrder = await prisma.order.findUnique({ where: { id: orderId } });
+    expect(finalOrder!.status).toBe('PENDING'); // Should activate
+    
+    const ledgerEntry = await prisma.ledgerEntry.findFirst({
+      where: {
+        userId: userId,
+        reason: { contains: 'Пополнение баланса через yookassa' }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    expect(ledgerEntry).not.toBeNull();
+    expect(ledgerEntry!.amount).toBe(payment!.amount); // Should match
+
+    console.log('[E2E YooKassa] Financial Flow (Order -> Webhook -> Ledger -> Activation) verified successfully.');
+    
+    await prisma.$disconnect();
     
   });
 });

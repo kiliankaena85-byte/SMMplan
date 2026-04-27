@@ -169,18 +169,29 @@ export default async function MarketingPage() {
                           <th className="py-2.5 px-2 font-bold">Email (Учетная запись)</th>
                           <th className="py-2.5 px-2 font-bold text-right text-emerald-600">Pending Баланс</th>
                           <th className="py-2.5 px-2 font-bold text-right">Рефералы</th>
+                          <th className="py-2.5 px-2 font-bold text-right w-24">Действия</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {topReferrers.map(u => (
-                          <tr key={u.id} className="hover:bg-slate-50/80 even:bg-slate-50/30 transition-colors border-b border-slate-100/30 group">
-                            <td className="py-3 px-2 text-sky-600 font-mono text-xs font-semibold tracking-tight">{u.email}</td>
-                            <td className="py-3 px-2 text-right font-extrabold text-emerald-600 tabular-nums text-[13px] group-hover:scale-105 transition-transform origin-right">{(u.referralBalance / 100).toFixed(2)} ₽</td>
-                            <td className="py-3 px-2 text-right text-slate-500 tabular-nums">
-                                <span className="inline-flex items-center gap-1.5"><span className="text-slate-400 text-xs font-semibold">{u._count.referrals}</span> чел.</span>
-                            </td>
-                          </tr>
-                        ))}
+                        {topReferrers.map(u => {
+                          const payoutAction = processReferralPayout.bind(null, u.id, u.referralBalance);
+                          return (
+                            <tr key={u.id} className="hover:bg-slate-50/80 even:bg-slate-50/30 transition-colors border-b border-slate-100/30 group">
+                              <td className="py-3 px-2 text-sky-600 font-mono text-xs font-semibold tracking-tight">{u.email}</td>
+                              <td className="py-3 px-2 text-right font-extrabold text-emerald-600 tabular-nums text-[13px] group-hover:scale-105 transition-transform origin-right">{(u.referralBalance / 100).toFixed(2)} ₽</td>
+                              <td className="py-3 px-2 text-right text-slate-500 tabular-nums">
+                                  <span className="inline-flex items-center gap-1.5"><span className="text-slate-400 text-xs font-semibold">{u._count.referrals}</span> чел.</span>
+                              </td>
+                              <td className="py-2 px-2 text-right">
+                                <form action={payoutAction}>
+                                  <Button type="submit" variant="outline" size="sm" className="h-7 text-[10px] font-bold text-sky-700 bg-sky-50 border-sky-200 hover:bg-sky-100">
+                                    Отправить на баланс
+                                  </Button>
+                                </form>
+                              </td>
+                            </tr>
+                          );
+                        })}
                         {topReferrers.length === 0 && (
                           <tr><td colSpan={3} className="py-12 text-center text-slate-400 font-medium text-sm">Нет аккаунтов с невыплаченным холдом</td></tr>
                         )}
