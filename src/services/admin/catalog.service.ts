@@ -7,6 +7,8 @@ import { SettingsManager } from '@/lib/settings';
 import {
   SYNC_ANOMALY_THRESHOLD,
   applyPricingLadder,
+  SAFETY_FLOOR_MARKUP,
+  TOTAL_MANDATORY_DEDUCTIONS
 } from '@/lib/financial-constants';
 
 // ── Types ──

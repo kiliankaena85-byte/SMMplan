@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { cbrRateService } from '@/services/system/cbr-rate.service';
+import { CBRRateService } from '@/services/system/cbr-rate.service';
 
 /**
  * T-007: Cron endpoint to sync CBR Exchange Rate.
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await cbrRateService.syncCBRExchangeRate();
+    const result = await CBRRateService.syncCBRExchangeRate();
     return NextResponse.json({
       success: true,
       rate: result.rate,

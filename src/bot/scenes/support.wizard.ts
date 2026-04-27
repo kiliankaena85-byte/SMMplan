@@ -68,19 +68,17 @@ export const supportWizard = new Scenes.WizardScene(
           userId: user.id,
           subject: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
           status: 'OPEN',
-          priority: 'NORMAL',
           messages: {
             create: {
-              userId: user.id,
-              text: text,
-              isAdmin: false
+              sender: 'USER',
+              text: text
             }
           }
         }
       });
 
       await ctx.reply(
-        `✅ <b>Тикет #${ticket.numericId} создан!</b>\n\n` +
+        `✅ <b>Тикет #${ticket.id.substring(ticket.id.length - 6).toUpperCase()} создан!</b>\n\n` +
         `Мы уже получили ваше обращение и скоро ответим. Вы можете отслеживать статус тикета в веб-интерфейсе.`,
         { parse_mode: 'HTML' }
       );

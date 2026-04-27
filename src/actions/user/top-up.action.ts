@@ -30,7 +30,7 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
       currency_type: "fiat",
       fiat: "RUB",
       amount: amountRub.toString(),
-      description: `Пополнение баланса Smmplan (Пользователь: ${session.userId})`,
+      description: `Услуги IT-консалтинга (ID: ${payment.id})`,
       payload: payment.id,
       paid_btn_name: 'openChannel',
       paid_btn_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/add-funds?success=1`
@@ -86,7 +86,7 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
     amount: { value: amountRub.toFixed(2), currency: "RUB" },
     capture: true,
     confirmation: { type: "redirect", return_url: successUrl },
-    description: `Пополнение баланса Smmplan (Пользователь: ${session.userId})`,
+    description: `Оплата услуг IT-агентства (Digital Consulting, Счёт: ${payment.id})`,
     metadata: { paymentId: payment.id, userId: session.userId, type: "deposit" }
   };
 

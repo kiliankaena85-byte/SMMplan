@@ -14,6 +14,44 @@ services:
     ports:
       # Expose on 5433 to prevent conflict with Smmplan legacy db
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: smmplan_lite_redis
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - lite_redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    image: node:20-alpine
+    container_name: smmplan_lite_worker
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    command: sh -c "npm install && npx tsx watch src/workers/index.ts"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   lite_postgres_data:
+  lite_redis_data:

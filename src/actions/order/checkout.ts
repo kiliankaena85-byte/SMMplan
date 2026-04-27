@@ -40,6 +40,7 @@ export async function calculatePriceAction(
  */
 import { z } from 'zod';
 import { createSafeAction } from '@/lib/safe-action';
+import { MutexManager } from '@/lib/redis-lock';
 
 const checkoutSchema = z.object({
   serviceId: z.string(),
@@ -140,35 +141,38 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     try {
       if (gateway === 'balance') {
         // We will perform atomic deduction inside the transaction to prevent race condition double-spending
-        await db.$transaction(async (tx) => {
-          const updatedUser = await tx.user.update({
-            where: { id: user.id },
-            data: { 
-              balance: { decrement: pricing.totalCents },
-              totalSpent: { increment: pricing.totalCents } 
+        // AND use a Redis Mutex to completely serialize processing per-user for the balance gateway.
+        await MutexManager.withLock(`balance_lock_${user.id}`, 10000, 5000, async () => {
+          await db.$transaction(async (tx) => {
+            const updatedUser = await tx.user.update({
+              where: { id: user.id },
+              data: { 
+                balance: { decrement: pricing.totalCents },
+                totalSpent: { increment: pricing.totalCents } 
+              }
+            });
+
+            await tx.ledgerEntry.create({
+              data: {
+                userId: user.id,
+                amount: -pricing.totalCents,
+                reason: `Оплата заказа ${result.orderId} (Списание)`,
+                status: 'APPROVED'
+              }
+            });
+
+            if (updatedUser.balance < 0) {
+              throw new Error('Недостаточно средств на внутреннем балансе. Транзакция отклонена.');
             }
-          });
 
-          await tx.ledgerEntry.create({
-            data: {
-              userId: user.id,
-              amount: -pricing.totalCents,
-              reason: `Оплата заказа ${result.orderId} (Списание)`,
-              status: 'APPROVED'
-            }
-          });
-
-          if (updatedUser.balance < 0) {
-            throw new Error('Недостаточно средств на внутреннем балансе. Транзакция отклонена.');
-          }
-
-          await tx.payment.update({
-            where: { id: result.paymentId },
-            data: { status: 'SUCCEEDED', gatewayId: `internal_${Date.now()}` }
-          });
-          await tx.order.update({
-            where: { id: result.orderId },
-            data: { status: 'PENDING' }
+            await tx.payment.update({
+              where: { id: result.paymentId },
+              data: { status: 'SUCCEEDED', gatewayId: `internal_${Date.now()}` }
+            });
+            await tx.order.update({
+              where: { id: result.orderId },
+              data: { status: 'PENDING' }
+            });
           });
         });
 

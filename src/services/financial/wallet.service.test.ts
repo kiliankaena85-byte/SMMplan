@@ -23,7 +23,7 @@ describe('WalletService', () => {
       vi.mocked(db.$transaction).mockRejectedValueOnce(new Error('DB Error'));
       const result = await WalletService.charge('user1', 100, 'test');
       expect(result.success).toBe(false);
-      expect(result.error).toBe('DB Error');
+      expect((result as any).error).toBe('DB Error');
     });
 
     it('simulates actual transaction processing', async () => {
@@ -61,7 +61,7 @@ describe('WalletService', () => {
       const res = await WalletService.charge('user1', 100, 'test', 'idemp_key1');
       expect(res.success).toBe(true);
       expect(res.cached).toBe(true);
-      expect(res.entry!.id).toBe('entry1');
+      expect((res as any).entry!.id).toBe('entry1');
     });
 
     it('throws inside transaction if user not found', async () => {
@@ -75,7 +75,7 @@ describe('WalletService', () => {
 
       const res = await WalletService.charge('userunknown', 100, 'test');
       expect(res.success).toBe(false);
-      expect(res.error).toBe('User userunknown not found.');
+      expect((res as any).error).toBe('User userunknown not found.');
     });
 
     it('throws inside transaction if insufficient funds', async () => {
@@ -89,7 +89,7 @@ describe('WalletService', () => {
 
       const res = await WalletService.charge('user1', 100, 'test');
       expect(res.success).toBe(false);
-      expect(res.error).toBe('Insufficient funds: needed 100, got 50');
+      expect((res as any).error).toBe('Insufficient funds: needed 100, got 50');
     });
   });
 
@@ -102,7 +102,7 @@ describe('WalletService', () => {
       vi.mocked(db.$transaction).mockRejectedValueOnce(new Error('Credit DB Error'));
       const result = await WalletService.credit('user1', 100, 'test');
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Credit DB Error');
+      expect((result as any).error).toBe('Credit DB Error');
     });
 
     it('simulates actual credit processing', async () => {

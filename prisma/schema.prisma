@@ -43,6 +43,10 @@ model User {
   referredBy  User?        @relation("ReferralTree", fields: [referredById], references: [id], onDelete: SetNull)
   referrals   User[]       @relation("ReferralTree")
   commissions Commission[] @relation("ReferredCommissions")
+
+  // RBAC
+  staffRoleId String?
+  staffRole   StaffRole?   @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
 }
 
 model PromoCode {
@@ -448,6 +452,7 @@ model StaffRole {
   description String            @default("")
   isSystem    Boolean           @default(false) // true = cannot delete (Owner, Admin)
   permissions StaffPermission[]
+  users       User[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 }

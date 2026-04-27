@@ -83,7 +83,8 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
 
     return services.map(s => {
        let badge = "";
-       if (s.name.toLowerCase().includes('гарант')) badge = "ГАРАНТИЯ";
+       const nameLower = s.name.toLowerCase();
+       if (nameLower.includes('гарант') && !nameLower.includes('без гарант')) badge = "ГАРАНТИЯ";
        else if (s.rate < 0.1) badge = "ХИТ";
        else if (s.rate > 2.0) badge = "ПРЕМИУМ";
 

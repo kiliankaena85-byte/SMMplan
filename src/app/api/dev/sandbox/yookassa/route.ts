@@ -46,6 +46,16 @@ export async function POST(req: NextRequest) {
         where: { id: userId },
         data: { balance: { increment: amountCents } }
       });
+
+      // Insert Ledger Entry to satisfy financial audit requirements
+      await tx.ledgerEntry.create({
+        data: {
+          userId,
+          amount: amountCents,
+          reason: `Пополнение баланса (Dev Sandbox ЮKassa)`,
+          status: 'APPROVED'
+        }
+      });
     });
 
     return NextResponse.json({ success: true, message: 'Dev Sandbox Payment Succeeded' }, { status: 200 });

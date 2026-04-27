@@ -122,15 +122,17 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       const svcs = await getServicesByCategoryAction(categoryId);
       setServices(svcs);
       
-      // Auto-select first service if nothing selected
-      if (svcs.length > 0 && (!selectedService || !svcs.some(s => s.id === selectedService.id))) {
+      // When category changes, auto-select the first service of the new category
+      if (svcs.length > 0) {
         setSelectedService(svcs[0]);
+      } else {
+        setSelectedService(null);
       }
       setIsLoading(false);
     };
 
     loadServices();
-  }, [categoryId, selectedService]);
+  }, [categoryId]);
 
   // 4. Update quantity limits when Service changes
   useEffect(() => {
@@ -194,11 +196,14 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
 
   const activeNetwork = catalog.find(n => n.id === networkId) || catalog[0] || null;
   let availableCategories = activeNetwork ? activeNetwork.categories : [];
+  
+  // Restore aggressive filtering to prevent users from ordering Post services (like Reactions) for a Profile link.
   if (suggestedCategories.length > 0) {
-     const filtered = availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories));
-     if (filtered.length > 0) availableCategories = filtered;
+    const filteredCats = availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories));
+    if (filteredCats.length > 0) {
+      availableCategories = filteredCats;
+    }
   }
-
   let displayCatalog = catalog;
   if (platform && platform !== IntelligencePlatform.OTHER) {
     const pStr = platform.toLowerCase();

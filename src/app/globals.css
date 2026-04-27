@@ -2,25 +2,25 @@
 @config "../../tailwind.config.js";
 
 @theme {
-  /* ── Base ── */
-  --color-background: #f8fafc; /* slate-50 */
+  /* ── Background & Off-white base ── */
+  --color-background: #f8fafc; /* slate-50 - softer than pure white for bento backdrops */
   --color-foreground: #0f172a; /* slate-900 */
 
   /* ── Card ── */
-  --color-card: #ffffff;
+  --color-card: #ffffff; /* Pure white cards stand out on slate-50 */
   --color-card-foreground: #0f172a;
 
   /* ── Popover ── */
   --color-popover: #ffffff;
   --color-popover-foreground: #0f172a;
 
-  /* ── Primary (sky-500) ── */
-  --color-primary: #0ea5e9; 
+  /* ── Primary (Friendly Sky Blue) ── */
+  --color-primary: #0284c7; /* sky-600 - deep, trusty blue */
   --color-primary-foreground: #ffffff;
 
-  /* ── Secondary (slate-100) ── */
-  --color-secondary: #f1f5f9;
-  --color-secondary-foreground: #0f172a;
+  /* ── Secondary (Soft Interactive Background) ── */
+  --color-secondary: #e0f2fe; /* sky-100 */
+  --color-secondary-foreground: #0369a1; /* sky-700 */
 
   /* ── Muted (slate-100 / slate-500) ── */
   --color-muted: #f1f5f9;
@@ -30,19 +30,43 @@
   --color-accent: #f1f5f9;
   --color-accent-foreground: #0f172a;
 
-  /* ── Destructive (rose-500 for better tone) ── */
+  /* ── Destructive (rose-500) ── */
   --color-destructive: #f43f5e;
   --color-destructive-foreground: #ffffff;
 
-  /* ── Borders & Inputs (slate-200) ── */
+  /* ── Borders & Inputs ── */
   --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
+  --color-input: #ffffff;
 
-  /* ── Focus Ring (sky-500) ── */
-  --color-ring: #0ea5e9;
+  /* ── Focus Ring ── */
+  --color-ring: #bae6fd; /* sky-200 */
 
-  /* ── Radius ── */
-  --radius: 0.75rem; /* softer, 12px default */
+  /* ── Radius (Massive app-like curve) ── */
+  --radius: 1.25rem; /* 20px default for soft app feel */
+  
+  /* ── Aceternity UI Aurora ── */
+  --animate-aurora: aurora 60s linear infinite;
+  
+  @keyframes aurora {
+    from {
+      background-position: 50% 50%, 50% 50%;
+    }
+    to {
+      background-position: 350% 50%, 350% 50%;
+    }
+  }
+
+  /* ── CTA Hover Pulse (Fintech Soft) ── */
+  --animate-hover-pulse: hover-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  @keyframes hover-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.4); /* sky-600 */
+    }
+    100% {
+      box-shadow: 0 0 0 1em rgba(2, 132, 199, 0); /* Transparent */
+    }
+  }
 }
 
 @layer base {
@@ -68,9 +92,9 @@
     --color-popover: #1e293b;
     --color-popover-foreground: #f8fafc;
 
-    /* ── Primary (sky-400 for better contrast) ── */
-    --color-primary: #38bdf8;
-    --color-primary-foreground: #0f172a;
+    /* ── Primary (sky-500 for better contrast) ── */
+    --color-primary: #0ea5e9;
+    --color-primary-foreground: #ffffff;
 
     /* ── Secondary (slate-800) ── */
     --color-secondary: #1e293b;
@@ -90,10 +114,10 @@
 
     /* ── Borders & Inputs (slate-700) ── */
     --color-border: #334155;
-    --color-input: #334155;
+    --color-input: #1e293b;
 
     /* ── Focus Ring (sky-400) ── */
-    --color-ring: #38bdf8;
+    --color-ring: #0ea5e9;
   }
 }
 

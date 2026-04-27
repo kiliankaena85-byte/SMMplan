@@ -1,4 +1,4 @@
-import { CATEGORY_LABELS } from './providers/smart-analyzer.logic';
+import { CATEGORY_LABELS } from '../providers/smart-analyzer.logic';
 
 export enum IntelligencePlatform {
   YOUTUBE = 'YOUTUBE',
