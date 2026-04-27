@@ -1,3 +1,5 @@
+import { CATEGORY_LABELS } from './providers/smart-analyzer.logic';
+
 export enum IntelligencePlatform {
   YOUTUBE = 'YOUTUBE',
   INSTAGRAM = 'INSTAGRAM',
@@ -25,21 +27,21 @@ export const LINK_RULES: LinkRule[] = [
       platform: IntelligencePlatform.TELEGRAM,
       type: 'channel',
       pattern: /t\.me\/(?:joinchat\/|\+)?([\w_-]+)$|web\.telegram\.org\/(?:k|a)\/#@([\w_-]+)/,
-      suggestedCategories: ['Подписчики', 'Premium', 'Бусты', 'Вступление', 'Сториз', 'Звезды', 'Автопросмотры', 'Автореакции', 'Авторепосты'],
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM, CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.STORIES, CATEGORY_LABELS.STARS, CATEGORY_LABELS.AUTO_VIEWS, CATEGORY_LABELS.AUTO_REACTIONS, CATEGORY_LABELS.AUTO_REPOSTS],
       context: 'global_search_optimization'
   },
   {
       platform: IntelligencePlatform.TELEGRAM,
       type: 'post',
       pattern: /t\.me\/[\w_-]+\/(?:s\/)?(\d+)/,
-      suggestedCategories: ['Просмотры', 'Реакции', 'Комментарии', 'Репосты', 'Звезды'],
+      suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.REACTIONS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STARS],
       context: 'engagement'
   },
   {
       platform: IntelligencePlatform.TELEGRAM,
       type: 'bot',
       pattern: /t\.me\/(?:[\w_-]+bot|[\w_-]+_bot)/,
-      suggestedCategories: ['Боты', 'Рефералы', 'Подписчики'],
+      suggestedCategories: [CATEGORY_LABELS.BOTS, CATEGORY_LABELS.REFERRALS, CATEGORY_LABELS.SUBSCRIBERS],
       context: 'automation'
   },
   // ===================== YOUTUBE =====================
@@ -47,14 +49,14 @@ export const LINK_RULES: LinkRule[] = [
       platform: IntelligencePlatform.YOUTUBE,
       type: 'video',
       pattern: /(?:v=|be\/|shorts\/|embed\/)([\w-]{6,12})/,
-      suggestedCategories: ['Лайки', 'Просмотры', 'Комментарии', 'Репосты', 'Стримы'],
+      suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STREAMS],
       context: 'high_retention_target'
   },
   {
       platform: IntelligencePlatform.YOUTUBE,
       type: 'channel',
       pattern: /youtube\.com\/(?:@|channel\/|user\/)([\w-.]+)/,
-      suggestedCategories: ['Подписчики'],
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
       context: 'authority_growth'
   },
   // ===================== INSTAGRAM =====================
@@ -62,14 +64,14 @@ export const LINK_RULES: LinkRule[] = [
       platform: IntelligencePlatform.INSTAGRAM,
       type: 'post',
       pattern: /instagram\.com\/(?:p|reel|tv)\/([\w-]+)/,
-      suggestedCategories: ['Лайки', 'Просмотры', 'Комментарии', 'Репосты', 'Сохранения', 'Реакции'],
+      suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES, CATEGORY_LABELS.REACTIONS],
       context: 'viral_momentum'
   },
   {
       platform: IntelligencePlatform.INSTAGRAM,
       type: 'profile',
       pattern: /(?:instagram\.com|ig\.me)\/([\w._]+)/,
-      suggestedCategories: ['Подписчики', 'Сториз', 'Стримы', 'Автолайки', 'Автопросмотры'],
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STORIES, CATEGORY_LABELS.STREAMS, CATEGORY_LABELS.AUTO_LIKES, CATEGORY_LABELS.AUTO_VIEWS],
       context: 'trust_building'
   },
   // ===================== TIKTOK =====================
@@ -77,28 +79,28 @@ export const LINK_RULES: LinkRule[] = [
       platform: IntelligencePlatform.TIKTOK,
       type: 'short_link',
       pattern: /(?:vm\.tiktok\.com|vt\.tiktok\.com|tiktok\.com\/t)\/([\w-]+)/,
-      suggestedCategories: ['Лайки', 'Просмотры', 'Комментарии', 'Репосты', 'Сохранения'],
+      suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
       context: 'mobile_viral'
   },
   {
       platform: IntelligencePlatform.TIKTOK,
       type: 'video',
       pattern: /tiktok\.com\/@[\w.]+\/video\/(\d+)/,
-      suggestedCategories: ['Лайки', 'Просмотры', 'Комментарии', 'Репосты', 'Сохранения'],
+      suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
       context: 'viral_reach'
   },
   {
       platform: IntelligencePlatform.TIKTOK,
       type: 'profile',
       pattern: /tiktok\.com\/(@[\w.]+)/,
-      suggestedCategories: ['Подписчики', 'Автолайки'],
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.AUTO_LIKES],
       context: 'influence'
   },
   {
       platform: IntelligencePlatform.TIKTOK,
       type: 'live',
       pattern: /tiktok\.com\/@[\w.]+\/live/,
-      suggestedCategories: ['Стримы'],
+      suggestedCategories: [CATEGORY_LABELS.STREAMS],
       context: 'live_stream'
   },
   // ===================== VK =====================
@@ -106,14 +108,14 @@ export const LINK_RULES: LinkRule[] = [
       platform: IntelligencePlatform.VK,
       type: 'post',
       pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|clip|video)(-?\d+_\d+)/,
-      suggestedCategories: ['Лайки', 'Просмотры', 'Комментарии', 'Репосты', 'Реакции', 'Голосования'],
+      suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.REACTIONS, CATEGORY_LABELS.POLLS],
       context: 'social_reach'
   },
   {
       platform: IntelligencePlatform.VK,
       type: 'profile',
       pattern: /vk\.(?:com|ru)\/([\w._]+)/,
-      suggestedCategories: ['Подписчики', 'Друзья', 'Просмотры'],
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS, CATEGORY_LABELS.VIEWS],
       context: 'networking'
   },
   // ===================== TWITCH =====================
@@ -121,7 +123,7 @@ export const LINK_RULES: LinkRule[] = [
       platform: IntelligencePlatform.TWITCH,
       type: 'channel',
       pattern: /twitch\.tv\/([\w]+)/,
-      suggestedCategories: ['Подписчики', 'Стримы', 'Боты', 'Вступление', 'Другое'],
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS, CATEGORY_LABELS.BOTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.OTHER],
       context: 'streaming_growth'
   },
   // ===================== TWITTER =====================
@@ -129,7 +131,7 @@ export const LINK_RULES: LinkRule[] = [
       platform: IntelligencePlatform.TWITTER,
       type: 'profile',
       pattern: /(?:twitter\.com|x\.com)\/([\w]+)/,
-      suggestedCategories: ['Подписчики', 'Автопросмотры'],
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.AUTO_VIEWS],
       context: 'social_presence'
   },
   // ===================== LIKEE =====================
@@ -137,7 +139,7 @@ export const LINK_RULES: LinkRule[] = [
       platform: IntelligencePlatform.LIKEE,
       type: 'video',
       pattern: /l\.likee\.video\/v\/([\w-]+)|likee\.video\/@[\w.]+\/video\/(\d+)/,
-      suggestedCategories: ['Лайки', 'Просмотры'],
+      suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS],
       context: 'mobile_viral'
   },
   // ===================== FALLBACK WEBSITE =====================
@@ -145,14 +147,14 @@ export const LINK_RULES: LinkRule[] = [
       platform: IntelligencePlatform.WEBSITE,
       type: 'seo_traffic',
       pattern: /[^:]+:[^ \n]+$/,
-      suggestedCategories: ['Трафик'],
+      suggestedCategories: [CATEGORY_LABELS.TRAFFIC],
       context: 'seo_authority'
   },
   {
       platform: IntelligencePlatform.WEBSITE,
       type: 'direct_traffic',
       pattern: /^https?:\/\//,
-      suggestedCategories: ['Статистика', 'Просмотры', 'Другое'],
+      suggestedCategories: [CATEGORY_LABELS.OTHER, CATEGORY_LABELS.VIEWS],
       context: 'visibility'
   }
 ];

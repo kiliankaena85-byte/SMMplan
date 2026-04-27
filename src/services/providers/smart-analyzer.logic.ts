@@ -21,7 +21,7 @@ export interface AnalyzedService {
 }
 
 export const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
-export const CATEGORIES = ['SUBSCRIBERS', 'GROUPS', 'LIKES', 'VIEWS', 'COMMENTS', 'REACTIONS', 'REPOSTS', 'BOOSTS', 'POLLS', 'STORIES', 'BOTS', 'REFERRALS', 'FRIENDS', 'PLAYS', 'TRAFFIC', 'DISLIKES', 'STARS', 'SAVES', 'COMPLAINTS', 'STREAMS', 'PREMIUM', 'RECOVER', 'OTHER'];
+export const CATEGORIES = ['SUBSCRIBERS', 'GROUPS', 'LIKES', 'VIEWS', 'COMMENTS', 'REACTIONS', 'REPOSTS', 'AUTO_VIEWS', 'AUTO_LIKES', 'AUTO_REACTIONS', 'AUTO_REPOSTS', 'AUTO_COMMENTS', 'BOOSTS', 'POLLS', 'STORIES', 'BOTS', 'REFERRALS', 'FRIENDS', 'PLAYS', 'TRAFFIC', 'DISLIKES', 'STARS', 'SAVES', 'COMPLAINTS', 'STREAMS', 'PREMIUM', 'RECOVER', 'OTHER'];
 export const TARGET_TYPES = ['CHANNEL', 'POST', 'PROFILE', 'VIDEO', 'VK_VIDEO', 'VK_CLIP', 'VK_PLAY', 'CHANNEL_POSTS', 'STORY', 'COMMENTS', 'POLL', 'PHOTO', 'MARKET', 'PLAYLIST', 'ALBUM', 'EXTERNAL', 'CUSTOM'];
 
 export const PLATFORM_LABELS: Record<string, string> = {
@@ -77,6 +77,11 @@ export const CATEGORY_LABELS: Record<string, string> = {
     COMMENTS: '💬 Комментарии / Отзывы',
     REACTIONS: '🎭 Реакции / Эмодзи',
     REPOSTS: '📢 Репосты / Поделиться',
+    AUTO_VIEWS: '🔄 Автопросмотры',
+    AUTO_LIKES: '🔄 Автолайки',
+    AUTO_REACTIONS: '🔄 Автореакции',
+    AUTO_REPOSTS: '🔄 Авторепосты',
+    AUTO_COMMENTS: '🔄 Автокомментарии',
     BOOSTS: '🚀 Бусты (Telegram Levels)',
     POLLS: '📊 Голоса / Опросы',
     STORIES: '📱 Сториз / Истории',
@@ -281,13 +286,22 @@ export const SmartAnalyzerLogic = class {
         let category: Category = 'OTHER';
 
         // Context-aware logic for "Subscription" (Подписка)
-        const isAutoMention = fullContent.includes('подписк') || fullContent.includes('auto') || fullContent.includes('subscription') || fullContent.includes('будущ');
+        const isAutoMention = fullContent.includes('подписк') || fullContent.includes('auto') || fullContent.includes('subscription') || fullContent.includes('будущ') || fullContent.includes('авто');
         const isViewMention = fullContent.includes('просмотр') || fullContent.includes('view') || fullContent.includes('eye');
         const isLikeMention = fullContent.includes('лайк') || fullContent.includes('like') || fullContent.includes('heart');
-        const isPostModifier = fullContent.includes('пост') || fullContent.includes('запис') || fullContent.includes('публикац');
+        const isReactionMention = fullContent.includes('реакци') || fullContent.includes('reaction');
+        const isRepostMention = fullContent.includes('репост') || fullContent.includes('share');
+        const isCommentMention = fullContent.includes('коммент') || fullContent.includes('comment');
 
-        if (isAutoMention && (isViewMention || isLikeMention) && isPostModifier) {
-             category = isViewMention ? 'VIEWS' : 'LIKES';
+        // isPostModifier detects if the text targets "future posts" rather than the channel itself 
+        const isPostModifier = fullContent.includes('пост') || fullContent.includes('запис') || fullContent.includes('публикац') || fullContent.includes('future') || nameNode.includes('авто');
+
+        if (isAutoMention && (isViewMention || isLikeMention || isReactionMention || isRepostMention || isCommentMention) && isPostModifier) {
+             if (isViewMention) category = 'AUTO_VIEWS';
+             else if (isLikeMention) category = 'AUTO_LIKES';
+             else if (isReactionMention) category = 'AUTO_REACTIONS';
+             else if (isRepostMention) category = 'AUTO_REPOSTS';
+             else if (isCommentMention) category = 'AUTO_COMMENTS';
         } else if ((nameNode.includes('бот') || nameNode.includes(' bot')) && !nameNode.includes('подпис') && !nameNode.includes('участник')) {
             category = 'BOTS';
         } else {
@@ -319,13 +333,13 @@ export const SmartAnalyzerLogic = class {
             else if (fullContent.includes('reel') || fullContent.includes('video')) category = 'VIEWS';
         } else if (effectivePlatform === 'TELEGRAM') {
             const isStory = nameNode.includes('истори') || nameNode.includes('story');
-            const isAutoViews = (nameNode.includes('подписк') || nameNode.includes('auto')) && (nameNode.includes('просмотр') || nameNode.includes('view'));
+            const isAutoViews = (nameNode.includes('подписк') || nameNode.includes('auto') || nameNode.includes('авто')) && (nameNode.includes('просмотр') || nameNode.includes('view') || nameNode.includes('глаз'));
             
             if (fullContent.includes('stars')) category = 'STARS';
             else if (fullContent.includes('жалоба') || fullContent.includes('report')) category = 'COMPLAINTS';
             else if (fullContent.includes('boost') || fullContent.includes('буст')) category = 'BOOSTS';
             else if (isStory) category = 'STORIES';
-            else if (isAutoViews) category = 'VIEWS';
+            else if (isAutoViews) category = 'AUTO_VIEWS';
             else if (nameNode.includes('подпис') || nameNode.includes('member')) {
                 // ПРИОРИТЕТ: "Подписчики" (Subscribers) > "Подписка" (Boosts/Auto)
                 category = 'SUBSCRIBERS';

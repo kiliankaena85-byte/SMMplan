@@ -5,7 +5,7 @@ import { PublicNetwork } from "@/actions/order/catalog";
 import { checkoutAction } from "@/actions/order/checkout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, CheckCircle2, Loader2, Link2, LogIn, ChevronRight, ChevronLeft, CheckSquare, Square, Shield, CreditCard, Mail, GripHorizontal, X, ChevronDown } from "lucide-react";
-import { Select, SelectItem, Input as HeroInput, Button as HeroButton } from "@heroui/react";
+import { Select, Input as HeroInput, Button as HeroButton } from "@heroui/react";
 import React, { useState, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -350,7 +350,7 @@ export function SmartLinkLanding({
                       <button
                         key={cat.id}
                         onMouseDown={(e) => { e.preventDefault(); setCategoryId(cat.id); }}
-                        className={`text-left px-5 py-2.5 lg:py-3.5 rounded-full lg:rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 group flex items-center justify-between ${
+                        className={`text-left px-5 py-2.5 lg:py-3.5 rounded-full lg:rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 group flex items-center justify-between active:scale-95 ${
                           categoryId === cat.id 
                             ? 'bg-sky-100 text-sky-700 border border-sky-300 shadow-sm lg:shadow-[inset_4px_0_0_0] lg:shadow-sky-500 lg:bg-sky-100/50 lg:border-sky-200'
                             : 'bg-white lg:bg-transparent text-slate-600 border border-slate-200 lg:border-transparent hover:bg-slate-100/50'
@@ -373,68 +373,89 @@ export function SmartLinkLanding({
                       <h3 className="font-extrabold text-slate-900 flex items-center gap-3 text-base md:text-lg">
                          Выберите тариф <span className="text-xs font-bold bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full">{services.length}</span>
                       </h3>
-                      
-                      <div className="hidden lg:flex gap-2">
-                         <button onClick={scrollLeft} className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center hover:bg-slate-50 transition-colors"><ChevronLeft className="w-5 h-5 text-slate-600" /></button>
-                         <button onClick={scrollRight} className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center hover:bg-slate-50 transition-colors"><ChevronRight className="w-5 h-5 text-slate-600" /></button>
-                      </div>
                     </div>
 
-                    {isLoading ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:gap-4 lg:overflow-hidden gap-4">
-                         {[1,2,3,4].map(i => <div key={i} className="min-h-[200px] lg:min-w-[260px] bg-slate-200/50 animate-pulse rounded-2xl" />)}
-                      </div>
-                    ) : services.length === 0 ? (
-                      <div className="flex-1 flex items-center justify-center text-sm text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl min-h-[200px]">
-                        Услуги не найдены
-                      </div>
-                    ) : (
-                      <div ref={carouselRef} className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:gap-5 lg:overflow-x-auto pb-6 scrollbar-hide lg:snap-x pt-2 lg:px-2 lg:-mx-2 gap-4">
-                         {services.map(srv => {
-                           const isSelected = selectedService?.id === srv.id;
-                           return (
-                             <div 
-                               key={srv.id}
-                               onClick={() => setSelectedService(srv)}
-                               className={`lg:snap-start cursor-pointer w-full lg:min-w-[260px] lg:max-w-[280px] flex flex-col p-4 md:p-5 rounded-2xl border-2 transition-all duration-300 relative bg-white shadow-sm hover:shadow-md ${
-                                 isSelected ? 'border-sky-500 shadow-lg shadow-sky-500/10 scale-[1.02] z-10' : 'border-slate-100 hover:border-slate-300'
-                               }`}
-                             >
-                               {srv.badge && (
-                                 <div className="absolute -top-3 -right-2 bg-gradient-to-r from-sky-500 to-indigo-500 text-white text-[10px] font-black tracking-wider uppercase px-3 py-1.5 rounded-full shadow-md">
-                                   {srv.badge}
-                                 </div>
-                               )}
-                               
-                               <div className="flex-1">
-                                 <h4 className="font-extrabold text-sm leading-tight text-slate-900 mb-2.5">{srv.name}</h4>
-                                 <p className="text-[11px] text-slate-500 mb-4 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100 line-clamp-3">
-                                   {srv.description || "Стандартные условия сервиса. 30 дней гарантии на списания."}
-                                 </p>
-                                 <p className="text-xs text-slate-500 font-semibold flex items-center justify-between">
-                                   <span>Запуск: <span className="text-slate-900">{srv.speed}</span></span>
-                                   <span>Мин: <span className="text-slate-900">{srv.minQty}</span></span>
-                                 </p>
-                               </div>
-                               <div className="mt-5 pt-4 border-t border-slate-100 flex justify-between items-end">
-                                 <div>
-                                   <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Цена за 1 шт.</p>
-                                   <p className="text-xl font-black text-slate-900 tabular-nums leading-none">
-                                       {parseFloat(((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000).toFixed(4) : (srv.pricePer1kRub / 1000).toFixed(2))).toString()} ₽
+                    <AnimatePresence mode="popLayout">
+                      {isLoading ? (
+                        <motion.div 
+                           key="loader"
+                           initial={{ opacity: 0, scale: 0.98 }}
+                           animate={{ opacity: 1, scale: 1 }}
+                           exit={{ opacity: 0, scale: 0.98 }}
+                           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4"
+                        >
+                           {[1,2,3,4,5,6].map(i => <div key={i} className="min-h-[200px] w-full bg-slate-200/50 animate-pulse rounded-2xl" />)}
+                        </motion.div>
+                      ) : services.length === 0 ? (
+                        <motion.div 
+                           key="empty"
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           exit={{ opacity: 0, y: -10 }}
+                           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                           className="flex-1 flex items-center justify-center text-sm text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl min-h-[200px]"
+                        >
+                          Услуги не найдены
+                        </motion.div>
+                      ) : (
+                        <motion.div 
+                           key="content"
+                           initial={{ opacity: 0, y: 20 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           exit={{ opacity: 0, y: -20 }}
+                           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], staggerChildren: 0.05 }}
+                           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 pb-6 pt-2"
+                        >
+                           {services.map((srv, index) => {
+                             const isSelected = selectedService?.id === srv.id;
+                             return (
+                               <motion.div 
+                                 key={srv.id}
+                                 initial={{ opacity: 0, y: 20 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 transition={{ duration: 0.5, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                                 onClick={() => setSelectedService(srv)}
+                                 className={`cursor-pointer w-full flex flex-col p-4 md:p-5 rounded-2xl border-2 transition-colors relative bg-white shadow-sm hover:shadow-md active:scale-95 ${
+                                   isSelected ? 'border-sky-500 shadow-lg shadow-sky-500/10 z-10' : 'border-slate-100 hover:border-slate-300'
+                                 }`}
+                               >
+                                 {srv.badge && (
+                                   <div className="absolute -top-3 -right-2 bg-gradient-to-r from-sky-500 to-indigo-500 text-white text-[10px] font-black tracking-wider uppercase px-3 py-1.5 rounded-full shadow-md z-20">
+                                     {srv.badge}
+                                   </div>
+                                 )}
+                                 
+                                 <div className="flex-1">
+                                   <h4 className="font-extrabold text-sm leading-tight text-slate-900 mb-2.5">{srv.name}</h4>
+                                   <p className="text-[11px] text-slate-500 mb-4 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100 line-clamp-3">
+                                     {srv.description || "Стандартные условия сервиса. 30 дней гарантии на списания."}
+                                   </p>
+                                   <p className="text-xs text-slate-500 font-semibold flex items-center justify-between">
+                                     <span>Запуск: <span className="text-slate-900">{srv.speed}</span></span>
+                                     <span>Мин: <span className="text-slate-900">{srv.minQty}</span></span>
                                    </p>
                                  </div>
-                                 <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                   isSelected ? 'border-sky-500 bg-sky-500 text-white' : 'border-slate-200 text-transparent'
-                                 }`}>
-                                   <CheckCircle2 className="w-4 h-4" />
+                                 <div className="mt-5 pt-4 border-t border-slate-100 flex justify-between items-end">
+                                   <div>
+                                     <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Цена за 1 шт.</p>
+                                     <p className="text-xl font-black text-slate-900 tabular-nums leading-none">
+                                         {parseFloat(((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000).toFixed(4) : (srv.pricePer1kRub / 1000).toFixed(2))).toString()} ₽
+                                     </p>
+                                   </div>
+                                   <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                     isSelected ? 'border-sky-500 bg-sky-500 text-white' : 'border-slate-200 text-transparent'
+                                   }`}>
+                                     <CheckCircle2 className="w-4 h-4" />
+                                   </div>
                                  </div>
-                               </div>
-                            </div>
-                          );
-                        })}
-                     </div>
-                   )}
-                 </div>
+                               </motion.div>
+                             );
+                           })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                </div>
 
                {/* SECTION 3: DYNAMIC PAYLOAD & WARNINGS */}

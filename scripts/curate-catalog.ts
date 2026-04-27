@@ -263,15 +263,19 @@ async function main() {
   });
   console.log(`  После фильтрации: ${filtered.length} (убрано ${rawData.length - filtered.length} мусорных)\n`);
   
-  // Step 2: Group by platform + category
+  // Step 2: Group by platform + category (normalized via SmartAnalyzerLogic)
   console.log('--- Шаг 2: Группировка по платформа+категория ---');
   const groups: Record<string, RawService[]> = {};
   for (const s of filtered) {
+    const analyzed = SmartAnalyzerLogic.detectSync(s.originalName, s.desc, s.category);
+    s.platform = analyzed.platform;
+    s.category = analyzed.category;
+
     const key = `${s.platform}::${s.category}`;
     if (!groups[key]) groups[key] = [];
     groups[key].push(s);
   }
-  console.log(`  ${Object.keys(groups).length} уникальных групп\n`);
+  console.log(`  ${Object.keys(groups).length} уникальных каноничных групп\n`);
   
   // Step 3: For each group, score and select best services
   console.log('--- Шаг 3: Скоринг и отбор ---');
@@ -367,7 +371,7 @@ async function main() {
       curated.push({
         rank: 0,
         platform,
-        category,
+        category: CATEGORY_LABELS[category] || category,
         tier: s.tier,
         providerName: s.providerName,
         extId: s.extId,
