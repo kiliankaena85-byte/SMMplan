@@ -11,11 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import React, { useState, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { toast } from "sonner";
 import { TrustBar } from "./TrustBar";
 import { WhyUs } from "./WhyUs";
 import { FAQ } from "./FAQ";
 import { Reviews } from "./Reviews";
 import { SocialIcon } from "@/components/ui/SocialIcon";
+import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
+import { IconClock, IconBox } from "@tabler/icons-react";
 
 export function SmartLinkLanding({
   initialCatalog,
@@ -56,6 +59,68 @@ export function SmartLinkLanding({
     const other = catalog.filter(n => !TOP_SLUGS.includes(n.slug.toLowerCase()));
     return { topNetworks: top, otherNetworks: other };
   }, [catalog, TOP_SLUGS]);
+
+  // ?????????????????????????????????????????????????????????????????? Centralized Brand Color System ??????????????????????????????????????????????????????????????????
+  const BRAND_COLORS: Record<string, { bg: string; shadow: string; gradient: string; text: string }> = useMemo(() => ({
+    telegram:   { bg: '#0088cc', shadow: 'rgba(0,136,204,0.4)',   gradient: 'from-[#0088cc] to-[#005580]',   text: 'text-[#0088cc]' },
+    vk:         { bg: '#0077FF', shadow: 'rgba(0,119,255,0.4)',   gradient: 'from-[#0077FF] to-[#0055c4]',   text: 'text-[#0077FF]' },
+    instagram:  { bg: '#e6683c', shadow: 'rgba(236,72,153,0.4)',  gradient: 'from-[#f09433] via-[#e6683c] to-[#bc1888]', text: 'text-[#e6683c]' },
+    youtube:    { bg: '#FF0000', shadow: 'rgba(255,0,0,0.4)',     gradient: 'from-[#FF0000] to-[#cc0000]',   text: 'text-[#FF0000]' },
+    tiktok:     { bg: '#000000', shadow: 'rgba(0,0,0,0.4)',       gradient: 'from-[#252525] to-[#000000]',   text: 'text-[#252525]' },
+    twitch:     { bg: '#9146FF', shadow: 'rgba(145,70,255,0.4)',  gradient: 'from-[#9146FF] to-[#6441A5]',   text: 'text-[#9146FF]' },
+    facebook:   { bg: '#1877F2', shadow: 'rgba(24,119,242,0.4)',  gradient: 'from-[#1877F2] to-[#0d5bbf]',   text: 'text-[#1877F2]' },
+    twitter:    { bg: '#000000', shadow: 'rgba(0,0,0,0.4)',       gradient: 'from-[#14171A] to-[#000000]',   text: 'text-[#14171A]' },
+    x:          { bg: '#000000', shadow: 'rgba(0,0,0,0.4)',       gradient: 'from-[#14171A] to-[#000000]',   text: 'text-[#14171A]' },
+    discord:    { bg: '#5865F2', shadow: 'rgba(88,101,242,0.4)',  gradient: 'from-[#5865F2] to-[#4752C4]',   text: 'text-[#5865F2]' },
+    spotify:    { bg: '#1DB954', shadow: 'rgba(29,185,84,0.4)',   gradient: 'from-[#1DB954] to-[#148a3c]',   text: 'text-[#1DB954]' },
+    soundcloud: { bg: '#FF5500', shadow: 'rgba(255,85,0,0.4)',    gradient: 'from-[#FF5500] to-[#cc4400]',   text: 'text-[#FF5500]' },
+    pinterest:  { bg: '#E60023', shadow: 'rgba(230,0,35,0.4)',    gradient: 'from-[#E60023] to-[#b8001c]',   text: 'text-[#E60023]' },
+    linkedin:   { bg: '#0A66C2', shadow: 'rgba(10,102,194,0.4)', gradient: 'from-[#0A66C2] to-[#08519b]',   text: 'text-[#0A66C2]' },
+    reddit:     { bg: '#FF4500', shadow: 'rgba(255,69,0,0.4)',    gradient: 'from-[#FF4500] to-[#cc3700]',   text: 'text-[#FF4500]' },
+    tumblr:     { bg: '#36465D', shadow: 'rgba(54,70,93,0.4)',    gradient: 'from-[#36465D] to-[#2a374a]',   text: 'text-[#36465D]' },
+    threads:    { bg: '#000000', shadow: 'rgba(0,0,0,0.4)',       gradient: 'from-[#000000] to-[#1a1a1a]',   text: 'text-[#000000]' },
+    kick:       { bg: '#53FC18', shadow: 'rgba(83,252,24,0.3)',   gradient: 'from-[#53FC18] to-[#3dc412]',   text: 'text-[#3dc412]' },
+    likee:      { bg: '#EE1D52', shadow: 'rgba(238,29,82,0.4)',   gradient: 'from-[#EE1D52] to-[#bf1742]',   text: 'text-[#EE1D52]' },
+    whatsapp:   { bg: '#25D366', shadow: 'rgba(37,211,102,0.4)', gradient: 'from-[#25D366] to-[#1da851]',   text: 'text-[#25D366]' },
+    ok:         { bg: '#EE8208', shadow: 'rgba(238,130,8,0.4)',   gradient: 'from-[#EE8208] to-[#c46a06]',   text: 'text-[#EE8208]' },
+    dzen:       { bg: '#000000', shadow: 'rgba(0,0,0,0.4)',       gradient: 'from-[#000000] to-[#1a1a1a]',   text: 'text-[#000000]' },
+    rutube:     { bg: '#1C1C28', shadow: 'rgba(28,28,40,0.4)',    gradient: 'from-[#1C1C28] to-[#0e0e15]',   text: 'text-[#1C1C28]' },
+    trovo:      { bg: '#19D66B', shadow: 'rgba(25,214,107,0.4)', gradient: 'from-[#19D66B] to-[#14ab56]',   text: 'text-[#19D66B]' },
+    steam:      { bg: '#1B2838', shadow: 'rgba(27,40,56,0.4)',    gradient: 'from-[#1B2838] to-[#111c2a]',   text: 'text-[#1B2838]' },
+    max:        { bg: '#002BE7', shadow: 'rgba(0,43,231,0.4)',    gradient: 'from-[#002BE7] to-[#0022b8]',   text: 'text-[#002BE7]' },
+    quora:      { bg: '#B92B27', shadow: 'rgba(185,43,39,0.4)',   gradient: 'from-[#B92B27] to-[#93221f]',   text: 'text-[#B92B27]' },
+    medium:     { bg: '#000000', shadow: 'rgba(0,0,0,0.4)',       gradient: 'from-[#000000] to-[#292929]',   text: 'text-[#000000]' },
+    rumble:     { bg: '#85C742', shadow: 'rgba(133,199,66,0.4)',  gradient: 'from-[#85C742] to-[#6aa032]',   text: 'text-[#85C742]' },
+    shazam:     { bg: '#0088FF', shadow: 'rgba(0,136,255,0.4)',   gradient: 'from-[#0088FF] to-[#006ecc]',   text: 'text-[#0088FF]' },
+    yandex:     { bg: '#FC3F1D', shadow: 'rgba(252,63,29,0.4)',   gradient: 'from-[#FC3F1D] to-[#ca3217]',   text: 'text-[#FC3F1D]' },
+  }), []);
+
+  const getBrandColor = (slug: string) => BRAND_COLORS[slug?.toLowerCase()] || BRAND_COLORS.telegram;
+
+  const sortedCategories = useMemo(() => {
+    const PRIORITY = ['подписчик', 'участники', 'просмотр', 'охват', 'лайк', 'нравится', 'реакц', 'сердц', 'коммент', 'отзыв', 'репост', 'поделит', 'авто', 'статистик', 'звезд', 'premium'];
+    return [...availableCategories].sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aIdx = PRIORITY.findIndex(p => aName.includes(p));
+      const bIdx = PRIORITY.findIndex(p => bName.includes(p));
+      
+      const scoreA = aIdx === -1 ? 999 : aIdx;
+      const scoreB = bIdx === -1 ? 999 : bIdx;
+      
+      if (scoreA !== scoreB) {
+        return scoreA - scoreB;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [availableCategories]);
+
+  // Check if a non-top platform is currently selected
+  const selectedOtherNetwork = useMemo(() => {
+    if (!networkId) return null;
+    return otherNetworks.find(n => n.id === networkId) || null;
+  }, [networkId, otherNetworks]);
+
   
   // Show UI if there is input, focus, or even loosely by default for preview
   const isExpanded = url.trim().length > 0 || isFocused;
@@ -205,7 +270,7 @@ export function SmartLinkLanding({
                    ))}
                  </select>
                  
-                 {networkId && availableCategories.length > 0 && (
+                 {networkId && sortedCategories.length > 0 && (
                    <select
                      aria-label="Выберите категорию"
                      value={categoryId || ""}
@@ -213,8 +278,8 @@ export function SmartLinkLanding({
                      className="w-full h-14 px-4 bg-primary/5 border border-primary/20 shadow-sm font-bold text-primary rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none outline-none mt-1"
                    >
                      <option value="" disabled>Категория...</option>
-                     {availableCategories.map(c => (
-                       <option key={c.id} value={c.id}>{c.name}</option>
+                     {sortedCategories.map(c => (
+                       <option key={c.id} value={c.id}>{cleanCategoryName(c.name)}</option>
                      ))}
                    </select>
                  )}
@@ -321,7 +386,7 @@ export function SmartLinkLanding({
                  
                 {/* 2.1 Left Column: Categories (Tablet Horizontal / Desktop Vertical) */}
                  <div className="hidden md:flex lg:flex-col flex-row flex-wrap lg:flex-nowrap lg:border-r border-slate-100 p-4 lg:p-6 gap-3 bg-slate-50/50 shrink-0 lg:min-w-[320px] items-center lg:items-stretch">
-                    {availableCategories.map(cat => (
+                    {sortedCategories.map(cat => (
                       <button
                         key={cat.id}
                         onClick={(e) => { e.preventDefault(); setCategoryId(cat.id); }}
@@ -331,11 +396,14 @@ export function SmartLinkLanding({
                             : 'bg-transparent text-slate-500 hover:bg-slate-100/80 hover:text-slate-800'
                         }`}
                       >
-                        <span>{cat.name}</span>
+                        <div className="flex items-center gap-3">
+                          <CategoryIcon name={cat.name} className={categoryId === cat.id ? "text-sky-500" : "text-slate-400"} />
+                          <span>{cleanCategoryName(cat.name)}</span>
+                        </div>
                         {categoryId === cat.id && <ChevronRight className="hidden lg:block w-5 h-5 opacity-100 translate-x-0" />}
                       </button>
                     ))}
-                    {availableCategories.length === 0 && (
+                    {sortedCategories.length === 0 && (
                       <div className="flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-border rounded-xl">
                         <p className="text-xs text-slate-400 font-medium">Нет категорий</p>
                       </div>
@@ -352,57 +420,70 @@ export function SmartLinkLanding({
 
                     <>
                       {services.length === 0 && isLoading ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-                           {[1,2,3,4,5,6].map(i => <div key={i} className="min-h-[220px] w-full bg-slate-50 border border-slate-100 shadow-sm animate-pulse rounded-[2rem]" />)}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 pt-4">
+                           {Array.from({length: 8}).map((_, i) => (
+                             <div key={i} className="w-full flex flex-col p-5 md:p-6 min-h-[400px] bg-slate-50 border border-slate-100 shadow-sm animate-pulse rounded-[2rem]" />
+                           ))}
                         </div>
                       ) : services.length === 0 ? (
                         <div className="flex-1 flex items-center justify-center text-sm font-medium text-slate-400 border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-[2rem] min-h-[220px]">
                           Услуги не найдены
                         </div>
                       ) : (
-                        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 pb-8 pt-4 transition-opacity duration-200 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 pt-4 transition-opacity duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                            {services.map((srv) => {
                              const isSelected = selectedService?.id === srv.id;
+                             const nwId = srv.serviceNetworkId; // Or whichever field tells us the network
+                             // Actually, in the catalog we selected a networkId at the top level navigation,
+                             // so we can just use `networkId` from the outer scope, which corresponds to the selected network!
+                             // Wait, `net.slug` isn't directly available here unless we find the network object.
+                             const selectedNetworkObj = [...topNetworks, ...otherNetworks].find(n => n.id === networkId);
+                             const brand = getBrandColor(selectedNetworkObj?.slug || 'telegram');
+
                              return (
                                <Card 
                                  key={srv.id}
                                  onClick={() => setSelectedService(srv)}
-                                 className={`cursor-pointer w-full flex flex-col p-5 md:p-6 border-2 rounded-[2rem] relative overflow-visible transition-all duration-300 ${
-                                   isSelected ? 'border-sky-400 shadow-[0_12px_40px_-10px_rgba(14,165,233,0.3)] bg-white z-10 scale-[1.02]' : 'border-slate-100 bg-white hover:border-sky-200 hover:shadow-lg shadow-sm'
+                                 className={`cursor-pointer w-full flex flex-col p-5 md:p-6 border-2 rounded-[2rem] relative overflow-visible transition-[box-shadow,transform] duration-500 min-h-[400px] ${
+                                   isSelected ? 'border-transparent text-white z-[50] scale-[1.02]' : 'border-slate-100 bg-white z-[1] hover:border-slate-200 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:-translate-y-1 shadow-sm'
                                  }`}
+                                 style={isSelected ? { background: `linear-gradient(135deg, ${brand.bg}, ${brand.bg}CC)`, boxShadow: `0 20px 50px -15px ${brand.shadow}` } : undefined}
                                >
+                                 <div className={`absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/10 to-transparent ${isSelected ? '' : 'group-hover:opacity-100'}`} />
                                  {srv.badge && (
-                                   <Badge intent="primary" className="absolute -top-3 -right-2 z-20 text-[10px] shadow-sm tracking-wide">
+                                   <Badge intent="primary" className={`absolute -top-3 -right-2 z-20 text-[10px] tracking-wide font-black uppercase ${isSelected ? `bg-white shadow-xl ${brand.text}` : 'shadow-sm bg-gradient-to-r text-white'}`} style={isSelected ? {} : { backgroundImage: `linear-gradient(to right, ${brand.bg}, ${brand.bg}dd)` }}>
                                      {srv.badge}
                                    </Badge>
                                  )}
                                  
-                                 <div className="flex-1 flex flex-col pt-1">
-                                    <h4 className="font-extrabold text-[16px] leading-[22px] text-slate-900 mb-4 line-clamp-3 min-h-[66px]">{srv.name}</h4>
+                                 <div className="flex-1 flex flex-col pt-1 relative z-10">
+                                    <h4 className={`font-extrabold text-[16px] leading-[22px] mb-4 line-clamp-3 min-h-[66px] ${isSelected ? 'text-white' : 'text-slate-900'}`}>{srv.name}</h4>
                                     <div className="flex-1 mb-5 flex flex-col">
-                                      <p className="flex-1 text-[13px] text-slate-500 font-medium leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100 overflow-hidden">
-                                        <span className="line-clamp-4">
+                                      <p className={`flex-1 text-[13px] font-medium leading-relaxed p-4 rounded-xl border overflow-hidden ${isSelected ? 'bg-white/10 border-white/20 text-white/90 shadow-inner' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
+                                        <span className="line-clamp-6">
                                           {srv.description || (srv.name.toLowerCase().includes('без гарант') 
                                             ? "Услуга без гарантии. В случае отписок или списаний восстановление (докрутка) не производится." 
                                             : "Стандартные условия сервиса. 30 дней гарантии на списания.")}
                                         </span>
                                       </p>
                                     </div>
-                                    <p className="text-xs text-slate-400 font-bold flex items-center justify-between mt-auto px-1">
-                                      <span>Запуск: <span className="text-slate-700">{srv.speed}</span></span>
-                                      <span>Мин: <span className="text-slate-700">{srv.minQty}</span></span>
+                                    <p className={`text-xs font-bold flex items-center justify-between mt-auto px-1 ${isSelected ? 'text-white/60' : 'text-slate-400'}`}>
+                                      <span>Запуск: <span className={isSelected ? 'text-white' : 'text-slate-700'}>{srv.speed}</span></span>
+                                      <span>Мин: <span className={isSelected ? 'text-white' : 'text-slate-700'}>{srv.minQty}</span></span>
                                     </p>
                                  </div>
-                                 <div className="mt-5 pt-4 border-t border-slate-100 flex justify-between items-end px-1">
+                                 <div className={`mt-5 pt-4 flex justify-between items-end px-1 relative z-10 ${isSelected ? 'border-t border-white/20' : 'border-t border-slate-100'}`}>
                                    <div>
-                                     <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider mb-1">Цена за 1 шт.</p>
-                                     <p className="text-2xl font-black text-slate-900 tabular-nums leading-none">
+                                     <p className={`text-[10px] uppercase font-black tracking-wider mb-1 ${isSelected ? 'text-white/60' : 'text-slate-400'}`}>Цена за 1 шт.</p>
+                                     <p className={`text-2xl font-black tabular-nums leading-none ${isSelected ? 'text-white' : 'text-slate-900'}`}>
                                          {parseFloat(((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000).toFixed(4) : (srv.pricePer1kRub / 1000).toFixed(2))).toString()} ₽
                                      </p>
                                    </div>
                                    <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                     isSelected ? 'border-sky-500 bg-primary text-white' : 'border-border text-transparent'
-                                   }`}>
+                                     isSelected ? 'border-white bg-white' : 'border-border text-transparent'
+                                   }`}
+                                   style={isSelected ? { color: brand.bg } : undefined}
+                                   >
                                      <CheckCircle2 className="w-4 h-4" />
                                    </div>
                                  </div>
