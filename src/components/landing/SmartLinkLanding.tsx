@@ -208,14 +208,31 @@ export function SmartLinkLanding({
             duration: 0.8,
             ease: "easeOut",
           }}
-          className="text-center space-y-6 mb-16 max-w-3xl relative z-10 w-full mt-4"
+          className="text-center space-y-5 mb-10 max-w-3xl relative z-10 w-full mt-0"
         >
-          <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.05]">
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.05]">
             Ускоряем ваши <span className="text-sky-500">соцсети</span>
           </h1>
-          <p className="text-xl text-slate-500 leading-relaxed font-medium">
-            Smmplan — автоматическая платформа премиум-класса.
+          <p className="text-lg text-slate-500 leading-relaxed font-medium max-w-xl mx-auto">
+            Автоматическая платформа для продвижения в социальных сетях с мгновенным запуском.
           </p>
+          {/* Social Proof Stats */}
+          <div className="flex items-center justify-center gap-6 sm:gap-10 pt-2">
+            <div className="text-center">
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">1M+</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Заказов</p>
+            </div>
+            <div className="w-px h-10 bg-slate-200"></div>
+            <div className="text-center">
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">50K+</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Клиентов</p>
+            </div>
+            <div className="w-px h-10 bg-slate-200"></div>
+            <div className="text-center">
+              <p className="text-2xl sm:text-3xl font-black text-sky-500 tabular-nums">24/7</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Поддержка</p>
+            </div>
+          </div>
         </motion.div>
 
         {/* ── Main Input & UI Panel ── */}
@@ -301,27 +318,27 @@ export function SmartLinkLanding({
                          key={net.id}
                          onClick={(e) => { e.preventDefault(); setNetworkId(net.id); setShowAllNetworks(false); }}
                          title={net.name}
-                         className={`group relative flex items-center justify-center gap-2.5 rounded-full font-bold text-[15px] origin-center shrink-0 transition-all duration-300 ${
-                           isActive 
-                             ? 'bg-sky-500 text-white shadow-[0_8px_24px_-6px_rgba(14,165,233,0.5)] h-12 md:h-14 px-5 md:px-6 scale-[1.02]'
-                             : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:shadow-md hover:text-slate-800 w-12 h-12 md:w-14 md:h-14 shadow-sm'
-                         }`}
-                       >
-                         <SocialIcon 
-                           slug={net.slug} 
-                           size={24}
-                           className={`shrink-0 z-10 transition-all duration-300 ${
-                             isActive 
-                              ? 'drop-shadow-sm scale-110 brightness-0 invert' 
-                              : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100'
-                           }`} 
-                         />
-                         {isActive && (
-                           <span className="z-10 tracking-tight whitespace-nowrap">
-                             {net.name}
-                           </span>
-                         )}
-                       </button>
+                          className={`group relative flex flex-col items-center justify-center gap-1 font-bold text-[11px] origin-center shrink-0 transition-all duration-300 ${
+                            isActive 
+                              ? 'bg-sky-500 text-white shadow-[0_8px_24px_-6px_rgba(14,165,233,0.5)] rounded-2xl h-16 md:h-[72px] px-4 md:px-5 scale-[1.02]'
+                              : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50 hover:shadow-md hover:text-slate-600 rounded-2xl w-16 h-16 md:w-[72px] md:h-[72px] shadow-sm'
+                          }`}
+                        >
+                          <SocialIcon 
+                            slug={net.slug} 
+                            size={22}
+                            className={`shrink-0 z-10 transition-all duration-300 ${
+                              isActive 
+                               ? 'drop-shadow-sm scale-110 brightness-0 invert' 
+                               : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100'
+                            }`} 
+                          />
+                          <span className={`z-10 tracking-tight whitespace-nowrap transition-colors duration-200 ${
+                            isActive ? 'text-white font-bold text-xs' : 'text-slate-400 group-hover:text-slate-600'
+                          }`}>
+                            {isActive ? net.name : net.slug.length <= 3 ? net.slug.toUpperCase() : net.slug.charAt(0).toUpperCase() + net.slug.slice(1, 4)}
+                          </span>
+                        </button>
                      );
                    })}
                    
@@ -416,7 +433,7 @@ export function SmartLinkLanding({
                   <div className="p-4 md:p-6 lg:p-8 bg-white relative flex flex-col min-h-0">
                     <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
                       <h3 className="font-extrabold text-slate-900 text-xl md:text-2xl flex items-center gap-3">
-                         Выберите тариф <span className="text-sm font-bold bg-sky-100/50 text-sky-600 px-3 py-1 rounded-full">{services.length}</span>
+                         Выберите тариф {services.length > 0 && <span className="text-sm font-bold bg-sky-100/50 text-sky-600 px-3 py-1 rounded-full">{services.length}</span>}
                       </h3>
                     </div>
 
@@ -428,8 +445,16 @@ export function SmartLinkLanding({
                            ))}
                         </div>
                       ) : services.length === 0 ? (
-                        <div className="flex-1 flex items-center justify-center text-sm font-medium text-slate-400 border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-[2rem] min-h-[220px]">
-                          Услуги не найдены
+                        <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-slate-200 bg-gradient-to-b from-slate-50/80 to-white rounded-[2rem] min-h-[320px] p-8">
+                          <div className="w-16 h-16 rounded-2xl bg-sky-50 flex items-center justify-center">
+                            <IconBox className="w-8 h-8 text-sky-400" />
+                          </div>
+                          <div className="text-center space-y-1.5">
+                            <p className="text-base font-bold text-slate-700">Услуги не найдены</p>
+                            <p className="text-sm text-slate-400 max-w-xs leading-relaxed">
+                              {!networkId ? 'Вставьте ссылку выше или выберите платформу' : !categoryId ? 'Выберите категорию в меню слева' : 'В этой категории пока нет доступных услуг. Попробуйте другую.'}
+                            </p>
+                          </div>
                         </div>
                       ) : (
                         <div className={`pb-8 pt-4 transition-opacity duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
