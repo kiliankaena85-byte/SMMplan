@@ -4,7 +4,7 @@ import { useOrderEngine } from "@/hooks/useOrderEngine";
 import { PublicNetwork } from "@/actions/order/catalog";
 import { checkoutAction } from "@/actions/order/checkout";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { Zap, CheckCircle2, Loader2, Link2, LogIn, ChevronRight, ChevronLeft, CheckSquare, Square, Shield, CreditCard, Mail, GripHorizontal, X, ChevronDown } from "lucide-react";
+import { Zap, Check, CheckCircle2, Loader2, Link2, LogIn, ChevronRight, ChevronLeft, CheckSquare, Square, Shield, CreditCard, Mail, GripHorizontal, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,8 @@ export function SmartLinkLanding({
   const skyY = useTransform(scrollY, [0, 1000], [0, 250]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAllNetworks, setShowAllNetworks] = useState(false);
+  const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const TOP_SLUGS = useMemo(() => ['telegram', 'vk', 'instagram', 'youtube', 'tiktok', 'twitch'], []);
   const { topNetworks, otherNetworks } = useMemo(() => {
@@ -138,7 +140,7 @@ export function SmartLinkLanding({
   const handleCheckout = async () => {
     if (!selectedService || !url || quantity < selectedService.minQty || !agreedToTerms) return;
     if (!email || !email.includes('@')) {
-      alert("Пожалуйста, введите корректный email для получения чека.");
+      setShowEmailModal(true);
       return;
     }
     
@@ -430,13 +432,88 @@ export function SmartLinkLanding({
                           Услуги не найдены
                         </div>
                       ) : (
-                        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 pt-4 transition-opacity duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                           {services.map((srv) => {
+                        <div className={`pb-8 pt-4 transition-opacity duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                           
+                           {/* Mobile Dropdown */}
+                           <div className="relative z-[60] sm:hidden mb-4">
+                             <button
+                               onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
+                               className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:border-sky-500/50 transition-all text-left group min-h-[88px]"
+                             >
+                               <div className="flex flex-col gap-1.5 pr-4 flex-1">
+                                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Тарифный план</span>
+                                  {selectedService ? (
+                                      <h4 className="font-extrabold text-slate-900 text-[15px] sm:text-lg leading-tight transition-colors line-clamp-2">
+                                         <span className="text-[10px] font-mono px-1.5 py-0.5 rounded mr-1.5 bg-slate-100 text-slate-500 align-middle inline-block -mt-0.5 shrink-0">
+                                            ID {selectedService.numericId}
+                                         </span>
+                                         {selectedService.name}
+                                      </h4>
+                                  ) : (
+                                      <h4 className="font-extrabold text-slate-400 text-[15px] sm:text-lg">Выберите услугу из списка...</h4>
+                                  )}
+                               </div>
+                               <div className={`w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 transition-transform duration-300 ${isServiceDropdownOpen ? 'rotate-180 bg-sky-50' : ''}`}>
+                                  <ChevronDown className={`w-5 h-5 transition-colors ${isServiceDropdownOpen ? 'text-sky-500' : 'text-slate-400 group-hover:text-sky-500'}`} />
+                               </div>
+                             </button>
+
+                             <AnimatePresence>
+                               {isServiceDropdownOpen && (
+                                 <>
+                                   <div className="fixed inset-0 z-[40]" onClick={() => setIsServiceDropdownOpen(false)} />
+                                   <motion.div
+                                     initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                                     animate={{ opacity: 1, y: 0, scale: 1 }}
+                                     exit={{ opacity: 0, y: -10, scale: 0.98, transition: { duration: 0.15 } }}
+                                     className="absolute top-[calc(100%+8px)] left-0 w-full bg-white border border-slate-200 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] max-h-[400px] overflow-y-auto z-[50] p-2 flex flex-col gap-1 scrollbar-thin overflow-x-hidden"
+                                   >
+                                     {services.map((srv) => (
+                                        <div
+                                          key={`dd-${srv.id}`}
+                                          role="button"
+                                          tabIndex={0}
+                                          onClick={() => {
+                                             setSelectedService(srv);
+                                             setIsServiceDropdownOpen(false);
+                                          }}
+                                          className={`cursor-pointer w-full text-left p-3 rounded-xl transition-all flex items-start justify-between gap-3 relative overflow-hidden ${
+                                             selectedService?.id === srv.id 
+                                             ? 'bg-sky-50 border-sky-100' 
+                                             : 'hover:bg-slate-50 border-transparent'
+                                          } border`}
+                                        >
+                                          <div className="flex-1 flex flex-col pt-0.5">
+                                            <div className="font-bold text-[13px] sm:text-sm leading-tight text-slate-900 line-clamp-3">
+                                              <span className={`text-[9px] font-mono px-1 py-0.5 rounded mr-1.5 align-middle inline-block -mt-0.5 shrink-0 ${selectedService?.id === srv.id ? 'bg-sky-200/50 text-sky-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                 ID {srv.numericId}
+                                              </span>
+                                              {srv.name}
+                                            </div>
+                                            <div className="mt-1.5 text-xs font-semibold text-slate-400 flex items-center gap-3">
+                                              <span>{((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000) : (srv.pricePer1kRub / 1000)).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽/шт</span>
+                                              <span>Мин: {srv.minQty}</span>
+                                            </div>
+                                          </div>
+                                          <div className="flex flex-col items-end justify-start gap-2 shrink-0 pt-0.5">
+                                             {selectedService?.id === srv.id && (
+                                                <div className="w-5 h-5 bg-sky-500 rounded-full flex items-center justify-center mt-0.5">
+                                                   <CheckCircle2 className="w-3 h-3 text-white" />
+                                                </div>
+                                             )}
+                                          </div>
+                                        </div>
+                                     ))}
+                                   </motion.div>
+                                 </>
+                               )}
+                             </AnimatePresence>
+                           </div>
+
+                           {/* Desktop Grid */}
+                           <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                             {services.map((srv) => {
                              const isSelected = selectedService?.id === srv.id;
-                             const nwId = srv.serviceNetworkId; // Or whichever field tells us the network
-                             // Actually, in the catalog we selected a networkId at the top level navigation,
-                             // so we can just use `networkId` from the outer scope, which corresponds to the selected network!
-                             // Wait, `net.slug` isn't directly available here unless we find the network object.
                              const selectedNetworkObj = [...topNetworks, ...otherNetworks].find(n => n.id === networkId);
                              const brand = getBrandColor(selectedNetworkObj?.slug || 'telegram');
 
@@ -444,22 +521,22 @@ export function SmartLinkLanding({
                                <Card 
                                  key={srv.id}
                                  onClick={() => setSelectedService(srv)}
-                                 className={`cursor-pointer w-full flex flex-col p-5 md:p-6 border-2 rounded-[2rem] relative overflow-visible transition-[box-shadow,transform] duration-500 min-h-[400px] ${
-                                   isSelected ? 'border-transparent text-white z-[50] scale-[1.02]' : 'border-slate-100 bg-white z-[1] hover:border-slate-200 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:-translate-y-1 shadow-sm'
+                                  className={`group cursor-pointer w-full flex flex-col p-5 md:p-6 border-2 rounded-[2rem] relative overflow-visible transition-all duration-500 ease-out h-full ${
+                                    isSelected ? 'border-transparent text-white z-[50]' : 'border-slate-100 z-[1] hover:border-slate-200 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:-translate-y-1 shadow-sm'
                                  }`}
-                                 style={isSelected ? { background: `linear-gradient(135deg, ${brand.bg}, ${brand.bg}CC)`, boxShadow: `0 20px 50px -15px ${brand.shadow}` } : undefined}
+                                  style={isSelected ? { background: `linear-gradient(135deg, ${brand.bg}, ${brand.bg}CC)`, boxShadow: `0 20px 50px -15px ${brand.shadow}` } : { background: '#ffffff' }}
                                >
                                  <div className={`absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/10 to-transparent ${isSelected ? '' : 'group-hover:opacity-100'}`} />
                                  {srv.badge && (
-                                   <Badge intent="primary" className={`absolute -top-3 -right-2 z-20 text-[10px] tracking-wide font-black uppercase ${isSelected ? `bg-white shadow-xl ${brand.text}` : 'shadow-sm bg-gradient-to-r text-white'}`} style={isSelected ? {} : { backgroundImage: `linear-gradient(to right, ${brand.bg}, ${brand.bg}dd)` }}>
+                                      <Badge intent="primary" className={`absolute -top-3 -right-2 z-20 text-[10px] tracking-wide font-black uppercase ring-[1.5px] border transition-all duration-300 ${isSelected ? `bg-white shadow-lg border-white/50 ${brand.text}` : 'shadow-sm bg-gradient-to-r text-white border-slate-200/80'}`} style={isSelected ? { '--tw-ring-color': brand.bg } as React.CSSProperties : { backgroundImage: `linear-gradient(to right, ${brand.bg}, ${brand.bg}dd)`, '--tw-ring-color': 'var(--color-background)' } as React.CSSProperties}>
                                      {srv.badge}
                                    </Badge>
                                  )}
                                  
                                  <div className="flex-1 flex flex-col pt-1 relative z-10">
-                                    <h4 className={`font-extrabold text-[16px] leading-[22px] mb-4 line-clamp-3 min-h-[66px] ${isSelected ? 'text-white' : 'text-slate-900'}`}>{srv.name}</h4>
+                                    <h4 className={`font-extrabold text-[15px] transition-colors duration-300 leading-[22px] mb-4 min-h-[44px] break-words ${isSelected ? 'text-white' : 'text-slate-900'}`}>{srv.name}</h4>
                                     <div className="flex-1 mb-5 flex flex-col">
-                                      <p className={`flex-1 text-[13px] font-medium leading-relaxed p-4 rounded-xl border overflow-hidden ${isSelected ? 'bg-white/10 border-white/20 text-white/90 shadow-inner' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
+                                      <p className={`text-[13px] font-medium leading-relaxed p-4 rounded-xl border transition-all duration-300 ${isSelected ? 'bg-white/10 border-white/20 text-white/90 shadow-inner' : 'bg-slate-100/60 border-slate-200/60 text-slate-600'}`}>
                                         <span className="line-clamp-6">
                                           {srv.description || (srv.name.toLowerCase().includes('без гарант') 
                                             ? "Услуга без гарантии. В случае отписок или списаний восстановление (докрутка) не производится." 
@@ -467,29 +544,30 @@ export function SmartLinkLanding({
                                         </span>
                                       </p>
                                     </div>
-                                    <p className={`text-xs font-bold flex items-center justify-between mt-auto px-1 ${isSelected ? 'text-white/60' : 'text-slate-400'}`}>
+                                    <p className={`text-xs font-bold flex items-center transition-colors duration-300 justify-between mt-auto px-1 ${isSelected ? 'text-white/60' : 'text-slate-400'}`}>
                                       <span>Запуск: <span className={isSelected ? 'text-white' : 'text-slate-700'}>{srv.speed}</span></span>
                                       <span>Мин: <span className={isSelected ? 'text-white' : 'text-slate-700'}>{srv.minQty}</span></span>
                                     </p>
                                  </div>
-                                 <div className={`mt-5 pt-4 flex justify-between items-end px-1 relative z-10 ${isSelected ? 'border-t border-white/20' : 'border-t border-slate-100'}`}>
+                                 <div className={`mt-5 pt-4 flex justify-between items-end px-1 relative z-10 transition-colors duration-300 ${isSelected ? 'border-t border-white/20' : 'border-t border-slate-100'}`}>
                                    <div>
-                                     <p className={`text-[10px] uppercase font-black tracking-wider mb-1 ${isSelected ? 'text-white/60' : 'text-slate-400'}`}>Цена за 1 шт.</p>
-                                     <p className={`text-2xl font-black tabular-nums leading-none ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                                     <p className={`text-[10px] uppercase font-black tracking-wider mb-1 transition-colors duration-300 ${isSelected ? 'text-white/60' : 'text-slate-400'}`}>Цена за 1 шт.</p>
+                                     <p className={`text-2xl font-black tabular-nums leading-none transition-colors duration-300 ${isSelected ? 'text-white' : 'text-slate-900'}`}>
                                          {parseFloat(((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000).toFixed(4) : (srv.pricePer1kRub / 1000).toFixed(2))).toString()} ₽
                                      </p>
                                    </div>
-                                   <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                     isSelected ? 'border-white bg-white' : 'border-border text-transparent'
+                                   <div className={`w-7 h-7 rounded-full border-[2.5px] flex items-center justify-center transition-all duration-300 ${
+                                     isSelected ? 'border-white bg-white scale-110 shadow-md' : 'border-slate-200 bg-slate-50 text-slate-300 group-hover:border-sky-300 group-hover:text-sky-400'
                                    }`}
                                    style={isSelected ? { color: brand.bg } : undefined}
                                    >
-                                     <CheckCircle2 className="w-4 h-4" />
+                                     <Check className="w-4 h-4" strokeWidth={3} />
                                    </div>
                                  </div>
                                </Card>
                              );
                            })}
+                        </div>
                         </div>
                       )}
                     </>
@@ -559,7 +637,7 @@ export function SmartLinkLanding({
                 })()}
 
                {/* SECTION 4: BOTTOM CHECKOUT AREA */}
-               <div className="bg-slate-50 border-t border-slate-100 p-6 md:p-8 lg:p-10 flex flex-col gap-8 rounded-b-[2.5rem]">
+               <div className="sm:hidden bg-slate-50 border-t border-slate-100 p-6 flex flex-col gap-8 rounded-b-[2.5rem]">
                  {/* Top row with inputs */}
                  <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
@@ -633,6 +711,175 @@ export function SmartLinkLanding({
           </div>
         </div>
         
+
+      {/* ══════════ DESKTOP STICKY CHECKOUT BAR (Финтех-бар) ══════════ */}
+      <AnimatePresence>
+        {selectedService && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+            className="fixed bottom-0 left-0 right-0 z-[200] hidden sm:block"
+          >
+            <div className="backdrop-blur-2xl bg-white/85 border-t border-slate-200/60 shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.08)]">
+              <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
+                
+                {/* Left: Selected service name */}
+                <div className="flex-1 min-w-0 max-w-[280px]">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Выбрано</p>
+                  <p className="text-sm font-bold text-slate-800 truncate leading-tight">{selectedService.name}</p>
+                </div>
+
+                {/* Center: Live Calculator — qty × unitPrice = total */}
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      value={quantity} 
+                      min={selectedService.minQty || 10}
+                      onChange={e => setQuantity(Number(e.target.value))} 
+                      className="w-28 h-12 px-4 rounded-xl border-2 border-slate-200 bg-white text-lg font-black tabular-nums text-slate-800 text-center focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all"
+                    />
+                    <span className="absolute -top-2 left-3 text-[9px] font-bold text-slate-400 bg-white px-1.5 uppercase">Кол-во</span>
+                  </div>
+                  
+                  <span className="text-slate-300 font-bold text-lg">×</span>
+                  
+                  <span className="text-sm font-bold text-slate-500 tabular-nums whitespace-nowrap">
+                    {((selectedService.pricePer1kRub / 1000) < 0.1 
+                      ? (selectedService.pricePer1kRub / 1000).toFixed(4) 
+                      : (selectedService.pricePer1kRub / 1000).toFixed(2)
+                    ).replace('.', ',')} ₽
+                  </span>
+                  
+                  <span className="text-slate-300 font-bold text-lg">=</span>
+                  
+                  <div className="text-right min-w-[100px]">
+                    {isCalculating ? (
+                      <Loader2 className="w-5 h-5 text-sky-500 animate-spin mx-auto" />
+                    ) : (
+                      <p className="text-2xl font-black text-slate-900 tabular-nums leading-none tracking-tight whitespace-nowrap">
+                        {totalPriceFormatted}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Agreement + CTA */}
+                <div className="flex items-center gap-5 shrink-0">
+                  <label className="flex items-center gap-2 cursor-pointer select-none group">
+                    <button 
+                      onClick={() => setAgreedToTerms(!agreedToTerms)} 
+                      className="text-sky-500 focus:outline-none shrink-0 rounded hover:scale-105 transition-transform"
+                    >
+                      {agreedToTerms 
+                        ? <CheckSquare className="w-5 h-5" /> 
+                        : <Square className="w-5 h-5 text-slate-300 group-hover:text-slate-400" />
+                      }
+                    </button>
+                    <span className="text-xs text-slate-500 font-medium">
+                      <Link href="/p/offer" className="underline hover:text-sky-600 transition-colors">Оферта</Link>
+                    </span>
+                  </label>
+
+                  <Button 
+                    onClick={handleCheckout}
+                    disabled={!selectedService || !url || quantity < (selectedService?.minQty || 1) || isSubmitting || !agreedToTerms || (
+                      (selectedService.name.toLowerCase().includes('опрос') || 
+                       selectedService.name.toLowerCase().includes('свои') || 
+                       selectedService.name.toLowerCase().includes('свой текст') || 
+                       selectedService.name.toLowerCase().includes('ключево')) && !customData.trim()
+                    )}
+                    className={`h-12 px-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-2 group ${
+                      agreedToTerms && selectedService ? 'hover:scale-[1.02] active:scale-95' : 'opacity-50 grayscale'
+                    }`}
+                  >
+                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                      <>Оплатить <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" /></>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════ EMAIL MODAL (Progressive Disclosure) ══════════ */}
+      <AnimatePresence>
+        {showEmailModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            onClick={() => setShowEmailModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-8 w-full max-w-md"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">Почти готово!</h3>
+                  <p className="text-sm text-slate-500 mt-1">Укажите email для получения чека</p>
+                </div>
+                <button onClick={() => setShowEmailModal(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                  <X className="w-4 h-4 text-slate-500" />
+                </button>
+              </div>
+              
+              <div className="relative mb-6">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input 
+                  type="email" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  placeholder="you@example.com"
+                  autoFocus
+                  className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-slate-200 bg-white text-[15px] font-semibold text-slate-800 placeholder-slate-400 focus:border-sky-400 focus:shadow-[0_8px_20px_-6px_rgba(14,165,233,0.15)] outline-none transition-all"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && email.includes('@')) {
+                      setShowEmailModal(false);
+                      handleCheckout();
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="text-right flex-1">
+                  <p className="text-xs text-slate-400 font-bold uppercase">Итого</p>
+                  <p className="text-2xl font-black text-slate-900 tabular-nums">{totalPriceFormatted}</p>
+                </div>
+                <Button
+                  onClick={() => {
+                    if (email.includes('@')) {
+                      setShowEmailModal(false);
+                      handleCheckout();
+                    }
+                  }}
+                  disabled={!email.includes('@') || isSubmitting}
+                  className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-base shadow-lg transition-all flex items-center gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                    <>Перейти к оплате <ChevronRight className="w-5 h-5" /></>
+                  )}
+                </Button>
+              </div>
+
+              <p className="text-[11px] text-slate-400 text-center mt-4">
+                Чек отправляется автоматически на указанный email
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </main>
 
       {/* Trust and WhyUs wrappers */}
@@ -706,3 +953,4 @@ export function SmartLinkLanding({
     </div>
   );
 }
+
