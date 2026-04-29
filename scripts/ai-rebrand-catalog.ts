@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -112,7 +112,7 @@ async function main() {
 
   // Find all active services that don't have extracted features yet
   const services = await prisma.service.findMany({
-    where: { isActive: true, features: { equals: null } },
+    where: { isActive: true, features: { equals: Prisma.DbNull } },
     take: 100 // Limit for safety / demonstration
   });
 

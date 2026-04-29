@@ -52,7 +52,7 @@ export function CommandMenu() {
   return (
     <>
       <Button
-        variant="outline"
+        intent="outline"
         className="relative h-9 w-full justify-start rounded-[0.5rem] bg-slate-900 text-sm text-slate-400 sm:pr-12 hover:bg-slate-800 hover:text-white border-slate-700 flex mb-4"
         onClick={() => setOpen(true)}
       >

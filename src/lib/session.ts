@@ -45,6 +45,7 @@ export async function verifySession() {
     // Опционально можно сверять с БД
     return { userId: payload.userId as string };
   } catch (err) {
+    console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
     return null;
   }
 }

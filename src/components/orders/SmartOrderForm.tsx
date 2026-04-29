@@ -28,7 +28,7 @@ export function SmartOrderForm() {
     email, setEmail,
     dripFeedEnabled, setDripFeedEnabled,
     runs, setRuns,
-    interval, setInterval,
+    dripInterval, setDripInterval,
     services,
     isLoading,
     isCalculating,
@@ -36,8 +36,7 @@ export function SmartOrderForm() {
     validate,
     validationErrors,
   } = engine;
-
-  const [isConsentGiven, setIsConsentGiven] = useState(false);
+  const { agreedToTerms, setAgreedToTerms } = engine;
 
   const handleAction = async () => {
     // 1. Adaptive validation block
@@ -62,7 +61,7 @@ export function SmartOrderForm() {
       quantity,
       email,
       runs:     dripFeedEnabled ? runs     : undefined,
-      interval: dripFeedEnabled ? interval : undefined,
+      interval: dripFeedEnabled ? dripInterval : undefined,
       customData: engine.customData || undefined,
       gateway: 'yookassa', // TODO: Make gateway dynamic for Balance usage
     });
@@ -313,8 +312,8 @@ export function SmartOrderForm() {
                   setEnabled={setDripFeedEnabled}
                   runs={runs}
                   setRuns={setRuns}
-                  interval={interval}
-                  setInterval={setInterval}
+                  interval={dripInterval}
+                  setInterval={setDripInterval}
                 />
               )}
 
@@ -341,28 +340,28 @@ export function SmartOrderForm() {
                   <span className="inline-flex items-center justify-center w-11 h-11 pointer-events-none shrink-0">
                     <input
                       type="checkbox"
-                      checked={isConsentGiven}
-                      onChange={e => setIsConsentGiven(e.target.checked)}
-                      aria-label="Согласие с публичной офертой"
+                      checked={agreedToTerms}
+                      onChange={e => setAgreedToTerms(e.target.checked)}
+                      aria-label="Согласие с публичной офертой и правилами возврата"
                       className="w-5 h-5 rounded border-slate-300 text-sky-500 focus:ring-sky-500/30 cursor-pointer pointer-events-auto"
                     />
                   </span>
                   <span className="text-xs text-muted-foreground leading-relaxed">
-                    Я согласен с{' '}
+                    Я подтверждаю заказ и соглашаюсь с{' '}
                     <Link
-                      href="/p/offer"
+                      href="/legal/terms"
                       className="text-foreground underline hover:no-underline font-semibold"
                       target="_blank"
                     >
-                      Публичной Офертой
+                      Договором оферты
                     </Link>{' '}
                     и{' '}
                     <Link
-                      href="/p/privacy"
+                      href="/legal/refund"
                       className="text-foreground underline hover:no-underline font-semibold"
                       target="_blank"
                     >
-                      политикой конфиденциальности
+                      Политикой возврата (Refund Policy)
                     </Link>
                   </span>
                 </label>
@@ -372,7 +371,7 @@ export function SmartOrderForm() {
               <button
                 type="submit"
                 disabled={(() => {
-                  if (!selectedService || quantity < selectedService.minQty || isCalculating || !isConsentGiven) return true;
+                  if (!selectedService || quantity < selectedService.minQty || isCalculating || !agreedToTerms) return true;
                   const sName = selectedService.name.toLowerCase();
                   const needsPayload = sName.includes('свои') || sName.includes('свой текст') || sName.includes('ключево') || sName.includes('опрос') || sName.includes('голосование');
                   if (needsPayload && !engine.customData.trim()) return true;
@@ -380,7 +379,7 @@ export function SmartOrderForm() {
                 })()}
                 aria-label="Создать заказ и перейти к оплате"
                 className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 ${
-                  isConsentGiven
+                  agreedToTerms
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
                     : 'bg-muted text-muted-foreground cursor-not-allowed'
                 }`}

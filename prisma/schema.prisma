@@ -217,7 +217,8 @@ model Order {
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   service Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  payment Payment? // One-to-one: the payment that funds this order
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   refills Refill[]
 
   @@index([userId])
@@ -241,11 +242,12 @@ model Refill {
 
 model Payment {
   id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-  orderId String? @unique // Links this payment to a specific order
-  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  orderId   String?  @unique // Legacy pointer, no longer used as the active Prisma relation
+
+  orders    Order[]
 
   amount    Int // amount in Cents
   currency  String  @default("RUB")
@@ -253,12 +255,15 @@ model Payment {
   gatewayId String? @unique // yookassa payment id
   gateway   String  @default("yookassa") // yookassa, cryptobot, test
 
+  // Legal Consent Logging (PB-004 Chargeback Defense)
+  consentIp        String?
+  consentUserAgent String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([gatewayId])
-  @@index([orderId])
 }
 
 model SystemSettings {

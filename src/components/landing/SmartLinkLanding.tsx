@@ -53,6 +53,8 @@ export function SmartLinkLanding({
   const [showAllNetworks, setShowAllNetworks] = useState(false);
   const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkHasError, setLinkHasError] = useState(false);
 
   const TOP_SLUGS = useMemo(() => ['telegram', 'vk', 'instagram', 'youtube', 'tiktok', 'twitch'], []);
   const { topNetworks, otherNetworks } = useMemo(() => {
@@ -138,7 +140,76 @@ export function SmartLinkLanding({
   };
 
   const handleCheckout = async () => {
-    if (!selectedService || !url || quantity < selectedService.minQty || !agreedToTerms) return;
+    if (!selectedService) {
+      toast.error("Пожалуйста, выберите услугу.", { position: 'top-center' });
+      return;
+    }
+    
+    setLinkHasError(false);
+    const rawUrl = url.trim();
+    if (rawUrl.length < 3) {
+      setLinkHasError(true);
+      toast.error("Ссылка или юзернейм слишком короткие.", { position: 'top-center' });
+      setShowLinkModal(true);
+      return;
+    }
+    if (rawUrl.includes(' ')) {
+      setLinkHasError(true);
+      toast.error("Ссылка не должна содержать пробелов.", { position: 'top-center' });
+      setShowLinkModal(true);
+      return;
+    }
+    if (/[а-яА-Я]/.test(rawUrl) && !rawUrl.includes('рф')) {
+      setLinkHasError(true);
+      toast.error("Ссылка содержит недопустимые символы (кириллицу).", { position: 'top-center' });
+      setShowLinkModal(true);
+      return;
+    }
+
+    let finalUrl = rawUrl;
+    if (!/^https?:\/\//i.test(finalUrl) && finalUrl.includes('.')) {
+      finalUrl = 'https://' + finalUrl;
+    }
+
+    if (/^https?:\/\//i.test(finalUrl)) {
+      try {
+        const u = new URL(finalUrl);
+        if (!u.hostname.includes('.')) {
+          setLinkHasError(true);
+          toast.error("Указан некорректный домен.", { position: 'top-center' });
+          setShowLinkModal(true);
+          return;
+        }
+        if (u.pathname === '/' || u.pathname.length < 2) {
+          setLinkHasError(true);
+          toast.error("Укажите ссылку на конкретный профиль или пост, а не на главную страницу.", { position: 'top-center' });
+          setShowLinkModal(true);
+          return;
+        }
+      } catch (e) {
+        setLinkHasError(true);
+        toast.error("Неверный формат ссылки.", { position: 'top-center' });
+        setShowLinkModal(true);
+        return;
+      }
+    }
+    if (quantity < (selectedService.minQty || 1)) {
+      toast.error(`Минимальное количество для заказа: ${selectedService.minQty}`, { position: 'top-center' });
+      return;
+    }
+    const reqCustomData = selectedService.name.toLowerCase().includes('опрос') || 
+                          selectedService.name.toLowerCase().includes('свои') || 
+                          selectedService.name.toLowerCase().includes('свой текст') || 
+                          selectedService.name.toLowerCase().includes('ключево');
+    if (reqCustomData && (!customData || customData.trim().length === 0)) {
+      toast.error("Укажите необходимые данные для этой услуги (текст комментариев, ответы и т.д.)", { position: 'top-center' });
+      return;
+    }
+    if (!agreedToTerms) {
+      toast.error("Пожалуйста, ознакомьтесь и согласитесь с условиями Оферты.", { position: 'top-center' });
+      return;
+    }
+
     if (!email || !email.includes('@')) {
       setShowEmailModal(true);
       return;
@@ -147,7 +218,7 @@ export function SmartLinkLanding({
     setIsSubmitting(true);
     const res = await checkoutAction({
       serviceId: selectedService.id,
-      link: url,
+      link: finalUrl,
       quantity,
       email,
       customData: customData.trim() || undefined,
@@ -159,7 +230,7 @@ export function SmartLinkLanding({
       window.location.href = res.data.paymentUrl;
     } else {
       const errorMessage = !res.success ? res.error : "Ошибка создания заказа. Попробуйте снова.";
-      alert(errorMessage);
+      toast.error(errorMessage, { position: 'top-center' });
     }
   };
 
@@ -236,11 +307,15 @@ export function SmartLinkLanding({
         </motion.div>
 
         {/* ── Main Input & UI Panel ── */}
-        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.08)] ring-1 ring-slate-100 rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-8 relative overflow-hidden">
+        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.08)] ring-1 ring-slate-100 rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-8 relative">
           
           {/* Smart Input (Massive Pill) */}
           <div className="w-full max-w-4xl mx-auto relative z-20 mb-10 mt-4">
-            <div className="relative flex items-center w-full bg-white rounded-full p-2 sm:p-3 border-2 border-slate-100 transition-all shadow-[0_8px_30px_-10px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.08)] focus-within:border-sky-300 focus-within:shadow-[0_12px_50px_-12px_rgba(14,165,233,0.25)] h-20 md:h-24">
+            <div className={`relative flex items-center w-full bg-white rounded-full p-2 sm:p-3 border-2 transition-all shadow-[0_8px_30px_-10px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.08)] h-20 md:h-24 ${
+              linkHasError 
+                ? 'border-red-400 focus-within:border-red-500 focus-within:shadow-[0_12px_50px_-12px_rgba(248,113,113,0.3)]'
+                : 'border-slate-100 focus-within:border-sky-300 focus-within:shadow-[0_12px_50px_-12px_rgba(14,165,233,0.25)]'
+            }`}>
               <div className="pl-6 sm:pl-8 pr-3 flex-shrink-0">
                    {isLoading 
                      ? <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-sky-500 animate-spin" />
@@ -251,10 +326,19 @@ export function SmartLinkLanding({
                 id="landing-url"
                 type="url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (linkHasError) setLinkHasError(false);
+                }}
                 onFocus={() => setIsFocused(true)}
                 onBlur={(e) => {
                   setTimeout(() => setIsFocused(false), 200);
+                  const val = e.target.value.trim();
+                  if (val && !/^https?:\/\//i.test(val) && val.includes('.') && !val.includes(' ')) {
+                    setUrl(`https://${val}`);
+                  } else {
+                    setUrl(val);
+                  }
                 }}
                 placeholder="Вставьте ссылку на профиль или пост..."
                 className="flex-1 bg-transparent border-none outline-none text-lg sm:text-2xl font-semibold text-slate-800 placeholder:text-slate-400 px-2 sm:px-4 h-full w-full"
@@ -452,9 +536,15 @@ export function SmartLinkLanding({
                             <IconBox className="w-8 h-8 text-sky-400" />
                           </div>
                           <div className="text-center space-y-1.5">
-                            <p className="text-base font-bold text-slate-700">Услуги не найдены</p>
+                            <p className="text-base font-bold text-slate-700">
+                              {!networkId ? 'Выберите платформу' : !categoryId ? 'Выберите категорию' : 'Услуги не найдены'}
+                            </p>
                             <p className="text-sm text-slate-400 max-w-xs leading-relaxed">
-                              {!networkId ? 'Вставьте ссылку выше или выберите платформу' : !categoryId ? 'Выберите категорию в меню слева' : 'В этой категории пока нет доступных услуг. Попробуйте другую.'}
+                              {!networkId 
+                                ? 'Вставьте ссылку на профиль/пост выше, или выберите нужную соцсеть из списка.' 
+                                : !categoryId 
+                                ? 'Выберите нужную категорию услуг в меню слева.' 
+                                : 'В этой категории пока нет доступных услуг. Попробуйте выбрать другую.'}
                             </p>
                           </div>
                         </div>
@@ -726,14 +816,9 @@ export function SmartLinkLanding({
                        </div>
                        <Button 
                           onClick={handleCheckout}
-                          disabled={!selectedService || !url || quantity < (selectedService?.minQty || 1) || isSubmitting || !agreedToTerms || (
-                            (selectedService.name.toLowerCase().includes('опрос') || 
-                             selectedService.name.toLowerCase().includes('свои') || 
-                             selectedService.name.toLowerCase().includes('свой текст') || 
-                             selectedService.name.toLowerCase().includes('ключево')) && !customData.trim()
-                          )}
+                          disabled={isSubmitting}
                           className={`min-w-[200px] h-16 rounded-full px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-2 group ${
-                             agreedToTerms && selectedService ? 'hover:scale-[1.03] active:scale-95' : 'opacity-60 grayscale'
+                             isSubmitting ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'
                           }`}
                        >
                           {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : (
@@ -762,13 +847,13 @@ export function SmartLinkLanding({
             transition={{ type: 'spring', damping: 30, stiffness: 400 }}
             className="fixed bottom-0 left-0 right-0 z-[200] hidden sm:block"
           >
-            <div className="backdrop-blur-2xl bg-white/85 border-t border-slate-200/60 shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.08)]">
+            <div className="backdrop-blur-2xl bg-gradient-to-r from-slate-900 to-slate-950 border-t border-slate-800 shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.5)]">
               <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
                 
                 {/* Left: Selected service name */}
                 <div className="flex-1 min-w-0 max-w-[280px]">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Выбрано</p>
-                  <p className="text-sm font-bold text-slate-800 truncate leading-tight">{selectedService.name}</p>
+                  <p className="text-sm font-bold text-white truncate leading-tight">{selectedService.name}</p>
                 </div>
 
                 {/* Center: Live Calculator — qty × unitPrice = total */}
@@ -779,28 +864,33 @@ export function SmartLinkLanding({
                       value={quantity} 
                       min={selectedService.minQty || 10}
                       onChange={e => setQuantity(Number(e.target.value))} 
-                      className="w-28 h-12 px-4 rounded-xl border-2 border-slate-200 bg-white text-lg font-black tabular-nums text-slate-800 text-center focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all"
+                      className="w-28 h-12 px-4 rounded-xl border-2 border-slate-700 bg-slate-800/80 text-lg font-black tabular-nums text-white text-center focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all"
                     />
-                    <span className="absolute -top-2 left-3 text-[9px] font-bold text-slate-400 bg-white px-1.5 uppercase">Кол-во</span>
+                    <span className="absolute -top-2 left-3 text-[9px] font-bold text-slate-400 bg-slate-900 px-1.5 rounded-sm uppercase">Кол-во</span>
                   </div>
                   
-                  <span className="text-slate-300 font-bold text-lg">×</span>
+                  <span className="text-slate-600 font-bold text-lg">×</span>
                   
-                  <span className="text-sm font-bold text-slate-500 tabular-nums whitespace-nowrap">
-                    {((selectedService.pricePer1kRub / 1000) < 0.1 
-                      ? (selectedService.pricePer1kRub / 1000).toFixed(4) 
-                      : (selectedService.pricePer1kRub / 1000).toFixed(2)
-                    ).replace('.', ',')} ₽
+                  <span className="text-sm font-bold text-slate-300 tabular-nums whitespace-nowrap">
+                    {pricing && quantity > 0 ? (
+                      ((pricing.totalCents / 100) / quantity) < 0.1 
+                        ? ((pricing.totalCents / 100) / quantity).toFixed(4)
+                        : ((pricing.totalCents / 100) / quantity).toFixed(2)
+                    ) : (
+                      (selectedService.pricePer1kRub / 1000) < 0.1 
+                        ? (selectedService.pricePer1kRub / 1000).toFixed(4) 
+                        : (selectedService.pricePer1kRub / 1000).toFixed(2)
+                    )} ₽
                   </span>
                   
-                  <span className="text-slate-300 font-bold text-lg">=</span>
+                  <span className="text-slate-600 font-bold text-lg">=</span>
                   
                   <div className="text-right min-w-[100px]">
                     {isCalculating ? (
                       <Loader2 className="w-5 h-5 text-sky-500 animate-spin mx-auto" />
                     ) : (
-                      <p className="text-2xl font-black text-slate-900 tabular-nums leading-none tracking-tight whitespace-nowrap">
-                        {totalPriceFormatted}
+                      <p className="text-2xl font-black text-white tabular-nums leading-none tracking-tight whitespace-nowrap">
+                        {totalPriceFormatted} ₽
                       </p>
                     )}
                   </div>
@@ -811,28 +901,23 @@ export function SmartLinkLanding({
                   <label className="flex items-center gap-2 cursor-pointer select-none group">
                     <button 
                       onClick={() => setAgreedToTerms(!agreedToTerms)} 
-                      className="text-sky-500 focus:outline-none shrink-0 rounded hover:scale-105 transition-transform"
+                      className="text-sky-400 focus:outline-none shrink-0 rounded hover:scale-105 transition-transform"
                     >
                       {agreedToTerms 
                         ? <CheckSquare className="w-5 h-5" /> 
-                        : <Square className="w-5 h-5 text-slate-300 group-hover:text-slate-400" />
+                        : <Square className="w-5 h-5 text-slate-600 group-hover:text-slate-400" />
                       }
                     </button>
-                    <span className="text-xs text-slate-500 font-medium">
-                      <Link href="/p/offer" className="underline hover:text-sky-600 transition-colors">Оферта</Link>
+                    <span className="text-xs text-slate-400 font-medium">
+                      <Link href="/p/offer" className="underline hover:text-sky-400 transition-colors">Оферта</Link>
                     </span>
                   </label>
 
                   <Button 
                     onClick={handleCheckout}
-                    disabled={!selectedService || !url || quantity < (selectedService?.minQty || 1) || isSubmitting || !agreedToTerms || (
-                      (selectedService.name.toLowerCase().includes('опрос') || 
-                       selectedService.name.toLowerCase().includes('свои') || 
-                       selectedService.name.toLowerCase().includes('свой текст') || 
-                       selectedService.name.toLowerCase().includes('ключево')) && !customData.trim()
-                    )}
-                    className={`h-12 px-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-2 group ${
-                      agreedToTerms && selectedService ? 'hover:scale-[1.02] active:scale-95' : 'opacity-50 grayscale'
+                    disabled={isSubmitting}
+                    className={`h-12 px-8 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-[0_10px_30px_-10px_rgba(255,255,255,0.2)] transition-all flex items-center justify-center gap-2 group ${
+                      isSubmitting ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'
                     }`}
                   >
                     {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
@@ -842,6 +927,84 @@ export function SmartLinkLanding({
                 </div>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════ LINK MODAL (Progressive Disclosure) ══════════ */}
+      <AnimatePresence>
+        {showLinkModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            onClick={() => setShowLinkModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-8 w-full max-w-md"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">Укажите ссылку</h3>
+                  <p className="text-sm text-slate-500 mt-1">Куда отправить заказ?</p>
+                </div>
+                <button onClick={() => setShowLinkModal(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                  <X className="w-4 h-4 text-slate-500" />
+                </button>
+              </div>
+              
+              <div className="relative mb-6">
+                <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input 
+                  type="url" 
+                  value={url} 
+                  onChange={e => setUrl(e.target.value)} 
+                  placeholder="Например: t.me/durov или instagram.com/username"
+                  autoFocus
+                  className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-slate-200 bg-white text-[15px] font-semibold text-slate-800 placeholder-slate-400 focus:border-sky-400 focus:shadow-[0_8px_20px_-6px_rgba(14,165,233,0.15)] outline-none transition-all"
+                  onBlur={(e) => {
+                    const val = e.target.value.trim();
+                    if (val && !/^https?:\/\//i.test(val) && val.includes('.') && !val.includes(' ')) {
+                      setUrl(`https://${val}`);
+                    } else {
+                      setUrl(val);
+                    }
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && url.trim().length > 0) {
+                      let finalUrl = url.trim();
+                      if (!/^https?:\/\//i.test(finalUrl) && finalUrl.includes('.') && !finalUrl.includes(' ')) {
+                        finalUrl = `https://${finalUrl}`;
+                        setUrl(finalUrl);
+                      }
+                      setShowLinkModal(false);
+                      handleCheckout();
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-4">
+                <Button
+                  onClick={() => {
+                    if (url.trim().length > 0) {
+                      setShowLinkModal(false);
+                      handleCheckout();
+                    }
+                  }}
+                  disabled={url.trim().length === 0}
+                  className="h-14 px-8 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-base shadow-lg transition-all flex items-center gap-2"
+                >
+                  Продолжить <ChevronRight className="w-5 h-5" />
+                </Button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -895,7 +1058,7 @@ export function SmartLinkLanding({
               <div className="flex items-center justify-between gap-4">
                 <div className="text-right flex-1">
                   <p className="text-xs text-slate-400 font-bold uppercase">Итого</p>
-                  <p className="text-2xl font-black text-slate-900 tabular-nums">{totalPriceFormatted}</p>
+                  <p className="text-2xl font-black text-slate-900 tabular-nums">{totalPriceFormatted} ₽</p>
                 </div>
                 <Button
                   onClick={() => {

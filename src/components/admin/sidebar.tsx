@@ -14,10 +14,10 @@ import { cn } from '@/lib/utils';
 interface SidebarProps {
   userEmail: string;
   roleInfo: { label: string; color: string };
-  visibleTabs: { href: string; label: string; icon: string; roles: string[] }[];
+  visibleTabs: { href: string; label: string; icon: string; section?: string; roles?: string[] }[];
 }
 
-const ICON_MAP: Record<string, React.ElementType> = {
+const ICON_MAP: Record<string, any> = {
   Home, Users, Package, RefreshCw, ShoppingCart, 
   MessageSquare, CreditCard, Link: LinkIcon, Gift, FileText, Settings, BarChart
 };

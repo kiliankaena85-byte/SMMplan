@@ -15,6 +15,7 @@ export default function AddFundsPage() {
   const [amount, setAmount]     = useState<number>(1000);
   const [method, setMethod]     = useState<'yookassa' | 'cryptobot'>('yookassa');
   const [error,  setError]      = useState<string | null>(null);
+  const [consent, setConsent]   = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function handlePreset(val: number) {
@@ -141,11 +142,28 @@ export default function AddFundsPage() {
           </p>
         )}
 
+        {/* Consent Checkbox */}
+        <div className="flex bg-muted/30 border border-border/50 rounded-xl p-3.5 gap-3">
+          <input
+            type="checkbox"
+            id="legal-consent"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            className="w-4 h-4 mt-0.5 rounded border-border text-primary focus:ring-primary/50"
+          />
+          <label htmlFor="legal-consent" className="text-xs text-muted-foreground leading-relaxed">
+            Я подтверждаю заказ и соглашаюсь с{' '}
+            <a href="/legal/terms" target="_blank" className="text-primary hover:underline font-medium">Договором оферты</a>{' '}
+            и{' '}
+            <a href="/legal/refund" target="_blank" className="text-primary hover:underline font-medium">Политикой возврата (Refund Policy)</a>.
+          </label>
+        </div>
+
         {/* Submit */}
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isPending || amount < 100}
+          disabled={isPending || amount < 100 || !consent}
           aria-label={`Перейти к оплате ${amount} рублей`}
           className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50
             font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-sm text-base

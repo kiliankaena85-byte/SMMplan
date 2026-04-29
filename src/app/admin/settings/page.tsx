@@ -129,7 +129,7 @@ export default async function AdminSettingsPage({
                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
-                <Button type="submit" variant="secondary" className="bg-sky-100 text-sky-800 hover:bg-sky-200">
+                <Button type="submit" intent="secondary" className="bg-sky-100 text-sky-800 hover:bg-sky-200">
                   Сохранить контент бота
                 </Button>
               </ActionForm>
@@ -218,7 +218,7 @@ export default async function AdminSettingsPage({
                               defaultValue={u.supportLimitCents || 0} 
                               className="w-32 h-8 text-right font-mono bg-slate-50/50" 
                             />
-                            <Button type="submit" variant="secondary" className="h-8 px-3 text-xs border border-slate-300 shadow hover:-translate-y-0.5 transition-all">Сохранить</Button>
+                            <Button type="submit" intent="secondary" className="h-8 px-3 text-xs border border-slate-300 shadow hover:-translate-y-0.5 transition-all">Сохранить</Button>
                           </form>
                         </td>
                       </tr>
@@ -238,7 +238,7 @@ export default async function AdminSettingsPage({
               <form className="flex gap-2 mb-4" action="/admin/settings" method="GET">
                 <input type="hidden" name="tab" value="team" />
                 <Input type="text" name="q" placeholder="Поиск по email..." defaultValue={searchQuery} className="h-9 bg-slate-50/50" />
-                <Button type="submit" variant="secondary" className="h-9 text-xs shadow hover:-translate-y-0.5 transition-all">Поиск</Button>
+                <Button type="submit" intent="secondary" className="h-9 text-xs shadow hover:-translate-y-0.5 transition-all">Поиск</Button>
               </form>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm font-medium text-slate-700">
@@ -260,7 +260,7 @@ export default async function AdminSettingsPage({
                               <option value="SUPPORT">SUPPORT</option>
                               <option value="MANAGER">MANAGER</option>
                             </select>
-                            <Button type="submit" variant="outline" className="text-[11px] h-8 px-3 font-semibold shadow-sm hover:-translate-y-0.5 transition-transform">Назначить</Button>
+                            <Button type="submit" intent="outline" className="text-[11px] h-8 px-3 font-semibold shadow-sm hover:-translate-y-0.5 transition-transform">Назначить</Button>
                           </form>
                         </td>
                       </tr>

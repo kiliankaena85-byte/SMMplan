@@ -7,6 +7,8 @@ import { SettingsManager } from '@/lib/settings';
 import { orderService } from '@/services/core/order.service';
 import { revalidatePath } from 'next/cache';
 import { createSession } from '@/lib/session';
+import { headers } from 'next/headers';
+import crypto from 'crypto';
 
 /**
  * Calculates price for display on the order form (no auth required).
@@ -18,6 +20,11 @@ export async function calculatePriceAction(
   runs?: number
 ): Promise<{ success: boolean; data?: PricingResult; error?: string }> {
   try {
+    const service = await db.service.findUnique({ where: { id: serviceId } });
+    if (!service || !service.isActive) {
+      return { success: false, error: "Услуга не найдена или неактивна" };
+    }
+
     const totalQuantity = (runs && runs > 0) ? quantity * runs : quantity;
     const result = await marketingService.calculatePrice(
       null, // No user context needed for price preview
@@ -44,7 +51,7 @@ import { MutexManager } from '@/lib/redis-lock';
 
 const checkoutSchema = z.object({
   serviceId: z.string(),
-  link: z.string().url("Неверный формат ссылки"),
+  link: z.string().min(3, "Ссылка слишком короткая").refine(val => !val.includes(' '), "Ссылка не должна содержать пробелов"),
   quantity: z.number().min(1),
   email: z.string().email("Неверный email"),
   promoCodeStr: z.string().optional(),
@@ -78,6 +85,10 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error("Услуга не привязана к провайдеру");
     }
 
+    if (quantity < service.minQty || quantity > service.maxQty) {
+      throw new Error(`Количество должно быть от ${service.minQty} до ${service.maxQty}`);
+    }
+
     const isTestMode = await SettingsManager.isTestMode();
 
     // 3. Find or create user by email using atomic upsert (prevents race conditions)
@@ -90,6 +101,10 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     // 4. Calculate price based on TOTAL quantity and actual User ID for Loyalty Tier eval
     const totalQuantity = (runs && runs > 0) ? quantity * runs : quantity;
     const pricing = await marketingService.calculatePrice(user.id, serviceId, totalQuantity, promoCodeStr);
+
+    const reqHeaders = await headers();
+    const consentIp = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "127.0.0.1";
+    const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
     // 5. Create Order + Payment atomically
     const result = await db.$transaction(async (tx) => {
@@ -125,7 +140,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           amount: pricing.totalCents,
           currency: 'RUB',
           status: 'PENDING',
-          gateway
+          gateway,
+          consentIp,
+          consentUserAgent
         }
       });
 
@@ -142,7 +159,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       if (gateway === 'balance') {
         // We will perform atomic deduction inside the transaction to prevent race condition double-spending
         // AND use a Redis Mutex to completely serialize processing per-user for the balance gateway.
-        await MutexManager.withLock(`balance_lock_${user.id}`, 10000, 5000, async () => {
+        await MutexManager.withLock(`balance_lock_${user.id}`, 30000, 5000, async () => {
           await db.$transaction(async (tx) => {
             const updatedUser = await tx.user.update({
               where: { id: user.id },
@@ -179,70 +196,104 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         paymentUrl = successUrl;
         remoteGatewayId = `internal_${Date.now()}`;
       } else if (gateway === 'yookassa') {
-        const secrets = await SettingsManager.getPaymentSecrets();
-        const shopId = secrets.yookassaShopId;
-        const secretKey = secrets.yookassaSecretKey;
-        if (!shopId || !secretKey) throw new Error('YooKassa is not configured in Admin Panel');
+        // [TEST MODE BYPASS] Skip real API calls during E2E tests
+        if (isTestMode) {
+          paymentUrl = successUrl;
+          remoteGatewayId = `test_yookassa_${Date.now()}`;
+        } else {
+          const secrets = await SettingsManager.getPaymentSecrets();
+          const shopId = secrets.yookassaShopId;
+          const secretKey = secrets.yookassaSecretKey;
+          if (!shopId || !secretKey) throw new Error('YooKassa is not configured in Admin Panel');
 
-        const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-        const payload = {
-          amount: { value: amountRub, currency: 'RUB' },
-          capture: true,
-          confirmation: { type: 'redirect', return_url: successUrl },
-          description: `Заказ Smmplan #${result.orderId}`,
-          metadata: { paymentId: result.paymentId, orderId: result.orderId, userId: user.id }
-        };
 
-        const resp = await fetch('https://api.yookassa.ru/v3/payments', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-            'Idempotence-Key': result.paymentId
-          },
-          body: JSON.stringify(payload)
-        });
+          const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+          const payload: any = {
+            amount: { value: amountRub, currency: 'RUB' },
+            capture: true,
+            confirmation: { type: 'redirect', return_url: successUrl },
+            description: `SEO-Аудит и консультация (Заказ #${result.orderId})`, // [SECURITY] PB-001: Stealth Merchant Description
+            receipt: {
+              customer: {
+                email: email || user.email || 'no-reply@smmplan.ru'
+              },
+              items: [
+                {
+                  description: "Услуги SEO-аудита и цифрового маркетинга",
+                  quantity: "1.00",
+                  amount: {
+                    value: amountRub,
+                    currency: 'RUB'
+                  },
+                  vat_code: 1, // Без НДС
+                  payment_mode: "full_prepayment",
+                  payment_subject: "service"
+                }
+              ]
+            },
+            metadata: { paymentId: result.paymentId, orderId: result.orderId, userId: user.id }
+          };
 
-        if (!resp.ok) {
-          console.error('[Checkout] YooKassa API Error:', await resp.text());
-          throw new Error('Ошибка шлюза YooKassa');
+          const idempKey = crypto.createHash('sha256')
+            .update(`yookassa_${user.id}_${serviceId}_${quantity}_${link}_${Math.floor(Date.now() / 60000)}`)
+            .digest('hex').substring(0, 36);
+
+          const resp = await fetch('https://api.yookassa.ru/v3/payments', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': authHeader,
+              'Idempotence-Key': idempKey
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!resp.ok) {
+            console.error('[Checkout] YooKassa API Error:', await resp.text());
+            throw new Error('Ошибка шлюза YooKassa');
+          }
+
+          const data = await resp.json();
+          paymentUrl = data.confirmation.confirmation_url;
+          remoteGatewayId = data.id;
         }
-
-        const data = await resp.json();
-        paymentUrl = data.confirmation.confirmation_url;
-        remoteGatewayId = data.id;
 
       } else if (gateway === 'cryptobot') {
-        const secrets = await SettingsManager.getPaymentSecrets();
-        const cryptoToken = secrets.cryptoBotToken;
-        if (!cryptoToken) throw new Error('CryptoBot is not configured in Admin Panel');
+        if (isTestMode) {
+          paymentUrl = successUrl;
+          remoteGatewayId = `test_crypto_${Date.now()}`;
+        } else {
+          const secrets = await SettingsManager.getPaymentSecrets();
+          const cryptoToken = secrets.cryptoBotToken;
+          if (!cryptoToken) throw new Error('CryptoBot is not configured in Admin Panel');
 
-        const resp = await fetch('https://pay.crypt.bot/api/createInvoice', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Crypto-Pay-API-Token': cryptoToken
-          },
-          body: JSON.stringify({
-            currency_type: 'fiat', // Allow paying in TON but amount specified in RUB
-            fiat: 'RUB',
-            amount: amountRub,
-            description: `Заказ Smmplan #${result.orderId}`,
-            hidden_message: `Ваш заказ: ${result.orderId}`,
-            payload: result.paymentId
-          })
-        });
+          const resp = await fetch('https://pay.crypt.bot/api/createInvoice', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Crypto-Pay-API-Token': cryptoToken
+            },
+            body: JSON.stringify({
+              currency_type: 'fiat', // Allow paying in TON but amount specified in RUB
+              fiat: 'RUB',
+              amount: amountRub,
+              description: `Заказ Smmplan #${result.orderId}`,
+              hidden_message: `Ваш заказ: ${result.orderId}`,
+              payload: result.paymentId
+            })
+          });
 
-        if (!resp.ok) {
-          console.error('[Checkout] CryptoBot API Error:', await resp.text());
-          throw new Error('Ошибка шлюза CryptoBot');
+          if (!resp.ok) {
+            console.error('[Checkout] CryptoBot API Error:', await resp.text());
+            throw new Error('Ошибка шлюза CryptoBot');
+          }
+
+          const data = await resp.json();
+          if (!data.ok) throw new Error('CryptoBot returned error: ' + JSON.stringify(data.error));
+          
+          paymentUrl = data.result.pay_url;
+          remoteGatewayId = data.result.invoice_id.toString();
         }
-
-        const data = await resp.json();
-        if (!data.ok) throw new Error('CryptoBot returned error: ' + JSON.stringify(data.error));
-        
-        paymentUrl = data.result.pay_url;
-        remoteGatewayId = data.result.invoice_id.toString();
       }
 
       // 7. Store the remoteGatewayId on the Payment record so Webhooks can match it

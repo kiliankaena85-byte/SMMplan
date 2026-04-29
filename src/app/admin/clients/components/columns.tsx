@@ -47,7 +47,7 @@ export const columns: ColumnDef<ClientColumn>[] = [
       const u = row.original;
       const roleInfo = ROLE_LABELS[u.role] || { label: u.role, color: 'bg-slate-100 text-slate-800 border-transparent' };
       return (
-        <Badge variant="outline" className={`shadow-none font-medium px-2 py-0.5 text-[11px] uppercase ${roleInfo.color}`}>
+        <Badge intent="outline" className={`shadow-none font-medium px-2 py-0.5 text-[11px] uppercase tracking-wider ${roleInfo.color}`}>
           {roleInfo.label}
         </Badge>
       );
@@ -90,7 +90,7 @@ export const columns: ColumnDef<ClientColumn>[] = [
     cell: ({ row }) => {
       const tier = row.original.tier;
       return (
-        <Badge variant="outline" className={`shadow-none px-2 py-0.5 text-[10px] font-semibold border-transparent ${tier.color}`}>
+        <Badge intent="outline" className={`shadow-none px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${tier.color}`}>
           {tier.name}
         </Badge>
       );

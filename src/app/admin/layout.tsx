@@ -53,7 +53,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/dashboard/new-order');
   }
 
-  let visibleTabs = [];
+  let visibleTabs: typeof ADMIN_TABS = [];
   if (user.role === 'OWNER') {
     visibleTabs = ADMIN_TABS;
   } else if (user.staffRole) {

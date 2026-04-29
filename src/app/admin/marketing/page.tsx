@@ -184,7 +184,7 @@ export default async function MarketingPage() {
                               </td>
                               <td className="py-2 px-2 text-right">
                                 <form action={payoutAction}>
-                                  <Button type="submit" variant="outline" size="sm" className="h-7 text-[10px] font-bold text-sky-700 bg-sky-50 border-sky-200 hover:bg-sky-100">
+                                  <Button type="submit" intent="outline" size="sm" className="h-7 text-[10px] font-bold text-sky-700 bg-sky-50 border-sky-200 hover:bg-sky-100">
                                     Отправить на баланс
                                   </Button>
                                 </form>

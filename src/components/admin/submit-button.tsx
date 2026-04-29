@@ -25,7 +25,7 @@ export function SubmitButton({
   return (
     <Button 
       type="submit" 
-      variant={variant as any}
+      intent={variant === 'default' ? 'primary' : variant as any}
       size={size as any}
       className={className} 
       disabled={pending || props.disabled}

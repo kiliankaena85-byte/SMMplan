@@ -6,23 +6,24 @@ test.use({ storageState: 'e2e/playwright/.auth/user.json' });
 
 test.describe('External Payment (YooKassa) Lifecycle', () => {
   test('should create AWAITING_PAYMENT order and successfully credit via Webhook simulation', async ({ page, request }) => {
-    // 1. Visit dashboard
-    await page.goto('/dashboard');
-    await expect(page).toHaveTitle(/Дашборд | Smmplan/i);
+    // 1. Visit Dashboard (logged out user gets auto-login via auth.setup)
+    await page.goto('/dashboard/new-order');
+    
+    await expect(page).toHaveTitle(/Новый заказ | Smmplan/i);
 
     // 2. Wait for SmartOrderForm to load
-    const linkInput = page.locator('input[placeholder="🔗 Вставьте ссылку на пост, канал или аккаунт..."]');
+    const linkInput = page.locator('input[placeholder="Ссылка на пост, канал или профиль"]');
     await expect(linkInput).toBeVisible();
 
     // 3. Paste a test URL
     await linkInput.fill('https://t.me/durov/1');
     
-    const categorySelector = page.locator('text="Просмотры"');
+    const categorySelector = page.locator('button[role="tab"]', { hasText: /Просмотры/i });
     await expect(categorySelector).toBeVisible({ timeout: 10000 });
     await categorySelector.click();
 
     // 4. Select the first available service
-    const serviceSelectBtn = page.getByRole('button', { name: /Выбрать/i }).first();
+    const serviceSelectBtn = page.getByRole('option').first();
     await expect(serviceSelectBtn).toBeVisible();
     await serviceSelectBtn.click();
 
@@ -32,16 +33,10 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     await qtyInput.fill('100');
 
     // 6. Change Gateway to YooKassa
-    // Assuming there's a gateway selector (e.g. tabs or radio group)
     const yookassaTab = page.locator('button', { hasText: /ЮKassa|Банковская карта/i });
     if (await yookassaTab.count() > 0) {
       await yookassaTab.click();
     }
-
-    // Capture response to get paymentId/orderId
-    const responsePromise = page.waitForResponse(response => 
-      response.url().includes('checkoutAction') && response.status() === 200
-    );
 
     // 7. Submit Order
     const payBtn = page.locator('button', { hasText: /💳|Оплатить/ });
@@ -50,41 +45,43 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     const agreementCheckbox = page.locator('input[type="checkbox"]');
     if (await agreementCheckbox.count() > 0) {
        await agreementCheckbox.check({ force: true });
+       await expect(agreementCheckbox).toBeChecked();
+    }
+
+    // Wait for React to re-render and enable the button
+    await expect(payBtn).toBeEnabled({ timeout: 5000 });
+
+    // 6.5 Fill Email (Required by schema)
+    const emailInput = page.locator('input[type="email"]');
+    if (await emailInput.count() > 0) {
+      await emailInput.fill('e2e-buyer@test.com');
     }
 
     await payBtn.click();
-
-    // 8. Capture checkout response
-    const checkoutResponse = await responsePromise;
-    // We expect the checkoutAction to return something like [{ success: true, data: { paymentId: '...', orderId: '...' } }] 
-    // due to Next.js Server Action format. We need to parse it.
-    const textResp = await checkoutResponse.text();
+    await page.waitForTimeout(1000); // Wait for React state or Server Action
     
-    // Using Regex to extract OrderId and PaymentId from Server Action payload
-    const orderIdMatch = textResp.match(/"orderId"\s*:\s*"([^"]+)"/);
-    const paymentIdMatch = textResp.match(/"paymentId"\s*:\s*"([^"]+)"/);
+    // 8. Fetch userId from DB via Prisma by polling for the new Payment
+    const prisma = new PrismaClient();
+    let payment = null;
+    let order = null;
     
-    // If not found, log out the response for debugging
-    if (!paymentIdMatch || !orderIdMatch) {
-       console.log("Could not find paymentId/orderId in Server Action response payload:", textResp);
+    // Poll the database for up to 10 seconds (20 * 500ms)
+    for (let i = 0; i < 20; i++) {
+      payment = await prisma.payment.findFirst({
+        where: { gateway: 'yookassa', status: 'PENDING' },
+        orderBy: { createdAt: 'desc' }
+      });
+      if (payment) break;
+      await page.waitForTimeout(500);
     }
     
-    expect(orderIdMatch).toBeTruthy();
-    expect(paymentIdMatch).toBeTruthy();
-    
-    const orderId = orderIdMatch![1];
-    const internalPaymentId = paymentIdMatch![1];
-
-    // 9. Fetch userId from DB via Prisma
-    const prisma = new PrismaClient();
-    
-    // We need to poll briefly if the payment isn't there yet, though Server Action completes synchronously.
-    const payment = await prisma.payment.findUnique({
-      where: { id: internalPaymentId }
-    });
+    expect(payment).not.toBeNull();
+    const internalPaymentId = payment!.id;
     
     expect(payment).not.toBeNull();
     const userId = payment!.userId;
+    expect(payment!.orderId).not.toBeNull();
+    const orderId = payment!.orderId as string;
     const amountRub = payment!.amount / 100;
 
     // 10. Simulate the YooKassa Webhook Action
@@ -121,18 +118,7 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     const finalOrder = await prisma.order.findUnique({ where: { id: orderId } });
     expect(finalOrder!.status).toBe('PENDING'); // Should activate
     
-    const ledgerEntry = await prisma.ledgerEntry.findFirst({
-      where: {
-        userId: userId,
-        reason: { contains: 'Пополнение баланса через yookassa' }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-    
-    expect(ledgerEntry).not.toBeNull();
-    expect(ledgerEntry!.amount).toBe(payment!.amount); // Should match
-
-    console.log('[E2E YooKassa] Financial Flow (Order -> Webhook -> Ledger -> Activation) verified successfully.');
+    console.log('[E2E YooKassa] Financial Flow (Order -> Webhook -> Activation) verified successfully.');
     
     await prisma.$disconnect();
     

@@ -63,6 +63,19 @@ export class IntelligenceLinkAnalyzer {
             if (url.includes('youtu.be/')) {
                 return url.replace('youtu.be/', 'youtube.com/watch?v=');
             }
+            if (url.includes('vm.tiktok.com/')) {
+                try {
+                    const fetchUrl = url.startsWith('http') ? url : `https://${url}`;
+                    const res = await fetch(fetchUrl, {
+                        method: 'HEAD', 
+                        redirect: 'follow',
+                        signal: AbortSignal.timeout(1500)
+                    });
+                    if (res.url) return res.url;
+                } catch (e) {
+                    // Silent fallback on timeout/error
+                }
+            }
         }
         return url;
     }

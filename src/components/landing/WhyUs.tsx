@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles, ShieldCheck, TrendingUp, Gem } from "lucide-react";
+import { IconSparkles, IconShieldCheck, IconTrendingUp, IconDiamond } from "@tabler/icons-react";
 
 export function WhyUs() {
   return (
@@ -23,7 +23,7 @@ export function WhyUs() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-sky-100 rounded-full blur-3xl opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 -translate-y-1/2 translate-x-1/2" />
           <div className="relative z-10 flex flex-col h-full h-full">
             <div className="w-12 h-12 bg-sky-50 rounded-2xl flex items-center justify-center mb-6 text-sky-500 group-hover:scale-110 transition-transform">
-              <Sparkles className="w-6 h-6" />
+              <IconSparkles className="w-6 h-6" stroke={1.5} />
             </div>
             <h3 className="text-2xl font-bold text-slate-900 mb-3">AI-подбор услуг</h3>
             <p className="text-slate-500 font-medium leading-relaxed max-w-md">
@@ -38,7 +38,7 @@ export function WhyUs() {
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20" />
           <div className="relative z-10 flex flex-col h-full">
             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 text-indigo-300 group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-6 h-6" />
+              <IconTrendingUp className="w-6 h-6" stroke={1.5} />
             </div>
             <h3 className="text-xl font-bold text-white mb-3">Плавный рост (Drip-Feed)</h3>
             <p className="text-slate-400 font-medium leading-relaxed">
@@ -51,7 +51,7 @@ export function WhyUs() {
         <div className="md:col-span-1 bg-white rounded-[2rem] p-8 relative overflow-hidden group border border-slate-200 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300">
           <div className="relative z-10 flex flex-col h-full">
             <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 text-emerald-500 group-hover:scale-110 transition-transform">
-              <ShieldCheck className="w-6 h-6" />
+              <IconShieldCheck className="w-6 h-6" stroke={1.5} />
             </div>
             <h3 className="text-xl font-bold text-slate-900 mb-3">Гарантия от отписок</h3>
             <p className="text-slate-500 font-medium leading-relaxed">
@@ -65,7 +65,7 @@ export function WhyUs() {
            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-rose-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
            <div className="relative z-10 flex flex-col justify-end h-full">
             <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center mb-6 text-rose-500 group-hover:scale-110 transition-transform">
-              <Gem className="w-6 h-6" />
+              <IconDiamond className="w-6 h-6" stroke={1.5} />
             </div>
             <h3 className="text-2xl font-bold text-slate-900 mb-3">Программа лояльности VIP</h3>
             <p className="text-slate-500 font-medium leading-relaxed max-w-lg">

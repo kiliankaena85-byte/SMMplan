@@ -20,9 +20,10 @@ export async function createSafeAction<TInput, TOutput>(
     if (schema) {
       const validation = schema.safeParse(input);
       if (!validation.success) {
+        const formattedIssues = validation.error.issues.map((i) => i.message);
         return {
           success: false,
-          error: 'Validation failed',
+          error: formattedIssues.length > 0 ? formattedIssues[0] : 'Ошибка заполнения формы',
           issues: validation.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
         };
       }

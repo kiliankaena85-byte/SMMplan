@@ -57,7 +57,7 @@ export default function ManualRefillModal({
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <RefreshCw className="w-5 h-5 text-indigo-500" /> Ручная компенсация
           </h2>
-          <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full w-8 h-8 p-0 text-slate-400 hover:text-slate-600">✕</Button>
+          <Button intent="ghost" size="sm" onClick={onClose} className="rounded-full w-8 h-8 p-0 text-slate-400 hover:text-slate-600">✕</Button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 bg-slate-50/50">
@@ -100,7 +100,7 @@ export default function ManualRefillModal({
             </div>
             
             <div className="flex justify-end gap-3 mt-6 pt-2">
-              <Button variant="outline" type="button" onClick={onClose} className="rounded-xl border-slate-200">Отмена</Button>
+              <Button intent="outline" type="button" onClick={onClose} className="rounded-xl border-slate-200">Отмена</Button>
               <Button type="submit" disabled={isPending || isOverLimit || !costText || !note} className={`rounded-xl text-white ${isOverLimit ? 'bg-rose-500 hover:bg-rose-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
                 {isPending ? 'Запись...' : 'Списать и логировать'}
               </Button>

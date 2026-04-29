@@ -5,14 +5,15 @@ import { SettingsManager } from "@/lib/settings";
  */
 export class CBRRateService {
   private static readonly CBR_API_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
+  private static readonly SPREAD_MULTIPLIER = 1.03; // +3% Margin Safety Net (PB-003)
 
   /**
-   * Fetches the latest USD exchange rate from CBR and updates SystemSettings.
-   * If network fails, leaves the old rate.
+   * Fetches the latest USD exchange rate from CBR, applies a 3% safety spread, 
+   * and updates SystemSettings. If network fails, leaves the old rate.
    * 
-   * @returns The updated or existing exchange rate.
+   * @returns The combined payload: nominal rate, system rate (with spread), and update status.
    */
-  static async syncCBRExchangeRate(): Promise<{ rate: number; updated: boolean }> {
+  static async syncCBRExchangeRate(): Promise<{ nominalRate: number; systemRate: number; updated: boolean }> {
     try {
       const response = await fetch(this.CBR_API_URL, {
         next: { revalidate: 3600 } // Cache for 1 hour to avoid CBR spam
@@ -29,15 +30,18 @@ export class CBRRateService {
         throw new Error('Invalid USD rate format from CBR');
       }
 
-      // Update in DB
-      await SettingsManager.setExchangeRateUSD(usdRate);
+      // [PB-003] Apply 3% spread to protect CFO margins during RUB volatility
+      const systemRate = parseFloat((usdRate * this.SPREAD_MULTIPLIER).toFixed(2));
 
-      return { rate: usdRate, updated: true };
+      // Update in DB with the spread-adjusted system rate
+      await SettingsManager.setExchangeRateUSD(systemRate);
+
+      return { nominalRate: usdRate, systemRate, updated: true };
     } catch (error: any) {
       console.error("[CBRRateService] CBR sync failed:", error.message);
       // Fallback to existing settings on failure
       const existingRate = await SettingsManager.getExchangeRateUSD();
-      return { rate: existingRate, updated: false };
+      return { nominalRate: existingRate, systemRate: existingRate, updated: false };
     }
   }
 }

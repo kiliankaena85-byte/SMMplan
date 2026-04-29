@@ -5,9 +5,10 @@ import { ReactNode } from 'react';
 
 export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   // Lenis smooth scroll wraps our application to give it a physical momentum scrolling feel
+  const RL = ReactLenis as any;
   return (
-    <ReactLenis root options={{ lerp: 0.05, duration: 1.5, smoothWheel: true }}>
+    <RL root options={{ lerp: 0.05, duration: 1.5, smoothWheel: true }}>
       {children}
-    </ReactLenis>
+    </RL>
   );
 }

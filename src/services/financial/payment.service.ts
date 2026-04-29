@@ -17,8 +17,7 @@ export class PaymentService {
     internalPaymentId?: string,
     metadataType?: string
   ): Promise<boolean> {
-    let activatedOrderId: string | null = null;
-    let isDripFeed = false;
+    let activatedOrders: { id: string; isDripFeed: boolean; userId: string; amount: number }[] = [];
 
     try {
       // 1. Double-check against real gateway API in production
@@ -125,14 +124,37 @@ export class PaymentService {
               where: { id: linkedOrderId },
               data: { status: 'PENDING' }
             });
-            activatedOrderId = order.id;
-            isDripFeed = order.isDripFeed;
+            activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed, userId: userId, amount: amount });
             await tx.user.update({
               where: { id: userId },
               data: { totalSpent: { increment: amount } }
             });
           }
-        } else {
+        }
+
+        // --- NEW BASKET LOGIC (Deposit-Driven 1:N Orders) ---
+        const basketOrders = await tx.order.findMany({ where: { paymentId: processedPaymentId, status: 'AWAITING_PAYMENT' } });
+        if (basketOrders.length > 0) {
+           await tx.order.updateMany({
+              where: { paymentId: processedPaymentId, status: 'AWAITING_PAYMENT' },
+              data: { status: 'PENDING' }
+           });
+           
+           for (const order of basketOrders) {
+              activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed, userId: userId, amount: order.charge });
+           }
+
+           // Increment User Total Spent for all Basket items
+           const aggregateCharge = basketOrders.reduce((acc, order) => acc + order.charge, 0);
+           if (aggregateCharge > 0) {
+              await tx.user.update({
+                where: { id: userId },
+                data: { totalSpent: { increment: aggregateCharge } }
+              });
+           }
+        }
+
+        if (!isOrderPayment && basketOrders.length === 0) {
           // Direct top-up (Deposit) - Increment User Balance securely!
           await tx.user.update({
             where: { id: userId },
@@ -156,13 +178,15 @@ export class PaymentService {
       // Invalidate user dashboard cache so they see the new order & spending immediately
       revalidatePath('/dashboard', 'layout');
       
-      // Dispatch paid order to processing queue
-      if (activatedOrderId) {
+      // Dispatch paid orders to processing queue
+      if (activatedOrders.length > 0) {
         const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
-        if (isDripFeed) {
-          await dripfeedQueue.add('dripfeed-start', { orderId: activatedOrderId }, { delay: 0 });
-        } else {
-          await ordersQueue.add('order-dispatch', { orderId: activatedOrderId }, { delay: 0 });
+        for (const activated of activatedOrders) {
+          if (activated.isDripFeed) {
+            await dripfeedQueue.add('dripfeed-start', { orderId: activated.id }, { delay: 0 });
+          } else {
+            await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 500 }); // Micro-delay
+          }
         }
       }
 
@@ -184,8 +208,8 @@ export class PaymentService {
   async confirmPaymentById(paymentId: string): Promise<boolean> {
     try {
       let capturedUserId: string | null = null;
-      let activatedOrderId: string | null = null;
-      let isDripFeed = false;
+      let activatedOrders: { id: string; isDripFeed: boolean }[] = [];
+
       await db.$transaction(async (tx) => {
         const payment = await tx.payment.findUniqueOrThrow({
           where: { id: paymentId }
@@ -226,27 +250,49 @@ export class PaymentService {
               where: { id: payment.orderId },
               data: { status: 'PENDING' }
             });
+            activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed });
             
-            activatedOrderId = order.id;
-            isDripFeed = order.isDripFeed;
-
             await tx.user.update({
               where: { id: payment.userId },
               data: { totalSpent: { increment: payment.amount } }
             });
           }
         }
+
+        // --- NEW BASKET LOGIC (TEST MODE) ---
+        const basketOrders = await tx.order.findMany({ where: { paymentId: paymentId, status: 'AWAITING_PAYMENT' } });
+        if (basketOrders.length > 0) {
+           await tx.order.updateMany({
+              where: { paymentId: paymentId, status: 'AWAITING_PAYMENT' },
+              data: { status: 'PENDING' }
+           });
+           
+           for (const order of basketOrders) {
+              activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed });
+           }
+
+           // Increment Total Spent for test basket items
+           const aggregateCharge = basketOrders.reduce((acc, order) => acc + order.charge, 0);
+           if (aggregateCharge > 0) {
+              await tx.user.update({
+                 where: { id: payment.userId },
+                 data: { totalSpent: { increment: aggregateCharge } }
+              });
+           }
+        }
       });
 
       revalidatePath('/dashboard', 'layout');
 
-      // Dispatch paid order to processing queue
-      if (activatedOrderId) {
+      // Dispatch paid orders to processing queue
+      if (activatedOrders.length > 0) {
         const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
-        if (isDripFeed) {
-          await dripfeedQueue.add('dripfeed-start', { orderId: activatedOrderId }, { delay: 0 });
-        } else {
-          await ordersQueue.add('order-dispatch', { orderId: activatedOrderId }, { delay: 0 });
+        for (const activated of activatedOrders) {
+          if (activated.isDripFeed) {
+            await dripfeedQueue.add('dripfeed-start', { orderId: activated.id }, { delay: 0 });
+          } else {
+            await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 500 }); // Micro-delay
+          }
         }
       }
 

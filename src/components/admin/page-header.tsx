@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 interface AdminPageHeaderProps {
-  icon?: React.ElementType;
+  icon?: any;
   title: string;
   description?: React.ReactNode;
   action?: React.ReactNode;

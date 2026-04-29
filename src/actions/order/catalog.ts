@@ -6,6 +6,7 @@ import { applyBeautifulRounding, USD_TO_RUB } from "@/lib/financial-constants";
 
 export type PublicService = {
   id: string;
+  numericId: number;
   categoryId: string;
   name: string;
   pricePer1kRub: number;
@@ -90,6 +91,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
 
        return {
           id: s.id,
+          numericId: s.numericId,
           categoryId: s.categoryId,
           name: s.name,
           description: s.description,

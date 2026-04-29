@@ -19,11 +19,12 @@ export async function GET(req: NextRequest) {
     const result = await CBRRateService.syncCBRExchangeRate();
     return NextResponse.json({
       success: true,
-      rate: result.rate,
+      nominalRate: result.nominalRate,
+      systemRateWithSpread: result.systemRate,
       updated: result.updated,
       message: result.updated 
-        ? 'Exchange rate updated successfully' 
-        : 'Exchange rate unchanged (CBR API issue or rate already current)'
+        ? `Exchange rate updated successfully. Built-in 3% spread applied.` 
+        : `Exchange rate unchanged (CBR API issue or rate already current).`
     });
   } catch (error: any) {
     console.error('[Cron] CBR Sync API error:', error.message);

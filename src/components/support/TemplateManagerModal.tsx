@@ -71,7 +71,7 @@ export default function TemplateManagerModal({
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             <span>📑</span> Управление шаблонами
           </h2>
-          <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full w-8 h-8 p-0 text-slate-400 hover:text-slate-600">✕</Button>
+          <Button intent="ghost" size="sm" onClick={onClose} className="rounded-full w-8 h-8 p-0 text-slate-400 hover:text-slate-600">✕</Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
@@ -104,7 +104,7 @@ export default function TemplateManagerModal({
                   className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[100px] resize-y bg-slate-50 leading-relaxed"
                 />
                 <div className="flex gap-2 justify-end mt-4">
-                  <Button variant="outline" size="sm" onClick={() => setEditingId(null)} className="rounded-xl border-slate-200">Отмена</Button>
+                  <Button intent="outline" size="sm" onClick={() => setEditingId(null)} className="rounded-xl border-slate-200">Отмена</Button>
                   <Button size="sm" onClick={handleSave} disabled={isPending || !label.trim() || !text.trim()} className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700">
                     {isPending ? 'Сохранение...' : 'Сохранить шаблон'}
                   </Button>
@@ -137,11 +137,11 @@ export default function TemplateManagerModal({
                       className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[100px] resize-y bg-slate-50 leading-relaxed"
                     />
                     <div className="flex justify-between items-center mt-4">
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(tmpl.id)} className="text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+                      <Button intent="ghost" size="sm" onClick={() => handleDelete(tmpl.id)} className="text-rose-500 hover:text-rose-600 hover:bg-rose-50">
                         Удалить
                       </Button>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setEditingId(null)} className="rounded-xl border-slate-200">Отмена</Button>
+                        <Button intent="outline" size="sm" onClick={() => setEditingId(null)} className="rounded-xl border-slate-200">Отмена</Button>
                         <Button size="sm" onClick={handleSave} disabled={isPending || !label.trim() || !text.trim()} className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700">
                           {isPending ? 'Сохранение...' : 'Сохранить'}
                         </Button>

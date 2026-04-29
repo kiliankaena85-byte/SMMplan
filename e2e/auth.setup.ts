@@ -10,7 +10,7 @@ const authFile = path.join(__dirname, 'playwright/.auth/user.json');
 
 setup('authenticate', async ({ page, context }) => {
   // 1. Generate fake JWT that matches `session.ts` logic
-  const secretKey = 'fallback-secret-for-dev-only-v2';
+  const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
   const encodedKey = new TextEncoder().encode(secretKey);
   
   const uniqueId = randomUUID();

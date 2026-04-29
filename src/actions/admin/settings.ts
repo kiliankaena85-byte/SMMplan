@@ -1,6 +1,11 @@
 'use server';
 
 import { requireStaffPermission } from '@/lib/server/rbac';
+import { roleSchema, globalSettingsSchema } from '@/validators/admin.validators';
+import { db } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
+import { settingsService } from '@/services/admin/settings.service';
+import { EncryptionService } from '@/lib/encryption';
 
 // ── User Role Update ──
 export async function updateUserRole(formData: FormData) {

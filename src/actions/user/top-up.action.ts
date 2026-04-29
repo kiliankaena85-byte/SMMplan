@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
 import { SettingsManager } from "@/lib/settings";
+import { headers } from "next/headers";
 
 export async function createTopUpPaymentAction(amountRub: number, gateway: 'yookassa' | 'cryptobot' = 'yookassa') {
   const session = await verifySession();
@@ -10,6 +11,10 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
   
   const amountCents = Math.round(amountRub * 100);
   if (amountCents < 10000) throw new Error("Минимальная сумма пополнения - 100 руб");
+
+  const reqHeaders = await headers();
+  const consentIp = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "127.0.0.1";
+  const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
   const secrets = await SettingsManager.getPaymentSecrets();
   if (gateway === 'cryptobot') {
@@ -22,7 +27,9 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
         amount: amountCents,
         currency: "RUB",
         status: "PENDING",
-        gateway: "cryptobot"
+        gateway: "cryptobot",
+        consentIp,
+        consentUserAgent
       }
     });
 
@@ -75,7 +82,9 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
       amount: amountCents,
       currency: "RUB",
       status: "PENDING",
-      gateway: "yookassa"
+      gateway: "yookassa",
+      consentIp,
+      consentUserAgent
     }
   });
 

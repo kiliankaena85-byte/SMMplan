@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import DOMPurify from 'isomorphic-dompurify';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ export default async function PublicPage({ params }: { params: Promise<{ slug: s
           
           <div 
             className="text-slate-700 leading-relaxed space-y-4"
-            dangerouslySetInnerHTML={{ __html: page.content }} 
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(page.content) }} 
           />
         </article>
       </div>

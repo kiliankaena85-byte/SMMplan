@@ -24,7 +24,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   // Drip-feed states
   const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
   const [runs, setRuns] = useState(2);
-  const [interval, setInterval] = useState(5);
+  const [dripInterval, setDripInterval] = useState(5);
 
   // Data states
   const [catalog, setCatalog] = useState<PublicNetwork[]>(initialCatalog);
@@ -134,12 +134,12 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     loadServices();
   }, [categoryId]);
 
-  // 4. Update quantity limits when Service changes
+  // 4. Update quantity limits when Service changes or initializes
   useEffect(() => {
-    if (selectedService && quantity < selectedService.minQty) {
+    if (selectedService) {
       setQuantity(selectedService.minQty);
     }
-  }, [selectedService, quantity]);
+  }, [selectedService]);
 
   // 5. Calculate Price (Debounced)
   useEffect(() => {
@@ -225,7 +225,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     // Drip-feed
     dripFeedEnabled, setDripFeedEnabled,
     runs, setRuns,
-    interval, setInterval,
+    dripInterval, setDripInterval,
     
     // Data
     catalog: displayCatalog,
