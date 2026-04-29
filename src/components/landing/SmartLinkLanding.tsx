@@ -400,11 +400,11 @@ export function SmartLinkLanding({
 
                </div>
 
-               {/* SECTION 2: COLUMNS (Categories & Services) — HARD BOUNDARY */}
-               <div className="flex flex-col lg:grid lg:grid-cols-[280px_1fr] min-h-[400px] border-b border-border/50">
+               {/* SECTION 2: COLUMNS (Categories & Services & Checkout) — HARD BOUNDARY */}
+               <div className="flex flex-col lg:flex-row min-h-[400px] border-b border-border/50 relative items-start">
                  
                 {/* 2.1 Left Column: Categories (Tablet Horizontal / Desktop Vertical) */}
-                 <div className="hidden md:flex lg:flex-col flex-row flex-wrap lg:flex-nowrap lg:border-r border-slate-100 p-4 lg:p-6 gap-3 bg-slate-50/50 shrink-0 lg:min-w-[320px] items-center lg:items-stretch">
+                 <div className="hidden md:flex lg:flex-col flex-row flex-wrap lg:flex-nowrap lg:border-r border-slate-100 p-4 lg:p-6 gap-3 bg-slate-50/50 shrink-0 lg:w-[280px] xl:w-[320px] items-center lg:items-stretch lg:sticky lg:top-4 lg:max-h-[850px] lg:overflow-y-auto">
                     {sortedCategories.map(cat => (
                       <button
                         key={cat.id}
@@ -429,8 +429,10 @@ export function SmartLinkLanding({
                     )}
                  </div>
 
-                  {/* 2.2 Right Column: Services Container */}
-                  <div className="p-4 md:p-6 lg:p-8 bg-white relative flex flex-col min-h-0">
+                  {/* MIDDLE WRAPPER */}
+                  <div className="flex flex-col flex-1 min-w-0 border-r border-slate-100 pb-12 lg:pb-0">
+                    {/* 2.2 Center Column: Services Container */}
+                    <div className="p-4 md:p-6 lg:p-8 bg-white relative flex flex-col min-h-0">
                     <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
                       <h3 className="font-extrabold text-slate-900 text-xl md:text-2xl flex items-center gap-3">
                          Выберите тариф {services.length > 0 && <span className="text-sm font-bold bg-sky-100/50 text-sky-600 px-3 py-1 rounded-full">{services.length}</span>}
@@ -553,9 +555,18 @@ export function SmartLinkLanding({
                                >
                                  <div className={`absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/10 to-transparent ${isSelected ? '' : 'group-hover:opacity-100'}`} />
                                  {srv.badge && (
-                                      <Badge intent="primary" className={`absolute -top-3 -right-2 z-20 text-[10px] tracking-wide font-black uppercase ring-[1.5px] border transition-all duration-300 ${isSelected ? `bg-white shadow-lg border-white/50 ${brand.text}` : 'shadow-sm bg-gradient-to-r text-white border-slate-200/80'}`} style={isSelected ? { '--tw-ring-color': brand.bg } as React.CSSProperties : { backgroundImage: `linear-gradient(to right, ${brand.bg}, ${brand.bg}dd)`, '--tw-ring-color': 'var(--color-background)' } as React.CSSProperties}>
+                                   <div 
+                                     className="absolute -top-3 -right-2 z-20 px-2.5 py-1 rounded-md text-[10px] tracking-widest font-black uppercase transition-all duration-300 pointer-events-none shadow-sm flex items-center justify-center transform-gpu"
+                                     style={{
+                                        backgroundColor: isSelected ? '#ffffff' : brand.bg,
+                                        color: isSelected ? brand.bg : '#ffffff',
+                                        borderColor: isSelected ? brand.bg : 'transparent',
+                                        borderWidth: '2px',
+                                        boxShadow: isSelected ? `0 8px 16px -4px ${brand.shadow}` : '0 2px 8px -2px rgba(0,0,0,0.15)',
+                                     } as React.CSSProperties}
+                                   >
                                      {srv.badge}
-                                   </Badge>
+                                   </div>
                                  )}
                                  
                                  <div className="flex-1 flex flex-col pt-1 relative z-10">
@@ -597,7 +608,7 @@ export function SmartLinkLanding({
                       )}
                     </>
                   </div>
-               </div>
+                  {/* Note: Middle Wrapper continues through Section 3 & 4 */}
 
                {/* SECTION 3: DYNAMIC PAYLOAD & WARNINGS */}
                 {(() => {
@@ -732,6 +743,10 @@ export function SmartLinkLanding({
                     </div>
                  </div>
                </div>
+               
+               </div> {/* Closes MIDDLE WRAPPER */}
+               </div> {/* Closes SECTION 2: COLUMNS lg:flex-row */}
+
              </div>
           </div>
         </div>
