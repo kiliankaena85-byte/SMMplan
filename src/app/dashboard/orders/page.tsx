@@ -2,6 +2,7 @@ import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import Link from 'next/link';
+import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,6 +138,11 @@ export default async function OrdersPage() {
                           {order.error}
                         </div>
                       )}
+                      {order.status === 'PENDING' && (
+                        <div className="mt-1.5 min-w-[120px]">
+                            <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
+                        </div>
+                      )}
                       {order.status === 'IN_PROGRESS' && order.remains != null && (
                         <div className="mt-1 space-y-0.5">
                           <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
@@ -195,6 +201,11 @@ export default async function OrdersPage() {
                       </span>
                     </div>
                   </div>
+                  {order.status === 'PENDING' && (
+                    <div className="pt-1">
+                      <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="tabular-nums">{order.quantity.toLocaleString('ru-RU')} шт.</span>
                     <span>

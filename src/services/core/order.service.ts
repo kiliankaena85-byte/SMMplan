@@ -62,10 +62,10 @@ export class OrderService {
       // 3. Dispatch to Queues
       if (isDripFeed) {
         // Drop into DripFeed Engine immediately for the first run
-        await dripfeedQueue.add('dripfeed-start', { orderId: newOrder.id }, { delay: 0 });
+        await dripfeedQueue.add('dripfeed-start', { orderId: newOrder.id }, { delay: 3 * 60 * 1000 });
       } else {
         // Standard instant dispatch
-        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { delay: 0 });
+        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { delay: 3 * 60 * 1000 });
       }
 
       // 4. Return success instantly to User Interface. No delays!
@@ -74,6 +74,57 @@ export class OrderService {
     } catch (e: any) {
       console.error('[OrderService] Creation failed:', e.message);
       return { success: false, error: 'Internal system error during order compilation.' };
+    }
+  }
+
+  /**
+   * Stage 2: Cooling-off Period Cancellation
+   * Client-facing cancellation for PENDING orders to preserve revenue internally.
+   */
+  async cancelPendingOrderClient(orderId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      return await db.$transaction(async (tx) => {
+        const order = await tx.order.findUnique({
+          where: { id: orderId }
+        });
+
+        if (!order || order.userId !== userId) {
+          return { success: false, error: 'Заказ не найден' };
+        }
+
+        if (order.status !== 'PENDING') {
+          return { success: false, error: 'Заказ уже ушел в работу или отменен' };
+        }
+
+        const charge = order.charge; // totalCents
+
+        // 1. Cancel the order
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: 'CANCELED' }
+        });
+
+        // 2. Refund to User Balance
+        await tx.user.update({
+          where: { id: userId },
+          data: { balance: { increment: charge } }
+        });
+
+        // 3. Keep a track record
+        await tx.ledgerEntry.create({
+          data: {
+            userId,
+            amount: charge,
+            reason: `Отмена заказа #${order.numericId} клиентом (Store Credit)`,
+            status: 'APPROVED'
+          }
+        });
+
+        return { success: true };
+      });
+    } catch (e: any) {
+      console.error('[OrderService] cancelPendingOrderClient failed:', e.message);
+      return { success: false, error: 'Внутренняя ошибка при отмене заказа' };
     }
   }
 }

@@ -193,6 +193,17 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           });
         });
 
+        // Add to queue with cooling-off delay (Consistency Fix)
+        const order = await db.order.findUnique({ where: { id: result.orderId } });
+        if (order) {
+          const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
+          if (order.isDripFeed) {
+            await dripfeedQueue.add('dripfeed-start', { orderId: order.id }, { delay: 3 * 60 * 1000 });
+          } else {
+            await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 3 * 60 * 1000 });
+          }
+        }
+
         paymentUrl = successUrl;
         remoteGatewayId = `internal_${Date.now()}`;
       } else if (gateway === 'yookassa') {

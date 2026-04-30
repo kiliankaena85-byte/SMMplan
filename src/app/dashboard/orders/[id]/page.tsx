@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Clock, Wallet, LayoutDashboard } from 'lucide-react';
+import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,6 +87,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <span className="text-sm font-semibold text-muted-foreground">
                 Осталось: {order.remains.toLocaleString('ru-RU')}
               </span>
+            )}
+            {order.status === 'PENDING' && (
+               <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
             )}
           </div>
           <div className="text-right">

@@ -183,9 +183,9 @@ export class PaymentService {
         const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
         for (const activated of activatedOrders) {
           if (activated.isDripFeed) {
-            await dripfeedQueue.add('dripfeed-start', { orderId: activated.id }, { delay: 0 });
+            await dripfeedQueue.add('dripfeed-start', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
           } else {
-            await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 500 }); // Micro-delay
+            await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
           }
         }
       }
@@ -289,9 +289,9 @@ export class PaymentService {
         const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
         for (const activated of activatedOrders) {
           if (activated.isDripFeed) {
-            await dripfeedQueue.add('dripfeed-start', { orderId: activated.id }, { delay: 0 });
+            await dripfeedQueue.add('dripfeed-start', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
           } else {
-            await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 500 }); // Micro-delay
+            await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
           }
         }
       }

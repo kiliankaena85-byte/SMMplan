@@ -4,7 +4,7 @@ import { useOrderEngine } from "@/hooks/useOrderEngine";
 import { PublicNetwork } from "@/actions/order/catalog";
 import { checkoutAction } from "@/actions/order/checkout";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { Zap, Check, CheckCircle2, Loader2, Link2, LogIn, ChevronRight, ChevronLeft, CheckSquare, Square, Shield, CreditCard, Mail, GripHorizontal, X, ChevronDown } from "lucide-react";
+import { Zap, Check, CheckCircle2, Loader2, Link2, LogIn, ChevronRight, ChevronLeft, CheckSquare, Square, Shield, CreditCard, Mail, GripHorizontal, X, ChevronDown, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -764,6 +764,24 @@ export function SmartLinkLanding({
 
                {/* SECTION 4: BOTTOM CHECKOUT AREA */}
                <div className="sm:hidden bg-slate-50 border-t border-slate-100 p-6 flex flex-col gap-8 rounded-b-[2.5rem]">
+                 
+                 {/* Link Input Row */}
+                 <div className="w-full">
+                    <div className="space-y-3">
+                       <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-2">Ссылка на соцсеть / профиль</label>
+                       <div className="relative">
+                         <Link2 className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                         <input 
+                           type="url" 
+                           value={url} 
+                           onChange={e => setUrl(e.target.value)} 
+                           placeholder="https://..."
+                           className="w-full h-16 pl-14 pr-6 rounded-full border-2 border-slate-200 bg-white shadow-sm text-[15px] font-semibold text-slate-800 placeholder-slate-400 focus:bg-white focus:border-sky-400 focus:shadow-[0_8px_20px_-6px_rgba(14,165,233,0.2)] outline-none transition-all"
+                         />
+                       </div>
+                    </div>
+                 </div>
+
                  {/* Top row with inputs */}
                  <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
@@ -851,9 +869,24 @@ export function SmartLinkLanding({
               <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
                 
                 {/* Left: Selected service name */}
-                <div className="flex-1 min-w-0 max-w-[280px]">
+                <div className="flex-1 min-w-0 max-w-[320px]">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Выбрано</p>
                   <p className="text-sm font-bold text-white truncate leading-tight">{selectedService.name}</p>
+                  <div className="flex items-center gap-2 mt-1.5 opacity-80 hover:opacity-100 transition-opacity">
+                    <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
+                      <Link2 className="w-2.5 h-2.5 text-sky-400" />
+                    </div>
+                    <p className="text-[12px] font-medium text-slate-300 truncate max-w-[180px]">
+                      {url || "Ссылка не указана"}
+                    </p>
+                    <button 
+                      onClick={() => setShowLinkModal(true)}
+                      className="ml-1 p-1 hover:bg-slate-700 rounded-md transition-colors text-slate-400 hover:text-white group"
+                      title="Изменить ссылку"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Center: Live Calculator — qty × unitPrice = total */}
@@ -1027,7 +1060,7 @@ export function SmartLinkLanding({
               className="bg-white rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-8 w-full max-w-md"
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-xl font-black text-slate-900">Почти готово!</h3>
                   <p className="text-sm text-slate-500 mt-1">Укажите email для получения чека</p>
@@ -1035,6 +1068,17 @@ export function SmartLinkLanding({
                 <button onClick={() => setShowEmailModal(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
                   <X className="w-4 h-4 text-slate-500" />
                 </button>
+              </div>
+              
+              {/* Context Link Display */}
+              <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-3 mb-6 border border-slate-100">
+                 <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 border border-slate-100">
+                    <Link2 className="w-5 h-5 text-sky-500" />
+                 </div>
+                 <div className="min-w-0 flex-1">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest leading-none mb-1">Оформляется для</p>
+                    <p className="text-sm font-bold text-slate-700 truncate leading-tight">{url || "Ссылка не указана"}</p>
+                 </div>
               </div>
               
               <div className="relative mb-6">
