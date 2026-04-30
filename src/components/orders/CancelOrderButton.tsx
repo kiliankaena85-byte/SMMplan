@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cancelOrderCoolingOffAction } from '@/actions/order/cancel';
 import { Loader2, XCircle } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 interface CancelOrderButtonProps {
@@ -61,7 +61,7 @@ export function CancelOrderButton({ orderId, createdAt, status }: CancelOrderBut
 
   return (
     <Button 
-      variant="destructive" 
+      intent="destructive" 
       size="sm" 
       onClick={handleCancel}
       disabled={isCanceling}

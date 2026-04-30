@@ -1,4 +1,4 @@
-import { EncryptionService } from '../../lib/encryption';
+import { VaultService } from '../../lib/vault';
 import { 
   BaseProvider, 
   OrderCreationParams, 
@@ -17,7 +17,7 @@ export class UniversalProvider implements BaseProvider {
   constructor(apiUrl: string, encryptedKey: string) {
     this.apiUrl = apiUrl;
     // Decrypt in RAM just-in-time
-    const decrypted = EncryptionService.decrypt(encryptedKey);
+    const decrypted = VaultService.decrypt(encryptedKey);
     this.apiKey = decrypted || encryptedKey; // Fallback to raw key for testing if decryption returns null
   }
 

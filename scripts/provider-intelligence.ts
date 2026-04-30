@@ -10,7 +10,7 @@
 
 import * as fs from 'fs';
 import { db } from '../src/lib/db';
-import { CryptoService } from '../src/lib/crypto';
+import { VaultService } from '../src/lib/vault';
 import { UniversalProvider } from '../src/services/providers/universal.provider';
 import { SmartAnalyzerLogic, CATEGORY_LABELS } from '../src/services/providers/smart-analyzer.logic';
 
@@ -70,7 +70,7 @@ async function main() {
   for (const prov of providers) {
     process.stdout.write(`Fetching ${prov.name}... `);
     try {
-      const decryptedKey = CryptoService.decrypt(prov.apiKey);
+      const decryptedKey = VaultService.decrypt(prov.apiKey);
       const instance = new UniversalProvider(prov.apiUrl, decryptedKey || prov.apiKey);
       const raw = await instance.getServices();
       

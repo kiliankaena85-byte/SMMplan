@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { SystemSettings } from "@prisma/client";
-import { EncryptionService } from "./encryption";
+import { VaultService } from "./vault";
 
 export interface DecryptedPaymentSecrets {
   yookassaShopId: string | null;
@@ -45,8 +45,8 @@ export class SettingsManager {
      const settings = await this.get();
      return {
        yookassaShopId: settings.yookassaShopId, // Public ID, unencrypted
-       yookassaSecretKey: settings.yookassaSecretKey ? EncryptionService.decrypt(settings.yookassaSecretKey) : null,
-       cryptoBotToken: settings.cryptoBotToken ? EncryptionService.decrypt(settings.cryptoBotToken) : null
+       yookassaSecretKey: settings.yookassaSecretKey ? VaultService.decrypt(settings.yookassaSecretKey) : null,
+       cryptoBotToken: settings.cryptoBotToken ? VaultService.decrypt(settings.cryptoBotToken) : null
      };
   }
 

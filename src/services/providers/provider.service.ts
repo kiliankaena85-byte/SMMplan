@@ -3,7 +3,7 @@ import { BaseProvider } from './base-provider';
 import { db } from '@/lib/db';
 import { SettingsManager } from '@/lib/settings';
 import { UniversalProvider } from './universal.provider';
-import { CryptoService } from '@/lib/crypto';
+import { VaultService } from '@/lib/vault';
 
 export class ProviderService {
   /**
@@ -19,7 +19,7 @@ export class ProviderService {
    */
   async getProviderInstance(config: Provider): Promise<BaseProvider> {
     // Decrypt the API Key before passing it to the provider
-    const decryptedKey = CryptoService.decrypt(config.apiKey);
+    const decryptedKey = VaultService.decrypt(config.apiKey);
 
     return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey);
   }
@@ -39,7 +39,7 @@ export class ProviderService {
       return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, 'test');
     }
     // Production path: decrypt and use real provider
-    const decryptedKey = CryptoService.decrypt(config.apiKey);
+    const decryptedKey = VaultService.decrypt(config.apiKey);
     return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey);
   }
 

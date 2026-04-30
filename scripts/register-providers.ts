@@ -3,7 +3,7 @@
  * Tests connectivity, fetches balance & service count for each provider.
  */
 import { db } from '../src/lib/db';
-import { CryptoService } from '../src/lib/crypto';
+import { VaultService } from '../src/lib/vault';
 import { UniversalProvider } from '../src/services/providers/universal.provider';
 
 interface ProviderConfig {
@@ -91,7 +91,7 @@ async function main() {
   
   for (const r of working) {
     const cfg = PROVIDERS.find(p => p.name === r.name)!;
-    const encryptedKey = CryptoService.encrypt(cfg.apiKey);
+    const encryptedKey = VaultService.encrypt(cfg.apiKey);
     
     const existing = await db.provider.findFirst({ where: { name: cfg.name } });
     if (existing) {

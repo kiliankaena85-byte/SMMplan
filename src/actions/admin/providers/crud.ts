@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
-import { CryptoService } from "@/lib/crypto";
+import { VaultService } from "@/lib/vault";
 import { auditAdmin } from "@/lib/admin-audit";
 import { providerService } from "@/services/providers/provider.service";
 import { z } from "zod";
@@ -34,7 +34,7 @@ export async function createProvider(rawData: {
     const data = providerSchema.parse(rawData);
 
     // Encrypt the API key before saving!
-    const encryptedKey = CryptoService.encrypt(data.apiKey);
+    const encryptedKey = VaultService.encrypt(data.apiKey);
     
     // Prepare metadata json
     const metadata = {
@@ -99,7 +99,7 @@ export async function updateProvider(rawId: string, rawData: {
     };
 
     if (data.apiKey && data.apiKey.trim() !== "") {
-       updateData.apiKey = CryptoService.encrypt(data.apiKey);
+       updateData.apiKey = VaultService.encrypt(data.apiKey);
     }
 
     const provider = await db.provider.update({

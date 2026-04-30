@@ -5,7 +5,8 @@ import { roleSchema, globalSettingsSchema } from '@/validators/admin.validators'
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { settingsService } from '@/services/admin/settings.service';
-import { EncryptionService } from '@/lib/encryption';
+import { VaultService } from '@/lib/vault';
+import { headers } from 'next/headers';
 
 // ── User Role Update ──
 export async function updateUserRole(formData: FormData) {
@@ -16,14 +17,25 @@ export async function updateUserRole(formData: FormData) {
 
     if (targetUserId === user.id) throw new Error('Cannot change own role');
 
+    const oldUser = await db.user.findUnique({ where: { id: targetUserId }, select: { role: true } });
     await settingsService.updateUserRole(targetUserId, newRole);
-    await db.auditLog.create({
+
+    const reqHeaders = await headers();
+    const ipAddress = reqHeaders.get("x-forwarded-for") || "127.0.0.1";
+
+    await db.adminAuditLog.create({
       data: {
-        userId: user.id,
+        adminId: user.id,
+        adminEmail: user.email,
         action: 'USER_ROLE_CHANGE',
-        details: `Changed user ${targetUserId} role to ${newRole}`
+        target: targetUserId,
+        targetType: 'USER',
+        oldValue: JSON.stringify({ role: oldUser?.role }),
+        newValue: JSON.stringify({ role: newRole }),
+        ipAddress
       }
     });
+
     revalidatePath('/admin/settings');
     return true;
   });
@@ -51,29 +63,37 @@ export async function updateGlobalSettings(formData: FormData) {
       exchangeRateUSD,
     } = parsed.data;
 
+    const oldSettings = await db.systemSettings.findUnique({ where: { id: 'global' } });
+
     const dataToUpdate: any = { maintenanceMode, siteName, siteDescription };
     if (welcomeMessage !== null) dataToUpdate.welcomeMessage = welcomeMessage;
     if (exchangeRateUSD !== undefined && exchangeRateUSD >= 0) {
-      if (exchangeRateUSD === 0) {
-         // if they pass 0, we can trigger an auto-sync, or just set it. 
-         // but wait, SettingsManager handles that. Let's just set it.
-      }
       dataToUpdate.exchangeRateUSD = exchangeRateUSD;
     }
 
     // Only update secrets if they are provided (prevent overwriting with empty)
     if (yookassaShopId) dataToUpdate.yookassaShopId = yookassaShopId;
-    if (rawYookassaSecret) dataToUpdate.yookassaSecretKey = EncryptionService.encrypt(rawYookassaSecret);
-    if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = EncryptionService.encrypt(rawCryptoBotToken);
+    if (rawYookassaSecret) dataToUpdate.yookassaSecretKey = VaultService.encrypt(rawYookassaSecret);
+    if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
 
     await settingsService.updateSystemSettings(dataToUpdate);
-    await db.auditLog.create({
+
+    const reqHeaders = await headers();
+    const ipAddress = reqHeaders.get("x-forwarded-for") || "127.0.0.1";
+
+    await db.adminAuditLog.create({
       data: {
-        userId: user.id,
+        adminId: user.id,
+        adminEmail: user.email,
         action: 'SYSTEM_SETTINGS_UPDATE',
-        details: `Site: ${siteName}, Maintenance: ${maintenanceMode}`
+        target: 'global',
+        targetType: 'SETTINGS',
+        oldValue: JSON.stringify({ siteName: oldSettings?.siteName, maintenanceMode: oldSettings?.maintenanceMode }),
+        newValue: JSON.stringify({ siteName, maintenanceMode }),
+        ipAddress
       }
     });
+
     revalidatePath('/admin/settings');
     return true;
   });
