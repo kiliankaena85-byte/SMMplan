@@ -12,22 +12,42 @@ import { SettingsManager } from '@/lib/settings';
 // RBAC: Allowed roles for admin panel access
 const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
 
-// Navigation tabs with role-based visibility
-const ADMIN_TABS = [
-  { href: '/admin/dashboard', icon: 'Home',          label: 'Дашборд',   section: 'dashboard' },
-  { href: '/admin/clients',   icon: 'Users',         label: 'Клиенты',    section: 'clients' },
-  { href: '/admin/orders',    icon: 'Package',       label: 'Заказы',     section: 'orders' },
-  { href: '/admin/refills',   icon: 'RefreshCw',     label: 'Докрутки',   section: 'refills' },
-  { href: '/admin/catalog',           icon: 'ShoppingCart',  label: 'Каталог',       section: 'catalog' },
-  { href: '/admin/catalog/quarantine',icon: 'AlertTriangle', label: 'Карантин',      section: 'quarantine' },
-  { href: '/admin/tickets',   icon: 'MessageSquare', label: 'Тикеты',     section: 'tickets' },
-  { href: '/admin/finance',   icon: 'CreditCard',    label: 'Финансы',    section: 'finance' },
-  { href: '/admin/providers', icon: 'Link',          label: 'Провайдеры', section: 'providers' },
-  { href: '/admin/marketing', icon: 'Gift',          label: 'Маркетинг',  section: 'marketing' },
-  { href: '/admin/pages',     icon: 'FileText',      label: 'Страницы',   section: 'pages' },
-  { href: '/admin/settings',        icon: 'Settings',   label: 'Настройки',     section: 'settings' },
-  { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фича-флаги',    section: 'features' },
-  { href: '/admin/system/queues',   icon: 'Activity',   label: 'Очереди',       section: 'queues' },
+// Navigation sections with role-based visibility
+const ADMIN_NAVIGATION = [
+  {
+    group: 'Операционка',
+    items: [
+      { href: '/admin/dashboard', icon: 'Home',          label: 'Дашборд',   section: 'dashboard' },
+      { href: '/admin/orders',    icon: 'Package',       label: 'Заказы',     section: 'orders' },
+      { href: '/admin/refills',   icon: 'RefreshCw',     label: 'Докрутки',   section: 'refills' },
+      { href: '/admin/tickets',   icon: 'MessageSquare', label: 'Тикеты',     section: 'tickets' },
+      { href: '/admin/clients',   icon: 'Users',         label: 'Клиенты',    section: 'clients' },
+    ]
+  },
+  {
+    group: 'Финансы',
+    items: [
+      { href: '/admin/finance',   icon: 'CreditCard',    label: 'Биллинг',    section: 'finance' },
+      { href: '/admin/marketing', icon: 'Gift',          label: 'Маркетинг',  section: 'marketing' },
+    ]
+  },
+  {
+    group: 'Каталог & Ядро',
+    items: [
+      { href: '/admin/catalog',           icon: 'ShoppingCart',  label: 'Услуги',        section: 'catalog' },
+      { href: '/admin/catalog/quarantine',icon: 'AlertTriangle', label: 'Карантин',      section: 'quarantine' },
+      { href: '/admin/providers', icon: 'Link',          label: 'Провайдеры', section: 'providers' },
+      { href: '/admin/pages',     icon: 'FileText',      label: 'Страницы',   section: 'pages' },
+    ]
+  },
+  {
+    group: 'Система',
+    items: [
+      { href: '/admin/settings',        icon: 'Settings',   label: 'Настройки',     section: 'settings' },
+      { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фичи',          section: 'features' },
+      { href: '/admin/system/queues',   icon: 'Activity',   label: 'Очереди',       section: 'queues' },
+    ]
+  }
 ];
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
@@ -53,17 +73,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/dashboard/new-order');
   }
 
-  let visibleTabs: typeof ADMIN_TABS = [];
-  if (user.role === 'OWNER') {
-    visibleTabs = ADMIN_TABS;
-  } else if (user.staffRole) {
-    visibleTabs = ADMIN_TABS.filter(tab => 
-      user.staffRole!.permissions.some((p: any) => p.section === tab.section && p.canView)
-    );
-  } else {
-    // Graceful fallback for non-migrated users
-    visibleTabs = [];
-  }
+  // Filter navigation based on RBAC
+  const navigation = ADMIN_NAVIGATION.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      if (user.role === 'OWNER') return true;
+      if (!user.staffRole) return false;
+      return user.staffRole.permissions.some((p: any) => p.section === item.section && p.canView);
+    })
+  })).filter(group => group.items.length > 0);
 
   const roleInfo = ROLE_LABELS[user.role] || { label: user.role, color: 'bg-slate-100 text-slate-800' };
   const isTestMode = await SettingsManager.isTestMode();
@@ -76,7 +94,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <AdminSidebar 
         userEmail={user.email}
         roleInfo={roleInfo}
-        visibleTabs={visibleTabs}
+        navigation={navigation}
       />
       
       {/* Mobile static nav fallback */}

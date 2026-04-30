@@ -1,13 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { marketingService } from './marketing.service';
 import { db } from '@/lib/db';
-import { USD_TO_RUB, TOTAL_MANDATORY_DEDUCTIONS } from '@/lib/financial-constants';
+import { TOTAL_MANDATORY_DEDUCTIONS } from '@/lib/financial-constants';
+
+const MOCK_USD_TO_RUB = 95.0;
 
 vi.mock('@/lib/db', () => ({
   db: {
     user: { findUnique: vi.fn() },
     service: { findUnique: vi.fn() },
     promoCode: { findUnique: vi.fn(), update: vi.fn() },
+  }
+}));
+
+vi.mock('@/lib/settings', () => ({
+  SettingsProvider: {
+    getExchangeRateUSD: vi.fn().mockResolvedValue(95.0)
   }
 }));
 
@@ -52,7 +60,7 @@ describe('MarketingService', () => {
       vi.mocked(db.service.findUnique).mockResolvedValueOnce({ id: 'srv1', minQty: 10, maxQty: 100, rate: 1.0, markup: 3.0 } as any);
       const res = await marketingService.calculatePrice(null, 'srv1', 50);
       
-      const expectedProviderCostCents = Math.round(((1.0 * USD_TO_RUB * 100) / 1000) * 50);
+      const expectedProviderCostCents = Math.round(((1.0 * MOCK_USD_TO_RUB * 100) / 1000) * 50);
       const expectedTotal = Math.round(expectedProviderCostCents * 3.0);
       
       expect(res.discountPercent).toBe(0);
@@ -132,32 +140,32 @@ describe('MarketingService', () => {
   });
 
   describe('getB2BFormattedServices', () => {
-    it('returns mapped array capping rates at safety floor with max discounts', () => {
+    it('returns mapped array capping rates at safety floor with max discounts', async () => {
       const user = { totalSpent: 100_000_00, personalDiscount: 35.0 }; // Platinum (15%), personal (35%) => Capped at 30%
       const services = [{
         numericId: 1, name: 'S1', rate: 1.0, markup: 5.0, minQty: 10, maxQty: 100, isDripFeedEnabled: false, isRefillEnabled: true, isCancelEnabled: true, category: { name: 'C1' }
       }];
       
-      const res = marketingService.getB2BFormattedServices(user, services);
+      const res = await marketingService.getB2BFormattedServices(user, services);
       expect(res.length).toBe(1);
       expect(res[0].service).toBe(1);
       expect(res[0].rate).toBeDefined();
 
-      const originalRate = 1.0 * 5.0 * USD_TO_RUB;
+      const originalRate = 1.0 * 5.0 * MOCK_USD_TO_RUB;
       const expectedDiscounted = originalRate * (1 - 30 / 100);
       expect(Number(res[0].rate)).toBe(Number(expectedDiscounted.toFixed(4)));
     });
 
-    it('applies safety floor if discount pushes B2B rate too low', () => {
+    it('applies safety floor if discount pushes B2B rate too low', async () => {
       const user = { totalSpent: 0, personalDiscount: 30.0 }; // 30% discount
       // Low markup (1.2), discount will drop it below cost+taxes
       const services = [{
         numericId: 2, name: 'S2', rate: 1.0, markup: 1.1, minQty: 10, maxQty: 100, isDripFeedEnabled: false, isRefillEnabled: true, isCancelEnabled: true, category: { name: 'C2' }
       }];
       
-      const res = marketingService.getB2BFormattedServices(user, services);
+      const res = await marketingService.getB2BFormattedServices(user, services);
       
-      const safetyFloor = (1.0 * USD_TO_RUB * 2.0) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
+      const safetyFloor = (1.0 * MOCK_USD_TO_RUB * 2.0) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
       expect(Number(res[0].rate)).toBe(Number(safetyFloor.toFixed(4)));
     });
   });

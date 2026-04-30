@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ClientDetailClient } from './client-detail-client';
 import { banUserAction, unbanUserAction, loginAsAction } from '@/actions/admin/users';
 import { SubmitButton } from '@/components/admin/submit-button';
+import { ActionForm } from '@/components/admin/action-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,14 +132,14 @@ export default async function ClientDetailPage({ params }: Props) {
 
         {/* Quick actions */}
         <div className="flex gap-2 flex-wrap">
-          <form action={loginAsAction}>
+          <ActionForm action={loginAsAction}>
             <input type="hidden" name="userId" value={user.id} />
             <SubmitButton variant="outline" className="text-xs h-9 gap-1.5">
               🔑 Войти как клиент
             </SubmitButton>
-          </form>
+          </ActionForm>
           {user.role === 'BANNED' ? (
-            <form action={unbanUserAction}>
+            <ActionForm action={unbanUserAction}>
               <input type="hidden" name="userId" value={user.id} />
               <SubmitButton
                 variant="outline"
@@ -147,9 +148,9 @@ export default async function ClientDetailPage({ params }: Props) {
               >
                 ✅ Разбанить
               </SubmitButton>
-            </form>
+            </ActionForm>
           ) : (
-            <form action={banUserAction}>
+            <ActionForm action={banUserAction}>
               <input type="hidden" name="userId" value={user.id} />
               <SubmitButton
                 variant="outline"
@@ -158,7 +159,7 @@ export default async function ClientDetailPage({ params }: Props) {
               >
                 🚫 Забанить
               </SubmitButton>
-            </form>
+            </ActionForm>
           )}
         </div>
       </div>

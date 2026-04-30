@@ -52,12 +52,6 @@ export const MAX_TOTAL_DISCOUNT = 30;
 // 🌐 ВАЛЮТА
 // ═══════════════════════════════════════════════════════
 
-/** 
- * @deprecated Use SettingsManager.getExchangeRateUSD() instead. 
- * Внутренний курс для конвертации закупочных цен провайдеров.
- */
-export const USD_TO_RUB = 95;
-
 /** Буфер на банковский спред при конвертации USD → RUB */
 export const CURRENCY_SPREAD_BUFFER = 0.03;
 

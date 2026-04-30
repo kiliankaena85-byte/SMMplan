@@ -1,16 +1,11 @@
 import { db } from '@/lib/db';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/admin/hero-ui';
 import Link from 'next/link';
+import { Package, RefreshCw } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/page-header';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
-
-const STATUS_STYLES: Record<string, string> = {
-  PENDING: 'bg-blue-100 text-blue-800',
-  IN_PROGRESS: 'bg-indigo-100 text-indigo-800',
-  COMPLETED: 'bg-emerald-100 text-emerald-800',
-  REJECTED: 'bg-red-100 text-red-800',
-  ERROR: 'bg-rose-100 text-rose-700',
-};
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Ожидает',
@@ -33,50 +28,79 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
     where.status = statusFilter;
   }
 
-  const refills = await db.refill.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    take: 100,
-    include: {
-      order: {
-        select: {
-          numericId: true,
-          link: true,
-          quantity: true,
-          user: { select: { email: true } },
-          service: { select: { name: true } },
+  const [refills, stats] = await Promise.all([
+    db.refill.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: {
+        order: {
+          select: {
+            numericId: true,
+            link: true,
+            quantity: true,
+            user: { select: { email: true } },
+            service: { select: { name: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    db.refill.aggregate({
+      _count: {
+        id: true,
+      },
+      where: { status: 'PENDING' }, // example for pending
+    })
+  ]);
 
-  const stats = {
-    total: await db.refill.count(),
-    pending: await db.refill.count({ where: { status: 'PENDING' } }),
-    completed: await db.refill.count({ where: { status: 'COMPLETED' } }),
-  };
+  const totalCount = await db.refill.count();
+  const pendingCount = await db.refill.count({ where: { status: 'PENDING' } });
+  const completedCount = await db.refill.count({ where: { status: 'COMPLETED' } });
 
   return (
-    <div className="space-y-6 w-full">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">🔄 Докрутки</h1>
-        <p className="text-slate-500 mt-1">
-          Всего: {stats.total} • Ожидают: {stats.pending} • Выполнены: {stats.completed}
-        </p>
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-slate-50/50 min-h-full pb-10">
+      <AdminPageHeader
+        icon={RefreshCw}
+        title="Докрутки (Refills)"
+        description={`Всего: ${totalCount} • Ожидают: ${pendingCount} • Выполнены: ${completedCount}`}
+      />
+
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-1 bg-slate-200/50 p-1 rounded-xl w-max border border-slate-200">
+        <Link 
+          href="/admin/orders" 
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all",
+            "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+          )}
+        >
+          <Package className="w-4 h-4" />
+          Заказы
+        </Link>
+        <Link 
+          href="/admin/refills" 
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all",
+            "bg-white text-indigo-600 shadow-sm border border-slate-200"
+          )}
+        >
+          <RefreshCw className="w-4 h-4" />
+          Докрутки
+        </Link>
       </div>
 
       {/* Filter */}
-      <Card className="rounded-2xl border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl">
+      <Card>
         <CardContent className="pt-6">
           <form className="flex gap-4">
             <select name="status" defaultValue={statusFilter}
-              className="px-4 py-2.5 font-medium text-sm border border-slate-200 rounded-lg bg-slate-50/50 text-slate-700 outline-none focus:border-sky-500 transition-colors">
+              className="px-4 py-2 text-sm border border-slate-200 rounded-md bg-white outline-none focus:ring-2 focus:ring-primary focus:border-primary">
               <option value="ALL">Все статусы</option>
               {Object.entries(STATUS_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
-            <button type="submit" className="px-5 py-2.5 text-sm font-semibold text-white bg-sky-500 rounded-lg hover:bg-sky-600 shadow hover:-translate-y-0.5 transition-all">
+            <button type="submit" className="px-6 py-2 text-sm font-semibold text-white bg-slate-900 shadow-sm rounded-md hover:bg-slate-800 transition-colors">
               Фильтр
             </button>
           </form>
@@ -84,44 +108,34 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
       </Card>
 
       {/* Refills Table */}
-      <Card className="rounded-2xl border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl overflow-hidden">
-        <CardHeader className="py-4 px-6 border-b border-slate-100/50 bg-slate-50/50 rounded-t-2xl">
-          <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-800">Заявки на докрутку <span className="text-slate-400 font-medium ml-2 tabular-nums">({refills.length})</span></CardTitle>
-        </CardHeader>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm font-medium text-slate-700">
+            <table className="w-full text-sm text-left">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-widest text-slate-400 border-b border-slate-100/60 bg-slate-50/30">
-                  <th className="py-3.5 px-6 font-bold">Refill ID</th>
-                  <th className="py-3.5 px-4 font-bold">Заказ</th>
-                  <th className="py-3.5 px-4 font-bold hidden sm:table-cell">Клиент</th>
-                  <th className="py-3.5 px-4 font-bold">Услуга</th>
-                  <th className="py-3.5 px-4 font-bold hidden md:table-cell">Ссылка</th>
-                  <th className="py-3.5 px-4 font-bold text-right">Статус</th>
-                  <th className="py-3.5 px-6 font-bold text-right hidden lg:table-cell">Дата</th>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <th className="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Refill ID</th>
+                  <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Заказ</th>
+                  <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Клиент</th>
+                  <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Услуга</th>
+                  <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Статус</th>
+                  <th className="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right hidden lg:table-cell">Дата</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {refills.map(r => (
-                  <tr key={r.id} className="border-b border-slate-100/30 hover:bg-slate-50/80 even:bg-slate-50/30 transition-colors last:border-0 group">
-                    <td className="py-3.5 px-6 font-mono text-xs font-bold text-slate-900 group-hover:text-sky-700 transition-colors">#{r.numericId}</td>
-                    <td className="py-3.5 px-4">
+                  <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-4 px-6 font-mono text-xs font-bold text-slate-900">#{r.numericId}</td>
+                    <td className="py-4 px-4">
                       <Link href={`/admin/orders?q=${r.order.numericId}`}
-                        className="text-sky-600 hover:text-sky-800 text-xs font-mono font-bold tracking-tight">
+                        className="text-sky-600 hover:text-sky-800 text-xs font-mono font-bold">
                         #{r.order.numericId}
                       </Link>
                     </td>
-                    <td className="py-3.5 px-4 text-xs font-mono tracking-tight text-slate-500 hidden sm:table-cell">{r.order.user.email}</td>
-                    <td className="py-3.5 px-4 text-xs font-semibold truncate max-w-[180px] text-slate-800">{r.order.service.name}</td>
-                    <td className="py-3.5 px-4 text-xs truncate max-w-[200px] hidden md:table-cell">
-                      <a href={r.order.link} target="_blank" rel="noopener noreferrer"
-                        className="text-sky-600 hover:text-sky-800 transition-colors" title={r.order.link}>
-                        {r.order.link.replace(/^https?:\/\//, '').slice(0, 35)}
-                      </a>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <span className={`inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-md border ${
+                    <td className="py-4 px-4 text-xs font-mono text-slate-500 hidden sm:table-cell">{r.order.user.email}</td>
+                    <td className="py-4 px-4 text-xs font-semibold text-slate-800 max-w-[200px] truncate">{r.order.service.name}</td>
+                    <td className="py-4 px-4 text-right">
+                      <span className={`inline-flex items-center px-2 py-0.5 text-[10px] uppercase font-bold rounded-md border ${
                         r.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                         r.status === 'ERROR' || r.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
                         'bg-sky-50 text-sky-700 border-sky-100'
@@ -129,14 +143,14 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
                         {STATUS_LABELS[r.status] || r.status}
                       </span>
                     </td>
-                    <td className="py-3.5 px-6 text-[11px] tabular-nums text-slate-500 text-right font-medium tracking-wide hidden lg:table-cell">
+                    <td className="py-4 px-6 text-[11px] text-slate-500 text-right font-medium hidden lg:table-cell">
                       {r.createdAt.toLocaleDateString('ru-RU')}
                     </td>
                   </tr>
                 ))}
                 {refills.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400 font-medium tracking-wide">Нет заявок на докрутку</td>
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">Нет заявок на докрутку</td>
                   </tr>
                 )}
               </tbody>

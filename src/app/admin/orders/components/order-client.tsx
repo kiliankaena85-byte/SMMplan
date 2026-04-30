@@ -1,12 +1,10 @@
 'use client';
 
 /**
- * OrderClient v2 — Sprint 1.5
+ * OrderClient v2.1 — RBAC & Polish
  *
- * - Batch action bar: bulk cancel с реальным Server Action
- * - Drawer с реальными действиями: setStatus, forceComplete, restart, cancel
- * - Partial delivery: поле remains при PARTIAL статусе
- * - Строгий тип OrderColumn (без any)
+ * - canSeeRates support (hides provider cost for Support role)
+ * - Memoized columns logic
  */
 
 import * as React from 'react';
@@ -14,7 +12,8 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/ui/data-table';
 import { columns, OrderColumn } from './columns';
-import { Button, Chip } from '@heroui/react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { XCircle, CheckCircle, RotateCcw, X } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
@@ -39,15 +38,18 @@ const STATUS_OPTIONS = [
 
 interface OrderClientProps {
   data: OrderColumn[];
+  canSeeRates?: boolean;
 }
 
 // ── Sub: Order Drawer ───────────────────────────────────────────────────────
 function OrderDrawer({
   order,
   onClose,
+  canSeeRates = true,
 }: {
   order: OrderColumn | null;
   onClose: () => void;
+  canSeeRates?: boolean;
 }) {
   const [selectedStatus, setSelectedStatus] = useState(order?.status ?? '');
   const [remains, setRemains] = useState(order?.remains ?? 0);
@@ -97,6 +99,7 @@ function OrderDrawer({
     if (!confirm(`Отменить заказ #${order.numericId}? При наличии остатка клиент получит возврат.`)) return;
     const fd = new FormData();
     fd.append('orderId', order.id);
+
     startTransition(async () => {
       try {
         await cancelOrderAction(fd);
@@ -156,7 +159,7 @@ function OrderDrawer({
 
         <div className="p-6 space-y-6">
           {/* Info Grid */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 text-xs">
             {[
               { label: 'Услуга', value: order.service.name },
               { label: 'Категория', value: order.service.category.name },
@@ -170,6 +173,12 @@ function OrderDrawer({
                 <div className="text-sm font-medium text-foreground truncate" title={value}>{value}</div>
               </div>
             ))}
+            {canSeeRates && (
+               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                 <div className="text-[10px] text-amber-600 uppercase font-bold mb-1">Себестоимость</div>
+                 <div className="text-sm font-mono font-bold text-amber-900">{(order.providerCost / 100).toFixed(2)} ₽</div>
+               </div>
+            )}
           </div>
 
           {/* Link */}
@@ -190,7 +199,7 @@ function OrderDrawer({
           )}
 
           {/* Status control */}
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-4 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground">🎛️ Управление статусом</h3>
 
             <div className="space-y-3">
@@ -223,7 +232,7 @@ function OrderDrawer({
                     className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:border-primary transition-all duration-200"
                   />
                   {remains > 0 && (
-                    <p className="text-xs text-amber-600 mt-1">
+                    <p className="text-xs text-amber-600 mt-1 font-medium">
                       Возврат: {((remains / order.quantity) * order.charge / 100).toFixed(2)} ₽
                     </p>
                   )}
@@ -232,7 +241,7 @@ function OrderDrawer({
 
               <button
                 onClick={handleSetStatus}
-                disabled={isPending || selectedStatus === order.status}
+                disabled={isPending || (selectedStatus === order.status && selectedStatus !== 'PARTIAL')}
                 aria-label="Применить новый статус"
                 className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50"
               >
@@ -289,7 +298,7 @@ function OrderDrawer({
 }
 
 // ── Main Component ──────────────────────────────────────────────────────────
-export function OrderClient({ data }: OrderClientProps) {
+export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -301,6 +310,9 @@ export function OrderClient({ data }: OrderClientProps) {
   );
 
   const [isPendingBulk, startBulkTransition] = useTransition();
+
+  // Memoize columns to pass canSeeRates
+  const memoColumns = React.useMemo(() => columns(canSeeRates), [canSeeRates]);
 
   function closeDrawer() {
     const params = new URLSearchParams(searchParams.toString());
@@ -327,7 +339,7 @@ export function OrderClient({ data }: OrderClientProps) {
   return (
     <div className="relative">
       <DataTable
-        columns={columns}
+        columns={memoColumns}
         data={data}
         searchKey="user_email"
         searchPlaceholder="Фильтр по email на этой странице..."
@@ -338,18 +350,18 @@ export function OrderClient({ data }: OrderClientProps) {
           return (
             <div className="fixed bottom-6 inset-x-0 mx-auto w-max max-w-[90vw] z-50 animate-in slide-in-from-bottom-10 fade-in flex items-center gap-4 bg-card border border-border px-6 py-3 rounded-full shadow-2xl">
               <div className="flex items-center gap-2 border-r border-border pr-4">
-                <Chip size="sm" className="bg-primary text-primary-foreground font-bold px-2">
+                <Badge className="bg-primary text-primary-foreground font-bold px-2">
                   {selectedRows.length}
-                </Chip>
+                </Badge>
                 <span className="text-sm font-medium text-foreground">выбрано</span>
               </div>
 
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  variant="ghost"
-                  isDisabled={isPendingBulk}
-                  onPress={() => handleBulkCancel(selectedRows)}
+                  intent="ghost"
+                  disabled={isPendingBulk}
+                  onClick={() => handleBulkCancel(selectedRows)}
                   aria-label="Отменить выбранные заказы"
                   className="text-rose-600 hover:bg-rose-50 transition-all duration-200"
                 >
@@ -359,8 +371,8 @@ export function OrderClient({ data }: OrderClientProps) {
 
                 <Button
                   size="sm"
-                  variant="ghost"
-                  onPress={() => table.toggleAllPageRowsSelected(false)}
+                  intent="ghost"
+                  onClick={() => table.toggleAllPageRowsSelected(false)}
                   aria-label="Сбросить выделение"
                   className="text-muted-foreground hover:text-foreground transition-all duration-200"
                 >
@@ -373,7 +385,7 @@ export function OrderClient({ data }: OrderClientProps) {
       />
 
       {/* Order detail drawer */}
-      <OrderDrawer order={selectedOrder} onClose={closeDrawer} />
+      <OrderDrawer order={selectedOrder} onClose={closeDrawer} canSeeRates={canSeeRates} />
     </div>
   );
 }

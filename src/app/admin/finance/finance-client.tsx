@@ -1,30 +1,35 @@
 'use client';
 
 /**
- * FinanceClient — Sprint 1.6
+ * FinanceClient v2 — RBAC & Polish
  *
  * Tabs:
- *   1. Ledger — история транзакций с фильтрами
- *   2. Balance Correction — ручное пополнение/коррекция
+ *   1. Ledger — История транзакций (DataTable)
+ *   2. Balance Correction — Ручная корректировка (HeroUI)
  */
 
 import { useState, useTransition, useCallback } from 'react';
 import { toast } from 'sonner';
-import Link from 'next/link';
 import { getLedgerAction, type LedgerEntryDTO, type LedgerPageResult } from '@/actions/admin/finance/ledger';
-
-// ── Types / constants ───────────────────────────────────────────────────────
-const STATUS_LABELS: Record<string, string> = {
-  APPROVED:    '✅ Одобрено',
-  QUARANTINE:  '🔒 Карантин',
-  REJECT:      '❌ Отклонено',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  APPROVED:   'bg-emerald-100 text-emerald-700',
-  QUARANTINE: 'bg-amber-100   text-amber-700',
-  REJECT:     'bg-rose-100    text-rose-700',
-};
+import { 
+  Tabs, 
+  TabsList, 
+  TabsTrigger, 
+  TabsContent 
+} from '@/components/ui/tabs';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { DataTable } from '@/components/ui/data-table';
+import { columns } from './ledger-columns';
+import { Wallet, History, AlertTriangle } from 'lucide-react';
 
 const PERIOD_OPTIONS = [
   { value: 'today', label: 'Сегодня' },
@@ -33,10 +38,7 @@ const PERIOD_OPTIONS = [
   { value: 'all',   label: 'Всё время' },
 ] as const;
 
-const FILTER_STATUS = ['ALL', 'APPROVED', 'QUARANTINE', 'REJECT'] as const;
-
 interface FinanceClientProps {
-  /** Initial ledger data loaded server-side */
   initialLedger: LedgerPageResult;
   initialPeriod: string;
 }
@@ -49,199 +51,65 @@ function fmt(cents: number, showSign = false): string {
 // ── Ledger Tab ──────────────────────────────────────────────────────────────
 function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult; period: string }) {
   const [period, setPeriod]       = useState(initPeriod);
-  const [status, setStatus]       = useState<string>('ALL');
-  const [search, setSearch]       = useState('');
   const [data,   setData]         = useState<LedgerPageResult>(initial);
-  const [cursor, setCursor]       = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const load = useCallback((opts: { period?: string; status?: string; search?: string; cursor?: string }) => {
+  const load = useCallback((newPeriod: string) => {
     startTransition(async () => {
       const r = await getLedgerAction({
-        period:   (opts.period  ?? period) as 'today' | 'week' | 'month' | 'all',
-        status:   (opts.status  ?? status) as 'ALL' | 'APPROVED' | 'QUARANTINE' | 'REJECT',
-        search:   opts.search   ?? search,
-        cursor:   opts.cursor,
-        pageSize: 50,
+        period:   newPeriod as 'today' | 'week' | 'month' | 'all',
+        pageSize: 100, // Load more for DataTable
       });
-      if (opts.cursor) {
-        setData(prev => ({ ...r, items: [...prev.items, ...r.items] }));
-      } else {
-        setData(r);
-        setCursor(null);
-      }
+      setData(r);
     });
-  }, [period, status, search]);
+  }, []);
 
-  function applyPeriod(v: string) {
+  function applyPeriod(v: string | null) {
+    if (!v) return;
     setPeriod(v);
-    load({ period: v, cursor: undefined });
-  }
-
-  function applyStatus(v: string) {
-    setStatus(v);
-    load({ status: v, cursor: undefined });
-  }
-
-  function applySearch(e: React.FormEvent) {
-    e.preventDefault();
-    load({ cursor: undefined });
-  }
-
-  function loadMore() {
-    if (!data.nextCursor) return;
-    setCursor(data.nextCursor);
-    load({ cursor: data.nextCursor });
+    load(v);
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Totals strip */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Зачислено', value: data.totals.approved,    accent: 'text-emerald-600' },
-          { label: 'Возвраты',  value: data.totals.refunds,     accent: 'text-rose-500' },
-          { label: 'Карантин',  value: data.totals.quarantine,  accent: 'text-amber-600' },
+          { label: 'Зачислено', value: data.totals.approved,    color: 'bg-emerald-50 border-emerald-100 text-emerald-700' },
+          { label: 'Возвраты',  value: data.totals.refunds,     color: 'bg-rose-50 border-rose-100 text-rose-700' },
+          { label: 'Карантин',  value: data.totals.quarantine,  color: 'bg-amber-50 border-amber-100 text-amber-700' },
         ].map(s => (
-          <div key={s.label} className="bg-card border border-border rounded-xl p-4">
-            <div className="text-xs text-muted-foreground mb-1">{s.label}</div>
-            <div className={`text-lg font-bold tabular-nums ${s.accent}`}>{fmt(s.value)}</div>
+          <div key={s.label} className={`${s.color} border rounded-2xl p-6 transition-all`}>
+            <div className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">{s.label}</div>
+            <div className="text-xl font-black tabular-nums">{fmt(s.value)}</div>
           </div>
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        {/* Period toggle */}
-        <div className="flex gap-2 flex-wrap">
-          {PERIOD_OPTIONS.map(p => (
-            <button
-              key={p.value}
-              onClick={() => applyPeriod(p.value)}
-              aria-pressed={period === p.value}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                period === p.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-
-          <div className="ml-auto flex gap-2">
-            {FILTER_STATUS.map(s => (
-              <button
-                key={s}
-                onClick={() => applyStatus(s)}
-                aria-pressed={status === s}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  status === s
-                    ? 'bg-primary/10 text-primary border border-primary/30'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {s === 'ALL' ? 'Все' : STATUS_LABELS[s] ?? s}
-              </button>
+      <div className="flex justify-between items-center gap-4">
+        <Select defaultValue={period} onValueChange={applyPeriod}>
+          <SelectTrigger className="w-[180px]" size="sm">
+            <SelectValue placeholder="Период" />
+          </SelectTrigger>
+          <SelectContent>
+            {PERIOD_OPTIONS.map(p => (
+              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
             ))}
-          </div>
-        </div>
-
-        {/* Search */}
-        <form onSubmit={applySearch} className="flex gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 Email клиента..."
-            aria-label="Поиск по email"
-            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-          />
-          <button
-            type="submit"
-            disabled={isPending}
-            aria-label="Применить поиск"
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50"
-          >
-            {isPending ? '...' : 'Найти'}
-          </button>
-        </form>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Ledger Table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <table className="w-full" aria-label="История транзакций">
-          <thead>
-            <tr className="text-left bg-muted/30 border-b border-border">
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">Клиент</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">Причина</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground text-right">Сумма</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">Статус</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">Дата</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {data.items.map(e => <LedgerRow key={e.id} entry={e} />)}
-          </tbody>
-        </table>
-
-        {data.items.length === 0 && !isPending && (
-          <div className="py-12 text-center text-sm text-muted-foreground">Нет транзакций за этот период</div>
-        )}
-
-        {isPending && (
-          <div className="py-6 text-center text-sm text-muted-foreground animate-pulse">Загрузка...</div>
-        )}
-
-        {data.hasMore && (
-          <div className="px-4 py-3 border-t border-border">
-            <button
-              onClick={loadMore}
-              disabled={isPending}
-              className="text-xs text-primary hover:underline disabled:opacity-50"
-            >
-              Показать ещё →
-            </button>
-          </div>
-        )}
+      <div className="rounded-2xl border border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl overflow-hidden">
+        <div className="p-0">
+          <DataTable 
+            columns={columns} 
+            data={data.items} 
+            searchKey="userEmail"
+            searchPlaceholder="Фильтр по email..."
+          />
+        </div>
       </div>
     </div>
-  );
-}
-
-function LedgerRow({ entry }: { entry: LedgerEntryDTO }) {
-  const isPositive = entry.amount >= 0;
-  return (
-    <tr className="hover:bg-muted/20 transition-all duration-200">
-      <td className="px-4 py-2.5">
-        <Link
-          href={`/admin/clients/${entry.userId}`}
-          className="text-xs text-primary hover:underline font-mono transition-colors"
-        >
-          {entry.userEmail}
-        </Link>
-      </td>
-      <td className="px-4 py-2.5">
-        <span className="text-xs text-muted-foreground truncate max-w-[280px] block" title={entry.reason}>
-          {entry.reason}
-        </span>
-      </td>
-      <td className="px-4 py-2.5 text-right">
-        <span className={`text-xs font-semibold tabular-nums ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {fmt(entry.amount, true)}
-        </span>
-      </td>
-      <td className="px-4 py-2.5">
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[entry.status] ?? 'bg-muted text-muted-foreground'}`}>
-          {STATUS_LABELS[entry.status] ?? entry.status}
-        </span>
-      </td>
-      <td className="px-4 py-2.5">
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {new Date(entry.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-        </span>
-      </td>
-    </tr>
   );
 }
 
@@ -252,7 +120,7 @@ function BalanceCorrectionTab() {
   const [reason, setReason]     = useState('');
   const [isPending, startTransition] = useTransition();
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const cents = Math.round(parseFloat(amount) * 100);
     if (isNaN(cents) || cents === 0) {
@@ -265,112 +133,103 @@ function BalanceCorrectionTab() {
     }
 
     startTransition(async () => {
-      // Dynamic import to avoid circular dependency
       const { updateBalanceAction } = await import('@/actions/admin/users');
       const fd = new FormData();
       fd.append('email', email.trim());
       fd.append('amount', String(cents));
       fd.append('reason', reason.trim());
+      
       try {
-        await updateBalanceAction(fd);
-        toast.success(`💰 Баланс скорректирован: ${fmt(cents, true)} → ${email}`);
-        setEmail(''); setAmount(''); setReason('');
+        const res = await updateBalanceAction(fd);
+        if (res && 'success' in res && !res.success) {
+          toast.error(res.error);
+        } else if (res && 'success' in res && res.success) {
+          if (res.status === 'QUARANTINE') {
+            toast.warning(`⏳ Отправлено на одобрение владельцу: ${fmt(cents, true)} → ${email}`);
+          } else {
+            toast.success(`💰 Баланс скорректирован: ${fmt(cents, true)} → ${email}`);
+          }
+          setEmail(''); setAmount(''); setReason('');
+        }
       } catch (err) {
         toast.error((err as Error).message ?? 'Ошибка корректировки');
       }
     });
   }
 
-  const cents = parseFloat(amount) * 100;
-  const isNeg = !isNaN(cents) && cents < 0;
-  const isPos = !isNaN(cents) && cents > 0;
+  const centsValue = parseFloat(amount) * 100;
+  const isNeg = !isNaN(centsValue) && centsValue < 0;
+  const isPos = !isNaN(centsValue) && centsValue > 0;
 
   return (
-    <div className="max-w-lg">
-      <div className="bg-card border border-border rounded-xl p-6 space-y-5">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground mb-1">💰 Ручная корректировка баланса</h3>
-          <p className="text-xs text-muted-foreground">
-            Проходит через EscrowGuard. SUPPORT/MANAGER — суточный лимит.
-            OWNER/ADMIN — без лимита.
-          </p>
+    <div className="max-w-xl mx-auto py-4">
+      <div className="rounded-2xl border border-slate-100/50 shadow-xl bg-white/60 backdrop-blur-xl p-8 space-y-6">
+        <div className="flex items-center gap-4 mb-2">
+          <div className="p-3 bg-sky-100 text-sky-600 rounded-2xl">
+            <Wallet className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">Ручная корректировка</h3>
+            <p className="text-xs text-slate-500 font-medium tracking-wide">
+              Средства проходят проверку дневного лимита EscrowGuard.
+            </p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="topup-email" className="text-xs text-muted-foreground mb-1 block">
-              Email клиента
-            </label>
-            <input
-              id="topup-email"
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Email клиента</label>
+            <Input
               placeholder="client@example.com"
-              aria-label="Email клиента для корректировки"
-              className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
 
-          <div>
-            <label htmlFor="topup-amount" className="text-xs text-muted-foreground mb-1 block">
-              Сумма ₽ (отрицательная = списание)
-            </label>
-            <input
-              id="topup-amount"
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Сумма (₽)</label>
+            <Input
               type="number"
               step="0.01"
-              required
+              placeholder="0.00"
               value={amount}
-              onChange={e => setAmount(e.target.value)}
-              placeholder="100.00"
-              aria-label="Сумма корректировки в рублях"
-              className={`w-full px-3 py-2 text-sm font-mono rounded-lg border bg-background text-foreground outline-none focus:ring-2 transition-all duration-200 ${
-                isNeg ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-200'
-                : isPos ? 'border-emerald-400 focus:border-emerald-400 focus:ring-emerald-200'
-                : 'border-border focus:border-primary focus:ring-primary/20'
-              }`}
-            />
-            {!isNaN(cents) && amount && (
-              <p className={`text-xs mt-1 ${isNeg ? 'text-rose-600' : 'text-emerald-600'}`}>
-                {isNeg ? '⚠️ Списание' : '✅ Пополнение'}: {fmt(cents, true)}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="topup-reason" className="text-xs text-muted-foreground mb-1 block">
-              Причина (обязательно)
-            </label>
-            <textarea
-              id="topup-reason"
+              onChange={(e) => setAmount(e.target.value)}
               required
-              rows={2}
+              className={isNeg ? "border-rose-300 bg-rose-50 text-rose-900 font-mono font-bold" : isPos ? "border-emerald-300 bg-emerald-50 text-emerald-900 font-mono font-bold" : "font-mono font-bold"}
+            />
+            {isNeg && <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">⚠️ Будет списано с баланса</p>}
+            {isPos && <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight">✅ Будет зачислено на баланс</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Причина</label>
+            <Textarea
+              placeholder="Компенсация, ручной возврат..."
               value={reason}
-              onChange={e => setReason(e.target.value)}
-              placeholder="Компенсация за сбой, ручной рефанд..."
-              aria-label="Причина корректировки баланса"
-              className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground resize-none outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+              onChange={(e) => setReason(e.target.value)}
+              required
+              rows={3}
             />
           </div>
 
-          <button
+          <Button
             type="submit"
+            intent={isNeg ? "destructive" : "primary"}
+            className="w-full h-12 font-bold uppercase tracking-widest text-xs shadow-lg"
             disabled={isPending || !email || !amount || !reason}
-            aria-label="Применить корректировку баланса"
-            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50"
           >
-            {isPending ? 'Обрабатывается...' : 'Применить корректировку'}
-          </button>
+            {isPending ? 'Загрузка...' : (isNeg ? 'Произвести списание' : 'Пополнить баланс')}
+          </Button>
         </form>
-      </div>
 
-      {/* Safety info */}
-      <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 space-y-1">
-        <div className="font-semibold">⚠️ EscrowGuard активен</div>
-        <div>SUPPORT: суточный лимит ~10 000 ₽. Свыше — уходит в карантин на одобрение Owner.</div>
-        <div>Все операции пишутся в ledger и audit-лог.</div>
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+          <div className="text-[11px] text-amber-700 font-medium leading-relaxed">
+            <span className="font-bold block mb-1 uppercase tracking-tighter">Внимание!</span>
+            Операции Support/Manager свыше 10 000 ₽ в сутки автоматически уходят в карантин на подтверждение владельцем. Все действия логируются в Ledger.
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -378,30 +237,30 @@ function BalanceCorrectionTab() {
 
 // ── Main Export ─────────────────────────────────────────────────────────────
 export function FinanceClient({ initialLedger, initialPeriod }: FinanceClientProps) {
-  const [tab, setTab] = useState<'ledger' | 'topup'>('ledger');
-
   return (
-    <div className="space-y-4">
-      {/* Tab switcher */}
-      <div className="flex gap-1 border-b border-border">
-        {(['ledger', 'topup'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            aria-selected={tab === t}
-            className={`px-4 py-2.5 text-sm font-medium transition-all duration-200 border-b-2 -mb-px ${
-              tab === t
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t === 'ledger' ? '📋 История транзакций' : '💰 Корректировка'}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'ledger' && <LedgerTab initial={initialLedger} period={initialPeriod} />}
-      {tab === 'topup'  && <BalanceCorrectionTab />}
-    </div>
+    <Tabs defaultValue="ledger" className="w-full">
+      <TabsList variant="line" className="gap-6 border-b border-divider w-full justify-start rounded-none h-auto p-0">
+        <TabsTrigger value="ledger" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px]">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4" />
+            <span>История транзакций</span>
+          </div>
+        </TabsTrigger>
+        <TabsTrigger value="topup" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px]">
+          <div className="flex items-center gap-2">
+            <Wallet className="w-4 h-4" />
+            <span>Корректировка</span>
+          </div>
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="ledger" className="pt-6">
+        <LedgerTab initial={initialLedger} period={initialPeriod} />
+      </TabsContent>
+      
+      <TabsContent value="topup" className="pt-6">
+        <BalanceCorrectionTab />
+      </TabsContent>
+    </Tabs>
   );
 }

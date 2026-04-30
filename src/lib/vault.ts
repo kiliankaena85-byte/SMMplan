@@ -19,20 +19,12 @@ function getEncryptionKey(): Buffer {
     throw new Error('APP_ENCRYPTION_KEY is not defined in environment variables.');
   }
 
-  // Interpret as hex if 64 chars, otherwise fallback to standard buffer handling (legacy support)
-  let keyBuffer: Buffer;
-  if (hexKey.length === 64 && /^[0-9a-fA-F]+$/.test(hexKey)) {
-    keyBuffer = Buffer.from(hexKey, 'hex');
-  } else {
-    // Legacy/fallback padding to 32 bytes
-    keyBuffer = Buffer.alloc(32);
-    keyBuffer.write(hexKey.substring(0, 32));
+  // Strict check: must be a 64-character hex string
+  if (hexKey.length !== 64 || !/^[0-9a-fA-F]+$/.test(hexKey)) {
+    throw new Error('APP_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes) for AES-256-GCM.');
   }
 
-  if (keyBuffer.length !== 32) {
-    throw new Error(`APP_ENCRYPTION_KEY must be exactly 32 bytes. Got ${keyBuffer.length}.`);
-  }
-  return keyBuffer;
+  return Buffer.from(hexKey, 'hex');
 }
 
 export class VaultService {

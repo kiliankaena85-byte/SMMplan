@@ -43,7 +43,8 @@ export class EscrowService {
 
     // 2. Owners and Admins bypass all Escrow trust limits
     if (isOwnerOrAdmin || amountCents < 0) {
-      return this.executeApprovedAdjustment(targetUserId, amountCents, reason, admin);
+      await this.executeApprovedAdjustment(targetUserId, amountCents, reason, admin);
+      return { status: 'APPROVED' as const };
     }
 
     const todayMSK = getMSKMidnightUTC();
@@ -64,10 +65,12 @@ export class EscrowService {
         const totalVolumeToday = todayEntries.reduce((sum, entry) => sum + entry.amount, 0);
 
         if (totalVolumeToday + amountCents > admin.supportLimitCents) {
-          return await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+          await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+          return { status: 'QUARANTINE' as const };
         }
 
-        return await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+        await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+        return { status: 'APPROVED' as const };
       }, { isolationLevel: 'Serializable' });
     } catch (error: any) {
       if (error.code === 'P2034') {

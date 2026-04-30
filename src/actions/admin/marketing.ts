@@ -1,14 +1,14 @@
 'use server';
 
-import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { adminMarketingService } from '@/services/admin/marketing.service';
 import { auditAdmin } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { requireStaffPermission } from '@/lib/server/rbac';
 
 const promoCodeSchema = z.object({
-  code: z.string().min(1),
+  code: z.string().min(1).max(12),
   type: z.enum(['DISCOUNT', 'VOUCHER']),
   discountPercent: z.coerce.number().optional().default(0),
   amount: z.coerce.number().int().optional().default(0),
@@ -16,86 +16,97 @@ const promoCodeSchema = z.object({
   expiresAt: z.string().optional().transform(v => v ? new Date(v) : null)
 });
 
-async function requireAdmin() {
-  const session = await verifySession();
-  if (!session) throw new Error('Unauthorized');
-  
-  const user = await db.user.findUnique({ 
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  });
-  
-  if (!user) throw new Error('Forbidden');
-  
-  // OWNER bypass
-  if (user.role === 'OWNER') return { session, user };
-
-  // Strict Staff Role evaluation
-  if (!user.staffRole) throw new Error('Forbidden: Staff Role required');
-  const permission = user.staffRole.permissions.find(p => p.section === 'marketing');
-  
-  if (!permission || !permission.canEdit) {
-    throw new Error('Forbidden: Missing "marketing" edit permissions');
-  }
-
-  return { session, user };
-}
-
 export async function createPromoCode(formData: FormData) {
-  const { session } = await requireAdmin();
-  
-  const parsed = promoCodeSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) {
-    throw new Error('Некорректные данные промокода: ' + parsed.error.errors.map(e => e.message).join(', '));
-  }
-  const { code, type, discountPercent, amount, maxUses, expiresAt } = parsed.data;
-
-  await adminMarketingService.createPromoCode({
-    code,
-    type,
-    discountPercent,
-    amount,
-    maxUses,
-    expiresAt,
-  });
-
-  await db.adminAuditLog.create({
-    data: {
-      adminId: session.userId,
-      adminEmail: 'System', // Typically would derive from user email
-      action: 'PROMOCODE_CREATE',
-      target: code,
-      targetType: 'PROMO',
-      newValue: `Type: ${type}, Max: ${maxUses}`
+  return requireStaffPermission('marketing', 'edit', async (admin) => {
+    const payload = Object.fromEntries(formData.entries());
+    const parsed = promoCodeSchema.safeParse(payload);
+    
+    if (!parsed.success) {
+      return { 
+        success: false as const, 
+        error: 'Некорректные данные: ' + parsed.error.errors.map(e => e.message).join(', ') 
+      };
     }
-  });
 
-  revalidatePath('/admin/marketing');
+    const { code, type, discountPercent, amount, maxUses, expiresAt } = parsed.data;
+
+    await adminMarketingService.createPromoCode({
+      code,
+      type,
+      discountPercent,
+      amount,
+      maxUses,
+      expiresAt,
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'PROMOCODE_CREATE',
+      target: code.toUpperCase(),
+      targetType: 'SETTINGS', // Promo codes are system settings
+      newValue: { type, discountPercent, amount, maxUses, expiresAt }
+    });
+
+    revalidatePath('/admin/marketing');
+    return { success: true as const };
+  });
 }
 
 export async function togglePromoCode(id: string, isActive: boolean) {
-  const { session, user } = await requireAdmin();
-  await adminMarketingService.togglePromoCode(id, isActive);
-  auditAdmin({
-    adminId: user.id,
-    adminEmail: user.email,
-    action: isActive ? 'PROMOCODE_ENABLE' : 'PROMOCODE_DISABLE',
-    target: id,
-    targetType: 'SETTINGS',
+  return requireStaffPermission('marketing', 'edit', async (admin) => {
+    const promo = await db.promoCode.findUnique({ where: { id } });
+    if (!promo) return { success: false as const, error: 'Промокод не найден' };
+
+    await adminMarketingService.togglePromoCode(id, isActive);
+    
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: isActive ? 'PROMOCODE_ENABLE' : 'PROMOCODE_DISABLE',
+      target: promo.code,
+      targetType: 'SETTINGS',
+    });
+
+    revalidatePath('/admin/marketing');
+    return { success: true as const };
   });
-  revalidatePath('/admin/marketing');
+}
+
+export async function deletePromoCode(id: string) {
+  return requireStaffPermission('marketing', 'edit', async (admin) => {
+    const promo = await db.promoCode.findUnique({ where: { id } });
+    if (!promo) return { success: false as const, error: 'Промокод не найден' };
+
+    await adminMarketingService.deletePromoCode(id);
+    
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'PROMOCODE_DELETE',
+      target: promo.code,
+      targetType: 'SETTINGS',
+    });
+
+    revalidatePath('/admin/marketing');
+    return { success: true as const };
+  });
 }
 
 export async function processReferralPayout(userId: string, amount: number) {
-  const { session, user } = await requireAdmin();
-  await adminMarketingService.processPayout(userId, session.userId, amount);
-  auditAdmin({
-    adminId: user.id,
-    adminEmail: user.email,
-    action: 'REFERRAL_PAYOUT',
-    target: userId,
-    targetType: 'USER',
-    newValue: { amountCents: amount },
+  return requireStaffPermission('marketing', 'edit', async (admin) => {
+    await adminMarketingService.processPayout(userId, admin.id, amount);
+    
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'REFERRAL_PAYOUT',
+      target: userId,
+      targetType: 'USER',
+      newValue: { amountCents: amount },
+    });
+
+    revalidatePath('/admin/marketing');
+    return { success: true as const };
   });
-  revalidatePath('/admin/marketing');
 }

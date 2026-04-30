@@ -6,20 +6,13 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { ClientTable } from './components/client-table';
-import { Users, Download, Search, Key, Ban, UserCheck, CreditCard, ShoppingBag } from 'lucide-react';
+import { Users, Download } from 'lucide-react';
 import { SubmitButton } from '@/components/admin/submit-button';
 import { ActionForm } from '@/components/admin/action-form';
+import { verifySession } from '@/lib/session';
+import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
-
-const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  OWNER:   { label: 'Владелец', color: 'bg-indigo-500/10 text-indigo-700 border-indigo-200' },
-  ADMIN:   { label: 'Админ',   color: 'bg-sky-500/10 text-sky-700 border-sky-200' },
-  MANAGER: { label: 'Менеджер', color: 'bg-emerald-500/10 text-emerald-700 border-emerald-200' },
-  SUPPORT: { label: 'Саппорт', color: 'bg-slate-500/10 text-slate-700 border-slate-200' },
-  USER:    { label: 'Клиент',  color: 'bg-white border-slate-200 text-slate-700' },
-  BANNED:  { label: 'Забанен', color: 'bg-rose-500/10 text-rose-700 border-rose-200' },
-};
 
 type Props = {
   searchParams: Promise<{
@@ -30,6 +23,16 @@ type Props = {
 };
 
 export default async function AdminClientsPage({ searchParams }: Props) {
+  const session = await verifySession();
+  const user = session ? await db.user.findUnique({ 
+    where: { id: session.userId },
+    include: { staffRole: { include: { permissions: true } } }
+  }) : null;
+
+  const isOwner = user?.role === 'OWNER';
+  const isSupport = user?.role === 'SUPPORT';
+  const canSeeFinances = isOwner || !isSupport;
+
   const params = await searchParams;
   const search = params.q || '';
   const cursor = params.cursor || undefined;
@@ -56,7 +59,9 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>Всего: {stats.total}</span>
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>Активные: {stats.active}</span>
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div>Забанены: {stats.banned}</span>
-            <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>Liability: <span className="tabular-nums font-bold">{(stats.totalLiability / 100).toLocaleString('ru-RU')} ₽</span></span>
+            {canSeeFinances && (
+               <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>Liability: <span className="tabular-nums font-bold">{(stats.totalLiability / 100).toLocaleString('ru-RU')} ₽</span></span>
+            )}
           </>
         }
         action={(
@@ -99,14 +104,18 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                 <Card className="shadow-none border-none bg-transparent">
                   <CardContent className="p-0 space-y-4">
                     <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-slate-500 mb-1">Баланс</div>
-                        <div className="font-bold text-lg text-slate-900">{(userCard.balance / 100).toFixed(2)} ₽</div>
-                      </div>
-                      <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-slate-500 mb-1">LTV</div>
-                        <div className="font-bold text-lg text-slate-900">{(userCard.totalSpent / 100).toLocaleString('ru-RU')} ₽</div>
-                      </div>
+                      {canSeeFinances && (
+                        <>
+                          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
+                            <div className="text-slate-500 mb-1">Баланс</div>
+                            <div className="font-bold text-lg text-slate-900">{(userCard.balance / 100).toFixed(2)} ₽</div>
+                          </div>
+                          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
+                            <div className="text-slate-500 mb-1">LTV</div>
+                            <div className="font-bold text-lg text-slate-900">{(userCard.totalSpent / 100).toLocaleString('ru-RU')} ₽</div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="text-xs text-slate-500 bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
@@ -121,12 +130,12 @@ export default async function AdminClientsPage({ searchParams }: Props) {
 
                     {/* Action Buttons */}
                     <div className="flex gap-2 pt-2">
-                      <form action={loginAsAction} className="flex-1">
+                      <ActionForm action={loginAsAction} className="flex-1">
                         <input type="hidden" name="userId" value={userCard.id} />
                         <SubmitButton variant="outline" className="w-full text-xs h-9">
                           🔑 Войти как
                         </SubmitButton>
-                      </form>
+                      </ActionForm>
                       {userCard.role === 'BANNED' ? (
                         <ActionForm action={unbanUserAction}>
                           <input type="hidden" name="userId" value={userCard.id} />
@@ -146,26 +155,28 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                   </CardContent>
                 </Card>
 
-                {/* Balance Adjustment */}
-                <Card className="shadow-sm">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">💰 Корректировка баланса</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <form action={updateBalanceAction} className="space-y-3">
-                      <input type="hidden" name="userId" value={userCard.id} />
-                      <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Сумма (в копейках, − для списания)</label>
-                        <Input type="number" name="amount" placeholder="10000 = 100₽" required className="h-9 text-sm" />
-                      </div>
-                      <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Причина / Комментарий</label>
-                        <Input type="text" name="reason" placeholder="Например: Компенсация за #1234" required className="h-9 text-sm" />
-                      </div>
-                      <SubmitButton className="w-full text-xs h-9" confirmMessage="Изменить баланс клиента? Убедитесь, что указана корректная причина, так как это действие отразится в аудит-логе.">Применить</SubmitButton>
-                    </form>
-                  </CardContent>
-                </Card>
+                {/* Balance Adjustment - Hidden for Support */}
+                {canSeeFinances && (
+                  <Card className="shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">💰 Корректировка баланса</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ActionForm action={updateBalanceAction} className="space-y-3">
+                        <input type="hidden" name="userId" value={userCard.id} />
+                        <div>
+                          <label className="text-xs text-slate-500 mb-1 block">Сумма (в копейках, − для списания)</label>
+                          <Input type="number" name="amount" placeholder="10000 = 100₽" required className="h-9 text-sm" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-500 mb-1 block">Причина / Комментарий</label>
+                          <Input type="text" name="reason" placeholder="Например: Компенсация за #1234" required className="h-9 text-sm" />
+                        </div>
+                        <SubmitButton className="w-full text-xs h-9" confirmMessage="Изменить баланс клиента? Убедитесь, что указана корректная причина, так как это действие отразится в аудит-логе.">Применить</SubmitButton>
+                      </ActionForm>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Recent Orders */}
                 <Card className="shadow-sm">

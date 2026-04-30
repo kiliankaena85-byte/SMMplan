@@ -5,19 +5,32 @@ import { roleSchema, globalSettingsSchema } from '@/validators/admin.validators'
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { settingsService } from '@/services/admin/settings.service';
+import { adminCatalogService } from '@/services/admin/catalog.service';
 import { VaultService } from '@/lib/vault';
 import { headers } from 'next/headers';
 
 // ── User Role Update ──
 export async function updateUserRole(formData: FormData) {
-  const result = await requireStaffPermission("settings", "edit", async (user) => {
+  const result = await requireStaffPermission("settings", "edit", async (admin) => {
     const parsed = roleSchema.safeParse(Object.fromEntries(formData.entries()));
-    if (!parsed.success) return;
+    if (!parsed.success) return { success: false as const, error: 'Некорректные данные' };
     const { userId: targetUserId, role: newRole } = parsed.data;
 
-    if (targetUserId === user.id) throw new Error('Cannot change own role');
+    if (targetUserId === admin.id) throw new Error('Cannot change own role');
 
-    const oldUser = await db.user.findUnique({ where: { id: targetUserId }, select: { role: true } });
+    // SECURITY: Only OWNER can assign high-level administrative roles
+    if (['ADMIN', 'OWNER'].includes(newRole) && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может назначать роли Админ или Владелец' };
+    }
+
+    const targetUser = await db.user.findUnique({ where: { id: targetUserId }, select: { role: true, email: true } });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    // SECURITY: Only OWNER can change roles of existing ADMINs or OWNERs
+    if (['ADMIN', 'OWNER'].includes(targetUser.role) && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может изменять права администраторов' };
+    }
+
     await settingsService.updateUserRole(targetUserId, newRole);
 
     const reqHeaders = await headers();
@@ -25,19 +38,19 @@ export async function updateUserRole(formData: FormData) {
 
     await db.adminAuditLog.create({
       data: {
-        adminId: user.id,
-        adminEmail: user.email,
+        adminId: admin.id,
+        adminEmail: admin.email,
         action: 'USER_ROLE_CHANGE',
         target: targetUserId,
         targetType: 'USER',
-        oldValue: JSON.stringify({ role: oldUser?.role }),
+        oldValue: JSON.stringify({ email: targetUser.email, role: targetUser.role }),
         newValue: JSON.stringify({ role: newRole }),
         ipAddress
       }
     });
 
     revalidatePath('/admin/settings');
-    return true;
+    return { success: true as const };
   });
 
   if (result && typeof result === 'object' && 'success' in result && !result.success) {
@@ -67,8 +80,13 @@ export async function updateGlobalSettings(formData: FormData) {
 
     const dataToUpdate: any = { maintenanceMode, siteName, siteDescription };
     if (welcomeMessage !== null) dataToUpdate.welcomeMessage = welcomeMessage;
+    
+    let isRateChanged = false;
     if (exchangeRateUSD !== undefined && exchangeRateUSD >= 0) {
-      dataToUpdate.exchangeRateUSD = exchangeRateUSD;
+      if (oldSettings?.exchangeRateUSD !== exchangeRateUSD) {
+        dataToUpdate.exchangeRateUSD = exchangeRateUSD;
+        isRateChanged = true;
+      }
     }
 
     // Only update secrets if they are provided (prevent overwriting with empty)
@@ -77,6 +95,16 @@ export async function updateGlobalSettings(formData: FormData) {
     if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
 
     await settingsService.updateSystemSettings(dataToUpdate);
+
+    // Atomic Re-pricing: trigger background sync if rate changed
+    if (isRateChanged && exchangeRateUSD) {
+       try {
+         await adminCatalogService.syncDenormalizedPrices(exchangeRateUSD);
+       } catch (err) {
+         console.error('[SettingsAction] Background price sync failed:', err);
+         // Optionally, we could return a partial success warning, but logging is minimum.
+       }
+    }
 
     const reqHeaders = await headers();
     const ipAddress = reqHeaders.get("x-forwarded-for") || "127.0.0.1";

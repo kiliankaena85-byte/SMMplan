@@ -3,8 +3,8 @@ import {
   calculateSafetyFloorCents,
   MAX_TOTAL_DISCOUNT,
   TOTAL_MANDATORY_DEDUCTIONS,
-  USD_TO_RUB,
 } from '@/lib/financial-constants';
+import { SettingsProvider } from '@/lib/settings';
 
 export type PricingResult = {
   totalCents: number;
@@ -64,8 +64,11 @@ export class MarketingService {
     if (quantity < service.minQty || quantity > service.maxQty) {
       throw new Error(`Quantity must be between ${service.minQty} and ${service.maxQty}`);
     }
+
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+
     // 1. Calculate base original price in Cents (Convert USD provider rate to RUB Cents)
-    const providerCostPer1000Cents = service.rate * USD_TO_RUB * 100;
+    const providerCostPer1000Cents = service.rate * usdToRub * 100;
     const providerCostCents = Math.round((providerCostPer1000Cents / 1000) * quantity);
 
     const originalTotalCents = Math.round(providerCostCents * service.markup);
@@ -162,7 +165,7 @@ export class MarketingService {
    * Evaluates volume discount for an array of services and formats them for B2B API Standards.
    * Protects pricing from dropping below the safety floor.
    */
-  getB2BFormattedServices(user: any, services: any[]) {
+  async getB2BFormattedServices(user: any, services: any[]) {
     const volumeTier = this.getVolumeTier(user.totalSpent);
     let maxDiscountPercent = Math.max(user.personalDiscount || 0, volumeTier.discountPercent);
 
@@ -171,16 +174,18 @@ export class MarketingService {
       maxDiscountPercent = MAX_TOTAL_DISCOUNT;
     }
 
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+
     return services.map(s => {
       // 1. Calculate original rate in normal currency format (RUB, not cents)
-      const originalRatePer1000 = s.rate * s.markup * USD_TO_RUB;
+      const originalRatePer1000 = s.rate * s.markup * usdToRub;
       
       // 2. Apply highest applicable discount
       const discountVal = (originalRatePer1000 * maxDiscountPercent) / 100;
       let finalRatePer1000 = originalRatePer1000 - discountVal;
 
       // 3. Safety Floor: never below cost × 2.34 (covers taxes + gateway + 100% margin) in RUB
-      const safetyFloor = (s.rate * USD_TO_RUB * (1 + 1.0)) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
+      const safetyFloor = (s.rate * usdToRub * (1 + 1.0)) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
       if (finalRatePer1000 < safetyFloor) {
         finalRatePer1000 = safetyFloor;
       }

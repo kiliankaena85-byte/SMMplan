@@ -15,7 +15,8 @@ import { db } from '@/lib/db';
 import { auditAdmin } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { SAFETY_FLOOR_MARKUP, TOTAL_MANDATORY_DEDUCTIONS } from '@/lib/financial-constants';
+import { SAFETY_FLOOR_MARKUP, TOTAL_MANDATORY_DEDUCTIONS, applyBeautifulRounding } from '@/lib/financial-constants';
+import { SettingsProvider } from '@/lib/settings';
 
 // Minimum allowed markup — Safety Floor (covers taxes + 100% margin)
 const MIN_MARKUP = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
@@ -72,10 +73,25 @@ export async function batchSetMarkupAction(
       };
     }
 
-    await db.service.updateMany({
+    const m = markupValidation.data;
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+
+    // We can't use updateMany with calculated fields in Prisma easily,
+    // so we iterate or use a raw query. For 500 items, iteration is safe.
+    const services = await db.service.findMany({
       where: { id: { in: ids.data } },
-      data: { markup: markupValidation.data },
+      select: { id: true, rate: true }
     });
+
+    await db.$transaction(
+      services.map(s => db.service.update({
+        where: { id: s.id },
+        data: { 
+          markup: m,
+          pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * m * usdToRub) * 100)
+        }
+      }))
+    );
 
     auditAdmin({
       adminId: admin.id,
@@ -83,7 +99,7 @@ export async function batchSetMarkupAction(
       action: 'BATCH_MARKUP_SET',
       target: ids.data.join(','),
       targetType: 'SERVICE',
-      newValue: { count: ids.data.length, markup: markupValidation.data },
+      newValue: { count: ids.data.length, markup: m },
     });
 
     revalidatePath('/admin/catalog');
@@ -105,14 +121,22 @@ export async function updateServiceMarkupAction(
       };
     }
 
-    const old = await db.service.findUnique({
+    const m = markupValidation.data;
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+
+    const service = await db.service.findUnique({
       where: { id: serviceId },
-      select: { markup: true },
+      select: { markup: true, rate: true },
     });
+
+    if (!service) return { success: false as const, error: 'Service not found' };
 
     await db.service.update({
       where: { id: serviceId },
-      data: { markup: markupValidation.data },
+      data: { 
+        markup: m,
+        pricePer1000Cents: Math.round(applyBeautifulRounding(service.rate * m * usdToRub) * 100)
+      },
     });
 
     auditAdmin({
@@ -121,8 +145,8 @@ export async function updateServiceMarkupAction(
       action: 'SERVICE_MARKUP_UPDATE',
       target: serviceId,
       targetType: 'SERVICE',
-      oldValue: { markup: old?.markup },
-      newValue: { markup: markupValidation.data },
+      oldValue: { markup: service.markup },
+      newValue: { markup: m },
     });
 
     revalidatePath('/admin/catalog');

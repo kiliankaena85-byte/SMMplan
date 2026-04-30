@@ -1,6 +1,6 @@
 import { adminProviderService } from '@/services/admin/provider.service';
 import Link from 'next/link';
-import { Button as HeroButton } from '@/components/admin/hero-ui';
+import { Button } from '@/components/ui/button';
 import { Plug } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { ProvidersTable } from './client-table';
@@ -19,14 +19,14 @@ export default async function ProvidersAdminPage() {
         action={(
           <div className="flex gap-3">
             <Link href="/admin/providers/import">
-              <HeroButton variant="outline" className="font-medium bg-background">
+              <Button intent="outline" className="font-medium bg-background">
                 ⏬ Импорт Услуг
-              </HeroButton>
+              </Button>
             </Link>
             <Link href="/admin/providers/new">
-              <HeroButton variant="primary" className="font-medium shadow-sm">
+              <Button intent="primary" className="font-medium shadow-sm">
                 + Подключить Панель
-              </HeroButton>
+              </Button>
             </Link>
           </div>
         )}

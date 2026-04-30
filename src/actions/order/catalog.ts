@@ -2,7 +2,8 @@
 
 import { db } from "@/lib/db";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
-import { applyBeautifulRounding, USD_TO_RUB } from "@/lib/financial-constants";
+import { applyBeautifulRounding } from "@/lib/financial-constants";
+import { SettingsProvider } from "@/lib/settings";
 
 export type PublicService = {
   id: string;
@@ -76,11 +77,14 @@ export async function getPublicCatalogAction() {
 
 export async function getServicesByCategoryAction(categoryId: string): Promise<PublicService[]> {
   try {
-    const services = await db.service.findMany({
-      where: { categoryId, isActive: true },
-      orderBy: { rate: 'asc' },
-      take: 100
-    });
+    const [services, usdToRub] = await Promise.all([
+      db.service.findMany({
+        where: { categoryId, isActive: true },
+        orderBy: { rate: 'asc' },
+        take: 100
+      }),
+      SettingsProvider.getExchangeRateUSD()
+    ]);
 
     return services.map(s => {
        let badge = "";
@@ -95,7 +99,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           categoryId: s.categoryId,
           name: s.name,
           description: s.description,
-          pricePer1kRub: applyBeautifulRounding(s.rate * s.markup * USD_TO_RUB),
+          pricePer1kRub: applyBeautifulRounding(s.rate * s.markup * usdToRub),
           minQty: s.minQty,
           speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',
           badge

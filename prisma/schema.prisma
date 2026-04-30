@@ -16,7 +16,12 @@ model User {
   totalSpent        Int      @default(0) // Lifetime value in Cents
   personalDiscount  Float    @default(0.0) // Manual discount override in %, max 100
   discountEndsAt    DateTime? // If set — discount expires at this datetime
-  supportLimitCents Int      @default(50000) // 500 RUB default trust budget for SUPPORT roles
+  
+  // Trust budget (for compensation/refunds by support)
+  supportLimitCents     Int      @default(50000) // 500 RUB default trust budget
+  supportSpentTodayCents Int      @default(0)     // Track daily spending
+  supportLastResetAt    DateTime @default(now()) // For auto-reset logic
+  
   apiKey            String?  @unique
   referralCode      String?  @unique
   referredById      String?
@@ -158,6 +163,7 @@ model Service {
   quarantinedAt    DateTime? // When it was flagged
 
   isActive  Boolean  @default(true)
+  pricePer1000Cents Int @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

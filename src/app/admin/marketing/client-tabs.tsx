@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Tabs } from '@heroui/react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface MarketingTabsProps {
   promocodesContent: React.ReactNode;
@@ -10,20 +10,22 @@ interface MarketingTabsProps {
 
 export function MarketingTabs({ promocodesContent, referralsContent }: MarketingTabsProps) {
   return (
-    <Tabs>
-      <Tabs.ListContainer>
-        <Tabs.List aria-label="Маркетинг">
-          <Tabs.Tab id="promocodes">Промокоды<Tabs.Indicator /></Tabs.Tab>
-          <Tabs.Tab id="referrals">Партнерская программа<Tabs.Indicator /></Tabs.Tab>
-        </Tabs.List>
-      </Tabs.ListContainer>
+    <Tabs defaultValue="promocodes">
+      <TabsList className="bg-slate-100/50 p-1 rounded-xl">
+        <TabsTrigger value="promocodes" className="rounded-lg px-6 py-2 font-bold uppercase tracking-wider text-xs">
+          Промокоды
+        </TabsTrigger>
+        <TabsTrigger value="referrals" className="rounded-lg px-6 py-2 font-bold uppercase tracking-wider text-xs">
+          Партнерская программа
+        </TabsTrigger>
+      </TabsList>
 
-      <Tabs.Panel id="promocodes">
+      <TabsContent value="promocodes">
         <div className="pt-4">{promocodesContent}</div>
-      </Tabs.Panel>
-      <Tabs.Panel id="referrals">
+      </TabsContent>
+      <TabsContent value="referrals">
         <div className="pt-4">{referralsContent}</div>
-      </Tabs.Panel>
+      </TabsContent>
     </Tabs>
   );
 }

@@ -3,12 +3,13 @@ import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
 import { sendAdminAlert } from '@/lib/notifications';
 import { providerService } from '@/services/providers/provider.service';
-import { SettingsManager } from '@/lib/settings';
+import { SettingsProvider } from '@/lib/settings';
 import {
   SYNC_ANOMALY_THRESHOLD,
   applyPricingLadder,
   SAFETY_FLOOR_MARKUP,
-  TOTAL_MANDATORY_DEDUCTIONS
+  TOTAL_MANDATORY_DEDUCTIONS,
+  applyBeautifulRounding
 } from '@/lib/financial-constants';
 
 // ── Types ──
@@ -22,6 +23,7 @@ export type CatalogRow = {
   providerId: string | null;
   rate: number;       // provider cost per 1000 (USD)
   markup: number;     // multiplier (e.g. 3.0 = 300%)
+  pricePer1000Cents: number; // denormalized price for sorting
   minQty: number;
   maxQty: number;
   isActive: boolean;
@@ -42,8 +44,6 @@ export type ProviderExternalService = {
   refill?: boolean;
   cancel?: boolean;
 };
-
-// Anomaly threshold is now imported from financial-constants.ts
 
 // ── Service ──
 
@@ -100,10 +100,14 @@ export class AdminCatalogService {
 
     const service = await db.service.findUniqueOrThrow({ where: { id: serviceId } });
     const oldMarkup = service.markup;
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
     await db.service.update({
       where: { id: serviceId },
-      data: { markup: newMarkup },
+      data: { 
+        markup: newMarkup,
+        pricePer1000Cents: Math.round(applyBeautifulRounding(service.rate * newMarkup * usdToRub) * 100)
+      },
     });
 
     auditAdmin({
@@ -174,7 +178,7 @@ export class AdminCatalogService {
     if (toImport.length === 0) throw new Error('Не найдены услуги для импорта');
 
     let importedCount = 0;
-    const usdToRub = await SettingsManager.getExchangeRateUSD();
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
     
     for (const ext of toImport) {
       // Skip if already exists
@@ -185,14 +189,8 @@ export class AdminCatalogService {
       if (existing) continue;
 
       const rawRate = parseFloat(ext.rate);
-      // If admin did not specify a custom markup, use the Pricing Ladder
-      // to compute an appropriate multiplier for this service's price tier.
       let effectiveMarkup = defaultMarkup;
       if (defaultMarkup <= 0) {
-        // Auto-calculate from Pricing Ladder: ladder returns retail price,
-        // so we compute markup = retailPrice / costPrice
-        // IMPORTANT: rawRate is in USD. The Pricing Ladder expects RUB.
-        // We use the dynamic `usdToRub` exchange rate to determine the correct ladder tier.
         const retailFromLadder = applyPricingLadder(rawRate * usdToRub);
         effectiveMarkup = rawRate > 0 ? Math.round((retailFromLadder / (rawRate * usdToRub)) * 100) / 100 : 3.0;
       }
@@ -204,6 +202,7 @@ export class AdminCatalogService {
           categoryId,
           rate: rawRate,
           markup: effectiveMarkup,
+          pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * usdToRub) * 100),
           minQty: parseInt(ext.min, 10) || 10,
           maxQty: parseInt(ext.max, 10) || 100000,
           isActive: true,
@@ -296,32 +295,42 @@ export class AdminCatalogService {
     }
 
     let updatedCount = 0;
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
     if (newMarkup <= 0) {
-      const usdToRub = await SettingsManager.getExchangeRateUSD();
-      // Auto-calculate from Pricing Ladder
       const services = await db.service.findMany({ where, select: { id: true, rate: true } });
       const updates = services.map(s => {
          const retailFromLadder = applyPricingLadder(s.rate * usdToRub);
          const calculatedMarkup = s.rate > 0 ? Math.round((retailFromLadder / (s.rate * usdToRub)) * 100) / 100 : 3.0;
          return db.service.update({
             where: { id: s.id },
-            data: { markup: calculatedMarkup }
+            data: { 
+              markup: calculatedMarkup,
+              pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * calculatedMarkup * usdToRub) * 100)
+            }
          });
       });
 
-      // Execute in chunks to avoid blowing up memory with too many queries
       for (let i = 0; i < updates.length; i += 50) {
          await db.$transaction(updates.slice(i, i + 50));
       }
       updatedCount = services.length;
     } else {
-      // Set fixed markup
-      const result = await db.service.updateMany({
-        where,
-        data: { markup: newMarkup },
+      const services = await db.service.findMany({ where, select: { id: true, rate: true } });
+      const updates = services.map(s => {
+         return db.service.update({
+            where: { id: s.id },
+            data: { 
+              markup: newMarkup,
+              pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * newMarkup * usdToRub) * 100)
+            }
+         });
       });
-      updatedCount = result.count;
+
+      for (let i = 0; i < updates.length; i += 50) {
+         await db.$transaction(updates.slice(i, i + 50));
+      }
+      updatedCount = services.length;
     }
 
     auditAdmin({
@@ -337,17 +346,35 @@ export class AdminCatalogService {
   }
 
   /**
+   * Wave 2: Atomic Re-pricing logic.
+   * Updates all denormalized prices in the background when the exchange rate changes.
+   */
+  async syncDenormalizedPrices(usdToRub: number) {
+    const allServices = await db.service.findMany({
+      select: { id: true, rate: true, markup: true }
+    });
+
+    console.log(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
+
+    for (let i = 0; i < allServices.length; i += 100) {
+      const batch = allServices.slice(i, i + 100);
+      const updates = batch.map(s => db.service.update({
+        where: { id: s.id },
+        data: { pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * s.markup * usdToRub) * 100) }
+      }));
+      await db.$transaction(updates);
+    }
+
+    console.log(`[AdminCatalogService] Price sync completed.`);
+  }
+
+  /**
    * Markup Analytics: returns distribution of markups across all services.
-   * Categories:
-   * - loss: markup < Safety Floor (selling below break-even)
-   * - thin: Safety Floor ≤ markup < x3
-   * - normal: x3 ≤ markup < x8
-   * - high: x8 ≤ markup < x20
-   * - extreme: markup ≥ x20
    */
   async getMarkupAnalytics(): Promise<{
     stats: { total: number; loss: number; thin: number; normal: number; high: number; extreme: number };
     worstServices: { id: string; name: string; rate: number; markup: number; category: string }[];
+    averageMarkup: number;
   }> {
     const services = await db.service.findMany({
       where: { isActive: true },
@@ -360,14 +387,13 @@ export class AdminCatalogService {
       },
     });
 
-    // Safety floor multiplier = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS)
     const safetyMultiplier = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
-
     const stats = { total: services.length, loss: 0, thin: 0, normal: 0, high: 0, extreme: 0 };
     const lossList: { id: string; name: string; rate: number; markup: number; category: string }[] = [];
-
+    let totalMarkup = 0;
 
     for (const s of services) {
+      totalMarkup += s.markup;
       if (s.markup < safetyMultiplier) {
         stats.loss++;
         lossList.push({ id: s.id, name: s.name, rate: s.rate, markup: s.markup, category: s.category.name });
@@ -382,13 +408,11 @@ export class AdminCatalogService {
       }
     }
 
-    // Return the worst (loss) services for admin attention
-    return { stats, worstServices: lossList.slice(0, 20) };
+    const averageMarkup = services.length > 0 ? totalMarkup / services.length : 0;
+
+    return { stats, worstServices: lossList.slice(0, 20), averageMarkup };
   }
 
-  /**
-   * List all categories with service counts for the sidebar.
-   */
   async listCategories() {
     const rows = await db.category.findMany({
       select: {
@@ -406,11 +430,6 @@ export class AdminCatalogService {
     }));
   }
 
-  /**
-   * Soft-delete a service: deactivate and mark as archived.
-   * Does NOT hard-delete — preserves order history.
-   * Sets isActive = false so it disappears from catalog for clients.
-   */
   async softDeleteService(
     serviceId: string,
     admin: { id: string; email: string }
@@ -424,8 +443,6 @@ export class AdminCatalogService {
       where: { id: serviceId },
       data: {
         isActive: false,
-        // Mark as archived using description prefix convention
-        // (avoids schema change for MVP)
         name: service.name.startsWith('[ARCHIVED] ')
           ? service.name
           : `[ARCHIVED] ${service.name}`,
@@ -443,9 +460,6 @@ export class AdminCatalogService {
     });
   }
 
-  /**
-   * Get quarantine count for badge display.
-   */
   async getQuarantineCount(): Promise<number> {
     return db.service.count({ where: { isQuarantined: true } });
   }

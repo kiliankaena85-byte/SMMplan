@@ -1,7 +1,7 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { Chip, Checkbox } from '@heroui/react';
+import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
 export type OrderColumn = {
@@ -51,7 +51,7 @@ const STATUS_LABELS: Record<string, string> = {
   ERROR: 'Ошибка',
 };
 
-export const columns: ColumnDef<OrderColumn>[] = [
+export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -83,7 +83,7 @@ export const columns: ColumnDef<OrderColumn>[] = [
         <span className="font-bold text-slate-800 whitespace-nowrap">
           {row.original.numericId}
         </span>
-        {row.original.externalId && (
+        {row.original.externalId && canSeeRates && (
           <span className="text-slate-400 font-normal whitespace-nowrap">
             ({row.original.externalId})
           </span>
@@ -147,14 +147,18 @@ export const columns: ColumnDef<OrderColumn>[] = [
               <span className="hidden group-open:block">▼ Hide Details</span>
             </summary>
             <div className="mt-2 bg-slate-50 p-2.5 border border-slate-100 rounded-md space-y-1.5 shadow-inner">
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-slate-500 font-medium">Provider ID:</span>
-                <span className="text-slate-800 font-mono font-semibold">{order.externalId || '—'}</span>
-              </div>
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-slate-500 font-medium">Себестоимость:</span>
-                <span className="text-slate-800 font-mono font-semibold">{(order.providerCost / 100).toFixed(2)} ₽</span>
-              </div>
+              {canSeeRates && (
+                <>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-500 font-medium">Provider ID:</span>
+                    <span className="text-slate-800 font-mono font-semibold">{order.externalId || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-500 font-medium">Себестоимость:</span>
+                    <span className="text-slate-800 font-mono font-semibold">{(order.providerCost / 100).toFixed(2)} ₽</span>
+                  </div>
+                </>
+              )}
               {order.error && (
                 <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-200 mt-1 pb-0.5">
                   <span className="text-rose-500 font-medium">Ошибка API:</span>
@@ -176,21 +180,27 @@ export const columns: ColumnDef<OrderColumn>[] = [
       </div>
     ),
   },
-  // Removed individual providerCost column since it's now in Details
   {
     accessorKey: 'status',
     header: 'Статус',
     cell: ({ row }) => {
       const order = row.original;
-      const rawColor = STATUS_STYLES[order.status] || 'default';
-      let chipColor = rawColor as any;
-      if (['primary', 'secondary'].includes(chipColor)) chipColor = 'default';
-      else if (!['warning', 'success', 'danger', 'accent', 'default'].includes(chipColor)) chipColor = 'default';
+      const status = order.status;
+      const style = STATUS_STYLES[status] || 'default';
+      
+      const classes: Record<string, string> = {
+        success: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+        warning: 'bg-amber-100 text-amber-700 border-amber-200',
+        danger: 'bg-rose-100 text-rose-700 border-rose-200',
+        primary: 'bg-sky-100 text-sky-700 border-sky-200',
+        default: 'bg-slate-100 text-slate-600 border-slate-200',
+      };
+
       return (
         <div className="flex items-center gap-2 whitespace-nowrap">
-          <Chip color={chipColor as any} size="sm" variant="soft" className="font-semibold text-[10px] uppercase">
-            {STATUS_LABELS[order.status] || order.status}
-          </Chip>
+          <Badge className={`font-semibold text-[10px] uppercase ${classes[style] || classes.default}`}>
+            {STATUS_LABELS[status] || status}
+          </Badge>
           {order.isDripFeed && (
             <span className="text-[10px] text-purple-600 font-medium">
               Drip ({order.currentRun}/{order.runs})
