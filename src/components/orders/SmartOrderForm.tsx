@@ -8,7 +8,7 @@ import { PlatformSelectorFallback } from '@/components/orders/PlatformSelectorFa
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import {
   Plus, Minus, Search, Mail, ArrowRight,
-  Loader2, Clock, CheckCircle2,
+  Loader2, Clock, CheckCircle2, Wallet, CreditCard
 } from 'lucide-react';
 import React, { useState } from 'react';
   import Link from 'next/link';
@@ -21,6 +21,7 @@ const inputCls =
 
 
 export function SmartOrderForm() {
+  const [gateway, setGateway] = useState<'yookassa' | 'balance'>('yookassa');
   const engine = useOrderEngine();
   const {
     url, setUrl,
@@ -65,7 +66,7 @@ export function SmartOrderForm() {
       runs:     dripFeedEnabled ? runs     : undefined,
       interval: dripFeedEnabled ? dripInterval : undefined,
       customData: engine.customData || undefined,
-      gateway: 'yookassa', // TODO: Make gateway dynamic for Balance usage
+      gateway,
     });
 
     if (res.success && res.data?.paymentUrl) {
@@ -348,6 +349,37 @@ export function SmartOrderForm() {
                   {isCalculating && (
                     <div className="text-[10px] text-sky-500 font-bold uppercase tracking-wider">Считаем...</div>
                   )}
+                </div>
+              </div>
+
+              {/* Gateway Selection */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                  Способ оплаты
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGateway('yookassa')}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
+                      gateway === 'yookassa'
+                        ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm ring-1 ring-sky-500/20'
+                        : 'border-border bg-background text-muted-foreground hover:bg-slate-50'
+                    }`}
+                  >
+                    <CreditCard className="w-4 h-4" /> ЮKassa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGateway('balance')}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
+                      gateway === 'balance'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-500/20'
+                        : 'border-border bg-background text-muted-foreground hover:bg-slate-50'
+                    }`}
+                  >
+                    <Wallet className="w-4 h-4" /> Баланс
+                  </button>
                 </div>
               </div>
 

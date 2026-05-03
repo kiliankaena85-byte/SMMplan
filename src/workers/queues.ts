@@ -14,13 +14,37 @@ export interface SyncJobPayload {
   timestamp: number; // For keeping track
 }
 
+// P2.1: Dead Letter Queue — jobs that exhausted all retries
+export interface DLQJobPayload {
+  originalQueue: string;    // Which queue the job came from
+  jobId: string | undefined; // Original job ID
+  payload: unknown;          // Original job data
+  error: string;             // Error message from last attempt
+  failedAt: string;          // ISO timestamp
+}
+
+// P2.3: Cleanup cron payload
+export interface CleanupJobPayload {
+  timestamp: number;
+}
+
 // Instantiate queues using NextJS-safe singleton
 export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue');
 export const dripfeedQueue = createQueue<DripFeedJobPayload>('dripfeedQueue');
 export const syncQueue = createQueue<SyncJobPayload>('syncQueue');
 
+// P2.1: Dead Letter Queue — removeOnFail: false to preserve failed jobs for inspection
+export const dlqQueue = createQueue<DLQJobPayload>('dead-letter-queue', {
+  removeOnComplete: false, // Keep DLQ job history
+  removeOnFail: false,     // NEVER auto-delete failed jobs from DLQ
+  attempts: 1,             // DLQ jobs should not retry themselves
+});
+
+// P2.3: Cleanup queue for TTL maintenance
+export const cleanupQueue = createQueue<CleanupJobPayload>('cleanup');
+
 /**
- * Configure global cron sync job if not exists 
+ * Configure global cron sync job if not exists
  * (In production, the worker process handles this but we can declare helper here)
  */
 export async function ensureSyncCron() {
@@ -32,6 +56,22 @@ export async function ensureSyncCron() {
         pattern: '*/5 * * * *' // Every 5 minutes
       },
       jobId: 'status-sync-singleton' // Avoids duplicate crons
+    }
+  );
+}
+
+/**
+ * P2.3: Schedule daily cleanup cron at 03:00
+ */
+export async function ensureCleanupCron() {
+  await cleanupQueue.add(
+    'daily-cleanup',
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '0 3 * * *' // 3:00 AM daily
+      },
+      jobId: 'cleanup-singleton'
     }
   );
 }

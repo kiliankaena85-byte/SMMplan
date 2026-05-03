@@ -3,8 +3,12 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { sendMagicLink, sendWelcomeLetter } from "@/lib/smtp";
+import { RateLimitService } from "@/services/core/rate-limit.service";
+import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { cookies } from "next/headers";
+
+const log = logger.child({ component: 'MagicLink' });
 
 const schema = z.object({
   email: z.string().email("Введите корректный email"),
@@ -61,16 +65,17 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
       sendWelcomeLetter(cleanEmail).catch(console.error);
     }
 
-    // Rate Limiting (Anti-Spam)
-    const recentToken = await db.authToken.findFirst({
-      where: { 
-        userId: user.id, 
-        createdAt: { gt: new Date(Date.now() - 60 * 1000) } 
-      }
-    });
+    // P1.2: Email-level rate limiting — 3 requests per 5 minutes per email
+    // Protects against email-bombing attacks
+    const isAllowed = await RateLimitService.checkCustomKey(
+      `magic-link:${cleanEmail}`,
+      3,   // max 3 requests
+      300  // per 5 minutes (300 seconds)
+    );
 
-    if (recentToken) {
-      return { error: "Ссылка уже отправлена. Пожалуйста, подождите 1 минуту перед новым запросом.", success: false };
+    if (!isAllowed) {
+      log.warn('Magic link rate limit exceeded', { email: cleanEmail });
+      return { error: "Слишком много запросов. Пожалуйста, подождите 5 минут перед новым запросом.", success: false };
     }
 
     // Генерируем секретный токен (используем crypto для надежности)
@@ -91,7 +96,7 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
     return { success: true, error: null };
   } catch (error) {
-    console.error(error);
+    log.error('Magic link request failed', { error: (error as Error).message });
     return { error: "Что-то пошло не так. Попробуйте еще раз.", success: false };
   }
 }

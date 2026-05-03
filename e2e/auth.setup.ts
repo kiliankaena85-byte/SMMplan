@@ -13,13 +13,14 @@ setup('authenticate', async ({ page, context }) => {
   const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
   const encodedKey = new TextEncoder().encode(secretKey);
   
-  const uniqueId = randomUUID();
-  const email = `e2e-${uniqueId}@test.com`;
+  const email = `e2e-tester@test.com`;
 
-  const user = await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: { balance: 200000_00 },
+    create: {
       email,
-      balance: 100000_00, // 1M RUB
+      balance: 200000_00, // 200K RUB to fit within PostgreSQL INT4 and avoid test errors
     }
   });
 

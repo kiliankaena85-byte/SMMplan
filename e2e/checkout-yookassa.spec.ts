@@ -14,9 +14,9 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     await expect(linkInput).toBeVisible();
 
     // 3. Paste a test URL
-    await linkInput.fill('https://t.me/durov/1');
+    await linkInput.fill('https://instagram.com/p/test');
     
-    const categorySelector = page.locator('button[role="tab"]', { hasText: /Просмотры/i });
+    const categorySelector = page.locator('button[role="tab"]', { hasText: /(Instagram Likes|Лайки)/i });
     await expect(categorySelector).toBeVisible({ timeout: 10000 });
     await categorySelector.click();
 
@@ -25,10 +25,10 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     await expect(serviceSelectBtn).toBeVisible();
     await serviceSelectBtn.click();
 
-    // 5. Fill Quantity
     const qtyInput = page.locator('input[type="number"], input[placeholder*="Количество"]');
     await expect(qtyInput).toBeVisible();
-    await qtyInput.fill('100');
+    const minQty = await qtyInput.getAttribute('min');
+    await qtyInput.fill(minQty ? (parseInt(minQty) + 50).toString() : '100');
 
     // 6. Change Gateway to YooKassa
     const yookassaTab = page.locator('button', { hasText: /ЮKassa|Банковская карта/i });
@@ -41,19 +41,17 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     await expect(payBtn).toBeVisible();
     
     const agreementCheckbox = page.locator('input[type="checkbox"]');
-    if (await agreementCheckbox.count() > 0) {
-       await agreementCheckbox.check({ force: true });
-       await expect(agreementCheckbox).toBeChecked();
-    }
+    await expect(agreementCheckbox).toBeVisible({ timeout: 5000 });
+    await agreementCheckbox.check({ force: true });
+    await expect(agreementCheckbox).toBeChecked();
 
     // Wait for React to re-render and enable the button
     await expect(payBtn).toBeEnabled({ timeout: 5000 });
 
     // 6.5 Fill Email (Required by schema)
     const emailInput = page.locator('input[type="email"]');
-    if (await emailInput.count() > 0) {
-      await emailInput.fill('e2e-buyer@test.com');
-    }
+    await expect(emailInput).toBeVisible();
+    await emailInput.fill('e2e-tester@test.com');
 
     await payBtn.click();
     await page.waitForTimeout(1000); // Wait for React state or Server Action

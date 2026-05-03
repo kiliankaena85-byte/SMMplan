@@ -5,3 +5,50 @@ node_modules
 .env.production
 .env.development
 *.tsbuildinfo
+
+# ── Staging env (contains real secrets — treat as compromised) ──
+.env.staging
+.env.staging.local
+
+# ── Build & deploy artifacts (should never be in Git) ──
+*.tar
+*.tar.gz
+*.patch
+*.zip
+
+# ── Analysis & report outputs ──
+eslint_report.json
+eslint_report.html
+tsc-*.txt
+tsc_output.txt
+ts_errors.txt
+test_output.txt
+results.json
+out.html
+pin.html
+
+# ── Data dumps (one-off, not source code) ──
+stream-promotion-services.json
+curl_out.txt
+*.dump.json
+
+# ── SQLite dev database ──
+prisma/dev.db
+prisma/*.db
+
+# ── Playwright test results & artifacts ──
+test-results/
+playwright-report/
+
+# ── Coverage ──
+coverage/
+.nyc_output/
+
+# ── OS-specific ──
+.DS_Store
+Thumbs.db
+
+# ── IDE ──
+.idea/
+*.swp
+*.swo

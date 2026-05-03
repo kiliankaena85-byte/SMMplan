@@ -110,7 +110,83 @@ services:
       - ./nginx/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
+  # ── Backup Service (P0.1) ──────────────────────────────────────────────────
+  backup:
+    image: alpine:3.19
+    container_name: smmplan_lite_prod_backup
+    restart: always
+    # Install required tools and run crond
+    command: >
+      sh -c "
+        apk add --no-cache postgresql16-client gzip gnupg wget rclone supercronic &&
+        echo '0 * * * * /scripts/backup-db.sh hourly >> /var/log/backup.log 2>&1' > /etc/crontabs/backup &&
+        echo '0 3 * * * /scripts/backup-db.sh daily >> /var/log/backup.log 2>&1' >> /etc/crontabs/backup &&
+        echo '0 4 * * 0 /scripts/backup-db.sh verify >> /var/log/backup.log 2>&1' >> /etc/crontabs/backup &&
+        supercronic /etc/crontabs/backup
+      "
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-smmplan_lite}?schema=public
+      - BACKUP_GPG_PASSPHRASE=${BACKUP_GPG_PASSPHRASE}
+      - RCLONE_REMOTE=${RCLONE_REMOTE:-yadisk}
+      - ADMIN_ALERT_BOT_TOKEN=${ADMIN_ALERT_BOT_TOKEN}
+      - ADMIN_ALERT_CHAT_ID=${ADMIN_ALERT_CHAT_ID}
+    volumes:
+      - ./scripts/backup-db.sh:/scripts/backup-db.sh:ro
+      - prod_backups:/backups
+      - ~/.config/rclone:/root/.config/rclone:ro # rclone OAuth config
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Loki (Log Storage) (P0.2) ─────────────────────────────────────────────
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: smmplan_lite_prod_loki
+    restart: always
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - prod_loki_data:/loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── Promtail (Log Collector) (P0.2) ───────────────────────────────────────
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: smmplan_lite_prod_promtail
+    restart: always
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./loki/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Docker socket for container discovery
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  # ── Grafana (Log UI) (P0.2) ───────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.3.1
+    container_name: smmplan_lite_prod_grafana
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    ports:
+      - "3200:3000" # Access at http://server:3200 (close in firewall, use nginx proxy)
+    volumes:
+      - prod_grafana_data:/var/lib/grafana
+    depends_on:
+      - loki
+
 volumes:
   prod_postgres_data:
   prod_redis_data:
+  prod_backups:     # P0.1: Local backup storage (48h hourly, 7d daily)
+  prod_loki_data:   # P0.2: Loki log storage (90d retention)
+  prod_grafana_data: # P0.2: Grafana dashboards and settings
 

@@ -11,9 +11,9 @@ model User {
   id                String   @id @default(cuid())
   email             String   @unique
   role              String   @default("USER") // USER, SUPPORT, MANAGER, OWNER
-  balance           Int      @default(0)
-  quarantineBalance Int      @default(0) // Funds pending Owner approval (Escrow)
-  totalSpent        Int      @default(0) // Lifetime value in Cents
+  balance           BigInt   @default(0)
+  quarantineBalance BigInt   @default(0) // Funds pending Owner approval (Escrow)
+  totalSpent        BigInt   @default(0) // Lifetime value in Cents
   personalDiscount  Float    @default(0.0) // Manual discount override in %, max 100
   discountEndsAt    DateTime? // If set — discount expires at this datetime
   
@@ -186,6 +186,12 @@ model Provider {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // SLA Monitoring fields (P0.3)
+  errorCount5m    Int      @default(0)   // Errors in last 5 minutes (reset by sync)
+  lastErrorAt     DateTime?              // Last error timestamp
+  lastSuccessAt   DateTime?              // Last successful API response
+  avgResponseMs   Int      @default(0)   // Rolling average response time in ms
+
   services Service[]
 }
 
@@ -200,8 +206,8 @@ model Order {
   quantity        Int
   status          String   @default("AWAITING_PAYMENT") // AWAITING_PAYMENT, PENDING, IN_PROGRESS, COMPLETED, PARTIAL, CANCELED, ERROR
   remains         Int      @default(0) // Outstanding amount to deliver
-  charge          Int // price paid by user in Cents
-  providerCost    Int // exact cost from provider in Cents
+  charge          BigInt // price paid by user in Cents
+  providerCost    BigInt // exact cost from provider in Cents
   error           String? // Error message from provider API
   retryCount      Int      @default(0) // Safe API Backoff mechanism
   isTest          Boolean  @default(false) // Isolation flag for mock environment
@@ -229,6 +235,8 @@ model Order {
 
   @@index([userId])
   @@index([status])
+  @@index([createdAt])         // P2.2: temporal queries & analytics
+  @@index([status, createdAt]) // P2.2: filtered + sorted admin queries
 }
 
 model Refill {
@@ -255,7 +263,7 @@ model Payment {
 
   orders    Order[]
 
-  amount    Int // amount in Cents
+  amount    BigInt // amount in Cents (BigInt: supports balances up to 90 trillion RUB)
   currency  String  @default("RUB")
   status    String  @default("PENDING") // PENDING, SUCCEEDED, CANCELED
   gatewayId String? @unique // yookassa payment id
@@ -363,7 +371,7 @@ model Commission {
   id         String @id @default(cuid())
   orderId    String
   referrerId String
-  amount     Int // in Cents
+  amount     BigInt // in Cents (BigInt for consistency with financial fields)
   status     String @default("PENDING") // PENDING, PAID, REJECTED
 
   updatedAt DateTime @updatedAt
@@ -411,7 +419,7 @@ model LedgerEntry {
   userId         String // Client whose balance was affected
   user           User     @relation("UserLedger", fields: [userId], references: [id], onDelete: Restrict)
   adminId        String? // Support agent who initiated, null if SYSTEM/auto
-  amount         Int // Amount in Cents (positive = credit, negative = debit)
+  amount         BigInt // Amount in Cents (positive = credit, negative = debit)
   reason         String // Mandatory justification text
   status         String   @default("APPROVED") // APPROVED, QUARANTINE, REJECTED
   idempotencyKey String?  @unique // Unique token to prevent double-spending/credits
@@ -439,6 +447,9 @@ model AnalyticsEvent {
   metadata  Json?
   sessionId String?
   createdAt DateTime @default(now())
+
+  @@index([event])     // P2.2: filter by event type
+  @@index([createdAt]) // P2.2: TTL cleanup & temporal queries
 }
 
 // ── Feature Flags ──
