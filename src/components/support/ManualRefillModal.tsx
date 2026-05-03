@@ -19,6 +19,7 @@ export default function ManualRefillModal({
 }) {
   const [costText, setCostText] = useState('');
   const [note, setNote] = useState('');
+  const [topUpBalance, setTopUpBalance] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   if (!open) return null;
@@ -33,10 +34,12 @@ export default function ManualRefillModal({
         fd.set('ticketId', ticketId);
         fd.set('costRub', costText);
         fd.set('note', note);
+        fd.set('topUpBalance', topUpBalance ? 'true' : 'false');
         await logManualCompensation(fd);
         setCostText('');
         setNote('');
-        toast.success('Компенсация успешно списена с лимита и логирована');
+        setTopUpBalance(false);
+        toast.success(topUpBalance ? 'Баланс пополнен и лимит списан' : 'Компенсация успешно списана с лимита');
         onClose();
       } catch (e: any) {
         toast.error(e.message || 'Ошибка списания лимита');
@@ -98,6 +101,19 @@ export default function ManualRefillModal({
                   className="w-full text-sm border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[100px] resize-y bg-white leading-relaxed"
                 />
             </div>
+
+            <label className="flex items-center gap-2 cursor-pointer p-3 bg-emerald-50 rounded-xl border border-emerald-100 group transition-all hover:bg-emerald-100/50">
+               <input 
+                 type="checkbox" 
+                 checked={topUpBalance}
+                 onChange={e => setTopUpBalance(e.target.checked)}
+                 className="w-4 h-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+               />
+               <div className="flex flex-col">
+                 <span className="text-sm font-bold text-emerald-900">Зачислить деньги клиенту на баланс</span>
+                 <span className="text-[10px] text-emerald-600 font-medium leading-tight">Если выключено — просто списывается ваш лимит (на внешние заказы)</span>
+               </div>
+            </label>
             
             <div className="flex justify-end gap-3 mt-6 pt-2">
               <Button intent="outline" type="button" onClick={onClose} className="rounded-xl border-slate-200">Отмена</Button>

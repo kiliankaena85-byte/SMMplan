@@ -9,7 +9,7 @@ WORKDIR /app
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -37,8 +37,12 @@ RUN apk add --no-cache openssl tini
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Copy configuration files
+COPY package.json tsconfig.json ./
 # Copy prisma client & schema for run-time operations (e.g. migrate deploy script)
 COPY --from=builder /app/prisma ./prisma
+# Copy scripts for data management
+COPY --from=builder /app/scripts ./scripts
 # Copy src code for bot/workers not included in Next.js standalone
 COPY --from=builder /app/src ./src
 # Next.js standalone output doesn't include node_modules completely safely if they rely on binaries. 
@@ -59,7 +63,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copy entrypoint script
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
 USER nextjs
 

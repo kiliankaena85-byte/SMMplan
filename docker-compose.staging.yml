@@ -1,0 +1,101 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: smmplan_staging_db
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-smmplan_staging}
+    ports:
+      - "5434:5432"
+    volumes:
+      - staging_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: smmplan_staging_redis
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6380:6379"
+    volumes:
+      - staging_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smmplan_staging_app:latest
+    container_name: smmplan_staging_app
+    restart: always
+    ports:
+      - "3005:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-smmplan_staging}?schema=public&connection_limit=5&pool_timeout=30
+      - REDIS_URL=redis://redis:6379 
+      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY}
+      - ADMIN_ALERT_BOT_TOKEN=${ADMIN_ALERT_BOT_TOKEN}
+      - ADMIN_ALERT_CHAT_ID=${ADMIN_ALERT_CHAT_ID}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - BASE_URL=${BASE_URL}
+      - YOO_SHOP_ID=${YOO_SHOP_ID}
+      - YOO_SECRET_KEY=${YOO_SECRET_KEY}
+      - CRYPTOBOT_TOKEN=${CRYPTOBOT_TOKEN}
+      - CRON_SECRET=${CRON_SECRET}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  bot:
+    image: smmplan_staging_app:latest
+    container_name: smmplan_staging_bot
+    restart: unless-stopped
+    command: ["npx", "tsx", "src/bot/index.ts"]
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-smmplan_staging}?schema=public&connection_limit=5&pool_timeout=30
+      - REDIS_URL=redis://redis:6379 
+      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY}
+      - CRON_SECRET=${CRON_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: smmplan_staging_app:latest
+    container_name: smmplan_staging_worker
+    restart: always
+    command: ["npx", "tsx", "src/workers/index.ts"]
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-smmplan_staging}?schema=public&connection_limit=5&pool_timeout=30
+      - REDIS_URL=redis://redis:6379 
+      - APP_ENCRYPTION_KEY=${APP_ENCRYPTION_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  staging_postgres_data:
+  staging_redis_data:

@@ -126,7 +126,6 @@ async function main() {
             data: {
                 userId: users[i % 3].id,
                 serviceId: existingService ? existingService.id : "1",
-                platform: 'Instagram',
                 externalId: `ext_${Date.now()}_${i}`,
                 link: 'https://instagram.com/p/test',
                 quantity: 1000,

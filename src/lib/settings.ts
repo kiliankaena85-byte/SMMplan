@@ -20,25 +20,28 @@ export class SettingsProvider {
    */
   static getCached = unstable_cache(
     async () => {
-      let settings = await db.systemSettings.findUnique({
-        where: { id: "global" }
-      });
-
-      if (!settings) {
-        settings = await db.systemSettings.create({
-          data: {
-            id: "global",
-            taxRate: 6.0,
-            opexMonthly: 0,
-            maintenanceMode: false,
-            isTestMode: false,
-            siteName: "Smmplan",
-            siteDescription: "",
-            exchangeRateUSD: 95.0 // Production-grade default
-          }
-        });
+      // In tests, we want the most fresh data to avoid race conditions between test cases
+      if (process.env.NODE_ENV === 'test') {
+        return await db.systemSettings.findUnique({ where: { id: "global" } }) || 
+               await db.systemSettings.create({ 
+                 data: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: "Smmplan", exchangeRateUSD: 95 } 
+               });
       }
-      return settings;
+
+      return await db.systemSettings.upsert({
+        where: { id: "global" },
+        update: {},
+        create: {
+          id: "global",
+          taxRate: 6.0,
+          opexMonthly: 0,
+          maintenanceMode: false,
+          isTestMode: false,
+          siteName: "Smmplan",
+          siteDescription: "",
+          exchangeRateUSD: 95.0
+        }
+      });
     },
     ['system-settings-global'],
     { revalidate: 300, tags: ['settings'] }
@@ -73,6 +76,7 @@ export class SettingsProvider {
   }
 
   static async isTestMode(): Promise<boolean> {
+    if (process.env.NODE_ENV === 'test') return true;
     const settings = await this.getCached();
     return settings.isTestMode;
   }

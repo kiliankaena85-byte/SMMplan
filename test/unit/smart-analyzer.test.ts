@@ -119,9 +119,9 @@ describe('SmartAnalyzerLogic (QA-3: Provider Integration Engineer)', () => {
   });
 
   // ── TC-PRV-024: Auto-subscription context ──
-  it('TC-PRV-024: "Подписка на просмотры постов" → VIEWS (not SUBSCRIBERS)', () => {
+  it('TC-PRV-024: "Подписка на просмотры постов" → AUTO_VIEWS (not SUBSCRIBERS)', () => {
     const result = SmartAnalyzerLogic.detectSync('Подписка на просмотры постов', '', 'Telegram');
-    expect(result.category).toBe('VIEWS');
+    expect(result.category).toBe('AUTO_VIEWS');
   });
 
   // ── Target Type Tests ──

@@ -8,7 +8,8 @@ import { z } from 'zod';
 const compensationSchema = z.object({
   ticketId: z.string().min(1),
   costRub: z.number().positive(),
-  note: z.string().min(3)
+  note: z.string().min(3),
+  topUpBalance: z.boolean().default(false)
 });
 
 export async function logManualCompensation(formData: FormData) {
@@ -23,14 +24,15 @@ export async function logManualCompensation(formData: FormData) {
   const parsed = compensationSchema.safeParse({
     ticketId: formData.get('ticketId'),
     costRub: parseFloat(formData.get('costRub') as string),
-    note: formData.get('note')
+    note: formData.get('note'),
+    topUpBalance: formData.get('topUpBalance') === 'true'
   });
 
   if (!parsed.success) {
     throw new Error('Invalid input');
   }
 
-  const { ticketId, costRub, note } = parsed.data;
+  const { ticketId, costRub, note, topUpBalance } = parsed.data;
   const costCents = Math.round(costRub * 100);
 
   // OWNER has infinite limit effectively. For others, check limits.
@@ -59,23 +61,31 @@ export async function logManualCompensation(formData: FormData) {
       }
     }
 
-    // 2. Write to LedgerEntry
+    // 2. If top-up is requested, increment user balance
+    if (topUpBalance) {
+      await tx.user.update({
+        where: { id: ticket.userId },
+        data: { balance: { increment: costCents } }
+      });
+    }
+
+    // 3. Write to LedgerEntry
     await tx.ledgerEntry.create({
       data: {
         userId: ticket.userId,
         adminId: user.id,
         amount: -costCents, // Negative meaning company lost money (expense)
-        reason: `Ручной докрут: ${note}`,
+        reason: `Компенсация (${topUpBalance ? 'На баланс' : 'Докрут'}): ${note}`,
         status: 'APPROVED'
       }
     });
 
-    // 3. Write AdminAuditLog
+    // 4. Write AdminAuditLog
     await tx.adminAuditLog.create({
       data: {
         adminId: user.id,
         adminEmail: user.email,
-        action: 'MANUAL_REFILL_COMPENSATION',
+        action: topUpBalance ? 'BALANCE_TOPUP_COMPENSATION' : 'MANUAL_REFILL_COMPENSATION',
         target: ticket.id,
         targetType: 'TICKET',
         oldValue: JSON.stringify({ supportLimitCents: user.supportLimitCents }),
@@ -84,16 +94,17 @@ export async function logManualCompensation(formData: FormData) {
       }
     });
 
-    // 4. Inject silent message to ChatWindow
+    // 5. Inject silent message to ChatWindow
     await tx.ticketMessage.create({
       data: {
         ticketId: ticket.id,
         sender: 'INTERNAL',
-        text: `[СИСТЕМА] Сотрудник (${user.email}) оформил ручную компенсацию. Потрачено: ${costRub.toLocaleString('ru-RU')} ₽.\nКомментарий: ${note}`
+        text: `[СИСТЕМА] Сотрудник (${user.email}) оформил компенсацию (${topUpBalance ? 'зачислен баланс' : 'ручной докрут'}). Потрачено: ${costRub.toLocaleString('ru-RU')} ₽.\nКомментарий: ${note}`
       }
     });
   });
 
   revalidatePath('/admin/tickets');
   revalidatePath(`/admin/tickets/${ticketId}`, 'page');
+  revalidatePath(`/admin/finance`);
 }

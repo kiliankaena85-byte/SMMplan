@@ -58,6 +58,8 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     platform: null,
     setPlatform: vi.fn(),
     setManualPlatform: vi.fn(),
+    agreedToTerms: false,
+    setAgreedToTerms: vi.fn(),
     ...overrides,
   });
 
@@ -66,7 +68,7 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     vi.mocked(useOrderEngine).mockReturnValue(getMockState() as any);
     render(<SmartOrderForm />);
 
-    const input = screen.getByPlaceholderText(/Ссылка на пост или канал/i);
+    const input = screen.getByPlaceholderText(/Ссылка на пост, канал или профиль/i);
     expect(input).toBeDefined();
     expect(input.tagName).toBe('INPUT');
   });
@@ -84,28 +86,31 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
   it('TC-UX-005: Renders PlatformSelectorFallback when engine.platform is falsy and url > 5', () => {
     vi.mocked(useOrderEngine).mockReturnValue(getMockState({ 
       url: 'https://example.com',
-      platform: null 
+      platform: null,
+      services: [] 
     }) as any);
-    
+
     render(<SmartOrderForm />);
-    
+
     expect(screen.getByTestId('platform-fallback')).toBeDefined();
   });
 
-  // ── TC-UX-006: Fallback Selection Callback ──
+  // ── TC-UX-006: Manual Platform Selection ──
   it('TC-UX-006: Selecting a platform triggers setManualPlatform in the order engine', () => {
     const setManualPlatformMock = vi.fn();
     vi.mocked(useOrderEngine).mockReturnValue(getMockState({ 
       url: 'https://example.com',
       platform: null,
-      setManualPlatform: setManualPlatformMock
+      services: [],
+      setManualPlatform: setManualPlatformMock 
     }) as any);
-    
+
     render(<SmartOrderForm />);
-    
+
     fireEvent.click(screen.getByTestId('btn-telegram'));
     expect(setManualPlatformMock).toHaveBeenCalledWith('Telegram');
   });
+
 
   // ── TC-UX-008: Hides Category Panel when link is empty ──
   it('TC-UX-008: Order pane is hidden if no smartData and no manualPlatform exist', () => {
@@ -120,26 +125,34 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
 
   // ── TC-UX-011: 152-FZ / GDPR Checkbox Compliance ──
   it('TC-UX-011: Submit button is disabled until Consent checkbox is checked (152-FZ)', () => {
-    // Provide a mocked state where a service is selected, meaning checkout UI is visible
-    vi.mocked(useOrderEngine).mockReturnValue(getMockState({
-      selectedService: { id: 'srv1', name: 'Test SRV', minQty: 100, maxQty: 1000, pricePer1kRub: 100 }
-    }) as any);
-    
-    render(<SmartOrderForm />);
+    // We need a way to track the state change for this specific test
+    let currentAgreed = false;
+    const setAgreedMock = vi.fn((val) => { currentAgreed = val; });
 
-    // Find the checkout button
+    const state = getMockState({
+      selectedService: { id: 'srv1', name: 'Test SRV', minQty: 100, maxQty: 1000, pricePer1kRub: 100 },
+      agreedToTerms: false,
+      setAgreedToTerms: setAgreedMock
+    });
+
+    const { rerender } = render(<SmartOrderForm />);
+    vi.mocked(useOrderEngine).mockReturnValue(state as any);
+    rerender(<SmartOrderForm />);
+
+    // Find the checkout button by its aria-label (accessible name)
     const submitBtn = screen.getByRole('button', { name: /Создать заказ/i }) as HTMLButtonElement;
-    expect(submitBtn).toBeDefined();
-    expect(submitBtn.disabled).toBe(true); // Must be disabled by default!
+    expect(submitBtn.disabled).toBe(true); 
 
     // Find the checkbox
     const checkbox = screen.getByRole('checkbox');
-    expect(checkbox).toBeDefined();
-    expect((checkbox as HTMLInputElement).checked).toBe(false);
-
-    // Click the checkbox
     fireEvent.click(checkbox);
-    expect((checkbox as HTMLInputElement).checked).toBe(true);
-    expect(submitBtn.disabled).toBe(false); // Must unlock!
+    
+    expect(setAgreedMock).toHaveBeenCalledWith(true);
+
+    // Manually rerender with updated mock state (since we are mocking the hook)
+    vi.mocked(useOrderEngine).mockReturnValue({ ...state, agreedToTerms: true } as any);
+    rerender(<SmartOrderForm />);
+
+    expect(submitBtn.disabled).toBe(false); 
   });
 });

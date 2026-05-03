@@ -228,6 +228,8 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     dripInterval, setDripInterval,
     
     // Data
+    platform,
+    setManualPlatform,
     catalog: displayCatalog,
     availableCategories,
     services,

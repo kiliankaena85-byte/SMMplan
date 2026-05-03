@@ -5,7 +5,7 @@ import { AdminPageHeader } from '@/components/admin/page-header';
 import { FinanceClient } from './finance-client';
 import { QuarantineList } from './quarantine-list';
 import { FinanceSettingsForm } from './finance-settings-form';
-import { Wallet, TrendingUp, TrendingDown, DollarSign, PieChart, Calculator } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, DollarSign, PieChart, Calculator, AlertTriangle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,12 +26,26 @@ export default async function FinanceDashboard({ searchParams }: Props) {
   else if (period === 'week') { periodStart = new Date(Date.now() - 7*86400000); }
   else if (period === 'month') { periodStart = new Date(Date.now() - 30*86400000); }
 
-  const [metrics, settings, quarantineList, initialLedger] = await Promise.all([
+  const [metrics, settings, quarantineList, ledgerResult] = await Promise.all([
     accountingService.getMetrics(periodStart, periodStart ? new Date() : undefined),
     accountingService.getSettings(),
     escrowService.getQuarantineEntries(),
     getLedgerAction({ period, pageSize: 50 }),
   ]);
+
+  if ('error' in ledgerResult) {
+    return (
+      <div className="p-10 text-center bg-white rounded-3xl border border-slate-200">
+        <div className="inline-flex p-4 bg-rose-100 text-rose-600 rounded-2xl mb-4">
+          <AlertTriangle className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-black text-slate-800">Ошибка загрузки данных</h1>
+        <p className="text-slate-500 mt-2 font-medium">{ledgerResult.error}</p>
+      </div>
+    );
+  }
+
+  const initialLedger = ledgerResult;
 
   const KPI = [
     {

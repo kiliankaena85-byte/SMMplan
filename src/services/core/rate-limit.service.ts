@@ -29,10 +29,17 @@ export class RateLimitService {
       // 1. Try Redis First
       try {
         if (redis.status === 'ready' || redis.status === 'connecting') {
-          const hits = await redis.incr(redisKey);
-          if (hits === 1) {
-            await redis.expire(redisKey, windowSeconds);
-          }
+          // Lua script for atomic INCR + EXPIRE
+          const script = `
+            local current = redis.call('INCR', KEYS[1])
+            if current == 1 then
+              redis.call('EXPIRE', KEYS[1], ARGV[1])
+            end
+            return current
+          `;
+          
+          const hits = await redis.eval(script, 1, redisKey, windowSeconds) as number;
+          
           if (hits > maxHits) {
              console.warn(`[RATE_LIMIT:REDIS] Blocked ${ip} on ${endpoint} (${hits}/${maxHits})`);
              return false;
@@ -101,10 +108,14 @@ export class RateLimitService {
       // 1. Try Redis First
       try {
         if (redis.status === 'ready' || redis.status === 'connecting') {
-          const hits = await redis.incr(redisKey);
-          if (hits === 1) {
-            await redis.expire(redisKey, windowSeconds);
-          }
+          const script = `
+            local current = redis.call('INCR', KEYS[1])
+            if current == 1 then
+              redis.call('EXPIRE', KEYS[1], ARGV[1])
+            end
+            return current
+          `;
+          const hits = await redis.eval(script, 1, redisKey, windowSeconds) as number;
           if (hits > maxHits) {
              console.warn(`[RATE_LIMIT_CUSTOM:REDIS] Blocked key ${key} (${hits}/${maxHits})`);
              return false;

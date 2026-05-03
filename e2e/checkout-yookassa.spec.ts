@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 
-// Use the authenticated state we created in auth.setup.ts
-test.use({ storageState: 'e2e/playwright/.auth/user.json' });
-
 test.describe('External Payment (YooKassa) Lifecycle', () => {
+
   test('should create AWAITING_PAYMENT order and successfully credit via Webhook simulation', async ({ page, request }) => {
     // 1. Visit Dashboard (logged out user gets auto-login via auth.setup)
     await page.goto('/dashboard/new-order');

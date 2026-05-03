@@ -41,10 +41,6 @@ describe('Financial Core: Marketing Service', () => {
         isActive: true
       }
     });
-
-    await db.systemSettings.create({
-      data: { id: 'global', siteName: 'Test' }
-    });
   });
 
   it('Calculates base price correctly without discounts', async () => {

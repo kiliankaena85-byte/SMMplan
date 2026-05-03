@@ -3,9 +3,28 @@
 import { verifySession } from '@/lib/session';
 import { ticketService } from '@/services/support/ticket.service';
 import { db } from '@/lib/db';
+import { aiSupportService } from '@/services/admin/ai-support.service';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+
+// ... (rest of imports)
+
+export async function generateSmartReplyAction(ticketId: string) {
+  const session = await verifySession();
+  if (!session) throw new Error('Unauthorized');
+
+  const user = await db.user.findUnique({ where: { id: session.userId } });
+  if (!user || !['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role)) throw new Error('Forbidden');
+
+  try {
+    const reply = await aiSupportService.generateReply(ticketId);
+    return { success: true, reply };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 
 const createTicketSchema = z.object({
   subject: z.string().min(1),

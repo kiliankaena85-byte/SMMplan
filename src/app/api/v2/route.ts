@@ -99,7 +99,7 @@ async function handleServices(user: any) {
     where: { isActive: true }
   });
 
-  const finalFormatted = marketingService.getB2BFormattedServices(user, services);
+  const finalFormatted = await marketingService.getB2BFormattedServices(user, services);
   return NextResponse.json(finalFormatted);
 }
 
@@ -153,16 +153,16 @@ async function handleAdd(user: any, formData: FormData) {
 
     const createdOrder = await db.order.findUnique({ where: { id: result.orderId }, select: { numericId: true }});
     return NextResponse.json({ order: createdOrder?.numericId });
-  } catch (err: unknown) {
+  } catch (err: any) {
     if (err instanceof Error && err.message === 'INSUFFICIENT_FUNDS') {
       return NextResponse.json({ error: 'Not enough funds on balance' }, { status: 400 });
     }
-    // P2034: Serializable transaction conflict (concurrent balance writes)
-    // This is expected under high concurrency — treat as insufficient funds
-    if (err && typeof err === 'object' && 'code' in err && (err as any).code === 'P2034') {
+    // Prisma transaction conflict codes: P2034 (Serializable conflict), P2028 (Deadlock)
+    if (err?.code === 'P2034' || err?.code === 'P2028') {
       return NextResponse.json({ error: 'Not enough funds on balance' }, { status: 400 });
     }
-    throw err;
+    console.error('[API v2 Error]:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

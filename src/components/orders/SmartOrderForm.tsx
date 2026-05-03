@@ -4,6 +4,8 @@ import { useOrderEngine } from '@/hooks/useOrderEngine';
 import { ActionForm } from '@/components/admin/action-form';
 import { checkoutAction } from '@/actions/order/checkout';
 import { DripFeedSettings } from '@/components/orders/DripFeedSettings';
+import { PlatformSelectorFallback } from '@/components/orders/PlatformSelectorFallback';
+import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import {
   Plus, Minus, Search, Mail, ArrowRight,
   Loader2, Clock, CheckCircle2,
@@ -72,11 +74,27 @@ export function SmartOrderForm() {
     return res;
   };
 
-  const showFallback = false;
+  const availablePlatforms = engine.catalog
+    .map(net => {
+      const slug = net.slug.toUpperCase();
+      const name = Object.values(IntelligencePlatform).find(v => v === slug) as IntelligencePlatform;
+      return name ? { id: net.id, name } : null;
+    })
+    .filter((p): p is { id: string; name: IntelligencePlatform } => p !== null);
+
+  const showFallback = !engine.platform && url.length > 5 && !isLoading && services.length === 0;
 
   return (
     <div className="space-y-6">
-
+      {/* ── Manual Selection Fallback ── */}
+      {showFallback && (
+        <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+           <PlatformSelectorFallback 
+             onSelect={(p) => engine.setManualPlatform(p)} 
+             availablePlatforms={availablePlatforms}
+           />
+        </div>
+      )}
 
       {/* ── Category pills ── */}
       <div

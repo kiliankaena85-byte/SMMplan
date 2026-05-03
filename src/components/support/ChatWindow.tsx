@@ -1,8 +1,11 @@
 'use client';
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
+import { generateSmartReplyAction } from '@/actions/support/ticket';
+import { Sparkles, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Message {
+// ...
   id: string;
   sender: string;
   text: string;
@@ -75,8 +78,22 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   const [isDragging, setIsDragging] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
+  const [isAiPending, startAiTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAiReply = () => {
+    startAiTransition(async () => {
+      const res = await generateSmartReplyAction(ticketId);
+      if (res.success && res.reply) {
+        setText(res.reply);
+        toast.success('AI ответ сгенерирован');
+      } else {
+        toast.error('Ошибка AI: ' + res.error);
+      }
+    });
+  };
+
   const lastCheckedRef = useRef<string>(
     initialMessages.length > 0 ? initialMessages[initialMessages.length - 1].createdAt : new Date(0).toISOString()
   );
@@ -310,15 +327,31 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
       {/* Input Area */}
       <form onSubmit={handleSubmit} className="p-4 bg-white border-t border-slate-200">
         
-        {isStaff && initialTemplates.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            <span className="text-[10px] text-slate-400 font-bold uppercase mr-1 flex items-center">Шаблоны быстрых ответов:</span>
+        {isStaff && (initialTemplates.length > 0 || true) && (
+          <div className="flex flex-wrap gap-1.5 mb-3 items-center">
+            <span className="text-[10px] text-slate-400 font-bold uppercase mr-1 flex items-center shrink-0">Помощник:</span>
+            
+            {/* AI Smart Reply Button */}
+            <button
+              type="button"
+              onClick={handleAiReply}
+              disabled={isAiPending}
+              className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-[10px] font-bold text-indigo-700 rounded-md hover:bg-indigo-100 transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              {isAiPending ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Sparkles className="w-3 h-3" />
+              )}
+              AI Ответ
+            </button>
+
             {initialTemplates.map(t => (
               <button 
                 key={t.id} 
                 type="button" 
                 onClick={() => setText(t.text)}
-                className="px-2 py-1 border border-slate-200 text-[10px] font-bold bg-white text-slate-600 rounded-md hover:bg-indigo-50 border hover:border-indigo-200 hover:text-indigo-600 transition-colors"
+                className="px-2 py-1 border border-slate-200 text-[10px] font-bold bg-white text-slate-600 rounded-md hover:bg-slate-50 border hover:border-slate-300 transition-colors"
                 title={t.text}
               >
                 {t.label}

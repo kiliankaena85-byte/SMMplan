@@ -209,7 +209,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       } else if (gateway === 'yookassa') {
         // [TEST MODE BYPASS] Skip real API calls during E2E tests
         if (isTestMode) {
-          paymentUrl = successUrl;
+          paymentUrl = `/api/dev/mock-payment?paymentId=${result.paymentId}`;
           remoteGatewayId = `test_yookassa_${Date.now()}`;
         } else {
           const secrets = await SettingsManager.getPaymentSecrets();
@@ -271,9 +271,10 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
       } else if (gateway === 'cryptobot') {
         if (isTestMode) {
-          paymentUrl = successUrl;
-          remoteGatewayId = `test_crypto_${Date.now()}`;
+          paymentUrl = `/api/dev/mock-payment?paymentId=${result.paymentId}`;
+          remoteGatewayId = `test_cryptobot_${Date.now()}`;
         } else {
+
           const secrets = await SettingsManager.getPaymentSecrets();
           const cryptoToken = secrets.cryptoBotToken;
           if (!cryptoToken) throw new Error('CryptoBot is not configured in Admin Panel');

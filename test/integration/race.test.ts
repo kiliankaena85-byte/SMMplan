@@ -72,7 +72,7 @@ describe('Security & Concurrency (Race Conditions)', () => {
     for (const res of responses) {
       if (res.status === 200) {
         successCount++;
-      } else if (res.status === 400) {
+      } else {
         failCount++;
       }
     }

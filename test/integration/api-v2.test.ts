@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '@/lib/db';
 import { POST } from '@/app/api/v2/route';
 import { NextRequest } from 'next/server';
+import { revalidateTag } from 'next/cache';
 
 import { type User, type Service } from '@prisma/client';
 
@@ -11,6 +12,11 @@ describe('B2B API v2: Zod & Compatibility', () => {
 
   beforeEach(async () => {
     // Relying on global setup to TRUNCATE DB
+    await db.systemSettings.update({
+      where: { id: 'global' },
+      data: { isTestMode: true }
+    });
+    revalidateTag('settings');
     
     // 1. Seed user with balance
     user = await db.user.create({

@@ -1,8 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-// Use the authenticated state we created in auth.setup.ts
-test.use({ storageState: 'e2e/playwright/.auth/user.json' });
-
 test.describe('Order Lifecycle', () => {
   test('should successfully analyze link, calculate price and create an order with balance', async ({ page }) => {
     // 1. Visit dashboard

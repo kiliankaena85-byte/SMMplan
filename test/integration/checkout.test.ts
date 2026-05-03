@@ -8,6 +8,7 @@ vi.mock('next/headers', () => ({
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { calculatePriceAction, checkoutAction } from '@/actions/order/checkout';
+import { revalidateTag } from 'next/cache';
 
 describe('Server Actions: Checkout Integration', () => {
   let service: Service;
@@ -16,9 +17,11 @@ describe('Server Actions: Checkout Integration', () => {
     // Relying on global setup to TRUNCATE DB
     
     // Enable test mode in DB so it doesn't crash on Payment Gateways
-    await db.systemSettings.create({
-      data: { id: 'global', isTestMode: true }
+    await db.systemSettings.update({
+      where: { id: 'global' },
+      data: { isTestMode: true }
     });
+    revalidateTag('settings');
     // Wipe out rate limit from previous runs or other loops
     await db.rateLimit.deleteMany();
     // Also wipe out from Redis!
@@ -85,7 +88,7 @@ describe('Server Actions: Checkout Integration', () => {
 
     expect(res.success).toBe(false);
     if (!res.success) {
-      expect(res.error).toContain('Quantity must be between'); // This might be handled differently depending on the Zod validation message, but keeping as is
+      expect(res.error).toContain('Количество должно быть от'); 
     }
   });
 

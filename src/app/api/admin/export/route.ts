@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { analyticsService } from '@/services/admin/analytics.service';
 
 const STAFF_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
 
@@ -83,6 +84,24 @@ export async function GET(request: Request) {
           ])
         );
         filename = `users_${new Date().toISOString().slice(0, 10)}.csv`;
+        break;
+      }
+
+      case 'profitability': {
+        const stats = await analyticsService.getServiceProfitability(30);
+        csv = toCsv(
+          ['Услуга', 'Категория', 'Заказов', 'Выручка ₽', 'Себестоимость ₽', 'Прибыль ₽', 'Маржа %'],
+          stats.map(s => [
+            s.serviceName,
+            s.categoryName,
+            String(s.ordersCount),
+            (s.revenue / 100).toFixed(2),
+            (s.cogs / 100).toFixed(2),
+            (s.profit / 100).toFixed(2),
+            s.marginPct.toFixed(2),
+          ])
+        );
+        filename = `profitability_${new Date().toISOString().slice(0, 10)}.csv`;
         break;
       }
 

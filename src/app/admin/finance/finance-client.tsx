@@ -60,7 +60,11 @@ function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult;
         period:   newPeriod as 'today' | 'week' | 'month' | 'all',
         pageSize: 100, // Load more for DataTable
       });
-      setData(r);
+      if (!('error' in r)) {
+        setData(r);
+      } else {
+        toast.error(r.error);
+      }
     });
   }, []);
 
