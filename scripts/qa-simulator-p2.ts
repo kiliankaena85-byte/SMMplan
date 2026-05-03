@@ -50,7 +50,7 @@ async function simulatePillar1Webhooks() {
   assert(res1.status === 200, 'Webhook Attempt 1 failed');
   
   const uCheck1 = await db.user.findUnique({ where: { id: user.id } });
-  assert(uCheck1?.balance === 50000, `Balance should be 50000, got ${uCheck1?.balance}`);
+  assert(Number(uCheck1?.balance) === 50000, `Balance should be 50000, got ${uCheck1?.balance}`);
   console.log('✅ Webhook correctly credited 50000 Cents.');
 
   // Attempt 2: Double-spend attack
@@ -63,7 +63,7 @@ async function simulatePillar1Webhooks() {
   await POST(req2);
   
   const uCheck2 = await db.user.findUnique({ where: { id: user.id } });
-  assert(uCheck2?.balance === 50000, `Balance must remain 50000 to prevent double-spending. Got ${uCheck2?.balance}`);
+  assert(Number(uCheck2?.balance) === 50000, `Balance must remain 50000 to prevent double-spending. Got ${uCheck2?.balance}`);
   console.log('✅ Idempotency atomic lock successfully blocked double-spend.');
 }
 
@@ -116,15 +116,15 @@ async function simulatePillar2Affiliate() {
   // Charge (profit = 3.0x). 5.00 * 3.0 = 15.00 = 1500 Cents.
   // Net Profit: 1500 - 500 = 1000 Cents.
   // 5% Commission of Net Profit: 1000 * 0.05 = 50 Cents.
-  assert(order.charge === 1500, `Expected charge 1500 cents, got ${order.charge}`);
-  assert(order.providerCost === 500, `Expected providerCost 500 cents, got ${order.providerCost}`);
+  assert(Number(order.charge) === 1500, `Expected charge 1500 cents, got ${order.charge}`);
+  assert(Number(order.providerCost) === 500, `Expected providerCost 500 cents, got ${order.providerCost}`);
 
   const commission = await db.commission.findFirst({
     where: { orderId: order.id }
   });
 
   assert(commission !== null, `Commission was not created`);
-  assert(commission?.amount === 50, `Expected commission 50 cents, got ${commission?.amount}`);
+  assert(Number(commission?.amount) === 50, `Expected commission 50 cents, got ${commission?.amount}`);
   assert(commission?.status === 'PENDING', `Commission should be PENDING`);
 
   console.log('✅ Affiliate system calculated exactly 50 Cents (5% of 1000 Net Profit).');

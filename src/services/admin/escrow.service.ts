@@ -62,7 +62,7 @@ export class EscrowService {
           select: { amount: true },
         });
 
-        const totalVolumeToday = todayEntries.reduce((sum, entry) => sum + entry.amount, 0);
+        const totalVolumeToday = todayEntries.reduce((sum, entry) => sum + Number(entry.amount), 0);
 
         if (totalVolumeToday + amountCents > admin.supportLimitCents) {
           await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);

@@ -183,10 +183,10 @@ export class OrderService {
         if (internalStatus === 'PARTIAL' || internalStatus === 'CANCELED') {
            if (remains > 0 && order.quantity > 0) {
               // Partial Refund: (Undelivered / Total) * Paid
-              refundCents = Math.floor((remains / order.quantity) * order.charge);
+              refundCents = Math.floor((remains / order.quantity) * Number(order.charge));
            } else if (internalStatus === 'CANCELED') {
               // Full refund if cancelled and remains not provided correctly
-              refundCents = order.charge;
+              refundCents = Number(order.charge);
            }
         }
 

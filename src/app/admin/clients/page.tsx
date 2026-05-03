@@ -60,7 +60,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>Активные: {stats.active}</span>
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div>Забанены: {stats.banned}</span>
             {canSeeFinances && (
-               <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>Liability: <span className="tabular-nums font-bold">{(stats.totalLiability / 100).toLocaleString('ru-RU')} ₽</span></span>
+               <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>Liability: <span className="tabular-nums font-bold">{(Number(stats.totalLiability) / 100).toLocaleString('ru-RU')} ₽</span></span>
             )}
           </>
         }
@@ -108,11 +108,11 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                         <>
                           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
                             <div className="text-slate-500 mb-1">Баланс</div>
-                            <div className="font-bold text-lg text-slate-900">{(userCard.balance / 100).toFixed(2)} ₽</div>
+                            <div className="font-bold text-lg text-slate-900">{(Number(userCard.balance) / 100).toFixed(2)} ₽</div>
                           </div>
                           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
                             <div className="text-slate-500 mb-1">LTV</div>
-                            <div className="font-bold text-lg text-slate-900">{(userCard.totalSpent / 100).toLocaleString('ru-RU')} ₽</div>
+                            <div className="font-bold text-lg text-slate-900">{(Number(userCard.totalSpent) / 100).toLocaleString('ru-RU')} ₽</div>
                           </div>
                         </>
                       )}
@@ -193,7 +193,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                         >
                           <span className="font-mono text-slate-600 font-medium">#{o.numericId}</span>
                           <span className="truncate max-w-[150px] text-slate-600 px-2">{o.service.name}</span>
-                          <span className="font-semibold text-slate-900 border-l border-slate-200 pl-2">{(o.charge / 100).toFixed(0)} ₽</span>
+                          <span className="font-semibold text-slate-900 border-l border-slate-200 pl-2">{(Number(o.charge) / 100).toFixed(0)} ₽</span>
                         </Link>
                       ))}
                       {userCard.orders.length === 0 && (

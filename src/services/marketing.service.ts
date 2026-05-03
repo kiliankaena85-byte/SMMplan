@@ -74,7 +74,7 @@ export class MarketingService {
     const originalTotalCents = Math.round(providerCostCents * service.markup);
 
     // 2. Discover available discounts
-    const volumeTier = user ? this.getVolumeTier(user.totalSpent) : { name: 'REGULAR', discountPercent: 0.0 };
+    const volumeTier = user ? this.getVolumeTier(Number(user.totalSpent)) : { name: 'REGULAR', discountPercent: 0.0 };
     let promoDiscountPercent = 0.0;
     let promoFixedDiscountCents = 0;
     

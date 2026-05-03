@@ -262,7 +262,7 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
                     </span>
                     <span className="w-1 h-1 rounded-full bg-slate-200" />
                     <span className="text-emerald-600 flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 rounded-md">
-                      <Wallet className="w-3 h-3" /> {(activeTicket.user.balance / 100).toLocaleString('ru-RU')} ₽
+                      <Wallet className="w-3 h-3" /> {(Number(activeTicket.user.balance) / 100).toLocaleString('ru-RU')} ₽
                     </span>
                   </div>
                 </div>
@@ -308,7 +308,7 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
 
       {/* ── Right panel: Client profile sidebar ── */}
       {activeTicket && (
-        <ClientProfileSidebar user={activeTicket.user} />
+        <ClientProfileSidebar user={{ ...activeTicket.user, balance: Number(activeTicket.user.balance), totalSpent: Number(activeTicket.user.totalSpent), orders: activeTicket.user.orders.map(o => ({ ...o, charge: Number(o.charge) })), payments: activeTicket.user.payments.map(p => ({ ...p, amount: Number(p.amount) })) }} />
       )}
     </div>
   );

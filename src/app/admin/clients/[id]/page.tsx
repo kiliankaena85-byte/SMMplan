@@ -167,8 +167,8 @@ export default async function ClientDetailPage({ params }: Props) {
       {/* Stats strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Баланс', value: `${(user.balance / 100).toFixed(2)} ₽`, accent: 'text-foreground', note: user.quarantineBalance > 0 ? `🔒 ${(user.quarantineBalance / 100).toFixed(2)} ₽ эскроу` : null },
-          { label: 'LTV', value: `${(user.totalSpent / 100).toLocaleString('ru-RU')} ₽`, accent: 'text-emerald-600', note: null },
+          { label: 'Баланс', value: `${(Number(user.balance) / 100).toFixed(2)} ₽`, accent: 'text-foreground', note: user.quarantineBalance > 0 ? `🔒 ${(Number(user.quarantineBalance) / 100).toFixed(2)} ₽ эскроу` : null },
+          { label: 'LTV', value: `${(Number(user.totalSpent) / 100).toLocaleString('ru-RU')} ₽`, accent: 'text-emerald-600', note: null },
           { label: 'Заказов', value: ordersCount.toString(), accent: 'text-foreground', note: `${ticketsCount} тикетов` },
           { label: 'Реф. баланс', value: `${(user.referralBalance / 100).toFixed(2)} ₽`, accent: 'text-violet-600', note: user.referralCode ? `Код: ${user.referralCode}` : 'Нет кода' },
         ].map(s => (
@@ -214,7 +214,7 @@ export default async function ClientDetailPage({ params }: Props) {
                   <span className="text-xs tabular-nums text-muted-foreground">{o.quantity.toLocaleString('ru-RU')}</span>
                 </td>
                 <td className="px-4 py-2.5 text-right">
-                  <span className="text-xs font-semibold tabular-nums text-foreground">{(o.charge / 100).toFixed(2)} ₽</span>
+                  <span className="text-xs font-semibold tabular-nums text-foreground">{(Number(o.charge) / 100).toFixed(2)} ₽</span>
                 </td>
                 <td className="px-4 py-2.5">
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status] ?? 'bg-slate-100 text-slate-600'}`}>

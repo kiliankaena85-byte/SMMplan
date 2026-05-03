@@ -182,7 +182,7 @@ async function handleStatus(user: User, formData: FormData) {
     }
 
     return NextResponse.json({
-      charge: (order.charge / 100).toFixed(4),
+      charge: (Number(order.charge) / 100).toFixed(4),
       start_count: "0",
       status: mapInternalStatus(order.status),
       remains: order.remains.toString(),
@@ -207,7 +207,7 @@ async function handleStatus(user: User, formData: FormData) {
 
     for (const order of orders) {
       resultMap[order.numericId.toString()] = {
-        charge: (order.charge / 100).toFixed(4),
+        charge: (Number(order.charge) / 100).toFixed(4),
         start_count: "0",
         status: mapInternalStatus(order.status),
         remains: order.remains.toString(),
@@ -223,7 +223,7 @@ async function handleStatus(user: User, formData: FormData) {
 
 async function handleBalance(user: User) {
   return NextResponse.json({
-    balance: (user.balance / 100).toFixed(4),
+    balance: (Number(user.balance) / 100).toFixed(4),
     currency: 'RUB'
   });
 }

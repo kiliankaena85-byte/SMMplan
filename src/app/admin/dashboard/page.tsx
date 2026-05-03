@@ -45,7 +45,7 @@ export default async function AdminDashboardPage() {
     marginPercentage = 0;
   }
 
-  const netPosition = revenueGross - totalLiability;
+  const netPosition = Number(revenueGross) - Number(totalLiability);
   const netPositionStr = (netPosition / 100).toLocaleString('ru-RU');
   
   return (
@@ -116,11 +116,11 @@ export default async function AdminDashboardPage() {
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
                 <div className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center justify-between">Все пополнения <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span></div>
-                <div className="font-bold text-slate-700 text-sm tabular-nums">{(revenueGross / 100).toLocaleString('ru-RU')} ₽</div>
+                <div className="font-bold text-slate-700 text-sm tabular-nums">{(Number(revenueGross) / 100).toLocaleString('ru-RU')} ₽</div>
               </div>
               <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
                 <div className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center justify-between">Обязательства <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span></div>
-                <div className="font-bold text-slate-700 text-sm tabular-nums">{(totalLiability / 100).toLocaleString('ru-RU')} ₽</div>
+                <div className="font-bold text-slate-700 text-sm tabular-nums">{(Number(totalLiability) / 100).toLocaleString('ru-RU')} ₽</div>
               </div>
               <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 opacity-70">
                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center justify-between">Чистая прибыль <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span></div>

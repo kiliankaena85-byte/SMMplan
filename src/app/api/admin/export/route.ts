@@ -54,8 +54,8 @@ export async function GET(request: Request) {
             o.link,
             String(o.quantity),
             String(o.remains),
-            (o.charge / 100).toFixed(2),
-            (o.providerCost / 100).toFixed(2),
+            (Number(o.charge) / 100).toFixed(2),
+            (Number(o.providerCost) / 100).toFixed(2),
             o.status,
             o.createdAt.toISOString(),
           ])
@@ -76,8 +76,8 @@ export async function GET(request: Request) {
           users.map(u => [
             u.email,
             u.role,
-            (u.balance / 100).toFixed(2),
-            (u.totalSpent / 100).toFixed(2),
+            (Number(u.balance) / 100).toFixed(2),
+            (Number(u.totalSpent) / 100).toFixed(2),
             String(u._count.orders),
             u.telegramId || '',
             u.createdAt.toISOString(),

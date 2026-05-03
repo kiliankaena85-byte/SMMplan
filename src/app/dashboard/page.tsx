@@ -91,7 +91,7 @@ export default async function DashboardPage() {
             <Wallet className="w-4 h-4 text-muted-foreground/60" />
           </div>
           <div className="text-2xl font-black text-foreground tracking-tight font-mono tabular-nums">
-            {(user.balance / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
+            {(Number(user.balance) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
           </div>
           <Link
             href="/dashboard/add-funds"
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
             <TrendingUp className="w-4 h-4 text-muted-foreground/60" />
           </div>
           <div className="text-2xl font-black text-foreground tracking-tight font-mono tabular-nums">
-            {(user.totalSpent / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
+            {(Number(user.totalSpent) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
           </div>
           <span className="mt-auto text-xs font-semibold text-muted-foreground/60 p-2 flex items-center justify-center">за всё время</span>
         </div>
@@ -223,7 +223,7 @@ export default async function DashboardPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-sm font-black text-foreground tabular-nums font-mono tracking-tight">
-                      {(order.charge / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                      {(Number(order.charge) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
                     </div>
                     <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 mt-1 rounded-md uppercase tracking-wider ${color}`}>
                       {label}

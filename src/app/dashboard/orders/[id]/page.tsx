@@ -95,7 +95,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <div className="text-right">
             <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Сумма</div>
             <div className="text-xl font-black text-foreground font-mono tabular-nums">
-              {(order.charge / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+              {(Number(order.charge) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
             </div>
           </div>
         </div>

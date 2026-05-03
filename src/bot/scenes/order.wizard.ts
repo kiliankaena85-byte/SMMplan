@@ -80,10 +80,10 @@ async function showFinalConfirmation(ctx: any) {
   summaryText += `────────────────────\n`;
   summaryText += `💰 К оплате: <b>${formatCents(pricing.totalCents)}₽</b>`;
 
-  const hasFunds = user.balance >= pricing.totalCents;
+  const hasFunds = Number(user.balance) >= pricing.totalCents;
   const confirmLabel = hasFunds
     ? '🚀 Оплатить и запустить'
-    : `💳 ДОПЛАТИТЬ И ЗАПУСТИТЬ (${formatCents(pricing.totalCents - user.balance)}₽)`;
+    : `💳 ДОПЛАТИТЬ И ЗАПУСТИТЬ (${formatCents(pricing.totalCents - Number(user.balance))}₽)`;
 
   await ctx.reply(summaryText, {
     parse_mode: 'HTML',
@@ -257,7 +257,7 @@ orderWizard.action('confirm_order', async (ctx: any) => {
       return ctx.scene.leave();
     }
 
-    if (user.balance >= totalCents) {
+    if (Number(user.balance) >= totalCents) {
       // ── SUFFICIENT BALANCE: Atomic deduction via Lite core ──
       const result = await orderService.createOrder(user.id, {
         serviceId: service.id,
@@ -276,7 +276,7 @@ orderWizard.action('confirm_order', async (ctx: any) => {
       }
     } else {
       // ── INSUFFICIENT BALANCE: Generate payment link ──
-      const deficit = totalCents - user.balance;
+      const deficit = totalCents - Number(user.balance);
       const deficitRub = deficit / 100;
 
       const res = await UnifiedPaymentService.createPayment(
@@ -291,7 +291,7 @@ orderWizard.action('confirm_order', async (ctx: any) => {
         await ctx.editMessageText(
           `💳 <b>НЕДОСТАТОЧНО СРЕДСТВ</b>\n────────────────────\n` +
           `Стоимость: <b>${formatCents(totalCents)}₽</b>\n` +
-          `Ваш баланс: <b>${formatCents(user.balance)}₽</b>\n\n` +
+          `Ваш баланс: <b>${formatCents(Number(user.balance))}₽</b>\n\n` +
           `🚀 <b>Для запуска необходимо доплатить: ${formatCents(deficit)}₽</b>\n\n` +
           `<i>Нажмите кнопку ниже. После оплаты пополните баланс и повторите заказ.</i>`,
           {

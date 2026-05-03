@@ -37,8 +37,8 @@ export default async function ClientSettingsPage() {
 
   if (!user) redirect('/login');
 
-  const balanceRub    = (user.balance / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
-  const spentRub      = (user.totalSpent / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+  const balanceRub    = (Number(user.balance) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+  const spentRub      = (Number(user.totalSpent) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
   const refBalanceRub = ((user.referralBalance ?? 0) / 100).toFixed(2);
 
   const memberSince = user.createdAt.toLocaleDateString('ru-RU', {
@@ -46,7 +46,7 @@ export default async function ClientSettingsPage() {
   });
 
   // Loyalty tier based on totalSpent
-  const spent = user.totalSpent / 100;
+  const spent = Number(user.totalSpent) / 100;
   const tier = spent >= 50000
     ? { name: 'Платиновый', color: 'text-purple-700 bg-purple-50 border-purple-200', icon: '💎' }
     : spent >= 10000

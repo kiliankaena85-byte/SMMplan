@@ -79,7 +79,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           } else if (anyCanceled) {
               // Canceled mini-run -> We mark generic Drip-Feed as Partial
               const updated = await db.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: totalRemainsText } });
-              await RefundPolicyService.processRefund(updated);
+              await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) });
           }
 
         } else {
@@ -97,7 +97,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
               }
               console.warn(`[SyncProcessor] Order ${order.externalId} returned string error: ${s}`);
               const updated = await db.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: s } });
-              await RefundPolicyService.processRefund(updated, '(Ошибка синхронизации или истек таймер)');
+              await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Ошибка синхронизации или истек таймер)');
               continue;
           }
 
@@ -107,12 +107,12 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           if (['CANCELED'].includes(providerStatus)) {
             // Full Canceled -> Full Refund
             const updated = await db.order.update({ where: { id: order.id }, data: { status: 'CANCELED', remains: parsedRemains } });
-            await RefundPolicyService.processRefund(updated, '(Отмена на стороне провайдера)');
+            await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Отмена на стороне провайдера)');
           } 
           else if (['PARTIAL'].includes(providerStatus)) {
             // Partial -> Mathematical Proportional Refund
             const updated = await db.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: parsedRemains } });
-            await RefundPolicyService.processRefund(updated);
+            await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) });
           } 
           else if (['COMPLETED'].includes(providerStatus)) {
             await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });

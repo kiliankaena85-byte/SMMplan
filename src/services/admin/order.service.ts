@@ -101,10 +101,10 @@ export class AdminOrderService {
           // If IN_PROGRESS but remains/quantity exists, we partially refund
           if (order.status === 'IN_PROGRESS' || order.status === 'PARTIAL') {
             if (order.remains > 0 && order.quantity > 0) {
-               refundCents = Math.floor((order.remains / order.quantity) * order.charge);
+               refundCents = Math.floor((order.remains / order.quantity) * Number(order.charge));
             }
           } else {
-             refundCents = order.charge; // For PENDING / AWAITING
+             refundCents = Number(order.charge); // For PENDING / AWAITING
           }
       }
 
@@ -176,7 +176,7 @@ export class AdminOrderService {
       });
 
       if (updatedUser.balance < 0) {
-        throw new Error(`Недостаточно средств у пользователя для перезапуска. Необходимо ${(order.charge / 100).toFixed(2)} ₽.`);
+        throw new Error(`Недостаточно средств у пользователя для перезапуска. Необходимо ${(Number(order.charge) / 100).toFixed(2)} ₽.`);
       }
 
       // Reset order state

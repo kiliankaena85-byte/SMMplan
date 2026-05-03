@@ -126,7 +126,7 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
         userId: e.userId,
         userEmail: emailMap.get(e.userId) ?? e.userId,
         adminId: e.adminId,
-        amount: e.amount,
+        amount: Number(e.amount), // BigInt → number at DTO boundary
         reason: e.reason,
         status: e.status,
         createdAt: e.createdAt.toISOString(),
@@ -134,9 +134,9 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
       nextCursor: hasMore ? page[page.length - 1].id : null,
       hasMore,
       totals: {
-        approved: approvedAgg._sum.amount ?? 0,
-        quarantine: quarantineAgg._sum.amount ?? 0,
-        refunds: Math.abs(refundsAgg._sum.amount ?? 0),
+        approved: Number(approvedAgg._sum.amount ?? 0),
+        quarantine: Number(quarantineAgg._sum.amount ?? 0),
+        refunds: Math.abs(Number(refundsAgg._sum.amount ?? 0)),
       },
     };
   });

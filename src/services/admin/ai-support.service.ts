@@ -22,7 +22,7 @@ export class AiSupportService {
     if (!ticket) throw new Error('Ticket not found');
 
     const lastMessages = ticket.messages.map(m => `${m.sender}: ${m.text}`).join('\n');
-    const userContext = `User: ${ticket.user.email}, Balance: ${(ticket.user.balance / 100).toFixed(2)} RUB. Recent orders: ${ticket.user.orders.map(o => `${o.service.name} (${o.status})`).join(', ')}`;
+    const userContext = `User: ${ticket.user.email}, Balance: ${(Number(ticket.user.balance) / 100).toFixed(2)} RUB. Recent orders: ${ticket.user.orders.map(o => `${o.service.name} (${o.status})`).join(', ')}`;
 
     const prompt = `
       You are a support agent for SMMplan, an SMM services platform.

@@ -27,7 +27,7 @@ export class AccountingService {
         status: 'SUCCEEDED'
       }
     });
-    const revenueGross = payments._sum.amount || 0;
+    const revenueGross = Number(payments._sum.amount || 0);
 
     // 2. Calculate Refunds (For canceled/partial orders. We deduce this from the Order remains logic)
     // Actually, refunds are already added back to User.balance, but to track them strictly:
@@ -43,9 +43,9 @@ export class AccountingService {
     let refunds = 0;
     for (const order of refundedOrders) {
       if (order.quantity > 0 && order.remains > 0) {
-        refunds += Math.round((order.remains / order.quantity) * order.charge);
+        refunds += Math.round((order.remains / order.quantity) * Number(order.charge));
       } else if (order.status === 'CANCELED') {
-        refunds += order.charge;
+        refunds += Number(order.charge);
       }
     }
 
@@ -63,7 +63,7 @@ export class AccountingService {
       // E.g., we set providerCost = 50 for 1000 items. If remains is 100, actual COGS is 45.
       if (order.quantity > 0) {
         const deliveredQty = order.quantity - order.remains;
-        cogs += Math.round((deliveredQty / order.quantity) * order.providerCost);
+        cogs += Math.round((deliveredQty / order.quantity) * Number(order.providerCost));
       }
     }
 

@@ -141,11 +141,11 @@ export class PaymentService {
            });
            
            for (const order of basketOrders) {
-              activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed, userId: userId, amount: order.charge });
+              activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed, userId: userId, amount: Number(order.charge) });
            }
 
            // Increment User Total Spent for all Basket items
-           const aggregateCharge = basketOrders.reduce((acc, order) => acc + order.charge, 0);
+           const aggregateCharge = basketOrders.reduce((acc, order) => acc + Number(order.charge), 0);
            if (aggregateCharge > 0) {
               await tx.user.update({
                 where: { id: userId },
@@ -272,7 +272,7 @@ export class PaymentService {
            }
 
            // Increment Total Spent for test basket items
-           const aggregateCharge = basketOrders.reduce((acc, order) => acc + order.charge, 0);
+           const aggregateCharge = basketOrders.reduce((acc, order) => acc + Number(order.charge), 0);
            if (aggregateCharge > 0) {
               await tx.user.update({
                  where: { id: payment.userId },

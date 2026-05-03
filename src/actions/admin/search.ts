@@ -28,7 +28,7 @@ export async function globalOmniSearch(query: string): Promise<SearchHit[]> {
         id: u.id,
         type: 'USER',
         title: u.email,
-        subtitle: `Баланс: ${(u.balance / 100).toFixed(2)} ₽ | Роль: ${u.role}`,
+        subtitle: `Баланс: ${(Number(u.balance) / 100).toFixed(2)} ₽ | Роль: ${u.role}`,
         href: `/admin/clients?q=${encodeURIComponent(u.email)}`
       }));
     }

@@ -54,7 +54,7 @@ export default async function MarketingPage() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Выплачено всего</p>
-                    <p className="text-2xl font-black text-slate-900 tabular-nums">{(stats.totalPaidOut / 100).toLocaleString('ru-RU')} ₽</p>
+                    <p className="text-2xl font-black text-slate-900 tabular-nums">{(Number(stats.totalPaidOut) / 100).toLocaleString('ru-RU')} ₽</p>
                   </div>
                 </CardContent>
               </Card>
@@ -66,7 +66,7 @@ export default async function MarketingPage() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">В ожидании</p>
-                    <p className="text-2xl font-black text-slate-900 tabular-nums">{(stats.totalPending / 100).toLocaleString('ru-RU')} ₽</p>
+                    <p className="text-2xl font-black text-slate-900 tabular-nums">{(Number(stats.totalPending) / 100).toLocaleString('ru-RU')} ₽</p>
                   </div>
                 </CardContent>
               </Card>
@@ -93,7 +93,7 @@ export default async function MarketingPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    <ReferralEconomicsChart paidOut={stats.totalPaidOut} pending={stats.totalPending} />
+                    <ReferralEconomicsChart paidOut={Number(stats.totalPaidOut)} pending={Number(stats.totalPending)} />
                   </CardContent>
                </Card>
 

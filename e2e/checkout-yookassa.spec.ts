@@ -78,7 +78,7 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     const userId = payment!.userId;
     expect(payment!.orderId).not.toBeNull();
     const orderId = payment!.orderId as string;
-    const amountRub = payment!.amount / 100;
+    const amountRub = Number(payment!.amount) / 100;
 
     // 10. Simulate the YooKassa Webhook Action
     console.log(`[E2E YooKassa] Simulating Webhook for DB Payment: ${internalPaymentId}`);

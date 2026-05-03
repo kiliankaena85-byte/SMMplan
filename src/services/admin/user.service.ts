@@ -153,7 +153,7 @@ export class AdminUserService {
       target: userId,
       targetType: 'USER',
       oldValue: { balance: oldBalance },
-      newValue: { balance: oldBalance + amountCents, delta: amountCents, reason },
+      newValue: { balance: Number(oldBalance) + amountCents, delta: amountCents, reason },
     });
   }
 

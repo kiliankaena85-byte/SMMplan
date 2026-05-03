@@ -62,13 +62,13 @@ export class AnalyticsService {
       item.ordersCount++;
 
       // Revenue calculation (accounting for partials/cancels)
-      let revenue = order.charge;
-      let cogs = order.providerCost;
+      let revenue = Number(order.charge);
+      let cogs = Number(order.providerCost);
 
       if (order.quantity > 0) {
         const deliveredQty = order.quantity - order.remains;
-        revenue = Math.round((deliveredQty / order.quantity) * order.charge);
-        cogs = Math.round((deliveredQty / order.quantity) * order.providerCost);
+        revenue = Math.round((deliveredQty / order.quantity) * Number(order.charge));
+        cogs = Math.round((deliveredQty / order.quantity) * Number(order.providerCost));
       } else if (order.status === 'CANCELLED') {
         revenue = 0;
         cogs = 0;
@@ -133,9 +133,9 @@ export class AnalyticsService {
       buckets: [] 
     };
 
-    const totalRevenue = users.reduce((sum, u) => sum + u.totalSpent, 0);
+    const totalRevenue = users.reduce((sum, u) => sum + Number(u.totalSpent), 0);
     const top10Count = Math.max(1, Math.floor(users.length * 0.1));
-    const top10Revenue = users.slice(0, top10Count).reduce((sum, u) => sum + u.totalSpent, 0);
+    const top10Revenue = users.slice(0, top10Count).reduce((sum, u) => sum + Number(u.totalSpent), 0);
 
     const top10PercentShare = totalRevenue > 0 ? (top10Revenue / totalRevenue) * 100 : 0;
 
@@ -155,7 +155,7 @@ export class AnalyticsService {
     }));
 
     users.forEach(u => {
-      const spent = u.totalSpent;
+      const spent = Number(u.totalSpent);
       for (let i = 0; i < bucketRanges.length; i++) {
         if (spent < bucketRanges[i].max) {
           buckets[i].count++;

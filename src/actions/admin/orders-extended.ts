@@ -54,9 +54,9 @@ export async function setOrderStatusAction(
       if (newStatus === 'CANCELED' && !['COMPLETED', 'CANCELED'].includes(oldStatus)) {
         // Refund undelivered portion
         if (order.remains > 0 && order.quantity > 0) {
-          refundCents = Math.floor((order.remains / order.quantity) * order.charge);
+          refundCents = Math.floor((order.remains / order.quantity) * Number(order.charge));
         } else if (oldStatus === 'PENDING' || oldStatus === 'AWAITING_PAYMENT') {
-          refundCents = order.charge;
+          refundCents = Number(order.charge);
         }
       }
 
@@ -125,7 +125,7 @@ export async function forceCompleteOrderAction(orderId: string) {
       // Refund undelivered portion
       let refundCents = 0;
       if (order.remains > 0 && order.quantity > 0) {
-        refundCents = Math.floor((order.remains / order.quantity) * order.charge);
+        refundCents = Math.floor((order.remains / order.quantity) * Number(order.charge));
       }
 
       await tx.order.update({
@@ -203,9 +203,9 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
 
             let refundCents = 0;
             if (order.remains > 0 && order.quantity > 0) {
-              refundCents = Math.floor((order.remains / order.quantity) * order.charge);
+              refundCents = Math.floor((order.remains / order.quantity) * Number(order.charge));
             } else if (order.status === 'PENDING' || order.status === 'AWAITING_PAYMENT') {
-              refundCents = order.charge;
+              refundCents = Number(order.charge);
             }
 
             await tx.order.update({

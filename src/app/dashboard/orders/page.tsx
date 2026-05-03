@@ -119,7 +119,7 @@ export default async function OrdersPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right font-semibold text-foreground tabular-nums">
-                      {(order.charge / 100).toLocaleString('ru-RU', {
+                      {(Number(order.charge) / 100).toLocaleString('ru-RU', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
@@ -194,7 +194,7 @@ export default async function OrdersPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-sm font-bold text-foreground tabular-nums">
-                        {(order.charge / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                        {(Number(order.charge) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
                       </div>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${color}`}>
                         {label}

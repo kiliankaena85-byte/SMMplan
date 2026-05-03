@@ -87,7 +87,7 @@ bot.start(async (ctx: any) => {
 
   await ctx.reply(
     `👋 <b>Добро пожаловать в Smmplan!</b>\n\n` +
-    `💰 Ваш баланс: <b>${(user.balance / 100).toFixed(2)}₽</b>\n\n` +
+    `💰 Ваш баланс: <b>${(Number(user.balance) / 100).toFixed(2)}₽</b>\n\n` +
     `Используйте меню ниже:`,
     {
       parse_mode: 'HTML',
@@ -164,7 +164,7 @@ bot.hears('📦 Мои заказы', async (ctx: any) => {
   for (const o of orders) {
     const emoji = statusEmoji[o.status] || '❓';
     text += `${emoji} #${o.numericId} — ${o.service?.name || 'Услуга'}\n` +
-      `   ${o.quantity} шт. | ${(o.charge / 100).toFixed(2)}₽ | ${o.status}\n\n`;
+      `   ${o.quantity} шт. | ${(Number(o.charge) / 100).toFixed(2)}₽ | ${o.status}\n\n`;
   }
 
   await ctx.reply(text, { parse_mode: 'HTML' });

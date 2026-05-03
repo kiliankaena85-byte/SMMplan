@@ -112,8 +112,8 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
         id: updatedOrder.id,
         userId: updatedOrder.userId,
         charge: isDripFeedChild && order.runs 
-          ? Math.floor(order.charge / order.runs) 
-          : order.charge, // Custom charge logic for drip-feed chunks
+          ? Math.floor(Number(order.charge) / order.runs) 
+          : Number(order.charge), // Custom charge logic for drip-feed chunks
         quantity: 1, // Full chunk refund
         remains: 1,
         status: finalStatus

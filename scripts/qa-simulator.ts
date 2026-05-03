@@ -141,7 +141,7 @@ async function runValidations() {
       promises.push(
         db.$transaction(async (tx) => {
           const user = await tx.user.findUniqueOrThrow({ where: { id: testUser.id } });
-          if (user.balance < 1500) throw new Error('INSUFFICIENT_FUNDS');
+          if (Number(user.balance) < 1500) throw new Error('INSUFFICIENT_FUNDS');
           
           await tx.user.update({
             where: { id: testUser.id },
@@ -180,7 +180,7 @@ async function runValidations() {
     assert(nsfCount === 4, `Race: exactly 4 NSF (got ${nsfCount})`);
     
     const userAfter = await db.user.findUnique({ where: { id: testUser.id } });
-    assert(userAfter?.balance === 1000, `Balance: 1000 cents remaining (got ${userAfter?.balance})`);
+    assert(Number(userAfter?.balance) === 1000, `Balance: 1000 cents remaining (got ${userAfter?.balance})`);
 
   } catch (error) {
     console.error("CRITICAL TEST FAILURE:", error);

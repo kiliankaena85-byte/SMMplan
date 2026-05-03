@@ -25,8 +25,8 @@ async function runCFO() {
   let gmv = 0;
   let cogs = 0;
   for (const o of orders) {
-    gmv += o.charge;
-    cogs += o.providerCost;
+    gmv += Number(o.charge);
+    cogs += Number(o.providerCost);
   }
   const grossProfit = gmv - cogs;
   const grossMargin = gmv > 0 ? (grossProfit / gmv) * 100 : 0;
@@ -123,7 +123,7 @@ async function runSEC() {
     _sum: { amount: true }
   });
   
-  const refundVolume = refunds._sum.amount || 0;
+  const refundVolume = Number(refunds._sum.amount || 0);
   const md = `# 🛡️ Security & Integrity Report
 **Дата:** ${date}
 

@@ -19,7 +19,7 @@ export default async function DashboardLayout({
 
   if (!user) redirect('/login');
 
-  const balanceRub = (user.balance / 100).toLocaleString('ru-RU', {
+  const balanceRub = (Number(user.balance) / 100).toLocaleString('ru-RU', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -39,7 +39,7 @@ export default async function DashboardLayout({
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold text-foreground tabular-nums">
-            {(user.balance / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
+            {(Number(user.balance) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
           </span>
           <Link
             href="/dashboard/add-funds"
