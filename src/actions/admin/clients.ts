@@ -15,6 +15,7 @@
 import { requireAdmin } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 import { auditAdmin } from '@/lib/admin-audit';
+import { serializeForClient } from '@/lib/bigint-serializer';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -154,6 +155,6 @@ export async function getClientProfileAction(userId: string) {
 
     if (!user) return { success: false as const, error: 'Пользователь не найден' };
 
-    return { success: true as const, user };
+    return { success: true as const, user: serializeForClient(user) };
   });
 }

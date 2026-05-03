@@ -23,6 +23,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
             </TableHead>
             <TableHead className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Услуги</TableHead>
             <TableHead className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Валюта</TableHead>
+            <TableHead className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">SLA</TableHead>
             <TableHead className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Статус</TableHead>
             <TableHead className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Действия</TableHead>
           </TableRow>
@@ -31,7 +32,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
         <TableBody>
           {providers.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="py-12 text-center">
+              <TableCell colSpan={6} className="py-12 text-center">
                 <p className="text-slate-500 font-medium mb-3">
                   Нет добавленных провайдеров.
                 </p>
@@ -77,6 +78,28 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                 <span className="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                   {provider.balanceCurrency}
                 </span>
+              </TableCell>
+
+              {/* SLA */}
+              <TableCell className="py-4 px-4">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-bold text-slate-400">Ping:</span>
+                    <span className={`text-xs font-mono font-bold ${provider.avgResponseMs > 2000 ? 'text-rose-500' : provider.avgResponseMs > 500 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                      {provider.avgResponseMs}ms
+                    </span>
+                  </div>
+                  {provider.errorCount5m > 0 && (
+                    <div className="text-[10px] font-bold text-rose-500">
+                      ⚠️ {provider.errorCount5m} errs / 5m
+                    </div>
+                  )}
+                  {provider.lastSuccessAt && (
+                    <div className="text-[9px] text-slate-400 font-medium">
+                      Sync: {new Date(provider.lastSuccessAt).toLocaleTimeString('ru-RU')}
+                    </div>
+                  )}
+                </div>
               </TableCell>
 
               {/* Status */}

@@ -17,10 +17,11 @@ setup('authenticate', async ({ page, context }) => {
 
   const user = await prisma.user.upsert({
     where: { email },
-    update: { balance: 200000_00 },
+    update: { balance: 200000_00, role: 'OWNER' },
     create: {
       email,
       balance: 200000_00, // 200K RUB to fit within PostgreSQL INT4 and avoid test errors
+      role: 'OWNER',
     }
   });
 

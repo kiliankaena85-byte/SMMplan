@@ -4,12 +4,14 @@ import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import crypto from "crypto";
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
 
   if (!token) {
-    return NextResponse.redirect(new URL("/login?error=InvalidToken", request.url));
+    return NextResponse.redirect(new URL("/login?error=InvalidToken", BASE_URL));
   }
 
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -19,7 +21,7 @@ export async function GET(request: Request) {
   });
 
   if (!authToken || authToken.used || authToken.expiresAt < new Date()) {
-    return NextResponse.redirect(new URL("/login?error=ExpiredToken", request.url));
+    return NextResponse.redirect(new URL("/login?error=ExpiredToken", BASE_URL));
   }
 
   // Помечаем как использованный
@@ -34,9 +36,9 @@ export async function GET(request: Request) {
   const user = await db.user.findUnique({ where: { id: authToken.userId } });
   
   if (user && ["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role)) {
-    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    return NextResponse.redirect(new URL("/admin/dashboard", BASE_URL));
   }
 
-  return NextResponse.redirect(new URL("/dashboard", request.url));
+  return NextResponse.redirect(new URL("/dashboard", BASE_URL));
 }
 

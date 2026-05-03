@@ -14,3 +14,4 @@ vitest.config.ts
 vitest-env.d.ts
 eslint.config.mjs
 components.json*
+*.tar

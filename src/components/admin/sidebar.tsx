@@ -42,8 +42,8 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
   return (
     <aside 
       className={cn(
-        "relative z-20 flex-shrink-0 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] group hidden md:flex flex-col",
-        "bg-slate-950/98 backdrop-blur-3xl border-r border-slate-800/60 overflow-hidden",
+        "relative z-20 h-screen flex-shrink-0 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] group hidden md:flex flex-col",
+        "bg-slate-950/98 backdrop-blur-3xl border-r border-slate-800/60",
         collapsed ? "w-20" : "w-[280px]"
       )}
     >
@@ -78,7 +78,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
       </div>
 
       <nav className={cn(
-        "flex-1 px-3 py-4 space-y-6 overflow-y-auto scrollbar-hide",
+        "flex-1 min-h-0 px-3 py-4 space-y-6 overflow-y-auto scrollbar-hide",
         collapsed && "pt-20 space-y-1"
       )}>
         <div className={cn("mb-4 px-1", collapsed && "hidden")}>

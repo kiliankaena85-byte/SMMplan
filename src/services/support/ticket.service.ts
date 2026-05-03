@@ -30,14 +30,19 @@ export class TicketService {
 
     // Notify user if STAFF replied
     if (sender === 'STAFF' && message.ticket.user.email) {
+      const isGuest = message.ticket.source === 'EMAIL';
+      const actionText = isGuest 
+        ? `<p style="color: #64748b; font-size: 14px;">Для ответа на это сообщение, просто напишите ответное письмо.</p>`
+        : `<p style="color: #64748b; font-size: 14px;">Пожалуйста, войдите в панель управления (Dashboard), чтобы ответить.</p>`;
+
       void sendMail(message.ticket.user.email, `Support Reply: ${message.ticket.subject}`, `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
-          <h2 style="color: #4f46e5;">New message from Smmplan Tech Support</h2>
-          <p><strong>Subject:</strong> ${message.ticket.subject}</p>
+          <h2 style="color: #4f46e5;">Новое сообщение от поддержки Smmplan</h2>
+          <p><strong>Тема:</strong> ${message.ticket.subject}</p>
           <div style="background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #4f46e5;">
             ${text}
           </div>
-          <p style="color: #64748b; font-size: 14px;">Please login to your dashboard to reply.</p>
+          ${actionText}
         </div>
       `);
     }

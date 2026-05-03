@@ -75,3 +75,20 @@ jobs:
         APP_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
         NEXT_PUBLIC_APP_URL: "http://localhost:3000"
 
+    - name: Install Playwright Browsers
+      run: npx playwright install chromium --with-deps
+
+    - name: Run Playwright E2E Tests
+      run: npx playwright test
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/smmplan_lite_test?schema=public
+        APP_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+
+    - name: Upload Playwright Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 7
+

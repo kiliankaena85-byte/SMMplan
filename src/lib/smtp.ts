@@ -24,7 +24,7 @@ export async function sendMagicLink(email: string, token: string) {
     secure: true,
     auth: {
       user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 
@@ -67,7 +67,7 @@ export async function sendMail(email: string, subject: string, htmlContent: stri
     secure: true,
     auth: {
       user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 

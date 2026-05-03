@@ -35,17 +35,17 @@ async function main() {
   console.log('Upserted Provider Vexboost');
 
   // 3. Admin User
-  const adminRawId = 'admin@smmplan-lite.local';
+  const adminRawId = 'art@artmspektr.ru';
   const adminUser = await prisma.user.upsert({
     where: { email: adminRawId },
-    update: {},
+    update: { role: 'OWNER' },
     create: {
       email: adminRawId,
-      role: 'ADMIN',
-      balance: 1000000 // 10000 RUB
+      role: 'OWNER',
+      balance: 10000000 // 100000 RUB for initial testing
     }
   });
-  console.log(`Upserted Admin User: ${adminRawId}`);
+  console.log(`Upserted Admin User (OWNER): ${adminRawId}`);
 
   // 4. Sample Category and Service
   let network = await prisma.network.findFirst({ where: { slug: 'instagram' } });

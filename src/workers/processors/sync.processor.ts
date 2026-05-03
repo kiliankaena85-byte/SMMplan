@@ -48,7 +48,19 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
       if (allExtIds.length === 0) continue;
 
       // multiStatus API
+      const syncStartTime = Date.now();
       const statuses = await provider.getMultiOrderStatus(allExtIds);
+      const elapsedMs = Date.now() - syncStartTime;
+
+      // Update SLA Monitoring (Success)
+      await db.provider.update({
+        where: { id: providerId },
+        data: {
+          lastSuccessAt: new Date(),
+          errorCount5m: 0, // Reset errors on successful ping
+          avgResponseMs: Math.round(((providerDef.avgResponseMs || 0) * 9 + elapsedMs) / 10),
+        }
+      });
 
       // 3. Update orders based on responses
       for (const order of ordersBatch) {
@@ -127,6 +139,19 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
       }
     } catch (e: any) {
       console.error(`[SyncProcessor] Exception while pinging Provider ${providerId}:`, e.message);
+
+      // Update SLA Monitoring (Error)
+      try {
+        await db.provider.update({
+          where: { id: providerId },
+          data: {
+            lastErrorAt: new Date(),
+            errorCount5m: { increment: 1 }
+          }
+        });
+      } catch (slaErr: any) {
+        console.error(`[SyncProcessor] Failed to update SLA error metrics for ${providerId}:`, slaErr.message);
+      }
     }
   }
 

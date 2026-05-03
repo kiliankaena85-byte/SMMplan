@@ -10,6 +10,9 @@ export type ProviderListDTO = {
   isActive: boolean;
   balanceCurrency: string;
   serviceCount: number;
+  avgResponseMs: number;
+  errorCount5m: number;
+  lastSuccessAt: string | null;
   createdAt: string;
 };
 
@@ -41,6 +44,9 @@ export class AdminProviderService {
         apiUrl: true,
         isActive: true,
         balanceCurrency: true,
+        avgResponseMs: true,
+        errorCount5m: true,
+        lastSuccessAt: true,
         createdAt: true,
         _count: { select: { services: true } },
       },
@@ -53,6 +59,9 @@ export class AdminProviderService {
       isActive: p.isActive,
       balanceCurrency: p.balanceCurrency,
       serviceCount: p._count.services,
+      avgResponseMs: p.avgResponseMs,
+      errorCount5m: p.errorCount5m,
+      lastSuccessAt: p.lastSuccessAt ? p.lastSuccessAt.toISOString() : null,
       createdAt: p.createdAt.toISOString(),
     }));
   }

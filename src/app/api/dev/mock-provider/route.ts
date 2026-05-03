@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     // Auth: validate against env-configured key (not hardcoded)
     const expectedKey = process.env.MOCK_PROVIDER_KEY ?? 'mock-dev-key';
     if (key !== expectedKey) {
-      return NextResponse.json({ error: 'Incorrect API key' }, { status: 403 });
+      return NextResponse.json({ error: 'Incorrect API key' }, { status: 200 });
     }
 
     // 1. Balance Action
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       const link = params.get('link');
       
       if (!link) {
-        return NextResponse.json({ error: 'Link is missing in payload' }, { status: 400 });
+        return NextResponse.json({ error: 'Link is missing in payload' }, { status: 200 });
       }
 
       // Simulate success response returning a tracker ID
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       // Support both 'order' (single) and 'orders' (multi) parameter names
       const orderArg = params.get('order') || params.get('orders');
       if (!orderArg) {
-        return NextResponse.json({ error: 'Order ID missing' }, { status: 400 });
+        return NextResponse.json({ error: 'Order ID missing' }, { status: 200 });
       }
 
       // If user sends multiple comma-separated IDs
@@ -102,9 +102,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+    return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 200 });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 200 });
   }
 }

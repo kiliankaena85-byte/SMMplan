@@ -23,7 +23,9 @@ if ($LASTEXITCODE -ne 0) { throw "File transfer failed!" }
 
 Write-Host "4. Deploying on server..."
 $commands = @(
-    "echo 'Loading image...'",
+    "echo 'Tagging previous image for rollback...'",
+    "docker tag smmplan_staging_app:latest smmplan_staging_app:previous || true",
+    "echo 'Loading new image...'",
     "docker load -i /tmp/smmplan_staging_app.tar",
     "rm -f /tmp/smmplan_staging_app.tar",
     "echo 'Restarting containers...'",
@@ -32,6 +34,19 @@ $commands = @(
     "docker-compose up -d",
     "echo 'Running database migrations...'",
     "docker exec smmplan_staging_app npx prisma migrate deploy",
+    "echo 'Waiting for application to start (15s)...'",
+    "sleep 15",
+    "echo 'Running health check...'",
+    "HTTP_STATUS=``curl -s -o /dev/null -w `"%{http_code}`" http://localhost:3005/api/health``",
+    "if [ `"`$HTTP_STATUS`" != `"200`" ]; then",
+    "  echo 'Health check failed! HTTP Status: `$HTTP_STATUS'",
+    "  echo 'Rolling back to previous version...'",
+    "  docker tag smmplan_staging_app:previous smmplan_staging_app:latest",
+    "  docker-compose down",
+    "  docker-compose up -d",
+    "  echo 'Rollback completed. Deployment failed.'",
+    "  exit 1",
+    "fi",
     "echo 'Cleaning up old images...'",
     "docker image prune -f",
     "echo 'Staging deployment finished! URL: http://198.18.0.19:3005'"
