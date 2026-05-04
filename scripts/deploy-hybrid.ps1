@@ -20,25 +20,7 @@ scp smmplan_app.tar "$($ServerHost):/tmp/smmplan_app.tar"
 if ($LASTEXITCODE -ne 0) { throw "SCP transfer failed!" }
 
 Write-Host "4. Deploying on server..." -ForegroundColor Yellow
-$remoteCommands = @"
-    echo 'Loading image...'
-    docker load -i /tmp/smmplan_app.tar
-    rm /tmp/smmplan_app.tar
-
-    echo 'Restarting containers...'
-    cd $ServerPath
-    docker compose -f docker-compose.prod.yml up -d
-
-    echo 'Running migrations...'
-    docker exec smmplan_lite_prod_app npx prisma migrate deploy
-
-    echo 'Restarting Nginx to clear upstream cache...'
-    docker restart smmplan_lite_prod_nginx
-    
-    echo 'Finalizing cleanup...'
-    docker image prune -f --filter "until=24h"
-    echo 'Remote deployment finished!'
-"@
+$remoteCommands = "echo 'Loading image...'; docker load -i /tmp/smmplan_app.tar; rm /tmp/smmplan_app.tar; echo 'Restarting containers...'; cd $ServerPath; docker compose -f docker-compose.prod.yml up -d; echo 'Running migrations...'; docker exec smmplan_lite_prod_app npx prisma migrate deploy; echo 'Restarting Nginx to clear upstream cache...'; docker restart smmplan_lite_prod_nginx; echo 'Finalizing cleanup...'; docker image prune -f --filter 'until=24h'; echo 'Remote deployment finished!'"
 
 ssh $ServerHost $remoteCommands
 if ($LASTEXITCODE -ne 0) { throw "Remote execution failed!" }

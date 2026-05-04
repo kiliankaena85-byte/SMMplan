@@ -215,73 +215,62 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         paymentUrl = successUrl;
         remoteGatewayId = `internal_${Date.now()}`;
       } else if (gateway === 'yookassa') {
-        // [TEST MODE BYPASS] Skip real API calls during E2E tests
-        if (isTestMode) {
-          paymentUrl = `/api/dev/mock-payment?paymentId=${result.paymentId}`;
-          remoteGatewayId = `test_yookassa_${Date.now()}`;
-        } else {
-          const secrets = await SettingsManager.getPaymentSecrets();
-          const shopId = secrets.yookassaShopId;
-          const secretKey = secrets.yookassaSecretKey;
-          if (!shopId || !secretKey) throw new Error('YooKassa is not configured in Admin Panel');
+        const secrets = await SettingsManager.getPaymentSecrets();
+        const shopId = secrets.yookassaShopId;
+        const secretKey = secrets.yookassaSecretKey;
+        if (!shopId || !secretKey) throw new Error('YooKassa is not configured in Admin Panel');
 
-
-          const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-          const payload: any = {
-            amount: { value: amountRub, currency: 'RUB' },
-            capture: true,
-            confirmation: { type: 'redirect', return_url: successUrl },
-            description: `SEO-Аудит и консультация (Заказ #${result.orderId})`, // [SECURITY] PB-001: Stealth Merchant Description
-            receipt: {
-              customer: {
-                email: email || user.email || 'no-reply@smmplan.ru'
-              },
-              items: [
-                {
-                  description: "Услуги SEO-аудита и цифрового маркетинга",
-                  quantity: "1.00",
-                  amount: {
-                    value: amountRub,
-                    currency: 'RUB'
-                  },
-                  vat_code: 1, // Без НДС
-                  payment_mode: "full_prepayment",
-                  payment_subject: "service"
-                }
-              ]
+        const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+        const payload: any = {
+          amount: { value: amountRub, currency: 'RUB' },
+          capture: true,
+          confirmation: { type: 'redirect', return_url: successUrl },
+          description: `SEO-Аудит и консультация (Заказ #${result.orderId})`, // [SECURITY] PB-001: Stealth Merchant Description
+          receipt: {
+            customer: {
+              email: email || user.email || 'no-reply@smmplan.ru'
             },
-            metadata: { paymentId: result.paymentId, orderId: result.orderId, userId: user.id }
-          };
+            items: [
+              {
+                description: "Услуги SEO-аудита и цифрового маркетинга",
+                quantity: "1.00",
+                amount: {
+                  value: amountRub,
+                  currency: 'RUB'
+                },
+                vat_code: 1, // Без НДС
+                payment_mode: "full_prepayment",
+                payment_subject: "service"
+              }
+            ]
+          },
+          metadata: { paymentId: result.paymentId, orderId: result.orderId, userId: user.id }
+        };
 
-          const idempKey = crypto.createHash('sha256')
-            .update(`yookassa_${user.id}_${serviceId}_${quantity}_${link}_${Math.floor(Date.now() / 60000)}`)
-            .digest('hex').substring(0, 36);
+        const idempKey = crypto.createHash('sha256')
+          .update(`yookassa_${user.id}_${serviceId}_${quantity}_${link}_${Math.floor(Date.now() / 60000)}`)
+          .digest('hex').substring(0, 36);
 
-          const resp = await fetch('https://api.yookassa.ru/v3/payments', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': authHeader,
-              'Idempotence-Key': idempKey
-            },
-            body: JSON.stringify(payload)
-          });
+        const resp = await fetch('https://api.yookassa.ru/v3/payments', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+            'Idempotence-Key': idempKey
+          },
+          body: JSON.stringify(payload)
+        });
 
-          if (!resp.ok) {
-            console.error('[Checkout] YooKassa API Error:', await resp.text());
-            throw new Error('Ошибка шлюза YooKassa');
-          }
-
-          const data = await resp.json();
-          paymentUrl = data.confirmation.confirmation_url;
-          remoteGatewayId = data.id;
+        if (!resp.ok) {
+          console.error('[Checkout] YooKassa API Error:', await resp.text());
+          throw new Error('Ошибка шлюза YooKassa');
         }
 
+        const data = await resp.json();
+        paymentUrl = data.confirmation.confirmation_url;
+        remoteGatewayId = data.id;
+
       } else if (gateway === 'cryptobot') {
-        if (isTestMode) {
-          paymentUrl = `/api/dev/mock-payment?paymentId=${result.paymentId}`;
-          remoteGatewayId = `test_cryptobot_${Date.now()}`;
-        } else {
 
           const secrets = await SettingsManager.getPaymentSecrets();
           const cryptoToken = secrets.cryptoBotToken;
@@ -313,7 +302,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           
           paymentUrl = data.result.pay_url;
           remoteGatewayId = data.result.invoice_id.toString();
-        }
       }
 
       // 7. Store the remoteGatewayId and checkoutUrl on the Payment record so Webhooks can match it and Users can resume payment
@@ -481,53 +469,44 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         paymentUrl = successUrl;
         remoteGatewayId = `internal_${Date.now()}`;
       } else if (gateway === 'yookassa') {
-        if (isTestMode) {
-          paymentUrl = `/api/dev/mock-payment?paymentId=${result.paymentId}`;
-          remoteGatewayId = `test_yookassa_${Date.now()}`;
-        } else {
-          const secrets = await SettingsManager.getPaymentSecrets();
-          const shopId = secrets.yookassaShopId;
-          const secretKey = secrets.yookassaSecretKey;
-          if (!shopId || !secretKey) throw new Error('YooKassa is not configured');
+        const secrets = await SettingsManager.getPaymentSecrets();
+        const shopId = secrets.yookassaShopId;
+        const secretKey = secrets.yookassaSecretKey;
+        if (!shopId || !secretKey) throw new Error('YooKassa is not configured');
 
-          const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-          const payload: any = {
-            amount: { value: amountRub, currency: 'RUB' },
-            capture: true,
-            confirmation: { type: 'redirect', return_url: successUrl },
-            description: `SEO-Аудит и консультация (Заказ #${order.id})`,
-            receipt: {
-              customer: { email: order.email || order.user.email || 'no-reply@smmplan.ru' },
-              items: [{
-                description: "Услуги SEO-аудита и цифрового маркетинга",
-                quantity: "1.00",
-                amount: { value: amountRub, currency: 'RUB' },
-                vat_code: 1, payment_mode: "full_prepayment", payment_subject: "service"
-              }]
-            },
-            metadata: { paymentId: result.paymentId, orderId: order.id, userId: order.userId }
-          };
+        const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+        const payload: any = {
+          amount: { value: amountRub, currency: 'RUB' },
+          capture: true,
+          confirmation: { type: 'redirect', return_url: successUrl },
+          description: `SEO-Аудит и консультация (Заказ #${order.id})`,
+          receipt: {
+            customer: { email: order.email || order.user.email || 'no-reply@smmplan.ru' },
+            items: [{
+              description: "Услуги SEO-аудита и цифрового маркетинга",
+              quantity: "1.00",
+              amount: { value: amountRub, currency: 'RUB' },
+              vat_code: 1, payment_mode: "full_prepayment", payment_subject: "service"
+            }]
+          },
+          metadata: { paymentId: result.paymentId, orderId: order.id, userId: order.userId }
+        };
 
-          const idempKey = crypto.createHash('sha256')
-            .update(`yookassa_retry_${order.userId}_${order.id}_${Math.floor(Date.now() / 60000)}`)
-            .digest('hex').substring(0, 36);
+        const idempKey = crypto.createHash('sha256')
+          .update(`yookassa_retry_${order.userId}_${order.id}_${Math.floor(Date.now() / 60000)}`)
+          .digest('hex').substring(0, 36);
 
-          const resp = await fetch('https://api.yookassa.ru/v3/payments', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'Idempotence-Key': idempKey },
-            body: JSON.stringify(payload)
-          });
+        const resp = await fetch('https://api.yookassa.ru/v3/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'Idempotence-Key': idempKey },
+          body: JSON.stringify(payload)
+        });
 
-          if (!resp.ok) throw new Error('Ошибка шлюза YooKassa');
-          const data = await resp.json();
-          paymentUrl = data.confirmation.confirmation_url;
-          remoteGatewayId = data.id;
-        }
+        if (!resp.ok) throw new Error('Ошибка шлюза YooKassa');
+        const data = await resp.json();
+        paymentUrl = data.confirmation.confirmation_url;
+        remoteGatewayId = data.id;
       } else if (gateway === 'cryptobot') {
-        if (isTestMode) {
-          paymentUrl = `/api/dev/mock-payment?paymentId=${result.paymentId}`;
-          remoteGatewayId = `test_cryptobot_${Date.now()}`;
-        } else {
           const secrets = await SettingsManager.getPaymentSecrets();
           if (!secrets.cryptoBotToken) throw new Error('CryptoBot is not configured');
 
@@ -547,7 +526,6 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
           
           paymentUrl = data.result.pay_url;
           remoteGatewayId = data.result.invoice_id.toString();
-        }
       }
 
       if (remoteGatewayId || paymentUrl) {

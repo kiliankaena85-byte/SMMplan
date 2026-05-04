@@ -45,10 +45,8 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 const baseLogger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  // In development — pretty print. In production — JSON for Loki.
-  transport: isDev
-    ? { target: 'pino-pretty', options: { colorize: true, translateTime: 'SYS:HH:MM:ss', ignore: 'pid,hostname' } }
-    : undefined,
+  // NOTE: pino-pretty transport is incompatible with Next.js Turbopack bundler.
+  // Use plain JSON in all environments. Loki/Promtail parses JSON natively.
   formatters: {
     level: (label) => ({ level: label }),
   },
