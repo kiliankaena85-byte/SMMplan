@@ -56,7 +56,11 @@ export default async function OrdersPage() {
           category: {
             select: {
               name: true,
-              platform: true
+              network: {
+                select: {
+                  name: true
+                }
+              }
             }
           }
         } 
@@ -112,10 +116,10 @@ export default async function OrdersPage() {
                     <td className="py-3 px-4">
                       <Link href={`/dashboard/orders/${order.id}`} className="block"  tabIndex={-1}>
                         <div className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5 flex items-center gap-1.5">
-                          {order.service.category?.platform && (
-                            <span className="text-primary">{order.service.category.platform}</span>
+                          {order.service.category?.network?.name && (
+                            <span className="text-primary">{order.service.category.network.name}</span>
                           )}
-                          {order.service.category?.platform && order.service.category?.name && (
+                          {order.service.category?.network?.name && order.service.category?.name && (
                             <span className="text-muted-foreground/50">•</span>
                           )}
                           {order.service.category?.name && (
@@ -224,8 +228,8 @@ export default async function OrdersPage() {
                       <div className="text-xs font-mono text-muted-foreground">#{order.numericId}</div>
                       
                       <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1 flex items-center gap-1">
-                        {order.service.category?.platform && (
-                          <span className="text-primary">{order.service.category.platform}</span>
+                        {order.service.category?.network?.name && (
+                          <span className="text-primary">{order.service.category.network.name}</span>
                         )}
                         {order.service.category?.name && (
                           <>
