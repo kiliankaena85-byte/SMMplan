@@ -92,11 +92,12 @@ export class OrderService {
           return { success: false, error: 'Заказ не найден' };
         }
 
-        if (order.status !== 'PENDING') {
+        if (order.status !== 'PENDING' && order.status !== 'AWAITING_PAYMENT') {
           return { success: false, error: 'Заказ уже ушел в работу или отменен' };
         }
 
         const charge = order.charge; // totalCents
+        const wasAwaitingPayment = order.status === 'AWAITING_PAYMENT';
 
         // 1. Cancel the order
         await tx.order.update({
@@ -104,21 +105,23 @@ export class OrderService {
           data: { status: 'CANCELED' }
         });
 
-        // 2. Refund to User Balance
-        await tx.user.update({
-          where: { id: userId },
-          data: { balance: { increment: charge } }
-        });
+        // 2. Refund to User Balance (ONLY if it was paid)
+        if (!wasAwaitingPayment) {
+          await tx.user.update({
+            where: { id: userId },
+            data: { balance: { increment: charge } }
+          });
 
-        // 3. Keep a track record
-        await tx.ledgerEntry.create({
-          data: {
-            userId,
-            amount: charge,
-            reason: `Отмена заказа #${order.numericId} клиентом (Store Credit)`,
-            status: 'APPROVED'
-          }
-        });
+          // 3. Keep a track record
+          await tx.ledgerEntry.create({
+            data: {
+              userId,
+              amount: charge,
+              reason: `Отмена заказа #${order.numericId} клиентом (Store Credit)`,
+              status: 'APPROVED'
+            }
+          });
+        }
 
         return { success: true };
       });

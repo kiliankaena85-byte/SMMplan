@@ -308,11 +308,14 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         }
       }
 
-      // 7. Store the remoteGatewayId on the Payment record so Webhooks can match it
-      if (remoteGatewayId) {
+      // 7. Store the remoteGatewayId and checkoutUrl on the Payment record so Webhooks can match it and Users can resume payment
+      if (remoteGatewayId || paymentUrl) {
         await db.payment.update({
           where: { id: result.paymentId },
-          data: { gatewayId: remoteGatewayId }
+          data: { 
+            gatewayId: remoteGatewayId || undefined,
+            checkoutUrl: paymentUrl || undefined
+          }
         });
       }
     } catch (gatewayErr: any) {
@@ -353,6 +356,200 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     return { 
       orderId: result.orderId, 
+      paymentId: result.paymentId,
+      paymentUrl
+    };
+  });
+};
+
+const retryCheckoutSchema = z.object({
+  orderId: z.string(),
+  gateway: z.string().default('yookassa')
+});
+
+export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSchema>) => {
+  return createSafeAction(retryCheckoutSchema, input, async (data) => {
+    const { orderId, gateway } = data;
+
+    const isAllowed = await RateLimitService.check("retryCheckoutCore", 10, 60);
+    if (!isAllowed) throw new Error("Слишком много запросов. Попробуйте через минуту.");
+
+    const reqHeaders = await headers();
+    const consentIp = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "127.0.0.1";
+    const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
+
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: { user: true, payment: true, service: true }
+    });
+
+    if (!order) throw new Error("Заказ не найден");
+    if (order.status !== 'AWAITING_PAYMENT') throw new Error("Этот заказ больше не ожидает оплаты");
+
+    const isTestMode = await SettingsManager.isTestMode();
+
+    // Invalidate old payment and create new
+    const result = await db.$transaction(async (tx) => {
+      if (order.payment) {
+        await tx.payment.update({
+          where: { id: order.payment.id },
+          data: { status: 'CANCELED' }
+        });
+      }
+
+      const newPayment = await tx.payment.create({
+        data: {
+          userId: order.userId,
+          orderId: order.id,
+          amount: order.charge,
+          currency: 'RUB',
+          status: 'PENDING',
+          gateway,
+          consentIp,
+          consentUserAgent
+        }
+      });
+
+      return { paymentId: newPayment.id };
+    });
+
+    const amountRub = (Number(order.charge) / 100).toFixed(2);
+    let paymentUrl = '';
+    let remoteGatewayId = '';
+    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/success`;
+
+    try {
+      if (gateway === 'balance') {
+        await MutexManager.withLock(`balance_lock_${order.userId}`, 30000, 5000, async () => {
+          await db.$transaction(async (tx) => {
+            const updatedUser = await tx.user.update({
+              where: { id: order.userId },
+              data: { 
+                balance: { decrement: order.charge },
+                totalSpent: { increment: order.charge } 
+              }
+            });
+
+            await tx.ledgerEntry.create({
+              data: {
+                userId: order.userId,
+                amount: -order.charge,
+                reason: `Оплата заказа ${order.id} (Списание)`,
+                status: 'APPROVED'
+              }
+            });
+
+            if (updatedUser.balance < 0) {
+              throw new Error('Недостаточно средств на внутреннем балансе.');
+            }
+
+            await tx.payment.update({
+              where: { id: result.paymentId },
+              data: { status: 'SUCCEEDED', gatewayId: `internal_${Date.now()}` }
+            });
+            await tx.order.update({
+              where: { id: order.id },
+              data: { status: 'PENDING' }
+            });
+          });
+        });
+
+        // Add to queue
+        const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
+        if (order.isDripFeed) {
+          await dripfeedQueue.add('dripfeed-start', { orderId: order.id }, { delay: 3 * 60 * 1000 });
+        } else {
+          await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 3 * 60 * 1000 });
+        }
+
+        paymentUrl = successUrl;
+        remoteGatewayId = `internal_${Date.now()}`;
+      } else if (gateway === 'yookassa') {
+        if (isTestMode) {
+          paymentUrl = `/api/dev/mock-payment?paymentId=${result.paymentId}`;
+          remoteGatewayId = `test_yookassa_${Date.now()}`;
+        } else {
+          const secrets = await SettingsManager.getPaymentSecrets();
+          const shopId = secrets.yookassaShopId;
+          const secretKey = secrets.yookassaSecretKey;
+          if (!shopId || !secretKey) throw new Error('YooKassa is not configured');
+
+          const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+          const payload: any = {
+            amount: { value: amountRub, currency: 'RUB' },
+            capture: true,
+            confirmation: { type: 'redirect', return_url: successUrl },
+            description: `SEO-Аудит и консультация (Заказ #${order.id})`,
+            receipt: {
+              customer: { email: order.email || order.user.email || 'no-reply@smmplan.ru' },
+              items: [{
+                description: "Услуги SEO-аудита и цифрового маркетинга",
+                quantity: "1.00",
+                amount: { value: amountRub, currency: 'RUB' },
+                vat_code: 1, payment_mode: "full_prepayment", payment_subject: "service"
+              }]
+            },
+            metadata: { paymentId: result.paymentId, orderId: order.id, userId: order.userId }
+          };
+
+          const idempKey = crypto.createHash('sha256')
+            .update(`yookassa_retry_${order.userId}_${order.id}_${Math.floor(Date.now() / 60000)}`)
+            .digest('hex').substring(0, 36);
+
+          const resp = await fetch('https://api.yookassa.ru/v3/payments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'Idempotence-Key': idempKey },
+            body: JSON.stringify(payload)
+          });
+
+          if (!resp.ok) throw new Error('Ошибка шлюза YooKassa');
+          const data = await resp.json();
+          paymentUrl = data.confirmation.confirmation_url;
+          remoteGatewayId = data.id;
+        }
+      } else if (gateway === 'cryptobot') {
+        if (isTestMode) {
+          paymentUrl = `/api/dev/mock-payment?paymentId=${result.paymentId}`;
+          remoteGatewayId = `test_cryptobot_${Date.now()}`;
+        } else {
+          const secrets = await SettingsManager.getPaymentSecrets();
+          if (!secrets.cryptoBotToken) throw new Error('CryptoBot is not configured');
+
+          const resp = await fetch('https://pay.crypt.bot/api/createInvoice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Crypto-Pay-API-Token': secrets.cryptoBotToken },
+            body: JSON.stringify({
+              currency_type: 'fiat', fiat: 'RUB', amount: amountRub,
+              description: `Заказ Smmplan #${order.id}`,
+              hidden_message: `Ваш заказ: ${order.id}`, payload: result.paymentId
+            })
+          });
+
+          if (!resp.ok) throw new Error('Ошибка шлюза CryptoBot');
+          const data = await resp.json();
+          if (!data.ok) throw new Error('CryptoBot returned error');
+          
+          paymentUrl = data.result.pay_url;
+          remoteGatewayId = data.result.invoice_id.toString();
+        }
+      }
+
+      if (remoteGatewayId || paymentUrl) {
+        await db.payment.update({
+          where: { id: result.paymentId },
+          data: { gatewayId: remoteGatewayId || undefined, checkoutUrl: paymentUrl || undefined }
+        });
+      }
+    } catch (gatewayErr: any) {
+      console.error('[RetryCheckout] Gateway failed', gatewayErr);
+      await db.payment.update({ where: { id: result.paymentId }, data: { status: 'CANCELED' } });
+      throw new Error(gatewayErr.message || 'Ошибка генерации платежа. Попробуйте другой метод');
+    }
+
+    revalidatePath('/dashboard', 'layout');
+
+    return { 
+      orderId: order.id, 
       paymentId: result.paymentId,
       paymentUrl
     };

@@ -44,10 +44,35 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   useEffect(() => {
     if (catalog.length === 0) {
       getPublicCatalogAction().then(res => {
-        if (res.success && res.data) setCatalog(res.data);
+        if (res.success && res.data) {
+          setCatalog(res.data);
+          // Set defaults
+          if (!networkId) {
+            const defaultNet = res.data.find(n => n.slug === 'telegram') || res.data[0];
+            if (defaultNet) {
+              setNetworkId(defaultNet.id);
+              const defaultCat = defaultNet.categories.find(c => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0];
+              if (defaultCat) {
+                setCategoryId(defaultCat.id);
+              }
+            }
+          }
+        }
       });
+    } else {
+      // Set defaults if catalog was provided initially
+      if (!networkId) {
+        const defaultNet = catalog.find(n => n.slug === 'telegram') || catalog[0];
+        if (defaultNet) {
+          setNetworkId(defaultNet.id);
+          const defaultCat = defaultNet.categories.find(c => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0];
+          if (defaultCat) {
+            setCategoryId(defaultCat.id);
+          }
+        }
+      }
     }
-  }, [catalog.length]);
+  }, [catalog, networkId]);
 
   // 2. Analyze URL (Debounced)
   useEffect(() => {

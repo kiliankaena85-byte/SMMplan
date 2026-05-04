@@ -51,17 +51,42 @@ export function matchesSuggestedCategory(
     .trim();
   
   for (const suggested of suggestedCategories) {
+    const suggestedNormalized = suggested.toLowerCase()
+      .replace(/[^\p{L}\p{N}\s/]/gu, '')
+      .trim();
+
     // 1. Exact match (unlikely but fast path)
     if (dbCategoryName === suggested) return true;
     
-    // 2. DB name contains the suggested word
-    if (dbNameNormalized.includes(suggested.toLowerCase())) return true;
+    // 2. Contains match (dbName includes suggested)
+    if (dbNameNormalized.includes(suggestedNormalized)) return true;
+
+    // 3. Contains match (suggested includes dbName - word bounded to prevent "автопросмотры" matching "просмотры")
+    // Use regex to ensure dbNameNormalized is matched as a whole word/phrase within suggestedNormalized
+    try {
+      const regex = new RegExp(`(^|[\\s/,-])${dbNameNormalized}([\\s/,-]|$)`, 'i');
+      if (regex.test(suggestedNormalized)) return true;
+    } catch(e) {
+      // Fallback if dbNameNormalized has regex characters
+      if (suggestedNormalized === dbNameNormalized) return true;
+    }
     
-    // 3. Canonical map lookup
-    const synonyms = CANONICAL_MAP[suggested];
-    if (synonyms) {
-      for (const syn of synonyms) {
-        if (dbNameNormalized.includes(syn.toLowerCase())) return true;
+    // 4. Canonical map lookup
+    // Since suggestedCategories might be "Подписчики / Участники", we need to check if any key in CANONICAL_MAP is in suggested.
+    for (const [key, synonyms] of Object.entries(CANONICAL_MAP)) {
+      try {
+        const keyRegex = new RegExp(`(^|[\\s/,-])${key.toLowerCase()}([\\s/,-]|$)`, 'i');
+        if (keyRegex.test(suggestedNormalized)) {
+          for (const syn of synonyms) {
+            if (dbNameNormalized.includes(syn.toLowerCase())) return true;
+          }
+        }
+      } catch (e) {
+        if (suggestedNormalized.includes(key.toLowerCase())) {
+          for (const syn of synonyms) {
+            if (dbNameNormalized.includes(syn.toLowerCase())) return true;
+          }
+        }
       }
     }
   }

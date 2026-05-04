@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
+import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,11 @@ export default async function OrdersPage() {
   const session = await verifySession();
   if (!session) redirect('/login');
 
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { balance: true }
+  });
+
   const orders = await db.order.findMany({
     where: { userId: session.userId },
     orderBy: { createdAt: 'desc' },
@@ -44,7 +50,17 @@ export default async function OrdersPage() {
       link: true,
       error: true,
       createdAt: true,
-      service: { select: { name: true } },
+      service: { 
+        select: { 
+          name: true,
+          category: {
+            select: {
+              name: true,
+              platform: true
+            }
+          }
+        } 
+      },
     },
   });
 
@@ -95,6 +111,17 @@ export default async function OrdersPage() {
                     </td>
                     <td className="py-3 px-4">
                       <Link href={`/dashboard/orders/${order.id}`} className="block"  tabIndex={-1}>
+                        <div className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5 flex items-center gap-1.5">
+                          {order.service.category?.platform && (
+                            <span className="text-primary">{order.service.category.platform}</span>
+                          )}
+                          {order.service.category?.platform && order.service.category?.name && (
+                            <span className="text-muted-foreground/50">•</span>
+                          )}
+                          {order.service.category?.name && (
+                            <span>{order.service.category.name}</span>
+                          )}
+                        </div>
                         <div className="font-medium text-foreground line-clamp-2 max-w-[200px] hover:text-primary transition-colors">
                           {order.service.name}
                         </div>
@@ -138,9 +165,16 @@ export default async function OrdersPage() {
                           {order.error}
                         </div>
                       )}
-                      {order.status === 'PENDING' && (
-                        <div className="mt-1.5 min-w-[120px]">
+                      {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
+                        <div className="mt-1.5 flex gap-2 min-w-[120px]">
                             <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
+                            {order.status === 'AWAITING_PAYMENT' && user && (
+                              <RetryPaymentModal 
+                                orderId={order.id} 
+                                charge={Number(order.charge)} 
+                                balance={Number(user.balance)} 
+                              />
+                            )}
                         </div>
                       )}
                       {order.status === 'IN_PROGRESS' && order.remains != null && (
@@ -188,6 +222,19 @@ export default async function OrdersPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-mono text-muted-foreground">#{order.numericId}</div>
+                      
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1 flex items-center gap-1">
+                        {order.service.category?.platform && (
+                          <span className="text-primary">{order.service.category.platform}</span>
+                        )}
+                        {order.service.category?.name && (
+                          <>
+                            <span className="text-muted-foreground/50">•</span>
+                            <span>{order.service.category.name}</span>
+                          </>
+                        )}
+                      </div>
+                      
                       <div className="text-sm font-medium text-foreground line-clamp-2 mt-0.5 hover:text-primary transition-colors">
                         {order.service.name}
                       </div>
@@ -201,9 +248,16 @@ export default async function OrdersPage() {
                       </span>
                     </div>
                   </div>
-                  {order.status === 'PENDING' && (
-                    <div className="pt-1">
+                  {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
+                    <div className="pt-1 flex gap-2" onClick={(e) => e.preventDefault()}>
                       <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
+                      {order.status === 'AWAITING_PAYMENT' && user && (
+                        <RetryPaymentModal 
+                          orderId={order.id} 
+                          charge={Number(order.charge)} 
+                          balance={Number(user.balance)} 
+                        />
+                      )}
                     </div>
                   )}
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">

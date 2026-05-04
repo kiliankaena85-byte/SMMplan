@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { fetchExternalServices, importSelectedServices } from "@/actions/admin/providers/import-cherry-pick";
 import { adminSyncProviderCatalog } from "@/actions/admin/providers/sync-action";
+import { generateAiPreviewAction, saveAiImportedServiceAction } from "@/actions/admin/providers/ai-import";
 
 export function ImportWizard({ categories }: { categories: any[] }) {
   const router = useRouter();
@@ -18,6 +19,11 @@ export function ImportWizard({ categories }: { categories: any[] }) {
   const [markup, setMarkup] = useState<string>("3.0");
 
   const [autoSyncLoading, setAutoSyncLoading] = useState(false);
+
+  // AI Import State
+  const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
+  const [aiPreviewData, setAiPreviewData] = useState<any>(null);
+  const [aiProviderService, setAiProviderService] = useState<any>(null);
 
   const loadServices = async () => {
     try {
@@ -97,6 +103,49 @@ export function ImportWizard({ categories }: { categories: any[] }) {
       }
   };
 
+  const handleAiPreview = async (service: any) => {
+      if (!targetCategory) return setError("Выберите категорию для импорта (в блоке выше)");
+      setAiLoadingId(String(service.service));
+      setError(null);
+      
+      const desc = service.desc || service.description || service.name;
+      const res = await generateAiPreviewAction(service.name, desc);
+      
+      if (!res.success) {
+          setError(res.error || "Ошибка генерации ИИ");
+          setAiLoadingId(null);
+          return;
+      }
+      
+      setAiPreviewData(res.optimized);
+      setAiProviderService(service);
+      setAiLoadingId(null);
+  };
+
+  const handleAiSave = async () => {
+      if (!aiPreviewData || !aiProviderService) return;
+      try {
+          setLoading(true);
+          setError(null);
+          const res = await saveAiImportedServiceAction(
+              aiProviderService, 
+              targetCategory, 
+              parseFloat(markup) || 3.0, 
+              aiPreviewData
+          );
+          if (!res.success) throw new Error(res.error || "Ошибка сохранения ИИ-услуги");
+          
+          setSuccess(`Услуга "${aiPreviewData.newName}" успешно добавлена с ИИ!`);
+          setAiPreviewData(null);
+          setAiProviderService(null);
+          loadServices();
+      } catch (e: any) {
+          setError(e.message);
+      } finally {
+          setLoading(false);
+      }
+  };
+
   return (
     <div className="space-y-6">
        
@@ -168,6 +217,7 @@ export function ImportWizard({ categories }: { categories: any[] }) {
                            <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Название провайдера</th>
                            <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Категория провайдера</th>
                            <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Цена (Закуп)</th>
+                           <th className="px-4 py-3 text-xs font-medium text-indigo-500 uppercase">ИИ</th>
                        </tr>
                    </thead>
                    <tbody className="bg-white divide-y divide-slate-200">
@@ -185,16 +235,79 @@ export function ImportWizard({ categories }: { categories: any[] }) {
                                <td className="px-4 py-3 text-sm font-medium text-slate-900 max-w-sm truncate" title={s.name}>{s.name}</td>
                                <td className="px-4 py-3 text-xs text-slate-500">{s.category}</td>
                                <td className="px-4 py-3 text-sm font-mono text-slate-900">${parseFloat(s.rate).toFixed(4)}</td>
+                               <td className="px-4 py-3">
+                                   <button 
+                                      onClick={() => handleAiPreview(s)} 
+                                      disabled={s.alreadyImported || aiLoadingId === String(s.service)} 
+                                      className="text-indigo-600 hover:text-indigo-800 disabled:opacity-50 text-xs font-medium flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded"
+                                   >
+                                      {aiLoadingId === String(s.service) ? "⏳ Анализ..." : "✨ AI Импорт"}
+                                   </button>
+                               </td>
                            </tr>
                        ))}
                        {services.length === 0 && !loading && (
-                           <tr><td colSpan={5} className="py-8 text-center text-slate-500">Нет доступных услуг</td></tr>
+                           <tr><td colSpan={6} className="py-8 text-center text-slate-500">Нет доступных услуг</td></tr>
                        )}
                    </tbody>
                </table>
            </div>
        </div>
 
+       {aiPreviewData && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">✨ Перепроверка ИИ <span className="text-xs font-normal bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">Human-in-the-loop</span></h3>
+              <button onClick={() => setAiPreviewData(null)} className="text-slate-500 hover:text-slate-700">✕</button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Оригинал от провайдера</label>
+                <div className="text-xs bg-slate-100 p-3 rounded-md font-mono whitespace-pre-wrap border border-slate-200">
+                  <span className="font-bold">{aiProviderService?.name}</span>
+                  {"\n"}{aiProviderService?.desc || aiProviderService?.description}
+                </div>
+              </div>
+              <hr className="border-slate-100" />
+              <div>
+                <label className="block text-xs font-medium text-indigo-600 mb-1">Сгенерированное Название</label>
+                <input 
+                  value={aiPreviewData.newName} 
+                  onChange={e => setAiPreviewData({...aiPreviewData, newName: e.target.value})}
+                  className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-indigo-600 mb-1">Сгенерированное Описание</label>
+                <textarea 
+                  rows={6}
+                  value={aiPreviewData.newDescription} 
+                  onChange={e => setAiPreviewData({...aiPreviewData, newDescription: e.target.value})}
+                  className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-amber-600 mb-1">Требования к ссылке/профилю (Всплывающее окно для клиента)</label>
+                <textarea 
+                  rows={2}
+                  value={aiPreviewData.requirements.join('\n')} 
+                  onChange={e => setAiPreviewData({...aiPreviewData, requirements: e.target.value.split('\n').filter((x: string) => x.trim() !== '')})}
+                  className="w-full border border-amber-300 rounded p-2 text-sm bg-amber-50 focus:ring-1 focus:ring-amber-500 outline-none"
+                  placeholder="Нет специфичных требований"
+                />
+                <p className="text-xs text-amber-700 mt-1">Каждое требование пишите с новой строки. Если поле пустое, окно подтверждения клиенту не покажется.</p>
+              </div>
+            </div>
+            <div className="p-4 border-t bg-slate-50 flex justify-end gap-3">
+              <button onClick={() => setAiPreviewData(null)} className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-md transition-colors">Отмена</button>
+              <button onClick={handleAiSave} disabled={loading} className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50">
+                {loading ? "Сохранение..." : "💾 Утвердить и Добавить в каталог"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

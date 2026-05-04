@@ -2,8 +2,9 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Clock, Wallet, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, LayoutDashboard } from 'lucide-react';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
+import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,9 +41,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       userId: session.userId 
     },
     include: {
+      user: { select: { balance: true } },
       service: {
         include: { category: true }
-      }
+      },
+      payment: true
     }
   });
 
@@ -88,8 +91,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 Осталось: {order.remains.toLocaleString('ru-RU')}
               </span>
             )}
-            {order.status === 'PENDING' && (
+            {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
                <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
+            )}
+            {order.status === 'AWAITING_PAYMENT' && (
+              <RetryPaymentModal 
+                orderId={order.id} 
+                charge={Number(order.charge)} 
+                balance={Number(order.user.balance)} 
+              />
             )}
           </div>
           <div className="text-right">

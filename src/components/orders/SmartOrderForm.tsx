@@ -11,7 +11,18 @@ import {
   Loader2, Clock, CheckCircle2, Wallet, CreditCard
 } from 'lucide-react';
 import React, { useState } from 'react';
-  import Link from 'next/link';
+import Link from 'next/link';
+
+/** Превращает URL в тексте в кликабельную ссылку */
+function linkifyText(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) =>
+    urlRegex.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 break-all">{part}</a>
+    ) : part
+  );
+}
 
 const inputCls =
   'w-full rounded-xl border border-border bg-background text-foreground ' +
@@ -40,6 +51,37 @@ export function SmartOrderForm() {
     validationErrors,
   } = engine;
   const { agreedToTerms, setAgreedToTerms } = engine;
+
+  const formRef = React.useRef<HTMLFormElement>(null);
+  const [showRequirementsModal, setShowRequirementsModal] = useState(false);
+  const [requirementsConfirmed, setRequirementsConfirmed] = useState(false);
+  const [modalRequirements, setModalRequirements] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    setRequirementsConfirmed(false);
+    const reqs = (selectedService?.features as any)?.requirements;
+    if (reqs && Array.isArray(reqs) && reqs.length > 0) {
+       setModalRequirements(reqs);
+    } else {
+       setModalRequirements([]);
+    }
+  }, [selectedService]);
+
+  const handlePreSubmit = () => {
+    if (modalRequirements.length > 0 && !requirementsConfirmed) {
+       setShowRequirementsModal(true);
+    } else {
+       formRef.current?.requestSubmit();
+    }
+  };
+
+  const confirmRequirementsAndSubmit = () => {
+    setRequirementsConfirmed(true);
+    setShowRequirementsModal(false);
+    setTimeout(() => {
+       formRef.current?.requestSubmit();
+    }, 50);
+  };
 
   const handleAction = async () => {
     // 1. Adaptive validation block
@@ -87,13 +129,44 @@ export function SmartOrderForm() {
 
   return (
     <div className="space-y-6">
-      {/* ── Manual Selection Fallback ── */}
+      {/* ── Manual Selection Fallback (Error State) ── */}
       {showFallback && (
         <div className="animate-in fade-in slide-in-from-top-2 duration-500">
            <PlatformSelectorFallback 
              onSelect={(p) => engine.setManualPlatform(p)} 
              availablePlatforms={availablePlatforms}
            />
+        </div>
+      )}
+
+      {/* ── Network pills (Manual Platform Selection) ── */}
+      {(!engine.platform && engine.catalog.length > 1) && (
+        <div
+          className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide"
+          role="tablist"
+          aria-label="Платформы"
+        >
+          {engine.catalog.map(net => (
+            <button
+              key={net.id}
+              type="button"
+              role="tab"
+              aria-selected={engine.networkId === net.id || (!engine.networkId && engine.catalog[0].id === net.id)}
+              onClick={() => {
+                 engine.setNetworkId(net.id);
+                 if (net.categories.length > 0) {
+                   engine.setCategoryId(net.categories[0].id);
+                 }
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 ${
+                (engine.networkId === net.id || (!engine.networkId && engine.catalog[0].id === net.id))
+                  ? 'bg-zinc-800 text-white shadow-sm'
+                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900'
+              }`}
+            >
+              {net.name}
+            </button>
+          ))}
         </div>
       )}
 
@@ -155,7 +228,7 @@ export function SmartOrderForm() {
                 type="button"
                 role="option"
                 aria-selected={selectedService?.id === srv.id}
-                onClick={() => setSelectedService(srv)}
+                onClick={() => setSelectedService(selectedService?.id === srv.id ? null : srv)}
                 className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
                   selectedService?.id === srv.id
                     ? 'ring-2 ring-sky-500 bg-sky-50 shadow-sm'
@@ -194,14 +267,9 @@ export function SmartOrderForm() {
         </div>
 
         {/* Right: Checkout */}
-        <div className="bg-white shadow-sm ring-1 ring-slate-100 rounded-2xl p-6 space-y-6 lg:sticky lg:top-6">
-          {!selectedService ? (
-            <div className="text-center py-10">
-              <div className="text-3xl mb-3">👈</div>
-              <p className="text-sm text-muted-foreground">Выберите тариф слева</p>
-            </div>
-          ) : (
-            <ActionForm action={handleAction} className="space-y-5">
+        {selectedService && (
+          <div className="bg-white shadow-sm ring-1 ring-slate-100 rounded-2xl p-6 space-y-6 lg:sticky lg:top-6">
+            <ActionForm action={handleAction} className="space-y-5" formRef={formRef}>
               {/* Selected service badge */}
               <div className="bg-slate-50 ring-1 ring-slate-100 rounded-xl p-4">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Выбрано</div>
@@ -419,7 +487,8 @@ export function SmartOrderForm() {
 
               {/* Submit */}
               <button
-                type="submit"
+                type="button"
+                onClick={handlePreSubmit}
                 disabled={(() => {
                   if (!selectedService || quantity < selectedService.minQty || isCalculating || !agreedToTerms) return true;
                   const sName = selectedService.name.toLowerCase();
@@ -437,9 +506,52 @@ export function SmartOrderForm() {
                 Оплатить {totalPriceFormatted} ₽ <ArrowRight className="w-4 h-4" />
               </button>
             </ActionForm>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* REQUIREMENTS MODAL */}
+      {showRequirementsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform animate-in zoom-in-95 duration-200">
+            <div className="p-6 pb-0">
+              <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Важные требования</h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Провайдер этой услуги установил жесткие требования. Если их не соблюсти, ваш заказ может быть отменен или зависнуть:
+              </p>
+              
+              <ul className="space-y-3 mb-6 bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+                {modalRequirements.map((req, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-800 font-medium">
+                    <span className="text-amber-500 mt-0.5">•</span> <span>{linkifyText(req)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div className="p-6 pt-2 flex flex-col sm:flex-row gap-3">
+              <button 
+                type="button"
+                onClick={() => setShowRequirementsModal(false)} 
+                className="flex-1 px-4 py-3 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              >
+                Отмена
+              </button>
+              <button 
+                type="button"
+                onClick={confirmRequirementsAndSubmit} 
+                className="flex-1 px-4 py-3 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 rounded-xl transition-colors shadow-sm"
+              >
+                Я ознакомился, оплатить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

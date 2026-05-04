@@ -273,6 +273,8 @@ model Payment {
   consentIp        String?
   consentUserAgent String?
 
+  checkoutUrl      String?  // Persistent checkout URL to allow users to resume payment
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

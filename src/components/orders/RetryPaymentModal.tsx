@@ -1,0 +1,147 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Wallet, CreditCard, Bitcoin } from 'lucide-react';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { retryCheckoutAction } from '@/actions/order/checkout';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+
+interface RetryPaymentModalProps {
+  orderId: string;
+  charge: number; // in cents
+  balance: number; // in cents
+  trigger?: React.ReactElement;
+}
+
+export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPaymentModalProps) {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const amountRub = charge / 100;
+  const balanceRub = balance / 100;
+  const canPayFromBalance = balance >= charge;
+
+  async function handleRetry(gateway: string) {
+    try {
+      setIsProcessing(true);
+      const res = await retryCheckoutAction({ orderId, gateway });
+      
+      if (res.success) {
+        if (gateway === 'balance' || res.data?.paymentUrl?.includes('/success')) {
+          toast.success('Заказ успешно оплачен!');
+          setIsOpen(false);
+          router.refresh();
+        } else if (res.data?.paymentUrl) {
+          // Redirect to external gateway
+          window.location.href = res.data.paymentUrl;
+        } else {
+          toast.error('Шлюз не вернул ссылку на оплату');
+        }
+      } else {
+        toast.error(res.error || 'Ошибка при генерации платежа');
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Сетевая ошибка');
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger
+        render={
+          trigger || (
+            <Button 
+              size="sm" 
+              className="w-full sm:w-auto px-4 py-1.5 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors flex items-center gap-2 shadow-sm h-8"
+            >
+              <Wallet className="w-3 h-3" /> Оплатить
+            </Button>
+          )
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Завершение оплаты</DialogTitle>
+          <DialogDescription>
+            Заказ ожидает оплаты. Выберите удобный способ, чтобы запустить его в работу.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4 py-4">
+          <div className="bg-muted/50 rounded-xl p-4 flex justify-between items-center border border-border/50">
+            <span className="text-sm font-medium text-muted-foreground">К оплате:</span>
+            <span className="text-xl font-bold text-foreground">
+              {amountRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+            </span>
+          </div>
+
+          <div className="space-y-3 mt-2">
+            <Button
+              intent="outline"
+              size="lg"
+              className="w-full justify-start h-14 relative group overflow-hidden border-border/60 hover:border-primary/50 hover:bg-primary/5"
+              disabled={isProcessing || !canPayFromBalance}
+              onClick={() => handleRetry('balance')}
+            >
+              <Wallet className={`w-5 h-5 mr-3 ${canPayFromBalance ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div className="flex flex-col items-start">
+                <span className="font-semibold text-foreground">Внутренний баланс</span>
+                <span className="text-xs text-muted-foreground mt-0.5">
+                  Доступно: {balanceRub.toLocaleString('ru-RU')} ₽
+                </span>
+              </div>
+              {!canPayFromBalance && (
+                <div className="absolute inset-y-0 right-4 flex items-center">
+                  <span className="text-xs font-medium text-rose-500 bg-rose-500/10 px-2 py-1 rounded">Недостаточно</span>
+                </div>
+              )}
+              {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
+            </Button>
+
+            <Button
+              intent="outline"
+              size="lg"
+              className="w-full justify-start h-14 border-border/60 hover:border-primary/50 hover:bg-primary/5"
+              disabled={isProcessing}
+              onClick={() => handleRetry('yookassa')}
+            >
+              <CreditCard className="w-5 h-5 mr-3 text-blue-500" />
+              <div className="flex flex-col items-start">
+                <span className="font-semibold text-foreground">Банковская карта / СБП</span>
+                <span className="text-xs text-muted-foreground mt-0.5">YooKassa</span>
+              </div>
+              {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
+            </Button>
+
+            <Button
+              intent="outline"
+              size="lg"
+              className="w-full justify-start h-14 border-border/60 hover:border-primary/50 hover:bg-primary/5"
+              disabled={isProcessing}
+              onClick={() => handleRetry('cryptobot')}
+            >
+              <Bitcoin className="w-5 h-5 mr-3 text-orange-500" />
+              <div className="flex flex-col items-start">
+                <span className="font-semibold text-foreground">Криптовалюта</span>
+                <span className="text-xs text-muted-foreground mt-0.5">CryptoBot (USDT, TON, BTC)</span>
+              </div>
+              {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -45,6 +45,31 @@ async function showFinalConfirmation(ctx: any) {
     return ctx.scene.leave();
   }
 
+  // --- REQUIREMENTS CHECK (Human-in-the-loop protection) ---
+  const reqs = (service.features as any)?.requirements;
+  if (reqs && Array.isArray(reqs) && reqs.length > 0 && !ctx.wizard.state.orderData.requirementsConfirmed) {
+    const reqText = reqs.map((r: string) => {
+      // Превращаем URL в кликабельные ссылки для Telegram HTML
+      const linked = r.replace(/(https?:\/\/[^\s]+)/g, (url: string) => `<a href="${url}">Инструкция</a>`);
+      return `• ${linked}`;
+    }).join('\n');
+    await ctx.reply(
+      `⚠️ <b>ВАЖНЫЕ ТРЕБОВАНИЯ К УСЛУГЕ</b>\n────────────────────\n` +
+      `Провайдер установил жесткие условия. Если их нарушить, заказ зависнет или будет отменен:\n\n` +
+      `${reqText}\n\n` +
+      `<i>Пожалуйста, подтвердите, что ваша ссылка соответствует требованиям.</i>`,
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('✅ Я всё проверил, продолжить', 'confirm_reqs')],
+          [Markup.button.callback('❌ Отмена', 'cancel_wizard')]
+        ])
+      }
+    );
+    return ctx.wizard.selectStep(6);
+  }
+  // ---------------------------------------------------------
+
   // Calculate total quantity (for drip-feed: qty is per-run, total = qty * runs)
   const totalQuantity = (isDripFeed && runs > 1) ? qty * runs : qty;
 
@@ -227,7 +252,7 @@ export const orderWizard = new Scenes.WizardScene(
 orderWizard.use(async (ctx: any, next: any) => {
   if (ctx.callbackQuery) {
     const data = ctx.callbackQuery.data;
-    const wizardActions = ['drip_', 'confirm_order', 'cancel_wizard'];
+    const wizardActions = ['drip_', 'confirm_order', 'cancel_wizard', 'confirm_reqs'];
     if (!wizardActions.some(p => data.startsWith(p))) {
       await ctx.scene.leave();
       return next();
@@ -238,6 +263,16 @@ orderWizard.use(async (ctx: any, next: any) => {
     return next();
   }
   return next();
+});
+
+// ──────────────────────────────────────────────────────────────
+// ACTION: Confirm Requirements
+// ──────────────────────────────────────────────────────────────
+orderWizard.action('confirm_reqs', async (ctx: any) => {
+  ctx.wizard.state.orderData.requirementsConfirmed = true;
+  await ctx.answerCbQuery();
+  await ctx.deleteMessage().catch(() => {});
+  return showFinalConfirmation(ctx);
 });
 
 // ──────────────────────────────────────────────────────────────

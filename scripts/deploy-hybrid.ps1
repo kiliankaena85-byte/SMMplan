@@ -31,6 +31,9 @@ $remoteCommands = @"
 
     echo 'Running migrations...'
     docker exec smmplan_lite_prod_app npx prisma migrate deploy
+
+    echo 'Restarting Nginx to clear upstream cache...'
+    docker restart smmplan_lite_prod_nginx
     
     echo 'Finalizing cleanup...'
     docker image prune -f --filter "until=24h"
