@@ -153,7 +153,14 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     const amountRub = (pricing.totalCents / 100).toFixed(2);
     let paymentUrl = '';
     let remoteGatewayId = '';
-    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/success`;
+    // Dynamically get the origin from headers to avoid misconfigured 0.0.0.0 env vars
+    const host = reqHeaders.get("host") || "localhost:3000";
+    const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") || host.includes("0.0.0.0") ? "http" : "https");
+    let origin = `${protocol}://${host}`;
+    if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('0.0.0.0')) {
+      origin = process.env.NEXT_PUBLIC_APP_URL;
+    }
+    const successUrl = `${origin}/success`;
 
     try {
       if (gateway === 'balance') {
@@ -416,7 +423,13 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const amountRub = (Number(order.charge) / 100).toFixed(2);
     let paymentUrl = '';
     let remoteGatewayId = '';
-    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/success`;
+    const host = reqHeaders.get("host") || "localhost:3000";
+    const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") || host.includes("0.0.0.0") ? "http" : "https");
+    let origin = `${protocol}://${host}`;
+    if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('0.0.0.0')) {
+      origin = process.env.NEXT_PUBLIC_APP_URL;
+    }
+    const successUrl = `${origin}/success`;
 
     try {
       if (gateway === 'balance') {

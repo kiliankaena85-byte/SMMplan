@@ -8,7 +8,7 @@ import { Zap, Check, CheckCircle2, Loader2, Link2, LogIn, ChevronRight, ChevronL
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -54,7 +54,41 @@ export function SmartLinkLanding({
   const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
   const [linkHasError, setLinkHasError] = useState(false);
+
+  const [isScrollingDown, setIsScrollingDown] = useState(false);
+  const lastScrollY = useRef(0);
+
+  // Всегда показываем панель при выборе или смене услуги
+  useEffect(() => {
+    if (selectedService) {
+      setIsScrollingDown(false);
+    }
+  }, [selectedService?.id]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (typeof window !== 'undefined') {
+        const currentScrollY = window.scrollY;
+        
+        if (currentScrollY > lastScrollY.current && currentScrollY > 150) {
+          setIsScrollingDown(true);
+        } else if (currentScrollY < lastScrollY.current - 5) {
+          setIsScrollingDown(false);
+        }
+        
+        if (window.innerHeight + currentScrollY >= document.body.offsetHeight - 100) {
+           setIsScrollingDown(false);
+        }
+
+        lastScrollY.current = currentScrollY;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const TOP_SLUGS = useMemo(() => ['telegram', 'vk', 'instagram', 'youtube', 'tiktok', 'twitch'], []);
   const { topNetworks, otherNetworks } = useMemo(() => {
@@ -139,6 +173,10 @@ export function SmartLinkLanding({
     if (carouselRef.current) carouselRef.current.scrollBy({ left: 250, behavior: 'smooth' });
   };
 
+  const isReadyToPay = useMemo(() => {
+    return !!(selectedService && url.trim().length >= 3 && !url.trim().includes(' ') && quantity >= (selectedService.minQty || 1) && agreedToTerms);
+  }, [selectedService, url, quantity, agreedToTerms]);
+
   const handleCheckout = async () => {
     if (!selectedService) {
       toast.error("Пожалуйста, выберите услугу.", { position: 'top-center' });
@@ -159,12 +197,6 @@ export function SmartLinkLanding({
       setShowLinkModal(true);
       return;
     }
-    if (/[а-яА-Я]/.test(rawUrl) && !rawUrl.includes('рф')) {
-      setLinkHasError(true);
-      toast.error("Ссылка содержит недопустимые символы (кириллицу).", { position: 'top-center' });
-      setShowLinkModal(true);
-      return;
-    }
 
     let finalUrl = rawUrl;
     if (!/^https?:\/\//i.test(finalUrl) && finalUrl.includes('.')) {
@@ -173,16 +205,11 @@ export function SmartLinkLanding({
 
     if (/^https?:\/\//i.test(finalUrl)) {
       try {
+        // Allow Cyrillic domains and paths by encoding the URL
         const u = new URL(finalUrl);
         if (!u.hostname.includes('.')) {
           setLinkHasError(true);
           toast.error("Указан некорректный домен.", { position: 'top-center' });
-          setShowLinkModal(true);
-          return;
-        }
-        if (u.pathname === '/' || u.pathname.length < 2) {
-          setLinkHasError(true);
-          toast.error("Укажите ссылку на конкретный профиль или пост, а не на главную страницу.", { position: 'top-center' });
           setShowLinkModal(true);
           return;
         }
@@ -216,6 +243,9 @@ export function SmartLinkLanding({
     }
     
     setIsSubmitting(true);
+    setShowReceipt(true);
+    
+    const startTime = Date.now();
     const res = await checkoutAction({
       serviceId: selectedService.id,
       link: finalUrl,
@@ -225,13 +255,19 @@ export function SmartLinkLanding({
       gateway: 'yookassa' // Standard generic checkout via yookassa
     });
     
-    setIsSubmitting(false);
-    if (res.success && res.data?.paymentUrl) {
-      window.location.href = res.data.paymentUrl;
-    } else {
-      const errorMessage = !res.success ? res.error : "Ошибка создания заказа. Попробуйте снова.";
-      toast.error(errorMessage, { position: 'top-center' });
-    }
+    const elapsed = Date.now() - startTime;
+    const remainingTime = Math.max(0, 2000 - elapsed);
+    
+    setTimeout(() => {
+      setIsSubmitting(false);
+      if (res.success && res.data?.paymentUrl) {
+        window.location.href = res.data.paymentUrl;
+      } else {
+        setShowReceipt(false);
+        const errorMessage = !res.success ? res.error : "Ошибка создания заказа. Попробуйте снова.";
+        toast.error(errorMessage, { position: 'top-center' });
+      }
+    }, remainingTime);
   };
 
   return (
@@ -835,8 +871,10 @@ export function SmartLinkLanding({
                        <Button 
                           onClick={handleCheckout}
                           disabled={isSubmitting}
-                          className={`min-w-[200px] h-16 rounded-full px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-2 group ${
-                             isSubmitting ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'
+                          className={`min-w-[200px] h-16 rounded-full px-8 text-white font-bold text-lg shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-2 group ${
+                             isSubmitting ? 'bg-slate-900 opacity-50 grayscale cursor-not-allowed' : 
+                             isReadyToPay ? 'bg-sky-500 hover:bg-sky-400 shadow-[0_0_20px_rgba(14,165,233,0.5)] animate-pulse hover:scale-[1.02] active:scale-95' : 
+                             'bg-slate-900 hover:bg-slate-800 hover:scale-[1.02] active:scale-95'
                           }`}
                        >
                           {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : (
@@ -928,7 +966,7 @@ export function SmartLinkLanding({
 
       {/* ══════════ DESKTOP STICKY CHECKOUT BAR (Финтех-бар) ══════════ */}
       <AnimatePresence>
-        {selectedService && (
+        {selectedService && !isScrollingDown && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -1020,8 +1058,10 @@ export function SmartLinkLanding({
                   <Button 
                     onClick={handleCheckout}
                     disabled={isSubmitting}
-                    className={`h-12 px-8 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-[0_10px_30px_-10px_rgba(255,255,255,0.2)] transition-all flex items-center justify-center gap-2 group ${
-                      isSubmitting ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'
+                    className={`h-12 px-8 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 group ${
+                      isSubmitting ? 'bg-white opacity-50 grayscale cursor-not-allowed text-slate-900' : 
+                      isReadyToPay ? 'bg-sky-500 text-white shadow-[0_0_25px_rgba(14,165,233,0.6)] animate-pulse hover:bg-sky-400 hover:scale-[1.02] active:scale-95' :
+                      'bg-white hover:bg-slate-100 text-slate-900 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.2)] hover:scale-[1.02] active:scale-95'
                     }`}
                   >
                     {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
@@ -1194,6 +1234,64 @@ export function SmartLinkLanding({
               <p className="text-[11px] text-slate-400 text-center mt-4">
                 Чек отправляется автоматически на указанный email
               </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════ RECEIPT ANIMATION MODAL ══════════ */}
+      <AnimatePresence>
+        {showReceipt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ y: 50, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              transition={{ type: "spring", damping: 20, stiffness: 200 }}
+              className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden relative border border-slate-100"
+            >
+              {/* Receipt top edge decoration */}
+              <div className="h-4 w-full flex space-x-1 px-1 bg-slate-100">
+                 {Array.from({length: 20}).map((_, i) => (
+                   <div key={i} className="w-full h-full bg-white rounded-b-full"></div>
+                 ))}
+              </div>
+              <div className="p-8 pt-6 text-center flex flex-col items-center">
+                 <div className="w-16 h-16 rounded-full bg-sky-50 flex items-center justify-center mb-4 relative">
+                     {isSubmitting ? (
+                       <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+                     ) : (
+                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
+                         <CheckCircle2 className="w-8 h-8 text-green-500" />
+                       </motion.div>
+                     )}
+                 </div>
+                 <h3 className="text-xl font-black text-slate-900 mb-1">Оформление заказа</h3>
+                 <p className="text-sm text-slate-500 mb-6 border-b border-dashed border-slate-200 pb-6 w-full">
+                    {isSubmitting ? 'Подтверждение и связь с кассой...' : 'Заказ успешно сформирован! Перенаправляем...'}
+                 </p>
+                 
+                 <div className="w-full flex justify-between text-sm mb-3">
+                   <span className="text-slate-500">Услуга:</span>
+                   <span className="font-bold text-slate-900 truncate max-w-[160px]">{selectedService?.name}</span>
+                 </div>
+                 <div className="w-full flex justify-between text-sm mb-3">
+                   <span className="text-slate-500">Ссылка:</span>
+                   <span className="font-bold text-slate-900 truncate max-w-[160px]">{url}</span>
+                 </div>
+                 <div className="w-full flex justify-between text-sm mb-6">
+                   <span className="text-slate-500">Кол-во:</span>
+                   <span className="font-bold text-slate-900">{quantity} шт.</span>
+                 </div>
+                 
+                 <div className="w-full flex justify-between items-center text-lg border-t border-slate-200 pt-5">
+                   <span className="font-bold text-slate-900">К оплате:</span>
+                   <span className="font-black text-sky-500 text-2xl">{totalPriceFormatted} ₽</span>
+                 </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
