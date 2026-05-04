@@ -72,6 +72,8 @@ export async function updateGlobalSettings(formData: FormData) {
       welcomeMessage,
       yookassaShopId,
       yookassaSecretKey: rawYookassaSecret,
+      yookassaTestShopId,
+      yookassaTestSecretKey: rawYookassaTestSecret,
       cryptoBotToken: rawCryptoBotToken,
       exchangeRateUSD,
     } = parsed.data;
@@ -92,6 +94,8 @@ export async function updateGlobalSettings(formData: FormData) {
     // Only update secrets if they are provided (prevent overwriting with empty)
     if (yookassaShopId) dataToUpdate.yookassaShopId = yookassaShopId;
     if (rawYookassaSecret) dataToUpdate.yookassaSecretKey = VaultService.encrypt(rawYookassaSecret);
+    if (yookassaTestShopId) dataToUpdate.yookassaTestShopId = yookassaTestShopId;
+    if (rawYookassaTestSecret) dataToUpdate.yookassaTestSecretKey = VaultService.encrypt(rawYookassaTestSecret);
     if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
 
     await settingsService.updateSystemSettings(dataToUpdate);

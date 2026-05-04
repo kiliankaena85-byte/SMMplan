@@ -295,8 +295,12 @@ model SystemSettings {
   welcomeMessage String? @default("Добро пожаловать в Smmplan! Ваш персональный кабинет готов к работе.")
 
   // Payment Gateways (Secrets are AES-256-GCM encrypted in DB)
+  // Production keys
   yookassaShopId    String?
   yookassaSecretKey String?
+  // Test keys (used when isTestMode = true)
+  yookassaTestShopId    String?
+  yookassaTestSecretKey String?
   cryptoBotToken    String?
 
   // Catalog settings

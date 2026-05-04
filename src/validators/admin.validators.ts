@@ -45,6 +45,8 @@ export const globalSettingsSchema = z.object({
   welcomeMessage: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   yookassaShopId: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   yookassaSecretKey: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  yookassaTestShopId: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  yookassaTestSecretKey: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   cryptoBotToken: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   exchangeRateUSD: z.coerce.number().min(0).optional(),
 });

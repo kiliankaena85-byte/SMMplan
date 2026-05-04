@@ -59,9 +59,19 @@ export class SettingsProvider {
    */
   static async getPaymentSecrets(): Promise<DecryptedPaymentSecrets> {
     const settings = await this.getCached();
+    const useTestKeys = settings.isTestMode;
+
+    // In test mode: prefer test keys, fall back to production keys
+    const shopId = useTestKeys
+      ? (settings.yookassaTestShopId || settings.yookassaShopId)
+      : settings.yookassaShopId;
+    const secretKeyRaw = useTestKeys
+      ? (settings.yookassaTestSecretKey || settings.yookassaSecretKey)
+      : settings.yookassaSecretKey;
+
     return {
-      yookassaShopId: settings.yookassaShopId,
-      yookassaSecretKey: settings.yookassaSecretKey ? VaultService.decrypt(settings.yookassaSecretKey) : null,
+      yookassaShopId: shopId,
+      yookassaSecretKey: secretKeyRaw ? VaultService.decrypt(secretKeyRaw) : null,
       cryptoBotToken: settings.cryptoBotToken ? VaultService.decrypt(settings.cryptoBotToken) : null
     };
   }
