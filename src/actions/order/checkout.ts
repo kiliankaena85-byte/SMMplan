@@ -58,16 +58,34 @@ const checkoutSchema = z.object({
   runs: z.number().int().positive().optional(),
   interval: z.number().int().positive().optional(),
   customData: z.string().optional(),
-  gateway: z.string().default('yookassa')
+  gateway: z.string().default('yookassa'),
+  idempotencyKey: z.string().optional()
 });
 
 export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
-    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway } = data;
+    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey } = data;
+    
     // 0. Rate limit
     const isAllowed = await RateLimitService.check("checkoutCore", 15, 60);
     if (!isAllowed) {
       throw new Error("Слишком много запросов. Попробуйте через минуту.");
+    }
+
+    // 0.5 Idempotency Check (Wave 1)
+    if (idempotencyKey) {
+      const existingOrder = await db.order.findUnique({
+        where: { idempotencyKey },
+        include: { payment: true }
+      });
+      if (existingOrder) {
+        console.log(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);
+        return {
+          orderId: existingOrder.id,
+          paymentId: existingOrder.paymentId,
+          paymentUrl: existingOrder.payment?.checkoutUrl || ''
+        };
+      }
     }
 
     // 1. Validate email
@@ -76,7 +94,10 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     }
 
     // 2. Validate service exists
-    const service = await db.service.findUnique({ where: { id: serviceId } });
+    const service = await db.service.findUnique({ 
+      where: { id: serviceId },
+      include: { category: { include: { network: true } } }
+    });
     if (!service || !service.isActive) {
       throw new Error("Услуга не найдена или неактивна");
     }
@@ -87,6 +108,27 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     if (quantity < service.minQty || quantity > service.maxQty) {
       throw new Error(`Количество должно быть от ${service.minQty} до ${service.maxQty}`);
+    }
+
+    if (customData && customData.length > 5000) {
+      throw new Error('Слишком длинные пользовательские данные (макс. 5000 символов)');
+    }
+
+    // Platform specific URL validation
+    const platform = service.category?.network?.name?.toLowerCase() || '';
+    const normalizedLink = link.toLowerCase();
+    
+    if (platform === 'telegram' && !normalizedLink.includes('t.me/') && !normalizedLink.includes('@')) {
+      throw new Error('Для Telegram ссылка должна содержать "t.me/" или "@username"');
+    }
+    if (platform.includes('vk') && !normalizedLink.includes('vk.com/') && !normalizedLink.includes('vk.ru/')) {
+      throw new Error('Для ВКонтакте ссылка должна содержать "vk.com/"');
+    }
+    if (platform === 'instagram' && !normalizedLink.includes('instagram.com/')) {
+      throw new Error('Для Instagram ссылка должна содержать "instagram.com/"');
+    }
+    if (platform === 'youtube' && !normalizedLink.includes('youtube.com/') && !normalizedLink.includes('youtu.be/')) {
+      throw new Error('Для YouTube ссылка должна содержать "youtube.com/" или "youtu.be/"');
     }
 
     const isTestMode = await SettingsManager.isTestMode();
@@ -123,7 +165,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           interval,
           isTest: isTestMode,
           customData,
-          remains: totalQuantity
+          remains: totalQuantity,
+          idempotencyKey
         }
       });
 
@@ -215,10 +258,14 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         paymentUrl = successUrl;
         remoteGatewayId = `internal_${Date.now()}`;
       } else if (gateway === 'yookassa') {
-        const secrets = await SettingsManager.getPaymentSecrets();
-        const shopId = secrets.yookassaShopId;
-        const secretKey = secrets.yookassaSecretKey;
-        if (!shopId || !secretKey) throw new Error('YooKassa is not configured in Admin Panel');
+        if (process.env.NODE_ENV === 'test') {
+          paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${result.paymentId}&orderId=${result.orderId}`;
+          remoteGatewayId = `mock_${Date.now()}`;
+        } else {
+          const secrets = await SettingsManager.getPaymentSecrets();
+          const shopId = secrets.yookassaShopId;
+          const secretKey = secrets.yookassaSecretKey;
+          if (!shopId || !secretKey) throw new Error('YooKassa is not configured in Admin Panel');
 
         const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
         const payload: any = {
@@ -269,8 +316,12 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         const data = await resp.json();
         paymentUrl = data.confirmation.confirmation_url;
         remoteGatewayId = data.id;
-
+        }
       } else if (gateway === 'cryptobot') {
+        if (process.env.NODE_ENV === 'test') {
+          paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${result.paymentId}&orderId=${result.orderId}`;
+          remoteGatewayId = `mock_${Date.now()}`;
+        } else {
 
           const secrets = await SettingsManager.getPaymentSecrets();
           const cryptoToken = secrets.cryptoBotToken;
@@ -302,6 +353,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           
           paymentUrl = data.result.pay_url;
           remoteGatewayId = data.result.invoice_id.toString();
+        }
       }
 
       // 7. Store the remoteGatewayId and checkoutUrl on the Payment record so Webhooks can match it and Users can resume payment
@@ -363,6 +415,29 @@ const retryCheckoutSchema = z.object({
   gateway: z.string().default('yookassa')
 });
 
+// Утилита для синхронной проверки статуса YooKassa (предотвращение двойной оплаты)
+async function checkYookassaStatusSync(gatewayId: string): Promise<boolean> {
+  try {
+    const secrets = await SettingsManager.getPaymentSecrets();
+    const shopId = secrets.yookassaShopId;
+    const secretKey = secrets.yookassaSecretKey;
+    if (!shopId || !secretKey) return false;
+
+    const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+    const resp = await fetch(`https://api.yookassa.ru/v3/payments/${gatewayId}`, {
+      method: 'GET',
+      headers: { 'Authorization': authHeader }
+    });
+
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    return data.status === 'succeeded' || data.status === 'waiting_for_capture';
+  } catch (e) {
+    console.error('[YookassaSync] Error checking status', e);
+    return false;
+  }
+}
+
 export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSchema>) => {
   return createSafeAction(retryCheckoutSchema, input, async (data) => {
     const { orderId, gateway } = data;
@@ -381,6 +456,29 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
 
     if (!order) throw new Error("Заказ не найден");
     if (order.status !== 'AWAITING_PAYMENT') throw new Error("Этот заказ больше не ожидает оплаты");
+
+    // Защита от двойной оплаты: если предыдущий платеж был через YooKassa и имеет gatewayId
+    if (order.payment?.gateway === 'yookassa' && order.payment.gatewayId) {
+      const isActuallyPaid = await checkYookassaStatusSync(order.payment.gatewayId);
+      if (isActuallyPaid) {
+        // Платеж уже успешен, вебхук запаздывает. Обновляем статус и возвращаем ссылку на success.
+        await db.$transaction(async (tx) => {
+          await tx.payment.update({
+            where: { id: order.payment!.id },
+            data: { status: 'SUCCEEDED' }
+          });
+          await tx.order.update({
+            where: { id: order.id },
+            data: { status: 'PENDING' }
+          });
+        });
+        
+        let host = reqHeaders.get("host") || "localhost:3000";
+        if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
+        const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+        return { orderId: order.id, paymentId: order.payment.id, paymentUrl: `${protocol}://${host}/success` };
+      }
+    }
 
     const isTestMode = await SettingsManager.isTestMode();
 
@@ -469,10 +567,14 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         paymentUrl = successUrl;
         remoteGatewayId = `internal_${Date.now()}`;
       } else if (gateway === 'yookassa') {
-        const secrets = await SettingsManager.getPaymentSecrets();
-        const shopId = secrets.yookassaShopId;
-        const secretKey = secrets.yookassaSecretKey;
-        if (!shopId || !secretKey) throw new Error('YooKassa is not configured');
+        if (process.env.NODE_ENV === 'test') {
+          paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${result.paymentId}&orderId=${order.id}`;
+          remoteGatewayId = `mock_${Date.now()}`;
+        } else {
+          const secrets = await SettingsManager.getPaymentSecrets();
+          const shopId = secrets.yookassaShopId;
+          const secretKey = secrets.yookassaSecretKey;
+          if (!shopId || !secretKey) throw new Error('YooKassa is not configured');
 
         const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
         const payload: any = {
@@ -506,7 +608,12 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         const data = await resp.json();
         paymentUrl = data.confirmation.confirmation_url;
         remoteGatewayId = data.id;
+        }
       } else if (gateway === 'cryptobot') {
+        if (process.env.NODE_ENV === 'test') {
+          paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${result.paymentId}&orderId=${order.id}`;
+          remoteGatewayId = `mock_${Date.now()}`;
+        } else {
           const secrets = await SettingsManager.getPaymentSecrets();
           if (!secrets.cryptoBotToken) throw new Error('CryptoBot is not configured');
 
@@ -526,6 +633,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
           
           paymentUrl = data.result.pay_url;
           remoteGatewayId = data.result.invoice_id.toString();
+        }
       }
 
       if (remoteGatewayId || paymentUrl) {

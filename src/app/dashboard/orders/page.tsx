@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import Link from 'next/link';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
+import { MobileOrderList } from '@/components/orders/MobileOrderList';
 
 export const dynamic = 'force-dynamic';
 
@@ -211,73 +212,8 @@ export default async function OrdersPage() {
           </table>
         </div>
 
-        {/* Mobile cards */}
-        <div className="sm:hidden divide-y divide-border">
-          {orders.map((order) => {
-            const color = STATUS_COLOR[order.status] || STATUS_COLOR.CANCELED;
-            const label = STATUS_LABEL[order.status] || order.status;
-            return (
-              <div key={order.id} className="p-4 space-y-2">
-                <Link
-                  href={`/dashboard/orders/${order.id}`}
-                  className="block space-y-2"
-                  aria-label={`Открыть заказ #${order.numericId}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-mono text-muted-foreground">#{order.numericId}</div>
-                      
-                      <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1 flex items-center gap-1">
-                        {order.service.category?.network?.name && (
-                          <span className="text-primary">{order.service.category.network.name}</span>
-                        )}
-                        {order.service.category?.name && (
-                          <>
-                            <span className="text-muted-foreground/50">•</span>
-                            <span>{order.service.category.name}</span>
-                          </>
-                        )}
-                      </div>
-                      
-                      <div className="text-sm font-medium text-foreground line-clamp-2 mt-0.5 hover:text-primary transition-colors">
-                        {order.service.name}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-sm font-bold text-foreground tabular-nums">
-                        {(Number(order.charge) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${color}`}>
-                        {label}
-                      </span>
-                    </div>
-                  </div>
-                  {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
-                    <div className="pt-1 flex gap-2" onClick={(e) => e.preventDefault()}>
-                      <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
-                      {order.status === 'AWAITING_PAYMENT' && user && (
-                        <RetryPaymentModal 
-                          orderId={order.id} 
-                          charge={Number(order.charge)} 
-                          balance={Number(user.balance)} 
-                        />
-                      )}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="tabular-nums">{order.quantity.toLocaleString('ru-RU')} шт.</span>
-                    <span>
-                      {order.createdAt.toLocaleDateString('ru-RU', {
-                        day: '2-digit',
-                        month: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                </Link>
-              </div>
-            );
-          })}
-        </div>
+        {/* Mobile cards (Virtualized + Drawer) */}
+        <MobileOrderList orders={orders} user={user} />
 
         {orders.length === 0 && (
           <div className="py-16 text-center">

@@ -1,0 +1,14 @@
+{
+  "type": "notification",
+  "event": "payment.succeeded",
+  "object": {
+    "id": "318b2839-000f-5000-8000-14e4b5182fc6",
+    "status": "succeeded",
+    "amount": { "value": "100.00", "currency": "RUB" },
+    "metadata": { 
+        "orderId": "cmorqinz50003jw4k8f0xfo81",
+        "gatewayId": "cmorqinzt0005jw4kbjmqohnc",
+        "userId": "GUEST"
+    }
+  }
+}

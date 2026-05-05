@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
+import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvider';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -46,9 +47,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" className={inter.variable}>
       <body className="font-sans antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <NetworkAwareProvider>
+            {children}
+          </NetworkAwareProvider>
+        </Providers>
         <Toaster
-          position="top-right"
           richColors
           closeButton
           duration={4000}

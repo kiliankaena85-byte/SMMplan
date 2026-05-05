@@ -73,8 +73,8 @@ describe('Server Actions: Checkout Integration', () => {
     const orderInDb = await db.order.findFirst({ where: { email: 'buyer@example.com' } });
     expect(orderInDb).toBeDefined();
     expect(orderInDb?.status).toBe('AWAITING_PAYMENT');
-    expect(orderInDb?.charge).toBe(7500);
-    expect(orderInDb?.providerCost).toBe(2500); // 500 * (50/1000) = 25 RUB = 2500 cents
+    expect(orderInDb?.charge).toBe(7500n);
+    expect(orderInDb?.providerCost).toBe(2500n); // 500 * (50/1000) = 25 RUB = 2500 cents
   });
 
   it('Refuses to create order out of bounds', async () => {

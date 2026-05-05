@@ -8,6 +8,7 @@ import {
   ProviderOrderStatusDto, 
   ProviderServiceDto 
 } from './base-provider';
+import { CircuitBreaker } from '@/lib/circuit-breaker';
 
 export class UniversalProvider implements BaseProvider {
   private apiUrl: string;
@@ -37,6 +38,9 @@ export class UniversalProvider implements BaseProvider {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds circuit breaker
 
+    // 1. Check Circuit Breaker before firing
+    await CircuitBreaker.check(this.apiUrl);
+
     try {
       const response = await fetch(this.apiUrl, {
         method: 'POST',
@@ -55,11 +59,19 @@ export class UniversalProvider implements BaseProvider {
 
       const text = await response.text();
       try {
-        return JSON.parse(text) as T;
+        const data = JSON.parse(text) as T;
+        // Request succeeded, register success
+        await CircuitBreaker.recordSuccess(this.apiUrl);
+        return data;
       } catch (jsonErr) {
         throw new Error(`Provider returned invalid JSON: ${text.substring(0, 50)}...`);
       }
     } catch (error: any) {
+      // Don't record failure if the circuit was already OPEN and we just threw an exception locally
+      if (error.name !== 'CircuitBreakerOpenException') {
+        await CircuitBreaker.recordFailure(this.apiUrl);
+      }
+
       if (error.name === 'AbortError') {
         throw new Error('Provider Request Timeout');
       }

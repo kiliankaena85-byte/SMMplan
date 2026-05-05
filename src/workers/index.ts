@@ -8,6 +8,7 @@ import orderProcessor from './processors/order.processor';
 import dripfeedProcessor from './processors/dripfeed.processor';
 import syncProcessor from './processors/sync.processor';
 import { runCleanup } from './processors/cleanup.processor';
+import { orderService } from '../services/core/order.service';
 
 const log = logger.child({ component: 'WorkerManager' });
 log.info('🚀 Starting BullMQ workers...');
@@ -49,6 +50,15 @@ async function handleDeadLetter(
         error: err.message,
         failedAt: new Date().toISOString(),
       });
+
+      // 🔥 Option B: Automatic Refund & State transition
+      if (queueName === 'ordersQueue') {
+        const payload = job.data as any;
+        if (payload?.orderId) {
+           await orderService.failOrderTerminal(payload.orderId, err.message);
+           log.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+        }
+      }
 
       await sendAdminAlert(
         `🪦 *Dead Letter Job*\n\nQueue: \`${queueName}\`\nJob ID: \`${job.id}\`\nAttempts: ${job.attemptsMade}/${maxAttempts}\n\nError: ${err.message}`,

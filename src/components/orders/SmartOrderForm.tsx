@@ -53,9 +53,29 @@ export function SmartOrderForm() {
   const { agreedToTerms, setAgreedToTerms } = engine;
 
   const formRef = React.useRef<HTMLFormElement>(null);
+  const idempotencyKeyRef = React.useRef<string>('');
   const [showRequirementsModal, setShowRequirementsModal] = useState(false);
   const [requirementsConfirmed, setRequirementsConfirmed] = useState(false);
   const [modalRequirements, setModalRequirements] = useState<string[]>([]);
+  const [viewportBottom, setViewportBottom] = useState(0);
+
+  React.useEffect(() => {
+    idempotencyKeyRef.current = crypto.randomUUID();
+    
+    if (!window.visualViewport) return;
+    const vp = window.visualViewport;
+    const update = () => {
+      const diff = window.innerHeight - vp.height;
+      setViewportBottom(diff > 0 ? diff : 0);
+    };
+    vp.addEventListener('resize', update);
+    vp.addEventListener('scroll', update);
+    update();
+    return () => {
+      vp.removeEventListener('resize', update);
+      vp.removeEventListener('scroll', update);
+    };
+  }, []);
 
   React.useEffect(() => {
     setRequirementsConfirmed(false);
@@ -109,6 +129,7 @@ export function SmartOrderForm() {
       interval: dripFeedEnabled ? dripInterval : undefined,
       customData: engine.customData || undefined,
       gateway,
+      idempotencyKey: idempotencyKeyRef.current,
     });
 
     if (res.success && res.data?.paymentUrl) {
@@ -211,6 +232,11 @@ export function SmartOrderForm() {
               onChange={e => setUrl(e.target.value)}
               placeholder="Ссылка на пост, канал или профиль"
               aria-label="Ссылка на страницу для продвижения"
+              inputMode="url"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               className={`${inputCls} h-14 pl-12 pr-4 text-base`}
             />
           </div>
@@ -311,7 +337,7 @@ export function SmartOrderForm() {
                           value={engine.customData}
                           onChange={e => engine.setCustomData(e.target.value)}
                           placeholder="Супер!\nОтличное видео!\nСогласен."
-                          className={`${inputCls} min-h-[100px] py-3 px-4 resize-y`}
+                          className={`${inputCls} text-base min-h-[100px] py-3 px-4 resize-y`}
                           required
                         />
                       </div>
@@ -326,7 +352,8 @@ export function SmartOrderForm() {
                           value={engine.customData}
                           onChange={e => engine.setCustomData(e.target.value)}
                           placeholder={isPoll ? "Например: 2" : "блог, новости, инвестиции"}
-                          className={`${inputCls} h-12 px-4`}
+                          inputMode={isPoll ? "numeric" : "text"}
+                          className={`${inputCls} text-base h-12 px-4`}
                           required
                         />
                       </div>
@@ -355,6 +382,7 @@ export function SmartOrderForm() {
                     onChange={e => setQuantity(parseInt(e.target.value) || 0)}
                     min={selectedService.minQty}
                     aria-label="Количество"
+                    inputMode="numeric"
                     className={`${inputCls} h-12 text-center font-black text-slate-900 tabular-nums font-mono text-lg focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:outline-none placeholder:font-normal`}
                   />
                   <button
@@ -385,8 +413,9 @@ export function SmartOrderForm() {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     type="email"
+                    inputMode="email"
                     aria-label="Email для уведомлений о заказе"
-                    className={`${inputCls} pl-10 h-11`}
+                    className={`${inputCls} text-base pl-10 h-11`}
                     placeholder="your@email.com"
                   />
                 </div>
@@ -451,60 +480,70 @@ export function SmartOrderForm() {
                 </div>
               </div>
 
-              {/* Consent */}
-              <div className="bg-slate-50 ring-1 ring-slate-100 rounded-xl p-2 px-3 hover:bg-slate-100/50 transition-colors">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  {/* Expanded touch target 44x44 */}
-                  <span className="inline-flex items-center justify-center w-11 h-11 pointer-events-none shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={agreedToTerms}
-                      onChange={e => setAgreedToTerms(e.target.checked)}
-                      aria-label="Согласие с публичной офертой и правилами возврата"
-                      className="w-5 h-5 rounded border-slate-300 text-sky-500 focus:ring-sky-500/30 cursor-pointer pointer-events-auto"
-                    />
-                  </span>
-                  <span className="text-xs text-muted-foreground leading-relaxed">
-                    Я подтверждаю заказ и соглашаюсь с{' '}
-                    <Link
-                      href="/legal/terms"
-                      className="text-foreground underline hover:no-underline font-semibold"
-                      target="_blank"
-                    >
-                      Договором оферты
-                    </Link>{' '}
-                    и{' '}
-                    <Link
-                      href="/legal/refund"
-                      className="text-foreground underline hover:no-underline font-semibold"
-                      target="_blank"
-                    >
-                      Политикой возврата (Refund Policy)
-                    </Link>
-                  </span>
-                </label>
+              {/* Floating Bottom Bar (VisualViewport Aware) */}
+              <div 
+                className="fixed left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] p-4 z-50 lg:static lg:bg-transparent lg:border-none lg:shadow-none lg:p-0"
+                style={{ 
+                  bottom: viewportBottom > 0 ? `${viewportBottom}px` : '0px',
+                  paddingBottom: viewportBottom > 0 ? '1rem' : 'max(1rem, env(safe-area-inset-bottom))'
+                }}
+              >
+                {/* Consent */}
+                <div className="bg-slate-50 ring-1 ring-slate-100 rounded-xl p-2 px-3 hover:bg-slate-100/50 transition-colors mb-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    {/* Expanded touch target 44x44 */}
+                    <span className="inline-flex items-center justify-center w-11 h-11 pointer-events-none shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={agreedToTerms}
+                        onChange={e => {
+                          if (navigator.vibrate) navigator.vibrate(20);
+                          setAgreedToTerms(e.target.checked);
+                        }}
+                        aria-label="Согласие с публичной офертой и правилами возврата"
+                        className="w-5 h-5 rounded border-slate-300 text-sky-500 focus:ring-sky-500/30 cursor-pointer pointer-events-auto"
+                      />
+                    </span>
+                    <span className="text-xs text-muted-foreground leading-relaxed mt-2.5">
+                      Я подтверждаю заказ и соглашаюсь с{' '}
+                      <Link
+                        href="/legal/terms"
+                        className="text-foreground underline hover:no-underline font-semibold"
+                        target="_blank"
+                      >
+                        Договором оферты
+                      </Link>
+                    </span>
+                  </label>
+                </div>
+
+                {/* Submit */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    handlePreSubmit();
+                  }}
+                  disabled={(() => {
+                    if (!selectedService || quantity < selectedService.minQty || isCalculating || !agreedToTerms) return true;
+                    const sName = selectedService.name.toLowerCase();
+                    const needsPayload = sName.includes('свои') || sName.includes('свой текст') || sName.includes('ключево') || sName.includes('опрос') || sName.includes('голосование');
+                    if (needsPayload && !engine.customData.trim()) return true;
+                    return false;
+                  })()}
+                  aria-label="Создать заказ и перейти к оплате"
+                  className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all duration-200 ${
+                    agreedToTerms
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed'
+                  }`}
+                >
+                  Оплатить {totalPriceFormatted} ₽ <ArrowRight className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Submit */}
-              <button
-                type="button"
-                onClick={handlePreSubmit}
-                disabled={(() => {
-                  if (!selectedService || quantity < selectedService.minQty || isCalculating || !agreedToTerms) return true;
-                  const sName = selectedService.name.toLowerCase();
-                  const needsPayload = sName.includes('свои') || sName.includes('свой текст') || sName.includes('ключево') || sName.includes('опрос') || sName.includes('голосование');
-                  if (needsPayload && !engine.customData.trim()) return true;
-                  return false;
-                })()}
-                aria-label="Создать заказ и перейти к оплате"
-                className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 ${
-                  agreedToTerms
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed'
-                }`}
-              >
-                Оплатить {totalPriceFormatted} ₽ <ArrowRight className="w-4 h-4" />
-              </button>
+              {/* Spacer so content isn't hidden under floating bar on mobile */}
+              <div className="h-40 lg:hidden" />
             </ActionForm>
           </div>
         )}

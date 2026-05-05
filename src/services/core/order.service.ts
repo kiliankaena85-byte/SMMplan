@@ -242,6 +242,58 @@ export class OrderService {
       return { success: false };
     }
   }
+
+  /**
+   * Terminal Failure (DLQ).
+   * Marks order as ERROR, refunds the full amount automatically.
+   */
+  async failOrderTerminal(orderId: string, reason: string): Promise<void> {
+    try {
+      await db.$transaction(async (tx) => {
+        const order = await tx.order.findUnique({
+          where: { id: orderId }
+        });
+
+        if (!order || ['COMPLETED', 'CANCELED', 'PARTIAL', 'ERROR'].includes(order.status)) {
+          return; // Already terminal
+        }
+
+        // Update status
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: 'ERROR', updatedAt: new Date() }
+        });
+
+        // Full Refund
+        const refundKey = `refund-dlq-${order.id}`;
+        const existingLedger = await tx.ledgerEntry.findUnique({
+           where: { idempotencyKey: refundKey }
+        });
+
+        if (!existingLedger && order.charge > 0) {
+          await tx.user.update({
+            where: { id: order.userId },
+            data: { 
+              balance: { increment: order.charge },
+              totalSpent: { decrement: order.charge } 
+            }
+          });
+
+          await tx.ledgerEntry.create({
+            data: {
+              userId: order.userId,
+              amount: order.charge,
+              reason: `Авто-возврат: Ошибка запуска (DLQ). Заказ #${order.numericId}. ${reason}`,
+              status: 'APPROVED',
+              idempotencyKey: refundKey
+            }
+          });
+        }
+      }, { isolationLevel: 'Serializable' });
+    } catch (e: any) {
+      console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e.message);
+    }
+  }
 }
 
 export const orderService = new OrderService();

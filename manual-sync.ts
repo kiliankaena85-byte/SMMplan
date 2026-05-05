@@ -1,0 +1,1 @@
+import { adminSyncProviderCatalog } from './src/actions/admin/providers/sync-action'; import { PrismaClient } from '@prisma/client'; const prisma = new PrismaClient(); async function run() { console.log('Starting catalog sync...'); const result = await adminSyncProviderCatalog(); console.log(result); } run().finally(() => prisma.$disconnect());

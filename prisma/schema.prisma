@@ -8,33 +8,33 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(cuid())
-  email             String   @unique
-  role              String   @default("USER") // USER, SUPPORT, MANAGER, OWNER
-  balance           BigInt   @default(0)
-  quarantineBalance BigInt   @default(0) // Funds pending Owner approval (Escrow)
-  totalSpent        BigInt   @default(0) // Lifetime value in Cents
-  personalDiscount  Float    @default(0.0) // Manual discount override in %, max 100
+  id                String    @id @default(cuid())
+  email             String    @unique
+  role              String    @default("USER") // USER, SUPPORT, MANAGER, OWNER
+  balance           BigInt    @default(0)
+  quarantineBalance BigInt    @default(0) // Funds pending Owner approval (Escrow)
+  totalSpent        BigInt    @default(0) // Lifetime value in Cents
+  personalDiscount  Float     @default(0.0) // Manual discount override in %, max 100
   discountEndsAt    DateTime? // If set — discount expires at this datetime
-  
+
   // Trust budget (for compensation/refunds by support)
-  supportLimitCents     Int      @default(50000) // 500 RUB default trust budget
-  supportSpentTodayCents Int      @default(0)     // Track daily spending
-  supportLastResetAt    DateTime @default(now()) // For auto-reset logic
-  
-  apiKey            String?  @unique
-  referralCode      String?  @unique
-  referredById      String?
-  referralBalance   Int      @default(0)
-  telegramId        String? // Telegram user ID for omnichannel support routing
+  supportLimitCents      Int      @default(50000) // 500 RUB default trust budget
+  supportSpentTodayCents Int      @default(0) // Track daily spending
+  supportLastResetAt     DateTime @default(now()) // For auto-reset logic
+
+  apiKey          String? @unique
+  referralCode    String? @unique
+  referredById    String?
+  referralBalance Int     @default(0)
+  telegramId      String? // Telegram user ID for omnichannel support routing
 
   // Operator notes (internal, never visible to client)
-  adminNote            String?   // Free-form operator note
-  adminNoteUpdatedAt   DateTime? // When the note was last updated
-  adminNoteUpdatedBy   String?   // Email of operator who wrote the note
+  adminNote          String? // Free-form operator note
+  adminNoteUpdatedAt DateTime? // When the note was last updated
+  adminNoteUpdatedBy String? // Email of operator who wrote the note
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   authTokens AuthToken[]
   sessions   Session[]
@@ -51,7 +51,7 @@ model User {
 
   // RBAC
   staffRoleId String?
-  staffRole   StaffRole?   @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
+  staffRole   StaffRole? @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
 }
 
 model PromoCode {
@@ -137,7 +137,7 @@ model Service {
   numericId   Int       @unique @default(autoincrement())
   name        String
   description String? // Public SEO description (shown to clients)
-  features    Json?   // Structured metadata extracted by AI (geo, speed, warranty)
+  features    Json? // Structured metadata extracted by AI (geo, speed, warranty)
   categoryId  String
   category    Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   providerId  String? // Link to Provider who fulfills this service
@@ -162,10 +162,10 @@ model Service {
   quarantineReason String? // Human-readable reason: "Price spike: +45%"
   quarantinedAt    DateTime? // When it was flagged
 
-  isActive  Boolean  @default(true)
-  pricePer1000Cents Int @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive          Boolean  @default(true)
+  pricePer1000Cents Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   orders Order[]
 
@@ -187,10 +187,10 @@ model Provider {
   updatedAt       DateTime @updatedAt
 
   // SLA Monitoring fields (P0.3)
-  errorCount5m    Int      @default(0)   // Errors in last 5 minutes (reset by sync)
-  lastErrorAt     DateTime?              // Last error timestamp
-  lastSuccessAt   DateTime?              // Last successful API response
-  avgResponseMs   Int      @default(0)   // Rolling average response time in ms
+  errorCount5m  Int       @default(0) // Errors in last 5 minutes (reset by sync)
+  lastErrorAt   DateTime? // Last error timestamp
+  lastSuccessAt DateTime? // Last successful API response
+  avgResponseMs Int       @default(0) // Rolling average response time in ms
 
   services Service[]
 }
@@ -227,16 +227,20 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  service Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   paymentId String?
   payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  refills Refill[]
+  refills   Refill[]
+
+  idempotencyKey String? @unique // Wave 1: Token to prevent double order creation
 
   @@index([userId])
   @@index([status])
-  @@index([createdAt])         // P2.2: temporal queries & analytics
+  @@index([createdAt]) // P2.2: temporal queries & analytics
   @@index([status, createdAt]) // P2.2: filtered + sorted admin queries
+  @@index([userId, status]) // Fast lookup for user orders by status
+  @@index([paymentId]) // Fast lookup for orders by payment (Order.paymentId foreign key)
 }
 
 model Refill {
@@ -256,12 +260,12 @@ model Refill {
 
 model Payment {
   id     String @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-  orderId   String?  @unique // Legacy pointer, no longer used as the active Prisma relation
+  orderId String? @unique // Legacy pointer, no longer used as the active Prisma relation
 
-  orders    Order[]
+  orders Order[]
 
   amount    BigInt // amount in Cents (BigInt: supports balances up to 90 trillion RUB)
   currency  String  @default("RUB")
@@ -273,7 +277,7 @@ model Payment {
   consentIp        String?
   consentUserAgent String?
 
-  checkoutUrl      String?  // Persistent checkout URL to allow users to resume payment
+  checkoutUrl String? // Persistent checkout URL to allow users to resume payment
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -296,12 +300,12 @@ model SystemSettings {
 
   // Payment Gateways (Secrets are AES-256-GCM encrypted in DB)
   // Production keys
-  yookassaShopId    String?
-  yookassaSecretKey String?
+  yookassaShopId        String?
+  yookassaSecretKey     String?
   // Test keys (used when isTestMode = true)
   yookassaTestShopId    String?
   yookassaTestSecretKey String?
-  cryptoBotToken    String?
+  cryptoBotToken        String?
 
   // Catalog settings
   quarantineThreshold   Float     @default(0.20) // 20% price spike triggers quarantine
@@ -454,7 +458,7 @@ model AnalyticsEvent {
   sessionId String?
   createdAt DateTime @default(now())
 
-  @@index([event])     // P2.2: filter by event type
+  @@index([event]) // P2.2: filter by event type
   @@index([createdAt]) // P2.2: TTL cleanup & temporal queries
 }
 
