@@ -45,13 +45,13 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
           // Redirect to external gateway
           window.location.href = res.data.paymentUrl;
         } else {
-          toast.error('Шлюз не вернул ссылку на оплату');
+          toast.error('Не удалось создать ссылку для оплаты. Попробуйте ещё раз через минуту.');
         }
       } else {
-        toast.error(res.error || 'Ошибка при генерации платежа');
+        toast.error(res.error || 'Платёжная система временно недоступна. Попробуйте позже или выберите другой способ оплаты.');
       }
     } catch (e: any) {
-      toast.error(e.message || 'Сетевая ошибка');
+      toast.error('Проблема с интернет-соединением. Проверьте связь и попробуйте снова.');
     } finally {
       setIsProcessing(false);
     }
@@ -66,7 +66,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
               size="sm" 
               className="w-full sm:w-auto px-4 py-1.5 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors flex items-center gap-2 shadow-sm h-8"
             >
-              <Wallet className="w-3 h-3" /> Оплатить
+              <Wallet className="w-3 h-3" /> Оплатить / Проверить
             </Button>
           )
         }
@@ -76,6 +76,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
           <DialogTitle>Завершение оплаты</DialogTitle>
           <DialogDescription>
             Заказ ожидает оплаты. Выберите удобный способ, чтобы запустить его в работу.
+            <br/><span className="text-emerald-600/90 dark:text-emerald-400 mt-2 block">💡 Если вы уже оплатили, просто выберите тот же способ — система проверит статус платежа и запустит заказ без повторного списания.</span>
           </DialogDescription>
         </DialogHeader>
 

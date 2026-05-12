@@ -243,6 +243,20 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                         <div className="text-xs font-semibold">{selectedOrder.error}</div>
                       </div>
                     )}
+
+                    {/* Action Buttons */}
+                    {['PENDING', 'AWAITING_PAYMENT'].includes(selectedOrder.status) && (
+                      <div className="flex gap-3 pt-2">
+                        <CancelOrderButton orderId={selectedOrder.id} createdAt={selectedOrder.createdAt} status={selectedOrder.status} />
+                        {selectedOrder.status === 'AWAITING_PAYMENT' && user && (
+                          <RetryPaymentModal 
+                            orderId={selectedOrder.id} 
+                            charge={Number(selectedOrder.charge)} 
+                            balance={Number(user.balance)} 
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </DrawerBody>

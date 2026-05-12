@@ -30,10 +30,10 @@ export default async function AdminDashboardPage() {
     adminOrderService.getOrdersTimeseries(30),
   ]);
 
-  let revenueGross = metrics.revenueGross;
-  let profitNet = metrics.profitNet;
+  const revenueGross = metrics.revenueGross;
+  const profitNet = metrics.profitNet;
   let marginPercentage = metrics.marginPercentage;
-  let totalLiability = userStats.totalLiability;
+  const totalLiability = userStats.totalLiability;
   
   const oStats = { ...orderStats };
   const uStats = { ...userStats };
@@ -172,7 +172,7 @@ export default async function AdminDashboardPage() {
                    </tr>
                  ))}
                  {recentAudit.length === 0 && (
-                   <tr><td colSpan={5} className="py-8 text-center text-slate-400 text-sm">В журнале пусто</td></tr>
+                    <tr><td colSpan={5} className="py-8 text-center text-slate-400 text-sm">Записей в журнале пока нет</td></tr>
                  )}
                </tbody>
              </table>

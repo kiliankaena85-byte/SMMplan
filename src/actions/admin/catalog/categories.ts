@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/server/rbac";
 import { auditAdmin } from "@/lib/admin-audit";
 import { z } from "zod";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 const categorySchema = z.object({
   name: z.string().min(1).max(255, "Category name too long"),
@@ -33,6 +34,9 @@ export async function createCategory(rawData: { name: string; networkId: string;
       newValue: { name: cat.name, networkId: cat.networkId }
     });
 
+    revalidatePath("/admin/catalog/categories");
+    (revalidateTag as any)("catalog");
+    (revalidateTag as any)("services");
     return { success: true, error: undefined, categoryId: cat.id };
   });
 }
@@ -59,6 +63,9 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
       newValue: { name: cat.name, networkId: cat.networkId }
     });
 
+    revalidatePath("/admin/catalog/categories");
+    (revalidateTag as any)("catalog");
+    (revalidateTag as any)("services");
     return { success: true, error: undefined };
   });
 }
@@ -81,6 +88,9 @@ export async function deleteCategory(rawId: string) {
       targetType: "SETTINGS"
     });
 
+    revalidatePath("/admin/catalog/categories");
+    (revalidateTag as any)("catalog");
+    (revalidateTag as any)("services");
     return { success: true, error: undefined };
   });
 }

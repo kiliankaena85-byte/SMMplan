@@ -23,9 +23,14 @@ export class TicketService {
       }
     });
 
+    const ticketToUpdate = await db.ticket.findUnique({ where: { id: ticketId }, select: { firstRespondedAt: true } });
+
     await db.ticket.update({
       where: { id: ticketId },
-      data: { status: sender === 'STAFF' ? 'PENDING' : 'OPEN' }
+      data: { 
+        status: sender === 'STAFF' ? 'PENDING' : 'OPEN',
+        ...(sender === 'STAFF' && !ticketToUpdate?.firstRespondedAt ? { firstRespondedAt: new Date() } : {})
+      }
     });
 
     // Notify user if STAFF replied

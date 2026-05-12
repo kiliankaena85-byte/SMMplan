@@ -243,42 +243,9 @@ async function handleCancel(user: User, formData: FormData) {
 }
 
 async function handleRefill(user: User, formData: FormData) {
-  const orderStr = formData.get('order')?.toString();
-  if (!orderStr) {
-    return NextResponse.json({ error: 'Missing order parameter' }, { status: 400 });
-  }
-
-  const numericId = parseInt(orderStr, 10);
-  if (isNaN(numericId)) {
-    return NextResponse.json({ error: 'Incorrect order ID' }, { status: 400 });
-  }
-
-  const order = await db.order.findUnique({
-    where: { numericId },
-    include: { service: true }
-  });
-
-  if (!order || order.userId !== user.id) {
-    return NextResponse.json({ error: 'Incorrect order ID' }, { status: 400 });
-  }
-
-  if (!order.service.isRefillEnabled) {
-    return NextResponse.json({ error: 'Refill not available for this service' }, { status: 400 });
-  }
-
-  if (order.status !== 'COMPLETED' && order.status !== 'PARTIAL') {
-     return NextResponse.json({ error: 'Order must be completed to request a refill' }, { status: 400 });
-  }
-
-  // Create a pending refill request
-  const refill = await db.refill.create({
-    data: {
-      orderId: order.id,
-      status: 'PENDING'
-    }
-  });
-
-  return NextResponse.json({ refill: refill.numericId });
+  // Reseller Safety: Automated Refill is completely disabled.
+  // We do not pass refills to upstream automatically to prevent silent failures and provider conflicts.
+  return NextResponse.json({ error: 'Refill is only available manually via support ticket for reseller platforms.' }, { status: 400 });
 }
 
 async function handleRefillStatus(user: any, formData: FormData) {

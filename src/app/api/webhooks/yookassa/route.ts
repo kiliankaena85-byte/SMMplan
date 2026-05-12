@@ -32,12 +32,19 @@ export async function POST(req: NextRequest) {
       const internalPaymentId = rawBody.object.metadata?.paymentId;
       const metadataType = rawBody.object.metadata?.type;
 
+      // Extract FZ-54 receipt registration info if available
+      const receiptId = rawBody.object.receipt_registration === 'succeeded' 
+        ? `yookassa_receipt_${gatewayId}` 
+        : undefined;
+
       if (!userId || !gatewayId) {
         return NextResponse.json({ error: 'Missing userId or gatewayId in metadata' }, { status: 400 });
       }
 
       // Safe confirmation using Double-Check Logic
-      const success = await paymentService.confirmPayment(gatewayId, amount, userId, false, 'yookassa', internalPaymentId, metadataType);
+      const success = await paymentService.confirmPayment(
+        gatewayId, amount, userId, false, 'yookassa', internalPaymentId, metadataType, receiptId
+      );
 
       if (success) {
         return NextResponse.json({ success: true, status: 'Payment processed strictly' }, { status: 200 });

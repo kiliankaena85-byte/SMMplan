@@ -43,6 +43,13 @@ model User {
   tickets    Ticket[]
   auditLogs  AuditLog[]
   ledgerLogs LedgerEntry[] @relation("UserLedger")
+  invoices   Invoice[]
+
+  // B2B & Accounting Fields
+  companyName  String?
+  inn          String?
+  kpp          String?
+  legalAddress String?
 
   // Referrals
   referredBy  User?        @relation("ReferralTree", fields: [referredById], references: [id], onDelete: SetNull)
@@ -65,8 +72,6 @@ model PromoCode {
   isActive        Boolean   @default(true)
   expiresAt       DateTime?
   createdAt       DateTime  @default(now())
-
-  @@index([code])
 }
 
 model AuthToken {
@@ -77,8 +82,6 @@ model AuthToken {
   used      Boolean  @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())
-
-  @@index([token])
 }
 
 model Session {
@@ -236,6 +239,7 @@ model Order {
   idempotencyKey String? @unique // Wave 1: Token to prevent double order creation
 
   @@index([userId])
+  @@index([serviceId]) // Fast lookup for orders by service
   @@index([status])
   @@index([createdAt]) // P2.2: temporal queries & analytics
   @@index([status, createdAt]) // P2.2: filtered + sorted admin queries
@@ -279,11 +283,34 @@ model Payment {
 
   checkoutUrl String? // Persistent checkout URL to allow users to resume payment
 
+  // FZ-54 Fiscal Data
+  receiptId       String?  @unique // ID of the receipt in YooKassa/Atol
+  refundReceiptId String?  @unique // ID of the refund receipt
+  invoice         Invoice?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([gatewayId])
+}
+
+// ── B2B Accounting ──
+model Invoice {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  amount    BigInt // in Cents (RUB)
+  status    String   @default("PENDING") // PENDING, PAID, CANCELED
+  fileUrl   String? // Link to generated PDF invoice
+  actUrl    String? // Link to Closing Document (УПД/Акт)
+  paymentId String?  @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 
 model SystemSettings {
@@ -332,6 +359,10 @@ model Ticket {
   subject String
   status  String @default("OPEN") // OPEN, PENDING, CLOSED
   source  String @default("WEB") // WEB, TELEGRAM, EMAIL
+
+  firstRespondedAt DateTime? // SLA: First Response Time (FRT)
+  resolvedAt       DateTime? // SLA: Time to Resolution (TTR)
+  tags             String[]  @default([]) // NLP Tagging
 
   messages TicketMessage[]
 

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { SettingsManager } from "@/lib/settings";
 
 export async function GET(req: NextRequest) {
   try {
-    const isTestMode = await SettingsManager.isTestMode();
-    if (!isTestMode && process.env.NODE_ENV !== "development") {
-      return new NextResponse("Mock payment is disabled in production", { status: 403 });
+    // BUG-004 FIX: Жёстко блокируем в production — isTestMode НЕ должен открывать этот endpoint
+    if (process.env.NODE_ENV === 'production') {
+      return new NextResponse("Not Found", { status: 404 });
     }
 
     const { searchParams } = new URL(req.url);

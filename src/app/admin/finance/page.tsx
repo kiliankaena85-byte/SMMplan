@@ -128,7 +128,8 @@ export default async function FinanceDashboard({ searchParams }: Props) {
 
             <div className="space-y-6">
               {[
-                { label: 'Валовая маржа',                 value: metrics.marginGross,   color: 'text-slate-900', desc: 'После вычета COGS и возвратов' },
+                { label: 'Комиссии шлюзов',               value: -metrics.gatewayFees,  color: 'text-rose-600',  desc: 'ЮKassa (3.5%) и CryptoBot (1%)' },
+                { label: 'Валовая маржа',                 value: metrics.marginGross,   color: 'text-slate-900', desc: 'После вычета COGS, возвратов и комиссий' },
                 { label: `Налоги (${settings.taxRate}%)`, value: -metrics.taxes,        color: 'text-rose-600',  desc: 'Оценочный налог на прибыль' },
                 { label: 'OPEX (Постоянные расходы)',     value: -metrics.opex,         color: 'text-rose-600',  desc: 'Хостинг, софт, персонал' },
               ].map(r => (

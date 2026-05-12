@@ -36,7 +36,7 @@ export const ServiceCard = memo(function ServiceCard({
       `}
       style={isSelected ? { boxShadow: `0 10px 25px -5px ${brand.shadow}` } : undefined}
     >
-      <div className="font-semibold text-sm md:text-base pr-8 leading-tight">
+      <div className="font-semibold text-sm md:text-base pr-8 leading-tight line-clamp-3 break-words">
         {service.name}
       </div>
       <div className={`mt-3 text-lg font-bold tabular-nums flex items-baseline gap-1 ${isSelected ? "text-white" : "text-slate-900"}`}>

@@ -19,15 +19,12 @@ export const PlatformSelector = memo(function PlatformSelector({
 }: PlatformSelectorProps) {
   if (!catalog || catalog.length === 0) return null;
 
-  // We show top 6, rest in a generic select or "More" dropdown
-  const topNetworks = catalog.slice(0, 6);
-  const otherNetworks = catalog.slice(6);
-  
-  const isOtherSelected = otherNetworks.some(n => n.id === selectedNetworkId);
+  // Показываем все соцсети как кнопки, без скрытия в список (по запросу клиента)
+  const displayNetworks = catalog;
 
   return (
     <div className="w-full">
-      {/* Mobile view: Native select */}
+      {/* Mobile view: Native select (оставляем для удобства на очень маленьких экранах, или можно сделать скроллируемый ряд) */}
       <div className="md:hidden">
         <select
           value={selectedNetworkId || ""}
@@ -43,9 +40,9 @@ export const PlatformSelector = memo(function PlatformSelector({
         </select>
       </div>
 
-      {/* Desktop view: Tabs */}
+      {/* Desktop view: Tabs (все кнопки в ряд с переносом) */}
       <div className="hidden md:flex flex-wrap gap-2">
-        {topNetworks.map(network => {
+        {displayNetworks.map(network => {
           const isSelected = selectedNetworkId === network.id;
           const brand = getBrandColor(network.id);
           
@@ -70,30 +67,6 @@ export const PlatformSelector = memo(function PlatformSelector({
             </button>
           );
         })}
-        
-        {/* Dropdown for other networks */}
-        {otherNetworks.length > 0 && (
-          <div className="relative group">
-            <select
-              value={isOtherSelected ? selectedNetworkId : ""}
-              onChange={(e) => onSelect(e.target.value)}
-              className={`
-                appearance-none flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all duration-300 min-h-12 outline-none
-                ${isOtherSelected 
-                  ? 'bg-slate-800 text-white shadow-lg border-transparent' 
-                  : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700'
-                }
-              `}
-            >
-              <option value="" disabled>Еще {otherNetworks.length}...</option>
-              {otherNetworks.map(network => (
-                <option key={network.id} value={network.id}>
-                  {network.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
     </div>
   );

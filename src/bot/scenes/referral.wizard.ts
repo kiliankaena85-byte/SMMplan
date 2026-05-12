@@ -26,7 +26,7 @@ export const referralWizard = new Scenes.WizardScene(
   // ШАГ 1: Показать статистику и ссылку
   async (ctx: any) => {
     const tgId = ctx.from.id;
-    let user = await resolveUser(tgId);
+    const user = await resolveUser(tgId);
 
     if (!user) {
       await ctx.reply('❌ Пользователь не найден. Используйте /start для регистрации.');

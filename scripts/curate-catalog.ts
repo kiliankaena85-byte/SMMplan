@@ -235,7 +235,7 @@ async function main() {
   
   // Step 1: Filter out garbage
   console.log('--- Шаг 1: Фильтрация мусора ---');
-  let filtered = rawData.filter(s => {
+  const filtered = rawData.filter(s => {
     const nameLower = s.originalName.toLowerCase();
     
     // Blacklisted terms

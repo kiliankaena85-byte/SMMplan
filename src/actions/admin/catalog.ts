@@ -6,6 +6,7 @@ import { adminCatalogService } from '@/services/admin/catalog.service';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { updateMarkupSchema, toggleServiceSchema, bulkUpdateMarkupSchema } from '@/validators/admin.validators';
+import { auditAdmin } from '@/lib/admin-audit';
 
 async function requireManager() {
   const session = await verifySession();
@@ -28,6 +29,15 @@ export async function updateMarkupAction(formData: FormData) {
     email: user.email,
   });
 
+  auditAdmin({
+    adminId: user.id,
+    adminEmail: user.email,
+    action: 'SERVICE_MARKUP_UPDATE',
+    target: serviceId,
+    targetType: 'SERVICE',
+    newValue: { markup },
+  });
+
   revalidatePath('/admin/catalog');
 }
 
@@ -40,6 +50,14 @@ export async function toggleServiceAction(formData: FormData) {
   await adminCatalogService.toggleService(serviceId, isActive, {
     id: user.id,
     email: user.email,
+  });
+
+  auditAdmin({
+    adminId: user.id,
+    adminEmail: user.email,
+    action: isActive ? 'SERVICE_ENABLE' : 'SERVICE_DISABLE',
+    target: serviceId,
+    targetType: 'SERVICE',
   });
 
   revalidatePath('/admin/catalog');
@@ -65,6 +83,15 @@ export async function bulkUpdateMarkupAction(formData: FormData) {
   await adminCatalogService.bulkUpdateMarkup(filter, markup, {
     id: user.id,
     email: user.email,
+  });
+
+  auditAdmin({
+    adminId: user.id,
+    adminEmail: user.email,
+    action: 'BULK_MARKUP_UPDATE',
+    target: categoryId || platform || 'ALL',
+    targetType: categoryId ? 'CATEGORY' : 'SERVICE',
+    newValue: { markup, filter },
   });
 
   revalidatePath('/admin/catalog');

@@ -37,6 +37,7 @@ async function main() {
     select: { id: true, externalId: true, rate: true, isQuarantined: true },
   });
   const serviceMap = new Map(existingServices.map(s => [s.externalId, s]));
+  const syncedExternalIds = new Set<string>();
 
   for (const apiService of apiServices) {
     if (apiService.type !== "Default") continue;
@@ -63,6 +64,7 @@ async function main() {
     }
 
     const externalId = String(apiService.service);
+    syncedExternalIds.add(externalId);
     const newRate = parseFloat(apiService.rate) || 0;
     const minInt = parseInt(apiService.min, 10) || 10;
     const maxInt = parseInt(apiService.max, 10) || 100000;
@@ -128,6 +130,19 @@ async function main() {
   console.log(`New services: ${newServices}`);
   console.log(`Updated services: ${updatedServices}`);
   console.log(`Quarantined services: ${quarantinedServices}`);
+
+  // Detect and disable dead services
+  const deadServiceIds = existingServices
+    .filter(s => s.externalId !== null && !syncedExternalIds.has(s.externalId))
+    .map(s => s.id);
+    
+  if (deadServiceIds.length > 0) {
+    await db.service.updateMany({
+      where: { id: { in: deadServiceIds } },
+      data: { isActive: false }
+    });
+    console.log(`Auto-disabled missing services: ${deadServiceIds.length}`);
+  }
 
   // Apply post-sync rules (blacklist, hide, reclassify, cap)
   console.log('\nApplying post-sync rules...');

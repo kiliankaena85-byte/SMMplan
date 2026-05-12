@@ -235,7 +235,7 @@ export function SmartLinkLanding({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col relative overflow-x-clip">
       
       {/* ── Abstract Soft Background (Instead of 3D Scene) ── */}
       <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-sky-50 to-slate-50 pointer-events-none z-0 select-none overflow-hidden" />
@@ -488,7 +488,7 @@ export function SmartLinkLanding({
                <div className="flex flex-col lg:flex-row min-h-[400px] border-b border-border/50 relative items-start">
                  
                 {/* 2.1 Left Column: Categories (Tablet Horizontal / Desktop Vertical) */}
-                 <div className="hidden md:flex lg:flex-col flex-row flex-wrap lg:flex-nowrap lg:border-r border-slate-100 p-4 lg:p-6 gap-3 bg-slate-50/50 shrink-0 lg:w-[280px] xl:w-[320px] items-center lg:items-stretch lg:sticky lg:top-4 lg:max-h-[850px] lg:overflow-y-auto">
+                 <div className="hidden md:flex lg:flex-col flex-row flex-wrap lg:flex-nowrap lg:border-r border-slate-100 p-4 lg:p-6 gap-3 bg-slate-50/50 shrink-0 lg:w-[280px] xl:w-[320px] items-center lg:items-stretch lg:sticky lg:top-24">
                     {sortedCategories.map(cat => (
                       <button
                         key={cat.id}

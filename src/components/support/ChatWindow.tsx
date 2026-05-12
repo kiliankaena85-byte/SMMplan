@@ -58,7 +58,7 @@ const ImageZoomModal = ({ url, onClose }: { url: string; onClose: () => void }) 
           }
         />
       </div>
-      <button className="absolute top-6 right-6 text-white/50 text-4xl p-4 hover:text-white transition-colors">✕</button>
+      <button className="absolute top-6 right-6 text-white/50 text-4xl p-4 hover:text-white transition-colors" aria-label="Закрыть">✕</button>
       {!isZoomed && (
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 text-white/80 rounded-full text-sm font-medium backdrop-blur-md">
           Кликните для увеличения
@@ -377,6 +377,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
              onClick={() => fileInputRef.current?.click()}
              className="px-3 bg-slate-100 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-200 hover:text-slate-700 transition-colors flex items-center justify-center shrink-0"
              title="Прикрепить файл (скриншот или PDF чек)"
+             aria-label="Прикрепить файл (скриншот или PDF чек)"
           >
              📎
           </button>
@@ -385,7 +386,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
             {file && (
               <div className="absolute left-2 pl-1.5 pr-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-medium rounded-md border border-indigo-200 flex items-center gap-1 z-10 max-w-[150px]">
                  <span className="truncate">{file.name}</span>
-                 <button type="button" onClick={() => setFile(null)} className="opacity-60 hover:opacity-100 font-bold ml-1">✕</button>
+                 <button type="button" onClick={() => setFile(null)} className="opacity-60 hover:opacity-100 font-bold ml-1" aria-label="Удалить прикрепленный файл">✕</button>
               </div>
             )}
             <input

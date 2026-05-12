@@ -1,7 +1,7 @@
 import { getPublicCatalogAction } from "@/actions/order/catalog";
-import { LandingPage } from "@/components/landing/LandingPage";
+import { SmartLinkLanding } from "@/components/landing/SmartLinkLanding";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export const metadata = {
   title: "Накрутка подписчиков и просмотров в Telegram, Instagram, VK | Smmplan",
@@ -52,7 +52,7 @@ export default async function Home() {
       </section>
 
       {/* Interactive App */}
-      <LandingPage initialServices={catalog} />
+      <SmartLinkLanding initialCatalog={catalog} />
     </>
   );
 }

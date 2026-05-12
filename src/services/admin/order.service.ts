@@ -92,20 +92,13 @@ export class AdminOrderService {
         include: { user: true },
       });
 
-      if (['COMPLETED', 'CANCELED'].includes(order.status)) {
-        throw new Error(`Order ${order.numericId} is already ${order.status}`);
+      if (['COMPLETED', 'CANCELED', 'IN_PROGRESS', 'PARTIAL', 'ERROR'].includes(order.status)) {
+        throw new Error(`Order ${order.numericId} is already in state ${order.status}. Reseller platforms cannot cancel orders that have been sent to the upstream provider.`);
       }
 
       let refundCents = 0;
-      if (order.status === 'AWAITING_PAYMENT' || order.status === 'PENDING' || order.status === 'IN_PROGRESS' || order.status === 'PARTIAL') {
-          // If IN_PROGRESS but remains/quantity exists, we partially refund
-          if (order.status === 'IN_PROGRESS' || order.status === 'PARTIAL') {
-            if (order.remains > 0 && order.quantity > 0) {
-               refundCents = Math.floor((order.remains / order.quantity) * Number(order.charge));
-            }
-          } else {
-             refundCents = Number(order.charge); // For PENDING / AWAITING
-          }
+      if (order.status === 'AWAITING_PAYMENT' || order.status === 'PENDING') {
+         refundCents = Number(order.charge); // For PENDING / AWAITING
       }
 
       await tx.order.update({

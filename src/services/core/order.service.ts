@@ -1,7 +1,7 @@
-import { Prisma } from '@prisma/client';
 import { db } from '../../lib/db';
+import { SettingsProvider } from '../../lib/settings';
 import { WalletService } from '../financial/wallet.service';
-import { ordersQueue, dripfeedQueue } from '../../workers/queues';
+import { ordersQueue } from '../../workers/queues';
 
 export type CreateOrderInput = {
   serviceId: string;
@@ -23,9 +23,18 @@ export class OrderService {
    */
   async createOrder(userId: string, input: CreateOrderInput, idempotencyKey?: string): Promise<{ success: boolean; error?: string; orderId?: string }> {
     try {
+      // 1. [FIN-005] Currency Circuit Breaker: Prevent orders if CBR sync is stale
+      const settings = await SettingsProvider.getCached();
+      if (settings.exchangeRateUpdatedAt) {
+         const hoursSinceSync = (Date.now() - settings.exchangeRateUpdatedAt.getTime()) / (1000 * 60 * 60);
+         if (hoursSinceSync > 48) {
+             throw new Error('SYSTEM_HALT: Currency exchange rate is older than 48 hours. Orders are temporarily suspended to prevent financial loss.');
+         }
+      }
+
       const isDripFeed = input.runs ? input.runs > 1 : false;
 
-      // 1. Unconditionally attempt charge (Double spreading & Race condition protected)
+      // 2. Unconditionally attempt charge (Double spreading & Race condition protected)
       const chargeResult = await WalletService.charge(
         userId, 
         input.charge, 
@@ -37,7 +46,7 @@ export class OrderService {
         return { success: false, error: (chargeResult as any).error || 'Insufficient funds' };
       }
 
-      // 2. Create Order in DB
+      // 3. Create Order in DB
       const newOrder = await db.order.create({
         data: {
           userId,
@@ -59,14 +68,8 @@ export class OrderService {
         }
       });
 
-      // 3. Dispatch to Queues
-      if (isDripFeed) {
-        // Drop into DripFeed Engine immediately for the first run
-        await dripfeedQueue.add('dripfeed-start', { orderId: newOrder.id }, { delay: 3 * 60 * 1000 });
-      } else {
-        // Standard instant dispatch
-        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { delay: 3 * 60 * 1000 });
-      }
+      // 3. Dispatch to Queues (Drip-feed is now passed natively to the provider)
+      await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { delay: 3 * 60 * 1000 });
 
       // 4. Return success instantly to User Interface. No delays!
       return { success: true, orderId: newOrder.id };

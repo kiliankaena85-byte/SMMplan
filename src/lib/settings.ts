@@ -94,8 +94,8 @@ export class SettingsProvider {
   static async setExchangeRateUSD(rate: number) {
     await db.systemSettings.upsert({
       where: { id: "global" },
-      update: { exchangeRateUSD: rate },
-      create: { id: "global", exchangeRateUSD: rate }
+      update: { exchangeRateUSD: rate, exchangeRateUpdatedAt: new Date() },
+      create: { id: "global", exchangeRateUSD: rate, exchangeRateUpdatedAt: new Date() }
     });
     (revalidateTag as any)('settings');
   }

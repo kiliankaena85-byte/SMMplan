@@ -13,7 +13,7 @@
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 import { auditAdmin } from '@/lib/admin-audit';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { SAFETY_FLOOR_MARKUP, TOTAL_MANDATORY_DEDUCTIONS, applyBeautifulRounding } from '@/lib/financial-constants';
 import { SettingsProvider } from '@/lib/settings';
@@ -50,6 +50,8 @@ export async function batchToggleServicesAction(
     });
 
     revalidatePath('/admin/catalog');
+    (revalidateTag as any)('catalog');
+    (revalidateTag as any)('services');
     return { success: true as const, count: ids.data.length };
   });
 }
@@ -103,6 +105,8 @@ export async function batchSetMarkupAction(
     });
 
     revalidatePath('/admin/catalog');
+    (revalidateTag as any)('catalog');
+    (revalidateTag as any)('services');
     return { success: true as const, count: ids.data.length };
   });
 }
@@ -150,6 +154,8 @@ export async function updateServiceMarkupAction(
     });
 
     revalidatePath('/admin/catalog');
+    (revalidateTag as any)('catalog');
+    (revalidateTag as any)('services');
     return { success: true as const };
   });
 }
@@ -175,6 +181,8 @@ export async function toggleServiceActiveAction(
     });
 
     revalidatePath('/admin/catalog');
+    (revalidateTag as any)('catalog');
+    (revalidateTag as any)('services');
     return { success: true as const };
   });
 }

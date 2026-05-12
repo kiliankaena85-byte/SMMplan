@@ -112,7 +112,10 @@ export async function changeTicketStatus(formData: FormData) {
 
   await db.ticket.update({
     where: { id: ticketId },
-    data: { status }
+    data: { 
+      status,
+      ...(status === 'CLOSED' ? { resolvedAt: new Date() } : {})
+    }
   });
 
   revalidatePath(`/admin/tickets/${ticketId}`);

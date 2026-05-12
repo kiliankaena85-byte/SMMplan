@@ -96,7 +96,7 @@ export function OrderEngineSection({ initialCatalog }: { initialCatalog: PublicN
               onSelect={handleMobileCategorySelect} 
             />
             
-            <div className="flex-1 hidden md:block">
+            <div className="flex-1 hidden md:block min-w-0">
               <ServiceGrid 
                 services={engine.services}
                 selectedServiceId={engine.selectedService?.id || null}

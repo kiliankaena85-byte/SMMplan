@@ -6,9 +6,7 @@ export interface OrderJobPayload {
   dripParentOrderId?: string;
 }
 
-export interface DripFeedJobPayload {
-  orderId: string; // The parent Order DB item
-}
+// DripFeed queue has been removed as it is now passed natively to providers.
 
 export interface SyncJobPayload {
   timestamp: number; // For keeping track
@@ -30,7 +28,6 @@ export interface CleanupJobPayload {
 
 // Instantiate queues using NextJS-safe singleton
 export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue');
-export const dripfeedQueue = createQueue<DripFeedJobPayload>('dripfeedQueue');
 export const syncQueue = createQueue<SyncJobPayload>('syncQueue');
 
 // P2.1: Dead Letter Queue — removeOnFail: false to preserve failed jobs for inspection

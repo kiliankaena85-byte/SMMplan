@@ -5,7 +5,6 @@ import { logger } from '../lib/logger';
 import { ensureSyncCron, ensureCleanupCron, dlqQueue, cleanupQueue } from './queues';
 import { sendAdminAlert } from '../lib/notifications';
 import orderProcessor from './processors/order.processor';
-import dripfeedProcessor from './processors/dripfeed.processor';
 import syncProcessor from './processors/sync.processor';
 import { runCleanup } from './processors/cleanup.processor';
 import { orderService } from '../services/core/order.service';
@@ -17,7 +16,6 @@ const connection = getRedisConnection();
 
 // ── Worker instances ──────────────────────────────────────────────────────────
 const orderWorker = new Worker('ordersQueue', orderProcessor, { connection });
-const dripfeedWorker = new Worker('dripfeedQueue', dripfeedProcessor, { connection });
 const syncWorker = new Worker('syncQueue', syncProcessor, { connection });
 const cleanupWorker = new Worker('cleanup', async () => { await runCleanup(); }, { connection });
 
@@ -73,7 +71,6 @@ async function handleDeadLetter(
 }
 
 orderWorker.on('failed', (job, err) => { handleDeadLetter('ordersQueue', job, err); });
-dripfeedWorker.on('failed', (job, err) => { handleDeadLetter('dripfeedQueue', job, err); });
 syncWorker.on('failed', (job, err) => { handleDeadLetter('syncQueue', job, err); });
 cleanupWorker.on('failed', (job, err) => { log.error('Cleanup job failed', { error: err.message }); });
 
@@ -97,7 +94,7 @@ const heartbeatInterval = setInterval(updateHeartbeat, 60_000);
 ensureSyncCron().catch(e => log.error('Failed to setup Sync Cron', { error: (e as Error).message }));
 ensureCleanupCron().catch(e => log.error('Failed to setup Cleanup Cron', { error: (e as Error).message }));
 
-log.info('All workers started', { queues: ['ordersQueue', 'dripfeedQueue', 'syncQueue', 'cleanup'] });
+log.info('All workers started', { queues: ['ordersQueue', 'syncQueue', 'cleanup'] });
 
 // ── Graceful Shutdown (12-Factor App) ────────────────────────────────────────
 const shutdown = async () => {
@@ -106,7 +103,6 @@ const shutdown = async () => {
   await connection.del(HEARTBEAT_KEY); // Remove heartbeat on clean shutdown
   await Promise.all([
     orderWorker.close(),
-    dripfeedWorker.close(),
     syncWorker.close(),
     cleanupWorker.close(),
   ]);

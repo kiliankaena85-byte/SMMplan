@@ -132,7 +132,7 @@ async function main() {
                 charge: 1500,
                 providerCost: 500,
                 remains: status === 'CANCELED' ? 1000 : 0,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 status: status as any,
                 createdAt: new Date(Date.now() - Math.floor(Math.random() * 2592000000))
             }

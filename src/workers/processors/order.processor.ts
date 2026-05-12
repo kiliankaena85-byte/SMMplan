@@ -18,7 +18,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   }
 
   // Double execution guard
-  if (order.status !== 'PENDING' && !isDripFeedChild) {
+  if (order.status !== 'PENDING') {
     console.warn(`[OrderProcessor] Order ${orderId} is not PENDING. Skip.`);
     return;
   }
@@ -31,9 +31,11 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   try {
     const provider = await providerService.getWorkerProviderInstance(providerDef);
     
-    // For Drip-Feed options running natively in provider (Option A) if we ever allowed it.
-    // However, Option B forces us to send standard orders per chunk.
-    const runQty = isDripFeedChild && order.runs ? Math.max(1, Math.floor(order.quantity / order.runs)) : order.quantity;
+    // If the order is Drip-Feed, we delegate it fully to the upstream provider.
+    // In V2 API, 'quantity' is per run, not total.
+    const runQty = (order.isDripFeed && order.runs && order.runs > 0) 
+        ? Math.max(1, Math.floor(order.quantity / order.runs)) 
+        : order.quantity;
     
     // API Parameter Mapping for V2 APIs
     const serviceName = order.service.name.toLowerCase();
@@ -42,6 +44,11 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       link: order.link,
       quantity: runQty,
     };
+
+    if (order.isDripFeed && order.runs && order.interval) {
+        payload.runs = order.runs;
+        payload.interval = order.interval;
+    }
 
     if (order.customData) {
       if (serviceName.includes('опрос') || serviceName.includes('голосование') || serviceName.includes('poll')) {
@@ -62,26 +69,15 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     // Set 60 minutes Wait limit
     const waitingUntil = new Date(Date.now() + 60 * 60 * 1000);
     
-    if (isDripFeedChild) {
-      // Append to list of runs
-      await db.order.update({
-        where: { id: order.id },
-        data: {
-          dripExternalIds: { push: extId },
-          status: 'IN_PROGRESS',
-          waitingUntil
-        }
-      });
-    } else {
-      await db.order.update({
-        where: { id: order.id },
-        data: {
-          externalId: extId,
-          status: 'IN_PROGRESS',
-          waitingUntil
-        }
-      });
-    }
+    // Update order with External ID from provider
+    await db.order.update({
+      where: { id: order.id },
+      data: {
+        externalId: extId,
+        status: 'IN_PROGRESS',
+        waitingUntil
+      }
+    });
 
     console.log(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
 
@@ -95,7 +91,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     }
 
     // Exhausted retries
-    const finalStatus = isDripFeedChild ? 'PARTIAL' : 'ERROR';
+    const finalStatus = 'ERROR';
     
     const updatedOrder = await db.order.update({
       where: { id: order.id },
@@ -111,11 +107,9 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     await RefundPolicyService.processRefund({
         id: updatedOrder.id,
         userId: updatedOrder.userId,
-        charge: isDripFeedChild && order.runs 
-          ? Math.floor(Number(order.charge) / order.runs) 
-          : Number(order.charge), // Custom charge logic for drip-feed chunks
-        quantity: 1, // Full chunk refund
-        remains: 1,
+        charge: Number(order.charge),
+        quantity: order.quantity,
+        remains: order.quantity,
         status: finalStatus
     }, '(Исчерпаны попытки отправки провайдеру)');
   }

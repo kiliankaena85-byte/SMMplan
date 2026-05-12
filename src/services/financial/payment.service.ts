@@ -15,9 +15,10 @@ export class PaymentService {
     isDevSandbox = false,
     gatewayType: 'yookassa' | 'cryptobot' = 'yookassa',
     internalPaymentId?: string,
-    metadataType?: string
+    metadataType?: string,
+    receiptId?: string
   ): Promise<boolean> {
-    let activatedOrders: { id: string; isDripFeed: boolean; userId: string; amount: number }[] = [];
+    const activatedOrders: { id: string; isDripFeed: boolean; userId: string; amount: number }[] = [];
 
     try {
       // 1. Double-check against real gateway API in production
@@ -88,7 +89,7 @@ export class PaymentService {
         if (currentPayment) {
           const updated = await tx.payment.updateMany({
             where: { id: currentPayment.id, status: 'PENDING' },
-            data: { status: 'SUCCEEDED', gatewayId, amount }
+            data: { status: 'SUCCEEDED', gatewayId, amount, receiptId: receiptId || undefined }
           });
           if (updated.count === 0) return; // DB lock idempotency
           processedPaymentId = currentPayment.id;
@@ -97,7 +98,7 @@ export class PaymentService {
         } else if (metadataType === 'deposit') {
           // [SECURITY] Deposit Webhook Exception: Allows top-up even if PENDING state was lost or not created correctly
           const newPayment = await tx.payment.create({
-            data: { userId, amount, currency: 'RUB', status: 'SUCCEEDED', gatewayId, gateway: gatewayType }
+            data: { userId, amount, currency: 'RUB', status: 'SUCCEEDED', gatewayId, gateway: gatewayType, receiptId: receiptId || undefined }
           });
           processedPaymentId = newPayment.id;
           isOrderPayment = false;
@@ -208,7 +209,7 @@ export class PaymentService {
   async confirmPaymentById(paymentId: string): Promise<boolean> {
     try {
       let capturedUserId: string | null = null;
-      let activatedOrders: { id: string; isDripFeed: boolean }[] = [];
+      const activatedOrders: { id: string; isDripFeed: boolean }[] = [];
 
       await db.$transaction(async (tx) => {
         const payment = await tx.payment.findUniqueOrThrow({

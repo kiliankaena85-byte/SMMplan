@@ -8,7 +8,7 @@ import { PlatformSelectorFallback } from '@/components/orders/PlatformSelectorFa
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import {
   Plus, Minus, Search, Mail, ArrowRight,
-  Loader2, Clock, CheckCircle2, Wallet, CreditCard
+  Loader2, Clock, CheckCircle2, Wallet, CreditCard, Bitcoin
 } from 'lucide-react';
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -32,7 +32,7 @@ const inputCls =
 
 
 export function SmartOrderForm() {
-  const [gateway, setGateway] = useState<'yookassa' | 'balance'>('yookassa');
+  const [gateway, setGateway] = useState<'yookassa' | 'balance' | 'cryptobot'>('yookassa');
   const engine = useOrderEngine();
   const {
     url, setUrl,
@@ -230,7 +230,7 @@ export function SmartOrderForm() {
               id="order-url"
               value={url}
               onChange={e => setUrl(e.target.value)}
-              placeholder="Ссылка на пост, канал или профиль"
+              placeholder="Вставьте ссылку, например t.me/channel или instagram.com/username"
               aria-label="Ссылка на страницу для продвижения"
               inputMode="url"
               autoComplete="off"
@@ -257,8 +257,8 @@ export function SmartOrderForm() {
                 onClick={() => setSelectedService(selectedService?.id === srv.id ? null : srv)}
                 className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
                   selectedService?.id === srv.id
-                    ? 'ring-2 ring-sky-500 bg-sky-50 shadow-sm'
-                    : 'ring-1 ring-slate-200/60 bg-white hover:ring-sky-300 hover:bg-slate-50 shadow-sm'
+                    ? 'ring-2 ring-primary bg-primary/5 shadow-sm'
+                    : 'ring-1 ring-border bg-card hover:ring-primary/50 hover:bg-muted hover:shadow-md hover:-translate-y-0.5 shadow-sm'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -283,8 +283,8 @@ export function SmartOrderForm() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="font-black text-slate-900 tracking-tight tabular-nums font-mono text-base">{srv.pricePer1kRub} ₽</div>
-                    <div className="text-[10px] font-bold text-slate-400 tracking-wider">/ 1000</div>
+                    <div className="font-black text-foreground tracking-tight tabular-nums font-mono text-base">{srv.pricePer1kRub} ₽</div>
+                    <div className="text-[10px] font-bold text-muted-foreground tracking-wider">/ 1000</div>
                   </div>
                 </div>
               </button>
@@ -294,12 +294,12 @@ export function SmartOrderForm() {
 
         {/* Right: Checkout */}
         {selectedService && (
-          <div className="bg-white shadow-sm ring-1 ring-slate-100 rounded-2xl p-6 space-y-6 lg:sticky lg:top-6">
+          <div className="bg-card shadow-sm ring-1 ring-border rounded-2xl p-6 space-y-6 lg:sticky lg:top-6">
             <ActionForm action={handleAction} className="space-y-5" formRef={formRef}>
               {/* Selected service badge */}
-              <div className="bg-slate-50 ring-1 ring-slate-100 rounded-xl p-4">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Выбрано</div>
-                <div className="text-sm font-semibold text-slate-800 line-clamp-2">{selectedService.name}</div>
+              <div className="bg-muted ring-1 ring-border rounded-xl p-4">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Выбрано</div>
+                <div className="text-sm font-semibold text-foreground line-clamp-2">{selectedService.name}</div>
               </div>
 
               {/* SECTION: DYNAMIC PAYLOAD & WARNINGS */}
@@ -434,17 +434,17 @@ export function SmartOrderForm() {
               )}
 
               {/* Price */}
-              <div className="border-t border-slate-100 pt-5 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <div className="border-t border-border pt-5 flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   Итого к оплате
                 </span>
                 <div className="text-right">
-                  <span className="text-3xl font-black text-slate-900 tabular-nums font-mono tracking-tight">
+                  <span className="text-3xl font-black text-foreground tabular-nums font-mono tracking-tight">
                     {totalPriceFormatted}
                   </span>
-                  <span className="text-lg font-black text-slate-400 ml-1">₽</span>
+                  <span className="text-lg font-black text-muted-foreground ml-1">₽</span>
                   {isCalculating && (
-                    <div className="text-[10px] text-sky-500 font-bold uppercase tracking-wider">Считаем...</div>
+                    <div className="text-[10px] text-primary font-bold uppercase tracking-wider">Считаем...</div>
                   )}
                 </div>
               </div>
@@ -454,42 +454,53 @@ export function SmartOrderForm() {
                 <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
                   Способ оплаты
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setGateway('yookassa')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
+                    className={`flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
                       gateway === 'yookassa'
-                        ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm ring-1 ring-sky-500/20'
-                        : 'border-border bg-background text-muted-foreground hover:bg-slate-50'
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20'
+                        : 'border-border bg-background text-muted-foreground hover:bg-muted'
                     }`}
                   >
-                    <CreditCard className="w-4 h-4" /> ЮKassa
+                    <CreditCard className="w-4 h-4" /> Карта
                   </button>
                   <button
                     type="button"
                     onClick={() => setGateway('balance')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
+                    className={`flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
                       gateway === 'balance'
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-500/20'
-                        : 'border-border bg-background text-muted-foreground hover:bg-slate-50'
+                        ? 'border-emerald-600 bg-emerald-600/10 text-emerald-600 shadow-sm ring-1 ring-emerald-600/20'
+                        : 'border-border bg-background text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     <Wallet className="w-4 h-4" /> Баланс
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGateway('cryptobot')}
+                    className={`flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
+                      gateway === 'cryptobot'
+                        ? 'border-orange-500 bg-orange-500/10 text-orange-600 shadow-sm ring-1 ring-orange-500/20'
+                        : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <Bitcoin className="w-4 h-4" /> Крипто
                   </button>
                 </div>
               </div>
 
               {/* Floating Bottom Bar (VisualViewport Aware) */}
               <div 
-                className="fixed left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] p-4 z-50 lg:static lg:bg-transparent lg:border-none lg:shadow-none lg:p-0"
+                className="fixed left-0 right-0 bg-card border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.05)] p-4 z-50 lg:static lg:bg-transparent lg:border-none lg:shadow-none lg:p-0"
                 style={{ 
                   bottom: viewportBottom > 0 ? `${viewportBottom}px` : '0px',
                   paddingBottom: viewportBottom > 0 ? '1rem' : 'max(1rem, env(safe-area-inset-bottom))'
                 }}
               >
                 {/* Consent */}
-                <div className="bg-slate-50 ring-1 ring-slate-100 rounded-xl p-2 px-3 hover:bg-slate-100/50 transition-colors mb-3">
+                <div className="bg-muted/50 ring-1 ring-border rounded-xl p-2 px-3 hover:bg-muted/80 transition-colors mb-3">
                   <label className="flex items-start gap-3 cursor-pointer">
                     {/* Expanded touch target 44x44 */}
                     <span className="inline-flex items-center justify-center w-11 h-11 pointer-events-none shrink-0">
@@ -552,19 +563,19 @@ export function SmartOrderForm() {
       {/* REQUIREMENTS MODAL */}
       {showRequirementsModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform animate-in zoom-in-95 duration-200">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform animate-in zoom-in-95 duration-200">
             <div className="p-6 pb-0">
               <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
                 <span className="text-2xl">⚠️</span>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Важные требования</h3>
-              <p className="text-sm text-slate-500 mb-4">
+              <h3 className="text-xl font-bold text-foreground mb-2">Важные требования</h3>
+              <p className="text-sm text-muted-foreground mb-4">
                 Провайдер этой услуги установил жесткие требования. Если их не соблюсти, ваш заказ может быть отменен или зависнуть:
               </p>
               
               <ul className="space-y-3 mb-6 bg-amber-50/50 p-4 rounded-xl border border-amber-100">
                 {modalRequirements.map((req, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-800 font-medium">
+                  <li key={idx} className="flex items-start gap-2 text-sm text-foreground font-medium">
                     <span className="text-amber-500 mt-0.5">•</span> <span>{linkifyText(req)}</span>
                   </li>
                 ))}
@@ -575,7 +586,7 @@ export function SmartOrderForm() {
               <button 
                 type="button"
                 onClick={() => setShowRequirementsModal(false)} 
-                className="flex-1 px-4 py-3 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                className="flex-1 px-4 py-3 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors"
               >
                 Отмена
               </button>

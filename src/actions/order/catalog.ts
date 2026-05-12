@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
+import { unstable_cache } from "next/cache";
 
 export type PublicService = {
   id: string;
@@ -34,19 +35,27 @@ export type PublicNetwork = {
 
 export async function getPublicCatalogAction() {
   try {
-    const rawNetworks = await db.network.findMany({
-      where: {
-        isActive: true,
-        categories: { some: { services: { some: { isActive: true } } } }
+    const getCachedNetworks = unstable_cache(
+      async () => {
+        return await db.network.findMany({
+          where: {
+            isActive: true,
+            categories: { some: { services: { some: { isActive: true } } } }
+          },
+          include: {
+            categories: {
+              where: { services: { some: { isActive: true } } },
+              orderBy: { name: 'asc' }
+            }
+          },
+          orderBy: { sort: 'asc' }
+        });
       },
-      include: {
-        categories: {
-          where: { services: { some: { isActive: true } } },
-          orderBy: { name: 'asc' }
-        }
-      },
-      orderBy: { sort: 'asc' }
-    });
+      ['public-catalog-networks'],
+      { revalidate: 60, tags: ['catalog'] }
+    );
+
+    const rawNetworks = await getCachedNetworks();
 
     const catalog: PublicNetwork[] = rawNetworks.map(net => {
       let icon = "/brands/web.svg";
@@ -78,12 +87,20 @@ export async function getPublicCatalogAction() {
 
 export async function getServicesByCategoryAction(categoryId: string): Promise<PublicService[]> {
   try {
+    const getCachedServices = unstable_cache(
+      async (catId: string) => {
+        return await db.service.findMany({
+          where: { categoryId: catId, isActive: true },
+          orderBy: { rate: 'asc' },
+          take: 100
+        });
+      },
+      ['public-services-by-category'],
+      { revalidate: 60, tags: ['catalog', 'services'] }
+    );
+
     const [services, usdToRub] = await Promise.all([
-      db.service.findMany({
-        where: { categoryId, isActive: true },
-        orderBy: { rate: 'asc' },
-        take: 100
-      }),
+      getCachedServices(categoryId),
       SettingsProvider.getExchangeRateUSD()
     ]);
 

@@ -59,7 +59,7 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     // 8. Fetch userId from DB via Prisma by polling for the new Payment
     const prisma = new PrismaClient();
     let payment = null;
-    let order = null;
+    const order = null;
     
     // Poll the database for up to 10 seconds (20 * 500ms)
     for (let i = 0; i < 20; i++) {

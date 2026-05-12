@@ -18,7 +18,7 @@ export const CategorySidebar = memo(function CategorySidebar({
   if (!categories || categories.length === 0) return null;
 
   return (
-    <div className="w-full">
+    <div className="w-full md:w-64 md:flex-shrink-0">
       {/* Mobile view: Native select */}
       <div className="md:hidden">
         <select

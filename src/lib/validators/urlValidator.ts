@@ -37,7 +37,7 @@ export function validateUrl(url: string, platform: IntelligencePlatform | string
   }
   
   // Clean URL
-  let cleanUrl = url.trim();
+  const cleanUrl = url.trim();
   
   if (platform && typeof platform === 'string' && platformUrlSchemas[platform.toLowerCase()]) {
     const schema = platformUrlSchemas[platform.toLowerCase()];
