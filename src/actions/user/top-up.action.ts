@@ -38,7 +38,8 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
       fiat: "RUB",
       amount: amountRub.toString(),
       description: `Услуги IT-консалтинга (ID: ${payment.id})`,
-      payload: payment.id,
+      // BUG-008 FIX: Передаём type:'deposit' + userId для корректной обработки в webhook
+      payload: JSON.stringify({ paymentId: payment.id, userId: session.userId, type: 'deposit' }),
       paid_btn_name: 'openChannel',
       paid_btn_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/add-funds?success=1`
     };

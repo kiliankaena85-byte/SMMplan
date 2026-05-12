@@ -159,8 +159,7 @@ export class PaymentService {
           await tx.user.update({
             where: { id: userId },
             data: { 
-              balance: { increment: amount },
-              totalSpent: { increment: amount }
+              balance: { increment: amount }
             }
           });
           
@@ -169,7 +168,8 @@ export class PaymentService {
               userId,
               amount: amount,
               reason: `Пополнение баланса через ${gatewayType}`,
-              status: 'APPROVED'
+              status: 'APPROVED',
+              idempotencyKey: `deposit-${processedPaymentId}`
             }
           });
         }

@@ -30,13 +30,22 @@ export async function POST(request: Request) {
     // We only care about successfully paid invoices
     if (data.update_type === 'invoice_paid') {
       const invoice = data.payload;
-      // The payment logic has been centralized. We use confirmPayment.
-      const paymentId = invoice.payload;
+      // BUG-008 FIX: Parse JSON payload (new format) or fall back to plain paymentId (legacy)
+      let paymentId: string;
+      let metadataType: string | undefined;
+      try {
+        const parsed = JSON.parse(invoice.payload);
+        paymentId = parsed.paymentId;
+        metadataType = parsed.type;
+      } catch {
+        // Legacy format: payload is just the paymentId string
+        paymentId = invoice.payload;
+      }
+
       const payment = await db.payment.findUnique({ where: { id: paymentId } });
       
       if (!payment) {
          console.error(`[Webhook] Payment record not found for payload ${paymentId}`);
-         // Can't confirm without knowing the userId for the orphan fallback/promo logic
          return NextResponse.json({ error: 'Payment context missing' }, { status: 400 });
       }
 
@@ -50,10 +59,11 @@ export async function POST(request: Request) {
       const success = await paymentService.confirmPayment(
         gatewayId, 
         amount, 
-        payment.userId, // Real userId retrieved from db, NOT the paymentId
+        payment.userId,
         false,
         'cryptobot',
-        payment.id // Prevent orphan race condition
+        payment.id,
+        metadataType // Теперь 'deposit' будет корректно передан
       );
 
       if (!success) {

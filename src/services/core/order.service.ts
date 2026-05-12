@@ -99,32 +99,47 @@ export class OrderService {
         const charge = order.charge; // totalCents
         const wasAwaitingPayment = order.status === 'AWAITING_PAYMENT';
 
-        // 1. Cancel the order
-        await tx.order.update({
-          where: { id: order.id },
+        // 1. Cancel the order atomically
+        const updated = await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'AWAITING_PAYMENT'] } },
           data: { status: 'CANCELED' }
         });
 
+        if (updated.count === 0) {
+          return { success: false, error: 'Заказ уже ушел в работу или отменен' };
+        }
+
         // 2. Refund to User Balance (ONLY if it was paid)
         if (!wasAwaitingPayment) {
-          await tx.user.update({
-            where: { id: userId },
-            data: { balance: { increment: charge } }
+          const refundKey = `refund-client-cancel-${order.id}`;
+          const existingLedger = await tx.ledgerEntry.findUnique({
+             where: { idempotencyKey: refundKey }
           });
 
-          // 3. Keep a track record
-          await tx.ledgerEntry.create({
-            data: {
-              userId,
-              amount: charge,
-              reason: `Отмена заказа #${order.numericId} клиентом (Store Credit)`,
-              status: 'APPROVED'
-            }
-          });
+          if (!existingLedger) {
+            await tx.user.update({
+              where: { id: userId },
+              data: { 
+                balance: { increment: charge },
+                totalSpent: { decrement: charge }
+              }
+            });
+
+            // 3. Keep a track record
+            await tx.ledgerEntry.create({
+              data: {
+                userId,
+                amount: charge,
+                reason: `Отмена заказа #${order.numericId} клиентом (Store Credit)`,
+                status: 'APPROVED',
+                idempotencyKey: refundKey
+              }
+            });
+          }
         }
 
         return { success: true };
-      });
+      }, { isolationLevel: 'Serializable' });
     } catch (e: any) {
       console.error('[OrderService] cancelPendingOrderClient failed:', e.message);
       return { success: false, error: 'Внутренняя ошибка при отмене заказа' };

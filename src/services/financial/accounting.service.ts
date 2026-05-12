@@ -4,7 +4,8 @@ export interface FinancialMetrics {
   revenueGross: number; // Изначально принесенные деньги
   refunds: number; // Отмененные деньги, возвращенные балансами
   cogs: number; // Оплачено провайдерам (COGS)
-  revenueNet: number; // Выручка минус возвраты
+  gatewayFees: number; // Комиссии шлюзов (ЮKassa, CryptoBot)
+  revenueNet: number; // Выручка минус возвраты и комиссии шлюзов
   marginGross: number; // Net Revenue - COGS
   taxes: number;
   opex: number;
@@ -19,15 +20,31 @@ export class AccountingService {
       whereClause.createdAt = { gte: startDate, lte: endDate };
     }
 
-    // 1. Calculate Revenue (All payments SUCCEEDED)
-    const payments = await db.payment.aggregate({
+    // 1. Calculate Revenue and Gateway Fees (All payments SUCCEEDED)
+    const paymentGroups = await db.payment.groupBy({
+      by: ['gateway'],
       _sum: { amount: true },
       where: {
         ...whereClause,
         status: 'SUCCEEDED'
       }
     });
-    const revenueGross = Number(payments._sum.amount || 0);
+    
+    let revenueGross = 0;
+    let gatewayFees = 0;
+
+    for (const group of paymentGroups) {
+      const amount = Number(group._sum.amount || 0);
+      revenueGross += amount;
+      
+      if (group.gateway === 'yookassa') {
+        gatewayFees += amount * 0.035; // ЮKassa берет ~3.5%
+      } else if (group.gateway === 'cryptobot') {
+        gatewayFees += amount * 0.01; // CryptoBot берет ~1%
+      }
+    }
+    
+    gatewayFees = Math.round(gatewayFees);
 
     // 2. Calculate Refunds (For canceled/partial orders. We deduce this from the Order remains logic)
     // Actually, refunds are already added back to User.balance, but to track them strictly:
@@ -67,7 +84,7 @@ export class AccountingService {
       }
     }
 
-    const revenueNet = revenueGross - refunds;
+    const revenueNet = revenueGross - refunds - gatewayFees;
     const marginGross = revenueNet - cogs;
 
     // 4. Calculate Taxes and OPEX
@@ -82,6 +99,7 @@ export class AccountingService {
     return {
       revenueGross,
       refunds,
+      gatewayFees,
       revenueNet,
       cogs,
       marginGross,

@@ -5,8 +5,8 @@ import { marketingService, PricingResult } from '@/services/marketing.service';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SettingsManager } from '@/lib/settings';
 import { orderService } from '@/services/core/order.service';
+import { verifySession, createSession } from '@/lib/session';
 import { revalidatePath } from 'next/cache';
-import { createSession } from '@/lib/session';
 import { headers } from 'next/headers';
 import crypto from 'crypto';
 
@@ -179,7 +179,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       const payment = await tx.payment.create({
         data: {
           userId: user.id,
-          orderId: newOrder.id,
           amount: pricing.totalCents,
           currency: 'RUB',
           status: 'PENDING',
@@ -187,6 +186,12 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           consentIp,
           consentUserAgent
         }
+      });
+
+      // BUG-001 FIX: Правильная связь через Order.paymentId (не legacy Payment.orderId)
+      await tx.order.update({
+        where: { id: newOrder.id },
+        data: { paymentId: payment.id }
       });
 
       return { orderId: newOrder.id, paymentId: payment.id };
@@ -204,7 +209,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       origin = process.env.NEXT_PUBLIC_APP_URL;
     }
     if (origin.includes("0.0.0.0")) origin = origin.replace("0.0.0.0", "localhost");
-    const successUrl = `${origin}/success`;
+    const successUrl = `${origin}/success?orderId=${result.orderId}`;
 
     try {
       if (gateway === 'balance') {
@@ -212,7 +217,13 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         // AND use a Redis Mutex to completely serialize processing per-user for the balance gateway.
         await MutexManager.withLock(`balance_lock_${user.id}`, 30000, 5000, async () => {
           await db.$transaction(async (tx) => {
-            const updatedUser = await tx.user.update({
+            // BUG-003 FIX: Check balance BEFORE decrement
+            const userBefore = await tx.user.findUniqueOrThrow({ where: { id: user.id } });
+            if (userBefore.balance < pricing.totalCents) {
+              throw new Error('Недостаточно средств на внутреннем балансе. Транзакция отклонена.');
+            }
+
+            await tx.user.update({
               where: { id: user.id },
               data: { 
                 balance: { decrement: pricing.totalCents },
@@ -228,10 +239,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
                 status: 'APPROVED'
               }
             });
-
-            if (updatedUser.balance < 0) {
-              throw new Error('Недостаточно средств на внутреннем балансе. Транзакция отклонена.');
-            }
 
             await tx.payment.update({
               where: { id: result.paymentId },
@@ -267,13 +274,19 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           const secretKey = secrets.yookassaSecretKey;
           if (!shopId || !secretKey) throw new Error('YooKassa is not configured in Admin Panel');
 
+        const isTestMode = await SettingsManager.isTestMode();
         const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
         const payload: any = {
           amount: { value: amountRub, currency: 'RUB' },
           capture: true,
           confirmation: { type: 'redirect', return_url: successUrl },
           description: `SEO-Аудит и консультация (Заказ #${result.orderId})`, // [SECURITY] PB-001: Stealth Merchant Description
-          receipt: {
+          metadata: { paymentId: result.paymentId, orderId: result.orderId, userId: user.id }
+        };
+
+        // В тестовом режиме ЮKassa чек часто вызывает 400 Bad Request, если не подключена тестовая касса
+        if (!isTestMode) {
+          payload.receipt = {
             customer: {
               email: email || user.email || 'no-reply@smmplan.ru'
             },
@@ -290,9 +303,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
                 payment_subject: "service"
               }
             ]
-          },
-          metadata: { paymentId: result.paymentId, orderId: result.orderId, userId: user.id }
-        };
+          };
+        }
 
         const idempKey = crypto.createHash('sha256')
           .update(`yookassa_${user.id}_${serviceId}_${quantity}_${link}_${Math.floor(Date.now() / 60000)}`)
@@ -442,6 +454,10 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
   return createSafeAction(retryCheckoutSchema, input, async (data) => {
     const { orderId, gateway } = data;
 
+    // BUG-002 FIX: Auth guard — prevent IDOR
+    const session = await verifySession();
+    if (!session) throw new Error("Необходима авторизация");
+
     const isAllowed = await RateLimitService.check("retryCheckoutCore", 10, 60);
     if (!isAllowed) throw new Error("Слишком много запросов. Попробуйте через минуту.");
 
@@ -450,7 +466,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
     const order = await db.order.findUnique({
-      where: { id: orderId },
+      where: { id: orderId, userId: session.userId },
       include: { user: true, payment: true, service: true }
     });
 
@@ -482,13 +498,30 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
 
     const isTestMode = await SettingsManager.isTestMode();
 
-    // Invalidate old payment and create new
+    // Update existing payment or create new
     const result = await db.$transaction(async (tx) => {
-      if (order.payment) {
-        await tx.payment.update({
-          where: { id: order.payment.id },
-          data: { status: 'CANCELED' }
+      const existingPayment = order.payment || await tx.payment.findUnique({ where: { orderId: order.id } });
+
+      if (existingPayment) {
+        const updatedPayment = await tx.payment.update({
+          where: { id: existingPayment.id },
+          data: { 
+            status: 'PENDING',
+            gateway,
+            consentIp,
+            consentUserAgent
+          }
         });
+
+        // Самовосстановление связи, если она была утеряна из-за старой архитектуры
+        if (!order.paymentId) {
+          await tx.order.update({
+            where: { id: order.id },
+            data: { paymentId: updatedPayment.id }
+          });
+        }
+
+        return { paymentId: updatedPayment.id };
       }
 
       const newPayment = await tx.payment.create({
@@ -500,7 +533,8 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
           status: 'PENDING',
           gateway,
           consentIp,
-          consentUserAgent
+          consentUserAgent,
+          orders: { connect: [{ id: order.id }] } // Правильное связывание
         }
       });
 
@@ -518,13 +552,19 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
       origin = process.env.NEXT_PUBLIC_APP_URL;
     }
     if (origin.includes("0.0.0.0")) origin = origin.replace("0.0.0.0", "localhost");
-    const successUrl = `${origin}/success`;
+    const successUrl = `${origin}/success?orderId=${order.id}`;
 
     try {
       if (gateway === 'balance') {
         await MutexManager.withLock(`balance_lock_${order.userId}`, 30000, 5000, async () => {
           await db.$transaction(async (tx) => {
-            const updatedUser = await tx.user.update({
+            // BUG-003 FIX: Check balance BEFORE decrement
+            const userBefore = await tx.user.findUniqueOrThrow({ where: { id: order.userId } });
+            if (userBefore.balance < order.charge) {
+              throw new Error('Недостаточно средств на внутреннем балансе.');
+            }
+
+            await tx.user.update({
               where: { id: order.userId },
               data: { 
                 balance: { decrement: order.charge },
@@ -540,10 +580,6 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
                 status: 'APPROVED'
               }
             });
-
-            if (updatedUser.balance < 0) {
-              throw new Error('Недостаточно средств на внутреннем балансе.');
-            }
 
             await tx.payment.update({
               where: { id: result.paymentId },
@@ -576,13 +612,18 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
           const secretKey = secrets.yookassaSecretKey;
           if (!shopId || !secretKey) throw new Error('YooKassa is not configured');
 
+        const isTestMode = await SettingsManager.isTestMode();
         const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
         const payload: any = {
           amount: { value: amountRub, currency: 'RUB' },
           capture: true,
           confirmation: { type: 'redirect', return_url: successUrl },
           description: `SEO-Аудит и консультация (Заказ #${order.id})`,
-          receipt: {
+          metadata: { paymentId: result.paymentId, orderId: order.id, userId: order.userId }
+        };
+
+        if (!isTestMode) {
+          payload.receipt = {
             customer: { email: order.email || order.user.email || 'no-reply@smmplan.ru' },
             items: [{
               description: "Услуги SEO-аудита и цифрового маркетинга",
@@ -590,9 +631,8 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
               amount: { value: amountRub, currency: 'RUB' },
               vat_code: 1, payment_mode: "full_prepayment", payment_subject: "service"
             }]
-          },
-          metadata: { paymentId: result.paymentId, orderId: order.id, userId: order.userId }
-        };
+          };
+        }
 
         const idempKey = crypto.createHash('sha256')
           .update(`yookassa_retry_${order.userId}_${order.id}_${Math.floor(Date.now() / 60000)}`)

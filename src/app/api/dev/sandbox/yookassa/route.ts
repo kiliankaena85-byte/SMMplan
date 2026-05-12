@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
           userId,
           amount: amountCents,
           reason: `Пополнение баланса (Dev Sandbox ЮKassa)`,
-          status: 'APPROVED'
+          status: 'APPROVED',
+          idempotencyKey: `sandbox-${fakeGatewayId}`
         }
       });
     });
