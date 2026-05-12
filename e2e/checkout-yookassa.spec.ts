@@ -10,7 +10,7 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     await expect(page).toHaveTitle(/Новый заказ | Smmplan/i);
 
     // 2. Wait for SmartOrderForm to load
-    const linkInput = page.locator('input[placeholder="Ссылка на пост, канал или профиль"]');
+    const linkInput = page.locator('input#order-url');
     await expect(linkInput).toBeVisible();
 
     // 3. Paste a test URL
@@ -76,8 +76,12 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     
     expect(payment).not.toBeNull();
     const userId = payment!.userId;
-    expect(payment!.orderId).not.toBeNull();
-    const orderId = payment!.orderId as string;
+    
+    // Find linked order using paymentId (basket architecture)
+    const linkedOrder = await prisma.order.findFirst({ where: { paymentId: internalPaymentId } });
+    expect(linkedOrder).not.toBeNull();
+    const orderId = linkedOrder!.id;
+    
     const amountRub = Number(payment!.amount) / 100;
 
     // 10. Simulate the YooKassa Webhook Action
