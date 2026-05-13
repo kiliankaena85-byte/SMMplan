@@ -13,12 +13,12 @@ import { providerService } from "@/services/providers/provider.service";
 import { SmartAnalyzerLogic, CATEGORY_LABELS } from "@/services/providers/smart-analyzer.logic";
 import { applyPricingLadder } from "@/lib/financial-constants";
 import { SettingsManager } from "@/lib/settings";
-import { requireAdmin } from "@/lib/server/rbac";
+import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin } from "@/lib/admin-audit";
 import { applyPostSyncRules } from "@/services/providers/post-sync-rules";
 
 export async function adminSyncProviderCatalog() {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
     try {
       const provider = await providerService.getDefaultProvider();
       if (!provider) {
@@ -154,7 +154,7 @@ export async function adminSyncProviderCatalog() {
 
 /** Approve quarantined service — apply pendingRate */
 export async function approveQuarantinedService(serviceId: string) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
       select: { id: true, rate: true, pendingRate: true, isQuarantined: true },
@@ -191,7 +191,7 @@ export async function approveQuarantinedService(serviceId: string) {
 
 /** Reject quarantined service — keep current rate */
 export async function rejectQuarantinedService(serviceId: string) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
     await db.service.update({
       where: { id: serviceId },
       data: { isQuarantined: false, pendingRate: null, quarantineReason: null, quarantinedAt: null },
@@ -211,7 +211,7 @@ export async function rejectQuarantinedService(serviceId: string) {
 
 /** Bulk approve all quarantined */
 export async function approveAllQuarantined() {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
     const quarantined = await db.service.findMany({
       where: { isQuarantined: true, pendingRate: { not: null } },
       select: { id: true, pendingRate: true },

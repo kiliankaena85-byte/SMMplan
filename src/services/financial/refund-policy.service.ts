@@ -1,5 +1,6 @@
 import { db } from '../../lib/db';
 import { WalletService } from './wallet.service';
+import { calculatePartialRefund } from '@/utils/refund';
 
 export class RefundPolicyService {
   /**
@@ -18,25 +19,30 @@ export class RefundPolicyService {
     let reason = `Возврат Заказ #${order.id}`;
 
     if (order.status === 'CANCELED' || order.status === 'ERROR') {
-      // 100% Full Refund
-      refundCents = order.charge;
+      // 100% Full Refund MINUS any previous partial refunds
+      let previousRefunds = 0;
+      const partialRefundLedger = await db.ledgerEntry.findFirst({
+        where: { idempotencyKey: `refund_${order.id}_PARTIAL` }
+      });
+      if (partialRefundLedger) {
+        previousRefunds += Number(partialRefundLedger.amount);
+      }
+      
+      refundCents = Math.max(0, order.charge - previousRefunds);
       reason = `Полный возврат (${order.status}) Заказ #${order.id} ${reasonDetail}`.trim();
     } else if (order.status === 'PARTIAL') {
-      // Proportional mathematical partial refund
-      // Ensure we don't divide by zero
-      if (order.quantity > 0) {
-        const calculatedRefund = Math.floor((order.remains / order.quantity) * order.charge);
-        refundCents = Math.min(calculatedRefund, order.charge); // Safety bound
-      }
+      // Proportional mathematical partial refund via ARCHITECTURE CONTRACT
+      refundCents = calculatePartialRefund(order);
       reason = `Частичный возврат (Partial, ${order.remains} не выполнено) Заказ #${order.id}`.trim();
     }
 
     if (refundCents > 0) {
       // Generates a unique deduplication key for this refund operation
       const idempotencyKey = `refund_${order.id}_${order.status}`;
-      return await WalletService.credit(order.userId, refundCents, reason, idempotencyKey);
+      return await WalletService.refund(order.userId, refundCents, reason, idempotencyKey);
     }
 
     return null;
   }
 }
+

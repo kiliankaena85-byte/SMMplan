@@ -54,22 +54,18 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
 // ---
 
 // 1. Order Processing Queue (Mass, Pending)
-export const orderProcessingQueue = createQueue<{ orderId: string }>('order-processing', {
+const orderProcessingQueue = createQueue<{ orderId: string }>('order-processing', {
   attempts: 3,
   backoff: { type: 'exponential', delay: 5000 }
 });
 
 // 2. Status Sync Queue (Polling Provider API)
-export const statusSyncQueue = createQueue<{ providerId: string }>('status-sync');
+const statusSyncQueue = createQueue<{ providerId: string }>('status-sync');
 
-// 3. Drip-Feed Automation
-export const dripFeedQueue = createQueue<{ orderId: string, run: number }>('drip-feed', {
-  attempts: 5,
-  backoff: { type: 'exponential', delay: 10000 }
-});
+
 
 // 4. Failover & Auto-Monitoring
-export const failoverQueue = createQueue<{ orderId: string }>('order-failover', {
+const failoverQueue = createQueue<{ orderId: string }>('order-failover', {
   attempts: 2,
   backoff: { type: 'exponential', delay: 30000 }
 });
@@ -78,7 +74,7 @@ export const failoverQueue = createQueue<{ orderId: string }>('order-failover', 
 export const closeQueues = async () => {
     await orderProcessingQueue.close();
     await statusSyncQueue.close();
-    await dripFeedQueue.close();
+
     await failoverQueue.close();
     if (redisConnection) await redisConnection.quit();
 };

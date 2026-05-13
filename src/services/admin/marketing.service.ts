@@ -110,6 +110,18 @@ export const adminMarketingService = {
         data: { status: 'PAID' },
       });
 
+      // Financial Integrity: LedgerEntry MUST mirror every balance change
+      await tx.ledgerEntry.create({
+        data: {
+          userId,
+          adminId: adminId,
+          amount: amountToPayCents,
+          reason: `Выплата реферального баланса (admin payout)`,
+          status: 'APPROVED',
+          idempotencyKey: `referral-payout-${userId}-${Date.now()}`
+        },
+      });
+
       // Audit Log
       await tx.adminAuditLog.create({
         data: {

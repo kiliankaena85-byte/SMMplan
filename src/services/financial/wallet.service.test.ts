@@ -14,9 +14,10 @@ describe('WalletService', () => {
   });
 
   describe('charge', () => {
-    it('throws error if amount <= 0', async () => {
-      await expect(WalletService.charge('user1', 0, 'test')).rejects.toThrow('Charge amount must be strictly greater than zero.');
-      await expect(WalletService.charge('user1', -50, 'test')).rejects.toThrow('Charge amount must be strictly greater than zero.');
+    it('returns error if amount <= 0', async () => {
+      vi.mocked(db.$transaction).mockImplementation(async (cb: any) => cb({}));
+      await expect(WalletService.charge('user1', 0, 'test')).resolves.toEqual(expect.objectContaining({ success: false, error: expect.stringContaining('greater than zero') }));
+      await expect(WalletService.charge('user1', -50, 'test')).resolves.toEqual(expect.objectContaining({ success: false, error: expect.stringContaining('greater than zero') }));
     });
 
     it('returns error if db transaction fails', async () => {
@@ -94,8 +95,9 @@ describe('WalletService', () => {
   });
 
   describe('credit', () => {
-    it('throws error if amount <= 0', async () => {
-      await expect(WalletService.credit('user1', 0, 'test')).rejects.toThrow('Credit amount must be strictly greater than zero.');
+    it('returns error if amount <= 0', async () => {
+      vi.mocked(db.$transaction).mockImplementation(async (cb: any) => cb({}));
+      await expect(WalletService.credit('user1', 0, 'test')).resolves.toEqual(expect.objectContaining({ success: false, error: expect.stringContaining('greater than zero') }));
     });
 
     it('returns error if db transaction fails', async () => {

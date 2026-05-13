@@ -1,4 +1,5 @@
 import { db } from '../../lib/db';
+import { WalletOps } from './wallet-ops';
 
 export class WalletService {
   /**
@@ -12,63 +13,9 @@ export class WalletService {
     idempotencyKey?: string,
     adminId?: string
   ) {
-    if (amountCents <= 0) {
-      throw new Error('Charge amount must be strictly greater than zero.');
-    }
-
     try {
       return await db.$transaction(
-        async (tx) => {
-          // 1. Check Idempotency immediately
-          if (idempotencyKey) {
-            const existing = await tx.ledgerEntry.findUnique({
-              where: { idempotencyKey },
-            });
-            
-            if (existing) {
-              return { success: true, balance: null, cached: true, entry: existing };
-            }
-          }
-
-          // 2. Fetch User with strict locking
-          const user = await tx.user.findUnique({
-            where: { id: userId },
-            select: { id: true, balance: true },
-          });
-
-          if (!user) {
-            throw new Error(`User ${userId} not found.`);
-          }
-
-          // 3. Mathematical validation
-          if (user.balance < amountCents) {
-            throw new Error(`Insufficient funds: needed ${amountCents}, got ${user.balance}`);
-          }
-
-          // 4. Atomic decrement (Database Level)
-          const updatedUser = await tx.user.update({
-            where: { id: userId },
-            data: {
-              balance: { decrement: amountCents },
-              totalSpent: { increment: amountCents }
-            },
-            select: { balance: true }
-          });
-
-          // 5. Create Ledger Audit Log
-          const entry = await tx.ledgerEntry.create({
-            data: {
-              userId,
-              adminId,
-              amount: -amountCents, // Native negative for debits
-              reason,
-              status: 'APPROVED',
-              idempotencyKey,
-            }
-          });
-
-          return { success: true, balance: updatedUser.balance, cached: false, entry };
-        },
+        async (tx) => WalletOps.charge(tx, userId, amountCents, reason, { idempotencyKey, adminId }),
         // Maximum isolation to prevent concurrent writes stealing balance
         { isolationLevel: 'Serializable' }
       );
@@ -87,45 +34,39 @@ export class WalletService {
     idempotencyKey?: string,
     adminId?: string
   ) {
-    if (amountCents <= 0) {
-      throw new Error('Credit amount must be strictly greater than zero.');
-    }
-
     try {
       return await db.$transaction(
-        async (tx) => {
-          if (idempotencyKey) {
-            const existing = await tx.ledgerEntry.findUnique({
-              where: { idempotencyKey },
-            });
-            if (existing) {
-               return { success: true, balance: null, cached: true, entry: existing };
-            }
-          }
-
-          const updatedUser = await tx.user.update({
-            where: { id: userId },
-            data: { balance: { increment: amountCents } },
-            select: { balance: true }
-          });
-
-          const entry = await tx.ledgerEntry.create({
-            data: {
-              userId,
-              adminId,
-              amount: amountCents, // Native positive for credits
-              reason,
-              status: 'APPROVED',
-              idempotencyKey,
-            }
-          });
-
-          return { success: true, balance: updatedUser.balance, cached: false, entry };
-        },
+        async (tx) => WalletOps.credit(tx, userId, amountCents, reason, { idempotencyKey, adminId }),
         { isolationLevel: 'Serializable' }
       );
     } catch (e: any) {
       return { success: false, error: e.message || 'Transaction failed', balance: null, cached: false };
+    }
+  }
+
+  /**
+   * Refund user balance: increments balance, decrements totalSpent, creates ledger entry.
+   * 
+   * ARCHITECTURE CONTRACT: Единственный способ оформить возврат клиенту.
+   * Гарантирует: идемпотентность, Serializable isolation, ledger audit trail.
+   * 
+   * ВАЖНО: В отличие от credit(), этот метод УМЕНЬШАЕТ totalSpent,
+   * что необходимо для корректной бухгалтерии (P&L).
+   */
+  static async refund(
+    userId: string,
+    amountCents: number,
+    reason: string,
+    idempotencyKey?: string,
+    adminId?: string
+  ) {
+    try {
+      return await db.$transaction(
+        async (tx) => WalletOps.refund(tx, userId, amountCents, reason, { idempotencyKey, adminId }),
+        { isolationLevel: 'Serializable' }
+      );
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Refund transaction failed', balance: null, cached: false };
     }
   }
 }

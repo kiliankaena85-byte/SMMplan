@@ -11,7 +11,7 @@ export const userIdSchema = z.object({
   userId: z.string().min(1)
 });
 
-export const entryIdSchema = z.object({
+const entryIdSchema = z.object({
   entryId: z.string().min(1)
 });
 

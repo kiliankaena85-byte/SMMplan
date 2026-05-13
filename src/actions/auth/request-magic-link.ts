@@ -46,6 +46,13 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
     // Узнаем, существует ли пользователь (или авто-создаем)
     let user = await db.user.findUnique({ where: { email: cleanEmail } });
     if (!user) {
+      // P1.3 Anti-Fraud: Strict IP limit for new registrations (Max 3 per 24 hours)
+      const isIpAllowedForReg = await RateLimitService.check('auth:register:ip', 3, 86400);
+      if (!isIpAllowedForReg) {
+        log.warn('Registration IP rate limit exceeded (Anti-Fraud blocked attempt)');
+        return { error: "Превышен лимит регистраций с вашего IP. Попробуйте завтра.", success: false };
+      }
+
       // Пытаемся получить реферальный код из куки
       const cookieStore = await cookies();
       const refCode = cookieStore.get("ref")?.value;
@@ -53,6 +60,7 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
       if (refCode) {
         const referrer = await db.user.findUnique({ where: { referralCode: refCode } });
+        // Anti-Fraud: Prevent circular referrals or self-referrals (handled by logic down the line, but we link it here)
         if (referrer) referredById = referrer.id;
       }
 
@@ -63,6 +71,13 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
       
       // Send Welcome Letter asynchronously
       sendWelcomeLetter(cleanEmail).catch(console.error);
+    } else {
+      // Loose IP limit for existing logins (Max 15 per hour)
+      const isIpAllowedForLogin = await RateLimitService.check('auth:login:ip', 15, 3600);
+      if (!isIpAllowedForLogin) {
+        log.warn('Login IP rate limit exceeded');
+        return { error: "Слишком много попыток входа с этого IP адреса. Пожалуйста, подождите 1 час.", success: false };
+      }
     }
 
     // P1.2: Email-level rate limiting — 3 requests per 5 minutes per email

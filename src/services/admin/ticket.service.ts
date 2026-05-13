@@ -3,7 +3,7 @@ import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 
 // ── Types ──
 
-export type AdminTicketRow = {
+type AdminTicketRow = {
   id: string;
   subject: string;
   status: string;
@@ -25,7 +25,7 @@ type TicketSearchParams = {
 
 // ── Service ──
 
-export class AdminTicketService {
+class AdminTicketService {
 
   /**
    * Paginated ticket list with filters.

@@ -40,9 +40,9 @@ export function WhyUs() {
             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6 text-indigo-300 group-hover:scale-110 transition-transform">
               <IconTrendingUp className="w-6 h-6" stroke={1.5} />
             </div>
-            <h3 className="text-xl font-bold text-white mb-3">Плавный рост (Drip-Feed)</h3>
+            <h3 className="text-xl font-bold text-white mb-3">Оптовые цены</h3>
             <p className="text-slate-400 font-medium leading-relaxed">
-              Алгоритмы не заметят накрутки. Подписчики приходят постепенно, абсолютно неотличимо от органического взрыва.
+              Мы работаем напрямую с крупными поставщиками, обеспечивая лучшие цены на рынке для бизнеса и реселлеров.
             </p>
           </div>
         </div>
@@ -53,9 +53,9 @@ export function WhyUs() {
             <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 text-emerald-500 group-hover:scale-110 transition-transform">
               <IconShieldCheck className="w-6 h-6" stroke={1.5} />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-3">Гарантия от отписок</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-3">Прозрачные условия</h3>
             <p className="text-slate-500 font-medium leading-relaxed">
-              Мы не просто продаем цифры. Если сервис подразумевает гарантию — мы бесплатно восполним любые отписки.
+              Никаких скрытых условий. Вы получаете ровно то качество и ту скорость, которые указаны в описании услуги.
             </p>
           </div>
         </div>

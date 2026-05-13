@@ -1,6 +1,6 @@
 import { IntelligencePlatform, LINK_RULES } from './link-rules';
 
-export interface IntelligenceLinkMetadata {
+interface IntelligenceLinkMetadata {
     isLive?: boolean;
     context?: string;
     isPrivate?: boolean;

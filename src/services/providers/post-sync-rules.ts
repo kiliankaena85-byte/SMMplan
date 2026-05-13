@@ -25,13 +25,13 @@ import { db } from '@/lib/db';
 // ============================================
 
 /** Услуги, которые НИКОГДА не должны импортироваться (удаляются при синке) */
-export const BLACKLISTED_SERVICES: string[] = [
+const BLACKLISTED_SERVICES: string[] = [
   // Wibes — мёртвая платформа
   '3068', '3072', '3073', '3071', '3070',
 ];
 
 /** Услуги, которые импортируются, но скрываются (isActive=false) */
-export const HIDDEN_SERVICES: string[] = [
+const HIDDEN_SERVICES: string[] = [
   // Жалобы / Reports — юридический риск (ст.272, 306 УК РФ)
   '2392', // Жалоба [Без причины]
   '2402', // Жалоба [Авторское право]
@@ -46,14 +46,14 @@ export const HIDDEN_SERVICES: string[] = [
 ];
 
 /** Максимальное количество для заказа (cap для INT_MAX от провайдера) */
-export const MAX_QTY_CAP = 10_000_000;
+const MAX_QTY_CAP = 10_000_000;
 
 /**
  * Правила переклассификации: externalId → { network, category }
  * Применяются ПОСЛЕ основного анализатора SmartAnalyzerLogic.
  * Если анализатор ошибся — правило перезаписывает результат.
  */
-export const RECLASSIFY_RULES: Record<string, { network: string; category: string }> = {
+const RECLASSIFY_RULES: Record<string, { network: string; category: string }> = {
   // Instagram Сохранения — анализатор путает с Лайками
   '991':  { network: 'INSTAGRAM', category: '📌 Сохранения' },
 

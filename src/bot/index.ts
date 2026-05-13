@@ -75,6 +75,15 @@ bot.start(async (ctx: any) => {
   // Upsert user by telegramId
   let user = await db.user.findFirst({ where: { telegramId: tgId } });
   if (!user) {
+    // P1.3 Anti-Fraud: Global rate limit for Telegram Bot Registrations (Max 100 per hour)
+    const { RateLimitService } = await import('@/services/core/rate-limit.service');
+    const isGlobalAllowed = await RateLimitService.check('auth:register:telegram_global', 100, 3600);
+    
+    if (!isGlobalAllowed) {
+      console.warn(`[Anti-Fraud] Global Telegram registration limit exceeded. Blocked tgId: ${tgId}`);
+      return ctx.reply('⚠️ Регистрация временно приостановлена из-за высокой нагрузки. Попробуйте позже.');
+    }
+
     user = await db.user.upsert({
       where: { email: `tg_${tgId}@smmplan.bot` },
       update: { telegramId: tgId },

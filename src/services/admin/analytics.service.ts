@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 
-export interface ServiceProfitability {
+interface ServiceProfitability {
   serviceId: string;
   serviceName: string;
   categoryName: string;
@@ -11,7 +11,7 @@ export interface ServiceProfitability {
   ordersCount: number;
 }
 
-export interface CategoryProfitability {
+interface CategoryProfitability {
   categoryId: string;
   categoryName: string;
   revenue: number;
@@ -21,7 +21,7 @@ export interface CategoryProfitability {
   ordersCount: number;
 }
 
-export class AnalyticsService {
+class AnalyticsService {
   async getServiceProfitability(days: number): Promise<ServiceProfitability[]> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);

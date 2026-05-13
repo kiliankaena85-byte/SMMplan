@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/server/rbac";
+import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin } from "@/lib/admin-audit";
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -15,7 +15,7 @@ const categorySchema = z.object({
 const idSchema = z.string().min(1);
 
 export async function createCategory(rawData: { name: string; networkId: string; sort: number }) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const data = categorySchema.parse(rawData);
     const cat = await db.category.create({
       data: {
@@ -42,7 +42,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
 }
 
 export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number }) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     const data = categorySchema.parse(rawData);
     const cat = await db.category.update({
@@ -71,7 +71,7 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
 }
 
 export async function deleteCategory(rawId: string) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     const count = await db.service.count({ where: { categoryId: id } });
     if (count > 0) {

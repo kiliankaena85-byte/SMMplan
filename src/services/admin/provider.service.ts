@@ -31,7 +31,7 @@ export type ProviderDetailDTO = {
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
-export class AdminProviderService {
+class AdminProviderService {
   /**
    * List all providers — safe DTO, no apiKey.
    */

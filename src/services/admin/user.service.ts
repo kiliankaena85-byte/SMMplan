@@ -1,10 +1,11 @@
 import { db } from '@/lib/db';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
+import { WalletOps } from '../financial/wallet-ops';
 
 // ── Types ──
 
-export type AdminUserRow = {
+type AdminUserRow = {
   id: string;
   email: string;
   role: string;
@@ -18,7 +19,7 @@ export type AdminUserRow = {
   _count: { orders: number; tickets: number };
 };
 
-export type UserCard = AdminUserRow & {
+type UserCard = AdminUserRow & {
   orders: {
     id: string;
     numericId: number;
@@ -49,7 +50,7 @@ export { getVolumeTier };
 
 // ── Service ──
 
-export class AdminUserService {
+class AdminUserService {
 
   /**
    * Paginated user list with optional search (by email).
@@ -126,24 +127,7 @@ export class AdminUserService {
     const oldBalance = user.balance;
 
     await db.$transaction(async (tx) => {
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: { balance: { increment: amountCents } },
-      });
-
-      if (updatedUser.balance < 0) {
-        throw new Error(`Операция отклонена: Баланс пользователя уйдёт в минус на ${updatedUser.balance} коп.`);
-      }
-
-      await tx.ledgerEntry.create({
-        data: {
-          userId,
-          adminId: admin.id,
-          amount: amountCents,
-          reason,
-          status: 'APPROVED',
-        },
-      });
+      await WalletOps.credit(tx, userId, amountCents, reason, { adminId: admin.id });
     });
 
     auditAdmin({

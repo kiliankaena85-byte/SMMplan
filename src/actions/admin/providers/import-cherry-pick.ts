@@ -1,12 +1,12 @@
 "use server";
 
-import { requireAdmin } from "@/lib/server/rbac";
+import { requireStaffPermission } from "@/lib/server/rbac";
 import { adminCatalogService } from "@/services/admin/catalog.service";
 import { providerService } from "@/services/providers/provider.service";
 import { db } from "@/lib/db";
 
 export async function fetchExternalServices(providerId?: string) {
-  return requireAdmin(async () => {
+  return requireStaffPermission('PROVIDERS', 'view', async () => {
      let providerInstance;
      if (providerId) {
         const p = await db.provider.findUnique({ where: { id: providerId } });
@@ -37,7 +37,7 @@ export async function fetchExternalServices(providerId?: string) {
 }
 
 export async function importSelectedServices(externalIds: string[], categoryId: string, defaultMarkup: number) {
-    return requireAdmin(async (admin) => {
+    return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
         try {
             const res = await adminCatalogService.importServices(externalIds, categoryId, defaultMarkup, admin);
             return { success: true, imported: res.importedCount };

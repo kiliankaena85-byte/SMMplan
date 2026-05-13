@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const AI_CATALOG_SYSTEM_PROMPT = `
+const AI_CATALOG_SYSTEM_PROMPT = `
 Вы — Старший AI Копирайтер и Модератор B2B SMM Панели.
 Ваша задача — перевести сырое описание услуги провайдера на русский язык, отфильтровать мусор и структурировать информацию.
 
@@ -35,15 +35,15 @@ export const AI_CATALOG_SYSTEM_PROMPT = `
 }
 `;
 
-export const RebrandOutputSchema = z.object({
+const RebrandOutputSchema = z.object({
   newName: z.string(),
   newDescription: z.string(),
   requirements: z.array(z.string()).default([]),
 });
 
-export type AIOptimizedService = z.infer<typeof RebrandOutputSchema>;
+type AIOptimizedService = z.infer<typeof RebrandOutputSchema>;
 
-export class AiCatalogService {
+class AiCatalogService {
   /**
    * Generates an optimized, rebranded service description using Gemini AI.
    * Returns a structured JSON matching RebrandOutputSchema.

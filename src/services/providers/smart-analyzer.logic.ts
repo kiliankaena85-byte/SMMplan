@@ -20,11 +20,11 @@ export interface AnalyzedService {
     warranty?: number;
 }
 
-export const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
-export const CATEGORIES = ['SUBSCRIBERS', 'GROUPS', 'LIKES', 'VIEWS', 'COMMENTS', 'REACTIONS', 'REPOSTS', 'AUTO_VIEWS', 'AUTO_LIKES', 'AUTO_REACTIONS', 'AUTO_REPOSTS', 'AUTO_COMMENTS', 'BOOSTS', 'POLLS', 'STORIES', 'BOTS', 'REFERRALS', 'FRIENDS', 'PLAYS', 'TRAFFIC', 'DISLIKES', 'STARS', 'SAVES', 'COMPLAINTS', 'STREAMS', 'PREMIUM', 'RECOVER', 'OTHER'];
-export const TARGET_TYPES = ['CHANNEL', 'POST', 'PROFILE', 'VIDEO', 'VK_VIDEO', 'VK_CLIP', 'VK_PLAY', 'CHANNEL_POSTS', 'STORY', 'COMMENTS', 'POLL', 'PHOTO', 'MARKET', 'PLAYLIST', 'ALBUM', 'EXTERNAL', 'CUSTOM'];
+const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
+const CATEGORIES = ['SUBSCRIBERS', 'GROUPS', 'LIKES', 'VIEWS', 'COMMENTS', 'REACTIONS', 'REPOSTS', 'AUTO_VIEWS', 'AUTO_LIKES', 'AUTO_REACTIONS', 'AUTO_REPOSTS', 'AUTO_COMMENTS', 'BOOSTS', 'POLLS', 'STORIES', 'BOTS', 'REFERRALS', 'FRIENDS', 'PLAYS', 'TRAFFIC', 'DISLIKES', 'STARS', 'SAVES', 'COMPLAINTS', 'STREAMS', 'PREMIUM', 'RECOVER', 'OTHER'];
+const TARGET_TYPES = ['CHANNEL', 'POST', 'PROFILE', 'VIDEO', 'VK_VIDEO', 'VK_CLIP', 'VK_PLAY', 'CHANNEL_POSTS', 'STORY', 'COMMENTS', 'POLL', 'PHOTO', 'MARKET', 'PLAYLIST', 'ALBUM', 'EXTERNAL', 'CUSTOM'];
 
-export const PLATFORM_LABELS: Record<string, string> = {
+const PLATFORM_LABELS: Record<string, string> = {
     TELEGRAM: 'Telegram',
     INSTAGRAM: 'Instagram',
     TIKTOK: 'TikTok',
@@ -100,7 +100,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
     OTHER: 'Другое / Разное',
 };
 
-export const TARGET_TYPE_LABELS: Record<string, string> = {
+const TARGET_TYPE_LABELS: Record<string, string> = {
     CHANNEL: 'Канал/Группа',
     POST: 'Пост/Публикация',
     PROFILE: 'Профиль/Аккаунт',
@@ -120,7 +120,7 @@ export const TARGET_TYPE_LABELS: Record<string, string> = {
     CUSTOM: 'Свой тип (API)',
 };
 
-export const PLATFORM_KEYWORDS: Record<string, string[]> = {
+const PLATFORM_KEYWORDS: Record<string, string[]> = {
     TELEGRAM: ['telegram', 'tg', 'телеграм', 'тг', 'запуск бота', 'рефералы'],
     INSTAGRAM: ['instagram', 'inst', 'инстаграм', 'инста'],
     VK: ['vk', 'вк', 'vkontakte', 'вконтакте'],
@@ -165,7 +165,7 @@ export const PLATFORM_KEYWORDS: Record<string, string[]> = {
     OTHER: []
 };
 
-export const CATEGORY_MAP: Record<string, string[]> = {
+const CATEGORY_MAP: Record<string, string[]> = {
     SUBSCRIBERS: ['subscriber', 'member', 'follow', 'participant', 'reader', 'подписчики', 'подписчик', 'участники', 'участник', 'фолловер'],
     VIEWS: ['view', 'eye', 'watch', 'просмотр', 'гляделок', 'глаз', 'посещен', 'охват', 'стат', 'visit', 'reach', 'stat', 'impressions', 'hour', 'watch time', 'время просмотр', 'часы просмотр'],
     BOTS: ['bot', 'бот'],
@@ -191,7 +191,7 @@ export const CATEGORY_MAP: Record<string, string[]> = {
     OTHER: []
 };
 
-export const GEO_MAP: Record<string, string[]> = {
+const GEO_MAP: Record<string, string[]> = {
     'RU': ['россия', 'рф', 'ru', '🇷🇺', 'русские'],
     'USA': ['сша', 'usa', '🇺🇸', 'english', 'worldwide'],
     'KZ': ['казахстан', 'кз', 'kz', '🇰🇿'],

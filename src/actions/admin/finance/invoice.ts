@@ -1,6 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db'
+import { WalletOps } from '@/services/financial/wallet-ops'
 import { requireStaffPermission } from '@/lib/server/rbac'
 
 export async function createInvoiceAction(userId: string, amount: number) {
@@ -44,22 +45,11 @@ export async function markInvoicePaidAction(invoiceId: string) {
         data: { status: 'PAID' }
       });
 
-      // 2. Add funds to User balance
-      await tx.user.update({
-        where: { id: invoice.userId },
-        data: { balance: { increment: invoice.amount } }
-      });
-
-      // 3. Log in Ledger
-      await tx.ledgerEntry.create({
-        data: {
-          userId: invoice.userId,
-          amount: invoice.amount,
-          reason: `Оплата по B2B счету #${invoice.id}`,
-          status: 'APPROVED',
-          idempotencyKey: `invoice-${invoice.id}`
-        }
-      });
+      // 2. Add funds and log in Ledger
+      await WalletOps.credit(tx, invoice.userId, Number(invoice.amount),
+        `Оплата по B2B счету #${invoice.id}`,
+        { idempotencyKey: `invoice-${invoice.id}` }
+      );
     });
 
     return { success: true };

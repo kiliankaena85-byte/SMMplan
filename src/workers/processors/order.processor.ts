@@ -23,6 +23,12 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     return;
   }
 
+  // Explicit Idempotency Check Before Provider Call
+  if (order.externalId) {
+    console.warn(`[OrderProcessor] Order ${orderId} already has an externalId (${order.externalId}). Skipping to prevent duplicate dispatch.`);
+    return;
+  }
+
   const providerDef = order.service.provider;
   if (!providerDef.apiUrl || !providerDef.apiKey) {
     throw new Error('Provider missing API URL or Encrypted Key');
@@ -40,9 +46,11 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     // API Parameter Mapping for V2 APIs
     const serviceName = order.service.name.toLowerCase();
     const payload: any = {
-      service: order.service.externalId || '',
+      service: order.providerServiceId || order.service.externalId || '',
       link: order.link,
       quantity: runQty,
+      ref: order.id, // Idempotency key for providers that support 'ref'
+      custom_id: order.id // Idempotency key for providers that support 'custom_id'
     };
 
     if (order.isDripFeed && order.runs && order.interval) {
@@ -84,33 +92,72 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   } catch (error: any) {
     console.error(`[OrderProcessor] Failed Order ${order.id} on attempt ${job.attemptsMade}:`, error.message);
     
-    const maxAttempts = job.opts.attempts || 3;
-    if (job.attemptsMade < maxAttempts) {
-       // Re-throw to trigger Exponential Backoff
-       throw error;
+    // Determine error type
+    const isNetworkError = error.message.includes('Provider HTTP Error') || 
+                           error.message.includes('Provider Request Timeout') || 
+                           error.message.includes('CircuitBreakerOpenException');
+
+    const maxAttempts = job.opts?.attempts || 3;
+
+    // === WAVE 4.1: TRIGGER A (INSTANT API CRASH QUARANTINE) ===
+    // Run quarantine only on the final attempt before throwing to DLQ
+    if (job.attemptsMade >= maxAttempts && !isNetworkError) {
+        // It's a business logic API Error ("Service disabled", "Invalid link", "Not enough funds")
+        
+        // Anti-Fraud check: "Not enough funds" means our Provider wallet is empty.
+        // DO NOT quarantine the service. We must quarantine the provider or alert the admin.
+        if (error.message.toLowerCase().includes('not enough funds') || error.message.toLowerCase().includes('balance')) {
+            const { sendAdminAlert } = await import('@/lib/notifications');
+            await sendAdminAlert(`🚨 КРИТИЧНО! У провайдера для услуги ${order.serviceId} кончился баланс! Заказы отклоняются!`);
+        } else {
+            // Standard Business Error Quarantine logic
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+            
+            // Find recent ERROR orders for this exact service
+            const recentErrors = await db.order.findMany({
+                where: {
+                    serviceId: order.serviceId,
+                    status: 'ERROR',
+                    createdAt: { gte: oneHourAgo }
+                },
+                select: { userId: true }
+            });
+
+            // We need >= 3 errors from >= 2 UNIQUE users to prevent Mass Order abuse
+            if (recentErrors.length >= 3) {
+                const uniqueUsers = new Set(recentErrors.map(e => e.userId));
+                if (uniqueUsers.size >= 2) {
+                    // TRIGGER QUARANTINE!
+                    // Exponential Backoff for Cooldown: 30 mins -> 2 hours -> 12 hours
+                    const service = await db.service.findUnique({ where: { id: order.serviceId } });
+                    if (service && (!service.cooldownUntil || service.cooldownUntil < new Date())) {
+                        let cooldownHours = 0.5; // default 30 mins
+                        if (service.cooldownReason === 'API_ERROR_STRIKE_1') cooldownHours = 2;
+                        else if (service.cooldownReason === 'API_ERROR_STRIKE_2') cooldownHours = 12;
+
+                        const newReason = cooldownHours === 0.5 ? 'API_ERROR_STRIKE_1' : (cooldownHours === 2 ? 'API_ERROR_STRIKE_2' : 'API_ERROR_STRIKE_3');
+                        const newCooldown = new Date(Date.now() + cooldownHours * 60 * 60 * 1000);
+
+                        await db.service.update({
+                            where: { id: service.id },
+                            data: {
+                                cooldownUntil: newCooldown,
+                                cooldownReason: newReason
+                            }
+                        });
+
+                        console.warn(`[ElasticQuarantine] Trigger A fired for Service ${service.id}. Cooldown until ${newCooldown.toISOString()}`);
+                    }
+                }
+            }
+        }
     }
+    // ==========================================================
 
-    // Exhausted retries
-    const finalStatus = 'ERROR';
-    
-    const updatedOrder = await db.order.update({
-      where: { id: order.id },
-      data: {
-        status: finalStatus,
-        error: error.message
-      }
-    });
-
-    // We use the new RefundPolicyService to process the refund cleanly.
-    // However, RefundPolicyService requires specific payload:
-    const { RefundPolicyService } = await import('@/services/financial/refund-policy.service');
-    await RefundPolicyService.processRefund({
-        id: updatedOrder.id,
-        userId: updatedOrder.userId,
-        charge: Number(order.charge),
-        quantity: order.quantity,
-        remains: order.quantity,
-        status: finalStatus
-    }, '(Исчерпаны попытки отправки провайдеру)');
+    // Unconditionally throw the error! 
+    // BullMQ will handle exponential backoff.
+    // On the final attempt, this triggers the 'failed' event which goes to the DLQ.
+    // DLQ then calls orderService.failOrderTerminal() which uses the safe, atomic WalletOps.
+    throw error;
   }
 }

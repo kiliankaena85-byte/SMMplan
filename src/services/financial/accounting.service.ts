@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 
-export interface FinancialMetrics {
+interface FinancialMetrics {
   revenueGross: number; // Изначально принесенные деньги
   refunds: number; // Отмененные деньги, возвращенные балансами
   cogs: number; // Оплачено провайдерам (COGS)
@@ -13,7 +13,7 @@ export interface FinancialMetrics {
   marginPercentage: number;
 }
 
-export class AccountingService {
+class AccountingService {
   async getMetrics(startDate?: Date, endDate?: Date): Promise<FinancialMetrics> {
     const whereClause: any = {};
     if (startDate && endDate) {
@@ -60,7 +60,8 @@ export class AccountingService {
     let refunds = 0;
     for (const order of refundedOrders) {
       if (order.quantity > 0 && order.remains > 0) {
-        refunds += Math.round((order.remains / order.quantity) * Number(order.charge));
+        const { calculatePartialRefund } = await import('@/utils/refund');
+        refunds += calculatePartialRefund(order);
       } else if (order.status === 'CANCELED') {
         refunds += Number(order.charge);
       }

@@ -5,10 +5,11 @@ import { adminUserService } from '@/services/admin/user.service';
 import { escrowService } from '@/services/admin/escrow.service';
 import { auditAdmin } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { SignJWT } from 'jose';
 import { updateBalanceSchema, userIdSchema } from '@/validators/admin.validators';
 import { requireStaffPermission } from '@/lib/server/rbac';
+import { getClientIp } from '@/utils/ip';
 
 const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
 const encodedKey = new TextEncoder().encode(secretKey);
@@ -29,8 +30,7 @@ export async function updateBalanceAction(formData: FormData) {
     // If SUPPORT has 'edit' permission for 'clients', they can update balance. 
     // Usually, SUPPORT should only have 'view' for 'clients'.
 
-    const reqHeaders = await headers();
-    const ipAddress = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || 'unknown';
+    const ipAddress = await getClientIp('unknown');
 
     const escrowResult = await escrowService.evaluateBalanceAdjustment(
       userId,
@@ -61,8 +61,7 @@ export async function banUserAction(formData: FormData) {
     
     const { userId } = parsed.data;
 
-    const reqHeaders = await headers();
-    const ipAddress = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || 'unknown';
+    const ipAddress = await getClientIp('unknown');
 
     await adminUserService.banUser(userId, {
       id: admin.id,
@@ -90,8 +89,7 @@ export async function unbanUserAction(formData: FormData) {
     
     const { userId } = parsed.data;
 
-    const reqHeaders = await headers();
-    const ipAddress = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || 'unknown';
+    const ipAddress = await getClientIp('unknown');
 
     await adminUserService.unbanUser(userId, {
       id: admin.id,

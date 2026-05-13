@@ -12,7 +12,7 @@
  * - discount capped at 50% (business rule)
  */
 
-import { requireAdmin } from '@/lib/server/rbac';
+import { requireStaffPermission } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 import { auditAdmin } from '@/lib/admin-audit';
 import { serializeForClient } from '@/lib/bigint-serializer';
@@ -38,7 +38,7 @@ export async function updateClientDiscountAction(
   discount: number,
   endsAt?: string
 ) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('CLIENTS', 'edit', async (admin) => {
     const parsed = discountSchema.safeParse({ userId, discount, endsAt });
     if (!parsed.success) {
       return { success: false as const, error: `Максимальная скидка ${MAX_DISCOUNT}%` };
@@ -76,7 +76,7 @@ export async function updateClientDiscountAction(
 
 /** Update internal admin note for a client */
 export async function updateClientNoteAction(userId: string, note: string) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('CLIENTS', 'edit', async (admin) => {
     const parsed = noteSchema.safeParse({ userId, note });
     if (!parsed.success) {
       return { success: false as const, error: 'Заметка слишком длинная (макс 2000 символов)' };
@@ -105,8 +105,8 @@ export async function updateClientNoteAction(userId: string, note: string) {
 }
 
 /** Fetch full client profile for the detail page */
-export async function getClientProfileAction(userId: string) {
-  return requireAdmin(async () => {
+async function getClientProfileAction(userId: string) {
+  return requireStaffPermission('CLIENTS', 'view', async () => {
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {

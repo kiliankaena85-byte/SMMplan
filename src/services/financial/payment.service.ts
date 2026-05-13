@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { WalletOps } from './wallet-ops';
 import { revalidatePath } from 'next/cache';
 
 export class PaymentService {
@@ -157,22 +158,10 @@ export class PaymentService {
 
         if (!isOrderPayment && basketOrders.length === 0) {
           // Direct top-up (Deposit) - Increment User Balance securely!
-          await tx.user.update({
-            where: { id: userId },
-            data: { 
-              balance: { increment: amount }
-            }
-          });
-          
-          await tx.ledgerEntry.create({
-            data: {
-              userId,
-              amount: amount,
-              reason: `Пополнение баланса через ${gatewayType}`,
-              status: 'APPROVED',
-              idempotencyKey: `deposit-${processedPaymentId}`
-            }
-          });
+          await WalletOps.credit(tx, userId, amount,
+            `Пополнение баланса через ${gatewayType}`,
+            { idempotencyKey: `deposit-${processedPaymentId}` }
+          );
         }
       });
 
@@ -181,13 +170,9 @@ export class PaymentService {
       
       // Dispatch paid orders to processing queue
       if (activatedOrders.length > 0) {
-        const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
+        const { ordersQueue } = require('@/workers/queues');
         for (const activated of activatedOrders) {
-          if (activated.isDripFeed) {
-            await dripfeedQueue.add('dripfeed-start', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
-          } else {
-            await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
-          }
+          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
         }
       }
 
@@ -287,13 +272,9 @@ export class PaymentService {
 
       // Dispatch paid orders to processing queue
       if (activatedOrders.length > 0) {
-        const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
+        const { ordersQueue } = require('@/workers/queues');
         for (const activated of activatedOrders) {
-          if (activated.isDripFeed) {
-            await dripfeedQueue.add('dripfeed-start', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
-          } else {
-            await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
-          }
+          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
         }
       }
 

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "next.config.js",
+    "src/app/**/*.{js,jsx,ts,tsx}",
+    "src/bot/index.ts",
+    "src/workers/index.ts",
+    "scripts/**/*.ts"
+  ],
+  "project": ["src/**/*.{js,jsx,ts,tsx}", "scripts/**/*.ts"],
+  "ignore": [
+    "scratch-*.js",
+    "test-*.ts",
+    "scripts/test-*.js"
+  ]
+}

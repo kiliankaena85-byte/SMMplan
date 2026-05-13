@@ -145,11 +145,24 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     const loadServices = async () => {
       setIsLoading(true);
       const svcs = await getServicesByCategoryAction(categoryId);
-      setServices(svcs);
       
-      // When category changes, auto-select the first service of the new category
-      if (svcs.length > 0) {
-        setSelectedService(svcs[0]);
+      // WAVE 4.1: Marketing UX Sorting
+      // Push quarantined services to the bottom of the list
+      const sortedSvcs = [...svcs].sort((a, b) => {
+          const aQuarantined = a.cooldownUntil && new Date(a.cooldownUntil) > new Date();
+          const bQuarantined = b.cooldownUntil && new Date(b.cooldownUntil) > new Date();
+          if (aQuarantined && !bQuarantined) return 1;
+          if (!aQuarantined && bQuarantined) return -1;
+          return 0; // maintain default rate-based sorting otherwise
+      });
+
+      setServices(sortedSvcs);
+      
+      // When category changes, auto-select the first HEALTHY service
+      if (sortedSvcs.length > 0) {
+        // Find the first service that is not in cooldown
+        const healthyService = sortedSvcs.find(s => !s.cooldownUntil || new Date(s.cooldownUntil) <= new Date());
+        setSelectedService(healthyService || sortedSvcs[0]);
       } else {
         setSelectedService(null);
       }

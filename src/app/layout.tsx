@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     template: '%s | Smmplan',
   },
   description:
-    'Накрутка подписчиков, лайков, просмотров для Instagram, TikTok, VK, YouTube. Быстрый старт, гарантия, поддержка 24/7.',
+    'Накрутка подписчиков, лайков, просмотров для Instagram, TikTok, VK, YouTube. Быстрый старт, надежные исполнители, поддержка 24/7.',
   keywords: ['smm', 'накрутка', 'подписчики', 'лайки', 'продвижение', 'instagram', 'tiktok', 'youtube', 'vk'],
   openGraph: {
     type: 'website',
@@ -25,12 +25,12 @@ export const metadata: Metadata = {
     siteName: 'Smmplan',
     title: 'Smmplan — продвижение в социальных сетях',
     description:
-      'Накрутка подписчиков, лайков, просмотров. Быстрый старт, гарантия качества, поддержка 24/7.',
+      'Накрутка подписчиков, лайков, просмотров. Быстрый старт, профессиональное выполнение, поддержка 24/7.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Smmplan — продвижение в социальных сетях',
-    description: 'Накрутка подписчиков, лайков, просмотров. Гарантия результата.',
+    description: 'B2B платформа продвижения: накрутка подписчиков, лайков, просмотров.',
   },
   robots: {
     index: true,

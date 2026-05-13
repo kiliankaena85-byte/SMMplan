@@ -5,6 +5,8 @@ import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { PaymentService } from '@/services/financial/payment.service';
 import { MutexManager } from '@/lib/redis-lock';
+import { marketingService } from '@/services/marketing.service';
+
 
 export type BasketItemInput = {
   serviceId: string;
@@ -56,7 +58,7 @@ export const basketCheckoutAction = async (input: z.infer<typeof basketCheckoutS
       const user = await db.user.findUnique({ where: { id: userId }});
       if (!user) throw new Error("User not found");
 
-      // Verify each item and calculate real price
+      // Verify each item and calculate real price via ARCHITECTURE CONTRACT
       for (const item of parsed.items) {
         const service = serviceMap.get(item.serviceId);
         if (!service) throw new Error(`Услуга ${item.serviceId} недоступна`);
@@ -66,10 +68,13 @@ export const basketCheckoutAction = async (input: z.infer<typeof basketCheckoutS
 
         const isDripFeed = !!item.runs && !!item.interval;
         const totalQuantity = isDripFeed ? item.quantity * item.runs! : item.quantity;
-        const currentRate = service.rate + ((service.rate * (service.markup || 0)) / 100);
-        const chargeVal = Math.round((totalQuantity / 1000) * currentRate * 100);
+        // FIX: Используем единый pricing engine вместо inline-формулы.
+        // Теперь корзина учитывает скидки, промокоды и Volume Pricing.
+        const pricing = await marketingService.calculatePrice(userId, service.id, totalQuantity);
+        const chargeVal = pricing.totalCents;
 
         totalChargeCents += chargeVal;
+
 
         orderCreates.push({
           userId: userId,
@@ -79,7 +84,8 @@ export const basketCheckoutAction = async (input: z.infer<typeof basketCheckoutS
           charge: chargeVal,
           status: 'AWAITING_PAYMENT',
           providerId: service.providerId,
-          externalId: service.externalId,
+          providerServiceId: service.externalId,
+          externalId: null, // remote order ID, not service ID
           isDripFeed: isDripFeed,
           runs: item.runs || null,
           interval: item.interval || null,

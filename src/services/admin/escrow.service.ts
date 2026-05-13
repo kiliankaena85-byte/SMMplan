@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { WalletOps } from '../financial/wallet-ops';
 import { auditAdmin } from '@/lib/admin-audit';
 import { sendAdminAlert } from '@/lib/notifications';
 
@@ -99,7 +100,7 @@ export class EscrowService {
     admin: AdminContext
   ) {
     const user = await tx.user.findUniqueOrThrow({ where: { id: targetUserId } });
-    const oldBalance = user.balance;
+    const oldBalance = Number(user.balance);
     const newBalance = oldBalance + amountCents;
 
     // Warn if balance goes negative
@@ -107,20 +108,7 @@ export class EscrowService {
       sendAdminAlert(`⚠️ Внимание: Баланс клиента ${user.email} уйдёт в минус (${(newBalance / 100).toFixed(2)} ₽) после операции на ${(amountCents / 100).toFixed(2)} ₽.`, 'WARNING');
     }
 
-    await tx.user.update({
-      where: { id: targetUserId },
-      data: { balance: { increment: amountCents } },
-    });
-
-    await tx.ledgerEntry.create({
-      data: {
-        userId: targetUserId,
-        adminId: admin.id,
-        amount: amountCents,
-        reason,
-        status: 'APPROVED',
-      },
-    });
+    await WalletOps.adminAdjust(tx, targetUserId, amountCents, reason, { adminId: admin.id });
 
     auditAdmin({
       adminId: admin.id,
@@ -166,7 +154,7 @@ export class EscrowService {
       targetType: 'USER',
       oldValue: { quarantineBalance: user.quarantineBalance },
       newValue: { 
-        quarantineBalance: user.quarantineBalance + amountCents, 
+        quarantineBalance: Number(user.quarantineBalance) + amountCents, 
         delta: amountCents, 
         reason, 
         status: 'QUARANTINE' 
@@ -247,11 +235,11 @@ export class EscrowService {
           action: `QUARANTINE_${resolution}`,
           target: entry.id,
           targetType: 'LEDGER',
-          oldValue: JSON.stringify({ status: 'QUARANTINE', userQuarantine: user.quarantineBalance, userBalance: user.balance }),
+          oldValue: JSON.stringify({ status: 'QUARANTINE', userQuarantine: Number(user.quarantineBalance), userBalance: Number(user.balance) }),
           newValue: JSON.stringify({
             status: resolution,
-            userQuarantine: user.quarantineBalance - entry.amount,
-            userBalance: resolution === 'APPROVE' ? user.balance + entry.amount : user.balance,
+            userQuarantine: Number(user.quarantineBalance) - Number(entry.amount),
+            userBalance: resolution === 'APPROVE' ? Number(user.balance) + Number(entry.amount) : Number(user.balance),
           }),
         }
       });

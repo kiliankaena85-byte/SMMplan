@@ -1,14 +1,14 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/server/rbac";
+import { requireStaffPermission } from "@/lib/server/rbac";
 import { SettingsManager } from "@/lib/settings";
 
 /**
  * Toggles the global mock test mode.
  */
 export async function adminToggleTestMode(enable: boolean) {
-  return requireAdmin(async () => {
+  return requireStaffPermission('SETTINGS', 'edit', async () => {
     await SettingsManager.setTestMode(enable);
     return { success: true, message: `Test mode is now ${enable ? 'ON' : 'OFF'}` };
   });
@@ -19,7 +19,7 @@ export async function adminToggleTestMode(enable: boolean) {
  * This is the Nucleus Clear for the Mock Environment.
  */
 export async function adminClearTestData() {
-  return requireAdmin(async () => {
+  return requireStaffPermission('SETTINGS', 'edit', async () => {
     try {
       // Deleting Orders cascading relationships
       const resultOrders = await db.order.deleteMany({

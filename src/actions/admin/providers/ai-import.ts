@@ -1,11 +1,11 @@
 "use server";
 
-import { requireAdmin } from "@/lib/server/rbac";
+import { requireStaffPermission } from "@/lib/server/rbac";
 import { aiCatalogService } from "@/services/admin/ai-catalog.service";
 import { adminCatalogService } from "@/services/admin/catalog.service";
 
 export async function generateAiPreviewAction(name: string, description: string) {
-  return requireAdmin(async () => {
+  return requireStaffPermission('PROVIDERS', 'view', async () => {
     try {
       const optimized = await aiCatalogService.generateOptimizedService(name, description);
       return { success: true, optimized };
@@ -21,7 +21,7 @@ export async function saveAiImportedServiceAction(
   markup: number, 
   optimizedData: { newName: string; newDescription: string; requirements: string[] }
 ) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
     try {
       // 1. Regular import (this does the pricing ladder math, DB save, etc.)
       // Note: we just pass this single ID to the standard import logic

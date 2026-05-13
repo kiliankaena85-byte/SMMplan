@@ -3,6 +3,7 @@
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { WalletOps } from '@/services/financial/wallet-ops';
 import { z } from 'zod';
 
 const compensationSchema = z.object({
@@ -63,22 +64,23 @@ export async function logManualCompensation(formData: FormData) {
 
     // 2. If top-up is requested, increment user balance
     if (topUpBalance) {
-      await tx.user.update({
-        where: { id: ticket.userId },
-        data: { balance: { increment: costCents } }
+      await WalletOps.credit(tx, ticket.userId, costCents,
+        `Компенсация (На баланс): ${note}`,
+        { adminId: user.id, idempotencyKey: `compensation-${ticket.id}-${Date.now()}` }
+      );
+    } else {
+      // 3. Write to LedgerEntry for manual refill (no balance change)
+      await tx.ledgerEntry.create({
+        data: {
+          userId: ticket.userId,
+          adminId: user.id,
+          amount: -costCents,
+          reason: `Компенсация (Докрут): ${note}`,
+          status: 'APPROVED',
+          idempotencyKey: `compensation-${ticket.id}-${Date.now()}`
+        }
       });
     }
-
-    // 3. Write to LedgerEntry
-    await tx.ledgerEntry.create({
-      data: {
-        userId: ticket.userId,
-        adminId: user.id,
-        amount: -costCents, // Negative meaning company lost money (expense)
-        reason: `Компенсация (${topUpBalance ? 'На баланс' : 'Докрут'}): ${note}`,
-        status: 'APPROVED'
-      }
-    });
 
     // 4. Write AdminAuditLog
     await tx.adminAuditLog.create({

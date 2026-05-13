@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 
-export class AiSupportService {
+class AiSupportService {
   /**
    * Generates a suggested reply for a ticket based on context.
    */

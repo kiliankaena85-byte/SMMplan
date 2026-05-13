@@ -27,7 +27,7 @@ export interface FeatureFlagDTO {
 }
 
 /** Predefined flags — single source of truth for seed & UI */
-export const PREDEFINED_FLAGS = [
+const PREDEFINED_FLAGS = [
   { key: 'drip_feed',          label: 'Drip-Feed',              description: 'Постепенная накрутка (капельная)' },
   { key: 'refills',            label: 'Рефиллы',                description: 'Повторное выполнение при отписках' },
   { key: 'referral_program',   label: 'Реферальная программа',  description: 'Реферальные ссылки и комиссии' },

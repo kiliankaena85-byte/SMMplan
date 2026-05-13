@@ -12,7 +12,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mocks = vi.hoisted(() => {
   const mockCreateOrder = vi.fn();
   const mockProcessRefund = vi.fn();
-  const mockOrderDb = { findUnique: vi.fn(), update: vi.fn() };
+  const mockOrderDb = { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() };
   const mockGetWorkerProviderInstance = vi.fn();
   return { mockCreateOrder, mockProcessRefund, mockOrderDb, mockGetWorkerProviderInstance };
 });
@@ -64,6 +64,7 @@ describe('OrderProcessor (QA-2)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.mockOrderDb.update.mockResolvedValue({});
+    mocks.mockOrderDb.findMany.mockResolvedValue([]);
     // Default: factory returns a mock provider with createOrder
     mocks.mockGetWorkerProviderInstance.mockResolvedValue({
       createOrder: mocks.mockCreateOrder,
@@ -95,27 +96,18 @@ describe('OrderProcessor (QA-2)', () => {
     await expect(orderProcessor(fakeJob({ orderId: 'ord-1' }, 0, 3))).rejects.toThrow('Timeout');
   });
 
-  it('TC-ORD-010: Retries exhausted → ERROR + RefundPolicy', async () => {
+  it('TC-ORD-010: Retries exhausted → throws error (handled by DLQ)', async () => {
     const order = mockOrder();
     mocks.mockOrderDb.findUnique.mockResolvedValue(order);
     mocks.mockCreateOrder.mockRejectedValue(new Error('Down'));
-    mocks.mockOrderDb.update.mockResolvedValue({ ...order, status: 'ERROR' });
-    await orderProcessor(fakeJob({ orderId: 'ord-1' }, 3, 3));
-    expect(mocks.mockOrderDb.update).toHaveBeenCalledWith({
-      where: { id: 'ord-1' }, data: expect.objectContaining({ status: 'ERROR' }),
-    });
-    expect(mocks.mockProcessRefund).toHaveBeenCalled();
+    await expect(orderProcessor(fakeJob({ orderId: 'ord-1' }, 3, 3))).rejects.toThrow('Down');
   });
 
-  it('TC-ORD-011: DripFeed child fail → PARTIAL + prorated refund', async () => {
+  it('TC-ORD-011: DripFeed child fail → throws error (handled by DLQ)', async () => {
     const order = mockOrder({ runs: 5, charge: 5000 });
     mocks.mockOrderDb.findUnique.mockResolvedValue(order);
     mocks.mockCreateOrder.mockRejectedValue(new Error('Down'));
-    mocks.mockOrderDb.update.mockResolvedValue({ ...order, status: 'PARTIAL' });
-    await orderProcessor(fakeJob({ orderId: 'ord-1', isDripFeedChild: true }, 3, 3));
-    expect(mocks.mockProcessRefund).toHaveBeenCalledWith(
-      expect.objectContaining({ charge: 1000 }), expect.any(String)
-    );
+    await expect(orderProcessor(fakeJob({ orderId: 'ord-1', isDripFeedChild: true }, 3, 3))).rejects.toThrow('Down');
   });
 
   it('TC-ORD-012: Missing credentials → throws', async () => {
@@ -137,13 +129,13 @@ describe('OrderProcessor (QA-2)', () => {
     await expect(orderProcessor(fakeJob({ orderId: 'ord-1' }, 0, 3))).rejects.toThrow('Bad service');
   });
 
-  it('TC-ORD-EXTRA: DripFeed child success → pushes externalId', async () => {
+  it('TC-ORD-EXTRA: DripFeed child success → updates externalId', async () => {
     mocks.mockOrderDb.findUnique.mockResolvedValue(mockOrder({ runs: 3, isDripFeed: true }));
     mocks.mockCreateOrder.mockResolvedValue({ order: 55544 });
     await orderProcessor(fakeJob({ orderId: 'ord-1', isDripFeedChild: true }));
     expect(mocks.mockOrderDb.update).toHaveBeenCalledWith({
       where: { id: 'ord-1' },
-      data: expect.objectContaining({ dripExternalIds: { push: '55544' }, status: 'IN_PROGRESS' }),
+      data: expect.objectContaining({ externalId: '55544', status: 'IN_PROGRESS' }),
     });
   });
 

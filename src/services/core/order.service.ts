@@ -1,9 +1,12 @@
 import { db } from '../../lib/db';
 import { SettingsProvider } from '../../lib/settings';
 import { WalletService } from '../financial/wallet.service';
+import { WalletOps } from '../financial/wallet-ops';
+import { calculatePartialRefund } from '@/utils/refund';
+
 import { ordersQueue } from '../../workers/queues';
 
-export type CreateOrderInput = {
+type CreateOrderInput = {
   serviceId: string;
   link: string;
   quantity: number;
@@ -16,7 +19,7 @@ export type CreateOrderInput = {
   customData?: string;
 };
 
-export class OrderService {
+class OrderService {
   /**
    * Fast secure path for Orders.
    * Atomically deducts balance via WalletService and dispatches to BullMQ.
@@ -120,24 +123,10 @@ export class OrderService {
           });
 
           if (!existingLedger) {
-            await tx.user.update({
-              where: { id: userId },
-              data: { 
-                balance: { increment: charge },
-                totalSpent: { decrement: charge }
-              }
-            });
-
-            // 3. Keep a track record
-            await tx.ledgerEntry.create({
-              data: {
-                userId,
-                amount: charge,
-                reason: `Отмена заказа #${order.numericId} клиентом (Store Credit)`,
-                status: 'APPROVED',
-                idempotencyKey: refundKey
-              }
-            });
+            await WalletOps.refund(tx, userId, Number(charge),
+              `Отмена заказа #${order.numericId} клиентом (Store Credit)`,
+              { idempotencyKey: refundKey }
+            );
           }
         }
 
@@ -202,14 +191,13 @@ export class OrderService {
         // 3. Calculate Refund if status is terminal and non-complete
         // We only refund if transition is TO a terminal state FROM a non-terminal state
         if (internalStatus === 'PARTIAL' || internalStatus === 'CANCELED') {
-           if (remains > 0 && order.quantity > 0) {
-              // Partial Refund: (Undelivered / Total) * Paid
-              refundCents = Math.floor((remains / order.quantity) * Number(order.charge));
-           } else if (internalStatus === 'CANCELED') {
-              // Full refund if cancelled and remains not provided correctly
+           if (internalStatus === 'CANCELED' && (remains <= 0 || order.quantity <= 0)) {
               refundCents = Number(order.charge);
+           } else {
+              refundCents = calculatePartialRefund({ remains, quantity: order.quantity, charge: order.charge });
            }
         }
+
 
         // 4. Update Order
         await tx.order.update({
@@ -232,23 +220,10 @@ export class OrderService {
           });
 
           if (!existingLedger) {
-            await tx.user.update({
-              where: { id: order.userId },
-              data: { 
-                balance: { increment: refundCents },
-                totalSpent: { decrement: refundCents } 
-              }
-            });
-
-            await tx.ledgerEntry.create({
-              data: {
-                userId: order.userId,
-                amount: refundCents,
-                reason: `Системный возврат за заказ #${order.numericId} (Статус: ${internalStatus}, Остаток: ${remains})`,
-                status: 'APPROVED',
-                idempotencyKey: refundKey
-              }
-            });
+            await WalletOps.refund(tx, order.userId, Number(refundCents),
+              `Системный возврат за заказ #${order.numericId} (Статус: ${internalStatus}, Остаток: ${remains})`,
+              { idempotencyKey: refundKey }
+            );
           }
         }
 
@@ -289,23 +264,10 @@ export class OrderService {
         });
 
         if (!existingLedger && order.charge > 0) {
-          await tx.user.update({
-            where: { id: order.userId },
-            data: { 
-              balance: { increment: order.charge },
-              totalSpent: { decrement: order.charge } 
-            }
-          });
-
-          await tx.ledgerEntry.create({
-            data: {
-              userId: order.userId,
-              amount: order.charge,
-              reason: `Авто-возврат: Ошибка запуска (DLQ). Заказ #${order.numericId}. ${reason}`,
-              status: 'APPROVED',
-              idempotencyKey: refundKey
-            }
-          });
+          await WalletOps.refund(tx, order.userId, Number(order.charge),
+            `Авто-возврат: Ошибка запуска (DLQ). Заказ #${order.numericId}. ${reason}`,
+            { idempotencyKey: refundKey }
+          );
         }
       }, { isolationLevel: 'Serializable' });
     } catch (e: any) {

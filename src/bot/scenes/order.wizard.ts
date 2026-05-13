@@ -13,15 +13,11 @@ import { orderService } from '@/services/core/order.service';
 import { marketingService } from '@/services/marketing.service';
 import { UnifiedPaymentService } from '@/services/financial/unified-payment.service';
 import { escapeHtml } from '../utils/formatter';
+import { formatCents } from '@/lib/utils';
+
 
 export const ORDER_WIZARD = 'order-wizard';
 
-/**
- * Format cents to human-readable RUB string.
- */
-function formatCents(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
 
 /**
  * Resolve Lite User from Telegram context.

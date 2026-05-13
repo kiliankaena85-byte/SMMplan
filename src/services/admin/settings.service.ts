@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 
-export class SettingsService {
+class SettingsService {
   // ── User Management ──
   async listUsers(search?: string) {
     return db.user.findMany({

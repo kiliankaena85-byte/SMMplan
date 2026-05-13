@@ -8,99 +8,111 @@ import { z } from 'zod';
 import { updateMarkupSchema, toggleServiceSchema, bulkUpdateMarkupSchema } from '@/validators/admin.validators';
 import { auditAdmin } from '@/lib/admin-audit';
 
-async function requireManager() {
-  const session = await verifySession();
-  if (!session) throw new Error('Unauthorized');
-  const user = await db.user.findUnique({ where: { id: session.userId } });
-  if (!user || !['OWNER', 'ADMIN', 'MANAGER'].includes(user.role)) {
-    throw new Error('Forbidden: только Управляющие и выше');
+import { requireStaffPermission } from '@/lib/server/rbac';
+
+async function updateMarkupAction(formData: FormData) {
+  const result = await requireStaffPermission('catalog', 'edit', async (admin) => {
+    const parsed = updateMarkupSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!parsed.success) throw new Error('serviceId и markup обязательны');
+    const { serviceId, markup } = parsed.data;
+
+    await adminCatalogService.updateMarkup(serviceId, markup, {
+      id: admin.id,
+      email: admin.email,
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'SERVICE_MARKUP_UPDATE',
+      target: serviceId,
+      targetType: 'SERVICE',
+      newValue: { markup },
+    });
+
+    revalidatePath('/admin/catalog');
+  });
+
+  if (result && typeof result === 'object' && 'success' in result && !result.success) {
+    throw new Error(result.error);
   }
-  return { session, user };
 }
 
-export async function updateMarkupAction(formData: FormData) {
-  const { user } = await requireManager();
-  const parsed = updateMarkupSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) throw new Error('serviceId и markup обязательны');
-  const { serviceId, markup } = parsed.data;
+async function toggleServiceAction(formData: FormData) {
+  const result = await requireStaffPermission('catalog', 'edit', async (admin) => {
+    const parsed = toggleServiceSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!parsed.success) throw new Error('Missing serviceId');
+    const { serviceId, isActive } = parsed.data;
 
-  await adminCatalogService.updateMarkup(serviceId, markup, {
-    id: user.id,
-    email: user.email,
+    await adminCatalogService.toggleService(serviceId, isActive, {
+      id: admin.id,
+      email: admin.email,
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: isActive ? 'SERVICE_ENABLE' : 'SERVICE_DISABLE',
+      target: serviceId,
+      targetType: 'SERVICE',
+    });
+
+    revalidatePath('/admin/catalog');
   });
 
-  auditAdmin({
-    adminId: user.id,
-    adminEmail: user.email,
-    action: 'SERVICE_MARKUP_UPDATE',
-    target: serviceId,
-    targetType: 'SERVICE',
-    newValue: { markup },
-  });
-
-  revalidatePath('/admin/catalog');
+  if (result && typeof result === 'object' && 'success' in result && !result.success) {
+    throw new Error(result.error);
+  }
 }
 
-export async function toggleServiceAction(formData: FormData) {
-  const { user } = await requireManager();
-  const parsed = toggleServiceSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) throw new Error('Missing serviceId');
-  const { serviceId, isActive } = parsed.data;
-
-  await adminCatalogService.toggleService(serviceId, isActive, {
-    id: user.id,
-    email: user.email,
-  });
-
-  auditAdmin({
-    adminId: user.id,
-    adminEmail: user.email,
-    action: isActive ? 'SERVICE_ENABLE' : 'SERVICE_DISABLE',
-    target: serviceId,
-    targetType: 'SERVICE',
-  });
-
-  revalidatePath('/admin/catalog');
-}
-
-/* importServicesAction has been relocated to providers module */
 /**
  * Bulk update markup for all services in a category or platform.
  * Pass markup=0 to auto-calculate from Pricing Ladder.
  */
 export async function bulkUpdateMarkupAction(formData: FormData) {
-  const { user } = await requireManager();
-  const parsed = bulkUpdateMarkupSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) {
-    throw new Error('Наценка должна быть в диапазоне 1.0–151.0');
+  const result = await requireStaffPermission('catalog', 'edit', async (admin) => {
+    const parsed = bulkUpdateMarkupSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!parsed.success) {
+      throw new Error('Наценка должна быть в диапазоне 1.0–151.0');
+    }
+    const { categoryId, platform, markup } = parsed.data;
+
+    const filter: { categoryId?: string; platform?: string } = {};
+    if (categoryId) filter.categoryId = categoryId;
+    if (platform) filter.platform = platform;
+
+    await adminCatalogService.bulkUpdateMarkup(filter, markup, {
+      id: admin.id,
+      email: admin.email,
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'BULK_MARKUP_UPDATE',
+      target: categoryId || platform || 'ALL',
+      targetType: 'SERVICE',
+      newValue: { markup, filter },
+    });
+
+    revalidatePath('/admin/catalog');
+  });
+
+  if (result && typeof result === 'object' && 'success' in result && !result.success) {
+    throw new Error(result.error);
   }
-  const { categoryId, platform, markup } = parsed.data;
-
-  const filter: { categoryId?: string; platform?: string } = {};
-  if (categoryId) filter.categoryId = categoryId;
-  if (platform) filter.platform = platform;
-
-  await adminCatalogService.bulkUpdateMarkup(filter, markup, {
-    id: user.id,
-    email: user.email,
-  });
-
-  auditAdmin({
-    adminId: user.id,
-    adminEmail: user.email,
-    action: 'BULK_MARKUP_UPDATE',
-    target: categoryId || platform || 'ALL',
-    targetType: categoryId ? 'CATEGORY' : 'SERVICE',
-    newValue: { markup, filter },
-  });
-
-  revalidatePath('/admin/catalog');
 }
 
 /**
  * Returns markup distribution analytics for the admin dashboard.
  */
-export async function getMarkupAnalyticsAction() {
-  await requireManager();
-  return adminCatalogService.getMarkupAnalytics();
+async function getMarkupAnalyticsAction() {
+  const result = await requireStaffPermission('catalog', 'view', async () => {
+    return adminCatalogService.getMarkupAnalytics();
+  });
+
+  if (result && typeof result === 'object' && 'success' in result && !result.success) {
+    throw new Error(result.error);
+  }
+  return result;
 }

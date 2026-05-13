@@ -18,24 +18,38 @@ export async function transferReferralBalanceAction() {
   }
 
   // Atomically transfer referral balance to main balance
-  await db.$transaction([
-    db.user.update({
+  const transferAmount = user.referralBalance;
+  
+  await db.$transaction(async (tx) => {
+    await tx.user.update({
       where: { id: session.userId },
       data: {
-        referralBalance: { decrement: user.referralBalance },
-        balance: { increment: user.referralBalance }
+        referralBalance: { decrement: transferAmount },
+        balance: { increment: transferAmount }
       }
-    }),
-    db.payment.create({
+    });
+
+    await tx.payment.create({
       data: {
         userId: session.userId,
-        amount: user.referralBalance,
+        amount: transferAmount,
         currency: "RUB",
         status: "COMPLETED",
         gateway: "referral_transfer"
       }
-    })
-  ]);
+    });
 
-  return { success: true, amount: user.referralBalance };
+    // Financial Integrity: LedgerEntry MUST mirror every balance change
+    await tx.ledgerEntry.create({
+      data: {
+        userId: session.userId,
+        amount: transferAmount,
+        reason: `Перевод реферального баланса на основной`,
+        status: 'APPROVED',
+        idempotencyKey: `referral-transfer-${session.userId}-${Date.now()}`
+      }
+    });
+  });
+
+  return { success: true, amount: transferAmount };
 }

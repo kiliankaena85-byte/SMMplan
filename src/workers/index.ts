@@ -2,8 +2,8 @@ import { Worker } from 'bullmq';
 import { getRedisConnection } from '../lib/queue-manager';
 import { db } from '../lib/db';
 import { logger } from '../lib/logger';
-import { ensureSyncCron, ensureCleanupCron, dlqQueue, cleanupQueue } from './queues';
-import { sendAdminAlert } from '../lib/notifications';
+import { ensureSyncCron, ensureCleanupCron, dlqQueue, cleanupQueue, telegramQueue } from './queues';
+import { sendAdminAlert, sendAdminAlertSync } from '../lib/notifications';
 import orderProcessor from './processors/order.processor';
 import syncProcessor from './processors/sync.processor';
 import { runCleanup } from './processors/cleanup.processor';
@@ -15,9 +15,25 @@ log.info('🚀 Starting BullMQ workers...');
 const connection = getRedisConnection();
 
 // ── Worker instances ──────────────────────────────────────────────────────────
-const orderWorker = new Worker('ordersQueue', orderProcessor, { connection });
-const syncWorker = new Worker('syncQueue', syncProcessor, { connection });
+const workerConfig = { 
+  connection,
+  lockDuration: 60000,     // 60s lock to prevent false stalls during slow provider APIs (our breaker is 15s)
+  stalledInterval: 30000,  // Check for stalled jobs every 30s
+  maxStalledCount: 1       // Only retry a stalled job once before failing
+};
+
+const orderWorker = new Worker('ordersQueue', orderProcessor, workerConfig);
+const syncWorker = new Worker('syncQueue', syncProcessor, workerConfig);
 const cleanupWorker = new Worker('cleanup', async () => { await runCleanup(); }, { connection });
+const telegramWorker = new Worker('telegram-notifications', async (job) => {
+  await sendAdminAlertSync(job.data.message, job.data.severity);
+}, {
+  connection,
+  limiter: {
+    max: 20, // max 20 messages
+    duration: 1000, // per 1 second
+  }
+});
 
 // ── P2.1: DLQ — Dead Letter Queue handler ────────────────────────────────────
 const MAX_ATTEMPTS = 3; // Must match createQueue defaults
@@ -73,6 +89,7 @@ async function handleDeadLetter(
 orderWorker.on('failed', (job, err) => { handleDeadLetter('ordersQueue', job, err); });
 syncWorker.on('failed', (job, err) => { handleDeadLetter('syncQueue', job, err); });
 cleanupWorker.on('failed', (job, err) => { log.error('Cleanup job failed', { error: err.message }); });
+telegramWorker.on('failed', (job, err) => { log.error('Telegram notification failed', { error: err.message }); });
 
 // ── P0.3: Worker heartbeat (Redis key, renewed every 60s) ─────────────────────
 // health endpoint checks for this key; if missing → worker is down
@@ -105,6 +122,7 @@ const shutdown = async () => {
     orderWorker.close(),
     syncWorker.close(),
     cleanupWorker.close(),
+    telegramWorker.close(),
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();

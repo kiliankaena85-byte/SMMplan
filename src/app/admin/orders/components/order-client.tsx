@@ -17,14 +17,13 @@ import { Badge } from '@/components/ui/badge';
 import { XCircle, CheckCircle, RotateCcw, X } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
+  cancelOrderAction,
+  restartOrderAction,
   setOrderStatusAction,
   forceCompleteOrderAction,
   bulkCancelOrdersAction,
-} from '@/actions/admin/orders-extended';
-import {
-  cancelOrderAction,
-  restartOrderAction,
 } from '@/actions/admin/orders';
+
 
 const STATUS_OPTIONS = [
   { value: 'PENDING',           label: 'В очереди' },

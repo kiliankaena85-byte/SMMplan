@@ -21,21 +21,21 @@ import { AsyncLocalStorage } from 'async_hooks';
 
 // ─── Correlation ID Store ──────────────────────────────────────────────────
 
-export interface LogContext {
+interface LogContext {
   correlationId?: string;
   userId?: string;
   component?: string;
 }
 
-export const logContextStorage = new AsyncLocalStorage<LogContext>();
+const logContextStorage = new AsyncLocalStorage<LogContext>();
 
 /** Run a function with a bound log context (correlationId, userId, etc.) */
-export function runWithLogContext<T>(context: LogContext, fn: () => T): T {
+function runWithLogContext<T>(context: LogContext, fn: () => T): T {
   return logContextStorage.run(context, fn);
 }
 
 /** Get current correlation ID from async context */
-export function getCorrelationId(): string | undefined {
+function getCorrelationId(): string | undefined {
   return logContextStorage.getStore()?.correlationId;
 }
 

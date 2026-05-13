@@ -57,6 +57,26 @@ export async function runCleanup(): Promise<void> {
     olderThan: loginLogThreshold.toISOString(),
   });
 
+  // ── 4. Orders: Zombie AWAITING_PAYMENT ────────────────────────────────────
+  const zombieThreshold = new Date(now);
+  zombieThreshold.setHours(zombieThreshold.getHours() - 24);
+
+  const zombieOrdersResult = await db.order.updateMany({
+    where: { 
+      status: 'AWAITING_PAYMENT',
+      createdAt: { lt: zombieThreshold } 
+    },
+    data: { 
+      status: 'CANCELED', 
+      error: 'Ожидание оплаты истекло (авто-отмена системы)' 
+    }
+  });
+
+  log.info('Zombie AWAITING_PAYMENT cleanup done', { 
+    canceled: zombieOrdersResult.count,
+    olderThan: zombieThreshold.toISOString()
+  });
+
   const durationMs = Date.now() - startedAt;
   log.info('Daily cleanup completed', {
     durationMs,

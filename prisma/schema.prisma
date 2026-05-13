@@ -158,12 +158,16 @@ model Service {
   isRefillEnabled   Boolean @default(false)
   isCancelEnabled   Boolean @default(false)
 
-  // Quarantine: price spike isolation
+  // Quarantine: price spike isolation & Elastic Quarantine
   // When rate changes > quarantineThreshold% → service goes QUARANTINE status
   isQuarantined    Boolean   @default(false)
   pendingRate      Float? // Proposed new rate awaiting admin approval
   quarantineReason String? // Human-readable reason: "Price spike: +45%"
   quarantinedAt    DateTime? // When it was flagged
+
+  // Wave 4.1: Elastic Quarantine (Self-Healing)
+  cooldownUntil  DateTime? // If set, service is temporarily unavailable until this time
+  cooldownReason String? // Reason for cooldown (e.g., "API_ERROR", "DELAYED_CANCEL")
 
   isActive          Boolean  @default(true)
   pricePer1000Cents Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
@@ -171,6 +175,7 @@ model Service {
   updatedAt         DateTime @updatedAt
 
   orders Order[]
+  routes ServiceRoute[]
 
   @@index([categoryId])
   @@index([providerId])
@@ -195,27 +200,32 @@ model Provider {
   lastSuccessAt DateTime? // Last successful API response
   avgResponseMs Int       @default(0) // Rolling average response time in ms
 
-  services Service[]
+  services     Service[]
+  Order        Order[]
+  ServiceRoute ServiceRoute[]
 }
 
 model Order {
-  id              String   @id @default(cuid())
-  numericId       Int      @unique @default(autoincrement())
-  userId          String
-  serviceId       String
-  externalId      String? // ID from provider (like VexBoost)
-  dripExternalIds String[] @default([]) // History of run IDs for Drip-Feed
-  link            String
-  quantity        Int
-  status          String   @default("AWAITING_PAYMENT") // AWAITING_PAYMENT, PENDING, IN_PROGRESS, COMPLETED, PARTIAL, CANCELED, ERROR
-  remains         Int      @default(0) // Outstanding amount to deliver
-  charge          BigInt // price paid by user in Cents
-  providerCost    BigInt // exact cost from provider in Cents
-  error           String? // Error message from provider API
-  retryCount      Int      @default(0) // Safe API Backoff mechanism
-  isTest          Boolean  @default(false) // Isolation flag for mock environment
-  email           String? // Contact email for guest / notification
-  customData      String? // Additional payload (comments, answer #, keywords)
+  id                String    @id @default(cuid())
+  numericId         Int       @unique @default(autoincrement())
+  userId            String
+  serviceId         String
+  providerId        String? // Snapshots the provider used AT THE TIME of checkout
+  provider          Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  providerServiceId String? // Snapshots the provider's external service ID AT THE TIME of checkout
+  externalId        String? // ID from provider (like VexBoost)
+  dripExternalIds   String[]  @default([]) // History of run IDs for Drip-Feed
+  link              String
+  quantity          Int
+  status            String    @default("AWAITING_PAYMENT") // AWAITING_PAYMENT, PENDING, IN_PROGRESS, COMPLETED, PARTIAL, CANCELED, ERROR
+  remains           Int       @default(0) // Outstanding amount to deliver
+  charge            BigInt // price paid by user in Cents
+  providerCost      BigInt // exact cost from provider in Cents
+  error             String? // Error message from provider API
+  retryCount        Int       @default(0) // Safe API Backoff mechanism
+  isTest            Boolean   @default(false) // Isolation flag for mock environment
+  email             String? // Contact email for guest / notification
+  customData        String? // Additional payload (comments, answer #, keywords)
 
   // Drip-Feed specifics
   isDripFeed Boolean   @default(false)
@@ -549,4 +559,38 @@ model LoginLog {
   @@index([email])
   @@index([ipAddress])
   @@index([createdAt])
+}
+
+model ServiceRoute {
+  id        String  @id @default(cuid())
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  providerId        String
+  provider          Provider @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  providerServiceId String // The external ID for this provider (e.g., "102")
+
+  isPrimary Boolean @default(false)
+  isActive  Boolean @default(true)
+  priority  Int     @default(0) // 0 = highest priority
+
+  failoverMode String @default("manual") // "manual", "automatic", "weighted"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceId, providerId])
+  @@index([serviceId])
+  @@index([providerId])
+}
+
+model RoutingAuditLog {
+  id             String   @id @default(cuid())
+  serviceId      String
+  adminId        String?
+  action         String // "SWAP", "ADD_ROUTE", "QUARANTINE_REROUTE", "MANUAL_OVERRIDE"
+  fromProviderId String?
+  toProviderId   String?
+  reason         String?
+  createdAt      DateTime @default(now())
 }

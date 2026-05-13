@@ -40,29 +40,23 @@ export async function GET(req: NextRequest) {
           // Simulate queue dispatch
           const order = await tx.order.findUnique({ where: { id: payment.orderId } });
           if (order) {
-            const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
-            if (order.isDripFeed) {
-              await dripfeedQueue.add('dripfeed-start', { orderId: order.id }, { delay: 5000 });
-            } else {
-              await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 5000 });
-            }
+            const { ordersQueue } = require('@/workers/queues');
+            await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 5000 });
           }
         }
+
+        // Ledger entry INSIDE transaction with idempotency key
+        await tx.ledgerEntry.create({
+          data: {
+            userId: payment.userId,
+            amount: payment.amount,
+            reason: `Оплата заказа ${payment.orderId} (Тестовый платеж)`,
+            status: 'APPROVED',
+            idempotencyKey: `mock-payment-${paymentId}`
+          }
+        });
       }
     });
-
-    // Also simulate creating a ledger entry for the payment
-    const user = await db.user.findUnique({ where: { id: payment.userId } });
-    if (user) {
-      await db.ledgerEntry.create({
-        data: {
-          userId: user.id,
-          amount: payment.amount,
-          reason: `Оплата заказа ${payment.orderId} (Тестовый платеж)`,
-          status: 'APPROVED',
-        }
-      });
-    }
 
     return NextResponse.redirect(new URL("/success", req.url));
   } catch (error: any) {

@@ -8,7 +8,7 @@
  */
 
 // Каноническая таблица: короткое имя → все возможные DB-варианты (substring match)
-export const CANONICAL_MAP: Record<string, string[]> = {
+const CANONICAL_MAP: Record<string, string[]> = {
   'Подписчики':      ['Подписчики', 'Участники', 'Subscriber', 'Follow', 'Members'],
   'Просмотры':       ['Просмотр', 'Охват', 'View', 'Watch', 'Автопросмотр'],
   'Лайки':           ['Лайк', 'Like', 'Нравится', 'Heart', 'Автолайк'],

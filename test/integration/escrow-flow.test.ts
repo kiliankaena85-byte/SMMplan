@@ -45,8 +45,8 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       await service.evaluateBalanceAdjustment(clientId, 9999999, 'VIP bonus', ownerAdmin);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000 + 9999999);
-      expect(user.quarantineBalance).toBe(0);
+      expect(Number(user.balance)).toBe(100000 + 9999999);
+      expect(Number(user.quarantineBalance)).toBe(0);
 
       const ledger = await db.ledgerEntry.findFirst({ where: { userId: clientId } });
       expect(ledger?.status).toBe('APPROVED');
@@ -56,15 +56,15 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       await service.evaluateBalanceAdjustment(clientId, 9999999, 'Admin credit', adminAdmin);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000 + 9999999);
+      expect(Number(user.balance)).toBe(100000 + 9999999);
     });
 
     it('SUPPORT within daily limit → APPROVED', async () => {
       await service.evaluateBalanceAdjustment(clientId, 30000, 'Compensation', supportAgent);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000 + 30000);
-      expect(user.quarantineBalance).toBe(0);
+      expect(Number(user.balance)).toBe(100000 + 30000);
+      expect(Number(user.quarantineBalance)).toBe(0);
 
       const ledger = await db.ledgerEntry.findFirst({ where: { userId: clientId } });
       expect(ledger?.status).toBe('APPROVED');
@@ -74,8 +74,8 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       await service.evaluateBalanceAdjustment(clientId, 60000, 'Big compensation', supportAgent);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000); // Unchanged!
-      expect(user.quarantineBalance).toBe(60000);
+      expect(Number(user.balance)).toBe(100000); // Unchanged!
+      expect(Number(user.quarantineBalance)).toBe(60000);
 
       const ledger = await db.ledgerEntry.findFirst({ where: { userId: clientId } });
       expect(ledger?.status).toBe('QUARANTINE');
@@ -93,8 +93,8 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       await service.evaluateBalanceAdjustment(clientId, 20000, 'Part 3', supportAgent);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000 + 20000 + 20000); // Only first two
-      expect(user.quarantineBalance).toBe(20000);
+      expect(Number(user.balance)).toBe(100000 + 20000 + 20000); // Only first two
+      expect(Number(user.quarantineBalance)).toBe(20000);
 
       const entries = await db.ledgerEntry.findMany({ where: { userId: clientId }, orderBy: { createdAt: 'asc' } });
       expect(entries[0].status).toBe('APPROVED');
@@ -107,8 +107,8 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       await service.evaluateBalanceAdjustment(clientId, 50000, 'Exact boundary', supportAgent);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000 + 50000);
-      expect(user.quarantineBalance).toBe(0);
+      expect(Number(user.balance)).toBe(100000 + 50000);
+      expect(Number(user.quarantineBalance)).toBe(0);
     });
   });
 
@@ -123,14 +123,14 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       await service.evaluateBalanceAdjustment(clientId, -30000, 'Refund order #123', supportAgent);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000 + 50000 - 30000);
-      expect(user.quarantineBalance).toBe(0); // No quarantine
+      expect(Number(user.balance)).toBe(100000 + 50000 - 30000);
+      expect(Number(user.quarantineBalance)).toBe(0); // No quarantine
 
       const entries = await db.ledgerEntry.findMany({ where: { userId: clientId }, orderBy: { createdAt: 'asc' } });
       expect(entries).toHaveLength(2);
       expect(entries[0].status).toBe('APPROVED'); // Credit
       expect(entries[1].status).toBe('APPROVED'); // Refund
-      expect(entries[1].amount).toBe(-30000);
+      expect(Number(entries[1].amount)).toBe(-30000);
     });
 
     it('Refund does NOT count toward next day budget calculation', async () => {
@@ -140,8 +140,8 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       await service.evaluateBalanceAdjustment(clientId, 50000, 'Full budget credit', supportAgent);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000 - 10000 + 50000);
-      expect(user.quarantineBalance).toBe(0);
+      expect(Number(user.balance)).toBe(100000 - 10000 + 50000);
+      expect(Number(user.quarantineBalance)).toBe(0);
     });
   });
 
@@ -162,7 +162,7 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       );
 
       const user = await db.user.findUniqueOrThrow({ where: { id: poorClient.id } });
-      expect(user.balance).toBe(100000 - 150000); // -50000 (allowed but warned)
+      expect(Number(user.balance)).toBe(100000 - 150000); // -50000 (allowed but warned)
     });
   });
 
@@ -182,8 +182,8 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       await service.resolveQuarantine(quarantinedEntryId, 'APPROVE', ownerAdmin);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000 + 60000);
-      expect(user.quarantineBalance).toBe(0);
+      expect(Number(user.balance)).toBe(100000 + 60000);
+      expect(Number(user.quarantineBalance)).toBe(0);
 
       const entry = await db.ledgerEntry.findUniqueOrThrow({ where: { id: quarantinedEntryId } });
       expect(entry.status).toBe('APPROVE');
@@ -193,8 +193,8 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       await service.resolveQuarantine(quarantinedEntryId, 'REJECT', ownerAdmin);
 
       const user = await db.user.findUniqueOrThrow({ where: { id: clientId } });
-      expect(user.balance).toBe(100000); // Unchanged
-      expect(user.quarantineBalance).toBe(0);
+      expect(Number(user.balance)).toBe(100000); // Unchanged
+      expect(Number(user.quarantineBalance)).toBe(0);
 
       const entry = await db.ledgerEntry.findUniqueOrThrow({ where: { id: quarantinedEntryId } });
       expect(entry.status).toBe('REJECT');

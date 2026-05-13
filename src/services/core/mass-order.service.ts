@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { WalletOps } from '../financial/wallet-ops';
 import { marketingService } from '@/services/marketing.service';
 import { orderService } from '@/services/core/order.service';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -76,17 +77,9 @@ export class MassOrderService {
 
         // ATOMIC TRANSACTION: Protects against TOCTOU and Prisma connection pool exhaustion
         return await db.$transaction(async (tx) => {
-            const user = await tx.user.update({
-                where: { id: userId },
-                data: { 
-                    balance: { decrement: totalChargeCents },
-                    totalSpent: { increment: totalChargeCents }
-                }
-            });
-
-            if (user.balance < 0) {
-                throw new Error('Недостаточно средств. Обработка прервана.');
-            }
+            await WalletOps.charge(tx, userId, totalChargeCents,
+                `Массовый заказ (${preview.validatedEntries.length} позиций) через Telegram Bot`
+            );
 
             // Map to Prisma schema explicitly to use createMany instead of 100 queries
             const orderData = preview.validatedEntries.map(e => ({
@@ -106,14 +99,6 @@ export class MassOrderService {
                 data: orderData
             });
 
-            await tx.ledgerEntry.create({
-                data: {
-                  userId,
-                  amount: -totalChargeCents,
-                  reason: `Массовый заказ (${orderData.length} позиций) через Telegram Bot`,
-                  status: 'APPROVED'
-                }
-            });
 
             return {
                 orderCount: orderData.length,

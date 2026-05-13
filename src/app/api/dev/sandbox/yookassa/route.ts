@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { requireAdmin } from '@/lib/server/rbac';
+import { requireStaffPermission } from '@/lib/server/rbac';
 
 /**
  * Dev Sandbox: Simulate a YooKassa balance top-up for testing.
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Guard 2: Require admin session even in dev/test
-  const authResult = await requireAdmin(async () => ({ authorized: true }));
+  const authResult = await requireStaffPermission('SETTINGS', 'edit', async () => ({ authorized: true }));
   if ('error' in authResult) {
     return NextResponse.json({ error: authResult.error }, { status: 401 });
   }

@@ -19,10 +19,8 @@ export class RateLimitService {
     windowSeconds: number = 60
   ): Promise<boolean> {
     try {
-      const headerList = await headers();
-      const forwardedFor = headerList.get("x-forwarded-for");
-      const ip = forwardedFor ? forwardedFor.split(",")[0] : "127.0.0.1";
-      
+      const { getClientIp } = await import('@/utils/ip');
+      const ip = await getClientIp();
       const now = new Date();
       const redisKey = `ratelimit:${endpoint}:${ip}`;
 

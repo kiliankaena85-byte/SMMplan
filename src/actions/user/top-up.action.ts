@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
 import { SettingsManager } from "@/lib/settings";
 import { headers } from "next/headers";
+import { getClientIp } from "@/utils/ip";
 
 export async function createTopUpPaymentAction(amountRub: number, gateway: 'yookassa' | 'cryptobot' = 'yookassa') {
   const session = await verifySession();
@@ -13,7 +14,7 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
   if (amountCents < 10000) throw new Error("Минимальная сумма пополнения - 100 руб");
 
   const reqHeaders = await headers();
-  const consentIp = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "127.0.0.1";
+  const consentIp = await getClientIp();
   const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
   const secrets = await SettingsManager.getPaymentSecrets();

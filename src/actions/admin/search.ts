@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { requireAdmin } from '@/lib/server/rbac';
+import { requireStaffPermission } from '@/lib/server/rbac';
 
 export type SearchHit = {
   id: string;
@@ -12,7 +12,7 @@ export type SearchHit = {
 };
 
 export async function globalOmniSearch(query: string): Promise<SearchHit[]> {
-  const result = await requireAdmin(async (admin) => {
+  const result = await requireStaffPermission('DASHBOARD', 'view', async (admin) => {
     if (!query || query.length < 2) return [];
 
     const hits: SearchHit[] = [];

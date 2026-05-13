@@ -15,20 +15,20 @@
 // ═══════════════════════════════════════════════════════
 
 /** УСН «Доходы» — 6% с полной суммы поступления (до вычета комиссий) */
-export const TAX_USN_INCOME_RATE = 0.06;
+const TAX_USN_INCOME_RATE = 0.06;
 
 /** НДС спецставка для УСН при обороте 20–272.5 млн руб./год */
-export const TAX_VAT_USN_SPECIAL_RATE = 0.05;
+const TAX_VAT_USN_SPECIAL_RATE = 0.05;
 
 // ═══════════════════════════════════════════════════════
 // 💳 ЭКВАЙРИНГ (Payment Gateways)
 // ═══════════════════════════════════════════════════════
 
 /** YooKassa — карты РФ (safe-константа, верхняя граница 2.8–3.5%) */
-export const ACQUIRING_YOOKASSA_CARDS = 0.035;
+const ACQUIRING_YOOKASSA_CARDS = 0.035;
 
 /** Safe-константа для расчётов: максимальная комиссия шлюза */
-export const ACQUIRING_SAFE_MAX = 0.035;
+const ACQUIRING_SAFE_MAX = 0.035;
 
 // ═══════════════════════════════════════════════════════
 // 📊 НАЦЕНКИ (Markup)
@@ -42,7 +42,7 @@ export const ACQUIRING_SAFE_MAX = 0.035;
 export const SAFETY_FLOOR_MARKUP = 1.0;
 
 /** Максимальный множитель наценки (x151 = 15000%) */
-export const MAX_MARKUP_MULTIPLIER = 151.0;
+const MAX_MARKUP_MULTIPLIER = 151.0;
 
 /** L-07: Максимальная суммарная скидка (Loyalty + Promo) в процентах.
  *  Предотвращает стекинг до 50–60% и продажу ниже себестоимости. */
@@ -53,7 +53,7 @@ export const MAX_TOTAL_DISCOUNT = 30;
 // ═══════════════════════════════════════════════════════
 
 /** Буфер на банковский спред при конвертации USD → RUB */
-export const CURRENCY_SPREAD_BUFFER = 0.03;
+const CURRENCY_SPREAD_BUFFER = 0.03;
 
 // ═══════════════════════════════════════════════════════
 // 📐 SYNC ENGINE
@@ -61,7 +61,7 @@ export const CURRENCY_SPREAD_BUFFER = 0.03;
 
 /** Anti-Jitter: порог минимального изменения цены при синхронизации.
  *  Изменения < 5% от текущей цены игнорируются для стабильности витрины. */
-export const SYNC_JITTER_THRESHOLD = 0.05;
+const SYNC_JITTER_THRESHOLD = 0.05;
 
 /** Anomaly Detector: изменение rate > 20% считается аномалией и генерирует алерт */
 export const SYNC_ANOMALY_THRESHOLD = 0.20;
@@ -91,7 +91,7 @@ export interface LadderLevel {
  * 50–150₽        → x6        → 900₽ максимум
  * > 150₽         → x4        → масштабируемо
  */
-export const DEFAULT_PRICING_LADDER: LadderLevel[] = [
+const DEFAULT_PRICING_LADDER: LadderLevel[] = [
   { threshold: 1,        multiplier: 50, fixedMarkup: 0 },
   { threshold: 10,       multiplier: 11, fixedMarkup: 0 },
   { threshold: 50,       multiplier: 8,  fixedMarkup: 0 },
@@ -104,7 +104,7 @@ export const DEFAULT_PRICING_LADDER: LadderLevel[] = [
 // ═══════════════════════════════════════════════════════
 
 /** Суммарные налоги с выручки (УСН + НДС спецставка) */
-export const TOTAL_TAX_FROM_REVENUE = TAX_USN_INCOME_RATE + TAX_VAT_USN_SPECIAL_RATE; // 0.11
+const TOTAL_TAX_FROM_REVENUE = TAX_USN_INCOME_RATE + TAX_VAT_USN_SPECIAL_RATE; // 0.11
 
 /** Суммарные обязательные отчисления с выручки (Налоги + Эквайринг) */
 export const TOTAL_MANDATORY_DEDUCTIONS = TOTAL_TAX_FROM_REVENUE + ACQUIRING_SAFE_MAX; // 0.145

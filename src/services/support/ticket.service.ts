@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { sendMail } from '@/lib/smtp';
 
-export class TicketService {
+class TicketService {
   async getOrCreateTicket(userId: string, subject: string) {
     const existing = await db.ticket.findFirst({
       where: { userId, status: { not: 'CLOSED' } },

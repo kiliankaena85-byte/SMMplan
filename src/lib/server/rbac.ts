@@ -48,7 +48,8 @@ export async function requireStaffPermission<T>(
        return { success: false, error: "Forbidden: Administrator/Staff context required" };
     }
 
-    const permission = user.staffRole.permissions.find(p => p.section === section);
+    const normalizedSection = section.toUpperCase();
+    const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === normalizedSection);
     
     if (!permission) {
         return { success: false, error: `Forbidden: No permissions for section [${section}]` };
@@ -69,33 +70,7 @@ export async function requireStaffPermission<T>(
   }
 }
 
-/**
- * Legacy Higher Order Component / Wrapper for Server Actions
- * Maintained temporarily for routes not yet migrated to granular permissions.
- */
-export async function requireAdmin<T>(
-  action: (admin: User) => Promise<T>
-): Promise<T | { success: false; error: string }> {
-  try {
-    const userId = await getSessionUserId();
-    
-    if (!userId) {
-       return { success: false, error: "Unauthorized access" };
-    }
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user || (user.role !== "ADMIN" && user.role !== "OWNER")) {
-       return { success: false, error: "Forbidden: Administrator context required" };
-    }
-
-    return await action(user);
-  } catch (error: any) {
-    return { success: false, error: "Internal Server Error during execution" };
-  }
-}
 
 import { redirect } from "next/navigation";
 

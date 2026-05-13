@@ -4,8 +4,8 @@ import { paymentService } from '@/services/financial/payment.service';
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for') || (req as any).ip || '';
-    
+    const { getClientIp } = await import('@/utils/ip');
+    const ip = await getClientIp();
     // Simplistic YooKassa IP whitelist check
     const isYooKassa = ['185.71.76.', '185.71.77.', '77.75.153.', '77.75.154.', '77.75.156.', '2a02:5180'].some(prefix => ip.includes(prefix));
     

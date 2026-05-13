@@ -7,7 +7,7 @@
  * Does not hard-delete — preserves full order history integrity.
  */
 
-import { requireAdmin } from '@/lib/server/rbac';
+import { requireStaffPermission } from '@/lib/server/rbac';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ import { z } from 'zod';
 const serviceIdSchema = z.string().min(1);
 
 export async function softDeleteServiceAction(serviceId: string) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = serviceIdSchema.safeParse(serviceId);
     if (!id.success) {
       return { success: false as const, error: 'Неверный ID услуги' };

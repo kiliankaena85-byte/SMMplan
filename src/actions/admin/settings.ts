@@ -7,7 +7,9 @@ import { revalidatePath } from 'next/cache';
 import { settingsService } from '@/services/admin/settings.service';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { VaultService } from '@/lib/vault';
-import { headers } from 'next/headers';
+import { auditAdmin } from '@/lib/admin-audit';
+import { getClientIp } from '@/utils/ip';
+
 
 // ── User Role Update ──
 export async function updateUserRole(formData: FormData) {
@@ -33,21 +35,19 @@ export async function updateUserRole(formData: FormData) {
 
     await settingsService.updateUserRole(targetUserId, newRole);
 
-    const reqHeaders = await headers();
-    const ipAddress = reqHeaders.get("x-forwarded-for") || "127.0.0.1";
+    const ipAddress = await getClientIp();
 
-    await db.adminAuditLog.create({
-      data: {
-        adminId: admin.id,
-        adminEmail: admin.email,
-        action: 'USER_ROLE_CHANGE',
-        target: targetUserId,
-        targetType: 'USER',
-        oldValue: JSON.stringify({ email: targetUser.email, role: targetUser.role }),
-        newValue: JSON.stringify({ role: newRole }),
-        ipAddress
-      }
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'USER_ROLE_CHANGE',
+      target: targetUserId,
+      targetType: 'USER',
+      oldValue: { email: targetUser.email, role: targetUser.role },
+      newValue: { role: newRole },
+      ipAddress
     });
+
 
     revalidatePath('/admin/settings');
     return { success: true as const };
@@ -110,21 +110,19 @@ export async function updateGlobalSettings(formData: FormData) {
        }
     }
 
-    const reqHeaders = await headers();
-    const ipAddress = reqHeaders.get("x-forwarded-for") || "127.0.0.1";
+    const ipAddress = await getClientIp();
 
-    await db.adminAuditLog.create({
-      data: {
-        adminId: user.id,
-        adminEmail: user.email,
-        action: 'SYSTEM_SETTINGS_UPDATE',
-        target: 'global',
-        targetType: 'SETTINGS',
-        oldValue: JSON.stringify({ siteName: oldSettings?.siteName, maintenanceMode: oldSettings?.maintenanceMode }),
-        newValue: JSON.stringify({ siteName, maintenanceMode }),
-        ipAddress
-      }
+    auditAdmin({
+      adminId: user.id,
+      adminEmail: user.email,
+      action: 'SYSTEM_SETTINGS_UPDATE',
+      target: 'global',
+      targetType: 'SETTINGS',
+      oldValue: { siteName: oldSettings?.siteName, maintenanceMode: oldSettings?.maintenanceMode },
+      newValue: { siteName, maintenanceMode },
+      ipAddress
     });
+
 
     revalidatePath('/admin/settings');
     return true;

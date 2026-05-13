@@ -26,9 +26,14 @@ export interface CleanupJobPayload {
   timestamp: number;
 }
 
+export interface TelegramJobPayload {
+  message: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+}
+
 // Instantiate queues using NextJS-safe singleton
 export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue');
-export const syncQueue = createQueue<SyncJobPayload>('syncQueue');
+const syncQueue = createQueue<SyncJobPayload>('syncQueue');
 
 // P2.1: Dead Letter Queue — removeOnFail: false to preserve failed jobs for inspection
 export const dlqQueue = createQueue<DLQJobPayload>('dead-letter-queue', {
@@ -39,6 +44,8 @@ export const dlqQueue = createQueue<DLQJobPayload>('dead-letter-queue', {
 
 // P2.3: Cleanup queue for TTL maintenance
 export const cleanupQueue = createQueue<CleanupJobPayload>('cleanup');
+
+export const telegramQueue = createQueue<TelegramJobPayload>('telegram-notifications');
 
 /**
  * Configure global cron sync job if not exists

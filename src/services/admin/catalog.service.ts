@@ -14,7 +14,7 @@ import {
 
 // ── Types ──
 
-export type CatalogRow = {
+type CatalogRow = {
   id: string;
   numericId: number;
   name: string;
@@ -33,7 +33,7 @@ export type CatalogRow = {
   _count: { orders: number };
 };
 
-export type ProviderExternalService = {
+type ProviderExternalService = {
   service: string;
   name: string;
   rate: string;
@@ -47,7 +47,7 @@ export type ProviderExternalService = {
 
 // ── Service ──
 
-export class AdminCatalogService {
+class AdminCatalogService {
 
   /**
    * Paginated service list with category, markup, and order count.

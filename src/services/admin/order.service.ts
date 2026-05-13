@@ -1,11 +1,12 @@
 import { db } from '@/lib/db';
+import { WalletOps } from '../financial/wallet-ops';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
 import type { Order, User, Service, Category, Network } from '@prisma/client';
 
 // ── Types ──
 
-export type AdminOrderRow = Order & {
+type AdminOrderRow = Order & {
   user: Pick<User, 'id' | 'email'>;
   service: Pick<Service, 'id' | 'name' | 'numericId'> & {
     category: Pick<Category, 'name'> & {
@@ -14,7 +15,7 @@ export type AdminOrderRow = Order & {
   };
 };
 
-export type OrderSearchParams = {
+type OrderSearchParams = {
   query?: string;
   status?: string;
   cursor?: string;
@@ -23,7 +24,7 @@ export type OrderSearchParams = {
 
 // ── Service ──
 
-export class AdminOrderService {
+class AdminOrderService {
 
   /**
    * Omni-Search: searches by email, link/URL, order numericId, or externalId.
@@ -107,19 +108,10 @@ export class AdminOrderService {
       });
 
       if (refundCents > 0) {
-        await tx.user.update({
-          where: { id: order.userId },
-          data: { balance: { increment: refundCents }, totalSpent: { decrement: refundCents } },
-        });
-        await tx.ledgerEntry.create({
-          data: {
-            userId: order.userId,
-            adminId: admin.id,
-            amount: refundCents,
-            reason: `Отмена заказа ${order.numericId} администратором - Возврат средств`,
-            status: 'APPROVED'
-          }
-        });
+        await WalletOps.refund(tx, order.userId, refundCents,
+          `Отмена заказа ${order.numericId} администратором - Возврат средств`,
+          { adminId: admin.id }
+        );
       }
 
       return { refundCents, orderNumericId: order.numericId, statusBefore: order.status, remainsBefore: order.remains };
@@ -153,24 +145,10 @@ export class AdminOrderService {
         throw new Error(`Order ${order.numericId} cannot be restarted (status: ${order.status}). Используйте "Дублировать заказ".`);
       }
 
-      const updatedUser = await tx.user.update({
-        where: { id: order.userId },
-        data: { balance: { decrement: order.charge }, totalSpent: { increment: order.charge } }
-      });
-
-      await tx.ledgerEntry.create({
-        data: {
-          userId: order.userId,
-          adminId: admin.id,
-          amount: -order.charge,
-          reason: `Перезапуск заказа ${order.numericId} администратором - Повторное списание`,
-          status: 'APPROVED'
-        }
-      });
-
-      if (updatedUser.balance < 0) {
-        throw new Error(`Недостаточно средств у пользователя для перезапуска. Необходимо ${(Number(order.charge) / 100).toFixed(2)} ₽.`);
-      }
+      await WalletOps.charge(tx, order.userId, Number(order.charge),
+        `Перезапуск заказа ${order.numericId} администратором - Повторное списание`,
+        { adminId: admin.id }
+      );
 
       // Reset order state
       await tx.order.update({

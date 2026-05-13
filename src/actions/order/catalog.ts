@@ -13,10 +13,12 @@ export type PublicService = {
   name: string;
   pricePer1kRub: number;
   minQty: number;
+  maxQty: number;
   description: string | null;
   speed: string;
   badge: string;
   features?: any;
+  cooldownUntil?: string | null;
 };
 
 export type PublicCategory = {
@@ -119,9 +121,11 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           description: s.description,
           pricePer1kRub: applyBeautifulRounding(s.rate * s.markup * usdToRub),
           minQty: s.minQty,
+          maxQty: s.maxQty,
           speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',
           badge,
-          features: s.features
+          features: s.features,
+          cooldownUntil: s.cooldownUntil ? s.cooldownUntil.toISOString() : null
        };
     });
   } catch (error) {

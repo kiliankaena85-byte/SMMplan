@@ -12,14 +12,14 @@
  * - Audit: @/lib/admin-audit
  */
 
-import { requireAdmin } from '@/lib/server/rbac';
+import { requireStaffPermission } from '@/lib/server/rbac';
 import { featureFlagService, type FlagKey, type FlagState } from '@/services/system/feature-flag.service';
 import { auditAdmin } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 
 /** List all feature flags with current state */
 export async function getFeatureFlags() {
-  return requireAdmin(async () => {
+  return requireStaffPermission('SETTINGS', 'view', async () => {
     const flags = await featureFlagService.listAll();
     return { success: true as const, data: flags };
   });
@@ -27,7 +27,7 @@ export async function getFeatureFlags() {
 
 /** Toggle a feature flag state */
 export async function setFeatureFlagState(key: FlagKey, state: FlagState) {
-  return requireAdmin(async (admin) => {
+  return requireStaffPermission('SETTINGS', 'edit', async (admin) => {
     // Security: validate state value
     if (!['ON', 'TEST', 'OFF'].includes(state)) {
       return { success: false as const, error: 'Invalid state value' };

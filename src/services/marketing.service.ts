@@ -16,7 +16,7 @@ export type PricingResult = {
   tier: string;
 };
 
-export class MarketingService {
+class MarketingService {
   /**
    * Evaluates volume discount tier based on total spent.
    * Returns generic tier names and their respective percent discount.

@@ -8,6 +8,8 @@ import { orderService } from '@/services/core/order.service';
 import { verifySession, createSession } from '@/lib/session';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
+import { getClientIp } from '@/utils/ip';
+import { WalletOps } from '@/services/financial/wallet-ops';
 import crypto from 'crypto';
 
 /**
@@ -102,6 +104,11 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error("Услуга не найдена или неактивна");
     }
 
+    // Wave 4.1: Elastic Quarantine Check
+    if (service.cooldownUntil && service.cooldownUntil > new Date()) {
+      throw new Error(`Временно приостановлено для контроля качества. Ожидание: 1-12 часов. Выберите аналог.`);
+    }
+
     if (!service.externalId) {
       throw new Error("Услуга не привязана к провайдеру");
     }
@@ -145,7 +152,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     const pricing = await marketingService.calculatePrice(user.id, serviceId, totalQuantity, promoCodeStr);
 
     const reqHeaders = await headers();
-    const consentIp = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "127.0.0.1";
+    const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
     // 5. Create Order + Payment atomically
@@ -155,6 +162,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         data: {
           userId: user.id,
           serviceId,
+          providerId: service.providerId,
+          providerServiceId: service.externalId,
           link,
           quantity: totalQuantity,
           email: email.toLowerCase(),
@@ -217,28 +226,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         // AND use a Redis Mutex to completely serialize processing per-user for the balance gateway.
         await MutexManager.withLock(`balance_lock_${user.id}`, 30000, 5000, async () => {
           await db.$transaction(async (tx) => {
-            // BUG-003 FIX: Check balance BEFORE decrement
-            const userBefore = await tx.user.findUniqueOrThrow({ where: { id: user.id } });
-            if (userBefore.balance < pricing.totalCents) {
-              throw new Error('Недостаточно средств на внутреннем балансе. Транзакция отклонена.');
-            }
-
-            await tx.user.update({
-              where: { id: user.id },
-              data: { 
-                balance: { decrement: pricing.totalCents },
-                totalSpent: { increment: pricing.totalCents } 
-              }
-            });
-
-            await tx.ledgerEntry.create({
-              data: {
-                userId: user.id,
-                amount: -pricing.totalCents,
-                reason: `Оплата заказа ${result.orderId} (Списание)`,
-                status: 'APPROVED'
-              }
-            });
+            // BUG-003 FIX: Atomic WalletOps deduction to prevent TOCTOU race conditions and maintain ledger consistency
+            await WalletOps.charge(tx, user.id, pricing.totalCents, `Оплата заказа ${result.orderId} (Списание)`);
 
             await tx.payment.update({
               where: { id: result.paymentId },
@@ -254,12 +243,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         // Add to queue with cooling-off delay (Consistency Fix)
         const order = await db.order.findUnique({ where: { id: result.orderId } });
         if (order) {
-          const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
-          if (order.isDripFeed) {
-            await dripfeedQueue.add('dripfeed-start', { orderId: order.id }, { delay: 3 * 60 * 1000 });
-          } else {
-            await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 3 * 60 * 1000 });
-          }
+          const { ordersQueue } = await import('@/workers/queues');
+          await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 3 * 60 * 1000 });
         }
 
         paymentUrl = successUrl;
@@ -462,7 +447,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     if (!isAllowed) throw new Error("Слишком много запросов. Попробуйте через минуту.");
 
     const reqHeaders = await headers();
-    const consentIp = reqHeaders.get("x-forwarded-for") || reqHeaders.get("x-real-ip") || "127.0.0.1";
+    const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
     const order = await db.order.findUnique({
@@ -558,28 +543,8 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
       if (gateway === 'balance') {
         await MutexManager.withLock(`balance_lock_${order.userId}`, 30000, 5000, async () => {
           await db.$transaction(async (tx) => {
-            // BUG-003 FIX: Check balance BEFORE decrement
-            const userBefore = await tx.user.findUniqueOrThrow({ where: { id: order.userId } });
-            if (userBefore.balance < order.charge) {
-              throw new Error('Недостаточно средств на внутреннем балансе.');
-            }
-
-            await tx.user.update({
-              where: { id: order.userId },
-              data: { 
-                balance: { decrement: order.charge },
-                totalSpent: { increment: order.charge } 
-              }
-            });
-
-            await tx.ledgerEntry.create({
-              data: {
-                userId: order.userId,
-                amount: -order.charge,
-                reason: `Оплата заказа ${order.id} (Списание)`,
-                status: 'APPROVED'
-              }
-            });
+            // BUG-003 FIX: Atomic WalletOps deduction to prevent TOCTOU race conditions and maintain ledger consistency
+            await WalletOps.charge(tx, order.userId, Number(order.charge), `Оплата заказа ${order.id} (Списание)`);
 
             await tx.payment.update({
               where: { id: result.paymentId },
@@ -593,12 +558,8 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         });
 
         // Add to queue
-        const { ordersQueue, dripfeedQueue } = require('@/workers/queues');
-        if (order.isDripFeed) {
-          await dripfeedQueue.add('dripfeed-start', { orderId: order.id }, { delay: 3 * 60 * 1000 });
-        } else {
-          await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 3 * 60 * 1000 });
-        }
+        const { ordersQueue } = await import('@/workers/queues');
+        await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 3 * 60 * 1000 });
 
         paymentUrl = successUrl;
         remoteGatewayId = `internal_${Date.now()}`;

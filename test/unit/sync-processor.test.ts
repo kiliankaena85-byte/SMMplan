@@ -18,7 +18,13 @@ const { mockOrderDb, mockGetMultiOrderStatus, mockProcessRefund, mockGetWorkerPr
 }));
 
 vi.mock('@/lib/db', () => ({
-  db: { order: mockOrderDb },
+  db: { 
+    order: mockOrderDb,
+    provider: { 
+      findMany: vi.fn().mockResolvedValue([{ id: 'prov-1', apiUrl: 'https://api.provider.com', apiKey: 'encrypted-key' }]),
+      update: vi.fn()
+    }
+  },
 }));
 
 // Mock providerService (replaces old UniversalProvider mock after Ghost Proxy v2)

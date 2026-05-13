@@ -16,6 +16,9 @@ import { TrustBar } from "./TrustBar";
 import { WhyUs } from "./WhyUs";
 import { FAQ } from "./FAQ";
 import { Reviews } from "./Reviews";
+import { LinkModal } from "./order-engine/LinkModal";
+import { EmailModal } from "./order-engine/EmailModal";
+import { StickyCheckoutBar } from "./order-engine/StickyCheckoutBar";
 import { SocialIcon } from "@/components/ui/SocialIcon";
 import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
 import { IconClock, IconBox } from "@tabler/icons-react";
@@ -290,13 +293,13 @@ export function SmartLinkLanding({
           {/* Social Proof Stats */}
           <div className="flex items-center justify-center gap-6 sm:gap-10 pt-2">
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">1M+</p>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Заказов</p>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">15+</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Платформ</p>
             </div>
             <div className="w-px h-10 bg-slate-200"></div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">50K+</p>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Клиентов</p>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums">300+</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Услуг</p>
             </div>
             <div className="w-px h-10 bg-slate-200"></div>
             <div className="text-center">
@@ -633,18 +636,20 @@ export function SmartLinkLanding({
                              const isSelected = selectedService?.id === srv.id;
                              const selectedNetworkObj = [...topNetworks, ...otherNetworks].find(n => n.id === networkId);
                              const brand = getBrandColor(selectedNetworkObj?.slug || 'telegram');
+                             const isQuarantined = srv.cooldownUntil && new Date(srv.cooldownUntil) > new Date();
 
                              return (
                                <Card 
                                  key={srv.id}
-                                 onClick={() => setSelectedService(srv)}
-                                  className={`group cursor-pointer w-full flex flex-col p-5 md:p-6 border-2 rounded-[2rem] relative overflow-visible transition-all duration-500 ease-out h-full ${
-                                    isSelected ? 'border-transparent text-white z-[50]' : 'border-slate-100 z-[1] hover:border-slate-200 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:-translate-y-1 shadow-sm'
+                                 onClick={() => !isQuarantined && setSelectedService(srv)}
+                                  className={`group w-full flex flex-col p-5 md:p-6 border-2 rounded-[2rem] relative overflow-visible transition-all duration-500 ease-out h-full ${
+                                    isQuarantined ? 'cursor-not-allowed opacity-60 grayscale-[0.3]' 
+                                    : isSelected ? 'cursor-pointer border-transparent text-white z-[50]' : 'cursor-pointer border-slate-100 z-[1] hover:border-slate-200 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:-translate-y-1 shadow-sm'
                                  }`}
-                                  style={isSelected ? { background: `linear-gradient(135deg, ${brand.bg}, ${brand.bg}CC)`, boxShadow: `0 20px 50px -15px ${brand.shadow}` } : { background: '#ffffff' }}
+                                  style={isSelected && !isQuarantined ? { background: `linear-gradient(135deg, ${brand.bg}, ${brand.bg}CC)`, boxShadow: `0 20px 50px -15px ${brand.shadow}` } : { background: '#ffffff' }}
                                >
-                                 <div className={`absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/10 to-transparent ${isSelected ? '' : 'group-hover:opacity-100'}`} />
-                                 {srv.badge && (
+                                 <div className={`absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/10 to-transparent ${isSelected && !isQuarantined ? '' : 'group-hover:opacity-100'}`} />
+                                 {srv.badge && !isQuarantined && (
                                    <div 
                                      className="absolute -top-3 -right-2 z-20 px-2.5 py-1 rounded-md text-[10px] tracking-widest font-black uppercase transition-all duration-300 pointer-events-none shadow-sm flex items-center justify-center transform-gpu"
                                      style={{
@@ -658,15 +663,22 @@ export function SmartLinkLanding({
                                      {srv.badge}
                                    </div>
                                  )}
+                                 {isQuarantined && (
+                                   <div className="absolute -top-3 -right-2 z-20 px-2.5 py-1 rounded-md text-[10px] tracking-widest font-black uppercase shadow-sm bg-rose-100 text-rose-700 border-2 border-rose-200">
+                                     QUALITY CHECK
+                                   </div>
+                                 )}
                                  
                                  <div className="flex-1 flex flex-col pt-1 relative z-10">
                                     <h4 className={`font-extrabold text-[15px] transition-colors duration-300 leading-[22px] mb-4 min-h-[44px] break-words ${isSelected ? 'text-white' : 'text-slate-900'}`}>{srv.name}</h4>
                                     <div className="flex-1 mb-5 flex flex-col">
-                                      <p className={`text-[13px] font-medium leading-relaxed p-4 rounded-xl border transition-all duration-300 ${isSelected ? 'bg-white/10 border-white/20 text-white/90 shadow-inner' : 'bg-slate-100/60 border-slate-200/60 text-slate-600'}`}>
+                                      <p className={`text-[13px] font-medium leading-relaxed p-4 rounded-xl border transition-all duration-300 ${isSelected && !isQuarantined ? 'bg-white/10 border-white/20 text-white/90 shadow-inner' : isQuarantined ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-slate-100/60 border-slate-200/60 text-slate-600'}`}>
                                         <span className="line-clamp-6">
-                                          {srv.description || (srv.name.toLowerCase().includes('без гарант') 
+                                          {isQuarantined 
+                                            ? `Временно приостановлено для контроля качества (до ${new Date(srv.cooldownUntil!).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}). Пожалуйста, выберите аналогичную рабочую услугу.` 
+                                            : (srv.description || (srv.name.toLowerCase().includes('без гарант') 
                                             ? "Услуга без гарантии. В случае отписок или списаний восстановление (докрутка) не производится." 
-                                            : "Стандартные условия сервиса. 30 дней гарантии на списания.")}
+                                            : "Стандартные условия сервиса. Скорость и качество зависят от выбранного провайдера."))}
                                         </span>
                                       </p>
                                     </div>
@@ -803,7 +815,12 @@ export function SmartLinkLanding({
                          type="number" 
                          value={quantity} 
                          min={selectedService?.minQty || 10}
-                         onChange={e => setQuantity(Number(e.target.value))} 
+                         max={selectedService?.maxQty}
+                         onChange={e => {
+                           let val = Number(e.target.value);
+                           if (selectedService?.maxQty && val > selectedService.maxQty) val = selectedService.maxQty;
+                           setQuantity(val);
+                         }} 
                          className="w-full h-16 px-6 rounded-full border-2 border-slate-200 bg-white shadow-sm text-xl font-black tabular-nums text-slate-800 focus:bg-white focus:border-sky-400 focus:shadow-[0_8px_20px_-6px_rgba(14,165,233,0.2)] outline-none transition-all"
                        />
                     </div>
@@ -834,9 +851,9 @@ export function SmartLinkLanding({
                        </div>
                        <Button 
                           onClick={handleCheckout}
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || !agreedToTerms || (selectedService?.cooldownUntil ? new Date(selectedService.cooldownUntil) > new Date() : false)}
                           className={`min-w-[200px] h-16 rounded-full px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-2 group ${
-                             isSubmitting ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'
+                             (isSubmitting || !agreedToTerms || (selectedService?.cooldownUntil ? new Date(selectedService.cooldownUntil) > new Date() : false)) ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'
                           }`}
                        >
                           {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : (
@@ -844,6 +861,9 @@ export function SmartLinkLanding({
                           )}
                        </Button>
                     </div>
+                 </div>
+                 <div className="w-full flex justify-end mt-3 md:mt-2">
+                    <p className="text-[11px] text-slate-400 font-medium max-w-[250px] text-right leading-tight">Оплата картой (РФ) и СБП. Оплата криптовалютой доступна в Личном Кабинете.</p>
                  </div>
                </div>
                
@@ -913,7 +933,7 @@ export function SmartLinkLanding({
               Задать вопрос
             </Link>
             <div className="pt-4 border-t border-zinc-800">
-              <p className="text-xs text-zinc-500">ИНН: 123456789012 • ОГРНИП: 123456789012345</p>
+              <p className="text-xs text-zinc-500">Служба поддержки работает круглосуточно</p>
               <p className="text-xs text-zinc-500 mt-1">support@smmplan.ru</p>
             </div>
           </div>
@@ -927,277 +947,39 @@ export function SmartLinkLanding({
       </footer>
 
       {/* ══════════ DESKTOP STICKY CHECKOUT BAR (Финтех-бар) ══════════ */}
-      <AnimatePresence>
-        {selectedService && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', damping: 30, stiffness: 400 }}
-            className="fixed bottom-0 left-0 right-0 z-[200] hidden sm:block"
-          >
-            <div className="backdrop-blur-2xl bg-gradient-to-r from-slate-900 to-slate-950 border-t border-slate-800 shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.5)]">
-              <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-6">
-                
-                {/* Left: Selected service name */}
-                <div className="flex-1 min-w-0 max-w-[320px]">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Выбрано</p>
-                  <p className="text-sm font-bold text-white truncate leading-tight">{selectedService.name}</p>
-                  <div className="flex items-center gap-2 mt-1.5 opacity-80 hover:opacity-100 transition-opacity">
-                    <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
-                      <Link2 className="w-2.5 h-2.5 text-sky-400" />
-                    </div>
-                    <p className="text-[12px] font-medium text-slate-300 truncate max-w-[180px]">
-                      {url || "Ссылка не указана"}
-                    </p>
-                    <button 
-                      onClick={() => setShowLinkModal(true)}
-                      className="ml-1 p-1 hover:bg-slate-700 rounded-md transition-colors text-slate-400 hover:text-white group"
-                      title="Изменить ссылку"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Center: Live Calculator — qty × unitPrice = total */}
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <input 
-                      type="number" 
-                      value={quantity} 
-                      min={selectedService.minQty || 10}
-                      onChange={e => setQuantity(Number(e.target.value))} 
-                      className="w-28 h-12 px-4 rounded-xl border-2 border-slate-700 bg-slate-800/80 text-lg font-black tabular-nums text-white text-center focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all"
-                    />
-                    <span className="absolute -top-2 left-3 text-[9px] font-bold text-slate-400 bg-slate-900 px-1.5 rounded-sm uppercase">Кол-во</span>
-                  </div>
-                  
-                  <span className="text-slate-600 font-bold text-lg">×</span>
-                  
-                  <span className="text-sm font-bold text-slate-300 tabular-nums whitespace-nowrap">
-                    {pricing && quantity > 0 ? (
-                      ((pricing.totalCents / 100) / quantity) < 0.1 
-                        ? ((pricing.totalCents / 100) / quantity).toFixed(4)
-                        : ((pricing.totalCents / 100) / quantity).toFixed(2)
-                    ) : (
-                      (selectedService.pricePer1kRub / 1000) < 0.1 
-                        ? (selectedService.pricePer1kRub / 1000).toFixed(4) 
-                        : (selectedService.pricePer1kRub / 1000).toFixed(2)
-                    )} ₽
-                  </span>
-                  
-                  <span className="text-slate-600 font-bold text-lg">=</span>
-                  
-                  <div className="text-right min-w-[100px]">
-                    {isCalculating ? (
-                      <Loader2 className="w-5 h-5 text-sky-500 animate-spin mx-auto" />
-                    ) : (
-                      <p className="text-2xl font-black text-white tabular-nums leading-none tracking-tight whitespace-nowrap">
-                        {totalPriceFormatted} ₽
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right: Agreement + CTA */}
-                <div className="flex items-center gap-5 shrink-0">
-                  <label className="flex items-center gap-2 cursor-pointer select-none group">
-                    <button 
-                      onClick={() => setAgreedToTerms(!agreedToTerms)} 
-                      className="text-sky-400 focus:outline-none shrink-0 rounded hover:scale-105 transition-transform"
-                    >
-                      {agreedToTerms 
-                        ? <CheckSquare className="w-5 h-5" /> 
-                        : <Square className="w-5 h-5 text-slate-600 group-hover:text-slate-400" />
-                      }
-                    </button>
-                    <span className="text-xs text-slate-400 font-medium">
-                      <Link href="/p/offer" className="underline hover:text-sky-400 transition-colors">Оферта</Link>
-                    </span>
-                  </label>
-
-                  <Button 
-                    onClick={handleCheckout}
-                    disabled={isSubmitting}
-                    className={`h-12 px-8 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-[0_10px_30px_-10px_rgba(255,255,255,0.2)] transition-all flex items-center justify-center gap-2 group ${
-                      isSubmitting ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'
-                    }`}
-                  >
-                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                      <>Оплатить <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" /></>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <StickyCheckoutBar
+        selectedService={selectedService}
+        url={url}
+        setShowLinkModal={setShowLinkModal}
+        quantity={quantity}
+        setQuantity={setQuantity}
+        pricing={pricing}
+        agreedToTerms={agreedToTerms}
+        setAgreedToTerms={setAgreedToTerms}
+        isSubmitting={isSubmitting}
+        handleCheckout={handleCheckout}
+      />
 
       {/* ══════════ LINK MODAL (Progressive Disclosure) ══════════ */}
-      <AnimatePresence>
-        {showLinkModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-            onClick={() => setShowLinkModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-8 w-full max-w-md"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900">Укажите ссылку</h3>
-                  <p className="text-sm text-slate-500 mt-1">Куда отправить заказ?</p>
-                </div>
-                <button onClick={() => setShowLinkModal(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                  <X className="w-4 h-4 text-slate-500" />
-                </button>
-              </div>
-              
-              <div className="relative mb-6">
-                <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input 
-                  type="url" 
-                  value={url} 
-                  onChange={e => setUrl(e.target.value)} 
-                  placeholder="Например: t.me/durov или instagram.com/username"
-                  autoFocus
-                  className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-slate-200 bg-white text-[15px] font-semibold text-slate-800 placeholder-slate-400 focus:border-sky-400 focus:shadow-[0_8px_20px_-6px_rgba(14,165,233,0.15)] outline-none transition-all"
-                  onBlur={(e) => {
-                    const val = e.target.value.trim();
-                    if (val && !/^https?:\/\//i.test(val) && val.includes('.') && !val.includes(' ')) {
-                      setUrl(`https://${val}`);
-                    } else {
-                      setUrl(val);
-                    }
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && url.trim().length > 0) {
-                      let finalUrl = url.trim();
-                      if (!/^https?:\/\//i.test(finalUrl) && finalUrl.includes('.') && !finalUrl.includes(' ')) {
-                        finalUrl = `https://${finalUrl}`;
-                        setUrl(finalUrl);
-                      }
-                      setShowLinkModal(false);
-                      handleCheckout();
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-4">
-                <Button
-                  onClick={() => {
-                    if (url.trim().length > 0) {
-                      setShowLinkModal(false);
-                      handleCheckout();
-                    }
-                  }}
-                  disabled={url.trim().length === 0}
-                  className="h-14 px-8 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-base shadow-lg transition-all flex items-center gap-2"
-                >
-                  Продолжить <ChevronRight className="w-5 h-5" />
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <LinkModal
+        showLinkModal={showLinkModal}
+        setShowLinkModal={setShowLinkModal}
+        url={url}
+        setUrl={setUrl}
+        handleCheckout={handleCheckout}
+      />
 
       {/* ══════════ EMAIL MODAL (Progressive Disclosure) ══════════ */}
-      <AnimatePresence>
-        {showEmailModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-            onClick={() => setShowEmailModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-8 w-full max-w-md"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900">Почти готово!</h3>
-                  <p className="text-sm text-slate-500 mt-1">Укажите email для получения чека</p>
-                </div>
-                <button onClick={() => setShowEmailModal(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                  <X className="w-4 h-4 text-slate-500" />
-                </button>
-              </div>
-              
-              {/* Context Link Display */}
-              <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-3 mb-6 border border-slate-100">
-                 <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 border border-slate-100">
-                    <Link2 className="w-5 h-5 text-sky-500" />
-                 </div>
-                 <div className="min-w-0 flex-1">
-                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest leading-none mb-1">Оформляется для</p>
-                    <p className="text-sm font-bold text-slate-700 truncate leading-tight">{url || "Ссылка не указана"}</p>
-                 </div>
-              </div>
-              
-              <div className="relative mb-6">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input 
-                  type="email" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  placeholder="you@example.com"
-                  autoFocus
-                  className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-slate-200 bg-white text-[15px] font-semibold text-slate-800 placeholder-slate-400 focus:border-sky-400 focus:shadow-[0_8px_20px_-6px_rgba(14,165,233,0.15)] outline-none transition-all"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && email.includes('@')) {
-                      setShowEmailModal(false);
-                      handleCheckout();
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-4">
-                <div className="text-right flex-1">
-                  <p className="text-xs text-slate-400 font-bold uppercase">Итого</p>
-                  <p className="text-2xl font-black text-slate-900 tabular-nums">{totalPriceFormatted} ₽</p>
-                </div>
-                <Button
-                  onClick={() => {
-                    if (email.includes('@')) {
-                      setShowEmailModal(false);
-                      handleCheckout();
-                    }
-                  }}
-                  disabled={!email.includes('@') || isSubmitting}
-                  className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-base shadow-lg transition-all flex items-center gap-2"
-                >
-                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                    <>Перейти к оплате <ChevronRight className="w-5 h-5" /></>
-                  )}
-                </Button>
-              </div>
-
-              <p className="text-[11px] text-slate-400 text-center mt-4">
-                Чек отправляется автоматически на указанный email
-              </p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <EmailModal
+        showEmailModal={showEmailModal}
+        setShowEmailModal={setShowEmailModal}
+        email={email}
+        setEmail={setEmail}
+        url={url}
+        totalPriceFormatted={totalPriceFormatted}
+        isSubmitting={isSubmitting}
+        handleCheckout={handleCheckout}
+      />
     </div>
   );
 }

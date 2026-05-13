@@ -120,7 +120,7 @@ export async function updateProvider(rawId: string, rawData: {
   });
 }
 
-export async function deleteProvider(rawId: string) {
+async function deleteProvider(rawId: string) {
     return requireStaffPermission('providers', 'edit', async (admin) => {
       const id = idSchema.parse(rawId);
       // Check if it has related services

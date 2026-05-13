@@ -1,6 +1,6 @@
 import { getRedisConnection } from './queue-manager';
 
-export class CircuitBreakerOpenException extends Error {
+class CircuitBreakerOpenException extends Error {
   constructor(providerHost: string) {
     super(`Circuit breaker is OPEN for provider: ${providerHost}`);
     this.name = 'CircuitBreakerOpenException';

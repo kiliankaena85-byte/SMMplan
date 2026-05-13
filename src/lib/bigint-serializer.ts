@@ -32,9 +32,9 @@ export function serializeForClient<T>(obj: T): T {
  *
  * Threshold: 20_000_000 RUB = 2_000_000_000 kopecks
  */
-export const BALANCE_SAFETY_LIMIT = BigInt(2_000_000_000_00); // 20M RUB in kopecks
+const BALANCE_SAFETY_LIMIT = BigInt(2_000_000_000_00); // 20M RUB in kopecks
 
-export function checkBalanceSafetyLimit(balance: bigint, userId: string): void {
+function checkBalanceSafetyLimit(balance: bigint, userId: string): void {
   if (balance > BALANCE_SAFETY_LIMIT) {
     // Fire-and-forget alert — import inline to avoid circular deps
     import('@/lib/notifications').then(({ sendAdminAlert }) => {

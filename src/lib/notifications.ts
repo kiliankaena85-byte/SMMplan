@@ -20,28 +20,42 @@ const SEVERITY_EMOJI: Record<AlertSeverity, string> = {
   CRITICAL: '🚨',
 };
 
+import { telegramQueue } from '../workers/queues';
+
 /**
- * Sends a formatted alert to the admin Telegram channel.
+ * Queues a formatted alert to the admin Telegram channel via BullMQ.
  * Non-blocking (fire-and-forget). Never throws.
  */
 export function sendAdminAlert(message: string, severity: AlertSeverity = 'INFO') {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    // Silently skip if not configured (dev environment)
     return;
   }
+  
+  telegramQueue.add('admin-alert', { message, severity }).catch(err => {
+    console.error('[NotificationService] Failed to queue Telegram alert:', err);
+  });
+}
+
+/**
+ * Worker-only method to actually execute the HTTP request to Telegram.
+ */
+export async function sendAdminAlertSync(message: string, severity: AlertSeverity = 'INFO') {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
 
   const emoji = SEVERITY_EMOJI[severity];
   const text = `${emoji} <b>Smmplan [${severity}]</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</i>`;
 
-  void fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text,
-      parse_mode: 'HTML',
-    }),
-  }).catch((err) => {
-    console.error('[NotificationService] Telegram alert failed:', err);
-  });
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text,
+        parse_mode: 'HTML',
+      }),
+    });
+  } catch (err) {
+    console.error('[NotificationService] Telegram alert sync failed:', err);
+  }
 }

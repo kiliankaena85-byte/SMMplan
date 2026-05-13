@@ -47,6 +47,12 @@ export const createMassOrderAction = async (input: z.infer<typeof massOrderSchem
        where: { numericId: { in: numericIds }, isActive: true }
     });
     
+    // Wave 4.1: Elastic Quarantine Check
+    const quarantinedService = services.find(s => s.cooldownUntil && s.cooldownUntil > new Date());
+    if (quarantinedService) {
+        throw new Error(`Услуга ID ${quarantinedService.numericId} временно приостановлена для контроля качества. Выберите аналог.`);
+    }
+
     // Map numericId -> DB entity
     const serviceMap = new Map<number, any>();
     services.forEach(s => serviceMap.set(s.numericId, s));
