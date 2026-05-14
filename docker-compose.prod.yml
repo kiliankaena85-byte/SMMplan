@@ -19,7 +19,7 @@ services:
     image: redis:7-alpine
     container_name: smmplan_lite_prod_redis
     restart: always
-    command: redis-server --save 60 1 --loglevel warning
+    command: redis-server --save 60 1 --loglevel warning --maxmemory 512mb --maxmemory-policy noeviction
     volumes:
       - prod_redis_data:/data
     healthcheck:

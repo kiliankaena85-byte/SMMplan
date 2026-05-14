@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { CBRRateService } from '@/services/system/cbr-rate.service';
+import { getRedisConnection } from '@/lib/queue-manager';
 
 /**
  * T-007: Cron endpoint to sync CBR Exchange Rate.
@@ -16,7 +17,23 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await CBRRateService.syncCBRExchangeRate();
+    const redis = getRedisConnection();
+    const lockKey = 'cron:sync-cbr:lock';
+    
+    // Acquire lock for 2 hours (CBR syncs infrequently, no need to overlap)
+    const acquired = await redis.set(lockKey, '1', 'NX', 'EX', 7200);
+    if (!acquired) {
+      console.warn('[SyncCBRCron] Skipped. Another CBR sync process is already running.');
+      return NextResponse.json({ success: false, reason: 'overlap_prevented' }, { status: 200 });
+    }
+    
+    let result;
+    try {
+      result = await CBRRateService.syncCBRExchangeRate();
+    } finally {
+      await redis.del(lockKey);
+    }
+    
     return NextResponse.json({
       success: true,
       nominalRate: result.nominalRate,
