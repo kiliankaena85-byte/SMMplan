@@ -7,6 +7,7 @@ import { RateLimitService } from "@/services/core/rate-limit.service";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { isRedirectError } from "next/navigation";
 
 const log = logger.child({ component: 'MagicLink' });
 
@@ -111,6 +112,9 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
     return { success: true, error: null };
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     log.error('Magic link request failed', { error: (error as Error).message });
     return { error: "Что-то пошло не так. Попробуйте еще раз.", success: false };
   }
