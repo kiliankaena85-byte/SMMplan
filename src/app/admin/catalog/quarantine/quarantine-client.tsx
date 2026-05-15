@@ -102,7 +102,7 @@ export function QuarantineClient({ initialItems }: Props) {
           <Table.ScrollContainer>
             <Table.Content>
               <Table.Header>
-                <Table.Column>УСЛУГА</Table.Column>
+                <Table.Column isRowHeader>УСЛУГА</Table.Column>
                 <Table.Column>ПРИЧИНА</Table.Column>
                 <Table.Column className="text-right">ТЕКУЩАЯ</Table.Column>
                 <Table.Column className="text-right">НОВАЯ</Table.Column>

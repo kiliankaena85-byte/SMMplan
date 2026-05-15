@@ -128,7 +128,7 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
           <Table.ScrollContainer>
             <Table.Content>
               <Table.Header>
-                <Table.Column>НАЗВАНИЕ</Table.Column>
+                <Table.Column isRowHeader>НАЗВАНИЕ</Table.Column>
                 <Table.Column>ПЛАТФОРМА</Table.Column>
                 <Table.Column>СОРТИРОВКА</Table.Column>
                 <Table.Column>УСЛУГ</Table.Column>

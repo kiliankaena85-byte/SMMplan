@@ -87,7 +87,7 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
               <Table.ScrollContainer>
                 <Table.Content>
                   <Table.Header>
-                    <Table.Column>ОПИСАНИЕ</Table.Column>
+                    <Table.Column isRowHeader>ОПИСАНИЕ</Table.Column>
                     <Table.Column>КЛЮЧ</Table.Column>
                     <Table.Column>ИЗМЕНЕНО</Table.Column>
                     <Table.Column>ДЕЙСТВИЕ</Table.Column>
