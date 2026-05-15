@@ -36,7 +36,7 @@ export const SmartInput = memo(function SmartInput({
   }, [onUrlChange]);
   
   return (
-    <div className="relative h-20 md:h-24 rounded-full border border-slate-200 bg-white shadow-lg focus-within:border-primary/40 focus-within:shadow-[0_12px_50px_-12px] focus-within:shadow-primary/20 transition-all duration-300">
+    <div className="relative h-20 md:h-24 rounded-full border border-border/50 bg-content2 shadow-lg focus-within:border-primary/40 focus-within:shadow-[0_12px_50px_-12px] focus-within:shadow-primary/20 transition-all duration-300">
       <input
         type="url"
         inputMode="url"

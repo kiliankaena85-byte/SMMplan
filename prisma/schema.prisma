@@ -169,6 +169,13 @@ model Service {
   cooldownUntil  DateTime? // If set, service is temporarily unavailable until this time
   cooldownReason String? // Reason for cooldown (e.g., "API_ERROR", "DELAYED_CANCEL")
 
+  // ETA Estimation (Adaptive Percentile Window — cron-updated every 15 min)
+  etaP50Seconds   Int?      // Median execution time in seconds
+  etaP90Seconds   Int?      // 90th percentile ("worst case")
+  etaSampleCount  Int       @default(0) // Number of completed orders behind the estimate
+  etaSpeedClass   String?   // FAST | MEDIUM | SLOW | ULTRA_SLOW
+  etaUpdatedAt    DateTime? // Last ETA recalculation timestamp
+
   isActive          Boolean  @default(true)
   pricePer1000Cents Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
   createdAt         DateTime @default(now())

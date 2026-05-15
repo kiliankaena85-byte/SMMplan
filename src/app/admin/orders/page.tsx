@@ -145,8 +145,14 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               currentRun: o.currentRun,
               error: o.error ?? null,
               user: { email: o.user.email },
+              providerName: o.provider?.name ?? null,
               service: {
                 name: o.service.name,
+                etaP50Seconds: o.service.etaP50Seconds,
+                etaP90Seconds: o.service.etaP90Seconds,
+                etaSampleCount: o.service.etaSampleCount,
+                etaSpeedClass: o.service.etaSpeedClass,
+                etaUpdatedAt: o.service.etaUpdatedAt?.toISOString() ?? null,
                 category: {
                   name: o.service.category.name,
                   network: o.service.category.network ?? null,

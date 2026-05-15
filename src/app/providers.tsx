@@ -4,7 +4,7 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <NextThemesProvider attribute="data-theme" defaultTheme="sky" themes={['sky', 'emerald', 'violet']}>
+    <NextThemesProvider attribute="class" defaultTheme="sky-dark" themes={['light', 'dark', 'sky-light', 'sky-dark', 'emerald-light', 'emerald-dark', 'violet-light', 'violet-dark']}>
       <HeroUIProvider>{children}</HeroUIProvider>
     </NextThemesProvider>
   );

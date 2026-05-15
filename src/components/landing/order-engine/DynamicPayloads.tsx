@@ -61,14 +61,14 @@ export const DynamicPayloads = memo(function DynamicPayloads({
       {/* Inputs */}
       {needsCustomComments && (
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">Свой текст комментариев (каждый с новой строки):</label>
+          <label className="text-sm font-semibold text-foreground">Свой текст комментариев (каждый с новой строки):</label>
           <textarea
             value={customData}
             onChange={e => onCustomDataChange(e.target.value)}
-            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-primary/40 outline-none text-base min-h-[120px] resize-y custom-scrollbar"
+            className="w-full p-4 rounded-2xl border border-border focus:border-primary/40 outline-none text-base min-h-[120px] resize-y custom-scrollbar"
             placeholder="Супер!\nОтличное видео!\nЖду продолжения..."
           />
-          <div className="text-xs text-slate-500 text-right">
+          <div className="text-xs text-muted-foreground text-right">
             {customData.split('\n').filter(l => l.trim()).length} строк
           </div>
         </div>
@@ -76,12 +76,12 @@ export const DynamicPayloads = memo(function DynamicPayloads({
 
       {needsKeywords && (
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">Ключевые слова:</label>
+          <label className="text-sm font-semibold text-foreground">Ключевые слова:</label>
           <input
             type="text"
             value={customData}
             onChange={e => onCustomDataChange(e.target.value)}
-            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-primary/40 outline-none text-base"
+            className="w-full p-4 rounded-2xl border border-border focus:border-primary/40 outline-none text-base"
             placeholder="Например: криптовалюта, инвестиции"
           />
         </div>
@@ -89,14 +89,14 @@ export const DynamicPayloads = memo(function DynamicPayloads({
 
       {isPoll && (
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">Номер варианта ответа (цифрой):</label>
+          <label className="text-sm font-semibold text-foreground">Номер варианта ответа (цифрой):</label>
           <input
             type="number"
             min="1"
             max="10"
             value={customData}
             onChange={e => onCustomDataChange(e.target.value)}
-            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-primary/40 outline-none text-base"
+            className="w-full p-4 rounded-2xl border border-border focus:border-primary/40 outline-none text-base"
             placeholder="Например: 2"
           />
         </div>

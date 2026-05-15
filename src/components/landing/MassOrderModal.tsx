@@ -78,20 +78,20 @@ export function MassOrderModal({ isOpen, onClose, service, initialQuantity, init
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+            className="relative w-full max-w-2xl bg-content1 rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
           >
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div className="p-6 border-b border-border/50 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
                   <ShoppingCart className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-xl text-slate-900">Пакетный заказ</h3>
-                  <p className="text-sm font-medium text-slate-500 line-clamp-1">{service.name}</p>
+                  <h3 className="font-extrabold text-xl text-foreground">Пакетный заказ</h3>
+                  <p className="text-sm font-medium text-muted-foreground line-clamp-1">{service.name}</p>
                 </div>
               </div>
-              <button onClick={onClose} disabled={isSubmitting} className="text-slate-400 hover:text-slate-600 p-2">
+              <button onClick={onClose} disabled={isSubmitting} className="text-muted-foreground hover:text-muted-foreground p-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -99,29 +99,29 @@ export function MassOrderModal({ isOpen, onClose, service, initialQuantity, init
             {/* List */}
             <div className="p-6 overflow-y-auto space-y-4 flex-1">
                {items.map((item, index) => (
-                 <div key={item.id} className="group relative bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 transition-all focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10">
+                 <div key={item.id} className="group relative bg-content2 border border-border/50 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 transition-all focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10">
                     <div className="flex-1 space-y-1">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Ссылка {index + 1}</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ссылка {index + 1}</label>
                       <div className="relative">
-                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <input 
                           type="url"
                           value={item.link}
                           onChange={e => updateItem(item.id, 'link', e.target.value)}
                           placeholder="https://..."
-                          className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none transition-all placeholder:text-slate-300"
+                          className="w-full h-10 pl-9 pr-4 bg-content1 border border-border rounded-xl text-sm font-medium outline-none transition-all placeholder:text-slate-300"
                         />
                       </div>
                     </div>
                     <div className="w-full sm:w-32 space-y-1 shrink-0">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Кол-во</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Кол-во</label>
                       <input 
                         type="number"
                         min={service.minQty}
                         max={service.maxQty}
                         value={item.quantity}
                         onChange={e => updateItem(item.id, 'quantity', parseInt(e.target.value) || service.minQty)}
-                        className="w-full h-10 px-4 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none text-center"
+                        className="w-full h-10 px-4 bg-content1 border border-border rounded-xl text-sm font-medium outline-none text-center"
                       />
                     </div>
                     {items.length > 1 && (
@@ -137,28 +137,28 @@ export function MassOrderModal({ isOpen, onClose, service, initialQuantity, init
 
                <button 
                  onClick={addItem}
-                 className="w-full h-12 rounded-2xl border-2 border-dashed border-slate-200 text-slate-500 font-bold hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
+                 className="w-full h-12 rounded-2xl border-2 border-dashed border-border text-muted-foreground font-bold hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
                >
                  <Plus className="w-4 h-4" /> Добавить ссылку
                </button>
 
-               <div className="pt-4 mt-4 border-t border-slate-100 space-y-2">
-                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Email (для квитанции)</label>
+               <div className="pt-4 mt-4 border-t border-border/50 space-y-2">
+                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email (для квитанции)</label>
                  <input 
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none focus:border-primary/50 transition-all"
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-content1 text-sm font-medium outline-none focus:border-primary/50 transition-all"
                  />
                </div>
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0">
+            <div className="p-6 border-t border-border/50 bg-content2 shrink-0">
                <div className="flex items-center justify-between mb-4">
-                 <div className="text-sm font-medium text-slate-500">Итого {items.length} пакетов</div>
-                 <div className="text-2xl font-extrabold text-slate-900">{totalCharge.toFixed(2)} ₽</div>
+                 <div className="text-sm font-medium text-muted-foreground">Итого {items.length} пакетов</div>
+                 <div className="text-2xl font-extrabold text-foreground">{totalCharge.toFixed(2)} ₽</div>
                </div>
                
                <button 

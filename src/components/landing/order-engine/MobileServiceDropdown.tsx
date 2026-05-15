@@ -90,7 +90,7 @@ export const MobileServiceDropdown = memo(function MobileServiceDropdown({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`fixed inset-x-0 bottom-0 z-[101] bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 outline-none overscroll-contain flex flex-col`}
+        className={`fixed inset-x-0 bottom-0 z-[101] bg-content1 rounded-t-3xl shadow-2xl transition-transform duration-300 outline-none overscroll-contain flex flex-col`}
         style={{ 
           height: '85vh',
           transform: `translateY(${isOpen ? currentY : 100}%)`, 
@@ -98,11 +98,11 @@ export const MobileServiceDropdown = memo(function MobileServiceDropdown({
         }}
       >
         {/* Header with swipe indicator */}
-        <div className="flex-shrink-0 flex flex-col items-center p-4 border-b border-slate-100">
-          <div className="w-12 h-1.5 bg-slate-200 rounded-full mb-4" />
+        <div className="flex-shrink-0 flex flex-col items-center p-4 border-b border-border/50">
+          <div className="w-12 h-1.5 bg-default-200 rounded-full mb-4" />
           <div className="w-full flex justify-between items-center">
             <h3 className="font-bold text-lg">Выберите тариф</h3>
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-full bg-slate-100 min-h-12 min-w-12 flex items-center justify-center">
+            <button onClick={onClose} className="p-2 text-muted-foreground hover:text-muted-foreground rounded-full bg-default-100 min-h-12 min-w-12 flex items-center justify-center">
               <X size={20} />
             </button>
           </div>

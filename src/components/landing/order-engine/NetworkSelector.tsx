@@ -62,7 +62,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
   }, [catalog, topSlugs, networkId]);
 
   return (
-    <div className="hidden md:flex bg-slate-50 border-b border-slate-100 p-4 shrink-0 flex-col gap-4">
+    <div className="hidden md:flex bg-content2 border-b border-border/50 p-4 shrink-0 flex-col gap-4">
       {/* Top Platforms Row */}
       <div className="flex flex-wrap gap-2 py-2 items-center justify-center">
         {topNetworks.map(net => {
@@ -75,7 +75,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
               className={`group relative flex flex-col items-center justify-center gap-1 font-bold text-[11px] origin-center shrink-0 transition-all duration-300 ${
                 isActive 
                   ? 'bg-primary text-primary-foreground shadow-[0_8px_24px_-6px] shadow-primary/50 rounded-2xl h-16 md:h-[72px] px-4 md:px-5 scale-[1.02]'
-                  : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50 hover:shadow-md hover:text-slate-600 rounded-2xl w-16 h-16 md:w-[72px] md:h-[72px] shadow-sm'
+                  : 'bg-content1 border border-border/50 text-muted-foreground hover:bg-content2 hover:shadow-md hover:text-foreground rounded-2xl w-16 h-16 md:w-[72px] md:h-[72px] shadow-sm'
               }`}
             >
               <SocialIcon 
@@ -88,7 +88,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
                 }`} 
               />
               <span className={`z-10 tracking-tight whitespace-nowrap transition-colors duration-200 ${
-                isActive ? 'text-primary-foreground font-bold text-xs' : 'text-slate-400 group-hover:text-slate-600'
+                isActive ? 'text-primary-foreground font-bold text-xs' : 'text-muted-foreground group-hover:text-foreground'
               }`}>
                 {isActive ? net.name : net.slug.length <= 3 ? net.slug.toUpperCase() : net.slug.charAt(0).toUpperCase() + net.slug.slice(1, 4)}
               </span>
@@ -104,7 +104,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
             className={`flex items-center justify-center gap-2 h-12 md:h-14 rounded-full font-bold text-sm transition-all duration-300 shrink-0 ${
               showAllNetworks 
                 ? 'bg-primary/10 text-primary shadow-inner px-5' 
-                : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:shadow-md hover:text-slate-800 w-12 md:w-14 shadow-sm'
+                : 'bg-content1 border border-border/50 text-muted-foreground hover:bg-content2 hover:shadow-md hover:text-foreground w-12 md:w-14 shadow-sm'
             }`}
           >
             <GripHorizontal className={`w-6 h-6 transition-transform duration-300 ${showAllNetworks ? 'rotate-180' : ''}`} />
@@ -134,7 +134,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
                     className={`group flex flex-col items-center justify-center gap-2 py-3 rounded-2xl transition-all duration-300 ${
                       isActive 
                         ? 'bg-primary/10 text-primary shadow-inner ring-1 ring-primary/30 scale-105'
-                        : 'bg-white border border-slate-200 hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5'
+                        : 'bg-content1 border border-border/50 hover:bg-content2 hover:shadow-md hover:-translate-y-0.5'
                     }`}
                   >
                     <SocialIcon 
@@ -145,7 +145,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
                       }`} 
                     />
                     <span className={`text-[10px] font-bold tracking-tight px-1 text-center truncate w-full ${
-                      isActive ? 'text-primary' : 'text-slate-500 group-hover:text-slate-700'
+                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                     }`}>
                       {net.name}
                     </span>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link2, Edit3, ChevronRight, Loader2, CheckSquare, Square } from "lucide-react";
+import { Link2, Edit3, ChevronRight, Loader2, CheckSquare, Square, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +17,7 @@ export function StickyCheckoutBar({
   setAgreedToTerms,
   isSubmitting,
   handleCheckout,
+  onClearSelection,
 }: {
   selectedService: any;
   url: string;
@@ -28,6 +29,7 @@ export function StickyCheckoutBar({
   setAgreedToTerms: (v: boolean) => void;
   isSubmitting: boolean;
   handleCheckout: () => void;
+  onClearSelection: () => void;
 }) {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -68,12 +70,19 @@ export function StickyCheckoutBar({
       transition={{ type: 'spring', damping: 30, stiffness: 400 }}
       className="fixed bottom-6 left-1/2 w-full max-w-5xl z-[200] hidden sm:block px-4"
     >
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] p-3 pr-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] p-3 pr-4 relative">
+        <button
+          onClick={onClearSelection}
+          className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-full flex items-center justify-center border border-slate-600 shadow-lg transition-all z-10"
+          title="Сбросить выбор"
+        >
+          <X className="w-4 h-4" />
+        </button>
         <div className="flex items-center justify-between gap-6">
           
           {/* Left: Selected service name */}
           <div className="flex-1 min-w-0 max-w-[320px] pl-6 py-2">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Выбрано</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Выбрано</p>
             <p className="text-sm font-bold text-white truncate leading-tight">{selectedService.name}</p>
             <div className="flex items-center gap-2 mt-2 opacity-80 hover:opacity-100 transition-opacity">
               <div className="w-5 h-5 rounded-md bg-slate-800 flex items-center justify-center shrink-0">
@@ -84,7 +93,7 @@ export function StickyCheckoutBar({
               </p>
               <button 
                 onClick={() => setShowLinkModal(true)}
-                className="ml-1 p-1 hover:bg-slate-800 rounded-md transition-colors text-slate-400 hover:text-white group"
+                className="ml-1 p-1 hover:bg-slate-800 rounded-md transition-colors text-muted-foreground hover:text-white group"
                 title="Изменить ссылку"
               >
                 <Edit3 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
@@ -109,12 +118,12 @@ export function StickyCheckoutBar({
                   }} 
                   className="w-28 h-12 px-4 rounded-xl border border-slate-700 bg-slate-800 text-lg font-black tabular-nums text-white text-center focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
                 />
-                <span className="absolute -top-2 left-3 text-[9px] font-bold text-slate-400 bg-slate-900 px-1.5 rounded-sm uppercase">Кол-во</span>
+                <span className="absolute -top-2 left-3 text-[9px] font-bold text-muted-foreground bg-slate-900 px-1.5 rounded-sm uppercase">Кол-во</span>
               </div>
               
-              <span className="text-slate-600 font-bold text-lg">×</span>
+              <span className="text-muted-foreground font-bold text-lg">×</span>
               
-              <span className="text-sm font-bold text-slate-400 tabular-nums whitespace-nowrap">
+              <span className="text-sm font-bold text-muted-foreground tabular-nums whitespace-nowrap">
                 {pricing && quantity > 0 ? (
                   ((pricing.totalCents / 100) / quantity) < 0.1 
                     ? ((pricing.totalCents / 100) / quantity).toFixed(4)
@@ -126,7 +135,7 @@ export function StickyCheckoutBar({
                 )} ₽
               </span>
               
-              <span className="text-slate-600 font-bold text-lg">=</span>
+              <span className="text-muted-foreground font-bold text-lg">=</span>
               
               <div className="bg-slate-800 px-5 h-12 rounded-xl border border-slate-700 flex items-center justify-center min-w-[120px] shadow-inner">
                 <p className="text-xl font-black text-white tabular-nums tracking-tight">
@@ -144,10 +153,10 @@ export function StickyCheckoutBar({
               >
                 {agreedToTerms 
                   ? <CheckSquare className="w-5 h-5 text-primary/70" /> 
-                  : <Square className="w-5 h-5 text-slate-500 group-hover:text-slate-400 transition-colors" />
+                  : <Square className="w-5 h-5 text-muted-foreground group-hover:text-muted-foreground transition-colors" />
                 }
               </button>
-              <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+              <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">
                 Я принимаю условия <Link href="/p/offer" className="underline hover:text-primary/70 transition-colors">Оферты</Link> и <Link href="/p/privacy" className="underline hover:text-primary/70 transition-colors">Политики</Link>
               </span>
             </label>
@@ -168,7 +177,7 @@ export function StickyCheckoutBar({
                 )}
               </Button>
               <div className="flex items-center gap-1.5 mt-1 opacity-70">
-                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Оплата:</span>
+                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Оплата:</span>
                  <span className="text-[9px] font-medium text-slate-300 uppercase tracking-wider">РФ / СБП / Крипта</span>
               </div>
             </div>

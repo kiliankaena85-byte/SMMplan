@@ -34,7 +34,7 @@ export function OrderSummaryBar({ total, onSubmit, isValid, isLoading }: OrderSu
   
   return (
     <div 
-      className="fixed left-0 right-0 bg-white border-t border-slate-100 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-[90] md:hidden transition-all duration-200 ease-out"
+      className="fixed left-0 right-0 bg-content1 border-t border-border/50 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-[90] md:hidden transition-all duration-200 ease-out"
       style={{ 
         bottom: bottomOffset,
         paddingBottom: `max(1rem, env(safe-area-inset-bottom))` 
@@ -42,8 +42,8 @@ export function OrderSummaryBar({ total, onSubmit, isValid, isLoading }: OrderSu
     >
       <div className="flex items-center justify-between max-w-md mx-auto">
         <div>
-          <div className="text-xs text-slate-500 font-medium mb-0.5">Итого к оплате</div>
-          <div className="text-xl font-extrabold tabular-nums text-slate-900 leading-none">{total}₽</div>
+          <div className="text-xs text-muted-foreground font-medium mb-0.5">Итого к оплате</div>
+          <div className="text-xl font-extrabold tabular-nums text-foreground leading-none">{total}₽</div>
         </div>
         <button 
           onClick={() => {

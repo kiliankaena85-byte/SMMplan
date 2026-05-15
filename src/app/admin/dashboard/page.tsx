@@ -8,8 +8,9 @@ import { db } from '@/lib/db';
 import { OrdersChart } from './orders-chart';
 import { Check, Clock, ChevronDown, Bell, Search, Settings, Home } from 'lucide-react';
 import Link from 'next/link';
-import { Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
+import { Button } from '@/components/admin/hero-ui';
 import { AdminPageHeader } from '@/components/admin/page-header';
+import { RecentAuditTable } from './recent-audit-table';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,34 +149,7 @@ export default async function AdminDashboardPage() {
              </Link>
            </div>
 
-           <div className="w-full">
-             <Table aria-label="Журнал безопасности (Audit Log)">
-               <TableHeader>
-                 <TableColumn>Log ID</TableColumn>
-                 <TableColumn>Действие</TableColumn>
-                 <TableColumn>Сотрудник</TableColumn>
-                 <TableColumn>Дата и время</TableColumn>
-               </TableHeader>
-               <TableBody renderEmptyState={() => "Записей в журнале пока нет"}>
-                 {recentAudit.map((log) => (
-                   <TableRow key={log.id}>
-                     <TableCell>
-                       <span className="text-muted-foreground font-mono text-[11px]">LOG_{log.id.slice(0,6).toUpperCase()}</span>
-                     </TableCell>
-                     <TableCell>
-                       <span className="font-bold text-foreground text-[13px]">{log.action}</span>
-                     </TableCell>
-                     <TableCell>
-                       <span className="font-medium text-foreground text-[13px]">{log.adminEmail.split('@')[0]}</span>
-                     </TableCell>
-                     <TableCell>
-                       <span className="text-xs font-medium text-muted-foreground">{log.createdAt.toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                     </TableCell>
-                   </TableRow>
-                 ))}
-               </TableBody>
-             </Table>
-           </div>
+           <RecentAuditTable logs={recentAudit} />
          </div>
 
         </div> {/* END ЛЕВАЯ КОЛОНКА */}

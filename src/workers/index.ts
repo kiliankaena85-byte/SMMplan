@@ -2,11 +2,12 @@ import { Worker } from 'bullmq';
 import { getRedisConnection } from '../lib/queue-manager';
 import { db } from '../lib/db';
 import { logger } from '../lib/logger';
-import { ensureSyncCron, ensureCleanupCron, dlqQueue, cleanupQueue, telegramQueue } from './queues';
+import { ensureSyncCron, ensureCleanupCron, ensureETACron, dlqQueue, cleanupQueue, telegramQueue, etaQueue } from './queues';
 import { sendAdminAlert, sendAdminAlertSync } from '../lib/notifications';
 import orderProcessor from './processors/order.processor';
 import syncProcessor from './processors/sync.processor';
 import { runCleanup } from './processors/cleanup.processor';
+import { runETARecalculation } from './processors/eta.processor';
 import { orderService } from '../services/core/order.service';
 
 const log = logger.child({ component: 'WorkerManager' });
@@ -34,6 +35,7 @@ const telegramWorker = new Worker('telegram-notifications', async (job) => {
     duration: 1000, // per 1 second
   }
 });
+const etaWorker = new Worker('eta-recalc', async () => { await runETARecalculation(); }, { connection });
 
 // ── P2.1: DLQ — Dead Letter Queue handler ────────────────────────────────────
 const MAX_ATTEMPTS = 3; // Must match createQueue defaults
@@ -110,6 +112,7 @@ const heartbeatInterval = setInterval(updateHeartbeat, 60_000);
 // ── Setup cron jobs ───────────────────────────────────────────────────────────
 ensureSyncCron().catch(e => log.error('Failed to setup Sync Cron', { error: (e as Error).message }));
 ensureCleanupCron().catch(e => log.error('Failed to setup Cleanup Cron', { error: (e as Error).message }));
+ensureETACron().catch(e => log.error('Failed to setup ETA Cron', { error: (e as Error).message }));
 
 log.info('All workers started', { queues: ['ordersQueue', 'syncQueue', 'cleanup'] });
 
@@ -123,6 +126,7 @@ const shutdown = async () => {
     syncWorker.close(),
     cleanupWorker.close(),
     telegramWorker.close(),
+    etaWorker.close(),
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();

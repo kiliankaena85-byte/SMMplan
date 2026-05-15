@@ -16,15 +16,15 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
 
   return (
     <div className="w-full max-w-4xl mx-auto relative z-20 mb-10 mt-4">
-      <div className={`relative flex items-center w-full bg-white rounded-full p-2 sm:p-3 border-2 transition-all shadow-[0_8px_30px_-10px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.08)] h-20 md:h-24 ${
+      <div className={`relative flex items-center w-full bg-content1 rounded-full p-2 sm:p-3 border-2 transition-all shadow-[0_8px_30px_-10px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.08)] h-20 md:h-24 ${
         linkHasError 
           ? 'border-red-400 focus-within:border-red-500 focus-within:shadow-[0_12px_50px_-12px_rgba(248,113,113,0.3)]'
-          : 'border-slate-100 focus-within:border-primary/40 focus-within:shadow-[0_12px_50px_-12px] focus-within:shadow-primary/20'
+          : 'border-border/50 focus-within:border-primary/40 focus-within:shadow-[0_12px_50px_-12px] focus-within:shadow-primary/20'
       }`}>
         <div className="pl-6 sm:pl-8 pr-3 flex-shrink-0">
              {isLoading 
                ? <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary animate-spin" />
-               : <Link2 className="w-6 h-6 sm:w-8 sm:h-8 text-slate-400 group-focus-within:text-primary transition-colors" />
+               : <Link2 className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground group-focus-within:text-primary transition-colors" />
              }
         </div>
         <input
@@ -46,7 +46,7 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
             }
           }}
           placeholder="Вставьте ссылку на профиль или пост..."
-          className="flex-1 bg-transparent border-none outline-none text-lg sm:text-2xl font-semibold text-slate-800 placeholder:text-slate-400 px-2 sm:px-4 h-full w-full"
+          className="flex-1 bg-transparent border-none outline-none text-lg sm:text-2xl font-semibold text-foreground placeholder:text-muted-foreground px-2 sm:px-4 h-full w-full"
         />
         <Button 
           onClick={handleCheckout}

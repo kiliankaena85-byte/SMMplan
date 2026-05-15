@@ -17,7 +17,7 @@ export function Footer() {
               </div>
               <span className="text-xl font-bold text-white tracking-tight">Smmplan</span>
             </Link>
-            <p className="text-sm text-slate-400 leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Инновационная платформа автоматизации SMM-продвижения. Надежная накрутка подписчиков, просмотров и лайков с гарантией результата.
             </p>
           </div>
@@ -26,11 +26,11 @@ export function Footer() {
           <div className="lg:col-span-3">
             <h3 className="font-semibold text-white mb-5 text-sm tracking-wide uppercase opacity-90">Документы</h3>
             <ul className="space-y-3">
-              <li><Link href="/legal/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Правила сервиса</Link></li>
-              <li><Link href="/legal/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Договор оферты</Link></li>
-              <li><Link href="/legal/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Политика конфиденциальности</Link></li>
-              <li><Link href="/legal/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Политика файлов cookie</Link></li>
-              <li><Link href="/legal/refund" className="text-sm text-slate-400 hover:text-white transition-colors">Возврат средств</Link></li>
+              <li><Link href="/legal/terms" className="text-sm text-muted-foreground hover:text-white transition-colors">Правила сервиса</Link></li>
+              <li><Link href="/legal/terms" className="text-sm text-muted-foreground hover:text-white transition-colors">Договор оферты</Link></li>
+              <li><Link href="/legal/terms" className="text-sm text-muted-foreground hover:text-white transition-colors">Политика конфиденциальности</Link></li>
+              <li><Link href="/legal/terms" className="text-sm text-muted-foreground hover:text-white transition-colors">Политика файлов cookie</Link></li>
+              <li><Link href="/legal/refund" className="text-sm text-muted-foreground hover:text-white transition-colors">Возврат средств</Link></li>
             </ul>
           </div>
 
@@ -38,8 +38,8 @@ export function Footer() {
           <div className="lg:col-span-2">
             <h3 className="font-semibold text-white mb-5 text-sm tracking-wide uppercase opacity-90">Информация</h3>
             <ul className="space-y-3">
-              <li><Link href="/support" className="text-sm text-slate-400 hover:text-white transition-colors">Контакты</Link></li>
-              <li><Link href="/#faq" className="text-sm text-slate-400 hover:text-white transition-colors">Помощь (FAQ)</Link></li>
+              <li><Link href="/support" className="text-sm text-muted-foreground hover:text-white transition-colors">Контакты</Link></li>
+              <li><Link href="/#faq" className="text-sm text-muted-foreground hover:text-white transition-colors">Помощь (FAQ)</Link></li>
             </ul>
           </div>
 
@@ -55,13 +55,13 @@ export function Footer() {
               </a>
               <a href="mailto:support@smmplan.ru" className="flex items-center gap-3 text-sm text-slate-300 hover:text-white transition-colors group">
                 <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center group-hover:bg-slate-700 transition-colors">
-                  <svg className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  <svg className="w-4 h-4 text-muted-foreground group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 </div>
                 support@smmplan.ru
               </a>
-              <div className="flex items-center gap-3 text-sm text-slate-400">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-slate-400" />
+                  <Clock className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div>
                   <span className="block text-slate-300">Без выходных</span>
@@ -74,13 +74,13 @@ export function Footer() {
         
         {/* Разделитель и Реквизиты/Оплата */}
         <div className="pt-8 border-t border-slate-800/50 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="text-xs text-slate-400 space-y-1.5">
+          <div className="text-xs text-muted-foreground space-y-1.5">
             <p><span className="text-slate-300 font-medium">Реквизиты:</span> Индивидуальный предприниматель (Напишите ваше ФИО)</p>
             <p>ИНН: 000000000000 | ОГРНИП: 000000000000000</p>
           </div>
           
           <div className="flex flex-col items-start lg:items-end gap-2">
-            <span className="text-xs text-slate-400">Принимаем к оплате:</span>
+            <span className="text-xs text-muted-foreground">Принимаем к оплате:</span>
             <div className="flex items-center gap-2">
               {/* Иконки методов оплаты (заглушки для дизайна) */}
               <div className="h-8 px-3 bg-slate-800/80 rounded-md flex items-center justify-center text-xs font-bold text-slate-300 border border-slate-700/50">Банковские карты</div>
@@ -92,10 +92,10 @@ export function Footer() {
 
         {/* Экстремистская сноска и копирайт */}
         <div className="mt-8 pt-6 border-t border-slate-800/30">
-          <p className="text-xs text-slate-400/90 leading-relaxed mb-4 max-w-4xl">
+          <p className="text-xs text-muted-foreground/90 leading-relaxed mb-4 max-w-4xl">
             * Компания Meta Platforms Inc., владеющая социальными сетями Instagram и Facebook, признана экстремистской организацией, ее деятельность запрещена на территории России.
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Smmplan. Все права защищены.
           </p>
         </div>

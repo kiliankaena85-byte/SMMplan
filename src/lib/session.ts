@@ -35,7 +35,14 @@ export async function createSession(userId: string) {
 export async function verifySession() {
   const sessionToken = (await cookies()).get('session_token')?.value;
 
-  if (!sessionToken) return null;
+  if (!sessionToken) {
+    if (process.env.NODE_ENV === 'development') {
+      // ВРЕМЕННЫЙ ХАК: Авто-вход для локальной разработки
+      const devOwner = await db.user.findFirst({ where: { role: 'OWNER' } });
+      if (devOwner) return { userId: devOwner.id };
+    }
+    return null;
+  }
 
   try {
     const { payload } = await jwtVerify(sessionToken, encodedKey, {
@@ -46,6 +53,11 @@ export async function verifySession() {
     return { userId: payload.userId as string };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
+    if (process.env.NODE_ENV === 'development') {
+      // ВРЕМЕННЫЙ ХАК: Авто-вход для локальной разработки
+      const devOwner = await db.user.findFirst({ where: { role: 'OWNER' } });
+      if (devOwner) return { userId: devOwner.id };
+    }
     return null;
   }
 }

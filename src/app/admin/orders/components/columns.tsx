@@ -3,6 +3,12 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { useTransition } from 'react';
+import { toast } from 'sonner';
+import { cancelOrderAction } from '@/actions/admin/orders';
+import { X, Edit2, Zap, Timer, Snail, Turtle } from 'lucide-react';
+import { formatEta } from '@/utils/format-eta';
+
 
 export type OrderColumn = {
   id: string;
@@ -21,14 +27,43 @@ export type OrderColumn = {
   currentRun: number;
   error: string | null;
   user: { email: string };
+  providerName: string | null;
   service: { 
     name: string;
+    etaP50Seconds: number | null;
+    etaP90Seconds: number | null;
+    etaSampleCount: number | null;
+    etaSpeedClass: string | null;
+    etaUpdatedAt: string | null;
     category: {
       name: string;
       network: { name: string } | null;
     };
   };
 };
+
+// ── Speed Class Visual Config ──
+
+const SPEED_CLASS_META: Record<string, { label: string; color: string; icon: React.ReactNode; window: string }> = {
+  FAST:       { label: 'Быстрый',         color: 'text-emerald-600', icon: <Zap className="w-3 h-3" />,    window: '2ч' },
+  MEDIUM:     { label: 'Средний',          color: 'text-sky-600',     icon: <Timer className="w-3 h-3" />,  window: '24ч' },
+  SLOW:       { label: 'Медленный',        color: 'text-amber-600',   icon: <Turtle className="w-3 h-3" />, window: '72ч' },
+  ULTRA_SLOW: { label: 'Очень медленный',  color: 'text-rose-600',    icon: <Snail className="w-3 h-3" />,  window: '7д' },
+};
+
+/** Format "time ago" from ISO date string */
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return 'только что';
+  if (mins < 60) return `${mins} мин назад`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}ч назад`;
+  const days = Math.floor(hours / 24);
+  return `${days}д назад`;
+}
+
+// ── Status Config ──
 
 const STATUS_STYLES: Record<string, "default" | "primary" | "secondary" | "success" | "warning" | "danger"> = {
   AWAITING_PAYMENT: 'warning',
@@ -50,6 +85,89 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELED: 'Отменён',
   ERROR: 'Ошибка',
 };
+
+// ── Sub-Components ──
+
+function RowActions({ order }: { order: OrderColumn }) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleCancel() {
+    if (!confirm(`Отменить заказ #${order.numericId}? При наличии остатка клиент получит возврат.`)) return;
+    const fd = new FormData();
+    fd.append('orderId', order.id);
+
+    startTransition(async () => {
+      try {
+        await cancelOrderAction(fd);
+        toast.success(`🚫 Заказ #${order.numericId} отменён`);
+      } catch (e) {
+        toast.error((e as Error).message ?? 'Ошибка');
+      }
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Link
+        href={`?edit_order_id=${order.id}`}
+        className="inline-flex items-center justify-center p-1.5 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
+        title="Редактировать заказ"
+      >
+        <Edit2 className="w-3.5 h-3.5" />
+      </Link>
+      <button
+        onClick={handleCancel}
+        disabled={isPending || ['COMPLETED', 'CANCELED'].includes(order.status)}
+        className="inline-flex items-center justify-center p-1.5 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 transition-colors disabled:opacity-40"
+        title="Отменить заказ"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function EtaTooltipContent({ service }: { service: OrderColumn['service'] }) {
+  const meta = SPEED_CLASS_META[service.etaSpeedClass ?? ''] ?? SPEED_CLASS_META.MEDIUM;
+  
+  return (
+    <div className="p-2.5 space-y-2 min-w-[180px]">
+      {/* Speed Class Header */}
+      <div className="flex items-center gap-1.5">
+        <span className={meta.color}>{meta.icon}</span>
+        <span className={`text-xs font-semibold ${meta.color}`}>{meta.label}</span>
+        <span className="text-[10px] text-muted-foreground ml-auto">окно {meta.window}</span>
+      </div>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+        <span className="text-muted-foreground">Медиана (P50)</span>
+        <span className="font-semibold text-foreground tabular-nums text-right">
+          {formatEta(service.etaP50Seconds!)}
+        </span>
+        
+        <span className="text-muted-foreground">Максимум (P90)</span>
+        <span className="font-semibold text-foreground tabular-nums text-right">
+          {service.etaP90Seconds ? formatEta(service.etaP90Seconds) : '—'}
+        </span>
+        
+        <span className="text-muted-foreground">Выборка</span>
+        <span className="font-medium text-foreground tabular-nums text-right">
+          {service.etaSampleCount} заказов
+        </span>
+      </div>
+
+      {/* Last updated */}
+      {service.etaUpdatedAt && (
+        <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/50">
+          Обновлено: {timeAgo(service.etaUpdatedAt)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Column Definitions ──
 
 export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] => [
   {
@@ -99,7 +217,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
       return (
         <Link
           href={`/admin/clients?q=${encodeURIComponent(email)}`}
-          className="text-sky-600 hover:text-sky-800 hover:underline text-xs whitespace-nowrap"
+          className="text-sky-600 hover:text-sky-800 hover:underline text-xs"
         >
           {email}
         </Link>
@@ -111,58 +229,42 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     header: 'Информация',
     cell: ({ row }) => {
       const order = row.original;
-      return (
-        <div className="flex flex-col text-xs py-1.5 leading-snug">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-bold text-foreground truncate max-w-[200px]" title={order.service.name}>
-              {order.service.name}
-            </span>
-            <span className="px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold tabular-nums text-[10px]">
-              x{order.quantity.toLocaleString('ru-RU')}
-            </span>
-          </div>
-          
-          <div className="text-[11px] text-muted-foreground mb-1.5 font-medium flex items-center gap-1.5 flex-wrap">
-            <span>{order.service.category.network?.name || 'Без сети'}</span>
-            <span className="text-slate-300">•</span>
-            <span className="truncate max-w-[150px]">{order.service.category.name}</span>
-          </div>
+      const dateStr = new Date(order.createdAt).toLocaleString('ru-RU', { 
+        year: 'numeric', month: '2-digit', day: '2-digit', 
+        hour: '2-digit', minute: '2-digit', second: '2-digit' 
+      }).replace(',', '');
 
-          <div className="flex gap-1 items-center bg-muted/50 border border-border/50 rounded p-1.5 max-w-[250px] overflow-hidden group">
-            <svg className="w-3.5 h-3.5 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-            <a
-              href={order.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky-600 hover:text-sky-800 hover:underline truncate font-mono text-[10px] transition-colors"
-              title={order.link}
-            >
+      return (
+        <div className="flex flex-col text-[13px] leading-relaxed text-foreground space-y-0.5 py-1">
+          <div><span className="text-muted-foreground mr-1">Категория:</span>{order.service.category.network?.name || 'Без сети'}</div>
+          <div><span className="text-muted-foreground mr-1">Активность:</span>{order.service.category.name}</div>
+          <div><span className="text-muted-foreground mr-1">Сервис:</span>{order.service.name}</div>
+          <div className="flex flex-wrap items-baseline">
+            <span className="text-muted-foreground mr-1">Ссылка:</span>
+            <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 hover:underline break-all transition-colors">
               {order.link}
             </a>
           </div>
+          <div><span className="text-muted-foreground mr-1">Кол-во:</span>{order.quantity.toLocaleString('ru-RU')}</div>
+          <div><span className="text-muted-foreground mr-1">Дата создания:</span>{dateStr}</div>
           
-          <details className="mt-2 group">
-            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-[10px] uppercase tracking-wider font-bold select-none list-none inline-flex items-center gap-1 transition-colors">
-              <span className="group-open:hidden">▶ Tech Details</span>
-              <span className="hidden group-open:block">▼ Hide Details</span>
+          <details className="mt-1.5 group">
+            <summary className="text-sky-600 hover:text-sky-800 cursor-pointer text-xs select-none list-none inline-flex items-center transition-colors font-medium">
+              <span className="group-open:hidden">Показать детали</span>
+              <span className="hidden group-open:inline">Скрыть детали</span>
             </summary>
-            <div className="mt-2 bg-muted/50 p-2.5 border border-border/50 rounded-md space-y-1.5 shadow-inner">
+            <div className="mt-1.5 pt-1.5 border-t border-border/50 text-xs text-foreground space-y-1">
+              <div><span className="text-muted-foreground mr-1">Провайдер:</span>{order.providerName || '—'}</div>
               {canSeeRates && (
                 <>
-                  <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-muted-foreground font-medium">Provider ID:</span>
-                    <span className="text-foreground font-mono font-semibold">{order.externalId || '—'}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-muted-foreground font-medium">Себестоимость:</span>
-                    <span className="text-foreground font-mono font-semibold">{(order.providerCost / 100).toFixed(2)} ₽</span>
-                  </div>
+                  <div><span className="text-muted-foreground mr-1">ID заказа у провайдера:</span>{order.externalId ? `#${order.externalId}` : '—'}</div>
+                  <div><span className="text-muted-foreground mr-1">Себестоимость:</span>{(order.providerCost / 100).toFixed(2)} ₽</div>
                 </>
               )}
               {order.error && (
-                <div className="flex justify-between items-center text-[11px] pt-1 border-t border-border mt-1 pb-0.5">
-                  <span className="text-destructive font-medium">Ошибка API:</span>
-                  <span className="text-destructive font-medium text-right max-w-[150px] truncate" title={order.error}>{order.error}</span>
+                <div className="flex flex-col mt-1">
+                  <span className="text-muted-foreground">Комментарий провайдера:</span>
+                  <span className="text-destructive break-words font-mono mt-0.5">{order.error}</span>
                 </div>
               )}
             </div>
@@ -211,13 +313,52 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     },
   },
   {
-    accessorKey: 'createdAt',
-    header: 'Создан',
+    id: 'eta',
+    header: 'ETA',
     cell: ({ row }) => {
-      const date = new Date(row.original.createdAt);
+      const s = row.original.service;
+      
+      // No data state
+      if (!s.etaP50Seconds || !s.etaSampleCount || s.etaSampleCount < 2) {
+        return (
+          <span
+            className="text-xs text-muted-foreground whitespace-nowrap cursor-help"
+            title="Недостаточно данных для расчёта ETA"
+          >
+            —
+          </span>
+        );
+      }
+
+      const meta = SPEED_CLASS_META[s.etaSpeedClass ?? ''] ?? SPEED_CLASS_META.MEDIUM;
+
       return (
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          {date.toLocaleDateString('ru-RU')} {date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+        <div className="relative group/eta">
+          {/* Main ETA display */}
+          <div className="flex flex-col text-xs whitespace-nowrap cursor-help">
+            <div className="flex items-center gap-1 font-medium">
+              <span className={`transition-colors ${meta.color}`}>
+                {meta.icon}
+              </span>
+              <span className="text-foreground group-hover/eta:text-primary transition-colors">
+                ≈ {formatEta(s.etaP50Seconds)}
+              </span>
+            </div>
+            {s.etaP90Seconds && (
+              <span className="text-muted-foreground text-[10px]">
+                до {formatEta(s.etaP90Seconds)}
+              </span>
+            )}
+          </div>
+
+          {/* Hover tooltip */}
+          <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 z-50 invisible opacity-0 group-hover/eta:visible group-hover/eta:opacity-100 transition-all duration-200 pointer-events-none">
+            <div className="bg-card border border-border rounded-lg shadow-xl p-2.5 min-w-[190px]">
+              <EtaTooltipContent service={s} />
+              {/* Arrow */}
+              <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-card border-r border-b border-border rotate-[-45deg]" />
+            </div>
+          </div>
         </div>
       );
     },
@@ -225,18 +366,6 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   {
     id: 'actions',
     header: 'Действия',
-    cell: ({ row }) => {
-      return (
-        <Link
-          href={`?edit_order_id=${row.original.id}`}
-          className="inline-flex items-center justify-center p-2 text-muted-foreground hover:text-sky-600 hover:bg-sky-50 rounded-md transition-colors"
-          title="Редактировать заказ"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-        </Link>
-      );
-    },
+    cell: ({ row }) => <RowActions order={row.original} />
   },
 ];

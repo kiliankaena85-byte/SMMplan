@@ -15,9 +15,9 @@ export function TrustBar() {
   const marqueeItems = [...stats, ...stats, ...stats];
 
   return (
-    <section aria-label="Статистика платформы" className="w-full py-12 bg-white border-y border-slate-100 overflow-hidden relative">
-      <div className="absolute left-0 top-0 w-32 h-full bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
+    <section aria-label="Статистика платформы" className="w-full py-12 bg-content1 border-y border-border/50 overflow-hidden relative">
+      <div className="absolute left-0 top-0 w-32 h-full bg-gradient-to-r from-content1 to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-content1 to-transparent z-10 pointer-events-none" />
       
       <div className="flex w-full overflow-hidden">
         <motion.div
@@ -32,14 +32,14 @@ export function TrustBar() {
           {marqueeItems.map((s, idx) => (
             <div
               key={`${s.label}-${idx}`}
-              className="flex items-center gap-4 bg-slate-50 border border-slate-100/60 rounded-full px-6 py-3 shrink-0"
+              className="flex items-center gap-4 bg-content2 border border-border/50 rounded-full px-6 py-3 shrink-0"
             >
-              <div className={`p-2 rounded-full bg-white shadow-sm border border-slate-100 ${s.color}`}>
+              <div className={`p-2 rounded-full bg-content1 shadow-sm border border-border/50 ${s.color}`}>
                 <s.icon className="w-5 h-5 drop-shadow-sm" />
               </div>
               <div className="flex flex-col">
-                <div className="text-xl font-bold tracking-tight text-slate-800">{s.value}</div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">{s.label}</div>
+                <div className="text-xl font-bold tracking-tight text-foreground">{s.value}</div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</div>
               </div>
             </div>
           ))}

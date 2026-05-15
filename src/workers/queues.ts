@@ -31,6 +31,11 @@ export interface TelegramJobPayload {
   severity: 'INFO' | 'WARNING' | 'CRITICAL';
 }
 
+// ETA recalculation cron payload
+export interface ETAJobPayload {
+  timestamp: number;
+}
+
 // Instantiate queues using NextJS-safe singleton
 export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue');
 const syncQueue = createQueue<SyncJobPayload>('syncQueue');
@@ -46,6 +51,7 @@ export const dlqQueue = createQueue<DLQJobPayload>('dead-letter-queue', {
 export const cleanupQueue = createQueue<CleanupJobPayload>('cleanup');
 
 export const telegramQueue = createQueue<TelegramJobPayload>('telegram-notifications');
+export const etaQueue = createQueue<ETAJobPayload>('eta-recalc');
 
 /**
  * Configure global cron sync job if not exists
@@ -76,6 +82,22 @@ export async function ensureCleanupCron() {
         pattern: '0 3 * * *' // 3:00 AM daily
       },
       jobId: 'cleanup-singleton'
+    }
+  );
+}
+
+/**
+ * ETA: Schedule adaptive percentile window recalculation every 15 minutes
+ */
+export async function ensureETACron() {
+  await etaQueue.add(
+    'eta-recalc-tick',
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '*/15 * * * *' // Every 15 minutes
+      },
+      jobId: 'eta-recalc-singleton'
     }
   );
 }

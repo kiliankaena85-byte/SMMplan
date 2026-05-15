@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { analyzeUrl } from "@/actions/order/analyze-url";
 import { getServicesByCategoryAction, PublicNetwork, PublicCategory, PublicService, getPublicCatalogAction } from "@/actions/order/catalog";
 import { calculatePriceAction } from "@/actions/order/checkout";
@@ -42,14 +42,17 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+  const hasFetchedCatalog = useRef(false);
+
   // 1. Initial Catalog Load (if not provided)
   useEffect(() => {
-    if (catalog.length === 0) {
+    if (catalog.length === 0 && !hasFetchedCatalog.current) {
+      hasFetchedCatalog.current = true;
       getPublicCatalogAction().then(res => {
         if (res.success && res.data) {
           setCatalog(res.data);
           // Set defaults
-          if (!networkId) {
+          if (!networkId && res.data.length > 0) {
             const defaultNet = res.data.find(n => n.slug === 'telegram') || res.data[0];
             if (defaultNet) {
               setNetworkId(defaultNet.id);
@@ -61,7 +64,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
           }
         }
       });
-    } else {
+    } else if (catalog.length > 0) {
       // Set defaults if catalog was provided initially
       if (!networkId) {
         const defaultNet = catalog.find(n => n.slug === 'telegram') || catalog[0];

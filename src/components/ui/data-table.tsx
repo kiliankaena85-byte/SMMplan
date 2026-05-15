@@ -103,7 +103,7 @@ export function DataTable<TData, TValue>({
       <div className="rounded-xl border border-border overflow-hidden bg-card shadow-sm">
         <Table aria-label="Data Table" className="h-full w-full">
           <Table.ScrollContainer>
-            <Table.Content>
+            <Table.Content className="w-full">
               <Table.Header className="bg-muted/30">
                 {table.getFlatHeaders().map((header, index) => (
                   <Table.Column isRowHeader={index === 0} key={header.id} className="py-3 px-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">

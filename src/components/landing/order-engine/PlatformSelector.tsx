@@ -29,7 +29,7 @@ export const PlatformSelector = memo(function PlatformSelector({
         <select
           value={selectedNetworkId || ""}
           onChange={(e) => onSelect(e.target.value)}
-          className="w-full p-4 rounded-2xl bg-white border border-slate-200 text-base min-h-12 outline-none focus:border-primary/40"
+          className="w-full p-4 rounded-2xl bg-content1 border border-border text-base min-h-12 outline-none focus:border-primary/40"
         >
           <option value="" disabled>Выберите платформу</option>
           {catalog.map(network => (
@@ -57,7 +57,7 @@ export const PlatformSelector = memo(function PlatformSelector({
                 flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all duration-300 min-h-12 min-w-12 touch-manipulation
                 ${isSelected 
                   ? `${brand.bg} text-white shadow-lg border-transparent` 
-                  : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50'
+                  : 'bg-content1 border-border hover:border-default-300 text-foreground hover:bg-content2'
                 }
               `}
               style={isSelected ? { backgroundColor: brand.bg, boxShadow: `0 4px 14px 0 ${brand.shadow}` } : undefined}

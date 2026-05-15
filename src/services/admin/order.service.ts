@@ -8,11 +8,12 @@ import type { Order, User, Service, Category, Network } from '@prisma/client';
 
 type AdminOrderRow = Order & {
   user: Pick<User, 'id' | 'email'>;
-  service: Pick<Service, 'id' | 'name' | 'numericId'> & {
+  service: Pick<Service, 'id' | 'name' | 'numericId' | 'etaP50Seconds' | 'etaP90Seconds' | 'etaSampleCount' | 'etaSpeedClass' | 'etaUpdatedAt'> & {
     category: Pick<Category, 'name'> & {
       network: Pick<Network, 'name'> | null;
     };
   };
+  provider: { name: string } | null;
 };
 
 type OrderSearchParams = {
@@ -67,11 +68,17 @@ class AdminOrderService {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, email: true } },
+        provider: { select: { name: true } },
         service: { 
           select: { 
             id: true, 
             name: true, 
             numericId: true,
+            etaP50Seconds: true,
+            etaP90Seconds: true,
+            etaSampleCount: true,
+            etaSpeedClass: true,
+            etaUpdatedAt: true,
             category: { select: { name: true, network: { select: { name: true } } } }
           } 
         },

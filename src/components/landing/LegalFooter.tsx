@@ -48,7 +48,7 @@ export function LegalFooter() {
           <div className="flex gap-2">
             <button
               onClick={acceptCookies}
-              className="bg-white text-slate-900 hover:bg-slate-100 font-bold px-4 py-2 rounded-xl text-sm transition-colors flex-1"
+              className="bg-content1 text-foreground hover:bg-default-100 font-bold px-4 py-2 rounded-xl text-sm transition-colors flex-1"
             >
               Принять
             </button>
