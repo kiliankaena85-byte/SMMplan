@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCategory, updateCategory, deleteCategory } from "@/actions/admin/catalog/categories";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
+import { Table } from '@/components/admin/hero-ui';
 
 export function CategoryManager({ categories, networks }: { categories: any[], networks: any[] }) {
   const router = useRouter();
@@ -125,37 +125,41 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
        {/* List display */}
        <div className="bg-card shadow-sm ring-1 ring-border rounded-xl overflow-hidden w-full">
         <Table aria-label="Менеджер категорий">
-          <TableHeader>
-            <TableColumn>НАЗВАНИЕ</TableColumn>
-            <TableColumn>ПЛАТФОРМА</TableColumn>
-            <TableColumn>СОРТИРОВКА</TableColumn>
-            <TableColumn>УСЛУГ</TableColumn>
-            <TableColumn className="text-right">ДЕЙСТВИЯ</TableColumn>
-          </TableHeader>
-          <TableBody renderEmptyState={() => "Категорий нет"}>
-            {categories.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell>
-                  <span className="font-medium text-foreground text-sm">{c.name}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-muted-foreground text-sm font-mono">{c.network?.slug?.toUpperCase() || '-'}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-muted-foreground text-sm">{c.sort}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-muted-foreground text-sm">{c._count.services}</span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-3 font-medium text-sm">
-                    <button onClick={() => handleEdit(c)} className="text-primary hover:underline">Изменить</button>
-                    <button onClick={() => handleDelete(c.id)} className="text-destructive hover:underline">Удалить</button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+          <Table.ScrollContainer>
+            <Table.Content>
+              <Table.Header>
+                <Table.Column>НАЗВАНИЕ</Table.Column>
+                <Table.Column>ПЛАТФОРМА</Table.Column>
+                <Table.Column>СОРТИРОВКА</Table.Column>
+                <Table.Column>УСЛУГ</Table.Column>
+                <Table.Column className="text-right">ДЕЙСТВИЯ</Table.Column>
+              </Table.Header>
+              <Table.Body>
+                {categories.map((c) => (
+                  <Table.Row key={c.id}>
+                    <Table.Cell>
+                      <span className="font-medium text-foreground text-sm">{c.name}</span>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <span className="text-muted-foreground text-sm font-mono">{c.network?.slug?.toUpperCase() || '-'}</span>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <span className="text-muted-foreground text-sm">{c.sort}</span>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <span className="text-muted-foreground text-sm">{c._count.services}</span>
+                    </Table.Cell>
+                    <Table.Cell className="text-right">
+                      <div className="flex justify-end gap-3 font-medium text-sm">
+                        <button onClick={() => handleEdit(c)} className="text-primary hover:underline">Изменить</button>
+                        <button onClick={() => handleDelete(c.id)} className="text-destructive hover:underline">Удалить</button>
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
         </Table>
       </div>
     </div>

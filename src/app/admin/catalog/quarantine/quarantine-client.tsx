@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { approveQuarantinedService, rejectQuarantinedService, approveAllQuarantined } from '@/actions/admin/providers/sync-action';
 import { toast } from 'sonner';
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
+import { Table } from '@/components/admin/hero-ui';
 
 interface QuarantineItem {
   id: string;
@@ -99,77 +99,81 @@ export function QuarantineClient({ initialItems }: Props) {
       {/* Table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden w-full">
         <Table aria-label="Услуги в карантине">
-          <TableHeader>
-            <TableColumn>УСЛУГА</TableColumn>
-            <TableColumn>ПРИЧИНА</TableColumn>
-            <TableColumn className="text-right">ТЕКУЩАЯ</TableColumn>
-            <TableColumn className="text-right">НОВАЯ</TableColumn>
-            <TableColumn className="text-right">ДЕЙСТВИЕ</TableColumn>
-          </TableHeader>
-          <TableBody renderEmptyState={() => "Карантин пуст"}>
-            {items.map(item => {
-              const emoji = NETWORK_EMOJI[item.networkSlug] ?? '🌐';
-              const priceDiff = item.pendingRate !== null
-                ? ((item.pendingRate - item.currentRate) / item.currentRate * 100).toFixed(1)
-                : '—';
-              const isRise = item.pendingRate !== null && item.pendingRate > item.currentRate;
+          <Table.ScrollContainer>
+            <Table.Content>
+              <Table.Header>
+                <Table.Column>УСЛУГА</Table.Column>
+                <Table.Column>ПРИЧИНА</Table.Column>
+                <Table.Column className="text-right">ТЕКУЩАЯ</Table.Column>
+                <Table.Column className="text-right">НОВАЯ</Table.Column>
+                <Table.Column className="text-right">ДЕЙСТВИЕ</Table.Column>
+              </Table.Header>
+              <Table.Body>
+                {items.map(item => {
+                  const emoji = NETWORK_EMOJI[item.networkSlug] ?? '🌐';
+                  const priceDiff = item.pendingRate !== null
+                    ? ((item.pendingRate - item.currentRate) / item.currentRate * 100).toFixed(1)
+                    : '—';
+                  const isRise = item.pendingRate !== null && item.pendingRate > item.currentRate;
 
-              return (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <div className="flex items-start gap-2">
-                      <span className="text-base">{emoji}</span>
-                      <div>
-                        <div className="text-sm font-medium text-foreground">{item.name}</div>
-                        <div className="text-xs text-muted-foreground">{item.categoryName} · {item.providerName}</div>
-                        <div className="text-xs text-muted-foreground font-mono">#{item.externalId}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs px-2 py-1 rounded-md bg-amber-500/10 text-amber-700 border border-amber-500/20">
-                      {item.quarantineReason}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className="text-sm font-mono text-muted-foreground">
-                      ${item.currentRate.toFixed(4)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className={`text-sm font-mono font-semibold ${isRise ? 'text-destructive' : 'text-success'}`}>
-                        ${item.pendingRate?.toFixed(4) ?? '—'}
-                      </span>
-                      <span className={`text-xs ${isRise ? 'text-rose-400' : 'text-emerald-400'}`}>
-                        {isRise ? '▲' : '▼'} {priceDiff}%
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center gap-2 justify-end">
-                      <button
-                        onClick={() => handleApprove(item)}
-                        disabled={isPending}
-                        aria-label={`Принять новую цену для ${item.name}`}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-success border border-emerald-500/30 hover:bg-emerald-500/25 transition-all duration-200 disabled:opacity-50"
-                      >
-                        ✅ Принять
-                      </button>
-                      <button
-                        onClick={() => handleReject(item)}
-                        disabled={isPending}
-                        aria-label={`Отклонить новую цену для ${item.name}`}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-slate-300 transition-all duration-200 disabled:opacity-50"
-                      >
-                        ✕ Отклонить
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
+                  return (
+                    <Table.Row key={item.id}>
+                      <Table.Cell>
+                        <div className="flex items-start gap-2">
+                          <span className="text-base">{emoji}</span>
+                          <div>
+                            <div className="text-sm font-medium text-foreground">{item.name}</div>
+                            <div className="text-xs text-muted-foreground">{item.categoryName} · {item.providerName}</div>
+                            <div className="text-xs text-muted-foreground font-mono">#{item.externalId}</div>
+                          </div>
+                        </div>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <span className="text-xs px-2 py-1 rounded-md bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                          {item.quarantineReason}
+                        </span>
+                      </Table.Cell>
+                      <Table.Cell className="text-right">
+                        <span className="text-sm font-mono text-muted-foreground">
+                          ${item.currentRate.toFixed(4)}
+                        </span>
+                      </Table.Cell>
+                      <Table.Cell className="text-right">
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className={`text-sm font-mono font-semibold ${isRise ? 'text-destructive' : 'text-success'}`}>
+                            ${item.pendingRate?.toFixed(4) ?? '—'}
+                          </span>
+                          <span className={`text-xs ${isRise ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {isRise ? '▲' : '▼'} {priceDiff}%
+                          </span>
+                        </div>
+                      </Table.Cell>
+                      <Table.Cell className="text-right">
+                        <div className="flex items-center gap-2 justify-end">
+                          <button
+                            onClick={() => handleApprove(item)}
+                            disabled={isPending}
+                            aria-label={`Принять новую цену для ${item.name}`}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-success border border-emerald-500/30 hover:bg-emerald-500/25 transition-all duration-200 disabled:opacity-50"
+                          >
+                            ✅ Принять
+                          </button>
+                          <button
+                            onClick={() => handleReject(item)}
+                            disabled={isPending}
+                            aria-label={`Отклонить новую цену для ${item.name}`}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-slate-300 transition-all duration-200 disabled:opacity-50"
+                          >
+                            ✕ Отклонить
+                          </button>
+                        </div>
+                      </Table.Cell>
+                    </Table.Row>
+                  );
+                })}
+              </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
         </Table>
       </div>
     </div>

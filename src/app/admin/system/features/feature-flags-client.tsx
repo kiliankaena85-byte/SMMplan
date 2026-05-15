@@ -17,7 +17,7 @@ import { useOptimistic, useTransition, useState } from 'react';
 import { setFeatureFlagState } from '@/actions/admin/feature-flags';
 import type { FeatureFlagDTO, FlagState } from '@/services/system/feature-flag.service';
 import { toast } from 'sonner';
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
+import { Table } from '@/components/admin/hero-ui';
 
 interface Props {
   initialFlags: FeatureFlagDTO[];
@@ -84,52 +84,56 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
               <h2 className="text-sm font-semibold text-foreground">{group.label}</h2>
             </div>
             <Table aria-label={`Группа флагов: ${group.label}`}>
-              <TableHeader>
-                <TableColumn>ОПИСАНИЕ</TableColumn>
-                <TableColumn>КЛЮЧ</TableColumn>
-                <TableColumn>ИЗМЕНЕНО</TableColumn>
-                <TableColumn>ДЕЙСТВИЕ</TableColumn>
-              </TableHeader>
-              <TableBody>
-                {groupFlags.map(flag => {
-                  const config = STATE_CONFIG[flag.state];
-                  return (
-                    <TableRow key={flag.key}>
-                      <TableCell>
-                        <div className="font-medium text-foreground text-sm">{flag.label}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{flag.description}</div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground font-mono">{flag.key}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground">
-                          {flag.updatedBy
-                            ? <span title={`Изменено: ${flag.updatedAt.toLocaleString('ru')}`}>{flag.updatedBy}</span>
-                            : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <button
-                          onClick={() => handleToggle(flag)}
-                          disabled={isPending}
-                          aria-label={`Изменить флаг ${flag.label}: текущее состояние ${config.label}`}
-                          className={`
-                            px-3 py-1 rounded-full text-xs font-medium
-                            transition-all duration-200
-                            ${config.badge}
-                            hover:opacity-80 active:scale-95
-                            disabled:opacity-50 disabled:cursor-not-allowed
-                            cursor-pointer
-                          `}
-                        >
-                          {config.label}
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
+              <Table.ScrollContainer>
+                <Table.Content>
+                  <Table.Header>
+                    <Table.Column>ОПИСАНИЕ</Table.Column>
+                    <Table.Column>КЛЮЧ</Table.Column>
+                    <Table.Column>ИЗМЕНЕНО</Table.Column>
+                    <Table.Column>ДЕЙСТВИЕ</Table.Column>
+                  </Table.Header>
+                  <Table.Body>
+                    {groupFlags.map(flag => {
+                      const config = STATE_CONFIG[flag.state];
+                      return (
+                        <Table.Row key={flag.key}>
+                          <Table.Cell>
+                            <div className="font-medium text-foreground text-sm">{flag.label}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{flag.description}</div>
+                          </Table.Cell>
+                          <Table.Cell>
+                            <span className="text-xs text-muted-foreground font-mono">{flag.key}</span>
+                          </Table.Cell>
+                          <Table.Cell>
+                            <span className="text-xs text-muted-foreground">
+                              {flag.updatedBy
+                                ? <span title={`Изменено: ${flag.updatedAt.toLocaleString('ru')}`}>{flag.updatedBy}</span>
+                                : '—'}
+                            </span>
+                          </Table.Cell>
+                          <Table.Cell className="text-right">
+                            <button
+                              onClick={() => handleToggle(flag)}
+                              disabled={isPending}
+                              aria-label={`Изменить флаг ${flag.label}: текущее состояние ${config.label}`}
+                              className={`
+                                px-3 py-1 rounded-full text-xs font-medium
+                                transition-all duration-200
+                                ${config.badge}
+                                hover:opacity-80 active:scale-95
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                                cursor-pointer
+                              `}
+                            >
+                              {config.label}
+                            </button>
+                          </Table.Cell>
+                        </Table.Row>
+                      );
+                    })}
+                  </Table.Body>
+                </Table.Content>
+              </Table.ScrollContainer>
             </Table>
           </div>
         );
