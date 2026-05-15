@@ -24,6 +24,22 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
       toast.error("Эта услуга временно недоступна для заказа (находится на проверке качества). Пожалуйста, выберите другую.", { position: 'top-center' });
       return;
     }
+
+    // --- WAVE 4.2 CROSS-PLATFORM MISMATCH PROTECTION ---
+    const activeNetwork = engine.catalog.find(n => n.id === engine.networkId);
+    if (engine.platform && activeNetwork) {
+      const detectedPlatform = engine.platform.toLowerCase();
+      const selectedPlatform = activeNetwork.slug.toLowerCase();
+      
+      // Allow if either string includes the other (e.g. 'instagram' vs 'instagram_likes')
+      if (!selectedPlatform.includes(detectedPlatform) && !detectedPlatform.includes(selectedPlatform)) {
+        setLinkHasError(true);
+        toast.error(`Ссылка не подходит. Указана ссылка для ${engine.platform}, но выбрана соцсеть ${activeNetwork.name}.`, { position: 'top-center' });
+        setShowLinkModal(true);
+        return;
+      }
+    }
+    // ---------------------------------------------------
     
     setLinkHasError(false);
     const rawUrl = url.trim();

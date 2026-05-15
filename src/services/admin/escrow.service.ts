@@ -188,6 +188,7 @@ export class EscrowService {
 
     return entries.map(entry => ({
       ...entry,
+      amount: Number(entry.amount),
       userEmail: userMap.get(entry.userId) || entry.userId,
     }));
   }

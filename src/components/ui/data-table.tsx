@@ -30,6 +30,7 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string;
   searchPlaceholder?: string;
   renderToolbar?: (table: ReturnType<typeof useReactTable>) => React.ReactNode;
+  hideClientPagination?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -38,6 +39,7 @@ export function DataTable<TData, TValue>({
   searchKey,
   searchPlaceholder = 'Поиск...',
   renderToolbar,
+  hideClientPagination = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -142,30 +144,32 @@ export function DataTable<TData, TValue>({
           </div>
         )}
       </div>
-      <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Выбрано: {table.getFilteredSelectedRowModel().rows.length} из{' '}
-          {table.getFilteredRowModel().rows.length} строк.
+      {!hideClientPagination && (
+        <div className="flex items-center justify-between space-x-2 py-4">
+          <div className="flex-1 text-sm text-muted-foreground">
+            Выбрано: {table.getFilteredSelectedRowModel().rows.length} из{' '}
+            {table.getFilteredRowModel().rows.length} строк.
+          </div>
+          <div className="space-x-2">
+            <Button
+              intent="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Пред
+            </Button>
+            <Button
+              intent="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              След
+            </Button>
+          </div>
         </div>
-        <div className="space-x-2">
-          <Button
-            intent="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Пред
-          </Button>
-          <Button
-            intent="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            След
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

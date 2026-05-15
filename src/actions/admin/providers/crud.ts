@@ -163,3 +163,52 @@ export async function checkProviderConnection(rawId: string) {
         }
     });
 }
+
+export async function getGlobalProviderLiquidity() {
+    return requireStaffPermission('providers', 'view', async () => {
+        try {
+            const providers = await db.provider.findMany({ where: { isActive: true } });
+            
+            // Get exchange rate directly from SettingsManager/Provider to unify currency to RUB
+            const { SettingsProvider } = await import('@/lib/settings');
+            const usdRate = await SettingsProvider.getExchangeRateUSD();
+            
+            let totalRub = 0;
+            let activeCount = 0;
+            let errorCount = 0;
+
+            await Promise.allSettled(providers.map(async (provider) => {
+                try {
+                    const instance = await providerService.getProviderInstance(provider);
+                    const balanceData = await instance.getBalance();
+                    
+                    const balance = parseFloat(balanceData.balance) || 0;
+                    const currency = (balanceData.currency || provider.balanceCurrency || 'RUB').toUpperCase();
+
+                    if (currency === 'USD') {
+                        totalRub += (balance * usdRate);
+                    } else if (currency === 'RUB') {
+                        totalRub += balance;
+                    } else if (currency === 'EUR') {
+                        // Rough approx if EUR is ever used, though Smmplan standard is USD/RUB
+                        totalRub += (balance * usdRate * 1.08); 
+                    }
+                    activeCount++;
+                } catch (e) {
+                    console.error(`Failed to fetch balance for provider ${provider.name}:`, e);
+                    errorCount++;
+                }
+            }));
+
+            return { 
+                success: true, 
+                totalRub, 
+                activeCount,
+                errorCount
+            };
+        } catch (e: any) {
+            return { success: false, error: e.message || "Failed to calculate global liquidity" };
+        }
+    });
+}
+

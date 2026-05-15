@@ -342,6 +342,7 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
         data={data}
         searchKey="user_email"
         searchPlaceholder="Фильтр по email на этой странице..."
+        hideClientPagination={true}
         renderToolbar={(table) => {
           const selectedRows = table.getFilteredSelectedRowModel().rows;
           if (selectedRows.length === 0) return null;

@@ -18,7 +18,6 @@ import { db } from '@/lib/db';
 // Scenes — only import wizards that have been migrated to Lite core
 import { orderWizard, ORDER_WIZARD } from './scenes/order.wizard';
 import { depositWizard, DEPOSIT_WIZARD } from './scenes/deposit.wizard';
-import { supportWizard, SUPPORT_WIZARD } from './scenes/support.wizard';
 import { referralWizard, REFERRAL_WIZARD } from './scenes/referral.wizard';
 // import { catalogWizard } from './scenes/catalog.wizard';
 
@@ -34,7 +33,6 @@ export const bot = new Telegraf(TOKEN || 'dummy_token');
 const stage = new Scenes.Stage<Scenes.WizardContext>([
   orderWizard as any,
   depositWizard as any,
-  supportWizard as any,
   referralWizard as any,
 ]);
 
@@ -142,7 +140,11 @@ bot.hears('💰 Пополнить', async (ctx: any) => {
   return ctx.scene.enter(DEPOSIT_WIZARD);
 });
 bot.hears('🆘 Поддержка', async (ctx: any) => {
-  return ctx.scene.enter(SUPPORT_WIZARD);
+  await ctx.reply(
+    '🎧 <b>Я всегда на связи!</b>\n\n' +
+    'Просто напишите ваш вопрос, отправьте фото или голосовое сообщение прямо в этот чат, и оператор ответит вам здесь же.',
+    { parse_mode: 'HTML' }
+  );
 });
 bot.hears('👥 Рефералы', async (ctx: any) => {
   return ctx.scene.enter(REFERRAL_WIZARD);
@@ -177,6 +179,27 @@ bot.hears('📦 Мои заказы', async (ctx: any) => {
   }
 
   await ctx.reply(text, { parse_mode: 'HTML' });
+});
+
+// ── CATCH-ALL (SUPPORT DIRECT CHAT MODE) ──
+bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 'location'], async (ctx: any, next: any) => {
+  // 1. Check if user sent an unsupported format
+  if (ctx.message?.video || ctx.message?.sticker || ctx.message?.video_note || ctx.message?.location) {
+    return ctx.reply('⚠️ К сожалению, мы не можем просматривать стикеры, кружочки или геолокации. Пожалуйста, отправьте текст, скриншот (фото) или голосовое сообщение.');
+  }
+
+  // 2. Resolve User
+  const tgId = String(ctx.from.id);
+  const user = await db.user.findFirst({ where: { telegramId: tgId } });
+  if (!user) return next();
+
+  try {
+    const { supportBotService } = await import('@/services/support/support-bot.service');
+    await supportBotService.handleIncomingMessage(ctx, user.id);
+  } catch (e: any) {
+    console.error('[Bot] Catch-all Support Error:', e);
+    await ctx.reply('❌ Ошибка при отправке сообщения в поддержку.').catch(() => {});
+  }
 });
 
 // ── LAUNCH ──

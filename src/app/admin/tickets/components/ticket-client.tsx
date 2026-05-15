@@ -68,6 +68,7 @@ export function TicketClient({ data, totalPages, currentPage }: TicketClientProp
         data={data}
         searchKey="user.email"
         searchPlaceholder="Поиск по клиенту..."
+        hideClientPagination={true}
         renderToolbar={renderToolbar}
       />
       

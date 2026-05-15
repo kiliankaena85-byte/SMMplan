@@ -148,11 +148,69 @@ class AdminTicketService {
             },
           },
         },
-        messages: { orderBy: { createdAt: 'asc' } },
+        messages: { 
+          orderBy: { createdAt: 'asc' },
+          include: { replyTo: true }
+        },
       },
     });
 
     if (!ticket) return null;
+
+    // Fetch 3 most recent historical closed tickets for Intercom Model
+    const historicalTickets = await db.ticket.findMany({
+      where: { userId: ticket.user.id, status: 'CLOSED', id: { not: ticket.id } },
+      orderBy: { updatedAt: 'desc' },
+      take: 3,
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' }, // Get newest first
+          take: 15, // Limit to 15 per ticket to prevent DOM OOM
+          include: { replyTo: true }
+        }
+      }
+    });
+
+    // Sort historical messages back to chronological order
+    historicalTickets.forEach(t => {
+      t.messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    });
+
+    // Sort historical oldest first to prepend correctly
+    historicalTickets.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+    // Map Message DTO helper
+    const mapMessage = (m: any, isHistorical = false, histTicketId?: string, histSubject?: string) => ({
+      id: m.id,
+      sender: m.sender,
+      text: m.text,
+      mediaUrl: m.mediaUrl,
+      mediaType: m.mediaType,
+      createdAt: m.createdAt.toISOString(),
+      isDeleted: m.isDeleted,
+      isEdited: m.isEdited,
+      originalText: m.originalText,
+      replyTo: m.replyTo ? {
+        id: m.replyTo.id,
+        text: m.replyTo.text,
+        sender: m.replyTo.sender
+      } : null,
+      isHistorical,
+      historicalTicketId: histTicketId,
+      historicalSubject: histSubject
+    });
+
+    const stitchedMessages: any[] = [];
+    
+    // 1. Add historical messages
+    for (const hist of historicalTickets) {
+      if (hist.messages.length > 0) {
+        stitchedMessages.push(...hist.messages.map(m => mapMessage(m, true, hist.id, hist.subject)));
+      }
+    }
+    
+    // 2. Add current ticket messages
+    stitchedMessages.push(...ticket.messages.map(m => mapMessage(m)));
 
     return {
       id: ticket.id,
@@ -183,14 +241,7 @@ class AdminTicketService {
           createdAt: p.createdAt.toISOString(),
         })),
       },
-      messages: ticket.messages.map(m => ({
-        id: m.id,
-        sender: m.sender,
-        text: m.text,
-        mediaUrl: m.mediaUrl,
-        mediaType: m.mediaType,
-        createdAt: m.createdAt.toISOString(),
-      })),
+      messages: stitchedMessages,
     };
   }
 }

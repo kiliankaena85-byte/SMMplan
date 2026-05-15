@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { Button } from '@/components/admin/hero-ui';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { RecentAuditTable } from './recent-audit-table';
+import { ProviderLiquidityWidget } from './ProviderLiquidityWidget';
 
 export const dynamic = 'force-dynamic';
 
@@ -212,6 +213,8 @@ export default async function AdminDashboardPage() {
              </Link>
            </div>
            
+           <ProviderLiquidityWidget />
+
            <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border/60 transition-all hover:shadow-md">
              <h3 className="font-bold text-foreground mb-1">Маржинальность</h3>
              <p className="text-[11px] text-muted-foreground mb-6 font-medium">Отношение прибыли к выручке</p>

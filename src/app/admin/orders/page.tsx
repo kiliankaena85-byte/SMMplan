@@ -140,6 +140,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               providerCost: Number(o.providerCost ?? 0),
               createdAt: o.createdAt,
               isDripFeed: o.isDripFeed,
+              dripExternalIds: o.dripExternalIds,
               runs: o.runs ?? null,
               interval: o.interval ?? null,
               currentRun: o.currentRun,

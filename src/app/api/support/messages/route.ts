@@ -44,10 +44,28 @@ export async function GET(req: NextRequest) {
 
     const messages = await db.ticketMessage.findMany({
       where: whereClause,
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
+      include: { replyTo: true }
     });
 
-    return NextResponse.json({ messages, ticketStatus: ticket.status });
+    const mappedMessages = messages.map(m => ({
+      id: m.id,
+      sender: m.sender,
+      text: m.text,
+      mediaUrl: m.mediaUrl,
+      mediaType: m.mediaType,
+      createdAt: m.createdAt.toISOString(),
+      isDeleted: m.isDeleted,
+      isEdited: m.isEdited,
+      originalText: m.originalText,
+      replyTo: m.replyTo ? {
+        id: m.replyTo.id,
+        text: m.replyTo.text,
+        sender: m.replyTo.sender
+      } : null,
+    }));
+
+    return NextResponse.json({ messages: mappedMessages, ticketStatus: ticket.status });
   } catch {
     return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
   }

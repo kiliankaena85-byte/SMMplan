@@ -4,6 +4,7 @@ import { Table } from "@heroui/react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import type { ProviderListDTO } from "@/services/admin/provider.service";
+import { ProviderBalanceCell } from "./components/provider-balance-cell";
 
 export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) {
   return (
@@ -12,7 +13,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
         <Table.Header>
           <Table.Column className="bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Название / API</Table.Column>
           <Table.Column className="bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Услуги</Table.Column>
-          <Table.Column className="bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Валюта</Table.Column>
+          <Table.Column className="bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Баланс (Sync)</Table.Column>
           <Table.Column className="bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">SLA</Table.Column>
           <Table.Column className="bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Статус</Table.Column>
           <Table.Column className="bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">Действия</Table.Column>
@@ -60,11 +61,15 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                 </div>
               </Table.Cell>
 
-              {/* Currency */}
+              {/* Balance */}
               <Table.Cell className="py-4 px-4">
-                <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border">
-                  {provider.balanceCurrency}
-                </span>
+                {provider.isActive ? (
+                  <ProviderBalanceCell providerId={provider.id} />
+                ) : (
+                  <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border">
+                    OFFLINE
+                  </span>
+                )}
               </Table.Cell>
 
               {/* SLA */}

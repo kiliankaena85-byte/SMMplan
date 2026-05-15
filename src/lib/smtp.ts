@@ -49,7 +49,7 @@ export async function sendMagicLink(email: string, token: string) {
   });
 }
 
-export async function sendMail(email: string, subject: string, htmlContent: string) {
+export async function sendMail(email: string, subject: string, htmlContent: string, replyTo?: string) {
   if (!process.env.SMTP_HOST) {
     if (process.env.NODE_ENV === 'production') {
       console.error(`[SMTP] Error: Cannot send email to ${email} - SMTP_HOST is missing.`);
@@ -76,6 +76,7 @@ export async function sendMail(email: string, subject: string, htmlContent: stri
     to: email,
     subject,
     html: htmlContent,
+    ...(replyTo ? { replyTo } : {}),
   });
 }
 

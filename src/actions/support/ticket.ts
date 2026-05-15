@@ -35,7 +35,8 @@ const ticketMessageSchema = z.object({
   ticketId: z.string().min(1),
   message: z.string().optional(),
   mediaUrl: z.string().optional(),
-  mediaType: z.string().optional()
+  mediaType: z.string().optional(),
+  replyToId: z.string().optional()
 }).refine(data => data.message || data.mediaUrl, "Either message or mediaUrl must be provided");
 
 const adminReplySchema = z.object({
@@ -43,7 +44,8 @@ const adminReplySchema = z.object({
   message: z.string().optional(),
   isInternal: z.any().transform(val => val === 'true' || val === 'on'),
   mediaUrl: z.string().optional(),
-  mediaType: z.string().optional()
+  mediaType: z.string().optional(),
+  replyToId: z.string().optional()
 }).refine(data => data.message || data.mediaUrl, "Either message or mediaUrl must be provided");
 
 export async function createTicket(formData: FormData) {
@@ -67,12 +69,12 @@ export async function addTicketMessage(formData: FormData) {
 
   const parsed = ticketMessageSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) throw new Error('Сообщение не может быть пустым');
-  const { ticketId, message, mediaUrl, mediaType } = parsed.data;
+  const { ticketId, message, mediaUrl, mediaType, replyToId } = parsed.data;
 
   const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
   if (!ticket || ticket.userId !== session.userId) throw new Error('Forbidden');
 
-  await ticketService.addMessage(ticketId, 'USER', message || '', mediaUrl, mediaType);
+  await ticketService.addMessage(ticketId, 'USER', message || '', mediaUrl, mediaType, replyToId);
   revalidatePath(`/dashboard/tickets/${ticketId}`);
 }
 
@@ -85,11 +87,11 @@ export async function adminReplyTicket(formData: FormData) {
 
   const parsed = adminReplySchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) throw new Error('Ошибка валидации сообщения');
-  const { ticketId, message, isInternal, mediaUrl, mediaType } = parsed.data;
+  const { ticketId, message, isInternal, mediaUrl, mediaType, replyToId } = parsed.data;
 
   const sender = isInternal ? 'INTERNAL' : 'STAFF';
 
-  await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType);
+  await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType, replyToId);
   revalidatePath(`/admin/tickets/${ticketId}`);
   revalidatePath(`/admin/tickets`);
 }

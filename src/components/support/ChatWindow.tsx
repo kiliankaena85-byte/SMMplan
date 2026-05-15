@@ -1,8 +1,9 @@
-'use client';
+"use client";
 import { useState, useEffect, useRef, useTransition } from 'react';
 import { generateSmartReplyAction } from '@/actions/support/ticket';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, MessageSquare, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Message {
 // ...
@@ -12,6 +13,13 @@ interface Message {
   mediaUrl?: string | null;
   mediaType?: string | null;
   createdAt: string;
+  isDeleted?: boolean;
+  isEdited?: boolean;
+  originalText?: string | null;
+  replyTo?: { id: string, text: string, sender: string } | null;
+  isHistorical?: boolean;
+  historicalTicketId?: string;
+  historicalSubject?: string;
 }
 
 interface ChatWindowProps {
@@ -78,6 +86,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   const [isDragging, setIsDragging] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [isAiPending, startAiTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,6 +110,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   // Polling for new messages every 5 seconds
   useEffect(() => {
     const interval = setInterval(async () => {
+      if (document.hidden) return; // Prevent DDoS when tab is in background
       try {
         const res = await fetch(`/api/support/messages?ticketId=${ticketId}&after=${encodeURIComponent(lastCheckedRef.current)}`);
         if (!res.ok) return;
@@ -120,17 +130,36 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   }, [ticketId]);
 
   // Auto-scroll on new messages
+  const isFirstRender = useRef(true);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (isFirstRender.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+      isFirstRender.current = false;
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!text.trim() && !file) || sending) return;
     setSending(true);
 
-    let mediaUrl = undefined;
-    let mediaType = undefined;
+    // Optimistic update (show ghost message immediately)
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: tempId,
+      sender: isStaff ? (isInternal ? 'INTERNAL' : 'STAFF') : 'USER',
+      text: text.trim(),
+      mediaUrl: file ? 'uploading...' : undefined,
+      mediaType: file ? (file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'document') : undefined,
+      createdAt: new Date().toISOString(),
+      replyTo: replyingTo ? { id: replyingTo.id, text: replyingTo.text, sender: replyingTo.sender } : null
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+
+    let mediaUrl: string | undefined = undefined;
+    let mediaType: string | undefined = undefined;
 
     // Upload file first
     if (file) {
@@ -147,13 +176,18 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
           const data = await res.json();
           mediaUrl = data.mediaUrl;
           mediaType = data.mediaType;
+          
+          // Update the optimistic message with the real media URL
+          setMessages(prev => prev.map(m => m.id === tempId ? { ...m, mediaUrl, mediaType } : m));
         } else {
           toast.error('Ошибка загрузки файла');
+          setMessages(prev => prev.filter(m => m.id !== tempId)); // Remove optimistic
           setSending(false);
           return;
         }
       } catch (e) {
         toast.error('Ошибка загрузки файла');
+        setMessages(prev => prev.filter(m => m.id !== tempId));
         setSending(false);
         return;
       }
@@ -169,18 +203,11 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
       formData.set('isInternal', 'true');
     }
 
-    // Optimistic update
-    const optimisticMsg: Message = {
-      id: `temp-${Date.now()}`,
-      sender: isStaff ? (isInternal ? 'INTERNAL' : 'STAFF') : 'USER',
-      text: text.trim(),
-      mediaUrl,
-      mediaType,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, optimisticMsg]);
+    if (replyingTo) formData.set('replyToId', replyingTo.id);
+
     setText('');
     setFile(null);
+    setReplyingTo(null);
 
     try {
       await onSendMessage(formData);
@@ -248,78 +275,154 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-        {messages.map(msg => (
-          <div key={msg.id} className={`flex ${msg.sender === 'USER' ? 'justify-start' : 'justify-end'}`}>
-            <div className={`group relative max-w-[75%] rounded-2xl p-4 shadow-sm ${
-              msg.sender === 'USER'
-                ? 'bg-white border border-slate-200 text-slate-900 rounded-bl-sm'
-                : msg.sender === 'INTERNAL'
-                  ? 'bg-amber-50 text-amber-900 border border-amber-200 rounded-br-sm'
-                  : 'bg-indigo-600 text-white rounded-br-sm'
-            }`}>
-              
-              {/* Edit button hover action */}
-              {msg.sender !== 'USER' && editingMessageId !== msg.id && editTicketMessage && (
-                <button 
-                  onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }}
-                  className="absolute -left-10 top-2 opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-indigo-600 transition-opacity rounded-full bg-white shadow-sm border border-slate-100"
-                  title="Редактировать сообщение (Логируется)"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                </button>
-              )}
-
-              <div className="text-[10px] font-semibold mb-1 opacity-60">
-                {msg.sender === 'INTERNAL' ? '🔒 INTERNAL NOTE' : msg.sender}
-                {' • '}
-                {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-              </div>
-              
-              {/* Media preview */}
-              {msg.mediaUrl && msg.mediaType === 'image' && (
-                <img 
-                  src={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} 
-                  alt="attachment" 
-                  onClick={() => setZoomedImage(msg.mediaUrl as string)}
-                  className="rounded-lg max-h-60 mb-2 cursor-zoom-in border border-slate-200 hover:opacity-90 transition-opacity" 
-                />
-              )}
-              {msg.mediaUrl && msg.mediaType === 'video' && (
-                <video src={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} controls className="rounded-lg max-h-60 mb-2 border border-slate-200" />
-              )}
-              {msg.mediaUrl && msg.mediaType === 'document' && (
-                <div className="flex items-center gap-2 bg-black/5 p-2 rounded-lg border border-black/10 mb-2">
-                   <div className="text-xl">📄</div>
-                   <div className="text-sm font-semibold truncate flex-1 leading-tight">Приложенный<br/>документ (чек)</div>
-                   <a href={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} target="_blank" className="text-indigo-600 text-[10px] font-bold px-2 py-1 bg-white shadow-sm border border-slate-200 rounded hover:bg-slate-50">Открыть</a>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background/50 relative">
+        <AnimatePresence initial={false}>
+        {messages.map((msg, index) => {
+          const showSeparator = index > 0 && messages[index - 1].isHistorical && !msg.isHistorical;
+          const isExpired = Date.now() - new Date(msg.createdAt).getTime() > 48 * 60 * 60 * 1000;
+          
+          return (
+            <motion.div 
+              key={msg.id} 
+              className="flex flex-col"
+              initial={{ opacity: 0, y: 15, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
+              {showSeparator && (
+                <div className="flex items-center justify-center my-6 opacity-50">
+                  <div className="h-px bg-slate-400 flex-1 max-w-[50px] mx-4"></div>
+                  <span className="text-xs font-semibold uppercase text-slate-500 tracking-widest">--- Диалог завершен ---</span>
+                  <div className="h-px bg-slate-400 flex-1 max-w-[50px] mx-4"></div>
                 </div>
               )}
+              {msg.isHistorical && (index === 0 || messages[index - 1].historicalTicketId !== msg.historicalTicketId) && (
+                <div className="text-center text-[10px] uppercase font-bold text-slate-400 my-4 bg-slate-100 rounded-full px-3 py-1 w-max mx-auto border border-slate-200">
+                  История: {msg.historicalSubject || 'Предыдущий тикет'}
+                </div>
+              )}
+              <div className={`flex ${msg.sender === 'USER' ? 'justify-start' : 'justify-end'} mb-4`}>
+                <div className={`group relative max-w-[75%] rounded-2xl p-4 shadow-sm backdrop-blur-sm ${
+                  msg.isDeleted ? 'bg-default-100 border border-default-200 text-default-400 rounded-bl-sm opacity-80' :
+                  msg.sender === 'USER'
+                    ? 'bg-content1 border border-default-200 text-foreground rounded-bl-sm'
+                    : msg.sender === 'INTERNAL'
+                      ? 'bg-warning-50 text-warning-900 border border-warning-200 rounded-br-sm'
+                      : 'bg-primary text-primary-foreground rounded-br-sm'
+                }`}>
+                  
+                  {/* Actions hover */}
+                  {!msg.isDeleted && msg.sender !== 'USER' && editingMessageId !== msg.id && editTicketMessage && (
+                    <div className="absolute -left-20 top-2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                      <button 
+                        onClick={() => setReplyingTo(msg)}
+                        className="p-2 text-slate-400 hover:text-indigo-600 rounded-full bg-white shadow-sm border border-slate-100"
+                        title="Ответить"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
+                      </button>
+                      {isExpired ? (
+                        <div className="p-2 text-slate-300 rounded-full bg-white shadow-sm border border-slate-100 cursor-not-allowed" title="Заблокировано Telegram API (>48ч)">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }}
+                          className="p-2 text-slate-400 hover:text-amber-600 rounded-full bg-white shadow-sm border border-slate-100"
+                          title="Редактировать"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {!msg.isDeleted && msg.sender === 'USER' && (
+                    <div className="absolute -right-10 top-2 opacity-0 group-hover:opacity-100 flex transition-opacity">
+                      <button 
+                        onClick={() => setReplyingTo(msg)}
+                        className="p-2 text-slate-400 hover:text-indigo-600 rounded-full bg-white shadow-sm border border-slate-100"
+                        title="Ответить"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
+                      </button>
+                    </div>
+                  )}
 
-              {editingMessageId === msg.id ? (
-                <div className="mt-2 animate-in fade-in zoom-in-95 duration-200">
-                  <textarea 
-                     value={editingText}
-                     onChange={e => setEditingText(e.target.value)}
-                     className="w-full text-sm text-slate-900 bg-white border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]"
-                     autoFocus
-                  />
-                  <div className="flex gap-2 justify-end mt-2">
-                     <button onClick={() => setEditingMessageId(null)} className="text-[11px] font-bold uppercase bg-white/50 text-slate-700 px-3 py-1.5 rounded border border-slate-300 hover:bg-white">Отмена</button>
-                     <button onClick={() => handleEditSubmit(msg.id)} className="text-[11px] font-bold uppercase bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 shadow-sm border border-indigo-700">Сохранить</button>
+                  <div className="text-[10px] font-semibold mb-1 opacity-60 flex justify-between">
+                    <span>
+                      {msg.sender === 'INTERNAL' ? '🔒 INTERNAL NOTE' : msg.sender}
+                      {' • '}
+                      {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      {msg.isHistorical && ' (Архив)'}
+                    </span>
+                    {msg.isEdited && <span className="ml-2" title={msg.originalText || ''}>(изменено)</span>}
                   </div>
+                  
+                  {/* Reply Quote */}
+                  {!msg.isDeleted && msg.replyTo && (
+                    <div className={`mb-2 p-2 rounded-lg border-l-2 text-xs ${msg.sender === 'STAFF' ? 'bg-black/10 border-white/40 text-primary-foreground' : 'bg-default-100 border-primary/50 text-foreground'}`}>
+                       <div className="font-bold opacity-70 mb-0.5">{msg.replyTo.sender}</div>
+                       <div className="opacity-80 line-clamp-2">{msg.replyTo.text || 'Медиа сообщение'}</div>
+                    </div>
+                  )}
+
+                  {/* Media preview */}
+                  {!msg.isDeleted && msg.mediaUrl === 'uploading...' ? (
+                    <div className="w-full h-32 bg-primary/10 animate-pulse rounded-xl mb-2 flex items-center justify-center border border-primary/20">
+                       <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                    </div>
+                  ) : !msg.isDeleted && msg.mediaUrl && msg.mediaType === 'image' && (
+                    <img src={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} alt="attachment" onClick={() => setZoomedImage(msg.mediaUrl as string)} className="rounded-xl max-h-60 mb-2 cursor-zoom-in border border-default-200 hover:opacity-90 transition-opacity object-cover" />
+                  )}
+                  {!msg.isDeleted && msg.mediaUrl && msg.mediaUrl !== 'uploading...' && msg.mediaType === 'video' && (
+                    <video src={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} controls className="rounded-xl max-h-60 mb-2 border border-default-200 w-full object-cover" />
+                  )}
+                  {!msg.isDeleted && msg.mediaUrl && msg.mediaUrl !== 'uploading...' && msg.mediaType === 'audio' && (
+                    <audio src={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} controls className="w-full mb-2 max-w-[250px] opacity-90 hover:opacity-100 transition-opacity" />
+                  )}
+                  {!msg.isDeleted && msg.mediaUrl && msg.mediaUrl !== 'uploading...' && msg.mediaType === 'document' && (
+                    <div className="flex items-center gap-2 bg-black/5 p-2.5 rounded-xl border border-black/10 mb-2">
+                       <div className="text-2xl drop-shadow-sm">📄</div>
+                       <div className="text-sm font-semibold truncate flex-1 leading-tight text-foreground/90">Приложенный<br/>документ</div>
+                       <a href={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} target="_blank" className="text-primary text-[10px] font-bold px-2.5 py-1.5 bg-background shadow-sm border border-default-200 rounded-md hover:bg-default-50 transition-colors">Открыть</a>
+                    </div>
+                  )}
+
+                  {msg.isDeleted ? (
+                    <div className="italic text-sm">Удалено (Видно только стаффу)</div>
+                  ) : editingMessageId === msg.id ? (
+                    <div className="mt-2 animate-in fade-in zoom-in-95 duration-200">
+                      <textarea value={editingText} onChange={e => setEditingText(e.target.value)} className="w-full text-sm text-slate-900 bg-white border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]" autoFocus />
+                      <div className="flex gap-2 justify-end mt-2">
+                         <button onClick={() => setEditingMessageId(null)} className="text-[11px] font-bold uppercase bg-white/50 text-slate-700 px-3 py-1.5 rounded border border-slate-300 hover:bg-white">Отмена</button>
+                         <button onClick={() => handleEditSubmit(msg.id)} className="text-[11px] font-bold uppercase bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 shadow-sm border border-indigo-700">Сохранить</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap text-sm">{msg.text}</div>
+                  )}
                 </div>
-              ) : (
-                <div className="whitespace-pre-wrap text-sm">{msg.text}</div>
-              )}
-            </div>
-          </div>
-        ))}
+              </div>
+            </motion.div>
+          );
+        })}
+        </AnimatePresence>
+        
         {messages.length === 0 && (
-          <div className="text-center text-slate-400 py-16">
-            <div className="text-4xl mb-2">💬</div>
-            <p>No messages yet. Start the conversation!</p>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center h-full max-h-[400px]"
+          >
+            <div className="w-20 h-20 mb-6 rounded-3xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
+              <MessageSquare className="w-10 h-10 text-primary opacity-80" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2 tracking-tight">Нет сообщений</h3>
+            <p className="text-muted-foreground text-sm text-center max-w-sm mb-6">
+              Напишите ваш вопрос ниже. Мы отвечаем быстро и по делу.
+            </p>
+          </motion.div>
         )}
         <div ref={bottomRef} />
       </div>
@@ -360,7 +463,24 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
           </div>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 w-full">
+          <AnimatePresence>
+          {replyingTo && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+              animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+              exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+              className="flex items-center justify-between bg-primary-50 border-l-4 border-primary px-3 py-2 rounded-lg mb-1"
+            >
+              <div>
+                <div className="text-[10px] font-bold text-primary-700 uppercase tracking-wider">Ответ для {replyingTo.sender}</div>
+                <div className="text-xs text-foreground/80 line-clamp-1">{replyingTo.text || 'Медиа сообщение'}</div>
+              </div>
+              <button type="button" onClick={() => setReplyingTo(null)} className="p-1 text-primary-400 hover:text-primary-700 font-bold ml-2 transition-colors">✕</button>
+            </motion.div>
+          )}
+          </AnimatePresence>
+          <div className="flex gap-2 w-full">
           <input
              type="file"
              className="hidden"
@@ -417,6 +537,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
             🔒 Скрытая заметка (невидна клиенту)
           </label>
         )}
+        </div>
       </form>
 
       {/* Zoom Modal */}

@@ -108,6 +108,9 @@ export async function setOrderStatusAction(
         } else {
           refundCents = calculatePartialRefund(order);
         }
+      } else if (newStatus === 'PARTIAL' && !['COMPLETED', 'CANCELED'].includes(oldStatus)) {
+        const orderForRefund = { ...order, remains: remains ?? order.remains };
+        refundCents = calculatePartialRefund(orderForRefund);
       }
 
       const newRemains = remains ?? order.remains;

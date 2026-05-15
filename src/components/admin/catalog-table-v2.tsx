@@ -297,22 +297,25 @@ export function CatalogTable({
 
       <div className="rounded-xl border border-default-200 bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <Table aria-label="Каталог услуг" className="w-full text-sm text-left">
-            <Table.Header>
-                {canEdit ? <Table.Column className="w-10 px-4">
+          <Table className="w-full text-sm text-left">
+            <Table.ScrollContainer>
+              <Table.Content aria-label="Каталог услуг">
+                <Table.Header>
+                <Table.Column key="checkbox" className={canEdit ? "w-10 px-4" : "hidden"}>
                   <input
                     type="checkbox" checked={allSelected}
                     onChange={toggleAll}
                     className="rounded border-default-300 text-primary focus:ring-primary cursor-pointer"
+                    disabled={!canEdit}
                   />
-                </Table.Column> : <Table.Column className="hidden">{""}</Table.Column>}
-                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">ID</Table.Column>
-                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[250px]">Услуга / Категория</Table.Column>
-                {canSeeRates ? <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">Закуп ($)</Table.Column> : <Table.Column className="hidden">{""}</Table.Column>}
-                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ценообразование {canEdit ? '(RUB)' : ''}</Table.Column>
-                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right hidden lg:table-cell">Заказы</Table.Column>
-                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center">Статус</Table.Column>
-                {canEdit ? <Table.Column className="w-12">{""}</Table.Column> : <Table.Column className="hidden">{""}</Table.Column>}
+                </Table.Column>
+                <Table.Column key="id" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">ID</Table.Column>
+                <Table.Column key="name" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[250px]">Услуга / Категория</Table.Column>
+                <Table.Column key="rate" className={`text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right ${!canSeeRates ? "hidden" : ""}`}>Закуп ($)</Table.Column>
+                <Table.Column key="price" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ценообразование {canEdit ? '(RUB)' : ''}</Table.Column>
+                <Table.Column key="orders" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right hidden lg:table-cell">Заказы</Table.Column>
+                <Table.Column key="status" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center">Статус</Table.Column>
+                <Table.Column key="actions" className={canEdit ? "w-12" : "hidden"}><span className="sr-only">Actions</span></Table.Column>
             </Table.Header>
             <Table.Body renderEmptyState={() => (
               <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
@@ -320,7 +323,7 @@ export function CatalogTable({
                  <p className="text-sm">Нет услуг в выбранной категории</p>
               </div>
             )}>
-              {services.map(s => {
+              {services.map((s) => {
                 const isChecked = selected.has(s.id);
                 const providerCostRub = s.rate * usdToRub;
                 return (
@@ -334,21 +337,20 @@ export function CatalogTable({
                         : 'hover:bg-muted/30'
                     }`}
                   >
-                    {canEdit ? (
-                      <Table.Cell className="py-4 px-4">
-                        <input
-                          type="checkbox" checked={isChecked}
-                          onChange={() => toggleOne(s.id)}
-                          className="rounded border-default-300 text-primary focus:ring-primary cursor-pointer"
-                        />
-                      </Table.Cell>
-                    ) : <Table.Cell className="hidden">{""}</Table.Cell>}
-                    <Table.Cell className="py-4 px-4">
+                    <Table.Cell key={`cell-checkbox-${s.id}`} className={canEdit ? "py-4 px-4" : "hidden"}>
+                      <input
+                        type="checkbox" checked={isChecked}
+                        onChange={() => toggleOne(s.id)}
+                        className="rounded border-default-300 text-primary focus:ring-primary cursor-pointer"
+                        disabled={!canEdit}
+                      />
+                    </Table.Cell>
+                    <Table.Cell key={`cell-id-${s.id}`} className="py-4 px-4">
                       <span className="font-mono text-xs text-muted-foreground">
                         #{s.numericId}
                       </span>
                     </Table.Cell>
-                    <Table.Cell className="py-4 px-4">
+                    <Table.Cell key={`cell-name-${s.id}`} className="py-4 px-4">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-foreground leading-tight">
@@ -363,8 +365,8 @@ export function CatalogTable({
                         <span className="text-[10px] text-muted-foreground mt-1">{s.categoryName}</span>
                       </div>
                     </Table.Cell>
-                    {canSeeRates ? (
-                      <Table.Cell className="py-4 px-4 text-right">
+                    <Table.Cell key={`cell-rate-${s.id}`} className={`py-4 px-4 text-right ${!canSeeRates ? "hidden" : ""}`}>
+                      {canSeeRates ? (
                         <div className="flex flex-col items-end">
                           <span className="font-mono text-xs font-medium text-foreground">
                             ${s.rate.toFixed(4)}
@@ -373,9 +375,9 @@ export function CatalogTable({
                             ≈ {providerCostRub.toFixed(2)} ₽
                           </span>
                         </div>
-                      </Table.Cell>
-                    ) : <Table.Cell className="hidden">{""}</Table.Cell>}
-                    <Table.Cell className="py-4 px-4">
+                      ) : <span className="sr-only">Rate hidden</span>}
+                    </Table.Cell>
+                    <Table.Cell key={`cell-price-${s.id}`} className="py-4 px-4">
                       {canEdit ? (
                         <InlinePriceCell service={s} usdToRub={usdToRub} />
                       ) : (
@@ -384,27 +386,27 @@ export function CatalogTable({
                         </div>
                       )}
                     </Table.Cell>
-                    <Table.Cell className="py-4 px-4 text-right hidden lg:table-cell">
+                    <Table.Cell key={`cell-orders-${s.id}`} className="py-4 px-4 text-right hidden lg:table-cell">
                       <span className="text-xs font-mono font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
                         {s.ordersCount.toLocaleString('ru-RU')}
                       </span>
                     </Table.Cell>
-                    <Table.Cell className="py-4 px-4 text-center">
+                    <Table.Cell key={`cell-status-${s.id}`} className="py-4 px-4 text-center">
                       {canEdit ? <StatusToggle service={s} /> : (
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.isActive ? 'bg-emerald-500/15 text-success' : 'bg-muted text-muted-foreground'}`}>
                           {s.isActive ? 'Вкл' : 'Выкл'}
                         </span>
                       )}
                     </Table.Cell>
-                    {canEdit ? (
-                      <Table.Cell className="py-4 px-2">
-                        <ArchiveButton service={s} />
-                      </Table.Cell>
-                    ) : <Table.Cell className="hidden">{""}</Table.Cell>}
+                    <Table.Cell key={`cell-actions-${s.id}`} className={canEdit ? "py-4 px-2" : "hidden"}>
+                      {canEdit ? <ArchiveButton service={s} /> : <span className="sr-only">Actions hidden</span>}
+                    </Table.Cell>
                   </Table.Row>
                 );
               })}
-            </Table.Body>
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
           </Table>
         </div>
       </div>

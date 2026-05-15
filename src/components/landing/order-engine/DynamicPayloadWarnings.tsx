@@ -20,10 +20,35 @@ export function DynamicPayloadWarnings({ engine }: DynamicPayloadWarningsProps) 
     : isPoll ? 'Номер варианта ответа' 
     : null;
 
-  if (!customFieldLabel && !isLiveStream && !isPrivateChannel) return null;
+  // --- WAVE 4.2 CROSS-PLATFORM MISMATCH PROTECTION ---
+  let isMismatch = false;
+  let activeNetworkName = "";
+  if (engine.platform && engine.networkId) {
+    const activeNetwork = engine.catalog.find(n => n.id === engine.networkId);
+    if (activeNetwork) {
+      const detectedPlatform = engine.platform.toLowerCase();
+      const selectedPlatform = activeNetwork.slug.toLowerCase();
+      if (!selectedPlatform.includes(detectedPlatform) && !detectedPlatform.includes(selectedPlatform)) {
+        isMismatch = true;
+        activeNetworkName = activeNetwork.name;
+      }
+    }
+  }
+
+  if (!customFieldLabel && !isLiveStream && !isPrivateChannel && !isMismatch) return null;
 
   return (
     <div className="bg-background/50 p-6 md:px-8 flex flex-col gap-4">
+      {isMismatch && (
+         <div className="w-full bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+           <Zap className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
+           <div className="text-sm">
+             <p className="font-bold">Критическое несовпадение платформы!</p>
+             <p className="mt-1 opacity-90">Вы вставили ссылку для <strong>{engine.platform}</strong>, но пытаетесь заказать услугу для <strong>{activeNetworkName}</strong>. Заказ заблокирован, пожалуйста, исправьте ссылку или выберите правильную соцсеть.</p>
+           </div>
+         </div>
+      )}
+
       {isLiveStream && (
          <div className="w-full bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 flex items-start gap-3">
            <Zap className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />

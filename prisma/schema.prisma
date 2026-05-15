@@ -399,9 +399,19 @@ model TicketMessage {
   mediaUrl  String? // relative path to uploaded file
   mediaType String? // "image", "audio", "video"
 
+  replyToId     String?
+  replyTo       TicketMessage?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies       TicketMessage[] @relation("MessageReplies")
+  
+  telegramMsgId String?
+  isDeleted     Boolean         @default(false)
+  isEdited      Boolean         @default(false)
+  originalText  String?
+
   createdAt DateTime @default(now())
 
   @@index([ticketId])
+  @@index([telegramMsgId])
 }
 
 model Page {

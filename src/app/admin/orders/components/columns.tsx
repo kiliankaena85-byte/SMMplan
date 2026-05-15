@@ -22,6 +22,7 @@ export type OrderColumn = {
   providerCost: number;
   createdAt: Date;
   isDripFeed: boolean;
+  dripExternalIds: string[];
   runs: number | null;
   interval: number | null;
   currentRun: number;
@@ -265,6 +266,18 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
                 <div className="flex flex-col mt-1">
                   <span className="text-muted-foreground">Комментарий провайдера:</span>
                   <span className="text-destructive break-words font-mono mt-0.5">{order.error}</span>
+                </div>
+              )}
+              {order.isDripFeed && order.dripExternalIds && order.dripExternalIds.length > 0 && (
+                <div className="flex flex-col mt-1.5">
+                  <span className="text-muted-foreground">История запусков (Drip):</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {order.dripExternalIds.map((id, idx) => (
+                      <span key={idx} className="bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                        #{id}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

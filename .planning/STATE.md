@@ -1,9 +1,9 @@
 ## Current Position
 
-Milestone: v3.0 Admin Panel MVP
-Phase: 2. Core Operations & Marketing (Completed)
-Status: COMPLETED
-Last activity: 2026-04-30 — Full overhaul of Marketing, Finance, and System Settings with RBAC, DataTable, and HeroUI.
+Milestone: v3.1 Post-MVP Enhancements
+Phase: Production Hardening & Testing
+Status: IN PROGRESS
+Last activity: 2026-05-15 — Catalog UI stabilization (HeroUI v3 strict collections), Playwright E2E verification of Safety Floor logic.
 
 ### Done:
 - [x] Sidebar grouping (Operations, Finance, Core, System).
@@ -16,10 +16,10 @@ Last activity: 2026-04-30 — Full overhaul of Marketing, Finance, and System Se
 - [x] Marketing: Refined Promocodes & Referrals with interactive UI.
 - [x] Finance: Dashboard overhaul (KPIs, Ledger DataTable, Escrow Quarantine).
 - [x] Settings: Reorganized System/Integrations/Team/Audit tabs with improved UX.
+- [x] Analytics: Service-level profitability charts & LTV tables.
+- [x] Tickets: Complete refactoring to HeroUI (AI-assisted replies abandoned per architectural decision).
+- [x] Provider Sync Hardening: Webhook routing integration (VexBoost).
 
 ### Next:
-- [ ] Implement Advanced Analytics (Service-level profitability charts).
-- [ ] Tickets/Support module refactoring (AI-assisted replies).
-- [ ] Provider Sync Hardening (Webhook support for VexBoost).
-- [ ] Production deployment prep (CI/CD pipeline refinement).
-
+- [ ] E2E Testing Coverage Expansion (beyond Catalog).
+- [ ] Phase 2: Production Hardening (Docker, CI/CD, Linux Migration).
