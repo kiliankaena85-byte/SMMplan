@@ -83,7 +83,7 @@ export default async function DashboardPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Balance */}
-        <div className="bg-card shadow-sm border border-border rounded-2xl p-4 flex flex-col gap-2">
+        <div className="bg-card shadow-sm border border-border/60 rounded-2xl p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Баланс
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Total spent */}
-        <div className="bg-card shadow-sm border border-border rounded-2xl p-4 flex flex-col gap-2">
+        <div className="bg-card shadow-sm border border-border/60 rounded-2xl p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Потрачено
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Active orders */}
-        <div className="bg-card shadow-sm border border-border rounded-2xl p-4 flex flex-col gap-2">
+        <div className="bg-card shadow-sm border border-border/60 rounded-2xl p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               В работе
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Referrals */}
-        <div className="bg-card shadow-sm border border-border rounded-2xl p-4 flex flex-col gap-2">
+        <div className="bg-card shadow-sm border border-border/60 rounded-2xl p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Рефералы
@@ -158,13 +158,15 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
           href="/dashboard/new-order"
-          className="group bg-primary text-primary-foreground rounded-2xl p-6 flex items-center justify-between hover:bg-primary/90 hover:shadow-lg transition-all shadow-sm"
+          className="group bg-card border border-border/60 rounded-2xl p-6 flex items-center justify-between hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
         >
           <div>
-            <div className="font-bold text-lg tracking-tight mb-0.5">Новый заказ</div>
-            <div className="text-sm font-medium opacity-90">Накрутка подписчиков, просмотров</div>
+            <div className="font-bold text-lg text-foreground tracking-tight mb-0.5 group-hover:text-primary transition-colors">Новый заказ</div>
+            <div className="text-sm text-muted-foreground font-medium">Накрутка подписчиков, просмотров</div>
           </div>
-          <ShoppingCart className="w-8 h-8 opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+            <ShoppingCart className="w-6 h-6" />
+          </div>
         </Link>
 
         {user.referralCode && (
@@ -199,7 +201,7 @@ export default async function DashboardPage() {
               Все заказы <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-          <div className="bg-card shadow-sm border border-border rounded-2xl overflow-hidden">
+          <div className="bg-card shadow-sm border border-border/60 rounded-2xl overflow-hidden">
             {orders.map((order) => {
               const color = STATUS_COLOR[order.status] || STATUS_COLOR.CANCELED;
               const label = STATUS_LABEL[order.status] || order.status;

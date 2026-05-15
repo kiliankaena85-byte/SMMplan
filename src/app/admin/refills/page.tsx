@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { Card, CardContent } from '@/components/admin/hero-ui';
+import { Card, CardContent, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
 import Link from 'next/link';
 import { Package, RefreshCw } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/page-header';
@@ -58,7 +58,7 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
   const completedCount = await db.refill.count({ where: { status: 'COMPLETED' } });
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-slate-50/50 min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
       <AdminPageHeader
         icon={RefreshCw}
         title="Докрутки (Refills)"
@@ -66,12 +66,12 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
       />
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-1 bg-slate-200/50 p-1 rounded-xl w-max border border-slate-200">
+      <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-xl w-max border border-border">
         <Link 
           href="/admin/orders" 
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all",
-            "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+            "text-muted-foreground hover:text-foreground hover:bg-background/50"
           )}
         >
           <Package className="w-4 h-4" />
@@ -81,7 +81,7 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
           href="/admin/refills" 
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all",
-            "bg-white text-indigo-600 shadow-sm border border-slate-200"
+            "bg-background text-primary shadow-sm border border-border"
           )}
         >
           <RefreshCw className="w-4 h-4" />
@@ -94,7 +94,7 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
         <CardContent className="pt-6">
           <form className="flex gap-4">
             <select name="status" defaultValue={statusFilter}
-              className="px-4 py-2 text-sm border border-slate-200 rounded-md bg-white outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+              className="px-4 py-2 text-sm border border-border rounded-md bg-background outline-none focus:ring-2 focus:ring-primary focus:border-primary">
               <option value="ALL">Все статусы</option>
               {Object.entries(STATUS_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
@@ -110,54 +110,55 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
       {/* Refills Table */}
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Refill ID</th>
-                  <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Заказ</th>
-                  <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Клиент</th>
-                  <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Услуга</th>
-                  <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Статус</th>
-                  <th className="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right hidden lg:table-cell">Дата</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+          <div className="w-full">
+            <Table aria-label="Заявки на докрутку (Refills)">
+              <TableHeader>
+                <TableColumn>REFILL ID</TableColumn>
+                <TableColumn>ЗАКАЗ</TableColumn>
+                <TableColumn>КЛИЕНТ</TableColumn>
+                <TableColumn>УСЛУГА</TableColumn>
+                <TableColumn className="text-right">СТАТУС</TableColumn>
+                <TableColumn className="text-right">ДАТА</TableColumn>
+              </TableHeader>
+              <TableBody renderEmptyState={() => "Нет заявок на докрутку"}>
                 {refills.map(r => (
-                  <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-4 px-6 font-mono text-xs font-bold text-slate-900">#{r.numericId}</td>
-                    <td className="py-4 px-4">
-                      <Link href={`/admin/orders?q=${r.order.numericId}`}
-                        className="text-sky-600 hover:text-sky-800 text-xs font-mono font-bold">
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <span className="font-mono text-xs font-bold text-foreground">#{r.numericId}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/admin/orders?q=${r.order.numericId}`} className="text-primary hover:underline text-xs font-mono font-bold">
                         #{r.order.numericId}
                       </Link>
-                    </td>
-                    <td className="py-4 px-4 text-xs font-mono text-slate-500 hidden sm:table-cell">{r.order.user.email}</td>
-                    <td className="py-4 px-4 text-xs font-semibold text-slate-800 max-w-[200px] truncate">{r.order.service.name}</td>
-                    <td className="py-4 px-4 text-right">
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs font-mono text-muted-foreground">{r.order.user.email}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs font-semibold text-foreground max-w-[200px] truncate block">{r.order.service.name}</span>
+                    </TableCell>
+                    <TableCell>
                       <span className={`inline-flex items-center px-2 py-0.5 text-[10px] uppercase font-bold rounded-md border ${
-                        r.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                        r.status === 'ERROR' || r.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
-                        'bg-sky-50 text-sky-700 border-sky-100'
+                        r.status === 'COMPLETED' ? 'bg-success/10 text-emerald-700 border-emerald-100' :
+                        r.status === 'ERROR' || r.status === 'REJECTED' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                        'bg-primary/10 text-primary border-primary/20'
                       }`}>
                         {STATUS_LABELS[r.status] || r.status}
                       </span>
-                    </td>
-                    <td className="py-4 px-6 text-[11px] text-slate-500 text-right font-medium hidden lg:table-cell">
-                      {r.createdAt.toLocaleDateString('ru-RU')}
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        {r.createdAt.toLocaleDateString('ru-RU')}
+                      </span>
+                    </TableCell>
+                  </TableRow>
                 ))}
-                {refills.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">Нет заявок на докрутку</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+

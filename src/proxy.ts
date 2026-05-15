@@ -25,7 +25,20 @@ export async function proxy(req: Request) {
     }
   }
   
-  return NextResponse.next();
+  const ref = url.searchParams.get('ref');
+  let response = NextResponse.next();
+
+  if (ref) {
+    response.cookies.set('ref', ref, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+  }
+
+  return response;
 }
 
 // See "Matching Paths" below to learn more

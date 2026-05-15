@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -14,7 +14,29 @@ import { Badge } from '@/components/ui/badge';
 import { updateSupportLimit } from '@/actions/admin/team';
 import { updateUserRole } from '@/actions/admin/settings';
 import { toast } from 'sonner';
-import { Search, ShieldAlert, UserPlus } from 'lucide-react';
+import { Table } from '@heroui/react';
+import { Search, ShieldAlert, UserPlus, Loader2 } from 'lucide-react';
+import { useFormStatus } from 'react-dom';
+
+function SubmitButton({ label, className }: { label: string, className?: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button disabled={pending} type="submit" size="sm" intent="outline" className={className}>
+      {pending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+      {label}
+    </Button>
+  );
+}
+
+function SearchButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button disabled={pending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 px-8 shadow-md">
+      {pending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+      Найти
+    </Button>
+  );
+}
 
 interface TeamManagementProps {
   staffUsers: any[];
@@ -49,38 +71,38 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
   return (
     <div className="space-y-8">
       {/* Staff Limits */}
-      <Card className="rounded-2xl border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl">
+      <Card className="rounded-2xl border-border shadow-sm bg-card/60 backdrop-blur-xl">
         <div className="p-8 space-y-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-rose-100 text-rose-600 rounded-lg">
+            <div className="p-2 bg-destructive/20 text-destructive rounded-lg">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-slate-800">Команда и Escrow Guard</h3>
-              <p className="text-[11px] text-slate-500 font-medium">Дневные лимиты (в копейках) на ручные корректировки баланса.</p>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Команда и Escrow Guard</h3>
+              <p className="text-[11px] text-muted-foreground font-medium">Дневные лимиты (в копейках) на ручные корректировки баланса.</p>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm font-medium text-slate-700">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-widest text-slate-400 border-b border-slate-100/60 bg-slate-50/30">
-                  <th className="py-3 px-6 font-bold">Email</th>
-                  <th className="py-3 px-4 font-bold">Роль</th>
-                  <th className="py-3 px-4 font-bold text-right">Дневной лимит (коп.)</th>
-                  <th className="py-3 px-6 font-bold text-right">Действие</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="w-full">
+            <Table aria-label="Команда и Escrow Guard">
+              <Table.Header>
+                <Table.Column>EMAIL</Table.Column>
+                <Table.Column>РОЛЬ</Table.Column>
+                <Table.Column className="text-right">ДНЕВНОЙ ЛИМИТ (КОП.) И ДЕЙСТВИЕ</Table.Column>
+              </Table.Header>
+              {/* @ts-ignore */}
+              <Table.Body emptyContent="Сотрудников нет">
                 {staffUsers.map((u) => (
-                  <tr key={u.id} className="border-b border-slate-100/30 hover:bg-slate-50/80 transition-colors last:border-0 group">
-                    <td className="py-4 px-6 font-mono text-xs font-bold text-slate-900">{u.email}</td>
-                    <td className="py-4 px-4">
-                      <Badge className={`font-bold text-[10px] uppercase ${u.role === 'OWNER' ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}>
+                  <Table.Row key={u.id}>
+                    <Table.Cell>
+                      <span className="font-mono text-xs font-bold text-foreground">{u.email}</span>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge className={`font-bold text-[10px] uppercase ${u.role === 'OWNER' ? 'bg-destructive/20 text-destructive border-destructive/30' : 'bg-emerald-500/20 text-success border-emerald-500/30'}`}>
                         {u.role}
                       </Badge>
-                    </td>
-                    <td className="py-4 px-4 text-right" colSpan={2}>
+                    </Table.Cell>
+                    <Table.Cell>
                       <form action={handleUpdateLimit} className="flex gap-2 items-center justify-end">
                         <input type="hidden" name="userId" value={u.id} />
                         <Input 
@@ -89,36 +111,34 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
                           defaultValue={u.supportLimitCents || 0} 
                           className="w-32 text-right font-mono font-bold"
                         />
-                        <Button type="submit" size="sm" intent="outline" className="font-bold text-[10px] uppercase tracking-wider h-8">
-                          Сохранить
-                        </Button>
+                        <SubmitButton label="Сохранить" className="font-bold text-[10px] uppercase tracking-wider h-8" />
                       </form>
-                    </td>
-                  </tr>
+                    </Table.Cell>
+                  </Table.Row>
                 ))}
-              </tbody>
-            </table>
+              </Table.Body>
+            </Table>
           </div>
         </div>
       </Card>
 
       {/* Role Assignment */}
-      <Card className="rounded-2xl border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl">
+      <Card className="rounded-2xl border-border shadow-sm bg-card/60 backdrop-blur-xl">
         <div className="p-8 space-y-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-sky-100 text-sky-600 rounded-lg">
+            <div className="p-2 bg-primary/20 text-primary rounded-lg">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-slate-800">Назначение ролей</h3>
-              <p className="text-[11px] text-slate-500 font-medium">Поиск и перевод клиентов в категорию персонала.</p>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Назначение ролей</h3>
+              <p className="text-[11px] text-muted-foreground font-medium">Поиск и перевод клиентов в категорию персонала.</p>
             </div>
           </div>
 
           <form className="flex gap-3 mb-6" action="/admin/settings" method="GET">
             <input type="hidden" name="tab" value="team" />
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 type="text" 
                 name="q" 
@@ -127,25 +147,24 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
                 className="pl-10"
               />
             </div>
-            <Button type="submit" className="font-bold uppercase tracking-widest text-xs h-10 px-8 shadow-md">
-              Найти
-            </Button>
+            <SearchButton />
           </form>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm font-medium text-slate-700">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-widest text-slate-400 border-b border-slate-100/60 bg-slate-50/30">
-                  <th className="py-3 px-6 font-bold">Клиент</th>
-                  <th className="py-3 px-6 font-bold text-right">Сменить роль</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="w-full">
+            <Table aria-label="Назначение ролей">
+              <Table.Header>
+                <Table.Column>КЛИЕНТ</Table.Column>
+                <Table.Column className="text-right">СМЕНИТЬ РОЛЬ</Table.Column>
+              </Table.Header>
+              {/* @ts-ignore */}
+              <Table.Body emptyContent={searchQuery ? "Пользователь не найден" : "Начните поиск по email для смены роли"}>
                 {regularUsers.map((u) => (
-                  <tr key={u.id} className="border-b border-slate-100/30 hover:bg-slate-50/80 transition-colors last:border-0 group">
-                    <td className="py-4 px-6 text-xs font-mono font-bold text-slate-900">{u.email}</td>
-                    <td className="py-4 px-6 flex justify-end">
-                      <form action={handleUpdateRole} className="flex gap-2 items-center">
+                  <Table.Row key={u.id}>
+                    <Table.Cell>
+                      <span className="text-xs font-mono font-bold text-foreground">{u.email}</span>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <form action={handleUpdateRole} className="flex gap-2 items-center justify-end">
                         <input type="hidden" name="userId" value={u.id} />
                         <Select name="role" defaultValue={u.role}>
                           <SelectTrigger className="w-32" size="sm">
@@ -157,25 +176,13 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
                             <SelectItem value="MANAGER">MANAGER</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button type="submit" intent="outline" className="text-[10px] font-bold uppercase tracking-wider h-8">
-                          Назначить
-                        </Button>
+                        <SubmitButton label="Назначить" className="text-[10px] font-bold uppercase tracking-wider h-8" />
                       </form>
-                    </td>
-                  </tr>
+                    </Table.Cell>
+                  </Table.Row>
                 ))}
-                {regularUsers.length === 0 && searchQuery && (
-                  <tr>
-                    <td colSpan={2} className="py-12 text-center text-slate-400 font-medium tracking-wide">Пользователь не найден</td>
-                  </tr>
-                )}
-                {regularUsers.length === 0 && !searchQuery && (
-                  <tr>
-                    <td colSpan={2} className="py-12 text-center text-slate-400 font-medium tracking-wide italic opacity-60">Начните поиск по email для смены роли</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+              </Table.Body>
+            </Table>
           </div>
         </div>
       </Card>

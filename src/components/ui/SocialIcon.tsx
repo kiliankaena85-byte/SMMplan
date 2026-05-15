@@ -19,14 +19,20 @@ import {
   FaLinkedinIn,
   FaLine,
   FaPlay,
-  FaYandex
+  FaYandex,
+  FaSteam,
+  FaMediumM,
+  FaHeart,
+  FaVideo
 } from "react-icons/fa";
 import { 
   SiPinterest, 
   SiX, 
   SiSpotify, 
   SiSoundcloud,
-  SiWechat
+  SiWechat,
+  SiKick,
+  SiThreads
 } from "react-icons/si";
 
 interface SocialIconProps {
@@ -70,8 +76,14 @@ export function SocialIcon({ slug, className = "", size = 24, colored = true }: 
   if (norm.includes('yandex')) return <FaYandex {...iconProps('#FC3F1D')} />;
   if (norm.includes('rutube')) return <FaPlay {...iconProps('#00A6DF')} />;
   
-  // Dzen doesn't have an official si font yet, we'll use yandex or a generic styled letter, Globe is safest
-  // Likee / Kwai don't have widespread font support outside custom SVGs, they will safely fallback to the Globe icon
+  // Expanded Niche Networks
+  if (norm.includes('kick')) return <SiKick {...iconProps('#53FC18')} />;
+  if (norm.includes('steam')) return <FaSteam {...iconProps('#171A21')} />;
+  if (norm.includes('threads')) return <SiThreads {...iconProps('#000000')} />;
+  if (norm.includes('medium')) return <FaMediumM {...iconProps('#000000')} />;
+  if (norm.includes('dzen') || norm.includes('дзен')) return <FaYandex {...iconProps('#FC3F1D')} />;
+  if (norm.includes('likee')) return <FaHeart {...iconProps('#FF0050')} />;
+  if (norm.includes('kwai')) return <FaVideo {...iconProps('#FF7E00')} />;
 
   return <FaGlobe {...iconProps('#64748b')} />;
 }

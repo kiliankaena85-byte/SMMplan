@@ -51,10 +51,10 @@ const ADMIN_NAVIGATION = [
 ];
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  OWNER:   { label: 'Владелец',  color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+  OWNER:   { label: 'Владелец',  color: 'bg-primary/20 text-indigo-300 border-primary/30' },
   ADMIN:   { label: 'Админ',     color: 'bg-sky-500/20 text-sky-400 border-sky-500/30' },
   MANAGER: { label: 'Менеджер',  color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
-  SUPPORT: { label: 'Саппорт',   color: 'bg-slate-500/40 text-slate-300 border-slate-500/30' },
+  SUPPORT: { label: 'Саппорт',   color: 'bg-muted/500/40 text-slate-300 border-slate-500/30' },
 };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -83,11 +83,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     })
   })).filter(group => group.items.length > 0);
 
-  const roleInfo = ROLE_LABELS[user.role] || { label: user.role, color: 'bg-slate-100 text-slate-800' };
+  const roleInfo = ROLE_LABELS[user.role] || { label: user.role, color: 'bg-muted text-foreground' };
   const isTestMode = await SettingsManager.isTestMode();
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-slate-50 flex flex-col md:flex-row relative selection:bg-sky-100 selection:text-sky-900">
+    <div className="h-screen w-full overflow-hidden bg-muted/50 flex flex-col md:flex-row relative selection:bg-sky-100 selection:text-sky-900">
       {/* Soft Ambient Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-sky-50/40 via-slate-50/80 to-blue-50/30 pointer-events-none z-0" />
 
@@ -103,7 +103,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-sky-400">
             Smmplan
           </h2>
-          <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">{roleInfo.label}</span>
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{roleInfo.label}</span>
         </div>
       </aside>
 
@@ -119,12 +119,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 <span className="text-amber-100 text-xs ml-2">Заказы не отправляются провайдерам. Ghost Proxy перехватывает трафик.</span>
               </div>
             </div>
-            <a href="/admin/settings?tab=system" className="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors">
+            <a href="/admin/settings?tab=system" className="text-xs font-bold bg-background/20 hover:bg-background/30 px-3 py-1 rounded-lg transition-colors">
               Выключить →
             </a>
           </div>
         )}
-        <main className="flex-1 rounded-2xl bg-white/95 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/50 overflow-x-hidden overflow-y-auto scrollbar-hide relative transition-all duration-300">
+        <main className="flex-1 rounded-2xl bg-background/95 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border/50 overflow-x-hidden overflow-y-auto scrollbar-hide relative transition-all duration-300">
           <div className="min-h-full p-4 md:p-8 lg:p-10">
             {children}
           </div>

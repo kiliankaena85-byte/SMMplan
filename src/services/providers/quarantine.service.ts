@@ -3,6 +3,39 @@ import { sendAdminAlert } from '@/lib/notifications';
 
 export class QuarantineService {
     /**
+     * Trigger A: High API Failure Rate (Immediate API Errors)
+     * Tracks failures (timeouts, 500s) via Redis. >= 5 errors in 1h = Quarantine.
+     */
+    static async evaluateTriggerA(serviceId: string, errorDetails: string) {
+        try {
+            const { redis } = await import('@/lib/redis');
+            if (!redis) return;
+
+            const key = `quarantine:trigger_a:${serviceId}`;
+            const fails = await redis.incr(key);
+            
+            if (fails === 1) {
+                await redis.expire(key, 3600); // 1 hour window
+            }
+
+            if (fails >= 5) {
+                const service = await db.service.findUnique({ where: { id: serviceId }, select: { id: true, name: true, cooldownUntil: true }});
+                if (service && (!service.cooldownUntil || service.cooldownUntil < new Date())) {
+                     const newCooldown = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h cooldown
+                     await db.service.update({
+                         where: { id: service.id },
+                         data: { cooldownUntil: newCooldown, cooldownReason: 'HIGH_API_FAILURES' }
+                     });
+                     console.warn(`[ElasticQuarantine] Trigger A fired for Service ${service.id}. API Failures >= 5.`);
+                     await sendAdminAlert(`🚨 [Quarantine] Услуга ${service.id} (${service.name}) ушла в карантин!\nПричина: Высокий уровень ошибок API (5+ сбоев за час).\nПоследняя ошибка: ${errorDetails}`);
+                }
+            }
+        } catch (error) {
+            console.error(`[QuarantineService] Failed to evaluate Trigger A for ${serviceId}:`, error);
+        }
+    }
+
+    /**
      * Trigger B: Delayed Cancellation (Silent Failure)
      * Evaluates if a service should be quarantined based on recent cancellations.
      * Rule: In the last 12 hours of order creation, >= 5 CANCELED orders from >= 3 distinct users,
@@ -61,6 +94,49 @@ export class QuarantineService {
 
         } catch (error) {
             console.error(`[QuarantineService] Failed to evaluate Trigger B for ${serviceId}:`, error);
+        }
+    }
+
+    /**
+     * Trigger C: Stuck Orders (Ghosting)
+     * 🟨 YELLOW ALERT ONLY: Sends Telegram notification if orders are piling up, but NO auto-quarantine.
+     * Rule: >= 5 orders stuck in PENDING or IN_PROGRESS for more than 24 hours.
+     */
+    static async evaluateTriggerC() {
+        try {
+            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            
+            const stuckOrders = await db.order.groupBy({
+                by: ['serviceId'],
+                where: {
+                    status: { in: ['PENDING', 'IN_PROGRESS'] },
+                    createdAt: { lt: twentyFourHoursAgo }
+                },
+                _count: { id: true }
+            });
+
+            for (const group of stuckOrders) {
+                if (group._count.id >= 5) {
+                    const service = await db.service.findUnique({ where: { id: group.serviceId }, select: { id: true, name: true }});
+                    if (service) {
+                        // Prevent spamming alerts every 2 minutes: check Redis if we already alerted
+                        const { redis } = await import('@/lib/redis');
+                        if (redis) {
+                            const alertKey = `alert:stuck_orders:${service.id}`;
+                            const alreadyAlerted = await redis.get(alertKey);
+                            if (alreadyAlerted) continue;
+                            
+                            // Set lock for 12 hours so we don't spam the admin
+                            await redis.set(alertKey, '1', 'EX', 12 * 60 * 60);
+                        }
+
+                        console.warn(`[ElasticQuarantine] Trigger C fired for Service ${service.id}. Stuck orders: ${group._count.id}. (ALERT ONLY)`);
+                        await sendAdminAlert(`🟨 [Очередь] Услуга ${service.id} (${service.name}) задерживается.\nВ очереди висят ${group._count.id} заказов более 24 часов.\nВозможно, у провайдера очередь. Автоотключение НЕ применялось.`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('[QuarantineService] Failed to evaluate Trigger C:', error);
         }
     }
 

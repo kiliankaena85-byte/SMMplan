@@ -25,8 +25,8 @@ interface OrdersChartProps {
 export function OrdersChart({ data }: OrdersChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-[280px] w-full mt-4 flex items-center justify-center border-2 border-dashed border-slate-100 rounded-xl">
-        <p className="text-sm font-medium text-slate-400">Нет данных для отображения</p>
+      <div className="h-[280px] w-full mt-4 flex items-center justify-center border-2 border-dashed border-border/50 rounded-xl">
+        <p className="text-sm font-medium text-muted-foreground">Нет данных для отображения</p>
       </div>
     );
   }
@@ -73,9 +73,9 @@ export function OrdersChart({ data }: OrdersChartProps) {
              iconType="circle" 
              wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
              formatter={(value) => {
-               if (value === 'completed') return <span className="text-slate-600 font-medium">Выполнены</span>;
-               if (value === 'canceled') return <span className="text-slate-600 font-medium">Отменены</span>;
-               if (value === 'unpaid') return <span className="text-slate-600 font-medium">Не оплачены</span>;
+               if (value === 'completed') return <span className="text-muted-foreground font-medium">Выполнены</span>;
+               if (value === 'canceled') return <span className="text-muted-foreground font-medium">Отменены</span>;
+               if (value === 'unpaid') return <span className="text-muted-foreground font-medium">Не оплачены</span>;
                return value;
              }}
           />

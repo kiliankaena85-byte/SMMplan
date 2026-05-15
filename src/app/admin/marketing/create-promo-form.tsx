@@ -31,19 +31,19 @@ export function CreatePromoForm() {
   }
 
   return (
-    <Card className="rounded-2xl border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl">
-      <CardHeader className="border-b border-slate-100/50 bg-slate-50/50 rounded-t-2xl pb-4">
-        <CardTitle className="text-slate-800 text-sm font-bold uppercase tracking-widest">Новый промокод</CardTitle>
+    <Card className="rounded-2xl border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
+      <CardHeader className="border-b border-border/50/50 bg-muted/50/50 rounded-t-2xl pb-4">
+        <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest">Новый промокод</CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
         <form action={action} ref={formRef} className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Код (до 12 символов)</Label>
-            <Input name="code" placeholder="WELCOME2026" required className="uppercase font-mono tracking-widest text-slate-900 bg-slate-50/50 border-slate-200" />
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Код (до 12 символов)</Label>
+            <Input name="code" placeholder="WELCOME2026" required className="uppercase font-mono tracking-widest text-foreground bg-muted/50/50 border-border" />
           </div>
           
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Тип бонуса</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Тип бонуса</Label>
             <Select name="type" defaultValue="DISCOUNT" onValueChange={(v) => v && setType(v)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Выберите тип" />
@@ -57,23 +57,23 @@ export function CreatePromoForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Процент (%)</Label>
-              <Input name="discountPercent" type="number" placeholder="10" defaultValue="0" disabled={type === 'VOUCHER'} className="bg-slate-50/50 font-mono tracking-widest" />
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Процент (%)</Label>
+              <Input name="discountPercent" type="number" placeholder="10" defaultValue="0" disabled={type === 'VOUCHER'} className="bg-muted/50/50 font-mono tracking-widest" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Сумма (₽)</Label>
-              <Input name="amount" type="number" placeholder="500" defaultValue="0" disabled={type === 'DISCOUNT'} className="bg-slate-50/50 font-mono tracking-widest" />
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Сумма (₽)</Label>
+              <Input name="amount" type="number" placeholder="500" defaultValue="0" disabled={type === 'DISCOUNT'} className="bg-muted/50/50 font-mono tracking-widest" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Лимит активаций</Label>
-            <Input name="maxUses" type="number" defaultValue="100" required className="bg-slate-50/50 font-mono tracking-widest" />
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Лимит активаций</Label>
+            <Input name="maxUses" type="number" defaultValue="100" required className="bg-muted/50/50 font-mono tracking-widest" />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Срок годности</Label>
-            <Input name="expiresAt" type="datetime-local" className="bg-slate-50/50 text-slate-700" />
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Срок годности</Label>
+            <Input name="expiresAt" type="datetime-local" className="bg-muted/50/50 text-foreground" />
           </div>
 
           <Button type="submit" className="w-full shadow-md font-bold uppercase tracking-wider text-xs">

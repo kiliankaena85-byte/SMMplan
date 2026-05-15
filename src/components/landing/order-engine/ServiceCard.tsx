@@ -29,10 +29,10 @@ export const ServiceCard = memo(function ServiceCard({
       className={`
         relative w-full p-4 md:p-6 rounded-3xl border text-left transition-all duration-300
         ${isSelected 
-          ? `${brand.gradient} shadow-lg border-transparent text-white md:-translate-y-1` 
-          : "bg-white border-slate-100 md:hover:border-sky-200 active:bg-slate-50 md:hover:-translate-y-1"
+          ? `bg-gradient-to-br ${brand.gradient} shadow-lg border-transparent text-white md:-translate-y-1` 
+          : "bg-white border-slate-100 md:hover:border-primary/30 active:bg-slate-50 md:hover:-translate-y-1"
         }
-        min-h-[120px] touch-manipulation focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2
+        min-h-[120px] touch-manipulation focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
       `}
       style={isSelected ? { boxShadow: `0 10px 25px -5px ${brand.shadow}` } : undefined}
     >

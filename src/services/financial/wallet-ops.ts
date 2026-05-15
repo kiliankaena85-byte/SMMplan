@@ -31,28 +31,34 @@ export const WalletOps = {
       }
     }
 
-    // 2. Fetch User with strict locking
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-      select: { id: true, balance: true },
-    });
-
-    if (!user) {
-      throw new Error(`User ${userId} not found.`);
-    }
-
-    // 3. Mathematical validation
-    if (user.balance < amountCents) {
-      throw new Error(`Insufficient funds: needed ${amountCents}, got ${user.balance}`);
-    }
-
-    // 4. Atomic decrement (Database Level)
-    const updatedUser = await tx.user.update({
-      where: { id: userId },
+    // 2. Atomic Check-and-Decrement (Optimistic Concurrency Control)
+    // We update ONLY if balance is sufficient. This prevents TOCTOU races.
+    const updatedUserBatch = await tx.user.updateMany({
+      where: { 
+        id: userId,
+        balance: { gte: amountCents }
+      },
       data: {
         balance: { decrement: amountCents },
         totalSpent: { increment: amountCents }
-      },
+      }
+    });
+
+    if (updatedUserBatch.count === 0) {
+      // Find out WHY it failed to provide a clear error message
+      const checkUser = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, balance: true },
+      });
+      if (!checkUser) {
+        throw new Error(`User ${userId} not found.`);
+      }
+      throw new Error(`Insufficient funds: needed ${amountCents}, got ${checkUser.balance}`);
+    }
+
+    // 3. Fetch the new balance safely within the same transaction lock
+    const finalUser = await tx.user.findUniqueOrThrow({
+      where: { id: userId },
       select: { balance: true }
     });
 
@@ -68,7 +74,7 @@ export const WalletOps = {
       }
     });
 
-    return { success: true, balance: updatedUser.balance, cached: false, entry };
+    return { success: true, balance: finalUser.balance, cached: false, entry };
   },
 
   /**

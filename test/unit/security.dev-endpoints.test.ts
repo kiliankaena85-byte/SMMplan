@@ -33,9 +33,9 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
     it('SEC-YOOKASSA-002: Blocks unauthenticated requests in dev', async () => {
       vi.stubEnv('NODE_ENV', 'test'); // non-production
 
-      // Mock requireAdmin to return unauthorized
+      // Mock requireStaffPermission to return unauthorized
       vi.doMock('@/lib/server/rbac', () => ({
-        requireAdmin: vi.fn().mockResolvedValue({ success: false, error: 'Unauthorized access' }),
+        requireStaffPermission: vi.fn().mockResolvedValue({ error: 'Unauthorized access' }),
       }));
 
       const { POST } = await import(
@@ -87,7 +87,9 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
       });
 
       const response = await POST(req);
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.error).toBe('Incorrect API key');
     });
 
     it('SEC-MOCK-003: Allows request with correct env-configured key in dev', async () => {

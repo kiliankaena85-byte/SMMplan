@@ -45,8 +45,8 @@ export function QuarantineList({ entries }: QuarantineListProps) {
   if (entries.length === 0) return null;
 
   return (
-    <div className="border-2 border-amber-200 bg-amber-50/50 rounded-2xl overflow-hidden shadow-sm animate-in slide-in-from-top duration-500">
-      <div className="px-6 py-4 flex items-center gap-4 border-b border-amber-200 bg-amber-100/50">
+    <div className="border-2 border-amber-200 bg-warning/10/50 rounded-2xl overflow-hidden shadow-sm animate-in slide-in-from-top duration-500">
+      <div className="px-6 py-4 flex items-center gap-4 border-b border-amber-200 bg-warning/20/50">
         <div className="p-2 bg-amber-200 text-amber-700 rounded-lg">
           <AlertTriangle className="w-5 h-5" />
         </div>
@@ -61,18 +61,18 @@ export function QuarantineList({ entries }: QuarantineListProps) {
       </div>
       <div className="divide-y divide-amber-100">
         {entries.map(entry => (
-          <div key={entry.id} className="px-6 py-4 flex items-center justify-between gap-6 hover:bg-amber-100/30 transition-colors">
+          <div key={entry.id} className="px-6 py-4 flex items-center justify-between gap-6 hover:bg-warning/20/30 transition-colors">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
                 <span className="font-black text-amber-900 text-base tabular-nums">
                   {(entry.amount / 100).toLocaleString('ru-RU')} ₽
                 </span>
-                <Badge intent="secondary" className="font-mono font-bold text-[10px] bg-amber-100 text-amber-700 border-amber-200">
+                <Badge intent="secondary" className="font-mono font-bold text-[10px] bg-warning/20 text-amber-700 border-amber-200">
                   {entry.userEmail}
                 </Badge>
               </div>
               <p className="text-xs text-amber-800 font-medium opacity-90">{entry.reason}</p>
-              <div className="flex items-center gap-2 text-[10px] text-amber-600 font-bold uppercase tracking-tighter">
+              <div className="flex items-center gap-2 text-[10px] text-warning font-bold uppercase tracking-tighter">
                 <span>Agent: {entry.adminId || 'System'}</span>
                 <span>•</span>
                 <span>{entry.createdAt.toLocaleString('ru-RU')}</span>

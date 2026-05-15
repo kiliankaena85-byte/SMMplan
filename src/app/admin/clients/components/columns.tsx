@@ -1,5 +1,6 @@
 'use client';
 
+
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -16,10 +17,10 @@ export type ClientColumn = {
 };
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  OWNER:   { label: 'Владелец', color: 'bg-amber-100 text-amber-800 border-transparent hover:bg-amber-100' },
-  ADMIN:   { label: 'Админ',   color: 'bg-indigo-100 text-indigo-800 border-transparent hover:bg-indigo-100' },
-  MANAGER: { label: 'Менеджер', color: 'bg-emerald-100 text-emerald-800 border-transparent hover:bg-emerald-100' },
-  SUPPORT: { label: 'Саппорт', color: 'bg-slate-200 text-slate-600 border-transparent hover:bg-slate-200' },
+  OWNER:   { label: 'Владелец', color: 'bg-warning/20 text-amber-800 border-transparent hover:bg-warning/20' },
+  ADMIN:   { label: 'Админ',   color: 'bg-primary/20 text-indigo-800 border-transparent hover:bg-primary/20' },
+  MANAGER: { label: 'Менеджер', color: 'bg-success/20 text-emerald-800 border-transparent hover:bg-success/20' },
+  SUPPORT: { label: 'Саппорт', color: 'bg-muted text-muted-foreground border-transparent hover:bg-muted' },
   USER:    { label: 'Клиент',  color: 'bg-sky-100 text-sky-800 border-transparent hover:bg-sky-100' },
   BANNED:  { label: 'Забанен', color: 'bg-red-100 text-red-800 border-transparent hover:bg-red-100' },
 };
@@ -45,7 +46,7 @@ export const columns: ColumnDef<ClientColumn>[] = [
     header: 'Роль',
     cell: ({ row }) => {
       const u = row.original;
-      const roleInfo = ROLE_LABELS[u.role] || { label: u.role, color: 'bg-slate-100 text-slate-800 border-transparent' };
+      const roleInfo = ROLE_LABELS[u.role] || { label: u.role, color: 'bg-muted text-foreground border-transparent' };
       return (
         <Badge intent="outline" className={`shadow-none font-medium px-2 py-0.5 text-[11px] uppercase tracking-wider ${roleInfo.color}`}>
           {roleInfo.label}
@@ -60,10 +61,10 @@ export const columns: ColumnDef<ClientColumn>[] = [
       const u = row.original;
       return (
         <div className="font-semibold text-xs">
-          {(u.balance / 100).toFixed(2)} ₽
-          {u.quarantineBalance > 0 && (
+          {(Number(u.balance) / 100).toFixed(2)} ₽
+          {Number(u.quarantineBalance) > 0 && (
             <span className="block text-[10px] text-orange-600 font-medium whitespace-nowrap mt-0.5">
-              🔒 {(u.quarantineBalance / 100).toFixed(2)} ₽
+              🔒 {(Number(u.quarantineBalance) / 100).toFixed(2)} ₽
             </span>
           )}
         </div>
@@ -74,7 +75,7 @@ export const columns: ColumnDef<ClientColumn>[] = [
     accessorKey: 'totalSpent',
     header: 'LTV (Прибыль)',
     cell: ({ row }) => {
-      return <div className="text-xs font-medium">{(row.original.totalSpent / 100).toLocaleString('ru-RU')} ₽</div>;
+      return <div className="text-xs font-medium">{(Number(row.original.totalSpent) / 100).toLocaleString('ru-RU')} ₽</div>;
     },
   },
   {

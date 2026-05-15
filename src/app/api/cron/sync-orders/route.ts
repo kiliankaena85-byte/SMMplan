@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     const lockKey = 'cron:sync-orders:lock';
     
     // Acquire lock for 2 minutes (prevent overlap starvation)
-    const acquired = await redis.set(lockKey, '1', 'NX', 'EX', 120);
+    const acquired = await redis.set(lockKey, '1', 'EX', 120, 'NX');
     if (!acquired) {
       console.warn('[SyncOrdersCron] Skipped. Another sync process is already running.');
       return NextResponse.json({ success: false, reason: 'overlap_prevented' }, { status: 200 });

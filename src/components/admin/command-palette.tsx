@@ -61,38 +61,38 @@ export function CommandPalette() {
       {/* Background click to close */}
       <div className="absolute inset-0" onClick={() => setOpen(false)} />
       
-      <div className="relative w-full max-w-xl bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200">
+      <div className="relative w-full max-w-xl bg-background rounded-xl shadow-2xl overflow-hidden border border-border">
         <Command label="Global Search" onKeyDown={(e) => {
            if (e.key === 'Escape') setOpen(false);
         }}>
-          <div className="flex items-center px-4 py-3 border-b border-slate-100">
-             <Search className="w-5 h-5 text-slate-400 mr-3" />
+          <div className="flex items-center px-4 py-3 border-b border-border/50">
+             <Search className="w-5 h-5 text-muted-foreground mr-3" />
              <Command.Input 
                autoFocus
                placeholder="Поиск по клиентам, заказам, или услугам (⌘K)..." 
                value={query}
                onValueChange={setQuery}
-               className="flex-1 bg-transparent outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+               className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground font-medium"
              />
-             {isPending && <Loader2 className="w-5 h-5 text-indigo-500 animate-spin ml-2" />}
+             {isPending && <Loader2 className="w-5 h-5 text-primary animate-spin ml-2" />}
           </div>
 
           <Command.List className="max-h-[60vh] overflow-y-auto p-2">
-            <Command.Empty className="p-4 text-center text-sm text-slate-500">
+            <Command.Empty className="p-4 text-center text-sm text-muted-foreground">
               {query.length < 2 ? 'Введите минимум 2 символа для поиска...' : 'Ничего не найдено.'}
             </Command.Empty>
 
             {hits.length > 0 && (
-              <Command.Group heading="Результаты" className="text-xs font-semibold text-slate-500 px-2 py-1 mb-2">
+              <Command.Group heading="Результаты" className="text-xs font-semibold text-muted-foreground px-2 py-1 mb-2">
                 {hits.map((hit) => (
                   <Command.Item 
                     key={hit.id} 
                     value={hit.title + hit.subtitle} // for internal filtering
                     onSelect={() => onSelectHit(hit.href)}
-                    className="flex flex-col gap-1 px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-100 aria-selected:bg-indigo-50 aria-selected:text-indigo-900"
+                    className="flex flex-col gap-1 px-3 py-2 rounded-lg cursor-pointer hover:bg-muted aria-selected:bg-primary/10 aria-selected:text-indigo-900"
                   >
-                    <span className="font-medium text-slate-900 aria-selected:text-indigo-900">{hit.title}</span>
-                    <span className="text-xs text-slate-500">{hit.subtitle}</span>
+                    <span className="font-medium text-foreground aria-selected:text-indigo-900">{hit.title}</span>
+                    <span className="text-xs text-muted-foreground">{hit.subtitle}</span>
                   </Command.Item>
                 ))}
               </Command.Group>
@@ -100,14 +100,14 @@ export function CommandPalette() {
 
             {/* Quick Actions Example */}
             {!query && (
-               <Command.Group heading="Быстрые действия" className="text-xs font-semibold text-slate-500 px-2 py-1">
-                 <Command.Item onSelect={() => onSelectHit('/admin/orders')} className="px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-100 aria-selected:bg-slate-100">
+               <Command.Group heading="Быстрые действия" className="text-xs font-semibold text-muted-foreground px-2 py-1">
+                 <Command.Item onSelect={() => onSelectHit('/admin/orders')} className="px-3 py-2 rounded-lg cursor-pointer hover:bg-muted aria-selected:bg-muted">
                    Перейти к Заказам
                  </Command.Item>
-                 <Command.Item onSelect={() => onSelectHit('/admin/providers')} className="px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-100 aria-selected:bg-slate-100">
+                 <Command.Item onSelect={() => onSelectHit('/admin/providers')} className="px-3 py-2 rounded-lg cursor-pointer hover:bg-muted aria-selected:bg-muted">
                    Управление Провайдерами
                  </Command.Item>
-                 <Command.Item onSelect={() => onSelectHit('/admin/settings?tab=team')} className="px-3 py-2 rounded-lg cursor-pointer hover:bg-slate-100 aria-selected:bg-slate-100">
+                 <Command.Item onSelect={() => onSelectHit('/admin/settings?tab=team')} className="px-3 py-2 rounded-lg cursor-pointer hover:bg-muted aria-selected:bg-muted">
                    Добавить сотрудника
                  </Command.Item>
                </Command.Group>
@@ -115,7 +115,7 @@ export function CommandPalette() {
           </Command.List>
         </Command>
         
-        <div className="bg-slate-50 border-t border-slate-100 p-2 px-4 flex justify-between text-[10px] text-slate-400">
+        <div className="bg-muted/50 border-t border-border/50 p-2 px-4 flex justify-between text-[10px] text-muted-foreground">
            <span>Используйте стрелки для навигации ↓ ↑</span>
            <span><code>Enter</code> чтобы открыть, <code>Esc</code> чтобы закрыть</span>
         </div>

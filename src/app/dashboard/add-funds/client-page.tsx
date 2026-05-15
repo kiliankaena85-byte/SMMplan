@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { createTopUpPaymentAction } from '@/actions/user/top-up.action';
-import { CreditCard, Banknote, Wallet } from 'lucide-react';
+import { activatePromoCodeAction } from '@/actions/user/promo';
+import { CreditCard, Banknote, Wallet, Gift, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const PRESETS = [300, 500, 1000, 2000, 5000, 10000];
 
@@ -12,11 +14,17 @@ const METHODS = [
 ] as const;
 
 export default function AddFundsPage() {
+  const router = useRouter();
   const [amount, setAmount]     = useState<number>(1000);
   const [method, setMethod]     = useState<'yookassa' | 'cryptobot'>('yookassa');
   const [error,  setError]      = useState<string | null>(null);
   const [consent, setConsent]   = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const [promoCode, setPromoCode] = useState('');
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
+  const [isPromoPending, startPromoTransition] = useTransition();
 
   function handlePreset(val: number) {
     setAmount(val);
@@ -43,6 +51,29 @@ export default function AddFundsPage() {
     });
   }
 
+  function handlePromoSubmit() {
+    if (!promoCode.trim()) {
+      setPromoError('Введите промокод');
+      return;
+    }
+    setPromoError(null);
+    setPromoSuccess(null);
+    startPromoTransition(async () => {
+      try {
+        const res = await activatePromoCodeAction(promoCode);
+        if (res.success) {
+          setPromoSuccess(`Промокод активирован! Начислено ${(res.amount / 100).toFixed(2)} ₽`);
+          setPromoCode('');
+          router.refresh(); // Refresh balance in header
+        } else {
+          setPromoError('Неизвестная ошибка при активации');
+        }
+      } catch (e: any) {
+        setPromoError(e.message || 'Ошибка активации');
+      }
+    });
+  }
+
   return (
     <div className="max-w-lg space-y-6 animate-in fade-in duration-500">
       <div>
@@ -52,7 +83,7 @@ export default function AddFundsPage() {
         </p>
       </div>
 
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-5">
+      <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-5 shadow-sm">
 
         {/* Amount presets */}
         <div>
@@ -178,6 +209,46 @@ export default function AddFundsPage() {
           <Wallet className="w-3 h-3" />
           Минимум 100 ₽ · Безопасная оплата через ЮKassa · Мгновенное зачисление
         </p>
+      </div>
+
+      {/* Promo Code Section */}
+      <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <Gift className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Подарочный код</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Активируйте купон для получения бонуса на баланс</p>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={promoCode}
+            onChange={e => setPromoCode(e.target.value.toUpperCase())}
+            placeholder="PROMOCODE"
+            className="flex-1 border border-border rounded-xl px-4 py-3 text-sm font-mono uppercase text-foreground bg-background outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+          />
+          <button
+            onClick={handlePromoSubmit}
+            disabled={isPromoPending || !promoCode.trim()}
+            className="px-6 bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 font-semibold rounded-xl transition-all duration-200"
+          >
+            {isPromoPending ? '...' : 'Применить'}
+          </button>
+        </div>
+
+        {promoError && (
+          <p className="text-xs text-rose-600 font-semibold">{promoError}</p>
+        )}
+        {promoSuccess && (
+          <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
+            <CheckCircle2 className="w-3 h-3" />
+            {promoSuccess}
+          </p>
+        )}
       </div>
     </div>
   );

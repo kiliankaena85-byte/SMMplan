@@ -17,15 +17,16 @@ import { useOptimistic, useTransition, useState } from 'react';
 import { setFeatureFlagState } from '@/actions/admin/feature-flags';
 import type { FeatureFlagDTO, FlagState } from '@/services/system/feature-flag.service';
 import { toast } from 'sonner';
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
 
 interface Props {
   initialFlags: FeatureFlagDTO[];
 }
 
 const STATE_CONFIG: Record<FlagState, { label: string; badge: string; next: FlagState }> = {
-  ON:   { label: 'Включён', badge: 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30', next: 'OFF' },
-  TEST: { label: 'Тест',    badge: 'bg-amber-500/15 text-amber-600 border border-amber-500/30', next: 'ON' },
-  OFF:  { label: 'Выключен', badge: 'bg-slate-200 text-slate-500 border border-slate-300', next: 'TEST' },
+  ON:   { label: 'Включён', badge: 'bg-emerald-500/15 text-success border border-emerald-500/30', next: 'OFF' },
+  TEST: { label: 'Тест',    badge: 'bg-amber-500/15 text-warning border border-amber-500/30', next: 'ON' },
+  OFF:  { label: 'Выключен', badge: 'bg-muted text-muted-foreground border border-border', next: 'TEST' },
 };
 
 const GROUPS = [
@@ -64,11 +65,11 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
       {/* Legend */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground bg-card border border-border rounded-xl p-4">
         <span className="font-medium text-foreground">Состояния:</span>
-        <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">Включён</span>
+        <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/15 text-success border border-emerald-500/30">Включён</span>
         <span>— работает для всех клиентов</span>
-        <span className="px-2 py-0.5 rounded-full text-xs bg-amber-500/15 text-amber-600 border border-amber-500/30">Тест</span>
+        <span className="px-2 py-0.5 rounded-full text-xs bg-amber-500/15 text-warning border border-amber-500/30">Тест</span>
         <span>— только для тестовых аккаунтов</span>
-        <span className="px-2 py-0.5 rounded-full text-xs bg-slate-200 text-slate-500 border border-slate-300">Выключен</span>
+        <span className="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground border border-border">Выключен</span>
         <span>— полностью отключён</span>
       </div>
 
@@ -82,25 +83,33 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
             <div className="px-6 py-3 border-b border-border bg-muted/30">
               <h2 className="text-sm font-semibold text-foreground">{group.label}</h2>
             </div>
-            <table className="w-full" aria-label={`Группа флагов: ${group.label}`}>
-              <tbody className="divide-y divide-border">
+            <Table aria-label={`Группа флагов: ${group.label}`}>
+              <TableHeader>
+                <TableColumn>ОПИСАНИЕ</TableColumn>
+                <TableColumn>КЛЮЧ</TableColumn>
+                <TableColumn>ИЗМЕНЕНО</TableColumn>
+                <TableColumn>ДЕЙСТВИЕ</TableColumn>
+              </TableHeader>
+              <TableBody>
                 {groupFlags.map(flag => {
                   const config = STATE_CONFIG[flag.state];
                   return (
-                    <tr key={flag.key} className="hover:bg-muted/20 transition-all duration-200">
-                      <td className="px-6 py-4">
+                    <TableRow key={flag.key}>
+                      <TableCell>
                         <div className="font-medium text-foreground text-sm">{flag.label}</div>
                         <div className="text-xs text-muted-foreground mt-0.5">{flag.description}</div>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-muted-foreground font-mono">
-                        {flag.key}
-                      </td>
-                      <td className="px-6 py-4 text-xs text-muted-foreground">
-                        {flag.updatedBy
-                          ? <span title={`Изменено: ${flag.updatedAt.toLocaleString('ru')}`}>{flag.updatedBy}</span>
-                          : '—'}
-                      </td>
-                      <td className="px-6 py-4 text-right">
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground font-mono">{flag.key}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {flag.updatedBy
+                            ? <span title={`Изменено: ${flag.updatedAt.toLocaleString('ru')}`}>{flag.updatedBy}</span>
+                            : '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
                         <button
                           onClick={() => handleToggle(flag)}
                           disabled={isPending}
@@ -116,12 +125,12 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
                         >
                           {config.label}
                         </button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         );
       })}

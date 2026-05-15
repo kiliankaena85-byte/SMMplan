@@ -55,7 +55,7 @@ export function EmailModal({
         {/* Context Link Display */}
         <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-3 mb-6 border border-slate-100">
            <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0 border border-slate-100">
-              <Link2 className="w-5 h-5 text-sky-500" />
+              <Link2 className="w-5 h-5 text-primary" />
            </div>
            <div className="min-w-0 flex-1">
               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest leading-none mb-1">Оформляется для</p>
@@ -71,7 +71,7 @@ export function EmailModal({
             onChange={e => setEmail(e.target.value)} 
             placeholder="you@example.com"
             autoFocus
-            className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-slate-200 bg-white text-[15px] font-semibold text-slate-800 placeholder-slate-400 focus:border-sky-400 focus:shadow-[0_8px_20px_-6px_rgba(14,165,233,0.15)] outline-none transition-all"
+            className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-slate-200 bg-white text-[15px] font-semibold text-slate-800 placeholder-slate-400 focus:border-primary/50 focus:shadow-[0_8px_20px_-6px] focus:shadow-primary/15 outline-none transition-all"
             onKeyDown={e => {
               if (e.key === 'Enter' && email.includes('@')) {
                 setShowEmailModal(false);

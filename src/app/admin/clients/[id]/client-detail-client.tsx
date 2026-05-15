@@ -112,7 +112,7 @@ export function ClientDetailClient({ user }: Props) {
               />
               <span className="text-sm text-muted-foreground">%</span>
               {discount > 0 && (
-                <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg font-medium">
+                <span className="text-xs px-2 py-1 bg-success/20 text-emerald-700 rounded-lg font-medium">
                   Клиент платит {(100 - discount).toFixed(0)}%
                 </span>
               )}

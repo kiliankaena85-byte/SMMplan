@@ -63,8 +63,8 @@ async function seedVolume() {
         serviceId: service.id,
         link: 'https://volume.test',
         quantity: 100,
-        charge: 100,
-        providerCharge: 50,
+        charge: BigInt(100),
+        providerCost: BigInt(50),
         status: 'COMPLETED' as const,
         externalId: externalId,
         createdAt: new Date(Date.now() - Math.floor(Math.random() * 10000000000)), // Randomize past dates
@@ -72,9 +72,8 @@ async function seedVolume() {
       
       ledgerData.push({
         userId: user.id,
-        amount: -100,
-        type: 'ORDER_FEE' as const,
-        description: `Volume order ${externalId}`,
+        amount: BigInt(-100),
+        reason: `Volume order ${externalId}`,
         createdAt: new Date(),
       });
     }

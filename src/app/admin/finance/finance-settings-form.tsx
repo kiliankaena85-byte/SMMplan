@@ -26,12 +26,12 @@ export function FinanceSettingsForm({ initialTaxRate, initialOpex }: FinanceSett
   }
 
   return (
-    <Card className="rounded-2xl border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl h-full">
+    <Card className="rounded-2xl border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl h-full">
       <div className="p-6 space-y-4">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-800">Параметры учёта</h3>
+        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Параметры учёта</h3>
         <form action={action} className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Ставка налога (%)
             </Label>
             <Input
@@ -42,7 +42,7 @@ export function FinanceSettingsForm({ initialTaxRate, initialOpex }: FinanceSett
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Ежемесячный OPEX (₽)
             </Label>
             <Input

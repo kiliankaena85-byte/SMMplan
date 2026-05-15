@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { approveQuarantinedService, rejectQuarantinedService, approveAllQuarantined } from '@/actions/admin/providers/sync-action';
 import { toast } from 'sonner';
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
 
 interface QuarantineItem {
   id: string;
@@ -96,18 +97,16 @@ export function QuarantineClient({ initialItems }: Props) {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <table className="w-full" aria-label="Услуги в карантине">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Услуга</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Причина</th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Текущая</th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Новая</th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Действие</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
+      <div className="bg-card border border-border rounded-xl overflow-hidden w-full">
+        <Table aria-label="Услуги в карантине">
+          <TableHeader>
+            <TableColumn>УСЛУГА</TableColumn>
+            <TableColumn>ПРИЧИНА</TableColumn>
+            <TableColumn className="text-right">ТЕКУЩАЯ</TableColumn>
+            <TableColumn className="text-right">НОВАЯ</TableColumn>
+            <TableColumn className="text-right">ДЕЙСТВИЕ</TableColumn>
+          </TableHeader>
+          <TableBody renderEmptyState={() => "Карантин пуст"}>
             {items.map(item => {
               const emoji = NETWORK_EMOJI[item.networkSlug] ?? '🌐';
               const priceDiff = item.pendingRate !== null
@@ -116,8 +115,8 @@ export function QuarantineClient({ initialItems }: Props) {
               const isRise = item.pendingRate !== null && item.pendingRate > item.currentRate;
 
               return (
-                <tr key={item.id} className="hover:bg-muted/20 transition-all duration-200">
-                  <td className="px-4 py-3">
+                <TableRow key={item.id}>
+                  <TableCell>
                     <div className="flex items-start gap-2">
                       <span className="text-base">{emoji}</span>
                       <div>
@@ -126,34 +125,34 @@ export function QuarantineClient({ initialItems }: Props) {
                         <div className="text-xs text-muted-foreground font-mono">#{item.externalId}</div>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell>
                     <span className="text-xs px-2 py-1 rounded-md bg-amber-500/10 text-amber-700 border border-amber-500/20">
                       {item.quarantineReason}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <span className="text-sm font-mono text-muted-foreground">
                       ${item.currentRate.toFixed(4)}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <div className="flex flex-col items-end gap-0.5">
-                      <span className={`text-sm font-mono font-semibold ${isRise ? 'text-rose-500' : 'text-emerald-500'}`}>
+                      <span className={`text-sm font-mono font-semibold ${isRise ? 'text-destructive' : 'text-success'}`}>
                         ${item.pendingRate?.toFixed(4) ?? '—'}
                       </span>
                       <span className={`text-xs ${isRise ? 'text-rose-400' : 'text-emerald-400'}`}>
                         {isRise ? '▲' : '▼'} {priceDiff}%
                       </span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <div className="flex items-center gap-2 justify-end">
                       <button
                         onClick={() => handleApprove(item)}
                         disabled={isPending}
                         aria-label={`Принять новую цену для ${item.name}`}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all duration-200 disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-success border border-emerald-500/30 hover:bg-emerald-500/25 transition-all duration-200 disabled:opacity-50"
                       >
                         ✅ Принять
                       </button>
@@ -161,18 +160,19 @@ export function QuarantineClient({ initialItems }: Props) {
                         onClick={() => handleReject(item)}
                         disabled={isPending}
                         aria-label={`Отклонить новую цену для ${item.name}`}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-200 text-slate-600 border border-slate-300 hover:bg-slate-300 transition-all duration-200 disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-slate-300 transition-all duration-200 disabled:opacity-50"
                       >
                         ✕ Отклонить
                       </button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
 }
+

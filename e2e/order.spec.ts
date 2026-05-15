@@ -1,42 +1,117 @@
 import { test, expect } from '@playwright/test';
+import { PrismaClient } from '@prisma/client';
 
 test.describe('Order Lifecycle', () => {
 
-  test('Single Order Form Renders', async ({ page }) => {
-    await page.goto('/dashboard/new-order');
-    // Ensure the main form renders
-    await expect(page.locator('form').first()).toBeVisible({ timeout: 15000 });
+  test.beforeAll(async () => {
+    const prisma = new PrismaClient();
     
-    // Check that we have a URL input
-    const linkInput = page.locator('input[type="url"], input[name="link"], input[placeholder*="ссылка" i], input[placeholder*="http" i]').first();
-    await expect(linkInput).toBeVisible();
+    // Ensure network exists
+    let network = await prisma.network.findUnique({ where: { slug: 'telegram' } });
+    if (!network) {
+      network = await prisma.network.create({ data: { name: 'Telegram', slug: 'telegram' } });
+    }
+    
+    // Ensure category exists
+    let category = await prisma.category.findFirst({ where: { networkId: network.id, name: 'E2E Telegram Category' } });
+    if (!category) {
+      category = await prisma.category.create({
+        data: { name: 'E2E Telegram Category', sort: 1, networkId: network.id }
+      });
+    }
+
+    // Ensure provider exists
+    let provider = await prisma.provider.findFirst({ where: { name: 'E2E Test Provider' } });
+    if (!provider) {
+      provider = await prisma.provider.create({
+        data: { name: 'E2E Test Provider', apiUrl: 'http://test.local', apiKey: 'test_key' }
+      });
+    }
+
+    // Ensure service exists
+    const service = await prisma.service.findFirst({ where: { name: 'E2E Telegram Service' } });
+    if (!service) {
+      await prisma.service.create({
+        data: {
+          name: 'E2E Telegram Service',
+          categoryId: category.id,
+          providerId: provider.id,
+          rate: 10.0,
+          markup: 50.0,
+          minQty: 10,
+          maxQty: 10000,
+          isQuarantined: false,
+          isActive: true,
+          externalId: '101'
+        }
+      });
+    }
+
+    await prisma.$disconnect();
   });
 
-  test('Drip-feed Order Options Render', async ({ page }) => {
+  test('User can create a new order via SmartOrderForm', async ({ page }) => {
+    // 1. Listen to console logs
+    page.on('console', msg => console.log(`[Browser]: ${msg.text()}`));
+    
+    // 1. Visit the order page
     await page.goto('/dashboard/new-order');
     
-    // Look for Drip-feed toggle or advanced settings
-    const advancedToggle = page.getByRole('button', { name: /Продвинутые настройки|Drip-feed|Постепенная/i }).first();
-    if (await advancedToggle.isVisible()) {
-      await advancedToggle.click();
-      await expect(page.getByText(/Количество запусков|Интервал|Runs|Interval/i).first()).toBeVisible();
-    }
-  });
+    // Ensure the main layout and input renders
+    await expect(page.locator('h1', { hasText: 'Новый заказ' })).toBeVisible();
+    
+    // 1. Input a URL
+    const urlInput = page.locator('input#order-url');
+    await expect(urlInput).toBeVisible();
+    await urlInput.fill('https://t.me/durov');
 
-  test('Mass Order Page Renders', async ({ page }) => {
-    // Some systems use /dashboard/mass-order, others use a tab on the new order page
-    const res = await page.goto('/dashboard/mass-order').catch(() => null);
-    if (res && res.status() !== 404) {
-      await expect(page.locator('textarea').first()).toBeVisible({ timeout: 10000 });
-    } else {
-      // Fallback: it might be a tab on the main order page
-      await page.goto('/dashboard/new-order');
-      const massOrderTab = page.getByRole('tab', { name: /Массовый|Mass/i }).first();
-      if (await massOrderTab.isVisible()) {
-        await massOrderTab.click();
-        await expect(page.locator('textarea').first()).toBeVisible();
-      }
+    // 2. Wait for categories/services to load and verify the first service option is auto-selected
+    // It should fetch data based on link analysis
+    const serviceOption = page.getByRole('option', { name: /E2E Telegram Service/i });
+    await expect(serviceOption).toBeVisible({ timeout: 15000 });
+    
+    // Wait for the option to be auto-selected by the hook logic
+    await expect(serviceOption).toHaveAttribute('aria-selected', 'true', { timeout: 5000 });
+
+    // 3. The checkout form should now appear on the right
+    const emailInput = page.locator('input[type="email"]');
+    await expect(emailInput).toBeVisible({ timeout: 10000 });
+    await emailInput.fill('e2e-tester@test.com');
+
+    // 4. Quantity Input check
+    const qtyInput = page.locator('input[type="number"]');
+    await expect(qtyInput).toBeVisible();
+    const initialQty = await qtyInput.inputValue();
+    expect(Number(initialQty)).toBeGreaterThan(0);
+
+    // 5. Select Balance Gateway
+    const balanceBtn = page.getByRole('button', { name: /Баланс/i });
+    await expect(balanceBtn).toBeVisible();
+    await balanceBtn.click();
+
+    // 6. Check "I agree to terms"
+    const termsCheckbox = page.locator('input[type="checkbox"]');
+    await termsCheckbox.check();
+
+    // 7. Verify the submit button is enabled
+    const submitBtn = page.getByRole('button', { name: /Создать заказ и перейти к оплате/i });
+    await expect(submitBtn).toBeEnabled();
+    
+    // Wait for calculations to finish
+    await expect(page.getByText('Считаем...')).toBeHidden();
+
+    // Proceed to checkout
+    await submitBtn.click();
+    
+    // Check for any form errors
+    const errorMsg = page.locator('p.text-red-500[role="alert"]');
+    if (await errorMsg.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const text = await errorMsg.textContent();
+      throw new Error(`Order submission failed with UI error: ${text}`);
     }
+
+    // We should be redirected to the success page (e.g., /dashboard/orders or a success screen)
+    await expect(page).toHaveURL(/dashboard\/orders|success/, { timeout: 10000 });
   });
 
 });

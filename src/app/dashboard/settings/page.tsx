@@ -48,12 +48,12 @@ export default async function ClientSettingsPage() {
   // Loyalty tier based on totalSpent
   const spent = Number(user.totalSpent) / 100;
   const tier = spent >= 50000
-    ? { name: 'Платиновый', color: 'text-purple-700 bg-purple-50 border-purple-200', icon: '💎' }
+    ? { name: 'Платиновый', color: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20', icon: '💎' }
     : spent >= 10000
-    ? { name: 'Золотой',    color: 'text-amber-700 bg-amber-50 border-amber-200',    icon: '🏆' }
+    ? { name: 'Золотой',    color: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',    icon: '🏆' }
     : spent >= 2000
-    ? { name: 'Серебряный', color: 'text-slate-600 bg-slate-50 border-slate-200',    icon: '⭐' }
-    : { name: 'Базовый',    color: 'text-muted-foreground bg-muted border-border',   icon: '🌱' };
+    ? { name: 'Серебряный', color: 'text-slate-600 dark:text-slate-400 bg-slate-500/10 border-slate-500/20',    icon: '⭐' }
+    : { name: 'Базовый',    color: 'text-muted-foreground bg-muted border-border/60',   icon: '🌱' };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -66,7 +66,7 @@ export default async function ClientSettingsPage() {
       </div>
 
       {/* Profile card */}
-      <div className="bg-card border border-border rounded-2xl p-5">
+      <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
         <div className="flex items-start gap-4">
           {/* Avatar */}
           <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl font-black uppercase shrink-0">
@@ -92,11 +92,11 @@ export default async function ClientSettingsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { icon: CreditCard, label: 'Баланс',       value: `${balanceRub} ₽`,        color: 'text-primary bg-primary/10' },
-          { icon: TrendingUp, label: 'Потрачено всего', value: `${spentRub} ₽`,        color: 'text-emerald-600 bg-emerald-50' },
-          { icon: Settings,   label: 'Заказов',       value: user._count.orders.toString(), color: 'text-blue-600 bg-blue-50' },
-          { icon: Star,       label: 'Рефералов',     value: user._count.referrals.toString(), color: 'text-amber-600 bg-amber-50' },
+          { icon: TrendingUp, label: 'Потрачено всего', value: `${spentRub} ₽`,        color: 'text-emerald-500 bg-emerald-500/10' },
+          { icon: Settings,   label: 'Заказов',       value: user._count.orders.toString(), color: 'text-blue-500 bg-blue-500/10' },
+          { icon: Star,       label: 'Рефералов',     value: user._count.referrals.toString(), color: 'text-amber-500 bg-amber-500/10' },
         ].map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="bg-card border border-border rounded-2xl p-4 space-y-2">
+          <div key={label} className="bg-card border border-border/60 rounded-2xl p-6 space-y-3 hover:shadow-md transition-shadow">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${color}`}>
               <Icon className="w-4 h-4" />
             </div>

@@ -57,7 +57,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     header: ({ table }) => (
       <input
         type="checkbox"
-        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+        className="w-4 h-4 rounded border-border text-primary focus:ring-indigo-600"
         checked={table.getIsAllPageRowsSelected()}
         onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
         aria-label="Select all"
@@ -66,7 +66,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     cell: ({ row }) => (
       <input
         type="checkbox"
-        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+        className="w-4 h-4 rounded border-border text-primary focus:ring-indigo-600"
         checked={row.getIsSelected()}
         onChange={(e) => row.toggleSelected(e.target.checked)}
         aria-label="Select row"
@@ -80,11 +80,11 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     header: 'ID',
     cell: ({ row }) => (
       <div className="flex flex-col text-xs leading-snug tabular-nums tracking-tight">
-        <span className="font-bold text-slate-800 whitespace-nowrap">
+        <span className="font-bold text-foreground whitespace-nowrap">
           {row.original.numericId}
         </span>
         {row.original.externalId && canSeeRates && (
-          <span className="text-slate-400 font-normal whitespace-nowrap">
+          <span className="text-muted-foreground font-normal whitespace-nowrap">
             ({row.original.externalId})
           </span>
         )}
@@ -114,22 +114,22 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
       return (
         <div className="flex flex-col text-xs py-1.5 leading-snug">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-bold text-slate-900 truncate max-w-[200px]" title={order.service.name}>
+            <span className="font-bold text-foreground truncate max-w-[200px]" title={order.service.name}>
               {order.service.name}
             </span>
-            <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold tabular-nums text-[10px]">
+            <span className="px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold tabular-nums text-[10px]">
               x{order.quantity.toLocaleString('ru-RU')}
             </span>
           </div>
           
-          <div className="text-[11px] text-slate-500 mb-1.5 font-medium flex items-center gap-1.5 flex-wrap">
+          <div className="text-[11px] text-muted-foreground mb-1.5 font-medium flex items-center gap-1.5 flex-wrap">
             <span>{order.service.category.network?.name || 'Без сети'}</span>
             <span className="text-slate-300">•</span>
             <span className="truncate max-w-[150px]">{order.service.category.name}</span>
           </div>
 
-          <div className="flex gap-1 items-center bg-slate-50 border border-slate-100 rounded p-1.5 max-w-[250px] overflow-hidden group">
-            <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+          <div className="flex gap-1 items-center bg-muted/50 border border-border/50 rounded p-1.5 max-w-[250px] overflow-hidden group">
+            <svg className="w-3.5 h-3.5 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
             <a
               href={order.link}
               target="_blank"
@@ -142,27 +142,27 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
           </div>
           
           <details className="mt-2 group">
-            <summary className="text-slate-400 hover:text-slate-700 cursor-pointer text-[10px] uppercase tracking-wider font-bold select-none list-none inline-flex items-center gap-1 transition-colors">
+            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-[10px] uppercase tracking-wider font-bold select-none list-none inline-flex items-center gap-1 transition-colors">
               <span className="group-open:hidden">▶ Tech Details</span>
               <span className="hidden group-open:block">▼ Hide Details</span>
             </summary>
-            <div className="mt-2 bg-slate-50 p-2.5 border border-slate-100 rounded-md space-y-1.5 shadow-inner">
+            <div className="mt-2 bg-muted/50 p-2.5 border border-border/50 rounded-md space-y-1.5 shadow-inner">
               {canSeeRates && (
                 <>
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-slate-500 font-medium">Provider ID:</span>
-                    <span className="text-slate-800 font-mono font-semibold">{order.externalId || '—'}</span>
+                    <span className="text-muted-foreground font-medium">Provider ID:</span>
+                    <span className="text-foreground font-mono font-semibold">{order.externalId || '—'}</span>
                   </div>
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-slate-500 font-medium">Себестоимость:</span>
-                    <span className="text-slate-800 font-mono font-semibold">{(order.providerCost / 100).toFixed(2)} ₽</span>
+                    <span className="text-muted-foreground font-medium">Себестоимость:</span>
+                    <span className="text-foreground font-mono font-semibold">{(order.providerCost / 100).toFixed(2)} ₽</span>
                   </div>
                 </>
               )}
               {order.error && (
-                <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-200 mt-1 pb-0.5">
-                  <span className="text-rose-500 font-medium">Ошибка API:</span>
-                  <span className="text-rose-600 font-medium text-right max-w-[150px] truncate" title={order.error}>{order.error}</span>
+                <div className="flex justify-between items-center text-[11px] pt-1 border-t border-border mt-1 pb-0.5">
+                  <span className="text-destructive font-medium">Ошибка API:</span>
+                  <span className="text-destructive font-medium text-right max-w-[150px] truncate" title={order.error}>{order.error}</span>
                 </div>
               )}
             </div>
@@ -175,7 +175,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     accessorKey: 'charge',
     header: 'Цена',
     cell: ({ row }) => (
-      <div className="text-xs font-semibold whitespace-nowrap text-slate-800 tabular-nums">
+      <div className="text-xs font-semibold whitespace-nowrap text-foreground tabular-nums">
         {(row.original.charge / 100).toFixed(2)} ₽
       </div>
     ),
@@ -189,11 +189,11 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
       const style = STATUS_STYLES[status] || 'default';
       
       const classes: Record<string, string> = {
-        success: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-        warning: 'bg-amber-100 text-amber-700 border-amber-200',
-        danger: 'bg-rose-100 text-rose-700 border-rose-200',
+        success: 'bg-success/20 text-emerald-700 border-emerald-200',
+        warning: 'bg-warning/20 text-amber-700 border-amber-200',
+        danger: 'bg-destructive/20 text-rose-700 border-destructive/30',
         primary: 'bg-sky-100 text-sky-700 border-sky-200',
-        default: 'bg-slate-100 text-slate-600 border-slate-200',
+        default: 'bg-muted text-muted-foreground border-border',
       };
 
       return (
@@ -216,7 +216,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     cell: ({ row }) => {
       const date = new Date(row.original.createdAt);
       return (
-        <div className="text-xs text-slate-500 whitespace-nowrap">
+        <div className="text-xs text-muted-foreground whitespace-nowrap">
           {date.toLocaleDateString('ru-RU')} {date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
         </div>
       );
@@ -229,7 +229,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
       return (
         <Link
           href={`?edit_order_id=${row.original.id}`}
-          className="inline-flex items-center justify-center p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-md transition-colors"
+          className="inline-flex items-center justify-center p-2 text-muted-foreground hover:text-sky-600 hover:bg-sky-50 rounded-md transition-colors"
           title="Редактировать заказ"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

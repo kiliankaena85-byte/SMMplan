@@ -9,7 +9,7 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
     accessorKey: 'action',
     header: 'Действие',
     cell: ({ row }) => (
-      <span className="font-bold text-slate-800 text-xs uppercase tracking-wider">
+      <span className="font-bold text-foreground text-xs uppercase tracking-wider">
         {row.original.action}
       </span>
     ),
@@ -18,7 +18,7 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
     accessorKey: 'targetType',
     header: 'Тип',
     cell: ({ row }) => (
-      <Badge className="font-bold text-[10px] bg-slate-100 text-slate-600 border-slate-200 uppercase">
+      <Badge className="font-bold text-[10px] bg-muted text-muted-foreground border-border uppercase">
         {row.original.targetType}
       </Badge>
     ),
@@ -27,7 +27,7 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
     accessorKey: 'adminEmail',
     header: 'Админ',
     cell: ({ row }) => (
-      <span className="text-xs text-slate-600 font-mono">
+      <span className="text-xs text-muted-foreground font-mono">
         {row.original.adminEmail}
       </span>
     ),
@@ -36,7 +36,7 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
     accessorKey: 'newValue',
     header: 'Детали',
     cell: ({ row }) => (
-      <div className="max-w-[400px] truncate text-[11px] text-slate-500 font-medium" title={row.original.newValue || row.original.oldValue || ''}>
+      <div className="max-w-[400px] truncate text-[11px] text-muted-foreground font-medium" title={row.original.newValue || row.original.oldValue || ''}>
         {row.original.newValue || row.original.oldValue || '—'}
       </div>
     ),
@@ -45,7 +45,7 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
     accessorKey: 'createdAt',
     header: 'Дата',
     cell: ({ row }) => (
-      <span className="text-xs text-slate-400 tabular-nums whitespace-nowrap">
+      <span className="text-xs text-muted-foreground/70 tabular-nums whitespace-nowrap">
         {new Date(row.original.createdAt).toLocaleString('ru-RU')}
       </span>
     ),

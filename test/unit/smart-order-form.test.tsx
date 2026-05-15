@@ -50,6 +50,7 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     setInterval: vi.fn(),
     availableCategories: [],
     services: [],
+    catalog: [],
     isLoading: false,
     isCalculating: false,
     totalPriceFormatted: '0 ₽',
@@ -68,7 +69,7 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     vi.mocked(useOrderEngine).mockReturnValue(getMockState() as any);
     render(<SmartOrderForm />);
 
-    const input = screen.getByPlaceholderText(/Ссылка на пост, канал или профиль/i);
+    const input = screen.getByPlaceholderText(/Вставьте ссылку/i);
     expect(input).toBeDefined();
     expect(input.tagName).toBe('INPUT');
   });
@@ -78,7 +79,7 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     vi.mocked(useOrderEngine).mockReturnValue(getMockState() as any);
     render(<SmartOrderForm />);
 
-    const input = screen.getByPlaceholderText(/Ссылка на пост/i) as HTMLInputElement;
+    const input = screen.getByPlaceholderText(/Вставьте ссылку/i) as HTMLInputElement;
     expect(input.getAttribute('aria-label') || input.id || input.getAttribute('placeholder')).toBeTruthy();
   });
 
@@ -123,36 +124,25 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     expect(categoryTitle).toBeNull();
   });
 
-  // ── TC-UX-011: 152-FZ / GDPR Checkbox Compliance ──
-  it('TC-UX-011: Submit button is disabled until Consent checkbox is checked (152-FZ)', () => {
-    // We need a way to track the state change for this specific test
-    let currentAgreed = false;
-    const setAgreedMock = vi.fn((val) => { currentAgreed = val; });
-
+  // ── TC-UX-011: 152-FZ / GDPR Implicit Consent Compliance ──
+  it('TC-UX-011: Renders implicit consent text instead of checkbox (152-FZ)', () => {
     const state = getMockState({
       selectedService: { id: 'srv1', name: 'Test SRV', minQty: 100, maxQty: 1000, pricePer1kRub: 100 },
-      agreedToTerms: false,
-      setAgreedToTerms: setAgreedMock
     });
 
-    const { rerender } = render(<SmartOrderForm />);
     vi.mocked(useOrderEngine).mockReturnValue(state as any);
-    rerender(<SmartOrderForm />);
+    render(<SmartOrderForm />);
 
-    // Find the checkout button by its aria-label (accessible name)
+    // Ensure the implicit consent text is present
+    const consentText = screen.getByText(/Нажимая Оплатить, вы соглашаетесь с/i);
+    expect(consentText).toBeDefined();
+
+    // Ensure there is no checkbox for terms
+    const checkboxes = screen.queryAllByRole('checkbox');
+    // It might find the drip-feed checkbox, but the "agreedToTerms" checkbox should be gone.
+    // If Drip-feed is the only one, then it's correct. 
+    // Just ensure the button is enabled by default (not blocked by terms).
     const submitBtn = screen.getByRole('button', { name: /Создать заказ/i }) as HTMLButtonElement;
-    expect(submitBtn.disabled).toBe(true); 
-
-    // Find the checkbox
-    const checkbox = screen.getByRole('checkbox');
-    fireEvent.click(checkbox);
-    
-    expect(setAgreedMock).toHaveBeenCalledWith(true);
-
-    // Manually rerender with updated mock state (since we are mocking the hook)
-    vi.mocked(useOrderEngine).mockReturnValue({ ...state, agreedToTerms: true } as any);
-    rerender(<SmartOrderForm />);
-
     expect(submitBtn.disabled).toBe(false); 
   });
 });

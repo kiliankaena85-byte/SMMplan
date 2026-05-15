@@ -16,6 +16,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
       where: { id: 'global' },
       data: { isTestMode: true }
     });
+    // @ts-ignore
     revalidateTag('settings');
     
     // 1. Seed user with balance
@@ -93,7 +94,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
 
     // Verify DB
     const checkDbUser = await db.user.findUnique({ where: { id: user.id } });
-    expect(checkDbUser?.balance).toBe(500000 - 23392); // Deduced 23392 cents due to safety floor
+    expect(checkDbUser?.balance).toBe(BigInt(476608)); // Deduced 23392 cents due to safety floor
   });
 
   it('Loose Compatibility: Prevents attacks, but emits standard errors', async () => {
@@ -171,6 +172,6 @@ describe('B2B API v2: Zod & Compatibility', () => {
     const res = await makeRequest({ key: user.apiKey!, action: 'refill', order: '9999' });
     const data = await res.json();
     // Because isRefillEnabled is false by default on the service
-    expect(data.error).toBe('Refill not available for this service');
+    expect(data.error).toBe('Refill is only available manually via support ticket for reseller platforms.');
   });
 });

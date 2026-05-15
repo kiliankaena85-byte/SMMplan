@@ -60,19 +60,19 @@ export function ReferralUi({
             label: 'Заработано',
             value: earnedRub.toFixed(0),
             suffix: '₽',
-            color: 'text-emerald-600 bg-emerald-50',
+            color: 'text-emerald-500 bg-emerald-500/10',
           },
           {
             icon: Gift,
             label: 'Ваш бонус',
             value: '15',
             suffix: '%',
-            color: 'text-amber-600 bg-amber-50',
+            color: 'text-amber-500 bg-amber-500/10',
           },
         ].map(({ icon: Icon, label, value, suffix, color }) => (
           <div
             key={label}
-            className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4"
+            className="bg-card border border-border/60 rounded-2xl p-6 flex items-center gap-4 shadow-sm"
           >
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
               <Icon className="w-5 h-5" />
@@ -113,7 +113,7 @@ export function ReferralUi({
       )}
 
       {/* Referral link */}
-      <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
+      <div className="bg-card border border-border/60 shadow-sm rounded-2xl p-6 space-y-3">
         <div>
           <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
             Ваша реферальная ссылка
@@ -149,7 +149,7 @@ export function ReferralUi({
       </div>
 
       {/* How it works */}
-      <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+      <div className="bg-card border border-border/60 shadow-sm rounded-2xl p-6 space-y-4">
         <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           Как это работает
         </div>

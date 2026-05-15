@@ -79,9 +79,9 @@ function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult;
       {/* Totals strip */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Зачислено', value: data.totals.approved,    color: 'bg-emerald-50 border-emerald-100 text-emerald-700' },
-          { label: 'Возвраты',  value: data.totals.refunds,     color: 'bg-rose-50 border-rose-100 text-rose-700' },
-          { label: 'Карантин',  value: data.totals.quarantine,  color: 'bg-amber-50 border-amber-100 text-amber-700' },
+          { label: 'Зачислено', value: data.totals.approved,    color: 'bg-success/10 border-emerald-100 text-emerald-700' },
+          { label: 'Возвраты',  value: data.totals.refunds,     color: 'bg-destructive/10 border-destructive/20 text-rose-700' },
+          { label: 'Карантин',  value: data.totals.quarantine,  color: 'bg-warning/10 border-amber-100 text-amber-700' },
         ].map(s => (
           <div key={s.label} className={`${s.color} border rounded-2xl p-6 transition-all`}>
             <div className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">{s.label}</div>
@@ -103,7 +103,7 @@ function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult;
         </Select>
       </div>
 
-      <div className="rounded-2xl border border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl overflow-hidden">
+      <div className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
         <div className="p-0">
           <DataTable 
             columns={columns} 
@@ -167,14 +167,14 @@ function BalanceCorrectionTab() {
 
   return (
     <div className="max-w-xl mx-auto py-4">
-      <div className="rounded-2xl border border-slate-100/50 shadow-xl bg-white/60 backdrop-blur-xl p-8 space-y-6">
+      <div className="rounded-2xl border border-border/50/50 shadow-xl bg-background/60 backdrop-blur-xl p-8 space-y-6">
         <div className="flex items-center gap-4 mb-2">
           <div className="p-3 bg-sky-100 text-sky-600 rounded-2xl">
             <Wallet className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Ручная корректировка</h3>
-            <p className="text-xs text-slate-500 font-medium tracking-wide">
+            <h3 className="text-lg font-bold text-foreground">Ручная корректировка</h3>
+            <p className="text-xs text-muted-foreground font-medium tracking-wide">
               Средства проходят проверку дневного лимита EscrowGuard.
             </p>
           </div>
@@ -182,7 +182,7 @@ function BalanceCorrectionTab() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Email клиента</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email клиента</label>
             <Input
               placeholder="client@example.com"
               value={email}
@@ -192,7 +192,7 @@ function BalanceCorrectionTab() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Сумма (₽)</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Сумма (₽)</label>
             <Input
               type="number"
               step="0.01"
@@ -200,14 +200,14 @@ function BalanceCorrectionTab() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
-              className={isNeg ? "border-rose-300 bg-rose-50 text-rose-900 font-mono font-bold" : isPos ? "border-emerald-300 bg-emerald-50 text-emerald-900 font-mono font-bold" : "font-mono font-bold"}
+              className={isNeg ? "border-rose-300 bg-destructive/10 text-rose-900 font-mono font-bold" : isPos ? "border-emerald-300 bg-success/10 text-emerald-900 font-mono font-bold" : "font-mono font-bold"}
             />
-            {isNeg && <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">⚠️ Будет списано с баланса</p>}
-            {isPos && <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight">✅ Будет зачислено на баланс</p>}
+            {isNeg && <p className="text-[10px] text-destructive font-bold uppercase tracking-tight">⚠️ Будет списано с баланса</p>}
+            {isPos && <p className="text-[10px] text-success font-bold uppercase tracking-tight">✅ Будет зачислено на баланс</p>}
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Причина</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Причина</label>
             <Textarea
               placeholder="Компенсация, ручной возврат..."
               value={reason}
@@ -227,8 +227,8 @@ function BalanceCorrectionTab() {
           </Button>
         </form>
 
-        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+        <div className="bg-warning/10 border border-amber-100 rounded-2xl p-4 flex gap-3">
+          <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
           <div className="text-[11px] text-amber-700 font-medium leading-relaxed">
             <span className="font-bold block mb-1 uppercase tracking-tighter">Внимание!</span>
             Операции Support/Manager свыше 10 000 ₽ в сутки автоматически уходят в карантин на подтверждение владельцем. Все действия логируются в Ledger.

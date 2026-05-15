@@ -56,8 +56,18 @@ async function globalTeardown() {
       });
       console.log(`[Teardown] Deleted ${deletedTickets.count} test tickets.`);
 
+      // 3.4 Delete orders belonging to test users
+      await prisma.order.deleteMany({
+        where: { userId: { in: testUserIds } }
+      });
+
       // 3.5 Delete test payments belonging to these users
       await prisma.payment.deleteMany({
+        where: { userId: { in: testUserIds } }
+      });
+
+      // 3.6 Delete ledger entries for these users
+      await prisma.ledgerEntry.deleteMany({
         where: { userId: { in: testUserIds } }
       });
 

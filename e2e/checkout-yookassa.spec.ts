@@ -3,6 +3,50 @@ import { PrismaClient } from '@prisma/client';
 
 test.describe('External Payment (YooKassa) Lifecycle', () => {
 
+  test.beforeAll(async () => {
+    const prisma = new PrismaClient();
+    let network = await prisma.network.findUnique({ where: { slug: 'telegram' } });
+    if (!network) {
+      network = await prisma.network.create({ data: { name: 'Telegram', slug: 'telegram' } });
+    }
+    let category = await prisma.category.findFirst({ where: { networkId: network.id, name: 'E2E Telegram Category' } });
+    if (!category) {
+      category = await prisma.category.create({ data: { name: 'E2E Telegram Category', sort: 1, networkId: network.id } });
+    }
+    let provider = await prisma.provider.findFirst({ where: { name: 'E2E Test Provider' } });
+    if (!provider) {
+      provider = await prisma.provider.create({ data: { name: 'E2E Test Provider', apiUrl: 'http://test.local', apiKey: 'test_key' } });
+    }
+    const service = await prisma.service.findFirst({ where: { name: 'E2E Telegram Service' } });
+    if (!service) {
+      await prisma.service.create({
+        data: {
+          name: 'E2E Telegram Service', categoryId: category.id, providerId: provider.id,
+          rate: 10.0, markup: 50.0, minQty: 10, maxQty: 10000,
+          isQuarantined: false, isActive: true, externalId: '101'
+        }
+      });
+    }
+
+    // Seed YooKassa settings
+    await prisma.systemSettings.upsert({
+      where: { id: 'global' },
+      update: {
+        yookassaShopId: 'test_shop_id',
+        yookassaSecretKey: 'test_secret_key',
+        isTestMode: true // Make sure we are in test mode if the code branches on it
+      },
+      create: {
+        id: 'global',
+        yookassaShopId: 'test_shop_id',
+        yookassaSecretKey: 'test_secret_key',
+        isTestMode: true
+      }
+    });
+
+    await prisma.$disconnect();
+  });
+
   test('should create AWAITING_PAYMENT order and successfully credit via Webhook simulation', async ({ page, request }) => {
     // 1. Visit Dashboard (logged out user gets auto-login via auth.setup)
     await page.goto('/dashboard/new-order');
@@ -14,16 +58,12 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     await expect(linkInput).toBeVisible();
 
     // 3. Paste a test URL
-    await linkInput.fill('https://instagram.com/p/test');
+    await linkInput.fill('https://t.me/durov');
     
-    const categorySelector = page.locator('button[role="tab"]', { hasText: /(Instagram Likes|Лайки)/i });
-    await expect(categorySelector).toBeVisible({ timeout: 10000 });
-    await categorySelector.click();
-
-    // 4. Select the first available service
-    const serviceSelectBtn = page.getByRole('option').first();
-    await expect(serviceSelectBtn).toBeVisible();
-    await serviceSelectBtn.click();
+    // Wait for the option to be auto-selected by the hook logic
+    const serviceOption = page.getByRole('option', { name: /E2E Telegram Service/i });
+    await expect(serviceOption).toBeVisible({ timeout: 15000 });
+    await expect(serviceOption).toHaveAttribute('aria-selected', 'true', { timeout: 5000 });
 
     const qtyInput = page.locator('input[type="number"], input[placeholder*="Количество"]');
     await expect(qtyInput).toBeVisible();
@@ -44,6 +84,14 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
     await expect(agreementCheckbox).toBeVisible({ timeout: 5000 });
     await agreementCheckbox.check({ force: true });
     await expect(agreementCheckbox).toBeChecked();
+
+    // Intercept mock-payment redirect so it doesn't auto-confirm the payment
+    // We want the Webhook to do the confirmation!
+    await page.route('**/api/dev/mock-payment*', route => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<html><body>Mock YooKassa Gateway</body></html>'
+    }));
 
     // Wait for React to re-render and enable the button
     await expect(payBtn).toBeEnabled({ timeout: 5000 });

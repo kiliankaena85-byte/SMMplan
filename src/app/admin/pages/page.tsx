@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,51 +13,51 @@ export default async function AdminPagesList() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">CMS Pages</h1>
-          <p className="text-slate-500">Manage textual content for the public website.</p>
+          <p className="text-muted-foreground">Manage textual content for the public website.</p>
         </div>
         <Link href="/admin/pages/new" className="px-4 py-2 bg-slate-900 text-white rounded-md text-sm font-medium hover:bg-slate-800 transition-colors">
           Create New Page
         </Link>
       </div>
 
-      <div className="rounded-2xl border border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl overflow-hidden">
-        <table className="min-w-full text-sm font-medium text-slate-700">
-          <thead className="bg-slate-50/50 text-[11px] uppercase tracking-widest text-slate-400 border-b border-slate-100/60">
-            <tr>
-              <th className="px-6 py-3.5 text-left font-bold">Title</th>
-              <th className="px-6 py-3.5 text-left font-bold">Slug</th>
-              <th className="px-6 py-3.5 text-left font-bold">Updated At</th>
-              <th className="px-6 py-3.5 text-right font-bold">Action</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="rounded-2xl shadow-sm bg-card overflow-hidden">
+        <Table aria-label="CMS Pages">
+          <TableHeader>
+            <TableColumn>TITLE</TableColumn>
+            <TableColumn>SLUG</TableColumn>
+            <TableColumn>UPDATED AT</TableColumn>
+            <TableColumn className="text-right">ACTION</TableColumn>
+          </TableHeader>
+          <TableBody renderEmptyState={() => "No pages found. Click 'Create New Page'."}>
             {pages.map((page) => (
-              <tr key={page.id} className="hover:bg-slate-50/80 even:bg-slate-50/30 transition-colors border-b border-slate-100/30 last:border-0 group">
-                <td className="px-6 py-4 whitespace-nowrap font-bold text-slate-900 group-hover:text-sky-700 transition-colors">{page.title}</td>
-                <td className="px-6 py-4 whitespace-nowrap font-mono text-slate-500 text-xs">/{page.slug}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-slate-500 tabular-nums text-xs">
-                  {page.updatedAt.toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right font-medium space-x-4">
-                  <Link href={`/p/${page.slug}`} target="_blank" className="text-slate-400 hover:text-slate-900 transition-colors">
-                    Preview
-                  </Link>
-                  <Link href={`/admin/pages/${page.slug}`} className="text-sky-600 hover:text-sky-800 transition-colors">
-                    Edit
-                  </Link>
-                </td>
-              </tr>
+              <TableRow key={page.id}>
+                <TableCell>
+                  <span className="font-bold text-foreground">{page.title}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="font-mono text-muted-foreground text-xs">/{page.slug}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-muted-foreground tabular-nums text-xs">
+                    {page.updatedAt.toLocaleDateString()}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end gap-4">
+                    <Link href={`/p/${page.slug}`} target="_blank" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                      Preview
+                    </Link>
+                    <Link href={`/admin/pages/${page.slug}`} className="text-primary hover:underline transition-colors font-medium text-sm">
+                      Edit
+                    </Link>
+                  </div>
+                </TableCell>
+              </TableRow>
             ))}
-            {pages.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-medium">
-                  No pages found. Click "Create New Page".
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
 }
+

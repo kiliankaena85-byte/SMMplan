@@ -50,7 +50,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
   const userCard = selectedUserId ? await adminUserService.getUserCard(selectedUserId).catch(() => null) : null;
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-slate-50/50 min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
       <AdminPageHeader
         icon={Users}
         title="Клиенты платформы"
@@ -67,7 +67,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
         action={(
           <a
             href={`/api/admin/export?type=users&q=${encodeURIComponent(search)}`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 shadow-sm rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-foreground bg-background border border-border shadow-sm rounded-lg hover:bg-muted/50 hover:text-primary transition-colors"
           >
             <Download className="w-4 h-4" /> Экспорт CSV
           </a>
@@ -83,7 +83,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
               name="q"
               defaultValue={search}
               placeholder="🔍 Поиск по email..."
-              className="flex-1 px-4 py-2 text-sm border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              className="flex-1 px-4 py-2 text-sm border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
             <Button type="submit">Найти</Button>
           </form>
@@ -95,7 +95,10 @@ export default async function AdminClientsPage({ searchParams }: Props) {
           <ClientTable 
             data={users.map(u => ({
               ...u,
-              tier: getVolumeTier(u.totalSpent)
+              totalSpent: Number(u.totalSpent),
+              balance: Number(u.balance),
+              quarantineBalance: Number(u.quarantineBalance),
+              tier: getVolumeTier(Number(u.totalSpent))
             })) as any}
           >
             {userCard ? (
@@ -106,22 +109,22 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       {canSeeFinances && (
                         <>
-                          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-                            <div className="text-slate-500 mb-1">Баланс</div>
-                            <div className="font-bold text-lg text-slate-900">{(Number(userCard.balance) / 100).toFixed(2)} ₽</div>
+                          <div className="bg-background border border-border rounded-lg p-3 shadow-sm">
+                            <div className="text-muted-foreground mb-1">Баланс</div>
+                            <div className="font-bold text-lg text-foreground">{(Number(userCard.balance) / 100).toFixed(2)} ₽</div>
                           </div>
-                          <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-                            <div className="text-slate-500 mb-1">LTV</div>
-                            <div className="font-bold text-lg text-slate-900">{(Number(userCard.totalSpent) / 100).toLocaleString('ru-RU')} ₽</div>
+                          <div className="bg-background border border-border rounded-lg p-3 shadow-sm">
+                            <div className="text-muted-foreground mb-1">LTV</div>
+                            <div className="font-bold text-lg text-foreground">{(Number(userCard.totalSpent) / 100).toLocaleString('ru-RU')} ₽</div>
                           </div>
                         </>
                       )}
                     </div>
 
-                    <div className="text-xs text-slate-500 bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
+                    <div className="text-xs text-muted-foreground bg-background border border-border rounded-lg p-3 shadow-sm">
                       <p>Зарегистрирован: {userCard.createdAt.toLocaleDateString('ru-RU')}</p>
                       {userCard.personalDiscount > 0 && (
-                        <p className="mt-1 text-indigo-600 font-medium">Скидка: {userCard.personalDiscount}%</p>
+                        <p className="mt-1 text-primary font-medium">Скидка: {userCard.personalDiscount}%</p>
                       )}
                       {userCard.telegramId && (
                         <p className="mt-1">Telegram: {userCard.telegramId}</p>
@@ -139,14 +142,14 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                       {userCard.role === 'BANNED' ? (
                         <ActionForm action={unbanUserAction}>
                           <input type="hidden" name="userId" value={userCard.id} />
-                          <SubmitButton variant="outline" className="text-xs h-9 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50" confirmMessage="Снять блокировку с этого пользователя?">
+                          <SubmitButton variant="outline" className="text-xs h-9 text-emerald-700 hover:text-emerald-800 hover:bg-success/10" confirmMessage="Снять блокировку с этого пользователя?">
                             Разбанить
                           </SubmitButton>
                         </ActionForm>
                       ) : (
                         <ActionForm action={banUserAction}>
                           <input type="hidden" name="userId" value={userCard.id} />
-                          <SubmitButton variant="outline" className="text-xs h-9 text-rose-600 hover:text-rose-700 hover:bg-rose-50" confirmMessage="Вы уверены, что хотите забанить данного клиента? Действие можно отменить позже.">
+                          <SubmitButton variant="outline" className="text-xs h-9 text-destructive hover:text-rose-700 hover:bg-destructive/10" confirmMessage="Вы уверены, что хотите забанить данного клиента? Действие можно отменить позже.">
                             Бан
                           </SubmitButton>
                         </ActionForm>
@@ -165,11 +168,11 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                       <ActionForm action={updateBalanceAction} className="space-y-3">
                         <input type="hidden" name="userId" value={userCard.id} />
                         <div>
-                          <label className="text-xs text-slate-500 mb-1 block">Сумма (в копейках, − для списания)</label>
+                          <label className="text-xs text-muted-foreground mb-1 block">Сумма (в копейках, − для списания)</label>
                           <Input type="number" name="amount" placeholder="10000 = 100₽" required className="h-9 text-sm" />
                         </div>
                         <div>
-                          <label className="text-xs text-slate-500 mb-1 block">Причина / Комментарий</label>
+                          <label className="text-xs text-muted-foreground mb-1 block">Причина / Комментарий</label>
                           <Input type="text" name="reason" placeholder="Например: Компенсация за #1234" required className="h-9 text-sm" />
                         </div>
                         <SubmitButton className="w-full text-xs h-9" confirmMessage="Изменить баланс клиента? Убедитесь, что указана корректная причина, так как это действие отразится в аудит-логе.">Применить</SubmitButton>
@@ -189,23 +192,23 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                         <Link
                           key={o.id}
                           href={`/admin/orders?q=${o.numericId}`}
-                          className="flex justify-between items-center py-2 px-3 text-xs bg-slate-50 border border-slate-100 rounded-md hover:border-slate-300 transition-colors"
+                          className="flex justify-between items-center py-2 px-3 text-xs bg-muted/50 border border-border/50 rounded-md hover:border-border transition-colors"
                         >
-                          <span className="font-mono text-slate-600 font-medium">#{o.numericId}</span>
-                          <span className="truncate max-w-[150px] text-slate-600 px-2">{o.service.name}</span>
-                          <span className="font-semibold text-slate-900 border-l border-slate-200 pl-2">{(Number(o.charge) / 100).toFixed(0)} ₽</span>
+                          <span className="font-mono text-muted-foreground font-medium">#{o.numericId}</span>
+                          <span className="truncate max-w-[150px] text-muted-foreground px-2">{o.service.name}</span>
+                          <span className="font-semibold text-foreground border-l border-border pl-2">{(Number(o.charge) / 100).toFixed(0)} ₽</span>
                         </Link>
                       ))}
                       {userCard.orders.length === 0 && (
-                        <p className="text-xs text-slate-400 text-center py-4 bg-slate-50 rounded-md">Нет заказов</p>
+                        <p className="text-xs text-muted-foreground text-center py-4 bg-muted/50 rounded-md">Нет заказов</p>
                       )}
                     </div>
                   </CardContent>
                 </Card>
               </div>
             ) : (
-              <div className="py-12 flex flex-col items-center gap-4 justify-center h-full text-slate-400">
-                <div className="animate-spin h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+              <div className="py-12 flex flex-col items-center gap-4 justify-center h-full text-muted-foreground">
+                <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
                 Загрузка профиля...
               </div>
             )}
@@ -213,16 +216,16 @@ export default async function AdminClientsPage({ searchParams }: Props) {
 
           {/* Pagination for Server Sync */}
           {(cursor || hasMore) && (
-            <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-200">
+            <div className="flex justify-between items-center mt-4 pt-4 border-t border-border">
               {cursor ? (
                 <Link href={`/admin/clients?q=${encodeURIComponent(search)}`}
-                  className="px-3 py-1.5 text-sm text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50">
+                  className="px-3 py-1.5 text-sm text-foreground bg-background border border-border rounded-md hover:bg-muted/50">
                   ← В начало
                 </Link>
               ) : <div />}
               {hasMore && nextCursor && (
                 <Link href={`/admin/clients?q=${encodeURIComponent(search)}&cursor=${nextCursor}`}
-                  className="px-3 py-1.5 text-sm text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
+                  className="px-3 py-1.5 text-sm text-white bg-primary rounded-md hover:bg-indigo-700">
                   Следующая →
                 </Link>
               )}

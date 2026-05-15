@@ -8,7 +8,7 @@ import { db } from '@/lib/db';
 import { OrdersChart } from './orders-chart';
 import { Check, Clock, ChevronDown, Bell, Search, Settings, Home } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/admin/hero-ui';
+import { Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
 import { AdminPageHeader } from '@/components/admin/page-header';
 
 export const dynamic = 'force-dynamic';
@@ -85,15 +85,15 @@ export default async function AdminDashboardPage() {
            <div className="bg-card text-card-foreground rounded-2xl p-6 lg:p-7 shadow-sm border border-border/60 flex flex-col justify-between transition-all hover:shadow-md">
              <div>
                <div className="flex items-center justify-between mb-4">
-                 <span className="text-slate-500 text-sm font-semibold tracking-wide">Чистые активы</span>
-                 <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 text-xs font-bold text-slate-700">
-                   <span className="w-3 h-3 rounded-full overflow-hidden bg-slate-800 border border-slate-700"></span> RUB <ChevronDown className="w-3 h-3 text-slate-400" />
+                 <span className="text-muted-foreground text-sm font-semibold tracking-wide">Чистые активы</span>
+                 <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full border border-border/50 text-xs font-bold text-foreground">
+                   <span className="w-3 h-3 rounded-full overflow-hidden bg-slate-800 border border-slate-700"></span> RUB <ChevronDown className="w-3 h-3 text-muted-foreground" />
                  </div>
                </div>
-            <div className="text-4xl font-extrabold text-slate-900 tabular-nums">
+            <div className="text-4xl font-extrabold text-foreground tabular-nums">
               {netPositionStr} ₽
             </div>
-            <div className="mt-2 text-xs font-medium text-emerald-600 bg-emerald-50 w-max px-2 py-1 rounded-md mb-8">
+            <div className="mt-2 text-xs font-medium text-success bg-success/10 w-max px-2 py-1 rounded-md mb-8">
               Капитал за вычетом балансов юзеров
             </div>
             
@@ -104,7 +104,7 @@ export default async function AdminDashboardPage() {
                  </Button>
                </Link>
                <Link href="/admin/settings" className="flex-1">
-                 <Button className="w-full bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl text-sm h-11 hover:!bg-slate-50">
+                 <Button className="w-full bg-background border border-border text-foreground font-semibold rounded-xl text-sm h-11 hover:!bg-muted/50">
                     Настройки
                  </Button>
                </Link>
@@ -112,19 +112,19 @@ export default async function AdminDashboardPage() {
           </div>
           
           <div>
-            <div className="text-xs font-semibold text-slate-400 mb-3">ФИНАНСОВЫЙ БАЛАНС</div>
+            <div className="text-xs font-semibold text-muted-foreground mb-3">ФИНАНСОВЫЙ БАЛАНС</div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center justify-between">Все пополнения <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span></div>
-                <div className="font-bold text-slate-700 text-sm tabular-nums">{(Number(revenueGross) / 100).toLocaleString('ru-RU')} ₽</div>
+              <div className="bg-muted/50/50 p-3 rounded-xl border border-border/50">
+                <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1 flex items-center justify-between">Все пополнения <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span></div>
+                <div className="font-bold text-foreground text-sm tabular-nums">{(Number(revenueGross) / 100).toLocaleString('ru-RU')} ₽</div>
               </div>
-              <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                <div className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center justify-between">Обязательства <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span></div>
-                <div className="font-bold text-slate-700 text-sm tabular-nums">{(Number(totalLiability) / 100).toLocaleString('ru-RU')} ₽</div>
+              <div className="bg-muted/50/50 p-3 rounded-xl border border-border/50">
+                <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1 flex items-center justify-between">Обязательства <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span></div>
+                <div className="font-bold text-foreground text-sm tabular-nums">{(Number(totalLiability) / 100).toLocaleString('ru-RU')} ₽</div>
               </div>
-              <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 opacity-70">
-                 <div className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center justify-between">Чистая прибыль <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span></div>
-                 <div className="font-bold text-slate-700 text-sm tabular-nums">{(profitNet / 100).toLocaleString('ru-RU')} ₽</div>
+              <div className="bg-muted/50/50 p-3 rounded-xl border border-border/50 opacity-70">
+                 <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1 flex items-center justify-between">Чистая прибыль <span className="w-1.5 h-1.5 rounded-full bg-muted/500"></span></div>
+                 <div className="font-bold text-foreground text-sm tabular-nums">{(profitNet / 100).toLocaleString('ru-RU')} ₽</div>
                </div>
              </div>
            </div>
@@ -133,49 +133,48 @@ export default async function AdminDashboardPage() {
          {/* Orders Dynamics Chart */}
          <div className="bg-card text-card-foreground rounded-2xl p-6 lg:p-7 shadow-sm border border-border/60 transition-all hover:shadow-md">
            <div className="flex justify-between items-start mb-1">
-             <h3 className="font-bold text-slate-900">Динамика заказов (30 дней)</h3>
+             <h3 className="font-bold text-foreground">Динамика заказов (30 дней)</h3>
            </div>
-           <p className="text-xs text-slate-400 font-medium mb-2">Срез по Выполненным, Отмененным и Неоплаченным заказам</p>
+           <p className="text-xs text-muted-foreground font-medium mb-2">Срез по Выполненным, Отмененным и Неоплаченным заказам</p>
            <OrdersChart data={timeseries} />
          </div>
 
          {/* Recent Activities Table */}
          <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border/60 transition-all hover:shadow-md">
            <div className="flex justify-between items-center mb-6">
-             <h3 className="font-bold text-slate-900">Журнал безопасности (Audit Log)</h3>
-             <Link href="/admin/settings?tab=audit" className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full border border-slate-100 text-xs font-bold text-slate-600 transition-colors">
+             <h3 className="font-bold text-foreground">Журнал безопасности (Audit Log)</h3>
+             <Link href="/admin/settings?tab=audit" className="flex items-center gap-2 bg-muted/50 hover:bg-muted px-3 py-1.5 rounded-full border border-border/50 text-xs font-bold text-muted-foreground transition-colors">
                Полный журнал
              </Link>
            </div>
 
-           <div className="w-full overflow-x-auto">
-             <table className="w-full text-left text-sm whitespace-nowrap">
-               <thead className="text-[11px] text-slate-400 uppercase font-bold tracking-wider border-b border-slate-100">
-                 <tr>
-                   <th className="pb-3 px-2 font-medium"><div className="w-3 h-3 rounded-[3px] border border-slate-300"></div></th>
-                   <th className="pb-3 px-4 font-medium">Log ID</th>
-                   <th className="pb-3 px-4 font-medium">Действие</th>
-                   <th className="pb-3 px-4 font-medium">Сотрудник</th>
-                   <th className="pb-3 px-4 font-medium">Дата и время</th>
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-dashed divide-slate-100">
+           <div className="w-full">
+             <Table aria-label="Журнал безопасности (Audit Log)">
+               <TableHeader>
+                 <TableColumn>Log ID</TableColumn>
+                 <TableColumn>Действие</TableColumn>
+                 <TableColumn>Сотрудник</TableColumn>
+                 <TableColumn>Дата и время</TableColumn>
+               </TableHeader>
+               <TableBody renderEmptyState={() => "Записей в журнале пока нет"}>
                  {recentAudit.map((log) => (
-                   <tr key={log.id} className="hover:bg-slate-50/50 transition-colors group">
-                     <td className="py-4 px-2"><div className="w-3 h-3 rounded-[3px] border border-slate-200 group-hover:border-slate-300 bg-white"></div></td>
-                     <td className="py-4 px-4 text-slate-500 font-mono text-[11px]">LOG_{log.id.slice(0,6).toUpperCase()}</td>
-                     <td className="py-4 px-4 flex items-center gap-3">
-                       <span className="font-bold text-slate-800 text-[13px]">{log.action}</span>
-                     </td>
-                     <td className="py-4 px-4 font-medium text-slate-800 text-[13px]">{log.adminEmail.split('@')[0]}</td>
-                     <td className="py-4 px-4 text-xs font-medium text-slate-400">{log.createdAt.toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
-                   </tr>
+                   <TableRow key={log.id}>
+                     <TableCell>
+                       <span className="text-muted-foreground font-mono text-[11px]">LOG_{log.id.slice(0,6).toUpperCase()}</span>
+                     </TableCell>
+                     <TableCell>
+                       <span className="font-bold text-foreground text-[13px]">{log.action}</span>
+                     </TableCell>
+                     <TableCell>
+                       <span className="font-medium text-foreground text-[13px]">{log.adminEmail.split('@')[0]}</span>
+                     </TableCell>
+                     <TableCell>
+                       <span className="text-xs font-medium text-muted-foreground">{log.createdAt.toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                     </TableCell>
+                   </TableRow>
                  ))}
-                 {recentAudit.length === 0 && (
-                    <tr><td colSpan={5} className="py-8 text-center text-slate-400 text-sm">Записей в журнале пока нет</td></tr>
-                 )}
-               </tbody>
-             </table>
+               </TableBody>
+             </Table>
            </div>
          </div>
 
@@ -188,21 +187,21 @@ export default async function AdminDashboardPage() {
            <div className="grid grid-cols-2 gap-4">
              <Link href="/admin/orders?status=IN_PROGRESS" className="bg-card text-card-foreground rounded-2xl p-5 shadow-sm border border-border/60 hover:shadow-md transition-all group">
                <div className="flex justify-between items-start mb-6">
-                 <span className="text-slate-500 text-sm font-medium">Заказы в работе</span>
-                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-slate-100 transition-colors">
-                   <Clock className="w-4 h-4 text-slate-600" />
+                 <span className="text-muted-foreground text-sm font-medium">Заказы в работе</span>
+                 <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center group-hover:bg-muted transition-colors">
+                   <Clock className="w-4 h-4 text-muted-foreground" />
                  </div>
                </div>
                <div className="mt-auto">
-                 <div className="text-3xl font-bold mb-1 text-slate-900">{oStats.inProgress.toLocaleString('ru-RU')}</div>
-                 <div className="text-[11px] font-medium text-slate-400">в очереди (pending): {oStats.pending}</div>
+                 <div className="text-3xl font-bold mb-1 text-foreground">{oStats.inProgress.toLocaleString('ru-RU')}</div>
+                 <div className="text-[11px] font-medium text-muted-foreground">в очереди (pending): {oStats.pending}</div>
                </div>
              </Link>
              
              <Link href="/admin/orders?status=ERROR" className="bg-rose-500 text-white rounded-2xl p-5 shadow-[0_8px_20px_rgb(244,63,94,0.2)] flex flex-col hover:scale-[1.02] transition-transform">
                <div className="flex justify-between items-start mb-6">
                  <span className="text-rose-100 text-sm font-medium">Ошибки</span>
-                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                 <div className="w-8 h-8 rounded-full bg-background/20 flex items-center justify-center">
                    <Settings className="w-4 h-4 text-white" />
                  </div>
                </div>
@@ -214,41 +213,41 @@ export default async function AdminDashboardPage() {
 
              <Link href="/admin/clients" className="bg-card text-card-foreground rounded-2xl p-5 shadow-sm border border-border/60 flex flex-col hover:shadow-md transition-all group">
                <div className="flex justify-between items-start mb-6">
-                 <span className="text-slate-500 text-sm font-medium">Пользователи</span>
-                 <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-slate-100 transition-colors flex items-center justify-center">
-                   <span className="text-slate-600 font-bold">👤</span>
+                 <span className="text-muted-foreground text-sm font-medium">Пользователи</span>
+                 <div className="w-8 h-8 rounded-full bg-muted/50 group-hover:bg-muted transition-colors flex items-center justify-center">
+                   <span className="text-muted-foreground font-bold">👤</span>
                  </div>
                </div>
                <div className="mt-auto">
-                 <div className="text-3xl font-bold text-slate-900 mb-1">{uStats.total.toLocaleString('ru-RU')}</div>
-                 <div className="text-[11px] font-medium text-slate-400">из них {uStats.active} активных</div>
+                 <div className="text-3xl font-bold text-foreground mb-1">{uStats.total.toLocaleString('ru-RU')}</div>
+                 <div className="text-[11px] font-medium text-muted-foreground">из них {uStats.active} активных</div>
                </div>
              </Link>
 
              <Link href="/admin/catalog" className="bg-card text-card-foreground rounded-2xl p-5 shadow-sm border border-border/60 flex flex-col hover:shadow-md transition-all group">
                <div className="flex justify-between items-start mb-6">
-                 <span className="text-slate-500 text-sm font-medium">Каталог</span>
-                 <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-slate-100 transition-colors flex items-center justify-center">
-                   <span className="text-slate-600 font-bold">📦</span>
+                 <span className="text-muted-foreground text-sm font-medium">Каталог</span>
+                 <div className="w-8 h-8 rounded-full bg-muted/50 group-hover:bg-muted transition-colors flex items-center justify-center">
+                   <span className="text-muted-foreground font-bold">📦</span>
                  </div>
                </div>
                <div className="mt-auto">
-                 <div className="text-3xl font-bold text-slate-900 mb-1">{cStats.activeServices}</div>
-                 <div className="text-[11px] font-medium text-slate-400">из {cStats.totalServices} доступных</div>
+                 <div className="text-3xl font-bold text-foreground mb-1">{cStats.activeServices}</div>
+                 <div className="text-[11px] font-medium text-muted-foreground">из {cStats.totalServices} доступных</div>
                </div>
              </Link>
            </div>
            
            <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border/60 transition-all hover:shadow-md">
-             <h3 className="font-bold text-slate-900 mb-1">Маржинальность</h3>
-             <p className="text-[11px] text-slate-400 mb-6 font-medium">Отношение прибыли к выручке</p>
+             <h3 className="font-bold text-foreground mb-1">Маржинальность</h3>
+             <p className="text-[11px] text-muted-foreground mb-6 font-medium">Отношение прибыли к выручке</p>
              
-             <div className="flex justify-between text-sm font-bold text-slate-700 mb-3">
+             <div className="flex justify-between text-sm font-bold text-foreground mb-3">
                <span>{marginPercentage.toFixed(1)}%</span>
-               <span className="text-slate-400 font-medium">Целёвка: 35%</span>
+               <span className="text-muted-foreground font-medium">Целёвка: 35%</span>
              </div>
              
-             <div className="w-full bg-slate-100 rounded-full h-2.5 mb-2 overflow-hidden">
+             <div className="w-full bg-muted rounded-full h-2.5 mb-2 overflow-hidden">
                <div 
                  className="bg-slate-800 h-2.5 rounded-full" 
                  style={{ width: `${Math.min(100, Math.max(0, marginPercentage || 0))}%` }}
@@ -256,14 +255,14 @@ export default async function AdminDashboardPage() {
              </div>
            </div>
 
-           <Link href="/admin/tickets" className="bg-card text-card-foreground hover:border-slate-300 transition-all rounded-2xl p-6 shadow-sm border border-border/60 flex flex-col hover:shadow-md">
+           <Link href="/admin/tickets" className="bg-card text-card-foreground hover:border-border transition-all rounded-2xl p-6 shadow-sm border border-border/60 flex flex-col hover:shadow-md">
              <div className="flex justify-between items-center mb-5">
-               <h3 className="font-bold text-slate-900 flex items-center gap-2"><Bell className="w-4 h-4 text-slate-500"/> Поддержка</h3>
-               {tStats.open > 0 && <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md">{tStats.open} в очереди</span>}
+               <h3 className="font-bold text-foreground flex items-center gap-2"><Bell className="w-4 h-4 text-muted-foreground"/> Поддержка</h3>
+               {tStats.open > 0 && <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded-md">{tStats.open} в очереди</span>}
              </div>
-             <div className="flex flex-col bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Всего обращений</div>
-                <div className="font-mono text-2xl font-bold text-slate-900">{tStats.total}</div>
+             <div className="flex flex-col bg-muted/50 rounded-xl p-4 border border-border/50">
+                <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Всего обращений</div>
+                <div className="font-mono text-2xl font-bold text-foreground">{tStats.total}</div>
              </div>
            </Link>
 
@@ -273,3 +272,4 @@ export default async function AdminDashboardPage() {
     </div>
   );
 }
+

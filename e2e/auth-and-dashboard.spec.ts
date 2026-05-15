@@ -16,16 +16,26 @@ test.describe('Auth & Dashboard Flow', () => {
     test('User can access referral section', async ({ page }) => {
       await page.goto('/dashboard/referrals');
       
-      // Check for an input that contains the ref link
-      // Smmplan referral page might use an input for copying the link
       const refInput = page.getByRole('textbox').filter({ hasText: /ref=/ });
       if (await refInput.isVisible()) {
          await expect(refInput).toBeVisible();
       } else {
-         // Alternatively, just verify the URL and a heading
          await expect(page).toHaveURL(/.*referrals/);
          await expect(page.locator('h1').first()).toBeVisible();
       }
+    });
+
+    test('User can view orders history table', async ({ page }) => {
+      await page.goto('/dashboard/orders');
+      
+      // The orders table or an empty state should be visible
+      await expect(page.getByRole('heading', { name: /История заказов|Мои заказы/i })).toBeVisible();
+      
+      // If there are no orders, it might show "Заказов пока нет", otherwise a table
+      const table = page.locator('table');
+      const emptyState = page.getByText(/Заказов пока нет|Ничего не найдено/i);
+      
+      await expect(table.or(emptyState).first()).toBeVisible({ timeout: 15000 });
     });
   });
 });

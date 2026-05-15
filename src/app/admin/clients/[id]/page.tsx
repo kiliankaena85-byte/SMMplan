@@ -5,25 +5,26 @@ import { ClientDetailClient } from './client-detail-client';
 import { banUserAction, unbanUserAction, loginAsAction } from '@/actions/admin/users';
 import { SubmitButton } from '@/components/admin/submit-button';
 import { ActionForm } from '@/components/admin/action-form';
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
 
 export const dynamic = 'force-dynamic';
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING:    'bg-amber-100  text-amber-700',
+  PENDING:    'bg-warning/20  text-amber-700',
   PROCESSING: 'bg-blue-100   text-blue-700',
-  COMPLETED:  'bg-emerald-100 text-emerald-700',
-  FAILED:     'bg-rose-100   text-rose-700',
-  CANCELLED:  'bg-slate-100  text-slate-600',
+  COMPLETED:  'bg-success/20 text-emerald-700',
+  FAILED:     'bg-destructive/20   text-rose-700',
+  CANCELLED:  'bg-muted  text-muted-foreground',
   PARTIAL:    'bg-orange-100 text-orange-700',
 };
 
 const ROLE_BADGE: Record<string, string> = {
-  OWNER:   'bg-indigo-100 text-indigo-800',
+  OWNER:   'bg-primary/20 text-indigo-800',
   ADMIN:   'bg-sky-100 text-sky-800',
-  MANAGER: 'bg-emerald-100 text-emerald-800',
-  SUPPORT: 'bg-slate-200 text-slate-700',
-  USER:    'bg-slate-100 text-slate-700',
-  BANNED:  'bg-rose-100 text-rose-800',
+  MANAGER: 'bg-success/20 text-emerald-800',
+  SUPPORT: 'bg-muted text-foreground',
+  USER:    'bg-muted text-foreground',
+  BANNED:  'bg-destructive/20 text-rose-800',
 };
 
 type Props = { params: Promise<{ id: string }> };
@@ -103,7 +104,7 @@ export default async function ClientDetailPage({ params }: Props) {
     ticketsCount,
   };
 
-  const roleBadge = ROLE_BADGE[user.role] ?? 'bg-slate-100 text-slate-700';
+  const roleBadge = ROLE_BADGE[user.role] ?? 'bg-muted text-foreground';
 
   return (
     <div className="space-y-6 pb-10">
@@ -143,7 +144,7 @@ export default async function ClientDetailPage({ params }: Props) {
               <input type="hidden" name="userId" value={user.id} />
               <SubmitButton
                 variant="outline"
-                className="text-xs h-9 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                className="text-xs h-9 text-emerald-700 border-emerald-300 hover:bg-success/10"
                 confirmMessage="Снять блокировку?"
               >
                 ✅ Разбанить
@@ -154,7 +155,7 @@ export default async function ClientDetailPage({ params }: Props) {
               <input type="hidden" name="userId" value={user.id} />
               <SubmitButton
                 variant="outline"
-                className="text-xs h-9 text-rose-600 border-rose-300 hover:bg-rose-50"
+                className="text-xs h-9 text-destructive border-rose-300 hover:bg-destructive/10"
                 confirmMessage="Забанить клиента? Он потеряет доступ к сервису."
               >
                 🚫 Забанить
@@ -168,7 +169,7 @@ export default async function ClientDetailPage({ params }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Баланс', value: `${(Number(user.balance) / 100).toFixed(2)} ₽`, accent: 'text-foreground', note: user.quarantineBalance > 0 ? `🔒 ${(Number(user.quarantineBalance) / 100).toFixed(2)} ₽ эскроу` : null },
-          { label: 'LTV', value: `${(Number(user.totalSpent) / 100).toLocaleString('ru-RU')} ₽`, accent: 'text-emerald-600', note: null },
+          { label: 'LTV', value: `${(Number(user.totalSpent) / 100).toLocaleString('ru-RU')} ₽`, accent: 'text-success', note: null },
           { label: 'Заказов', value: ordersCount.toString(), accent: 'text-foreground', note: `${ticketsCount} тикетов` },
           { label: 'Реф. баланс', value: `${(user.referralBalance / 100).toFixed(2)} ₽`, accent: 'text-violet-600', note: user.referralCode ? `Код: ${user.referralCode}` : 'Нет кода' },
         ].map(s => (
@@ -188,51 +189,46 @@ export default async function ClientDetailPage({ params }: Props) {
         <div className="px-4 py-3 border-b border-border">
           <h2 className="text-sm font-semibold text-foreground">Последние заказы</h2>
         </div>
-        <table className="w-full" aria-label="Заказы клиента">
-          <thead>
-            <tr className="text-left border-b border-border bg-muted/30">
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">#</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">Услуга</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground text-right">Кол-во</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground text-right">Сумма</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">Статус</th>
-              <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground">Дата</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
+        <Table aria-label="Заказы клиента">
+          <TableHeader>
+            <TableColumn>#</TableColumn>
+            <TableColumn>УСЛУГА</TableColumn>
+            <TableColumn className="text-right">КОЛ-ВО</TableColumn>
+            <TableColumn className="text-right">СУММА</TableColumn>
+            <TableColumn>СТАТУС</TableColumn>
+            <TableColumn>ДАТА</TableColumn>
+          </TableHeader>
+          <TableBody renderEmptyState={() => "Нет заказов"}>
             {orders.map(o => (
-              <tr key={o.id} className="hover:bg-muted/20 transition-all duration-200">
-                <td className="px-4 py-2.5">
+              <TableRow key={o.id}>
+                <TableCell>
                   <Link href={`/admin/orders?q=${o.numericId}`} className="font-mono text-xs text-primary hover:underline">
                     #{o.numericId}
                   </Link>
-                </td>
-                <td className="px-4 py-2.5">
+                </TableCell>
+                <TableCell>
                   <span className="text-xs text-foreground truncate max-w-[200px] block">{o.service.name}</span>
-                </td>
-                <td className="px-4 py-2.5 text-right">
+                </TableCell>
+                <TableCell className="text-right">
                   <span className="text-xs tabular-nums text-muted-foreground">{o.quantity.toLocaleString('ru-RU')}</span>
-                </td>
-                <td className="px-4 py-2.5 text-right">
+                </TableCell>
+                <TableCell className="text-right">
                   <span className="text-xs font-semibold tabular-nums text-foreground">{(Number(o.charge) / 100).toFixed(2)} ₽</span>
-                </td>
-                <td className="px-4 py-2.5">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                </TableCell>
+                <TableCell>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status] ?? 'bg-muted text-muted-foreground'}`}>
                     {o.status}
                   </span>
-                </td>
-                <td className="px-4 py-2.5">
+                </TableCell>
+                <TableCell>
                   <span className="text-xs text-muted-foreground">
                     {new Date(o.createdAt).toLocaleDateString('ru-RU')}
                   </span>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-        {orders.length === 0 && (
-          <div className="py-8 text-center text-sm text-muted-foreground">Нет заказов</div>
-        )}
+          </TableBody>
+        </Table>
         {ordersCount > 15 && (
           <div className="px-4 py-3 border-t border-border">
             <Link href={`/admin/orders?userId=${user.id}`} className="text-xs text-primary hover:underline">

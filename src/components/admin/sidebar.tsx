@@ -51,7 +51,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
       <div className={cn("absolute z-50 transition-all duration-500", collapsed ? "top-6 left-1/2 -translate-x-1/2" : "top-7 right-4")}>
         <button 
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center justify-center w-8 h-8 rounded-md bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-sky-500/20 hover:border-sky-500/30 opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-105"
+          className="flex items-center justify-center w-8 h-8 rounded-md bg-background/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-sky-500/20 hover:border-sky-500/30 opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-105"
         >
           {collapsed ? <PanelLeftOpen className="w-4 h-4 ml-0.5" /> : <PanelLeftClose className="w-4 h-4 mr-0.5" />}
         </button>
@@ -65,7 +65,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
         <h2 className="text-xl font-extrabold tracking-tight mb-1 bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
           Smmplan
         </h2>
-        <p className="text-[11px] text-slate-400 font-medium truncate mb-3 tracking-wide">{userEmail}</p>
+        <p className="text-[11px] text-muted-foreground font-medium truncate mb-3 tracking-wide">{userEmail}</p>
         <div className="flex items-center gap-2">
           <span className={cn(
             "inline-flex items-center px-2.5 py-1 text-[10px] rounded-md uppercase font-bold tracking-wider shadow-sm border border-white/5",
@@ -88,7 +88,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
         {navigation.map((section, sIdx) => (
           <div key={section.group} className="space-y-1">
             {!collapsed && (
-              <h3 className="px-3 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] transition-all duration-500 animate-in fade-in slide-in-from-left-2">
+              <h3 className="px-3 mb-2 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] transition-all duration-500 animate-in fade-in slide-in-from-left-2">
                 {section.group}
               </h3>
             )}
@@ -104,7 +104,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                     "relative flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-300 whitespace-nowrap overflow-hidden group",
                     isActive 
                       ? "bg-sky-500/10 text-sky-400 shadow-[inset_0_0_12px_rgba(14,165,233,0.05)]" 
-                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200",
+                      : "text-muted-foreground hover:bg-background/5 hover:text-slate-200",
                     collapsed && "justify-center px-0 w-12 h-12 mx-auto"
                   )}
                 >
@@ -128,7 +128,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
               );
             })}
             {!collapsed && sIdx < navigation.length - 1 && (
-              <div className="h-px bg-white/5 mx-3 mt-4 mb-2" />
+              <div className="h-px bg-background/5 mx-3 mt-4 mb-2" />
             )}
           </div>
         ))}
@@ -138,7 +138,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
             href="/dashboard/new-order"
             title={collapsed ? "Клиент" : undefined}
             className={cn(
-              "flex items-center px-4 py-2.5 text-sm font-medium rounded-sm text-slate-400 hover:bg-white/5 hover:text-white transition-colors whitespace-nowrap border border-transparent hover:border-white/10 group",
+              "flex items-center px-4 py-2.5 text-sm font-medium rounded-sm text-muted-foreground hover:bg-background/5 hover:text-white transition-colors whitespace-nowrap border border-transparent hover:border-white/10 group",
               collapsed && "justify-center px-0 w-12 h-12 mx-auto"
             )}
           >

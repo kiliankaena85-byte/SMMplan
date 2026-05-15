@@ -23,9 +23,12 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     if (!providerDef.apiUrl || !providerDef.apiKey) return;
 
     try {
+      const MAX_SYNC_PER_PROVIDER = 1000;
       const activeOrderIds = await db.order.findMany({
         where: { status: 'IN_PROGRESS', providerId: providerDef.id },
-        select: { id: true }
+        select: { id: true },
+        take: MAX_SYNC_PER_PROVIDER,
+        orderBy: { updatedAt: 'asc' }
       });
 
       if (activeOrderIds.length === 0) return;
@@ -176,12 +179,13 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     }
   }));
 
-  // WAVE 4.1: Restore Quarantined Services
+  // WAVE 4.1: Restore Quarantined Services & Evaluate Stuck Orders
   try {
     const { QuarantineService } = await import('@/services/providers/quarantine.service');
     await QuarantineService.restoreExpiredQuarantines();
+    await QuarantineService.evaluateTriggerC(); // Check for stuck orders globally
   } catch (e: any) {
-    console.error('[SyncProcessor] Failed to restore expired quarantines:', e.message);
+    console.error('[SyncProcessor] Failed to execute Quarantine Service tasks:', e.message);
   }
 
   console.log('[SyncProcessor] Finished massive status sync.');

@@ -1,41 +1,54 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { updateGlobalSettings } from '@/actions/admin/settings';
 import { toast } from 'sonner';
+import { useActionState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface IntegrationsSettingsProps {
   settings: any;
 }
 
 export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
-  async function action(formData: FormData) {
-    try {
-      await updateGlobalSettings(formData);
+  const [state, formAction, isPending] = useActionState(
+    async (prevState: any, formData: FormData) => {
+      try {
+        await updateGlobalSettings(formData);
+        return { success: true };
+      } catch (err) {
+        return { success: false, error: 'Ошибка при обновлении интеграций' };
+      }
+    },
+    null
+  );
+
+  useEffect(() => {
+    if (state?.success) {
       toast.success('Настройки интеграций обновлены');
-    } catch (err) {
-      toast.error('Ошибка при обновлении интеграций');
+    } else if (state?.error) {
+      toast.error(state.error);
     }
-  }
+  }, [state]);
 
   return (
     <div className="space-y-6">
       {/* Telegram */}
-      <Card className="rounded-2xl border-slate-100/50 shadow-sm bg-sky-50/30 backdrop-blur-xl">
+      <Card className="rounded-2xl border-border shadow-sm bg-primary/5 backdrop-blur-xl">
         <div className="p-8 space-y-6">
           <div className="flex items-center gap-2 mb-2">
-            <span className="p-1 px-2.5 bg-sky-100 text-sky-800 rounded-md text-[10px] font-bold">TG</span>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-sky-900">Telegram Бот</h3>
+            <span className="p-1 px-2.5 bg-primary/20 text-primary rounded-md text-[10px] font-bold">TG</span>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Telegram Бот</h3>
           </div>
           
-          <form action={action} className="space-y-4">
+          <form action={formAction} className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Приветственное сообщение (/start)</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Приветственное сообщение (/start)</Label>
               <Textarea
                 name="welcomeMessage"
                 defaultValue={settings.welcomeMessage || ''}
@@ -43,7 +56,8 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               />
             </div>
             <div className="flex justify-end">
-              <Button type="submit" intent="outline" className="font-bold uppercase tracking-widest text-xs h-9">
+              <Button disabled={isPending} type="submit" intent="outline" className="font-bold uppercase tracking-widest text-xs h-9">
+                {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Обновить контент бота
               </Button>
             </div>
@@ -52,31 +66,31 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
       </Card>
 
       {/* Payments */}
-      <Card className="rounded-2xl border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl">
+      <Card className="rounded-2xl border-border shadow-sm bg-card backdrop-blur-xl">
         <div className="p-8 space-y-8">
           <div className="flex items-center gap-2 mb-2">
-            <span className="p-1 px-2.5 bg-emerald-100 text-emerald-800 rounded-md text-[10px] font-bold">PAY</span>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-800">Платёжные шлюзы</h3>
+            <span className="p-1 px-2.5 bg-emerald-500/20 text-success rounded-md text-[10px] font-bold">PAY</span>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Платёжные шлюзы</h3>
           </div>
 
-          <form action={action} className="space-y-8">
+          <form action={formAction} className="space-y-8">
             {/* YooKassa section */}
             <div className="space-y-6">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b pb-1">YooKassa (Fiat)</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">YooKassa (Fiat)</div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* TEST KEYS */}
-                <div className={`space-y-4 p-5 rounded-xl border-2 transition-all ${settings.isTestMode ? 'border-amber-400 bg-amber-50/50 shadow-sm' : 'border-slate-100 bg-slate-50/30 opacity-60'}`}>
+                <div className={`space-y-4 p-5 rounded-xl border-2 transition-all ${settings.isTestMode ? 'border-amber-500/50 bg-amber-500/5 shadow-sm' : 'border-border bg-muted/30 opacity-60'}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-200 px-2 py-0.5 rounded">Тестовые</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-warning bg-amber-500/20 px-2 py-0.5 rounded">Тестовые</span>
                     </div>
                     {settings.isTestMode && (
-                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded animate-pulse">Активно</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-success bg-emerald-500/20 px-2 py-0.5 rounded animate-pulse">Активно</span>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Test Shop ID</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Test Shop ID</Label>
                     <Input
                       name="yookassaTestShopId"
                       defaultValue={settings.yookassaTestShopId || ''}
@@ -84,7 +98,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Test Secret Key</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Test Secret Key</Label>
                     <Input
                       name="yookassaTestSecretKey"
                       type="password"
@@ -94,17 +108,17 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                 </div>
 
                 {/* PRODUCTION KEYS */}
-                <div className={`space-y-4 p-5 rounded-xl border-2 transition-all ${!settings.isTestMode ? 'border-emerald-400 bg-emerald-50/50 shadow-sm' : 'border-slate-100 bg-slate-50/30 opacity-60'}`}>
+                <div className={`space-y-4 p-5 rounded-xl border-2 transition-all ${!settings.isTestMode ? 'border-emerald-500/50 bg-emerald-500/5 shadow-sm' : 'border-border bg-muted/30 opacity-60'}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-200 px-2 py-0.5 rounded">Боевые</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-success bg-emerald-500/20 px-2 py-0.5 rounded">Боевые</span>
                     </div>
                     {!settings.isTestMode && (
-                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded animate-pulse">Активно</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-success bg-emerald-500/20 px-2 py-0.5 rounded animate-pulse">Активно</span>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Shop ID</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Shop ID</Label>
                     <Input
                       name="yookassaShopId"
                       defaultValue={settings.yookassaShopId || ''}
@@ -112,7 +126,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Secret Key</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Secret Key</Label>
                     <Input
                       name="yookassaSecretKey"
                       type="password"
@@ -122,7 +136,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                 </div>
               </div>
 
-              <p className="text-[10px] text-slate-400 leading-relaxed">
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
                 Переключение между тестовыми и боевыми ключами — через «Тестовый режим» на вкладке «Система».
                 При включённом тестовом режиме используются тестовые ключи (с fallback на боевые).
               </p>
@@ -130,9 +144,9 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
 
             {/* CryptoBot */}
             <div className="space-y-4">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b pb-1">CryptoBot (Crypto)</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">CryptoBot (Crypto)</div>
               <div className="max-w-md space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">API Token</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">API Token</Label>
                 <Input
                   name="cryptoBotToken"
                   type="password"
@@ -141,8 +155,9 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex justify-end">
-              <Button type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md">
+            <div className="pt-4 border-t border-border flex justify-end">
+              <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md">
+                {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Сохранить ключи шлюзов
               </Button>
             </div>

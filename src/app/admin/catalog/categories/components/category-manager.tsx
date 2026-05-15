@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCategory, updateCategory, deleteCategory } from "@/actions/admin/catalog/categories";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
 
 export function CategoryManager({ categories, networks }: { categories: any[], networks: any[] }) {
   const router = useRouter();
@@ -72,24 +73,24 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
   return (
     <div className="space-y-6">
        {/* Editor Form */}
-       <div className="bg-white p-4 shadow sm:rounded-lg border border-slate-200">
+       <div className="bg-background p-4 shadow sm:rounded-lg border border-border">
           <h2 className="text-lg font-medium mb-3">{editingId ? "Редактировать категорию" : "Добавить категорию"}</h2>
           {error && <div className="text-red-600 text-sm mb-3 bg-red-50 p-2 rounded">{error}</div>}
           <form onSubmit={handleSave} className="flex flex-wrap gap-4 items-end">
              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-medium text-slate-700">Название (с префиксом платформы)</label>
+                <label className="block text-xs font-medium text-foreground">Название (с префиксом платформы)</label>
                 <input 
                    type="text" 
                    value={name} onChange={e => setName(e.target.value)}
-                   className="mt-1 block w-full rounded-md border-slate-300 shadow-sm sm:text-sm border p-2"
+                   className="mt-1 block w-full rounded-md border-border shadow-sm sm:text-sm border p-2"
                    placeholder="Например: INSTAGRAM | Лайки"
                 />
              </div>
              <div className="w-48">
-                <label className="block text-xs font-medium text-slate-700">Сеть (Network)</label>
+                <label className="block text-xs font-medium text-foreground">Сеть (Network)</label>
                 <select 
                    value={networkId} onChange={e => setNetworkId(e.target.value)}
-                   className="mt-1 block w-full rounded-md border-slate-300 shadow-sm sm:text-sm border p-2"
+                   className="mt-1 block w-full rounded-md border-border shadow-sm sm:text-sm border p-2"
                 >
                    {networks.map(n => (
                      <option key={n.id} value={n.id}>{n.name.toUpperCase()}</option>
@@ -97,23 +98,23 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
                 </select>
              </div>
              <div className="w-24">
-                <label className="block text-xs font-medium text-slate-700">Сорт.</label>
+                <label className="block text-xs font-medium text-foreground">Сорт.</label>
                 <input 
                    type="number" 
                    value={sort} onChange={e => setSort(e.target.value)}
-                   className="mt-1 block w-full rounded-md border-slate-300 shadow-sm sm:text-sm border p-2"
+                   className="mt-1 block w-full rounded-md border-border shadow-sm sm:text-sm border p-2"
                 />
              </div>
              <div className="flex gap-2">
                  <button 
                     type="submit" 
                     disabled={loading}
-                    className="inline-flex justify-center bg-indigo-600 text-white rounded py-2 px-4 shadow-sm text-sm font-medium hover:bg-indigo-700"
+                    className="inline-flex justify-center bg-primary text-white rounded py-2 px-4 shadow-sm text-sm font-medium hover:bg-indigo-700"
                  >
                     {editingId ? "Сохранить" : "Добавить"}
                  </button>
                  {editingId && (
-                     <button type="button" onClick={resetForm} className="text-slate-500 text-sm hover:underline ml-2">
+                     <button type="button" onClick={resetForm} className="text-muted-foreground text-sm hover:underline ml-2">
                         Отмена
                      </button>
                  )}
@@ -122,33 +123,42 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
        </div>
 
        {/* List display */}
-       <div className="bg-white shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-slate-300">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="py-3 pl-4 pr-3 text-left text-sm font-semibold text-slate-900">Название</th>
-              <th className="px-3 py-3 text-left text-sm font-semibold text-slate-900">Платформа</th>
-              <th className="px-3 py-3 text-left text-sm font-semibold text-slate-900">Сортировка</th>
-              <th className="px-3 py-3 text-left text-sm font-semibold text-slate-900">Услуг</th>
-              <th className="relative py-3 pl-3 pr-4"><span className="sr-only">Действия</span></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 bg-white">
+       <div className="bg-card shadow-sm ring-1 ring-border rounded-xl overflow-hidden w-full">
+        <Table aria-label="Менеджер категорий">
+          <TableHeader>
+            <TableColumn>НАЗВАНИЕ</TableColumn>
+            <TableColumn>ПЛАТФОРМА</TableColumn>
+            <TableColumn>СОРТИРОВКА</TableColumn>
+            <TableColumn>УСЛУГ</TableColumn>
+            <TableColumn className="text-right">ДЕЙСТВИЯ</TableColumn>
+          </TableHeader>
+          <TableBody renderEmptyState={() => "Категорий нет"}>
             {categories.map((c) => (
-              <tr key={c.id}>
-                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900">{c.name}</td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-slate-500 font-mono">{c.network?.slug?.toUpperCase() || '-'}</td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-slate-500">{c.sort}</td>
-                <td className="whitespace-nowrap px-3 py-4 text-sm text-slate-500">{c._count.services}</td>
-                <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium">
-                  <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 mr-4">Изменить</button>
-                  <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900">Удалить</button>
-                </td>
-              </tr>
+              <TableRow key={c.id}>
+                <TableCell>
+                  <span className="font-medium text-foreground text-sm">{c.name}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-muted-foreground text-sm font-mono">{c.network?.slug?.toUpperCase() || '-'}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-muted-foreground text-sm">{c.sort}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-muted-foreground text-sm">{c._count.services}</span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-3 font-medium text-sm">
+                    <button onClick={() => handleEdit(c)} className="text-primary hover:underline">Изменить</button>
+                    <button onClick={() => handleDelete(c.id)} className="text-destructive hover:underline">Удалить</button>
+                  </div>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
 }
+

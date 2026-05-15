@@ -69,6 +69,36 @@
   }
 }
 
+/* --- THEME: EMERALD (Финансовая, Конверсионная) --- */
+:root[data-theme="emerald"] {
+  --color-primary: #059669; /* emerald-600 */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #d1fae5; /* emerald-100 */
+  --color-secondary-foreground: #047857; /* emerald-700 */
+  --color-ring: #a7f3d0; /* emerald-200 */
+  --animate-hover-pulse: hover-pulse-emerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes hover-pulse-emerald {
+  0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
+  100% { box-shadow: 0 0 0 1em rgba(5, 150, 105, 0); }
+}
+
+/* --- THEME: VIOLET (Премиум, AI) --- */
+:root[data-theme="violet"] {
+  --color-primary: #7c3aed; /* violet-600 */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #ede9fe; /* violet-100 */
+  --color-secondary-foreground: #6d28d9; /* violet-700 */
+  --color-ring: #ddd6fe; /* violet-200 */
+  --animate-hover-pulse: hover-pulse-violet 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes hover-pulse-violet {
+  0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+  100% { box-shadow: 0 0 0 1em rgba(124, 58, 237, 0); }
+}
+
 @layer base {
   body {
     background-color: var(--color-background);
@@ -129,5 +159,17 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none; /* Chrome, Safari and Opera */
+  }
+}
+
+
+/* Fix Chrome Autofill breaking transparent inputs */
+@layer base {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+      transition: background-color 5000s ease-in-out 0s;
+      -webkit-text-fill-color: #0f172a !important;
   }
 }

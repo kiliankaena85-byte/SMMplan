@@ -8,14 +8,14 @@ const buttonVariants = cva(
   {
     variants: {
       intent: {
-        primary: "bg-slate-900 text-white shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:bg-slate-800 hover:shadow-[0_6px_20px_rgb(0,0,0,0.15)]",
-        secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
-        destructive: "bg-rose-500 text-white hover:bg-rose-600 shadow-sm",
-        outline: "border border-slate-200 bg-transparent hover:bg-slate-50 text-slate-800",
-        ghost: "hover:bg-slate-100 hover:text-slate-900 text-slate-600",
+        primary: "bg-primary text-primary-foreground shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:opacity-90 hover:shadow-[0_6px_20px_rgb(0,0,0,0.15)]",
+        secondary: "bg-secondary text-secondary-foreground hover:opacity-80",
+        destructive: "bg-destructive text-destructive-foreground hover:opacity-90 shadow-sm",
+        outline: "border border-border bg-transparent hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-accent hover:text-accent-foreground text-foreground/80",
         glass: "bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20",
-        dark: "bg-black text-white shadow-md hover:bg-slate-900",
-        tint: "bg-sky-50 text-sky-600 hover:bg-sky-100", // The pure blue accent used sparingly
+        dark: "bg-foreground text-background shadow-md hover:opacity-90",
+        tint: "bg-primary/10 text-primary hover:bg-primary/20", // The pure blue accent used sparingly
       },
       size: {
         default: "h-11 px-6 py-2",

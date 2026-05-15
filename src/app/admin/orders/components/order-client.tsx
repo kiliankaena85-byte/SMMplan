@@ -173,8 +173,8 @@ function OrderDrawer({
               </div>
             ))}
             {canSeeRates && (
-               <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
-                 <div className="text-[10px] text-amber-600 uppercase font-bold mb-1">Себестоимость</div>
+               <div className="bg-warning/10 border border-amber-100 rounded-xl p-3">
+                 <div className="text-[10px] text-warning uppercase font-bold mb-1">Себестоимость</div>
                  <div className="text-sm font-mono font-bold text-amber-900">{(order.providerCost / 100).toFixed(2)} ₽</div>
                </div>
             )}
@@ -191,8 +191,8 @@ function OrderDrawer({
 
           {/* Error if present */}
           {order.error && (
-            <div className="bg-rose-50 border border-rose-200 rounded-xl p-3">
-              <div className="text-xs text-rose-500 font-medium mb-1">⚠️ Ошибка API</div>
+            <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3">
+              <div className="text-xs text-destructive font-medium mb-1">⚠️ Ошибка API</div>
               <div className="text-xs text-rose-700 font-mono break-all">{order.error}</div>
             </div>
           )}
@@ -231,7 +231,7 @@ function OrderDrawer({
                     className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:border-primary transition-all duration-200"
                   />
                   {remains > 0 && (
-                    <p className="text-xs text-amber-600 mt-1 font-medium">
+                    <p className="text-xs text-warning mt-1 font-medium">
                       Возврат: {((remains / order.quantity) * order.charge / 100).toFixed(2)} ₽
                     </p>
                   )}
@@ -255,7 +255,7 @@ function OrderDrawer({
               onClick={handleForceComplete}
               disabled={isPending || order.status === 'COMPLETED'}
               aria-label="Принудительно завершить заказ"
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all duration-200 disabled:opacity-40"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-emerald-300 bg-success/10 text-emerald-700 hover:bg-success/20 transition-all duration-200 disabled:opacity-40"
             >
               <CheckCircle className="w-4 h-4" />
               Завершить
@@ -273,7 +273,7 @@ function OrderDrawer({
               onClick={handleCancel}
               disabled={isPending || ['COMPLETED', 'CANCELED'].includes(order.status)}
               aria-label="Отменить заказ"
-              className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-all duration-200 disabled:opacity-40"
+              className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-rose-300 bg-destructive/10 text-rose-700 hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40"
             >
               <XCircle className="w-4 h-4" />
               Отменить заказ
@@ -362,7 +362,7 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
                   disabled={isPendingBulk}
                   onClick={() => handleBulkCancel(selectedRows)}
                   aria-label="Отменить выбранные заказы"
-                  className="text-rose-600 hover:bg-rose-50 transition-all duration-200"
+                  className="text-destructive hover:bg-destructive/10 transition-all duration-200"
                 >
                   <XCircle className="w-4 h-4 mr-1.5" />
                   {isPendingBulk ? 'Отмена...' : 'Отменить'}

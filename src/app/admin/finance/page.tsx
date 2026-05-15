@@ -35,12 +35,12 @@ export default async function FinanceDashboard({ searchParams }: Props) {
 
   if ('error' in ledgerResult) {
     return (
-      <div className="p-10 text-center bg-white rounded-3xl border border-slate-200">
-        <div className="inline-flex p-4 bg-rose-100 text-rose-600 rounded-2xl mb-4">
+      <div className="p-10 text-center bg-background rounded-3xl border border-border">
+        <div className="inline-flex p-4 bg-destructive/20 text-destructive rounded-2xl mb-4">
           <AlertTriangle className="w-8 h-8" />
         </div>
-        <h1 className="text-2xl font-black text-slate-800">Ошибка загрузки данных</h1>
-        <p className="text-slate-500 mt-2 font-medium">{ledgerResult.error}</p>
+        <h1 className="text-2xl font-black text-foreground">Ошибка загрузки данных</h1>
+        <p className="text-muted-foreground mt-2 font-medium">{ledgerResult.error}</p>
       </div>
     );
   }
@@ -54,7 +54,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       sub: 'Все поступления',
       icon: DollarSign,
       color: 'bg-emerald-500',
-      textColor: 'text-emerald-600',
+      textColor: 'text-success',
     },
     {
       label: 'Возвраты',
@@ -62,7 +62,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       sub: 'Отмены и частичные',
       icon: TrendingDown,
       color: 'bg-rose-500',
-      textColor: 'text-rose-600',
+      textColor: 'text-destructive',
     },
     {
       label: 'Закупка (COGS)',
@@ -70,15 +70,15 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       sub: 'Расход провайдерам',
       icon: TrendingDown,
       color: 'bg-amber-500',
-      textColor: 'text-amber-600',
+      textColor: 'text-warning',
     },
     {
       label: 'Валовая маржа',
       value: fmt(metrics.marginGross),
       sub: `${metrics.marginPercentage.toFixed(1)}% эффективность`,
       icon: TrendingUp,
-      color: 'bg-indigo-500',
-      textColor: 'text-indigo-600',
+      color: 'bg-primary',
+      textColor: 'text-primary',
     },
   ];
 
@@ -95,20 +95,20 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       {/* ── KPI Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {KPI.map(k => (
-          <div key={k.label} className="rounded-2xl border border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl overflow-hidden">
+          <div key={k.label} className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className={`p-2.5 rounded-xl ${k.color} text-white shadow-lg`}>
                   <k.icon className="w-5 h-5" />
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{k.label}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{k.label}</p>
                   <p className={`text-xl font-black tabular-nums mt-1 ${k.textColor}`}>{k.value}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 mt-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                <p className="text-[11px] text-slate-500 font-bold uppercase tracking-tighter">{k.sub}</p>
+                <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-tighter">{k.sub}</p>
               </div>
             </div>
           </div>
@@ -117,26 +117,26 @@ export default async function FinanceDashboard({ searchParams }: Props) {
 
       {/* ── Breakdown & Settings ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-2xl border border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl overflow-hidden">
+        <div className="lg:col-span-2 rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
           <div className="p-8">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+              <div className="p-2 bg-primary/20 text-primary rounded-lg">
                 <PieChart className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-slate-800">Расчёт чистой прибыли</h3>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Расчёт чистой прибыли</h3>
             </div>
 
             <div className="space-y-6">
               {[
-                { label: 'Комиссии шлюзов',               value: -metrics.gatewayFees,  color: 'text-rose-600',  desc: 'ЮKassa (3.5%) и CryptoBot (1%)' },
-                { label: 'Валовая маржа',                 value: metrics.marginGross,   color: 'text-slate-900', desc: 'После вычета COGS, возвратов и комиссий' },
-                { label: `Налоги (${settings.taxRate}%)`, value: -metrics.taxes,        color: 'text-rose-600',  desc: 'Оценочный налог на прибыль' },
-                { label: 'OPEX (Постоянные расходы)',     value: -metrics.opex,         color: 'text-rose-600',  desc: 'Хостинг, софт, персонал' },
+                { label: 'Комиссии шлюзов',               value: -metrics.gatewayFees,  color: 'text-destructive',  desc: 'ЮKassa (3.5%) и CryptoBot (1%)' },
+                { label: 'Валовая маржа',                 value: metrics.marginGross,   color: 'text-foreground', desc: 'После вычета COGS, возвратов и комиссий' },
+                { label: `Налоги (${settings.taxRate}%)`, value: -metrics.taxes,        color: 'text-destructive',  desc: 'Оценочный налог на прибыль' },
+                { label: 'OPEX (Постоянные расходы)',     value: -metrics.opex,         color: 'text-destructive',  desc: 'Хостинг, софт, персонал' },
               ].map(r => (
                 <div key={r.label} className="flex justify-between items-start group">
                   <div className="space-y-0.5">
-                    <span className="text-sm font-bold text-slate-700 block">{r.label}</span>
-                    <span className="text-[11px] text-slate-400 font-medium">{r.desc}</span>
+                    <span className="text-sm font-bold text-foreground block">{r.label}</span>
+                    <span className="text-[11px] text-muted-foreground font-medium">{r.desc}</span>
                   </div>
                   <span className={`font-black tabular-nums text-sm ${r.color}`}>{fmt(Math.abs(r.value))}</span>
                 </div>

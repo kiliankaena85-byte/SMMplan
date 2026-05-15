@@ -10,6 +10,8 @@ import { formatCents } from "@/lib/utils";
 import { orderFormSchema } from "@/validators/order.validators";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 
+export type OrderEngine = ReturnType<typeof useOrderEngine>;
+
 export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmail: string = "") {
   // Input states
   const [url, setUrl] = useState("");

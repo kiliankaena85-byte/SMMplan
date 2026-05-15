@@ -12,6 +12,7 @@
  */
 
 import { useState, useTransition } from 'react';
+import { Table } from '@heroui/react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Trash2, AlertCircle, ShoppingCart } from 'lucide-react';
@@ -83,11 +84,11 @@ function BatchActionBar({
       <div className="flex-1 h-px bg-border" />
       <button
         onClick={handleEnable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all duration-200 disabled:opacity-50"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-success border border-emerald-500/30 hover:bg-emerald-500/25 transition-all duration-200 disabled:opacity-50"
       >✅ Включить</button>
       <button
         onClick={handleDisable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/15 text-rose-600 border border-rose-500/30 hover:bg-rose-500/25 transition-all duration-200 disabled:opacity-50"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/15 text-destructive border border-rose-500/30 hover:bg-rose-500/25 transition-all duration-200 disabled:opacity-50"
       >🚫 Отключить</button>
       <div className="flex items-center gap-1">
         <input
@@ -140,7 +141,7 @@ function InlinePriceCell({ service, usdToRub }: { service: CatalogServiceDTO, us
     if (finalMarkup < SAFETY_MULTIPLIER) {
       toast.error(
         <div className="flex flex-col gap-1">
-          <span className="font-bold text-rose-600 flex items-center gap-1"><AlertCircle className="w-4 h-4" /> Ошибка маржинальности</span>
+          <span className="font-bold text-destructive flex items-center gap-1"><AlertCircle className="w-4 h-4" /> Ошибка маржинальности</span>
           <span>Цена <b>{roundedPrice} ₽</b> (x{finalMarkup.toFixed(2)}) ниже порога безубыточности <b>x{SAFETY_MULTIPLIER.toFixed(2)}</b>.</span>
         </div>
       );
@@ -183,7 +184,7 @@ function InlinePriceCell({ service, usdToRub }: { service: CatalogServiceDTO, us
             disabled={isPending}
             className={`w-24 px-2 py-1.5 text-xs font-mono font-bold rounded-lg border outline-none transition-all duration-200 tabular-nums
               ${isBelowSafety
-                ? 'border-rose-300 bg-rose-50 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
+                ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
                 : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
               } disabled:opacity-50`}
           />
@@ -193,13 +194,13 @@ function InlinePriceCell({ service, usdToRub }: { service: CatalogServiceDTO, us
       
       <div className="flex flex-col gap-0.5">
         <span className="text-[9px] uppercase text-muted-foreground font-bold tracking-tight">Наценка</span>
-        <div className={`text-xs font-mono font-medium px-2 py-1.5 rounded-lg border border-transparent bg-muted/40 tabular-nums ${isBelowSafety ? 'text-rose-600 bg-rose-50 border-rose-100' : 'text-slate-500'}`}>
+        <div className={`text-xs font-mono font-medium px-2 py-1.5 rounded-lg border border-transparent bg-muted/40 tabular-nums ${isBelowSafety ? 'text-destructive bg-destructive/10 border-destructive/20' : 'text-muted-foreground'}`}>
           x{markup.toFixed(2)}
         </div>
       </div>
 
       {isBelowSafety && (
-        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-600 font-bold border border-rose-200 animate-pulse">
+        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive font-bold border border-destructive/30 animate-pulse">
           УБЫТОК
         </span>
       )}
@@ -250,7 +251,7 @@ function ArchiveButton({ service }: { service: CatalogServiceDTO }) {
       onClick={handleArchive}
       disabled={isPending}
       aria-label={`Архивировать услугу ${service.name}`}
-      className="p-2 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-50 transition-all duration-200 disabled:opacity-40"
+      className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 disabled:opacity-40"
     >
       <Trash2 className="w-4 h-4" />
     </button>
@@ -296,121 +297,116 @@ export function CatalogTable({
 
       <div className="rounded-xl border border-default-200 bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left" aria-label="Каталог услуг">
-            <thead>
-              <tr className="border-b border-default-100 bg-slate-50/50">
-                {canEdit && (
-                  <th className="py-4 px-4 w-10">
-                    <input
-                      type="checkbox" checked={allSelected}
-                      onChange={toggleAll}
-                      className="rounded border-default-300 text-primary focus:ring-primary cursor-pointer"
-                    />
-                  </th>
-                )}
-                <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">ID</th>
-                <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider min-w-[250px]">Услуга / Категория</th>
-                {canSeeRates && <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Закуп ($)</th>}
-                <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ценообразование {canEdit ? '(RUB)' : ''}</th>
-                <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right hidden lg:table-cell">Заказы</th>
-                <th className="py-4 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">Статус</th>
-                {canEdit && <th className="py-4 px-4 w-12" />}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default-100">
+          <Table aria-label="Каталог услуг" className="w-full text-sm text-left">
+            <Table.Header>
+                {canEdit ? <Table.Column className="w-10 px-4">
+                  <input
+                    type="checkbox" checked={allSelected}
+                    onChange={toggleAll}
+                    className="rounded border-default-300 text-primary focus:ring-primary cursor-pointer"
+                  />
+                </Table.Column> : <Table.Column className="hidden">{""}</Table.Column>}
+                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">ID</Table.Column>
+                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[250px]">Услуга / Категория</Table.Column>
+                {canSeeRates ? <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">Закуп ($)</Table.Column> : <Table.Column className="hidden">{""}</Table.Column>}
+                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ценообразование {canEdit ? '(RUB)' : ''}</Table.Column>
+                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right hidden lg:table-cell">Заказы</Table.Column>
+                <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center">Статус</Table.Column>
+                {canEdit ? <Table.Column className="w-12">{""}</Table.Column> : <Table.Column className="hidden">{""}</Table.Column>}
+            </Table.Header>
+            <Table.Body renderEmptyState={() => (
+              <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
+                 <ShoppingCart className="w-8 h-8 opacity-20" />
+                 <p className="text-sm">Нет услуг в выбранной категории</p>
+              </div>
+            )}>
               {services.map(s => {
                 const isChecked = selected.has(s.id);
                 const providerCostRub = s.rate * usdToRub;
                 return (
-                  <tr
+                  <Table.Row
                     key={s.id}
                     className={`group transition-all duration-200 ${
                       isChecked
                         ? 'bg-primary/5'
                         : !s.isActive
-                        ? 'bg-slate-50/50 opacity-70'
-                        : 'hover:bg-slate-50'
+                        ? 'bg-muted/50 opacity-70'
+                        : 'hover:bg-muted/30'
                     }`}
                   >
-                    {canEdit && (
-                      <td className="py-4 px-4">
+                    {canEdit ? (
+                      <Table.Cell className="py-4 px-4">
                         <input
                           type="checkbox" checked={isChecked}
                           onChange={() => toggleOne(s.id)}
                           className="rounded border-default-300 text-primary focus:ring-primary cursor-pointer"
                         />
-                      </td>
-                    )}
-                    <td className="py-4 px-4">
-                      <span className="font-mono text-xs text-slate-400">
+                      </Table.Cell>
+                    ) : <Table.Cell className="hidden">{""}</Table.Cell>}
+                    <Table.Cell className="py-4 px-4">
+                      <span className="font-mono text-xs text-muted-foreground">
                         #{s.numericId}
                       </span>
-                    </td>
-                    <td className="py-4 px-4">
+                    </Table.Cell>
+                    <Table.Cell className="py-4 px-4">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-900 leading-tight">
+                          <span className="font-semibold text-foreground leading-tight">
                             {s.name}
                           </span>
                           {s.isQuarantined && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold border border-amber-200">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-warning font-bold border border-amber-500/20">
                               ⚠️ КАРАНТИН
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-slate-500 mt-1">{s.categoryName}</span>
+                        <span className="text-[10px] text-muted-foreground mt-1">{s.categoryName}</span>
                       </div>
-                    </td>
-                    {canSeeRates && (
-                      <td className="py-4 px-4 text-right">
+                    </Table.Cell>
+                    {canSeeRates ? (
+                      <Table.Cell className="py-4 px-4 text-right">
                         <div className="flex flex-col items-end">
-                          <span className="font-mono text-xs font-medium text-slate-700">
+                          <span className="font-mono text-xs font-medium text-foreground">
                             ${s.rate.toFixed(4)}
                           </span>
-                          <span className="text-[9px] text-slate-400">
+                          <span className="text-[9px] text-muted-foreground">
                             ≈ {providerCostRub.toFixed(2)} ₽
                           </span>
                         </div>
-                      </td>
-                    )}
-                    <td className="py-4 px-4">
+                      </Table.Cell>
+                    ) : <Table.Cell className="hidden">{""}</Table.Cell>}
+                    <Table.Cell className="py-4 px-4">
                       {canEdit ? (
                         <InlinePriceCell service={s} usdToRub={usdToRub} />
                       ) : (
-                        <div className="text-sm font-mono font-bold text-slate-700">
+                        <div className="text-sm font-mono font-bold text-foreground">
                           {applyBeautifulRounding(s.rate * s.markup * usdToRub).toLocaleString('ru-RU')} ₽
                         </div>
                       )}
-                    </td>
-                    <td className="py-4 px-4 text-right hidden lg:table-cell">
-                      <span className="text-xs font-mono font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded-md">
+                    </Table.Cell>
+                    <Table.Cell className="py-4 px-4 text-right hidden lg:table-cell">
+                      <span className="text-xs font-mono font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
                         {s.ordersCount.toLocaleString('ru-RU')}
                       </span>
-                    </td>
-                    <td className="py-4 px-4 text-center">
+                    </Table.Cell>
+                    <Table.Cell className="py-4 px-4 text-center">
                       {canEdit ? <StatusToggle service={s} /> : (
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.isActive ? 'bg-emerald-500/15 text-success' : 'bg-muted text-muted-foreground'}`}>
                           {s.isActive ? 'Вкл' : 'Выкл'}
                         </span>
                       )}
-                    </td>
-                    {canEdit && (
-                      <td className="py-4 px-2">
+                    </Table.Cell>
+                    {canEdit ? (
+                      <Table.Cell className="py-4 px-2">
                         <ArchiveButton service={s} />
-                      </td>
-                    )}
-                  </tr>
+                      </Table.Cell>
+                    ) : <Table.Cell className="hidden">{""}</Table.Cell>}
+                  </Table.Row>
                 );
               })}
-            </tbody>
-          </table>
+            </Table.Body>
+          </Table>
         </div>
-        {services.length === 0 && (
-          <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
-             <ShoppingCart className="w-8 h-8 opacity-20" />
-             <p className="text-sm">Нет услуг в выбранной категории</p>
-          </div>
-        )}
       </div>
     </div>
   );

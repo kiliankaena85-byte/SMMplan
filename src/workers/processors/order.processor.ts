@@ -111,45 +111,8 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
             await sendAdminAlert(`🚨 КРИТИЧНО! У провайдера для услуги ${order.serviceId} кончился баланс! Заказы отклоняются!`);
         } else {
             // Standard Business Error Quarantine logic
-            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-            
-            // Find recent ERROR orders for this exact service
-            const recentErrors = await db.order.findMany({
-                where: {
-                    serviceId: order.serviceId,
-                    status: 'ERROR',
-                    createdAt: { gte: oneHourAgo }
-                },
-                select: { userId: true }
-            });
-
-            // We need >= 3 errors from >= 2 UNIQUE users to prevent Mass Order abuse
-            if (recentErrors.length >= 3) {
-                const uniqueUsers = new Set(recentErrors.map(e => e.userId));
-                if (uniqueUsers.size >= 2) {
-                    // TRIGGER QUARANTINE!
-                    // Exponential Backoff for Cooldown: 30 mins -> 2 hours -> 12 hours
-                    const service = await db.service.findUnique({ where: { id: order.serviceId } });
-                    if (service && (!service.cooldownUntil || service.cooldownUntil < new Date())) {
-                        let cooldownHours = 0.5; // default 30 mins
-                        if (service.cooldownReason === 'API_ERROR_STRIKE_1') cooldownHours = 2;
-                        else if (service.cooldownReason === 'API_ERROR_STRIKE_2') cooldownHours = 12;
-
-                        const newReason = cooldownHours === 0.5 ? 'API_ERROR_STRIKE_1' : (cooldownHours === 2 ? 'API_ERROR_STRIKE_2' : 'API_ERROR_STRIKE_3');
-                        const newCooldown = new Date(Date.now() + cooldownHours * 60 * 60 * 1000);
-
-                        await db.service.update({
-                            where: { id: service.id },
-                            data: {
-                                cooldownUntil: newCooldown,
-                                cooldownReason: newReason
-                            }
-                        });
-
-                        console.warn(`[ElasticQuarantine] Trigger A fired for Service ${service.id}. Cooldown until ${newCooldown.toISOString()}`);
-                    }
-                }
-            }
+            const { QuarantineService } = await import('@/services/providers/quarantine.service');
+            await QuarantineService.evaluateTriggerA(order.serviceId, error.message);
         }
     }
     // ==========================================================

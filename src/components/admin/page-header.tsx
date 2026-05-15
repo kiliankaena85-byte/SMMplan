@@ -9,18 +9,18 @@ interface AdminPageHeaderProps {
 
 export function AdminPageHeader({ icon: Icon, title, description, action }: AdminPageHeaderProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100/50 mb-6">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/50/50 mb-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
           {Icon && (
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+            <div className="p-2 bg-primary/10 text-primary rounded-lg">
               <Icon className="w-6 h-6" />
             </div>
           )}
           {title}
         </h1>
         {description && (
-          <div className="text-slate-500 mt-2 font-medium text-sm">
+          <div className="text-muted-foreground mt-2 font-medium text-sm">
             {description}
           </div>
         )}

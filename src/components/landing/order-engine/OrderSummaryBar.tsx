@@ -51,7 +51,7 @@ export function OrderSummaryBar({ total, onSubmit, isValid, isLoading }: OrderSu
             onSubmit();
           }}
           disabled={!isValid || isLoading}
-          className="h-12 px-8 rounded-full bg-sky-600 text-white font-semibold text-base hover:bg-sky-700 active:bg-sky-800 disabled:opacity-50 transition-colors min-h-12 min-w-12 flex items-center justify-center shadow-md shadow-sky-600/20"
+          className="h-12 px-8 rounded-full bg-primary text-primary-foreground font-semibold text-base hover:bg-primary/90 active:bg-primary/80 disabled:opacity-50 transition-colors min-h-12 min-w-12 flex items-center justify-center shadow-md shadow-primary/20"
         >
           {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Оплатить"}
         </button>

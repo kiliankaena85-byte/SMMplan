@@ -65,7 +65,7 @@ export const DynamicPayloads = memo(function DynamicPayloads({
           <textarea
             value={customData}
             onChange={e => onCustomDataChange(e.target.value)}
-            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-sky-300 outline-none text-base min-h-[120px] resize-y custom-scrollbar"
+            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-primary/40 outline-none text-base min-h-[120px] resize-y custom-scrollbar"
             placeholder="Супер!\nОтличное видео!\nЖду продолжения..."
           />
           <div className="text-xs text-slate-500 text-right">
@@ -81,7 +81,7 @@ export const DynamicPayloads = memo(function DynamicPayloads({
             type="text"
             value={customData}
             onChange={e => onCustomDataChange(e.target.value)}
-            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-sky-300 outline-none text-base"
+            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-primary/40 outline-none text-base"
             placeholder="Например: криптовалюта, инвестиции"
           />
         </div>
@@ -96,7 +96,7 @@ export const DynamicPayloads = memo(function DynamicPayloads({
             max="10"
             value={customData}
             onChange={e => onCustomDataChange(e.target.value)}
-            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-sky-300 outline-none text-base"
+            className="w-full p-4 rounded-2xl border border-slate-200 focus:border-primary/40 outline-none text-base"
             placeholder="Например: 2"
           />
         </div>

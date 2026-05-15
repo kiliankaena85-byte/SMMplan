@@ -7,7 +7,7 @@ export function TrustBar() {
   const stats = [
     { value: '2,000,000+', label: 'Заказов выполнено', icon: CheckCircle, color: 'text-emerald-500' },
     { value: '4 секунды', label: 'Среднее время старта', icon: Timer, color: 'text-amber-500' },
-    { value: '99.9%', label: 'Успешных заказов', icon: Users, color: 'text-sky-500' },
+    { value: '99.9%', label: 'Успешных заказов', icon: Users, color: 'text-primary' },
     { value: '24/7', label: 'Живая поддержка', icon: Headphones, color: 'text-indigo-500' },
   ];
 

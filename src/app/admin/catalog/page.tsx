@@ -92,18 +92,18 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   });
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-slate-50/50 min-h-full pb-10">
+    <div className="flex flex-col md:flex-row gap-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
       
       {/* LEFT PANE: Categories Sidebar */}
       <aside className="w-full md:w-[260px] flex-shrink-0 space-y-4">
-        <Card className="shadow-sm border border-slate-200 sticky top-4">
+        <Card className="shadow-sm border border-border sticky top-4">
           <CardContent className="p-4">
-            <h3 className="text-sm font-semibold text-slate-800 mb-3 uppercase tracking-wider">Категории</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">Категории</h3>
             <div className="space-y-1 max-h-[70vh] overflow-y-auto scrollbar-hide">
               <Link
                 href="/admin/catalog"
                 className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  !categoryId ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+                  !categoryId ? 'bg-primary text-white shadow-md' : 'text-muted-foreground hover:bg-muted'
                 }`}
               >
                 <span>Все услуги</span>
@@ -114,7 +114,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
                   key={cat.id}
                   href={`/admin/catalog?category=${cat.id}`}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                    categoryId === cat.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+                    categoryId === cat.id ? 'bg-primary text-white shadow-md' : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
                   <span className="truncate mr-2">{cat.name}</span>
@@ -126,27 +126,27 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         </Card>
         
         {/* Quick Stats Sidebar */}
-        <Card className="shadow-sm border border-slate-200">
+        <Card className="shadow-sm border border-border">
           <CardContent className="p-4 space-y-4">
             <div className="space-y-1">
-              <p className="text-[10px] text-slate-400 uppercase font-bold">Сводка</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold">Сводка</p>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-600">Активных</span>
-                <span className="font-mono font-bold text-emerald-600">{stats.activeServices}</span>
+                <span className="text-muted-foreground">Активных</span>
+                <span className="font-mono font-bold text-success">{stats.activeServices}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-600">В карантине</span>
-                <span className="font-mono font-bold text-amber-600">{quarantineCount}</span>
+                <span className="text-muted-foreground">В карантине</span>
+                <span className="font-mono font-bold text-warning">{quarantineCount}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-600">Ср. Маржа</span>
-                <span className="font-mono font-bold text-indigo-600">x{markupAnalytics.averageMarkup.toFixed(2)}</span>
+                <span className="text-muted-foreground">Ср. Маржа</span>
+                <span className="font-mono font-bold text-primary">x{markupAnalytics.averageMarkup.toFixed(2)}</span>
               </div>
             </div>
             
-            <div className="pt-3 border-t border-slate-100 space-y-2">
-              <p className="text-[10px] text-slate-400 uppercase font-bold">Константы</p>
-              <div className="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-md border border-slate-100 font-mono">
+            <div className="pt-3 border-t border-border/50 space-y-2">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold">Константы</p>
+              <div className="text-[11px] text-muted-foreground bg-muted/50 p-2 rounded-md border border-border/50 font-mono">
                 💱 Курс USD/RUB: {usdToRub.toFixed(2)}
               </div>
             </div>
@@ -166,7 +166,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
                 <Button
                   intent="outline"
                   size="sm"
-                  className={`font-bold ${quarantineCount > 0 ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" : ""}`}
+                  className={`font-bold ${quarantineCount > 0 ? "border-amber-200 bg-warning/10 text-amber-700 hover:bg-warning/20" : ""}`}
                 >
                   {quarantineCount > 0 ? `⚠️ КАРАНТИН (${quarantineCount})` : "Карантин пуст"}
                 </Button>
@@ -177,9 +177,9 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
 
         {/* Anomaly / Loss Warning Banner */}
         {markupAnalytics.stats.loss > 0 && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm animate-pulse-slow">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 shadow-sm animate-pulse-slow">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-rose-600 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
               <div>
                 <h3 className="text-sm font-bold text-rose-900">Выявлены убыточные услуги</h3>
                 <p className="text-xs text-rose-700 mt-1">
@@ -188,7 +188,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {markupAnalytics.worstServices.slice(0, 3).map(s => (
-                    <span key={s.id} className="text-[10px] px-2 py-1 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                    <span key={s.id} className="text-[10px] px-2 py-1 rounded bg-destructive/20 text-rose-800 border border-destructive/30">
                       {s.name} (x{s.markup.toFixed(2)})
                     </span>
                   ))}
@@ -199,7 +199,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         )}
 
         {/* Search & Bulk Tools */}
-        <Card className="shadow-sm border border-slate-200 overflow-hidden">
+        <Card className="shadow-sm border border-border overflow-hidden">
           <CardContent className="p-0">
             <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
               {/* Search Form */}
@@ -211,22 +211,22 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
                     name="q"
                     defaultValue={search}
                     placeholder="Поиск по названию или ID..."
-                    className="w-full pl-9 pr-4 py-2 text-sm border-none bg-transparent outline-none placeholder:text-slate-400"
+                    className="w-full pl-9 pr-4 py-2 text-sm border-none bg-transparent outline-none placeholder:text-muted-foreground"
                   />
-                  <ShoppingCart className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <ShoppingCart className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 </div>
                 <Button type="submit" intent="outline" size="sm">Найти</Button>
               </form>
 
               {/* Bulk Markup Tool */}
               {canEdit && (
-                <form action={bulkUpdateMarkupAction} className="md:w-auto flex items-center p-3 gap-3 bg-slate-50/50">
+                <form action={bulkUpdateMarkupAction} className="md:w-auto flex items-center p-3 gap-3 bg-muted/50/50">
                   {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-tight hidden lg:inline">Массовая маржа:</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-tight hidden lg:inline">Массовая маржа:</span>
                   <input 
                     type="number" step="0.1" name="markup" required 
                     placeholder="Множитель" 
-                    className="w-24 px-2 py-1.5 text-xs font-mono border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-indigo-600/20"
+                    className="w-24 px-2 py-1.5 text-xs font-mono border border-border rounded-md outline-none focus:ring-2 focus:ring-indigo-600/20"
                   />
                   <SubmitButton size="sm" variant={categoryId ? "default" : "outline"} confirmMessage={categoryId ? "Применить маржу к выбранной категории?" : "ВНИМАНИЕ: Это изменит наценку ДЛЯ ВСЕХ УСЛУГ В БАЗЕ. Продолжить?"}>
                     Применить
@@ -243,7 +243,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         {hasMore && (
            <div className="flex justify-center pt-4">
              <Link href={`/admin/catalog?cursor=${nextCursor}${categoryId ? `&category=${categoryId}` : ''}${search ? `&q=${search}` : ''}`}>
-               <Button intent="outline" size="sm" className="bg-white">Загрузить еще...</Button>
+               <Button intent="outline" size="sm" className="bg-background">Загрузить еще...</Button>
              </Link>
            </div>
         )}

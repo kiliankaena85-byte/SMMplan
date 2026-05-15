@@ -11,10 +11,7 @@ export const orderFormSchema = z.object({
   email: z.string()
     .email("Введите корректный Email для получения чека"),
   serviceId: z.string().min(1, "Пожалуйста, выберите услугу"),
-  customData: z.string().max(5000, "Слишком много текста (макс. 5000 символов)").optional(),
-  agreedToTerms: z.boolean().refine(v => v === true, {
-    message: "Вы должны согласиться с офертой"
-  })
+  customData: z.string().max(5000, "Слишком много текста (макс. 5000 символов)").optional()
 });
 
 type OrderFormData = z.infer<typeof orderFormSchema>;

@@ -29,35 +29,35 @@ export function LTVCharts({ ltv }: LTVChartsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Whale Stats */}
-      <Card className="lg:col-span-1 border-slate-100 shadow-sm rounded-2xl bg-indigo-50/30">
+      <Card className="lg:col-span-1 border-border/50 shadow-sm rounded-2xl bg-primary/10/30">
         <CardHeader>
-          <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-800">Киты и Распределение</CardTitle>
+          <CardTitle className="text-sm font-bold uppercase tracking-widest text-foreground">Киты и Распределение</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-white rounded-xl shadow-sm border border-indigo-100 text-indigo-600">
+            <div className="p-3 bg-background rounded-xl shadow-sm border border-primary/20 text-primary">
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Всего клиентов</p>
-              <p className="text-2xl font-black text-slate-900">{ltv.totalUsers.toLocaleString('ru-RU')}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Всего клиентов</p>
+              <p className="text-2xl font-black text-foreground">{ltv.totalUsers.toLocaleString('ru-RU')}</p>
             </div>
           </div>
 
-          <div className="p-4 bg-white rounded-2xl shadow-sm border border-indigo-100">
+          <div className="p-4 bg-background rounded-2xl shadow-sm border border-primary/20">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-emerald-500" /> Доля топ 10%
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                <TrendingUp className="w-3 h-3 text-success" /> Доля топ 10%
               </span>
-              <span className="text-sm font-black text-emerald-600">{ltv.top10PercentShare.toFixed(1)}%</span>
+              <span className="text-sm font-black text-success">{ltv.top10PercentShare.toFixed(1)}%</span>
             </div>
-            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
               <div 
                 className="h-full bg-emerald-500 transition-all duration-1000" 
                 style={{ width: `${ltv.top10PercentShare}%` }} 
               />
             </div>
-            <p className="text-[10px] text-slate-400 mt-2 leading-relaxed font-medium">
+            <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed font-medium">
               Топ 10% клиентов генерируют {ltv.top10PercentShare.toFixed(1)}% всей выручки платформы.
             </p>
           </div>
@@ -65,9 +65,9 @@ export function LTVCharts({ ltv }: LTVChartsProps) {
       </Card>
 
       {/* LTV Bucket Chart */}
-      <Card className="lg:col-span-2 border-slate-100 shadow-sm rounded-2xl">
+      <Card className="lg:col-span-2 border-border/50 shadow-sm rounded-2xl">
         <CardHeader>
-          <CardTitle className="text-sm font-bold uppercase tracking-widest text-slate-800">Распределение LTV (чел.)</CardTitle>
+          <CardTitle className="text-sm font-bold uppercase tracking-widest text-foreground">Распределение LTV (чел.)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[240px] w-full">

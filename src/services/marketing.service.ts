@@ -3,6 +3,7 @@ import {
   calculateSafetyFloorCents,
   MAX_TOTAL_DISCOUNT,
   TOTAL_MANDATORY_DEDUCTIONS,
+  applyBeautifulRounding,
 } from '@/lib/financial-constants';
 import { SettingsProvider } from '@/lib/settings';
 
@@ -71,7 +72,10 @@ class MarketingService {
     const providerCostPer1000Cents = service.rate * usdToRub * 100;
     const providerCostCents = Math.round((providerCostPer1000Cents / 1000) * quantity);
 
-    const originalTotalCents = Math.round(providerCostCents * service.markup);
+    // Apply the same Beautiful Rounding logic used in the Catalog to ensure price parity
+    const rawRetailPer1000Rub = service.rate * service.markup * usdToRub;
+    const beautifulRetailPer1000Rub = applyBeautifulRounding(rawRetailPer1000Rub);
+    const originalTotalCents = Math.round((beautifulRetailPer1000Rub * 100 / 1000) * quantity);
 
     // 2. Discover available discounts
     const volumeTier = user ? this.getVolumeTier(Number(user.totalSpent)) : { name: 'REGULAR', discountPercent: 0.0 };
@@ -106,10 +110,17 @@ class MarketingService {
 
     // 4. Calculate Final Cents
     let discountCents = Math.round((originalTotalCents * maxDiscountPercent) / 100);
-    // Apply VOUCHER discount (additive to percentage, but respecting Safety Floor below)
+    // Apply VOUCHER discount (additive to percentage)
     if (promoFixedDiscountCents > 0) {
       discountCents += promoFixedDiscountCents;
     }
+
+    // [SAFETY] Hard ceiling on total discount cents — prevents stacking exploits
+    const maxAllowedDiscountCents = Math.floor((originalTotalCents * MAX_TOTAL_DISCOUNT) / 100);
+    if (discountCents > maxAllowedDiscountCents) {
+      discountCents = maxAllowedDiscountCents;
+    }
+
     let totalCents = originalTotalCents - discountCents;
 
     // 5. [SAFETY FLOOR] Never sell below break-even after taxes & gateway fees.
@@ -118,15 +129,16 @@ class MarketingService {
       totalCents = safetyFloorCents;
       // Recalculate true discount applied so receipts match the actual charge
       discountCents = originalTotalCents - totalCents;
-      // Re-adjust percentage roughly for UI display
-      maxDiscountPercent = originalTotalCents > 0 ? Math.round((discountCents / originalTotalCents) * 100) : 0;
     }
+
+    // Always accurately report the applied discount percentage for UI/Analytics
+    const finalDiscountPercent = originalTotalCents > 0 ? Math.round((discountCents / originalTotalCents) * 100) : 0;
 
     return {
       totalCents,
       originalTotalCents,
       discountCents,
-      discountPercent: maxDiscountPercent,
+      discountPercent: finalDiscountPercent,
       providerCostCents,
       safetyFloorCents,
       tier: volumeTier.name,

@@ -12,9 +12,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_CLASSES: Record<string, string> = {
-  APPROVED:   'bg-emerald-100 text-emerald-700 border-emerald-200',
-  QUARANTINE: 'bg-amber-100 text-amber-700 border-amber-200',
-  REJECTED:     'bg-rose-100 text-rose-700 border-rose-200',
+  APPROVED:   'bg-success/20 text-emerald-700 border-emerald-200',
+  QUARANTINE: 'bg-warning/20 text-amber-700 border-amber-200',
+  REJECTED:     'bg-destructive/20 text-rose-700 border-destructive/30',
 };
 
 function fmt(cents: number, showSign = false): string {
@@ -39,7 +39,7 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
     accessorKey: 'reason',
     header: 'Причина',
     cell: ({ row }) => (
-      <span className="text-xs text-slate-600 line-clamp-1 max-w-[300px]" title={row.original.reason}>
+      <span className="text-xs text-muted-foreground line-clamp-1 max-w-[300px]" title={row.original.reason}>
         {row.original.reason}
       </span>
     ),
@@ -51,7 +51,7 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
       const amount = row.original.amount;
       const isPositive = amount >= 0;
       return (
-        <div className={`text-right font-bold tabular-nums text-sm ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+        <div className={`text-right font-bold tabular-nums text-sm ${isPositive ? 'text-success' : 'text-destructive'}`}>
           {fmt(amount, true)}
         </div>
       );
@@ -64,7 +64,7 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
       const status = row.original.status;
       return (
         <Badge
-          className={`uppercase font-bold tracking-wider text-[10px] ${STATUS_CLASSES[status] || 'bg-slate-100 text-slate-600 border-slate-200'}`}
+          className={`uppercase font-bold tracking-wider text-[10px] ${STATUS_CLASSES[status] || 'bg-muted text-muted-foreground border-border'}`}
         >
           {STATUS_LABELS[status] || status}
         </Badge>
@@ -75,7 +75,7 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
     accessorKey: 'createdAt',
     header: 'Дата',
     cell: ({ row }) => (
-      <span className="text-xs text-slate-500 tabular-nums whitespace-nowrap">
+      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
         {new Date(row.original.createdAt).toLocaleString('ru-RU', { 
           day: '2-digit', 
           month: 'short', 

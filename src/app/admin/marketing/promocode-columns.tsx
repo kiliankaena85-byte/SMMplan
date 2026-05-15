@@ -15,7 +15,7 @@ export const columns: ColumnDef<PromoCode>[] = [
     accessorKey: 'code',
     header: 'Код',
     cell: ({ row }) => (
-      <span className="font-mono font-bold text-slate-900 tracking-wider">
+      <span className="font-mono font-bold text-foreground tracking-wider">
         {row.original.code}
       </span>
     ),
@@ -40,7 +40,7 @@ export const columns: ColumnDef<PromoCode>[] = [
     cell: ({ row }) => {
       const p = row.original;
       return (
-        <span className="tabular-nums font-semibold text-slate-800">
+        <span className="tabular-nums font-semibold text-foreground">
           {p.type === 'DISCOUNT' ? `${p.discountPercent}%` : `${p.amount} ₽`}
         </span>
       );
@@ -52,10 +52,10 @@ export const columns: ColumnDef<PromoCode>[] = [
       const p = row.original;
       return (
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs text-slate-600 tabular-nums">
+          <span className="text-xs text-muted-foreground tabular-nums">
             {p.uses} / {p.maxUses}
           </span>
-          <div className="w-24 h-1 bg-slate-100 rounded-full overflow-hidden">
+          <div className="w-24 h-1 bg-muted rounded-full overflow-hidden">
             <div 
               className="h-full bg-sky-500 transition-all" 
               style={{ width: `${Math.min(100, (p.uses / p.maxUses) * 100)}%` }} 
@@ -90,7 +90,7 @@ export const columns: ColumnDef<PromoCode>[] = [
             onCheckedChange={handleToggle}
             disabled={isPending}
           />
-          <span className={`text-[11px] font-bold uppercase tracking-widest ${p.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
+          <span className={`text-[11px] font-bold uppercase tracking-widest ${p.isActive ? 'text-success' : 'text-muted-foreground'}`}>
             {p.isActive ? 'Active' : 'Off'}
           </span>
         </div>
@@ -123,7 +123,7 @@ export const columns: ColumnDef<PromoCode>[] = [
             intent="ghost"
             onClick={handleDelete}
             disabled={isPending}
-            className="hover:bg-rose-50 text-rose-500 hover:text-rose-600"
+            className="hover:bg-destructive/10 text-destructive hover:text-destructive"
           >
             <Trash2 className="w-4 h-4" />
           </Button>

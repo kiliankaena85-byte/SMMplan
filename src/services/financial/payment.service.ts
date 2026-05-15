@@ -45,15 +45,16 @@ export class PaymentService {
                         throw new Error(`PAYMENT_AMOUNT_MISMATCH: Webhook amount ${amount} exceeds Real amount ${realAmount}`);
                     }
                     console.log(`[Payment] Safely verified YooKassa payment ${gatewayId}`);
-                } else if (response.status !== 404) {
-                    throw new Error(`GATEWAY_ERROR: Failed to contact YooKassa API (${response.status})`);
+                } else {
+                    throw new Error(`GATEWAY_ERROR: Failed to contact YooKassa API or Payment Not Found (${response.status})`);
                 }
             } catch (e: any) {
                 console.error(`[Payment] Verification Exploit Blocked: ${e.message}`);
                 return false; // Reject payment
             }
         } else {
-             console.warn(`[Payment] Skipping YooKassa verification for ${gatewayId} due to missing secrets in admin panel! DANGER!`);
+             console.error(`[Payment] YooKassa verification failed for ${gatewayId} due to missing secrets in admin panel! Rejecting for safety.`);
+             return false;
         }
       }
 
@@ -96,17 +97,10 @@ export class PaymentService {
           processedPaymentId = currentPayment.id;
           isOrderPayment = !!currentPayment.orderId;
           linkedOrderId = currentPayment.orderId || '';
-        } else if (metadataType === 'deposit') {
-          // [SECURITY] Deposit Webhook Exception: Allows top-up even if PENDING state was lost or not created correctly
-          const newPayment = await tx.payment.create({
-            data: { userId, amount, currency: 'RUB', status: 'SUCCEEDED', gatewayId, gateway: gatewayType, receiptId: receiptId || undefined }
-          });
-          processedPaymentId = newPayment.id;
-          isOrderPayment = false;
         } else {
           // [SECURITY] Orphan webhook rejected
           console.error(`[SECURITY] Orphan webhook rejected for gatewayId: ${gatewayId}. No PENDING payment found.`);
-          throw new Error('ORPHAN_WEBHOOK: Stray webhooks are no longer allowed to credit accounts.');
+          throw new Error('ORPHAN_WEBHOOK: Stray webhooks are no longer allowed to credit accounts. All payments must be initiated by the system.');
         }
 
         // Award Referral Commission on successful new fund influx

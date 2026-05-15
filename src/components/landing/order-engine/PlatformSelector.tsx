@@ -29,7 +29,7 @@ export const PlatformSelector = memo(function PlatformSelector({
         <select
           value={selectedNetworkId || ""}
           onChange={(e) => onSelect(e.target.value)}
-          className="w-full p-4 rounded-2xl bg-white border border-slate-200 text-base min-h-12 outline-none focus:border-sky-300"
+          className="w-full p-4 rounded-2xl bg-white border border-slate-200 text-base min-h-12 outline-none focus:border-primary/40"
         >
           <option value="" disabled>Выберите платформу</option>
           {catalog.map(network => (

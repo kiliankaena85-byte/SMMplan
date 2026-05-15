@@ -91,41 +91,56 @@ import { TableHeader, TableColumn } from "@heroui/table";
 
 ---
 
-## 4. The 6 Pillars (Visual Rules)
+## 4. The 9 Pillars (Visual Rules & Neuroscience)
 
 ### Pillar 1: Progressive Disclosure
-- Скрывайте вторичные действия под Dropdown или Sheet
-- `truncate` для длинных ID, полное значение по hover
-- Не показывайте > 5 действий одновременно
+- Скрывайте вторичные действия под Dropdown или Sheet.
+- `truncate` для длинных ID, полное значение по hover.
+- Не показывайте > 5 действий одновременно.
 
 ### Pillar 2: No-Line Architecture
-- ❌ `border-solid`, `divide-y` для каждой строки таблицы
-- ✅ Тональный контраст: `bg-card` элемент на `bg-background` подложке
-- ✅ `shadow-sm` вместо borders
-- Если border необходим: `border-border/50` (полупрозрачный)
+- ❌ `border-solid`, `divide-y` для каждой строки таблицы.
+- ✅ Тональный контраст: `bg-card` элемент на `bg-background` подложке.
+- ✅ `shadow-sm` вместо borders.
+- Если border необходим: `border-border/50` (полупрозрачный).
 
 ### Pillar 3: Typography Hierarchy
-- Каждый уровень должен визуально отличаться (weight + color + size)
-- Никогда не делать весь текст одного размера/цвета
-- Числа: `tabular-nums` для ровных колонок
+- Каждый уровень должен визуально отличаться (weight + color + size).
+- Никогда не делать весь текст одного размера/цвета.
+- Числа: `tabular-nums` для ровных колонок.
 
 ### Pillar 4: Premium Sky Palette
-- Primary: `sky-500` / `sky-600` — CTA, active state
-- Surface: `white` карточки на `slate-50` фоне
-- Navigation: `slate-950` с тонировкой для sidebar
-- ❌ Запрет: raw `red-500`, `green-500`. Только `rose-500`, `emerald-500`
-- ❌ Запрет: `text-black`. Только `text-foreground` (slate-900)
+- Primary: `sky-500` / `sky-600` — CTA, active state.
+- Surface: `white` карточки на `slate-50` фоне.
+- Navigation: `slate-950` с тонировкой для sidebar.
+- ❌ Запрет: raw `red-500`, `green-500`. Только `rose-500`, `emerald-500`.
+- ❌ Запрет: `text-black`. Только `text-foreground` (slate-900).
 
 ### Pillar 5: Interaction & Motion
-- Все кнопки/ссылки: `transition-all duration-200`
-- Hover карточки: `hover:shadow-md hover:-translate-y-0.5`
-- Hover строки таблицы: `hover:bg-accent/50`
-- Запрет дёрганой анимации (> 300ms ease-in-out)
+- Все кнопки/ссылки: `transition-all duration-200`.
+- Hover карточки: `hover:shadow-md hover:-translate-y-0.5`.
+- Hover строки таблицы: `hover:bg-accent/50`.
+- Запрет дёрганой анимации (> 300ms ease-in-out).
 
-### Pillar 6: Clean Chrome
-- Scrollbars: `.scrollbar-hide` class или `scrollbar-width: none`
-- Sticky headers: `bg-card/80 backdrop-blur-md border-b border-border/50`
-- Glassmorphism для overlays: `bg-card/80 backdrop-blur-lg`
+### Pillar 6: Contextual Harmony & Clean Chrome
+- Scrollbars: `.scrollbar-hide` class или `scrollbar-width: none`.
+- Sticky headers: `bg-card/80 backdrop-blur-md border-b border-border/50`.
+- Glassmorphism для overlays: `bg-card/80 backdrop-blur-lg`.
+- Никакого дизайна в вакууме: элементы должны наследовать цвета окружения.
+
+### Pillar 7: Spatial Cognition (Математический дизайн)
+- Строгая 8-пиксельная сетка. Использование только шагов: `2 (8px), 4 (16px), 6 (24px), 8 (32px)`.
+- Никаких случайных отступов (`p-3`, `mt-5`, `gap-3`).
+
+### Pillar 8: Neuroaesthetics & Cognitive Load
+- Правило NASA-TLX: Не более 3-4 интерактивных/ярких элементов на экране.
+- IKEA Effect (Стратегическое трение): Финансовые действия требуют микро-шага подтверждения.
+- Визуальная симметрия в блоках оплаты.
+
+### Pillar 9: Enterprise Accessibility (WCAG AAA & A11y)
+- Навигация по Tab с кастомным кольцом фокуса (`focus-visible:ring-2 focus-visible:ring-primary/50`).
+- Screen-reader friendly (спрятанные тексты через `sr-only` для иконок).
+- Цветовой контраст текста минимум 4.5:1.
 
 ---
 

@@ -148,12 +148,12 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
           mediaUrl = data.mediaUrl;
           mediaType = data.mediaType;
         } else {
-          alert('Ошибка загрузки файла');
+          toast.error('Ошибка загрузки файла');
           setSending(false);
           return;
         }
       } catch (e) {
-        alert('Ошибка загрузки файла');
+        toast.error('Ошибка загрузки файла');
         setSending(false);
         return;
       }

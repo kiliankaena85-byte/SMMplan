@@ -37,8 +37,8 @@ const syncQueue = createQueue<SyncJobPayload>('syncQueue');
 
 // P2.1: Dead Letter Queue — removeOnFail: false to preserve failed jobs for inspection
 export const dlqQueue = createQueue<DLQJobPayload>('dead-letter-queue', {
-  removeOnComplete: false, // Keep DLQ job history
-  removeOnFail: false,     // NEVER auto-delete failed jobs from DLQ
+  removeOnComplete: { age: 3600 * 24 * 7, count: 1000 }, // Keep max 1000 items or 7 days
+  removeOnFail: { age: 3600 * 24 * 30, count: 5000 },    // Keep max 5000 failed items or 30 days
   attempts: 1,             // DLQ jobs should not retry themselves
 });
 

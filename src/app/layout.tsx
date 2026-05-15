@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
 import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvider';
+import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -45,12 +46,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" className={inter.variable}>
+    <html lang="ru" className={inter.variable} suppressHydrationWarning>
       <body className="font-sans antialiased">
         <Providers>
           <NetworkAwareProvider>
             {children}
           </NetworkAwareProvider>
+          <ThemeSwitcher />
         </Providers>
         <Toaster
           richColors

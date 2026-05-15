@@ -1,72 +1,111 @@
+import { adminTicketService } from '@/services/admin/ticket.service';
+import { adminReplyTicket, editTicketMessage } from '@/actions/support/ticket';
+import { getTemplates } from '@/actions/support/template';
+import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
-import { adminReplyTicket } from '@/actions/support/ticket';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import Link from 'next/link';
+import { ArrowLeft, Mail, Wallet, HeadphonesIcon } from 'lucide-react';
+import ChatWindow from '@/components/support/ChatWindow';
+import TicketActionsDropdown from '@/components/support/TicketActionsDropdown';
+import ClientProfileSidebar from '@/components/support/ClientProfileSidebar';
+import { AdminPageHeader } from '@/components/admin/page-header';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminTicketChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
-  const ticket = await db.ticket.findUnique({
-    where: { id },
-    include: {
-      user: true,
-      messages: { orderBy: { createdAt: 'asc' } }
-    }
-  });
+  const [activeTicket, templates, session] = await Promise.all([
+    adminTicketService.getTicketDetails(id),
+    getTemplates(),
+    verifySession(),
+  ]);
 
-  if (!ticket) return notFound();
+  if (!activeTicket) return notFound();
+
+  // Fetch admin support limit
+  let supportLimitCents = 0;
+  if (session?.userId) {
+    const admin = await db.user.findUnique({
+      where: { id: session.userId },
+      select: { supportLimitCents: true },
+    });
+    if (admin) supportLimitCents = admin.supportLimitCents;
+  }
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-6rem)]">
-      <div className="bg-white p-6 border-b border-slate-200">
-        <h1 className="text-2xl font-bold">{ticket.subject}</h1>
-        <p className="text-sm text-slate-500">
-          Client: {ticket.user.email} | Status: <span className="font-semibold text-slate-700">{ticket.status}</span>
-        </p>
+    <div className="flex-1 p-8 pt-6 animate-in fade-in duration-500 ease-out flex flex-col h-screen">
+      <div className="flex items-center justify-between mb-4">
+        <AdminPageHeader 
+          title="Диалог с клиентом" 
+          description="Управление тикетом и компенсациями"
+          icon={HeadphonesIcon}
+        />
+        <Link 
+          href="/admin/tickets" 
+          className="text-xs font-bold bg-background text-muted-foreground px-4 py-2 border border-border rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2 shadow-sm"
+        >
+          <ArrowLeft className="w-4 h-4" /> Вернуться к списку
+        </Link>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50">
-        {ticket.messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.sender === 'USER' ? 'justify-start' : 'justify-end'}`}>
-            <div className={`max-w-[75%] rounded-lg p-4 ${
-              msg.sender === 'USER' ? 'bg-white border border-slate-200 text-slate-900' :
-              msg.sender === 'INTERNAL' ? 'bg-amber-100 text-amber-900 border border-amber-200' :
-              'bg-indigo-600 text-white'
-            }`}>
-              <div className="text-xs font-semibold mb-1 opacity-70">
-                {msg.sender === 'INTERNAL' ? 'INTERNAL NOTE' : msg.sender} • {msg.createdAt.toLocaleString()}
+      <div className="flex flex-1 gap-6 min-h-0">
+        {/* ── Left panel: Chat window ── */}
+        <div className="flex-1 flex flex-col bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          {/* Chat header */}
+          <div className="p-5 border-b border-border flex justify-between items-center bg-card shrink-0">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 font-black text-sm shadow-inner border border-primary/20">
+                {activeTicket.user.email.substring(0, 2).toUpperCase()}
               </div>
-              <div className="whitespace-pre-wrap">{msg.text}</div>
+              <div className="min-w-0">
+                <h2 className="font-black text-sm text-foreground leading-tight mb-1 truncate" title={activeTicket.subject}>
+                  {activeTicket.subject}
+                </h2>
+                <div className="flex items-center gap-2 text-[10px] font-bold">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Mail className="w-3 h-3" /> {activeTicket.user.email}
+                  </span>
+                  <span className="w-1 h-1 rounded-full bg-border" />
+                  <span className="text-success flex items-center gap-1 px-1.5 py-0.5 bg-success/10 rounded-md">
+                    <Wallet className="w-3 h-3" /> {(Number(activeTicket.user.balance) / 100).toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
-        {ticket.messages.length === 0 && (
-          <div className="text-center text-slate-500 py-10">No messages yet.</div>
-        )}
-      </div>
 
-      <div className="p-4 bg-white border-t border-slate-200">
-        <form action={adminReplyTicket} className="space-y-4">
-          <input type="hidden" name="ticketId" value={ticket.id} />
-          <Textarea 
-            name="message" 
-            placeholder="Type your reply here..." 
-            className="min-h-[100px] resize-none"
-            required
-          />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Checkbox id="isInternal" name="isInternal" value="true" />
-              <Label htmlFor="isInternal" className="text-amber-600 font-medium">Save as Internal Note (Hidden from client)</Label>
-            </div>
-            <Button type="submit">Send Reply</Button>
+            <TicketActionsDropdown
+              ticketId={activeTicket.id}
+              currentStatus={activeTicket.status}
+              templates={templates}
+              supportLimitCents={supportLimitCents}
+            />
           </div>
-        </form>
+
+          {/* Chat body */}
+          <div className="flex-1 bg-muted/50/30 relative overflow-hidden flex flex-col">
+            <ChatWindow
+              ticketId={activeTicket.id}
+              initialMessages={activeTicket.messages}
+              isStaff={true}
+              initialTemplates={templates}
+              onSendMessage={adminReplyTicket}
+              editTicketMessage={editTicketMessage}
+            />
+          </div>
+        </div>
+
+        {/* ── Right panel: Client profile sidebar ── */}
+        <div className="w-[350px] shrink-0 overflow-y-auto bg-card border border-border rounded-xl shadow-sm">
+          <ClientProfileSidebar user={{ 
+            ...activeTicket.user, 
+            balance: Number(activeTicket.user.balance), 
+            totalSpent: Number(activeTicket.user.totalSpent), 
+            orders: activeTicket.user.orders.map(o => ({ ...o, charge: Number(o.charge) })), 
+            payments: activeTicket.user.payments.map(p => ({ ...p, amount: Number(p.amount) })) 
+          }} />
+        </div>
       </div>
     </div>
   );

@@ -36,7 +36,7 @@ export const SmartInput = memo(function SmartInput({
   }, [onUrlChange]);
   
   return (
-    <div className="relative h-20 md:h-24 rounded-full border border-slate-200 bg-white shadow-lg focus-within:border-sky-300 focus-within:shadow-[0_12px_50px_-12px_rgba(14,165,233,0.25)] transition-all duration-300">
+    <div className="relative h-20 md:h-24 rounded-full border border-slate-200 bg-white shadow-lg focus-within:border-primary/40 focus-within:shadow-[0_12px_50px_-12px] focus-within:shadow-primary/20 transition-all duration-300">
       <input
         type="url"
         inputMode="url"
@@ -49,7 +49,7 @@ export const SmartInput = memo(function SmartInput({
       <button
         onClick={onSubmit}
         disabled={!isValid || isLoading}
-        className="absolute right-2 top-1/2 -translate-y-1/2 h-14 md:h-16 px-4 md:px-8 rounded-full bg-sky-600 text-white font-semibold text-sm md:text-base hover:bg-sky-700 active:bg-sky-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-12 min-w-12 flex items-center justify-center gap-2"
+        className="absolute right-2 top-1/2 -translate-y-1/2 h-14 md:h-16 px-4 md:px-8 rounded-full bg-primary text-primary-foreground font-semibold text-sm md:text-base hover:bg-primary/90 active:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-12 min-w-12 flex items-center justify-center gap-2"
       >
         {isLoading ? (
           <Loader2 className="w-5 h-5 animate-spin" />

@@ -37,49 +37,58 @@ class OrderService {
 
       const isDripFeed = input.runs ? input.runs > 1 : false;
 
-      // 2. Unconditionally attempt charge (Double spreading & Race condition protected)
-      const chargeResult = await WalletService.charge(
-        userId, 
-        input.charge, 
-        `Order Creation (Service ID: ${input.serviceId})`,
-        idempotencyKey
-      );
+      // 2. Atomic Charge & Creation (Prevents Ghost Deductions)
+      const newOrder = await db.$transaction(async (tx) => {
+        // 2a. Unconditionally attempt charge (Double spreading & Race condition protected)
+        await WalletOps.charge(
+          tx,
+          userId, 
+          input.charge, 
+          `Order Creation (Service ID: ${input.serviceId})`,
+          { idempotencyKey }
+        );
 
-      if (!chargeResult.success) {
-        return { success: false, error: (chargeResult as any).error || 'Insufficient funds' };
-      }
-
-      // 3. Create Order in DB
-      const newOrder = await db.order.create({
-        data: {
-          userId,
-          serviceId: input.serviceId,
-          link: input.link,
-          quantity: input.quantity,
-          status: 'PENDING',
-          charge: input.charge,
-          providerCost: input.providerCost,
-          remains: input.quantity,
-          runs: input.runs,
-          interval: input.interval,
-          isDripFeed,
-          currentRun: 0,
-          nextRunAt: isDripFeed ? new Date() : null,
-          email: input.email?.toLowerCase(),
-          isTest: input.isTestMode || false,
-          customData: input.customData,
-        }
-      });
+        // 2b. Create Order in DB
+        return await tx.order.create({
+          data: {
+            userId,
+            serviceId: input.serviceId,
+            link: input.link,
+            quantity: input.quantity,
+            status: 'PENDING',
+            charge: input.charge,
+            providerCost: input.providerCost,
+            remains: input.quantity,
+            runs: input.runs,
+            interval: input.interval,
+            isDripFeed,
+            currentRun: 0,
+            nextRunAt: isDripFeed ? new Date() : null,
+            email: input.email?.toLowerCase(),
+            isTest: input.isTestMode || false,
+            customData: input.customData,
+          }
+        });
+      }, { isolationLevel: 'Serializable' });
 
       // 3. Dispatch to Queues (Drip-feed is now passed natively to the provider)
-      await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { delay: 3 * 60 * 1000 });
+      try {
+        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { delay: 3 * 60 * 1000 });
+      } catch (queueError: any) {
+        // [FIN-006] Premortem Bugfix: Ghost Order Prevention.
+        // If Redis is down, we MUST NOT fail the request since the balance is already charged 
+        // and the DB order is committed. Returning 500 would make the user retry and get double charged.
+        // The sweep-orphans cron job will pick up this PENDING order later.
+        console.error('[OrderService] Non-fatal queue dispatch error:', queueError.message);
+      }
 
       // 4. Return success instantly to User Interface. No delays!
       return { success: true, orderId: newOrder.id };
 
     } catch (e: any) {
       console.error('[OrderService] Creation failed:', e.message);
-      return { success: false, error: 'Internal system error during order compilation.' };
+      // We return e.message here so that WalletOps throw "Insufficient funds" bubbles up to UI
+      return { success: false, error: e.message || 'Internal system error during order compilation.' };
     }
   }
 

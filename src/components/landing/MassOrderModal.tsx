@@ -83,7 +83,7 @@ export function MassOrderModal({ isOpen, onClose, service, initialQuantity, init
             {/* Header */}
             <div className="p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-sky-100 text-sky-600 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
                   <ShoppingCart className="w-6 h-6" />
                 </div>
                 <div>
@@ -99,7 +99,7 @@ export function MassOrderModal({ isOpen, onClose, service, initialQuantity, init
             {/* List */}
             <div className="p-6 overflow-y-auto space-y-4 flex-1">
                {items.map((item, index) => (
-                 <div key={item.id} className="group relative bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 transition-all focus-within:border-sky-300 focus-within:ring-4 focus-within:ring-sky-500/10">
+                 <div key={item.id} className="group relative bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 transition-all focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10">
                     <div className="flex-1 space-y-1">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Ссылка {index + 1}</label>
                       <div className="relative">
@@ -137,7 +137,7 @@ export function MassOrderModal({ isOpen, onClose, service, initialQuantity, init
 
                <button 
                  onClick={addItem}
-                 className="w-full h-12 rounded-2xl border-2 border-dashed border-slate-200 text-slate-500 font-bold hover:border-sky-500 hover:text-sky-600 transition-all flex items-center justify-center gap-2"
+                 className="w-full h-12 rounded-2xl border-2 border-dashed border-slate-200 text-slate-500 font-bold hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
                >
                  <Plus className="w-4 h-4" /> Добавить ссылку
                </button>
@@ -149,7 +149,7 @@ export function MassOrderModal({ isOpen, onClose, service, initialQuantity, init
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none focus:border-sky-500 transition-all"
+                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none focus:border-primary/50 transition-all"
                  />
                </div>
             </div>
@@ -164,7 +164,7 @@ export function MassOrderModal({ isOpen, onClose, service, initialQuantity, init
                <button 
                  onClick={handleCheckout}
                  disabled={isSubmitting}
-                 className="w-full h-14 bg-sky-500 hover:bg-sky-400 text-white rounded-2xl font-bold text-lg shadow-xl shadow-sky-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                 className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                >
                  {isSubmitting ? (
                    <span className="animate-pulse">Обработка...</span>

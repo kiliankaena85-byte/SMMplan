@@ -124,8 +124,8 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
         <div
           className={`p-4 mb-6 rounded-lg text-sm font-medium ${
             statusMsg.error
-              ? 'bg-rose-50 text-rose-800 border border-rose-200'
-              : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              ? 'bg-destructive/10 text-rose-800 border border-destructive/30'
+              : 'bg-success/10 text-emerald-800 border border-emerald-200'
           }`}
         >
           {statusMsg.text}
@@ -186,7 +186,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
           </div>
 
           {/* API Key */}
-          <div className="sm:col-span-6 bg-amber-50/60 border border-amber-200 rounded-xl p-4">
+          <div className="sm:col-span-6 bg-warning/10/60 border border-amber-200 rounded-xl p-4">
             <label className="block text-sm font-medium text-amber-900 mb-1" htmlFor="provider-key">
               API Key / Secret
             </label>
@@ -204,7 +204,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               value={formData.apiKey}
               onChange={handleChange}
               autoComplete="new-password"
-              className={`${inputCls} font-mono border-amber-300 bg-white/80`}
+              className={`${inputCls} font-mono border-amber-300 bg-background/80`}
               aria-label="API ключ провайдера"
             />
           </div>

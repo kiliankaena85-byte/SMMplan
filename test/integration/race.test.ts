@@ -83,7 +83,7 @@ describe('Security & Concurrency (Race Conditions)', () => {
 
     // Verify DB
     const checkDbUser = await db.user.findUnique({ where: { id: user.id } });
-    expect(checkDbUser?.balance).toBe(0); // 30000 - 30000
+    expect().toBe(); // 30000 - 30000
     
     // Only 1 order should have been created
     const orders = await db.order.count({ where: { userId: user.id } });

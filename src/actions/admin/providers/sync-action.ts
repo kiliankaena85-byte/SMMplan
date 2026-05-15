@@ -11,7 +11,7 @@
 import { db } from "@/lib/db";
 import { providerService } from "@/services/providers/provider.service";
 import { SmartAnalyzerLogic, CATEGORY_LABELS } from "@/services/providers/smart-analyzer.logic";
-import { applyPricingLadder } from "@/lib/financial-constants";
+import { applyPricingLadder, applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsManager } from "@/lib/settings";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin } from "@/lib/admin-audit";
@@ -40,7 +40,7 @@ export async function adminSyncProviderCatalog() {
       const catMap = new Map(existingCats.map(c => [`${c.network?.slug || "unknown"}__${c.name}`, c.id]));
 
       const existingServices = await db.service.findMany({
-        select: { id: true, externalId: true, rate: true, isQuarantined: true },
+        select: { id: true, externalId: true, rate: true, isQuarantined: true, markup: true },
       });
       const serviceMap = new Map(existingServices.map(s => [s.externalId, s]));
 
@@ -97,14 +97,20 @@ export async function adminSyncProviderCatalog() {
             });
             quarantinedServices++;
           } else if (!existing.isQuarantined) {
+            // Apply dynamic markup recalculation to keep prices "beautiful"
+            const rawRetail = applyPricingLadder(newRate * usdToRub);
+            const retailFromLadder = applyBeautifulRounding(rawRetail);
+            const calculatedMarkup = newRate > 0 ? Math.round((retailFromLadder / (newRate * usdToRub)) * 100) / 100 : existing.markup;
+
             await db.service.update({
               where: { id: existing.id },
-              data: { rate: newRate, minQty: minInt, maxQty: maxInt, isActive: true, lastSeenAt: new Date() },
+              data: { rate: newRate, markup: calculatedMarkup, minQty: minInt, maxQty: maxInt, isActive: true, lastSeenAt: new Date() },
             });
             updatedServices++;
           }
         } else {
-          const retailFromLadder = applyPricingLadder(newRate * usdToRub);
+          const rawRetail = applyPricingLadder(newRate * usdToRub);
+          const retailFromLadder = applyBeautifulRounding(rawRetail);
           const calculatedMarkup =
             newRate > 0 ? Math.round((retailFromLadder / (newRate * usdToRub)) * 100) / 100 : 3.0;
 

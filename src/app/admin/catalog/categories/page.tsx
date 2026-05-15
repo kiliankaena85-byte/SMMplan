@@ -22,10 +22,10 @@ export default async function CategoriesAdminPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Управление Категориями</h1>
-          <p className="text-slate-500 text-sm">Группировка и сортировка услуг в каталоге.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Управление Категориями</h1>
+          <p className="text-muted-foreground text-sm">Группировка и сортировка услуг в каталоге.</p>
         </div>
-        <Link href="/admin/catalog" className="text-sm font-medium text-indigo-600 hover:text-indigo-900 border border-slate-300 py-2 px-4 rounded-md">
+        <Link href="/admin/catalog" className="text-sm font-medium text-primary hover:text-indigo-900 border border-border py-2 px-4 rounded-md">
           ← Вернуться в Каталог
         </Link>
       </div>

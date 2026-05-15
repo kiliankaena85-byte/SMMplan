@@ -41,7 +41,7 @@ export default async function AdminSettingsPage({
   ];
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-slate-50/50 min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-background min-h-full pb-10">
       <AdminPageHeader
         icon={Settings}
         title="Настройки системы"
@@ -49,15 +49,15 @@ export default async function AdminSettingsPage({
       />
 
       {/* ── Custom URL-based Tabs ── */}
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-border">
         {tabs.map((t) => (
           <Link
             key={t.id}
             href={`?tab=${t.id}`}
             className={`flex items-center gap-2 py-3 px-6 transition-all -mb-px text-[11px] font-black uppercase tracking-widest border-b-2 ${
               activeTab === t.id
-                ? 'border-indigo-600 text-indigo-700 bg-white/50 rounded-t-xl'
-                : 'border-transparent text-slate-400 hover:text-slate-600'
+                ? 'border-primary text-primary bg-card rounded-t-xl'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             <t.icon className="w-4 h-4" />
@@ -96,7 +96,7 @@ export default async function AdminSettingsPage({
         {/* ── TAB 4: AUDIT ── */}
         {activeTab === 'audit' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-400">
-            <div className="rounded-2xl border border-slate-100/50 shadow-sm bg-white/60 backdrop-blur-xl overflow-hidden">
+            <div className="rounded-2xl border border-border shadow-sm bg-card overflow-hidden">
               <div className="p-0">
                 <DataTable 
                   columns={auditColumns} 

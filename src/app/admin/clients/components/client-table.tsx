@@ -37,7 +37,7 @@ export function ClientTable({ data, children }: ClientTableProps) {
       <DataTable columns={columns} data={data} searchKey="email" searchPlaceholder="Фильтр таблицы..." />
       
       <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto sm:max-w-none bg-slate-50">
+        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto sm:max-w-none bg-muted/50">
           <SheetHeader className="mb-6">
             <SheetTitle>Профиль Клиента</SheetTitle>
           </SheetHeader>

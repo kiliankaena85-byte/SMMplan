@@ -78,7 +78,7 @@ export function DataTable<TData, TValue>({
           />
         )}
         <DropdownMenu>
-          <DropdownMenuTrigger className="ml-auto flex px-4 h-9 font-medium text-sm border-slate-200 border bg-white shadow-sm hover:bg-slate-50 items-center justify-center gap-2 rounded-lg">
+          <DropdownMenuTrigger className="ml-auto flex px-4 h-9 font-medium text-sm border-border border bg-card shadow-sm hover:bg-muted/50 items-center justify-center gap-2 rounded-lg">
             Вид колонок
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -100,13 +100,13 @@ export function DataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+      <div className="rounded-xl border border-border overflow-hidden bg-card shadow-sm">
         <Table aria-label="Data Table" className="h-full w-full">
           <Table.ScrollContainer>
             <Table.Content>
-              <Table.Header className="bg-slate-50">
+              <Table.Header className="bg-muted/30">
                 {table.getFlatHeaders().map((header, index) => (
-                  <Table.Column isRowHeader={index === 0} key={header.id} className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <Table.Column isRowHeader={index === 0} key={header.id} className="py-3 px-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -122,10 +122,10 @@ export function DataTable<TData, TValue>({
                     <Table.Row
                       key={row.id}
                       data-state={row.getIsSelected() && 'selected'}
-                      className="hover:bg-slate-50/50 border-b border-slate-100 last:border-0 transition-colors"
+                      className="hover:bg-muted/30 border-b border-border last:border-0 transition-colors"
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <Table.Cell key={cell.id} className="py-3 px-4 text-sm text-slate-700">
+                        <Table.Cell key={cell.id} className="py-3 px-4 text-sm text-foreground">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </Table.Cell>
                       ))}
@@ -137,13 +137,13 @@ export function DataTable<TData, TValue>({
           </Table.ScrollContainer>
         </Table>
         {!table.getRowModel().rows?.length && (
-          <div className="h-24 w-full flex items-center justify-center text-sm text-slate-500 bg-white">
+          <div className="h-24 w-full flex items-center justify-center text-sm text-muted-foreground bg-card">
             Нет результатов.
           </div>
         )}
       </div>
       <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="flex-1 text-sm text-slate-500">
+        <div className="flex-1 text-sm text-muted-foreground">
           Выбрано: {table.getFilteredSelectedRowModel().rows.length} из{' '}
           {table.getFilteredRowModel().rows.length} строк.
         </div>

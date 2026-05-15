@@ -38,7 +38,7 @@ export default async function ImportProvidersPage() {
       </div>
 
       {errorMsg ? (
-        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-6 rounded-xl">
+        <div className="bg-warning/10 border border-amber-200 text-amber-800 p-6 rounded-xl">
           <h2 className="text-base font-semibold mb-2">⚠️ Провайдер не настроен</h2>
           <p className="text-sm mb-4">{errorMsg}</p>
           <Link

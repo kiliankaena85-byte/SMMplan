@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const lockKey = 'cron:sync-cbr:lock';
     
     // Acquire lock for 2 hours (CBR syncs infrequently, no need to overlap)
-    const acquired = await redis.set(lockKey, '1', 'NX', 'EX', 7200);
+    const acquired = await redis.set(lockKey, '1', 'EX', 7200, 'NX');
     if (!acquired) {
       console.warn('[SyncCBRCron] Skipped. Another CBR sync process is already running.');
       return NextResponse.json({ success: false, reason: 'overlap_prevented' }, { status: 200 });

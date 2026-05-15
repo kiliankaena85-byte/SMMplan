@@ -45,7 +45,7 @@ export function FAQ() {
         {FAQ_ITEMS.map((item, i) => (
           <div
             key={i}
-            className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-sky-500/30 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300"
+            className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300"
           >
             <button
               type="button"
@@ -56,11 +56,11 @@ export function FAQ() {
             >
               <span className="text-base font-bold text-slate-900">{item.q}</span>
               <div 
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${open === i ? 'bg-sky-50' : 'bg-slate-50'}`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${open === i ? 'bg-primary/10' : 'bg-slate-50'}`}
               >
                 <ChevronDown
                   className={`w-4 h-4 transition-transform duration-300 ${
-                    open === i ? 'rotate-180 text-sky-500' : 'text-slate-400'
+                    open === i ? 'rotate-180 text-primary' : 'text-slate-400'
                   }`}
                 />
               </div>

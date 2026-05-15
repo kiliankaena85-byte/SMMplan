@@ -40,7 +40,7 @@ export default async function EditProviderPage({
         <p className="text-muted-foreground text-sm mt-1">
           Технические параметры API-подключения.
           {provider.hasApiKey && (
-            <span className="ml-2 inline-flex items-center gap-1 text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            <span className="ml-2 inline-flex items-center gap-1 text-xs text-success font-medium bg-success/10 px-2 py-0.5 rounded-full border border-emerald-200">
               🔒 API Key установлен
             </span>
           )}

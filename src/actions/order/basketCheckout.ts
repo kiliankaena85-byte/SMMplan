@@ -58,6 +58,9 @@ export const basketCheckoutAction = async (input: z.infer<typeof basketCheckoutS
       const user = await db.user.findUnique({ where: { id: userId }});
       if (!user) throw new Error("User not found");
 
+      const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
+      const analyzer = new IntelligenceLinkAnalyzer();
+
       // Verify each item and calculate real price via ARCHITECTURE CONTRACT
       for (const item of parsed.items) {
         const service = serviceMap.get(item.serviceId);
@@ -65,6 +68,10 @@ export const basketCheckoutAction = async (input: z.infer<typeof basketCheckoutS
 
         if (item.quantity < service.minQty) throw new Error(`Меньше минимального для: ${item.link}`);
         if (item.quantity > service.maxQty) throw new Error(`Больше максимального для: ${item.link}`);
+
+        // [OMNI-AUDIT 9.4] Robust URL Sanitization
+        const analyzedLink = await analyzer.analyze(item.link);
+        const sanitizedLink = analyzedLink.canonicalUrl.trim();
 
         const isDripFeed = !!item.runs && !!item.interval;
         const totalQuantity = isDripFeed ? item.quantity * item.runs! : item.quantity;
@@ -79,7 +86,7 @@ export const basketCheckoutAction = async (input: z.infer<typeof basketCheckoutS
         orderCreates.push({
           userId: userId,
           serviceId: service.id,
-          link: item.link,
+          link: sanitizedLink,
           quantity: item.quantity,
           charge: chargeVal,
           status: 'AWAITING_PAYMENT',

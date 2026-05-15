@@ -54,7 +54,7 @@ export function LinkModal({
             onChange={e => setUrl(e.target.value)} 
             placeholder="Например: t.me/durov или instagram.com/username"
             autoFocus
-            className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-slate-200 bg-white text-[15px] font-semibold text-slate-800 placeholder-slate-400 focus:border-sky-400 focus:shadow-[0_8px_20px_-6px_rgba(14,165,233,0.15)] outline-none transition-all"
+            className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-slate-200 bg-white text-[15px] font-semibold text-slate-800 placeholder-slate-400 focus:border-primary/50 focus:shadow-[0_8px_20px_-6px] focus:shadow-primary/15 outline-none transition-all"
             onBlur={(e) => {
               const val = e.target.value.trim();
               if (val && !/^https?:\/\//i.test(val) && val.includes('.') && !val.includes(' ')) {
@@ -86,7 +86,7 @@ export function LinkModal({
               }
             }}
             disabled={url.trim().length === 0}
-            className="h-14 px-8 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-base shadow-lg transition-all flex items-center gap-2"
+            className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-lg transition-all flex items-center gap-2"
           >
             Продолжить <ChevronRight className="w-5 h-5" />
           </Button>

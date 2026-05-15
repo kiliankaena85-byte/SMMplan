@@ -54,7 +54,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const stats = await adminOrderService.getOrderStats();
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-slate-50/50 min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
       <AdminPageHeader
         icon={Package}
         title="Заказы"
@@ -62,7 +62,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         action={(
           <a
             href={`/api/admin/export?type=orders&status=${statusFilter}&q=${encodeURIComponent(query)}`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 shadow-sm rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-foreground bg-background border border-border shadow-sm rounded-lg hover:bg-muted/50 hover:text-primary transition-colors"
           >
             <Download className="w-4 h-4" /> Экспорт CSV
           </a>
@@ -70,12 +70,12 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       />
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-1 bg-slate-200/50 p-1 rounded-xl w-max border border-slate-200">
+      <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-xl w-max border border-border">
         <Link 
           href="/admin/orders" 
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all",
-            "bg-white text-indigo-600 shadow-sm border border-slate-200"
+            "bg-background text-primary shadow-sm border border-border"
           )}
         >
           <Package className="w-4 h-4" />
@@ -85,7 +85,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
           href="/admin/refills" 
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all",
-            "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+            "text-muted-foreground hover:text-foreground hover:bg-background/50"
           )}
         >
           <RefreshCw className="w-4 h-4" />
@@ -102,12 +102,12 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               name="q"
               defaultValue={query}
               placeholder="🔍 Поиск: email, ссылка, ID заказа..."
-              className="flex-1 px-4 py-2 text-sm border border-slate-200 rounded-md focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+              className="flex-1 px-4 py-2 text-sm border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
             <select
               name="status"
               defaultValue={statusFilter}
-              className="px-4 py-2 text-sm border border-slate-200 rounded-md bg-white"
+              className="px-4 py-2 text-sm border border-border rounded-md bg-background"
             >
               {Object.entries(STATUS_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -157,11 +157,11 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
           {/* Pagination */}
           {(cursor || hasMore) && (
-            <div className="flex justify-between items-center mt-6 pt-4 border-t border-slate-200">
+            <div className="flex justify-between items-center mt-6 pt-4 border-t border-border">
               {cursor ? (
                 <Link
                   href={`/admin/orders?q=${encodeURIComponent(query)}&status=${statusFilter}`}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-md hover:bg-muted/50 transition-colors"
                 >
                   ← В начало
                 </Link>
@@ -169,7 +169,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               {hasMore && nextCursor && (
                 <Link
                   href={`/admin/orders?q=${encodeURIComponent(query)}&status=${statusFilter}&cursor=${nextCursor}`}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-indigo-700 transition-colors"
                 >
                   Следующая →
                 </Link>

@@ -86,12 +86,12 @@ export default async function OrdersPage() {
         </Link>
       </div>
 
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
         {/* Desktop table */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm" aria-label="Список заказов">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-widest text-muted-foreground bg-muted/30 border-b border-border">
+              <tr className="text-left text-[11px] uppercase tracking-widest text-muted-foreground bg-muted/20 border-b border-border/40">
                 <th className="py-3.5 px-4 font-bold">ID</th>
                 <th className="py-3.5 px-4 font-bold min-w-[200px]">Услуга</th>
                 <th className="py-3.5 px-4 font-bold">Ссылка / Кол-во</th>
@@ -107,7 +107,7 @@ export default async function OrdersPage() {
                 return (
                   <tr
                     key={order.id}
-                    className="border-b border-border/50 hover:bg-muted/20 transition-colors last:border-0 cursor-pointer"
+                    className="border-b border-border/40 hover:bg-muted/30 transition-colors last:border-0 cursor-pointer"
                   >
                     <td className="py-3 px-4 font-mono text-xs text-muted-foreground">
                       <Link href={`/dashboard/orders/${order.id}`} className="hover:text-primary transition-colors" aria-label={`Открыть заказ #${order.numericId}`}>

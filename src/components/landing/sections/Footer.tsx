@@ -12,7 +12,7 @@ export function Footer() {
           {/* Колонка 1: Бренд + Описание (Span 4) */}
           <div className="lg:col-span-4 pr-0 lg:pr-8">
             <Link href="/" className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-sky-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold text-white tracking-tight">Smmplan</span>
@@ -48,8 +48,8 @@ export function Footer() {
             <h3 className="font-semibold text-white mb-5 text-sm tracking-wide uppercase opacity-90">Поддержка</h3>
             <div className="space-y-4">
               <a href="https://t.me/smmplan_support" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-slate-300 hover:text-white transition-colors group">
-                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center group-hover:bg-sky-600 transition-colors">
-                  <svg className="w-4 h-4 text-sky-500 group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.98 1.25-5.58 3.68-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.36-.49 1-.76 3.92-1.71 6.54-2.84 7.86-3.39 3.74-1.56 4.51-1.83 5.01-1.84.11 0 .36.03.49.14.11.09.14.22.15.33-.02.05-.02.13-.03.22z"/></svg>
+                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center group-hover:bg-primary transition-colors">
+                  <svg className="w-4 h-4 text-primary group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.98 1.25-5.58 3.68-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.36-.49 1-.76 3.92-1.71 6.54-2.84 7.86-3.39 3.74-1.56 4.51-1.83 5.01-1.84.11 0 .36.03.49.14.11.09.14.22.15.33-.02.05-.02.13-.03.22z"/></svg>
                 </div>
                 Задать вопрос в Telegram
               </a>

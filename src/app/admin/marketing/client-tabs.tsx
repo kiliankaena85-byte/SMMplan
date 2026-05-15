@@ -11,7 +11,7 @@ interface MarketingTabsProps {
 export function MarketingTabs({ promocodesContent, referralsContent }: MarketingTabsProps) {
   return (
     <Tabs defaultValue="promocodes">
-      <TabsList className="bg-slate-100/50 p-1 rounded-xl">
+      <TabsList className="bg-muted/50 p-1 rounded-xl">
         <TabsTrigger value="promocodes" className="rounded-lg px-6 py-2 font-bold uppercase tracking-wider text-xs">
           Промокоды
         </TabsTrigger>

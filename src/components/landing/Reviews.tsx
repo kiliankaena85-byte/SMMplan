@@ -22,7 +22,7 @@ export function Reviews() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {reviews.map((r, i) => (
             <div key={i} className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-sky-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
               <div className="flex gap-1 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star key={star} className={`w-4 h-4 ${star <= r.stars ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
@@ -34,7 +34,7 @@ export function Reviews() {
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                 <div>
                   <h4 className="font-bold text-slate-900 text-sm">{r.name}</h4>
-                  <p className="text-xs text-sky-500 font-medium mt-0.5">{r.service}</p>
+                  <p className="text-xs text-primary font-medium mt-0.5">{r.service}</p>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs uppercase">
                   {r.name[0]}

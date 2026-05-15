@@ -33,7 +33,7 @@ export default async function QuarantinePage() {
         <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
           ⚠️ Карантин услуг
           {dto.length > 0 && (
-            <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/15 text-amber-600 border border-amber-500/30">
+            <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/15 text-warning border border-amber-500/30">
               {dto.length}
             </span>
           )}

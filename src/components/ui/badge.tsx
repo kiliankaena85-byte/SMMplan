@@ -7,11 +7,11 @@ const badgeVariants = cva(
   {
     variants: {
       intent: {
-        primary: "border-transparent bg-sky-500 text-white shadow-md",
-        secondary: "border-transparent bg-sky-100 text-sky-600",
-        outline: "text-slate-800 border-slate-200",
-        gradient: "border-transparent bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-md",
-        destructive: "border-transparent bg-rose-500 text-white shadow-md",
+        primary: "border-transparent bg-primary text-primary-foreground shadow-md hover:opacity-80",
+        secondary: "border-transparent bg-secondary text-secondary-foreground hover:opacity-80",
+        outline: "text-foreground border-border",
+        gradient: "border-transparent bg-gradient-to-r from-primary to-indigo-500 text-primary-foreground shadow-md hover:opacity-80",
+        destructive: "border-transparent bg-destructive text-destructive-foreground shadow-md hover:opacity-80",
       },
     },
     defaultVariants: {
