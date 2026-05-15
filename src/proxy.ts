@@ -1,8 +1,33 @@
 import { NextResponse } from 'next/server';
 import { RateLimitService } from '@/services/core/rate-limit.service';
+import { ROUTES } from '@/lib/routes';
+
+// Map of legacy routes to new static routes
+const legacyRedirects: Record<string, string> = {
+  '/p/offer': ROUTES.LEGAL.TERMS,
+  '/p/terms': ROUTES.LEGAL.TERMS,
+  '/p/privacy': ROUTES.LEGAL.PRIVACY,
+  '/p/refund': ROUTES.LEGAL.REFUND,
+  '/p/faq': ROUTES.FAQ,
+};
 
 export async function proxy(req: Request) {
   const url = new URL(req.url);
+
+  // Check if the exact pathname matches a legacy route
+  const newPath = legacyRedirects[url.pathname];
+  if (newPath) {
+    const redirectUrl = new URL(newPath, req.url);
+    
+    // If the new path has a hash (like /#faq), we must assign it
+    if (newPath.includes('#')) {
+      const [pathPart, hashPart] = newPath.split('#');
+      redirectUrl.pathname = pathPart;
+      redirectUrl.hash = hashPart;
+    }
+    
+    return NextResponse.redirect(redirectUrl, 301); // 301 Permanent Redirect
+  }
 
   // [SECURITY] PB-002: Apply rate limiting only to public APIs to shield from scrapers/bots
   if (url.pathname.startsWith('/api/')) {
