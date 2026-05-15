@@ -188,5 +188,29 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     console.error('[SyncProcessor] Failed to execute Quarantine Service tasks:', e.message);
   }
 
+  // ── Sweep Orphaned PENDING Orders ─────────────────────────────────────────
+  try {
+    // Orders stuck in PENDING for > 15 minutes (failed to enqueue or crashed before IN_PROGRESS)
+    const orphanThreshold = new Date(Date.now() - 15 * 60 * 1000);
+    const orphanOrders = await db.order.findMany({
+      where: {
+        status: 'PENDING',
+        updatedAt: { lt: orphanThreshold },
+        externalId: null // Ensure it hasn't been sent to provider
+      },
+      select: { id: true, numericId: true }
+    });
+
+    if (orphanOrders.length > 0) {
+      console.warn(`[SyncProcessor] Found ${orphanOrders.length} orphaned PENDING orders. Sweeping...`);
+      const { orderService } = await import('../../services/core/order.service');
+      for (const orphan of orphanOrders) {
+        await orderService.failOrderTerminal(orphan.id, 'Авто-отмена: заказ завис в очереди на отправку (Timeout > 15m)');
+      }
+    }
+  } catch (e: any) {
+    console.error('[SyncProcessor] Failed to execute Orphan Sweeper:', e.message);
+  }
+
   console.log('[SyncProcessor] Finished massive status sync.');
 }

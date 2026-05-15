@@ -58,14 +58,14 @@ describe('Admin Escrow Service (Security)', () => {
     const checkDbUser = await db.user.findUnique({ where: { id: targetUser.id } });
     
     // Admin was authorized to send 900. Only 1 request succeeded, so target balance must be 900.
-    expect().toBe();
+    expect(Number(checkDbUser!.balance)).toBe(900);
     
     // Furthermore, checking daily volume should confirm it is 900.
     const ledgers = await db.ledgerEntry.findMany({
       where: { adminId: adminUser.id, amount: { gt: 0 } }
     });
     
-    const sum = ledgers.reduce((acc, l) => acc + l.amount, 0);
+    const sum = ledgers.reduce((acc, l) => acc + Number(l.amount), 0);
     expect(sum).toBe(900);
   });
 });
