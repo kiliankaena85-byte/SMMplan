@@ -7,7 +7,6 @@ import { RateLimitService } from "@/services/core/rate-limit.service";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { cookies } from "next/headers";
-import { isRedirectError } from "next/navigation";
 
 const log = logger.child({ component: 'MagicLink' });
 
@@ -22,6 +21,8 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
   }
 
   const cleanEmail = parsed.data.email.toLowerCase();
+
+  let shouldRedirectToAdmin = false;
 
   try {
     // [SAFE BYPASS] Только для локальной разработки! 
@@ -40,11 +41,10 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
       const { createSession } = await import("@/lib/session");
       await createSession(user.id);
 
-      const { redirect } = await import("next/navigation");
-      redirect("/admin/dashboard");
+      shouldRedirectToAdmin = true;
     }
 
-    // Узнаем, существует ли пользователь (или авто-создаем)
+    if (!shouldRedirectToAdmin) {
     let user = await db.user.findUnique({ where: { email: cleanEmail } });
     if (!user) {
       // P1.3 Anti-Fraud: Strict IP limit for new registrations (Max 3 per 24 hours)
@@ -110,12 +110,18 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
     // Отправляем линк
     await sendMagicLink(cleanEmail, rawToken);
 
-    return { success: true, error: null };
-  } catch (error) {
-    if (isRedirectError(error)) {
-      throw error;
     }
+
+    if (!shouldRedirectToAdmin) {
+      return { success: true, error: null };
+    }
+  } catch (error) {
     log.error('Magic link request failed', { error: (error as Error).message });
     return { error: "Что-то пошло не так. Попробуйте еще раз.", success: false };
+  }
+
+  if (shouldRedirectToAdmin) {
+    const { redirect } = await import("next/navigation");
+    redirect("/admin/dashboard");
   }
 }
