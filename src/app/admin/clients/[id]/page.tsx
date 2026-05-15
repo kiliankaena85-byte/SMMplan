@@ -5,7 +5,7 @@ import { ClientDetailClient } from './client-detail-client';
 import { banUserAction, unbanUserAction, loginAsAction } from '@/actions/admin/users';
 import { SubmitButton } from '@/components/admin/submit-button';
 import { ActionForm } from '@/components/admin/action-form';
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
+import { ClientOrdersTable } from './client-orders-table';
 
 export const dynamic = 'force-dynamic';
 
@@ -189,46 +189,7 @@ export default async function ClientDetailPage({ params }: Props) {
         <div className="px-4 py-3 border-b border-border">
           <h2 className="text-sm font-semibold text-foreground">Последние заказы</h2>
         </div>
-        <Table aria-label="Заказы клиента">
-          <TableHeader>
-            <TableColumn>#</TableColumn>
-            <TableColumn>УСЛУГА</TableColumn>
-            <TableColumn className="text-right">КОЛ-ВО</TableColumn>
-            <TableColumn className="text-right">СУММА</TableColumn>
-            <TableColumn>СТАТУС</TableColumn>
-            <TableColumn>ДАТА</TableColumn>
-          </TableHeader>
-          <TableBody renderEmptyState={() => "Нет заказов"}>
-            {orders.map(o => (
-              <TableRow key={o.id}>
-                <TableCell>
-                  <Link href={`/admin/orders?q=${o.numericId}`} className="font-mono text-xs text-primary hover:underline">
-                    #{o.numericId}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <span className="text-xs text-foreground truncate max-w-[200px] block">{o.service.name}</span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="text-xs tabular-nums text-muted-foreground">{o.quantity.toLocaleString('ru-RU')}</span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="text-xs font-semibold tabular-nums text-foreground">{(Number(o.charge) / 100).toFixed(2)} ₽</span>
-                </TableCell>
-                <TableCell>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status] ?? 'bg-muted text-muted-foreground'}`}>
-                    {o.status}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(o.createdAt).toLocaleDateString('ru-RU')}
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ClientOrdersTable orders={orders as any} />
         {ordersCount > 15 && (
           <div className="px-4 py-3 border-t border-border">
             <Link href={`/admin/orders?userId=${user.id}`} className="text-xs text-primary hover:underline">

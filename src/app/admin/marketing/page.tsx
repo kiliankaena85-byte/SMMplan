@@ -9,6 +9,7 @@ import { PromoCodeTable } from './promocode-table';
 import { CreatePromoForm } from './create-promo-form';
 import { PayoutButton } from './payout-button';
 import Link from 'next/link';
+import { ReferrersTable } from './client-referrers-table';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,37 +109,7 @@ export default async function MarketingPage() {
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="w-full">
-                      <Table aria-label="Топ рефоводов">
-                        <TableHeader>
-                          <TableColumn>КЛИЕНТ</TableColumn>
-                          <TableColumn className="text-right">PENDING</TableColumn>
-                          <TableColumn className="text-right">РЕФЕРАЛЫ</TableColumn>
-                          <TableColumn className="text-right">ДЕЙСТВИЕ</TableColumn>
-                        </TableHeader>
-                        <TableBody renderEmptyState={() => "Нет активных реферальных балансов"}>
-                          {topReferrers.map(u => (
-                            <TableRow key={u.id}>
-                              <TableCell>
-                                <Link 
-                                  href={`/admin/clients?q=${encodeURIComponent(u.email)}`}
-                                  className="text-primary hover:underline font-mono text-xs font-semibold"
-                                >
-                                  {u.email}
-                                </Link>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <span className="font-black text-success tabular-nums">{(u.referralBalance / 100).toFixed(2)} ₽</span>
-                              </TableCell>
-                              <TableCell className="text-right text-muted-foreground tabular-nums">
-                                <span className="px-2 py-1 rounded-md bg-muted text-[10px] font-bold">{u._count.referrals} чел.</span>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <PayoutButton userId={u.id} amount={u.referralBalance} />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <ReferrersTable referrers={topReferrers as any} />
                     </div>
                   </CardContent>
                </Card>
