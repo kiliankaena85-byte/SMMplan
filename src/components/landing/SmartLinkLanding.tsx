@@ -12,6 +12,7 @@ import React, { useState, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
+import { ROUTES } from "@/lib/routes";
 import { TrustBar } from "./TrustBar";
 import { WhyUs } from "./WhyUs";
 import { FAQ } from "./FAQ";
@@ -86,13 +87,13 @@ export function SmartLinkLanding({
           </Link>
 
           <nav className="hidden md:flex gap-8 text-sm font-bold text-muted-foreground">
-            <Link href="/" className="hover:text-primary transition-colors">Услуги</Link>
-            <Link href="/dashboard/tickets" className="hover:text-primary transition-colors">Поддержка</Link>
-            <Link href="/#faq" className="hover:text-primary transition-colors">FAQ</Link>
+            <Link href={ROUTES.HOME} className="hover:text-primary transition-colors">Услуги</Link>
+            <Link href={ROUTES.DASHBOARD.TICKETS} className="hover:text-primary transition-colors">Поддержка</Link>
+            <Link href={ROUTES.FAQ} className="hover:text-primary transition-colors">FAQ</Link>
           </nav>
 
           <Link
-            href="/login"
+            href={ROUTES.AUTH.LOGIN}
             className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-default-100 text-foreground text-sm font-bold border border-default-200 hover:bg-default-200 transition-all duration-300"
           >
             <LogIn className="w-4 h-4 text-muted-foreground" />

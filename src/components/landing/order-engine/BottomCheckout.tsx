@@ -3,6 +3,7 @@ import { Link2, Mail, CheckSquare, Square, Loader2, ChevronRight } from "lucide-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { OrderEngine } from "@/hooks/useOrderEngine";
+import { ROUTES } from "@/lib/routes";
 
 interface BottomCheckoutProps {
   engine: OrderEngine;
@@ -81,7 +82,7 @@ export function BottomCheckout({ engine, handleCheckout, isSubmitting }: BottomC
                {agreedToTerms ? <CheckSquare className="w-6 h-6" /> : <Square className="w-6 h-6 text-slate-300" />}
            </button>
            <p className="text-[12px] text-muted-foreground font-medium leading-tight max-w-[250px]">
-             Я принимаю условия <Link href="/legal/terms" className="underline text-foreground hover:text-primary transition-colors">Оферты</Link> и <Link href="/legal/privacy" className="underline text-foreground hover:text-primary transition-colors">Политики конфиденциальности</Link>
+             Я принимаю условия <Link href={ROUTES.LEGAL.TERMS} className="underline text-foreground hover:text-primary transition-colors">Оферты</Link> и <Link href={ROUTES.LEGAL.PRIVACY} className="underline text-foreground hover:text-primary transition-colors">Политики конфиденциальности</Link>
            </p>
          </div>
 

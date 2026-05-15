@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { Zap, ShieldCheck, CreditCard, Mail, ArrowUpRight } from "lucide-react";
+import { ROUTES } from "@/lib/routes";
 
 export function MegaFooter() {
   return (
@@ -35,10 +36,10 @@ export function MegaFooter() {
         <div className="md:col-span-3 space-y-6">
           <h4 className="text-muted-foreground font-semibold tracking-[0.1em] text-[11px] uppercase mb-6">Документы</h4>
           <ul className="space-y-4 text-sm font-medium">
-            <li><Link href="/legal/terms" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Публичная оферта <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href="/legal/privacy" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Конфиденциальность <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href="/legal/refund" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Возврат средств <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href="/legal/terms" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Правила сервиса <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.TERMS} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Публичная оферта <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.PRIVACY} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Конфиденциальность <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.REFUND} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Возврат средств <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.TERMS} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Правила сервиса <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
           </ul>
         </div>
 
@@ -49,7 +50,7 @@ export function MegaFooter() {
           
           <div className="flex flex-col sm:flex-row gap-3">
             <Link 
-              href="/dashboard/tickets"
+              href={ROUTES.DASHBOARD.TICKETS}
               className="inline-flex items-center justify-center h-12 px-6 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-md hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 transition-all w-full sm:w-auto"
             >
               Создать тикет

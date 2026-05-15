@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Link2, Edit3, ChevronRight, Loader2, CheckSquare, Square, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 
 export function StickyCheckoutBar({
   selectedService,
@@ -157,7 +158,7 @@ export function StickyCheckoutBar({
                 }
               </button>
               <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">
-                Я принимаю условия <Link href="/legal/terms" className="underline hover:text-primary/70 transition-colors">Оферты</Link> и <Link href="/legal/privacy" className="underline hover:text-primary/70 transition-colors">Политики</Link>
+                Я принимаю условия <Link href={ROUTES.LEGAL.TERMS} className="underline hover:text-primary/70 transition-colors">Оферты</Link> и <Link href={ROUTES.LEGAL.PRIVACY} className="underline hover:text-primary/70 transition-colors">Политики</Link>
               </span>
             </label>
           </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { ROUTES } from "@/lib/routes";
 
 export function LegalFooter() {
   const [cookieConsent, setCookieConsent] = useState(true);
@@ -34,8 +35,8 @@ export function LegalFooter() {
           </div>
 
           <div className="flex gap-4 text-xs font-medium uppercase tracking-wide flex-wrap justify-center">
-            <Link href="/legal/privacy" className="hover:text-blue-600 transition-colors underline underline-offset-4">Политика конфиденциальности</Link>
-            <Link href="/legal/terms" className="hover:text-blue-600 transition-colors underline underline-offset-4">Пользовательское соглашение</Link>
+            <Link href={ROUTES.LEGAL.PRIVACY} className="hover:text-blue-600 transition-colors underline underline-offset-4">Политика конфиденциальности</Link>
+            <Link href={ROUTES.LEGAL.TERMS} className="hover:text-blue-600 transition-colors underline underline-offset-4">Пользовательское соглашение</Link>
           </div>
         </div>
       </footer>
