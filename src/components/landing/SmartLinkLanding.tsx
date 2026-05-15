@@ -88,7 +88,7 @@ export function SmartLinkLanding({
           <nav className="hidden md:flex gap-8 text-sm font-bold text-muted-foreground">
             <Link href="/" className="hover:text-primary transition-colors">Услуги</Link>
             <Link href="/dashboard/tickets" className="hover:text-primary transition-colors">Поддержка</Link>
-            <Link href="/p/faq" className="hover:text-primary transition-colors">FAQ</Link>
+            <Link href="/#faq" className="hover:text-primary transition-colors">FAQ</Link>
           </nav>
 
           <Link

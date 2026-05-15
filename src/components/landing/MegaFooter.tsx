@@ -35,10 +35,10 @@ export function MegaFooter() {
         <div className="md:col-span-3 space-y-6">
           <h4 className="text-muted-foreground font-semibold tracking-[0.1em] text-[11px] uppercase mb-6">Документы</h4>
           <ul className="space-y-4 text-sm font-medium">
-            <li><Link href="/p/offer" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Публичная оферта <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href="/p/privacy" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Конфиденциальность <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href="/p/refund" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Возврат средств <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href="/p/terms" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Правила сервиса <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href="/legal/terms" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Публичная оферта <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href="/legal/privacy" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Конфиденциальность <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href="/legal/refund" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Возврат средств <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href="/legal/terms" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Правила сервиса <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
           </ul>
         </div>
 

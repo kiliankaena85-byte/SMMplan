@@ -157,7 +157,7 @@ export function StickyCheckoutBar({
                 }
               </button>
               <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">
-                Я принимаю условия <Link href="/p/offer" className="underline hover:text-primary/70 transition-colors">Оферты</Link> и <Link href="/p/privacy" className="underline hover:text-primary/70 transition-colors">Политики</Link>
+                Я принимаю условия <Link href="/legal/terms" className="underline hover:text-primary/70 transition-colors">Оферты</Link> и <Link href="/legal/privacy" className="underline hover:text-primary/70 transition-colors">Политики</Link>
               </span>
             </label>
           </div>
