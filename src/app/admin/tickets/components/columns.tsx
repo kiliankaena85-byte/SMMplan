@@ -33,6 +33,7 @@ const SOURCE_ICONS: Record<string, React.ReactNode> = {
 export const columns: ColumnDef<TicketColumn>[] = [
   {
     accessorKey: 'user.email',
+    id: 'user.email',
     header: 'Клиент',
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
