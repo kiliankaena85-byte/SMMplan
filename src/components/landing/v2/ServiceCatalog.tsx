@@ -86,7 +86,7 @@ export function ServiceCatalog() {
               }}
             >
               <Card 
-                className="group border border-border/50 bg-card hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 h-full"
+                className="group border border-border/40 bg-background/60 backdrop-blur-xl hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] dark:hover:shadow-primary/5 dark:hover:bg-content2/40 hover:-translate-y-1.5 transition-all duration-500 ease-out-expo h-full will-change-transform transform-gpu"
               >
                 <CardContent className="p-6 flex flex-col h-full gap-4">
                   {/* Top Row: Icon & Type */}
@@ -95,39 +95,40 @@ export function ServiceCatalog() {
                       <service.icon className="w-6 h-6" />
                     </div>
                     {service.popular && (
-                      <Chip color="danger" variant="soft" size="sm" className="gap-1">
-                        <span className="flex items-center gap-1">
-                          <Zap className="w-3 h-3" />
-                          Хит продаж
-                        </span>
-                      </Chip>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500/10 to-rose-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400">
+                        <Zap className="w-3 h-3" />
+                        <span className="text-[10px] uppercase tracking-widest font-bold">Хит</span>
+                      </div>
                     )}
                   </div>
 
                   {/* Title & Price */}
-                  <div>
-                    <h3 className="text-xl font-bold tracking-tight text-foreground mb-1">
+                  <div className="mt-2">
+                    <h3 className="text-xl font-extrabold tracking-tight text-foreground mb-1">
                       {service.name}
                     </h3>
-                    <p className="text-muted-foreground text-sm font-medium">
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
                       {service.type}
                     </p>
                   </div>
 
                   {/* Divider (Pillar: No-Line Architecture - using subtle gap instead of border) */}
                   <div className="flex-grow flex flex-col justify-end mt-4">
-                    <div className="flex items-center gap-2 mb-4 text-sm text-foreground/80">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <div className="flex items-center gap-2 mb-6 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500/80" />
                       <span>{service.speed}</span>
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold tabular-nums text-foreground">{service.price}</span>
-                        <span className="text-xs text-muted-foreground">/ 1000 шт.</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-2xl font-black tracking-tighter tabular-nums text-foreground">{service.price}</span>
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">/ 1000 шт.</span>
                       </div>
                       
-                      <Button variant="secondary" className="rounded-full" size="sm">
+                      <Button 
+                        className="rounded-xl bg-primary/10 text-primary font-bold hover:bg-primary/20 active:scale-[0.97] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2" 
+                        size="sm"
+                      >
                         Заказать
                       </Button>
                     </div>

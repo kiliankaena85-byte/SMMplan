@@ -45,7 +45,7 @@ export function FAQ() {
         {FAQ_ITEMS.map((item, i) => (
           <div
             key={i}
-            className="bg-content1 border border-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300"
+            className="bg-content1 border border-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
           >
             <button
               type="button"
