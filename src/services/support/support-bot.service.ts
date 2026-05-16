@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { ticketService } from '@/services/support/ticket.service';
 import { bot } from '@/bot';
 import fs from 'fs';
 import path from 'path';
@@ -26,16 +27,8 @@ class SupportBotService {
     }
 
     // Find or Create Active Ticket FIRST, because we need ticketId for media storage
-    let ticket = await db.ticket.findFirst({
-      where: { userId, status: { not: 'CLOSED' } },
-      orderBy: { updatedAt: 'desc' }
-    });
-
-    if (!ticket) {
-      ticket = await db.ticket.create({
-        data: { userId, subject: ctx.message.text?.substring(0, 50) || ctx.message.caption?.substring(0, 50) || 'Медиа сообщение', status: 'OPEN', source: 'TELEGRAM' }
-      });
-    }
+    const subject = ctx.message.text?.substring(0, 50) || ctx.message.caption?.substring(0, 50) || 'Медиа сообщение';
+    let ticket = await ticketService.getOrCreateTicket(userId, subject, 'TELEGRAM');
 
     // 2. Photo
     if (ctx.message.photo && ctx.message.photo.length > 0) {
@@ -88,24 +81,16 @@ class SupportBotService {
 
 
 
-    // 7. Save Message to DB
-    await db.ticketMessage.create({
-      data: {
-        ticketId: ticket.id,
-        sender: 'USER',
-        text,
-        mediaUrl,
-        mediaType,
-        telegramMsgId: String(ctx.message.message_id),
-        replyToId
-      }
-    });
-
-    // 8. Update Ticket Status
-    await db.ticket.update({
-      where: { id: ticket.id },
-      data: { status: 'OPEN' }
-    });
+    // 7. Save Message to DB & Update Ticket Status via ticketService
+    await ticketService.addMessage(
+      ticket.id,
+      'USER',
+      text,
+      mediaUrl || undefined,
+      mediaType || undefined,
+      replyToId || undefined,
+      String(ctx.message.message_id)
+    );
 
     // 9. Client-Centric Reaction/Ack
     // If this is the FIRST message in this specific ticket from the user, or ticket just created

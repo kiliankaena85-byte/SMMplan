@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { cleanCategoryName } from "@/components/ui/CategoryIcon";
 
+import { Tabs, Tab } from "@heroui/react";
+
 export function MobileSelectors({ engine }: { engine: OrderEngine }) {
   const { networkId, setNetworkId, categoryId, setCategoryId, catalog, availableCategories } = engine;
 
@@ -24,31 +26,48 @@ export function MobileSelectors({ engine }: { engine: OrderEngine }) {
   }, [availableCategories]);
 
   return (
-    <div className="md:hidden flex flex-col gap-3 p-4 bg-muted border-b border-border">
-      <select
-        aria-label="Выберите платформу"
-        value={networkId || ""}
-        onChange={(e) => setNetworkId(e.target.value)}
-        className="w-full h-14 px-4 bg-background border border-border shadow-sm font-bold text-foreground rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none outline-none"
-      >
-        <option value="" disabled>Платформа...</option>
-        {catalog.map(n => (
-          <option key={n.id} value={n.id}>{n.name}</option>
-        ))}
-      </select>
-      
+    <div className="md:hidden flex flex-col gap-4 p-4 bg-background border-b border-border shadow-sm sticky top-16 z-30">
+      {/* Платформа */}
+      <div className="relative w-full -mx-4 px-4">
+        {/* Градиентная маска для показа скролла */}
+        <div className="w-full overflow-x-auto scrollbar-hide pb-1 [mask-image:linear-gradient(to_right,white_85%,transparent_100%)]">
+          <Tabs
+            aria-label="Платформы"
+            selectedKey={networkId || undefined}
+            onSelectionChange={(key) => setNetworkId(key as string)}
+            className="w-full"
+          >
+            <Tabs.List className="bg-default-100/50 p-1 flex w-full rounded-full">
+              {catalog.map(n => (
+                <Tabs.Tab id={n.id} key={n.id} className="font-semibold text-sm px-5 py-2.5 cursor-pointer transition-all duration-300 data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground data-[selected=true]:shadow-md rounded-full">
+                  {n.name}
+                </Tabs.Tab>
+              ))}
+            </Tabs.List>
+          </Tabs>
+        </div>
+      </div>
+
+      {/* Категории */}
       {networkId && sortedCategories.length > 0 && (
-        <select
-          aria-label="Выберите категорию"
-          value={categoryId || ""}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className="w-full h-14 px-4 bg-primary/5 border border-primary/20 shadow-sm font-bold text-primary rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none outline-none mt-1"
-        >
-          <option value="" disabled>Категория...</option>
-          {sortedCategories.map(c => (
-            <option key={c.id} value={c.id}>{cleanCategoryName(c.name)}</option>
-          ))}
-        </select>
+        <div className="relative w-full -mx-4 px-4">
+          <div className="w-full overflow-x-auto scrollbar-hide pb-1 [mask-image:linear-gradient(to_right,white_85%,transparent_100%)]">
+            <Tabs
+              aria-label="Категории"
+              selectedKey={categoryId || undefined}
+              onSelectionChange={(key) => setCategoryId(key as string)}
+              className="w-full"
+            >
+              <Tabs.List className="bg-primary/5 p-1 border border-primary/10 flex w-full rounded-full">
+                {sortedCategories.map(c => (
+                  <Tabs.Tab id={c.id} key={c.id} className="font-semibold text-[13px] px-5 py-2.5 cursor-pointer transition-all duration-300 data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground data-[selected=true]:shadow-md rounded-full">
+                    {cleanCategoryName(c.name)}
+                  </Tabs.Tab>
+                ))}
+              </Tabs.List>
+            </Tabs>
+          </div>
+        </div>
       )}
     </div>
   );

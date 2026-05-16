@@ -11,7 +11,7 @@ import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import crypto from 'crypto';
-
+import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
 /**
  * Calculates price for display on the order form (no auth required).
  */
@@ -34,7 +34,15 @@ export async function calculatePriceAction(
       totalQuantity,
       promoCodeStr
     );
-    return { success: true, data: result };
+    
+    // SECURITY FIX: Data Leak Prevention. Do NOT return providerCostCents to the client.
+    const safeResult = {
+      totalCents: result.totalCents,
+      originalTotalCents: result.originalTotalCents,
+      discountCents: result.discountCents
+    };
+
+    return { success: true, data: safeResult as any };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -255,138 +263,20 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     const successUrl = `${origin}/success?orderId=${result.orderId}`;
 
     try {
-      if (gateway === 'balance') {
-        // We will perform atomic deduction inside the transaction to prevent race condition double-spending
-        // AND use a Redis Mutex to completely serialize processing per-user for the balance gateway.
-        await MutexManager.withLock(`balance_lock_${user.id}`, 30000, 5000, async () => {
-          await db.$transaction(async (tx) => {
-            // BUG-003 FIX: Atomic WalletOps deduction to prevent TOCTOU race conditions and maintain ledger consistency
-            await WalletOps.charge(tx, user.id, pricing.totalCents, `Оплата заказа ${result.orderId} (Списание)`);
-
-            await tx.payment.update({
-              where: { id: result.paymentId },
-              data: { status: 'SUCCEEDED', gatewayId: `internal_${Date.now()}` }
-            });
-            await tx.order.update({
-              where: { id: result.orderId },
-              data: { status: 'PENDING' }
-            });
-          });
-        });
-
-        // Add to queue with cooling-off delay (Consistency Fix)
-        const order = await db.order.findUnique({ where: { id: result.orderId } });
-        if (order) {
-          const { ordersQueue } = await import('@/workers/queues');
-          await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 3 * 60 * 1000 });
-        }
-
-        paymentUrl = successUrl;
-        remoteGatewayId = `internal_${Date.now()}`;
-      } else if (gateway === 'yookassa') {
-        const isTestMode = await SettingsManager.isTestMode();
-        if (process.env.NODE_ENV === 'test' || email === 'e2e-tester@test.com' || isTestMode) {
-          paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${result.paymentId}&orderId=${result.orderId}`;
-          remoteGatewayId = `mock_${Date.now()}`;
-        } else {
-          const secrets = await SettingsManager.getPaymentSecrets();
-          const shopId = secrets.yookassaShopId;
-          const secretKey = secrets.yookassaSecretKey;
-          if (!shopId || !secretKey) throw new Error('YooKassa is not configured in Admin Panel');
-
-        const isTestMode = await SettingsManager.isTestMode();
-        const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-        const payload: any = {
-          amount: { value: amountRub, currency: 'RUB' },
-          capture: true,
-          confirmation: { type: 'redirect', return_url: successUrl },
-          description: `SEO-Аудит и консультация (Заказ #${result.orderId})`, // [SECURITY] PB-001: Stealth Merchant Description
-          metadata: { paymentId: result.paymentId, orderId: result.orderId, userId: user.id }
-        };
-
-        // В тестовом режиме ЮKassa чек часто вызывает 400 Bad Request, если не подключена тестовая касса
-        if (!isTestMode) {
-          payload.receipt = {
-            customer: {
-              email: email || user.email || 'no-reply@smmplan.ru'
-            },
-            items: [
-              {
-                description: "Услуги SEO-аудита и цифрового маркетинга",
-                quantity: "1.00",
-                amount: {
-                  value: amountRub,
-                  currency: 'RUB'
-                },
-                vat_code: 1, // Без НДС
-                payment_mode: "full_prepayment",
-                payment_subject: "service"
-              }
-            ]
-          };
-        }
-
-        const idempKey = crypto.createHash('sha256')
-          .update(`yookassa_${user.id}_${serviceId}_${quantity}_${link}_${Math.floor(Date.now() / 60000)}`)
-          .digest('hex').substring(0, 36);
-
-        const resp = await fetch('https://api.yookassa.ru/v3/payments', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-            'Idempotence-Key': idempKey
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!resp.ok) {
-          console.error('[Checkout] YooKassa API Error:', await resp.text());
-          throw new Error('Ошибка шлюза YooKassa');
-        }
-
-        const data = await resp.json();
-        paymentUrl = data.confirmation.confirmation_url;
-        remoteGatewayId = data.id;
-        }
-      } else if (gateway === 'cryptobot') {
-        if (process.env.NODE_ENV === 'test') {
-          paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${result.paymentId}&orderId=${result.orderId}`;
-          remoteGatewayId = `mock_${Date.now()}`;
-        } else {
-
-          const secrets = await SettingsManager.getPaymentSecrets();
-          const cryptoToken = secrets.cryptoBotToken;
-          if (!cryptoToken) throw new Error('CryptoBot is not configured in Admin Panel');
-
-          const resp = await fetch('https://pay.crypt.bot/api/createInvoice', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Crypto-Pay-API-Token': cryptoToken
-            },
-            body: JSON.stringify({
-              currency_type: 'fiat', // Allow paying in TON but amount specified in RUB
-              fiat: 'RUB',
-              amount: amountRub,
-              description: `Заказ Smmplan #${result.orderId}`,
-              hidden_message: `Ваш заказ: ${result.orderId}`,
-              payload: result.paymentId
-            })
-          });
-
-          if (!resp.ok) {
-            console.error('[Checkout] CryptoBot API Error:', await resp.text());
-            throw new Error('Ошибка шлюза CryptoBot');
-          }
-
-          const data = await resp.json();
-          if (!data.ok) throw new Error('CryptoBot returned error: ' + JSON.stringify(data.error));
-          
-          paymentUrl = data.result.pay_url;
-          remoteGatewayId = data.result.invoice_id.toString();
-        }
-      }
+      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
+      const gatewayResult = await gatewaySvc.createPayment({
+        paymentId: result.paymentId,
+        orderId: result.orderId,
+        userId: user.id,
+        amountRub: pricing.totalCents / 100,
+        email: email,
+        successUrl,
+        description: `SEO-Аудит и консультация (Заказ #${result.orderId})`,
+        isTestMode: isTestMode || email === 'e2e-tester@test.com'
+      });
+      
+      paymentUrl = gatewayResult.paymentUrl;
+      remoteGatewayId = gatewayResult.remoteGatewayId;
 
       // 7. Store the remoteGatewayId and checkoutUrl on the Payment record so Webhooks can match it and Users can resume payment
       if (remoteGatewayId || paymentUrl) {
@@ -575,102 +465,21 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const successUrl = `${origin}/success?orderId=${order.id}`;
 
     try {
-      if (gateway === 'balance') {
-        await MutexManager.withLock(`balance_lock_${order.userId}`, 30000, 5000, async () => {
-          await db.$transaction(async (tx) => {
-            // BUG-003 FIX: Atomic WalletOps deduction to prevent TOCTOU race conditions and maintain ledger consistency
-            await WalletOps.charge(tx, order.userId, Number(order.charge), `Оплата заказа ${order.id} (Списание)`);
+      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
+      const isTestMode = await SettingsManager.isTestMode();
+      const gatewayResult = await gatewaySvc.createPayment({
+        paymentId: result.paymentId,
+        orderId: order.id,
+        userId: order.userId,
+        amountRub: Number(order.charge) / 100,
+        email: order.email || order.user.email,
+        successUrl,
+        description: `SEO-Аудит и консультация (Заказ #${order.id})`,
+        isTestMode
+      });
 
-            await tx.payment.update({
-              where: { id: result.paymentId },
-              data: { status: 'SUCCEEDED', gatewayId: `internal_${Date.now()}` }
-            });
-            await tx.order.update({
-              where: { id: order.id },
-              data: { status: 'PENDING' }
-            });
-          });
-        });
-
-        // Add to queue
-        const { ordersQueue } = await import('@/workers/queues');
-        await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 3 * 60 * 1000 });
-
-        paymentUrl = successUrl;
-        remoteGatewayId = `internal_${Date.now()}`;
-      } else if (gateway === 'yookassa') {
-        if (process.env.NODE_ENV === 'test') {
-          paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${result.paymentId}&orderId=${order.id}`;
-          remoteGatewayId = `mock_${Date.now()}`;
-        } else {
-          const secrets = await SettingsManager.getPaymentSecrets();
-          const shopId = secrets.yookassaShopId;
-          const secretKey = secrets.yookassaSecretKey;
-          if (!shopId || !secretKey) throw new Error('YooKassa is not configured');
-
-        const isTestMode = await SettingsManager.isTestMode();
-        const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-        const payload: any = {
-          amount: { value: amountRub, currency: 'RUB' },
-          capture: true,
-          confirmation: { type: 'redirect', return_url: successUrl },
-          description: `SEO-Аудит и консультация (Заказ #${order.id})`,
-          metadata: { paymentId: result.paymentId, orderId: order.id, userId: order.userId }
-        };
-
-        if (!isTestMode) {
-          payload.receipt = {
-            customer: { email: order.email || order.user.email || 'no-reply@smmplan.ru' },
-            items: [{
-              description: "Услуги SEO-аудита и цифрового маркетинга",
-              quantity: "1.00",
-              amount: { value: amountRub, currency: 'RUB' },
-              vat_code: 1, payment_mode: "full_prepayment", payment_subject: "service"
-            }]
-          };
-        }
-
-        const idempKey = crypto.createHash('sha256')
-          .update(`yookassa_retry_${order.userId}_${order.id}_${Math.floor(Date.now() / 60000)}`)
-          .digest('hex').substring(0, 36);
-
-        const resp = await fetch('https://api.yookassa.ru/v3/payments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'Idempotence-Key': idempKey },
-          body: JSON.stringify(payload)
-        });
-
-        if (!resp.ok) throw new Error('Ошибка шлюза YooKassa');
-        const data = await resp.json();
-        paymentUrl = data.confirmation.confirmation_url;
-        remoteGatewayId = data.id;
-        }
-      } else if (gateway === 'cryptobot') {
-        if (process.env.NODE_ENV === 'test') {
-          paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${result.paymentId}&orderId=${order.id}`;
-          remoteGatewayId = `mock_${Date.now()}`;
-        } else {
-          const secrets = await SettingsManager.getPaymentSecrets();
-          if (!secrets.cryptoBotToken) throw new Error('CryptoBot is not configured');
-
-          const resp = await fetch('https://pay.crypt.bot/api/createInvoice', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Crypto-Pay-API-Token': secrets.cryptoBotToken },
-            body: JSON.stringify({
-              currency_type: 'fiat', fiat: 'RUB', amount: amountRub,
-              description: `Заказ Smmplan #${order.id}`,
-              hidden_message: `Ваш заказ: ${order.id}`, payload: result.paymentId
-            })
-          });
-
-          if (!resp.ok) throw new Error('Ошибка шлюза CryptoBot');
-          const data = await resp.json();
-          if (!data.ok) throw new Error('CryptoBot returned error');
-          
-          paymentUrl = data.result.pay_url;
-          remoteGatewayId = data.result.invoice_id.toString();
-        }
-      }
+      paymentUrl = gatewayResult.paymentUrl;
+      remoteGatewayId = gatewayResult.remoteGatewayId;
 
       if (remoteGatewayId || paymentUrl) {
         await db.payment.update({

@@ -43,12 +43,6 @@ export function CategorySidebar({ engine }: { engine: OrderEngine }) {
           {categoryId === cat.id && <ChevronRight className="hidden lg:block w-5 h-5 opacity-100 translate-x-0" />}
         </button>
       ))}
-      
-      {sortedCategories.length === 0 && (
-        <div className="flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-border rounded-xl">
-          <p className="text-xs text-muted-foreground font-medium">Нет категорий</p>
-        </div>
-      )}
     </div>
   );
 }

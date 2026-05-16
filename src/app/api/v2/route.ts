@@ -222,8 +222,9 @@ async function handleStatus(user: User, formData: FormData) {
 }
 
 async function handleBalance(user: User) {
+  const freshUser = await db.user.findUnique({ where: { id: user.id }, select: { balance: true } });
   return NextResponse.json({
-    balance: (Number(user.balance) / 100).toFixed(4),
+    balance: (Number(freshUser?.balance || 0) / 100).toFixed(4),
     currency: 'RUB'
   });
 }
@@ -235,11 +236,7 @@ async function handleCancel(user: User, formData: FormData) {
     return NextResponse.json({ error: 'Missing order parameter' }, { status: 400 });
   }
 
-  // Real SMM panels often process cancellations aggressively or async.
-  // We'll return the standard standard "attempt" response.
-  return NextResponse.json({
-    success: 'We will attempt to cancel this order. Cancellation is not guaranteed.'
-  });
+  return NextResponse.json({ error: 'Cancellation via API is not supported. Contact support.' }, { status: 400 });
 }
 
 async function handleRefill(user: User, formData: FormData) {

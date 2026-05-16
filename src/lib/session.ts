@@ -36,7 +36,7 @@ export async function verifySession() {
   const sessionToken = (await cookies()).get('session_token')?.value;
 
   if (!sessionToken) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV !== 'production' && process.env.DEV_AUTO_LOGIN === 'true') {
       // ВРЕМЕННЫЙ ХАК: Авто-вход для локальной разработки
       const devOwner = await db.user.findFirst({ where: { role: 'OWNER' } });
       if (devOwner) return { userId: devOwner.id };
@@ -49,11 +49,14 @@ export async function verifySession() {
       algorithms: ['HS256'],
     });
     
-    // Опционально можно сверять с БД
+    const sessionId = payload.sessionId as string;
+    const session = await db.session.findUnique({ where: { id: sessionId } });
+    if (!session) return null;
+
     return { userId: payload.userId as string };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV !== 'production' && process.env.DEV_AUTO_LOGIN === 'true') {
       // ВРЕМЕННЫЙ ХАК: Авто-вход для локальной разработки
       const devOwner = await db.user.findFirst({ where: { role: 'OWNER' } });
       if (devOwner) return { userId: devOwner.id };

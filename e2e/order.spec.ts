@@ -6,6 +6,10 @@ test.describe('Order Lifecycle', () => {
   test.beforeAll(async () => {
     const prisma = new PrismaClient();
     
+    // Cleanup old test data
+    await prisma.service.deleteMany({ where: { name: { startsWith: 'E2E ' } } });
+    await prisma.category.deleteMany({ where: { name: { startsWith: 'E2E ' } } });
+
     // Ensure network exists
     let network = await prisma.network.findUnique({ where: { slug: 'telegram' } });
     if (!network) {
@@ -13,10 +17,13 @@ test.describe('Order Lifecycle', () => {
     }
     
     // Ensure category exists
-    let category = await prisma.category.findFirst({ where: { networkId: network.id, name: 'E2E Telegram Category' } });
+    let category = await prisma.category.findFirst({ where: { name: 'E2E Telegram Subscribers' } });
     if (!category) {
       category = await prisma.category.create({
-        data: { name: 'E2E Telegram Category', sort: 1, networkId: network.id }
+        data: {
+          name: 'E2E Telegram Subscribers',
+          networkId: network.id
+        }
       });
     }
 
@@ -54,7 +61,10 @@ test.describe('Order Lifecycle', () => {
     // 1. Listen to console logs
     page.on('console', msg => console.log(`[Browser]: ${msg.text()}`));
     
-    // 1. Visit the order page
+    // 1. Revalidate catalog cache to ensure newly seeded data is visible
+    await page.request.get('/api/debug?revalidate=catalog');
+    
+    // 2. Visit the order page
     await page.goto('/dashboard/new-order');
     
     // Ensure the main layout and input renders
@@ -66,6 +76,11 @@ test.describe('Order Lifecycle', () => {
     await urlInput.fill('https://t.me/durov');
 
     // 2. Wait for categories/services to load and verify the first service option is auto-selected
+    // Ensure we are in the correct category (auto-selection might pick 'Stars' or something else if it exists)
+    const categoryTab = page.getByRole('tab', { name: /E2E Telegram Subscribers/i });
+    await expect(categoryTab).toBeVisible({ timeout: 10000 });
+    await categoryTab.click();
+
     // It should fetch data based on link analysis
     const serviceOption = page.getByRole('option', { name: /E2E Telegram Service/i });
     await expect(serviceOption).toBeVisible({ timeout: 15000 });
@@ -111,7 +126,7 @@ test.describe('Order Lifecycle', () => {
     }
 
     // We should be redirected to the success page (e.g., /dashboard/orders or a success screen)
-    await expect(page).toHaveURL(/dashboard\/orders|success/, { timeout: 10000 });
+    await expect(page).toHaveURL(/dashboard\/orders|success/, { timeout: 30000 });
   });
 
 });

@@ -14,7 +14,7 @@ export default async function ApiSettingsPage() {
 
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    select: { apiKey: true },
+    select: { apiKeyHash: true },
   });
 
   if (!user) redirect('/login');
@@ -36,7 +36,7 @@ export default async function ApiSettingsPage() {
           </p>
         </div>
         <div className="p-5">
-          <ApiKeyManager currentKey={user.apiKey} />
+          <ApiKeyManager hasKey={!!user.apiKeyHash} />
         </div>
       </div>
 

@@ -13,10 +13,18 @@ import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 export type OrderEngine = ReturnType<typeof useOrderEngine>;
 
 export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmail: string = "") {
+  // Determine initial defaults synchronously
+  const defaultNet = initialCatalog.length > 0 
+    ? (initialCatalog.find(n => n.slug === 'telegram') || initialCatalog[0]) 
+    : null;
+  const defaultCat = defaultNet && defaultNet.categories.length > 0 
+    ? (defaultNet.categories.find(c => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0]) 
+    : null;
+
   // Input states
   const [url, setUrl] = useState("");
-  const [networkId, setNetworkId] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [networkId, setNetworkId] = useState(defaultNet?.id || "");
+  const [categoryId, setCategoryId] = useState(defaultCat?.id || "");
   const [selectedService, setSelectedService] = useState<PublicService | null>(null);
   const [quantity, setQuantity] = useState(100);
   const [email, setEmail] = useState(initialEmail);
@@ -51,33 +59,24 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       getPublicCatalogAction().then(res => {
         if (res.success && res.data) {
           setCatalog(res.data);
-          // Set defaults
-          if (!networkId && res.data.length > 0) {
-            const defaultNet = res.data.find(n => n.slug === 'telegram') || res.data[0];
-            if (defaultNet) {
-              setNetworkId(defaultNet.id);
-              const defaultCat = defaultNet.categories.find(c => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0];
-              if (defaultCat) {
-                setCategoryId(defaultCat.id);
+          // Set defaults if they are still empty
+          setNetworkId(current => {
+            if (!current && res.data.length > 0) {
+              const defNet = res.data.find(n => n.slug === 'telegram') || res.data[0];
+              if (defNet) {
+                const defCat = defNet.categories.find(c => c.name.toLowerCase().includes('подписчики')) || defNet.categories[0];
+                if (defCat) {
+                  setCategoryId(defCat.id);
+                }
+                return defNet.id;
               }
             }
-          }
+            return current;
+          });
         }
       });
-    } else if (catalog.length > 0) {
-      // Set defaults if catalog was provided initially
-      if (!networkId) {
-        const defaultNet = catalog.find(n => n.slug === 'telegram') || catalog[0];
-        if (defaultNet) {
-          setNetworkId(defaultNet.id);
-          const defaultCat = defaultNet.categories.find(c => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0];
-          if (defaultCat) {
-            setCategoryId(defaultCat.id);
-          }
-        }
-      }
     }
-  }, [catalog, networkId]);
+  }, [catalog.length]);
 
   // 2. Analyze URL (Debounced)
   useEffect(() => {

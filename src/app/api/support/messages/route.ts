@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    const isStaff = ['ADMIN', 'SUPPORT'].includes(user.role);
+    const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
     if (ticket.userId !== userId && !isStaff) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

@@ -36,7 +36,7 @@ export async function proxy(req: Request) {
     
     // Call the robust, Node.js-compatible Redis + Postgres RateLimitService!
     // Since proxy in Next.js 16 runs in the Node.js runtime (not Edge), ioredis and Prisma work seamlessly.
-    const isAllowed = await RateLimitService.check(url.pathname, 60, 60);
+    const isAllowed = await RateLimitService.check(url.pathname, 60, 60, false);
     
     if (!isAllowed) {
       console.warn(`[PROXY] Rate Limit Exceeded for IP: ${ip} on API: ${url.pathname}`);

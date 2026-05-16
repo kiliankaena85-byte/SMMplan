@@ -141,7 +141,10 @@ export async function editTicketMessage(formData: FormData) {
   const { messageId, newText } = parsed.data;
 
   // Retrieve the old message
-  const msg = await db.ticketMessage.findUnique({ where: { id: messageId } });
+  const msg = await db.ticketMessage.findUnique({ 
+    where: { id: messageId },
+    include: { ticket: { include: { user: true } } }
+  });
   if (!msg) throw new Error('Message not found');
 
   if (msg.sender === 'USER') {
@@ -169,5 +172,128 @@ export async function editTicketMessage(formData: FormData) {
     });
   });
 
+  // Sync to Telegram if applicable
+  if (msg.telegramMsgId && msg.ticket.user.telegramId && msg.sender === 'STAFF') {
+    try {
+      const { supportBotService } = await import('@/services/support/support-bot.service');
+      await supportBotService.editSupportReply(msg.ticket.user.telegramId, msg.telegramMsgId, newText.trim());
+    } catch (e) {
+      console.error('[editTicketMessage] Error syncing edit to Telegram:', e);
+      // We don't throw here to avoid failing the web UI if Telegram is temporarily down
+    }
+  }
+
   revalidatePath(`/admin/tickets/${msg.ticketId}`);
 }
+
+const requestBindSchema = z.object({
+  ticketId: z.string().min(1)
+});
+
+export async function requestTelegramBind(formData: FormData) {
+  try {
+    console.log('[requestTelegramBind] Action started');
+    const session = await verifySession();
+    if (!session) throw new Error('Unauthorized');
+
+  const user = await db.user.findUnique({ where: { id: session.userId } });
+  if (!user || !['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role)) throw new Error('Forbidden');
+
+  const parsed = requestBindSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    console.error('[requestTelegramBind] Validation failed:', parsed.error);
+    throw new Error('Invalid ticketId');
+  }
+  const { ticketId } = parsed.data;
+  console.log('[requestTelegramBind] Processing ticketId:', ticketId);
+
+  const ticket = await db.ticket.findUnique({ where: { id: ticketId }, include: { user: true } });
+  if (!ticket) throw new Error('Ticket not found');
+
+  if (!ticket.user.email.startsWith('tg_')) {
+    throw new Error('У пользователя уже есть веб-аккаунт');
+  }
+
+  const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.ru';
+  const magicLink = `${host}/api/support/telegram?forceAuth=true`;
+
+  const messageText = `🎧 <b>Служба поддержки Smmplan</b>\n\nЧтобы мы могли найти ваши заказы и оформить возврат средств на баланс, пожалуйста, подтвердите владение заказом по ссылке: ${magicLink}`;
+
+    await ticketService.addMessage(ticketId, 'STAFF', messageText);
+    revalidatePath(`/admin/tickets/${ticketId}`);
+  } catch (err) {
+    console.error('[requestTelegramBind] Error:', err);
+    throw err;
+  }
+}
+
+const manualBindSchema = z.object({
+  ticketId: z.string().min(1),
+  targetEmail: z.string().email('Некорректный email')
+});
+
+export async function adminManualTelegramBind(formData: FormData) {
+  try {
+    const session = await verifySession();
+    if (!session) throw new Error('Unauthorized');
+
+  const admin = await db.user.findUnique({ where: { id: session.userId } });
+  if (!admin || !['ADMIN', 'SUPPORT', 'OWNER'].includes(admin.role)) throw new Error('Forbidden');
+
+  const parsed = manualBindSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) throw new Error('Invalid input');
+  const { ticketId, targetEmail } = parsed.data;
+
+  const ticket = await db.ticket.findUnique({ where: { id: ticketId }, include: { user: true } });
+  if (!ticket) throw new Error('Ticket not found');
+
+  const tempUser = ticket.user;
+  if (!tempUser.email.startsWith('tg_') || !tempUser.telegramId) {
+    throw new Error('Этот профиль не является временным Telegram-аккаунтом');
+  }
+
+  const webUser = await db.user.findUnique({ where: { email: targetEmail } });
+  if (!webUser) {
+    throw new Error('Целевой аккаунт с таким email не найден');
+  }
+
+  await db.$transaction(async (tx) => {
+    // 1. Move all relational data from tempUser to webUser
+    await tx.ticket.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
+    await tx.order.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
+    await tx.payment.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
+    await tx.ledgerEntry.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
+    await tx.invoice.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
+    await tx.auditLog.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
+
+    // 2. Delete temp user to free up the unique telegramId
+    await tx.user.delete({ where: { id: tempUser.id } });
+
+    // 3. Bind telegramId to the target web user
+    await tx.user.update({
+      where: { id: webUser.id },
+      data: { telegramId: tempUser.telegramId }
+    });
+
+    // 4. Audit Log
+    await tx.adminAuditLog.create({
+      data: {
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: 'MANUAL_TELEGRAM_BIND',
+        target: webUser.id,
+        targetType: 'USER',
+        oldValue: tempUser.email,
+        newValue: webUser.email,
+        ipAddress: 'internal'
+      }
+    });
+  });
+
+  revalidatePath(`/admin/tickets`);
+  } catch (err) {
+    console.error('[adminManualTelegramBind] Error:', err);
+    throw err;
+  }
+}
+

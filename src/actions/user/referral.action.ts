@@ -7,20 +7,23 @@ export async function transferReferralBalanceAction() {
   const session = await verifySession();
   if (!session) throw new Error("Unauthorized");
 
-  const user = await db.user.findUnique({
-    where: { id: session.userId },
-    select: { referralBalance: true, balance: true }
-  });
-
-  if (!user) throw new Error("Учетная запись не найдена");
-  if (!user.referralBalance || user.referralBalance <= 0) {
-    throw new Error("Нет средств для перевода");
-  }
-
-  // Atomically transfer referral balance to main balance
-  const transferAmount = user.referralBalance;
+  // Atomically transfer referral balance to main balance inside a Serializable transaction
+  // to prevent TOCTOU Race Condition.
+  let transferAmount = 0;
   
   await db.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: session.userId },
+      select: { referralBalance: true, balance: true }
+    });
+
+    if (!user) throw new Error("Учетная запись не найдена");
+    if (!user.referralBalance || user.referralBalance <= 0) {
+      throw new Error("Нет средств для перевода");
+    }
+
+    transferAmount = user.referralBalance;
+
     await tx.user.update({
       where: { id: session.userId },
       data: {
@@ -46,10 +49,10 @@ export async function transferReferralBalanceAction() {
         amount: transferAmount,
         reason: `Перевод реферального баланса на основной`,
         status: 'APPROVED',
-        idempotencyKey: `referral-transfer-${session.userId}-${Date.now()}`
+        idempotencyKey: `referral-transfer-${session.userId}-${transferAmount}`
       }
     });
-  });
+  }, { isolationLevel: 'Serializable' });
 
   return { success: true, amount: transferAmount };
 }

@@ -13,11 +13,12 @@ export async function generateApiKey() {
 
   // Generate a random hex key
   const newKey = 'smm_' + crypto.randomBytes(32).toString('hex');
+  const hashedKey = crypto.createHash('sha256').update(newKey).digest('hex');
 
   try {
     await db.user.update({
       where: { id: session.userId },
-      data: { apiKey: newKey }
+      data: { apiKeyHash: hashedKey }
     });
 
     revalidatePath('/dashboard/settings/api');
@@ -37,7 +38,7 @@ export async function revokeApiKey() {
   try {
     await db.user.update({
       where: { id: session.userId },
-      data: { apiKey: null }
+      data: { apiKeyHash: null }
     });
 
     revalidatePath('/dashboard/settings/api');

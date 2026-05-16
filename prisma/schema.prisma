@@ -22,7 +22,7 @@ model User {
   supportSpentTodayCents Int      @default(0) // Track daily spending
   supportLastResetAt     DateTime @default(now()) // For auto-reset logic
 
-  apiKey          String? @unique
+  apiKeyHash      String? @unique
   referralCode    String? @unique
   referredById    String?
   referralBalance Int     @default(0)
@@ -170,11 +170,11 @@ model Service {
   cooldownReason String? // Reason for cooldown (e.g., "API_ERROR", "DELAYED_CANCEL")
 
   // ETA Estimation (Adaptive Percentile Window — cron-updated every 15 min)
-  etaP50Seconds   Int?      // Median execution time in seconds
-  etaP90Seconds   Int?      // 90th percentile ("worst case")
-  etaSampleCount  Int       @default(0) // Number of completed orders behind the estimate
-  etaSpeedClass   String?   // FAST | MEDIUM | SLOW | ULTRA_SLOW
-  etaUpdatedAt    DateTime? // Last ETA recalculation timestamp
+  etaP50Seconds  Int? // Median execution time in seconds
+  etaP90Seconds  Int? // 90th percentile ("worst case")
+  etaSampleCount Int       @default(0) // Number of completed orders behind the estimate
+  etaSpeedClass  String? // FAST | MEDIUM | SLOW | ULTRA_SLOW
+  etaUpdatedAt   DateTime? // Last ETA recalculation timestamp
 
   isActive          Boolean  @default(true)
   pricePer1000Cents Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
@@ -399,13 +399,13 @@ model TicketMessage {
   mediaUrl  String? // relative path to uploaded file
   mediaType String? // "image", "audio", "video"
 
-  replyToId     String?
-  replyTo       TicketMessage?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
-  replies       TicketMessage[] @relation("MessageReplies")
-  
+  replyToId String?
+  replyTo   TicketMessage?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies   TicketMessage[] @relation("MessageReplies")
+
   telegramMsgId String?
-  isDeleted     Boolean         @default(false)
-  isEdited      Boolean         @default(false)
+  isDeleted     Boolean @default(false)
+  isEdited      Boolean @default(false)
   originalText  String?
 
   createdAt DateTime @default(now())

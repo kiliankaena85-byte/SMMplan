@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const compensationSchema = z.object({
   ticketId: z.string().min(1),
@@ -49,6 +50,11 @@ export async function logManualCompensation(formData: FormData) {
 
   if (!ticket) throw new Error('Ticket not found');
 
+  // Generate a deterministic idempotency key based on inputs
+  // If the admin clicks twice with the exact same parameters, the DB unique constraint will reject it.
+  const idempotencyHash = crypto.createHash('md5').update(`${ticketId}-${costCents}-${note}-${topUpBalance}`).digest('hex');
+  const idempotencyKey = `compensation-${ticket.id}-${idempotencyHash}`;
+
   // Perform operations in a transaction
   await db.$transaction(async (tx) => {
     // 1. Deduct limit if not owner
@@ -66,7 +72,7 @@ export async function logManualCompensation(formData: FormData) {
     if (topUpBalance) {
       await WalletOps.credit(tx, ticket.userId, costCents,
         `Компенсация (На баланс): ${note}`,
-        { adminId: user.id, idempotencyKey: `compensation-${ticket.id}-${Date.now()}` }
+        { adminId: user.id, idempotencyKey }
       );
     } else {
       // 3. Write to LedgerEntry for manual refill (no balance change)
@@ -77,7 +83,7 @@ export async function logManualCompensation(formData: FormData) {
           amount: -costCents,
           reason: `Компенсация (Докрут): ${note}`,
           status: 'APPROVED',
-          idempotencyKey: `compensation-${ticket.id}-${Date.now()}`
+          idempotencyKey
         }
       });
     }

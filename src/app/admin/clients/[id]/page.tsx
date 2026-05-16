@@ -47,7 +47,7 @@ export default async function ClientDetailPage({ params }: Props) {
       adminNoteUpdatedAt: true,
       adminNoteUpdatedBy: true,
       telegramId: true,
-      apiKey: true,
+      apiKeyHash: true,
       referralCode: true,
       referralBalance: true,
       createdAt: true,

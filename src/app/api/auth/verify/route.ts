@@ -20,15 +20,19 @@ export async function GET(request: Request) {
     where: { token: hashedToken },
   });
 
-  if (!authToken || authToken.used || authToken.expiresAt < new Date()) {
+  if (!authToken || authToken.expiresAt < new Date()) {
     return NextResponse.redirect(new URL("/login?error=ExpiredToken", BASE_URL));
   }
 
-  // Помечаем как использованный
-  await db.authToken.update({
-    where: { id: authToken.id },
+  // Помечаем как использованный, атомарная проверка (Race Condition Guard)
+  const result = await db.authToken.updateMany({
+    where: { id: authToken.id, used: false },
     data: { used: true },
   });
+
+  if (result.count === 0) {
+    return NextResponse.redirect(new URL("/login?error=AlreadyUsed", BASE_URL));
+  }
 
   // Устанавливаем куку сессии
   await createSession(authToken.userId);

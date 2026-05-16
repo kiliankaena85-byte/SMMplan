@@ -16,10 +16,12 @@ import { SettingsManager } from "@/lib/settings";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin } from "@/lib/admin-audit";
 import { applyPostSyncRules } from "@/services/providers/post-sync-rules";
+import { MutexManager } from "@/lib/redis-lock";
 
 export async function adminSyncProviderCatalog() {
   return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
-    try {
+    return MutexManager.withLock('catalog-sync', 60000, 100, async () => {
+      try {
       const provider = await providerService.getDefaultProvider();
       if (!provider) {
         return { success: false, error: "No primary provider found." };
@@ -193,6 +195,7 @@ export async function adminSyncProviderCatalog() {
       console.error("Critical Sync Error:", err);
       return { success: false, error: err instanceof Error ? err.message : "Unknown sync error" };
     }
+    });
   });
 }
 
@@ -261,19 +264,21 @@ export async function approveAllQuarantined() {
       select: { id: true, pendingRate: true },
     });
 
-    for (const s of quarantined) {
-      if (s.pendingRate === null) continue;
-      await db.service.update({
-        where: { id: s.id },
-        data: {
-          rate: s.pendingRate,
-          isQuarantined: false,
-          pendingRate: null,
-          quarantineReason: null,
-          quarantinedAt: null,
-        },
-      });
-    }
+    await db.$transaction(async (tx) => {
+      for (const s of quarantined) {
+        if (s.pendingRate === null) continue;
+        await tx.service.update({
+          where: { id: s.id },
+          data: {
+            rate: s.pendingRate,
+            isQuarantined: false,
+            pendingRate: null,
+            quarantineReason: null,
+            quarantinedAt: null,
+          },
+        });
+      }
+    });
 
     auditAdmin({
       adminId: admin.id,

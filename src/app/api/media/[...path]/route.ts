@@ -49,7 +49,7 @@ export async function GET(
       const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
       if (!ticket) return new NextResponse('Not Found', { status: 404 });
 
-      const isStaff = ['ADMIN', 'SUPPORT'].includes(user.role);
+      const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
       if (ticket.userId !== userId && !isStaff) {
         return new NextResponse('Forbidden', { status: 403 });
       }

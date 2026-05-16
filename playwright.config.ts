@@ -13,6 +13,7 @@ export default defineConfig({
   },
   use: {
     baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
   },
   projects: [
     {
@@ -28,6 +29,7 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
+/*
   webServer: {
     command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
     url: 'http://localhost:3000',
@@ -36,4 +38,5 @@ export default defineConfig({
     stdout: 'pipe',
     stderr: 'pipe',
   },
+*/
 });

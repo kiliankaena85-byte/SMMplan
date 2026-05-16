@@ -72,7 +72,7 @@ export async function activatePromoCodeAction(code: string) {
         amount: promo.amount,
         reason: `Активация промокода: ${cleanCode} (Промокод: ${cleanCode})`,
         status: "APPROVED",
-        idempotencyKey: `promo-${cleanCode}-${session.userId}-${Date.now()}`
+        idempotencyKey: `promo-${cleanCode}-${session.userId}`
       }
     });
 

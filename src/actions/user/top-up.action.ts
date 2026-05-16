@@ -5,11 +5,15 @@ import { verifySession } from "@/lib/session";
 import { SettingsManager } from "@/lib/settings";
 import { headers } from "next/headers";
 import { getClientIp } from "@/utils/ip";
+import { RateLimitService } from "@/services/core/rate-limit.service";
 
 export async function createTopUpPaymentAction(amountRub: number, gateway: 'yookassa' | 'cryptobot' = 'yookassa') {
   const session = await verifySession();
   if (!session) throw new Error("Unauthorized");
   
+  const isAllowed = await RateLimitService.check(`topup:${session.userId}`, 5, 300);
+  if (!isAllowed) throw new Error("Слишком много попыток пополнения. Попробуйте через 5 минут.");
+
   const amountCents = Math.round(amountRub * 100);
   if (amountCents < 10000) throw new Error("Минимальная сумма пополнения - 100 руб");
 

@@ -86,4 +86,36 @@ describe('Integration: Payment Webhooks & Idempotency', () => {
     expect(payments.length).toBe(1);
     expect(payments[0].status).toBe('SUCCEEDED');
   });
+
+  it('Maintains idempotency for Direct Deposits (Top-ups) and ensures LedgerEntry is created exactly once', async () => {
+    // 1. Create a Payment without orderId for direct deposit
+    const depositGatewayId = 'gw-topup-999';
+    await db.payment.create({
+      data: {
+        gatewayId: depositGatewayId,
+        userId: testUserId,
+        amount: 50000, // 500 RUB
+        status: 'PENDING',
+        gateway: 'yookassa'
+      }
+    });
+
+    // 2. Blast 5 concurrent webhooks
+    await Promise.all([
+      paymentService.confirmPayment(depositGatewayId, 50000, testUserId, true),
+      paymentService.confirmPayment(depositGatewayId, 50000, testUserId, true),
+      paymentService.confirmPayment(depositGatewayId, 50000, testUserId, true),
+      paymentService.confirmPayment(depositGatewayId, 50000, testUserId, true),
+      paymentService.confirmPayment(depositGatewayId, 50000, testUserId, true),
+    ]);
+
+    // 3. Verify exactly 1 LedgerEntry was created
+    const ledgerEntries = await db.ledgerEntry.findMany({ where: { userId: testUserId } });
+    expect(ledgerEntries.length).toBe(1);
+    expect(ledgerEntries[0].amount).toBe(50000n);
+
+    // 4. Verify user balance was updated correctly
+    const freshUser = await db.user.findUnique({ where: { id: testUserId } });
+    expect(freshUser?.balance).toBe(50000n);
+  });
 });

@@ -122,7 +122,7 @@ async function getClientProfileAction(userId: string) {
         adminNoteUpdatedAt: true,
         adminNoteUpdatedBy: true,
         telegramId: true,
-        apiKey: true,
+        apiKeyHash: true,
         referralCode: true,
         referralBalance: true,
         createdAt: true,

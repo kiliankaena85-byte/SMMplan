@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { addTicketMessage } from '@/actions/support/ticket';
 import Link from 'next/link';
 import { ArrowLeft, Send, Lock } from 'lucide-react';
+import { TicketPoller } from '@/components/support/TicketPoller';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,7 @@ export default async function ClientTicketChatPage({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
+      <TicketPoller ticketId={ticket.id} isClosed={isClosed} />
       {/* Header / breadcrumb */}
       <div className="flex items-center gap-3">
         <Link

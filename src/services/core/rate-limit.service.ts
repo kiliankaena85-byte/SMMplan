@@ -16,7 +16,8 @@ export class RateLimitService {
   static async check(
     endpoint: string, 
     maxHits: number = 10, 
-    windowSeconds: number = 60
+    windowSeconds: number = 60,
+    failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
   ): Promise<boolean> {
     try {
       const { getClientIp } = await import('@/utils/ip');
@@ -89,7 +90,12 @@ export class RateLimitService {
 
       return true;
     } catch (e: any) {
-      console.error("[RATE_LIMIT] Fatal Failure, failing open:", e);
+      console.error("[RATE_LIMIT] Fatal Failure:", e);
+      if (failClosed) {
+        console.warn(`[RATE_LIMIT] Failing CLOSED for endpoint ${endpoint}`);
+        return false;
+      }
+      console.warn(`[RATE_LIMIT] Failing OPEN for endpoint ${endpoint}`);
       return true;
     }
   }
@@ -97,7 +103,8 @@ export class RateLimitService {
   static async checkCustomKey(
     key: string,
     maxHits: number = 10,
-    windowSeconds: number = 60
+    windowSeconds: number = 60,
+    failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
   ): Promise<boolean> {
     try {
       const now = new Date();
@@ -158,7 +165,12 @@ export class RateLimitService {
       }
       return true;
     } catch (e: any) {
-      console.error("[RATE_LIMIT_CUSTOM] Fatal Failure, failing open:", e);
+      console.error("[RATE_LIMIT_CUSTOM] Fatal Failure:", e);
+      if (failClosed) {
+        console.warn(`[RATE_LIMIT_CUSTOM] Failing CLOSED for key ${key}`);
+        return false;
+      }
+      console.warn(`[RATE_LIMIT_CUSTOM] Failing OPEN for key ${key}`);
       return true;
     }
   }

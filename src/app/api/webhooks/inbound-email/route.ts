@@ -33,9 +33,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
     }
     
-    // Verify that the From address belongs to the ticket owner
-    if (!ticket.user.email || !fromAddress.toLowerCase().includes(ticket.user.email.toLowerCase())) {
-      console.warn(`[Email Webhook] Unauthorized sender: ${fromAddress} for ticket ${ticketId}`);
+    // Verify that the From address belongs to the ticket owner strictly
+    const extractEmail = (addr: string) => {
+      const match = addr.match(/<(.+)>/);
+      return match ? match[1].trim() : addr.trim();
+    };
+    const extractedFrom = extractEmail(fromAddress).toLowerCase();
+
+    if (!ticket.user.email || extractedFrom !== ticket.user.email.toLowerCase()) {
+      console.warn(`[Email Webhook] Unauthorized sender: ${extractedFrom} (raw: ${fromAddress}) for ticket ${ticketId}`);
       return NextResponse.json({ error: 'Unauthorized sender' }, { status: 403 });
     }
     

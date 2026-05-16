@@ -60,7 +60,8 @@ describe('TicketService', () => {
       expect(sendMail).toHaveBeenCalledWith(
         'test@smmplan.ru',
         'Support Reply: Test Subject',
-        expect.stringContaining('Hello via Email')
+        expect.stringContaining('Hello via Email'),
+        'support+ticket-1@smmplan.ru'
       );
     });
 

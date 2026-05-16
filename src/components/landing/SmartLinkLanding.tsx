@@ -88,7 +88,14 @@ export function SmartLinkLanding({
 
           <nav className="hidden md:flex gap-8 text-sm font-bold text-muted-foreground">
             <Link href={ROUTES.HOME} className="hover:text-primary transition-colors">Услуги</Link>
-            <Link href={ROUTES.DASHBOARD.TICKETS} className="hover:text-primary transition-colors">Поддержка</Link>
+            <a 
+              href="/api/support/telegram"
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="hover:text-primary transition-colors flex items-center gap-1.5"
+            >
+              Поддержка <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            </a>
             <Link href={ROUTES.FAQ} className="hover:text-primary transition-colors">FAQ</Link>
           </nav>
 

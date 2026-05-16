@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { ChevronRight, ChevronLeft, User, ShoppingCart, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
@@ -45,7 +45,10 @@ const PAYMENT_STATUS_MAP: Record<string, { label: string, color: string }> = {
   CANCELED: { label: 'Отмена', color: 'text-slate-500 bg-slate-50' },
 };
 
-export default function ClientProfileSidebar({ user }: { user: ClientProfileData }) {
+import { requestTelegramBind, adminManualTelegramBind } from '@/actions/support/ticket';
+
+export default function ClientProfileSidebar({ user, ticketId }: { user: ClientProfileData, ticketId: string }) {
+  const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(true);
 
   if (!isOpen) {
@@ -80,6 +83,53 @@ export default function ClientProfileSidebar({ user }: { user: ClientProfileData
         <h3 className="font-bold text-foreground mb-1 truncate w-full px-2 text-sm" title={user.email}>
           {user.email}
         </h3>
+        {user.email.startsWith('tg_') && (
+          <div className="w-full mb-3 mt-1 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-lg p-2 text-[10px] text-center font-medium">
+            <p className="mb-2">Временный профиль. Вы можете запросить у клиента авторизацию:</p>
+            <div className="mb-3">
+              <button 
+                disabled={isPending}
+                onClick={() => {
+                  console.log('[Sidebar] Request Auth Link Clicked');
+                  startTransition(async () => {
+                    const fd = new FormData();
+                    fd.set('ticketId', ticketId);
+                    await requestTelegramBind(fd);
+                  });
+                }}
+                className="w-full py-1.5 px-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md font-bold transition-colors disabled:opacity-50"
+              >
+                {isPending ? 'Отправка...' : 'Отправить ссылку для привязки'}
+              </button>
+            </div>
+            <div className="border-t border-amber-500/20 pt-2 text-left">
+              <p className="mb-1 text-[9px] uppercase tracking-wider font-bold opacity-80">Или привязать вручную:</p>
+              <div className="flex gap-1 mt-1">
+                <input 
+                  type="email" 
+                  id="manual-bind-email"
+                  disabled={isPending}
+                  placeholder="email@client.ru" 
+                  className="flex-1 bg-white border border-amber-500/30 rounded px-2 py-1 outline-none text-slate-800" 
+                />
+                <button 
+                  disabled={isPending}
+                  onClick={() => startTransition(async () => {
+                    const email = (document.getElementById('manual-bind-email') as HTMLInputElement)?.value;
+                    if (!email) return;
+                    const fd = new FormData();
+                    fd.set('ticketId', ticketId);
+                    fd.set('targetEmail', email);
+                    await adminManualTelegramBind(fd);
+                  })}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded font-bold transition-colors disabled:opacity-50"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground mb-4">
           Регистрация: {new Date(user.createdAt).toLocaleDateString('ru-RU')}
         </p>

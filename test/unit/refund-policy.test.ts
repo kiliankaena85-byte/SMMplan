@@ -9,19 +9,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock WalletService to isolate RefundPolicyService logic
 vi.mock('@/services/financial/wallet.service', () => ({
   WalletService: {
-    credit: vi.fn().mockResolvedValue({ success: true, balance: 9999, cached: false }),
+    refund: vi.fn().mockResolvedValue({ success: true, balance: 9999, cached: false }),
   },
 }));
 
 // Mock db (RefundPolicyService imports it but doesn't use it directly)
 vi.mock('@/lib/db', () => ({
-  db: {},
+  db: {
+    ledgerEntry: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    }
+  },
 }));
 
 import { RefundPolicyService } from '@/services/financial/refund-policy.service';
 import { WalletService } from '@/services/financial/wallet.service';
 
-const mockedCredit = vi.mocked(WalletService.credit);
+const mockedRefund = vi.mocked(WalletService.refund);
 
 describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
   beforeEach(() => {
@@ -33,8 +37,8 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-1', userId: 'usr-1', charge: 5000, quantity: 1000, remains: 1000, status: 'CANCELED' };
     await RefundPolicyService.processRefund(order);
 
-    expect(mockedCredit).toHaveBeenCalledOnce();
-    expect(mockedCredit).toHaveBeenCalledWith(
+    expect(mockedRefund).toHaveBeenCalledOnce();
+    expect(mockedRefund).toHaveBeenCalledWith(
       'usr-1',
       5000, // Full charge refunded
       expect.stringContaining('Полный возврат (CANCELED)'),
@@ -47,8 +51,8 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-2', userId: 'usr-1', charge: 3000, quantity: 500, remains: 500, status: 'ERROR' };
     await RefundPolicyService.processRefund(order);
 
-    expect(mockedCredit).toHaveBeenCalledOnce();
-    expect(mockedCredit).toHaveBeenCalledWith(
+    expect(mockedRefund).toHaveBeenCalledOnce();
+    expect(mockedRefund).toHaveBeenCalledWith(
       'usr-1',
       3000,
       expect.stringContaining('Полный возврат (ERROR)'),
@@ -61,9 +65,9 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-3', userId: 'usr-1', charge: 5000, quantity: 1000, remains: 300, status: 'PARTIAL' };
     await RefundPolicyService.processRefund(order);
 
-    expect(mockedCredit).toHaveBeenCalledOnce();
+    expect(mockedRefund).toHaveBeenCalledOnce();
     // Math.floor(300/1000 * 5000) = Math.floor(1500) = 1500
-    expect(mockedCredit).toHaveBeenCalledWith(
+    expect(mockedRefund).toHaveBeenCalledWith(
       'usr-1',
       1500,
       expect.stringContaining('Частичный возврат'),
@@ -76,7 +80,7 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-4', userId: 'usr-1', charge: 100, quantity: 1, remains: 0, status: 'PARTIAL' };
     const result = await RefundPolicyService.processRefund(order);
 
-    expect(mockedCredit).not.toHaveBeenCalled();
+    expect(mockedRefund).not.toHaveBeenCalled();
     expect(result).toBeNull();
   });
 
@@ -85,7 +89,7 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-5', userId: 'usr-1', charge: 500, quantity: 0, remains: 0, status: 'PARTIAL' };
     const result = await RefundPolicyService.processRefund(order);
 
-    expect(mockedCredit).not.toHaveBeenCalled();
+    expect(mockedRefund).not.toHaveBeenCalled();
     expect(result).toBeNull();
   });
 
@@ -94,7 +98,7 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-6', userId: 'usr-1', charge: 5000, quantity: 1000, remains: 0, status: 'COMPLETED' };
     const result = await RefundPolicyService.processRefund(order);
 
-    expect(mockedCredit).not.toHaveBeenCalled();
+    expect(mockedRefund).not.toHaveBeenCalled();
     expect(result).toBeNull();
   });
 
@@ -103,7 +107,7 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-7', userId: 'usr-1', charge: 5000, quantity: 1000, remains: 1000, status: 'PENDING' };
     const result = await RefundPolicyService.processRefund(order);
 
-    expect(mockedCredit).not.toHaveBeenCalled();
+    expect(mockedRefund).not.toHaveBeenCalled();
     expect(result).toBeNull();
   });
 
@@ -115,9 +119,9 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     await RefundPolicyService.processRefund(order);
 
     // Both calls should pass the SAME idempotency key
-    expect(mockedCredit).toHaveBeenCalledTimes(2);
-    const key1 = mockedCredit.mock.calls[0][3];
-    const key2 = mockedCredit.mock.calls[1][3];
+    expect(mockedRefund).toHaveBeenCalledTimes(2);
+    const key1 = mockedRefund.mock.calls[0][3];
+    const key2 = mockedRefund.mock.calls[1][3];
     expect(key1).toBe('refund_ord-8_CANCELED');
     expect(key2).toBe('refund_ord-8_CANCELED');
     expect(key1).toBe(key2); // WalletService handles dedup via this key
@@ -128,7 +132,7 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-9', userId: 'usr-1', charge: 1, quantity: 1, remains: 1, status: 'PARTIAL' };
     await RefundPolicyService.processRefund(order);
 
-    expect(mockedCredit).toHaveBeenCalledWith('usr-1', 1, expect.any(String), 'refund_ord-9_PARTIAL');
+    expect(mockedRefund).toHaveBeenCalledWith('usr-1', 1, expect.any(String), 'refund_ord-9_PARTIAL');
   });
 
   // ── TC-FIN-010: Safety bound — refund never exceeds charge ──
@@ -137,7 +141,7 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-10', userId: 'usr-1', charge: 500, quantity: 100, remains: 200, status: 'PARTIAL' };
     await RefundPolicyService.processRefund(order);
 
-    const refundAmount = mockedCredit.mock.calls[0][1];
+    const refundAmount = mockedRefund.mock.calls[0][1];
     expect(refundAmount).toBeLessThanOrEqual(500); // Math.min(calculated, charge)
   });
 
@@ -145,7 +149,7 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
   it('TC-FIN-EXTRA: IN_PROGRESS order is skipped', async () => {
     const order = { id: 'ord-ex1', userId: 'usr-1', charge: 5000, quantity: 1000, remains: 500, status: 'IN_PROGRESS' };
     const result = await RefundPolicyService.processRefund(order);
-    expect(mockedCredit).not.toHaveBeenCalled();
+    expect(mockedRefund).not.toHaveBeenCalled();
     expect(result).toBeNull();
   });
 
@@ -153,7 +157,7 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
   it('TC-FIN-EXTRA: AWAITING_PAYMENT order is skipped', async () => {
     const order = { id: 'ord-ex2', userId: 'usr-1', charge: 5000, quantity: 1000, remains: 1000, status: 'AWAITING_PAYMENT' };
     const result = await RefundPolicyService.processRefund(order);
-    expect(mockedCredit).not.toHaveBeenCalled();
+    expect(mockedRefund).not.toHaveBeenCalled();
     expect(result).toBeNull();
   });
 
@@ -162,7 +166,7 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     const order = { id: 'ord-rd', userId: 'usr-1', charge: 1000, quantity: 1, remains: 1, status: 'ERROR' };
     await RefundPolicyService.processRefund(order, '(Provider timeout)');
 
-    expect(mockedCredit).toHaveBeenCalledWith(
+    expect(mockedRefund).toHaveBeenCalledWith(
       'usr-1',
       1000,
       expect.stringContaining('(Provider timeout)'),
@@ -176,6 +180,6 @@ describe('RefundPolicyService (QA-1: Financial Transaction Engineer)', () => {
     await RefundPolicyService.processRefund(order);
 
     // Math.floor(333/1000 * 5000) = Math.floor(1665.0) = 1665
-    expect(mockedCredit).toHaveBeenCalledWith('usr-1', 1665, expect.any(String), expect.any(String));
+    expect(mockedRefund).toHaveBeenCalledWith('usr-1', 1665, expect.any(String), expect.any(String));
   });
 });

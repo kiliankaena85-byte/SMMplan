@@ -63,16 +63,144 @@ test.describe('Support Tickets Flow', () => {
     await expect(messageText).toBeVisible({ timeout: 5000 });
 
     // 6. Verify ticket status changed to PENDING in the database
-    // We wait a moment for the server action to fully persist
-    await page.waitForTimeout(1000);
-    
-    const prismaValidate = new PrismaClient();
-    const updatedTicket = await prismaValidate.ticket.findUnique({
-      where: { id: ticket.id }
-    });
-    await prismaValidate.$disconnect();
+    // We wait for the server action to persist. 1s might be too short for slow systems.
+    let updatedTicket = null;
+    for (let i = 0; i < 5; i++) {
+      await page.waitForTimeout(1000);
+      const prismaValidate = new PrismaClient();
+      updatedTicket = await prismaValidate.ticket.findUnique({
+        where: { id: ticket.id }
+      });
+      await prismaValidate.$disconnect();
+      if (updatedTicket?.status === 'PENDING') break;
+    }
     
     expect(updatedTicket?.status).toBe('PENDING');
   });
 
 });
+
+test.describe('Telegram Support Binding Flows', () => {
+  
+  test('Level 1: Generate Smart Bind token for authenticated user', async ({ request }) => {
+    const response = await request.get('/api/support/telegram', { maxRedirects: 0 });
+    expect(response.status()).toBe(307);
+    
+    const location = response.headers().location;
+    expect(location).toContain('t.me/');
+    expect(location).toContain('?start=tg_bind_');
+
+    const tokenStr = location?.split('tg_bind_')[1];
+    expect(tokenStr).toBeTruthy();
+    
+    const prisma = new PrismaClient();
+    const token = await prisma.authToken.findUnique({
+      where: { token: `tg_bind_${tokenStr}` }
+    });
+    await prisma.authToken.delete({ where: { token: `tg_bind_${tokenStr}` } }).catch(() => {});
+    await prisma.$disconnect();
+    
+    expect(token).toBeTruthy();
+    expect(token?.used).toBe(false);
+  });
+
+  test('Level 2 & 3: Admin UI Request Auth & Manual Bind', async ({ page }) => {
+    const prisma = new PrismaClient();
+    
+    let tempUser = await prisma.user.findUnique({ where: { email: 'tg_99999@smmplan.bot' } });
+    if (!tempUser) {
+      tempUser = await prisma.user.create({
+        data: {
+          email: 'tg_99999@smmplan.bot',
+          telegramId: '99999',
+          role: 'USER',
+        }
+      });
+    } else {
+      await prisma.user.update({
+        where: { id: tempUser.id },
+        data: { telegramId: '99999' }
+      });
+    }
+
+    let ticket = await prisma.ticket.create({
+      data: {
+        subject: 'E2E Telegram Ticket',
+        status: 'OPEN',
+        userId: tempUser.id,
+      }
+    });
+    
+    let webUser = await prisma.user.findUnique({ where: { email: 'e2e_target_web@test.local' } });
+    if (!webUser) {
+      webUser = await prisma.user.create({
+        data: {
+          email: 'e2e_target_web@test.local',
+          role: 'USER',
+        }
+      });
+    }
+
+    await prisma.$disconnect();
+
+    await page.goto(`/admin/tickets/${ticket.id}`);
+
+    // Capture browser logs
+    page.on('console', msg => console.log(`[BROWSER] ${msg.type().toUpperCase()}: ${msg.text()}`));
+
+    // Verify sidebar is visible and shows the temp user
+    await expect(page.getByText('Временный профиль')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'tg_99999@smmplan.bot' })).toBeVisible();
+
+    // Level 2: Request Auth Magic Link
+    const requestAuthBtn = page.getByRole('button', { name: /Отправить ссылку для привязки/i });
+    await expect(requestAuthBtn).toBeVisible();
+    
+    // Stability wait to ensure hydration and avoid Fast Refresh issues
+    await page.waitForTimeout(2000);
+    
+    await requestAuthBtn.click();
+    
+    // Check if it entered pending state (confirmed the click worked)
+    await expect(requestAuthBtn).toBeDisabled({ timeout: 5000 });
+    
+    // Wait for the message to appear in the chat window
+    await expect(page.getByText(/подтвердите владение заказом/i)).toBeVisible({ timeout: 20000 });
+
+    // Level 3: Manual Bind
+    const manualEmailInput = page.getByPlaceholder('email@client.ru');
+    await expect(manualEmailInput).toBeVisible();
+    await manualEmailInput.fill('e2e_target_web@test.local');
+    
+    const manualSubmitBtn = page.getByRole('button', { name: 'OK' });
+    await manualSubmitBtn.click();
+    
+    // Wait for bind to complete in DB
+    let deletedTempUser = null;
+    for (let i = 0; i < 5; i++) {
+      await page.waitForTimeout(1500);
+      const pCheck = new PrismaClient();
+      deletedTempUser = await pCheck.user.findUnique({ where: { email: 'tg_99999@smmplan.bot' } });
+      await pCheck.$disconnect();
+      if (deletedTempUser === null) break;
+    }
+    expect(deletedTempUser).toBeNull();
+    
+    const finalPrisma = new PrismaClient();
+    const updatedWebUser = await finalPrisma.user.findUnique({ 
+      where: { email: 'e2e_target_web@test.local' },
+      include: { tickets: true }
+    });
+    
+    expect(updatedWebUser?.telegramId).toBe('99999');
+    expect(updatedWebUser?.tickets.some(t => t.id === ticket.id)).toBe(true);
+
+    // Clean up
+    await finalPrisma.ticketMessage.deleteMany({ where: { ticketId: ticket.id } });
+    await finalPrisma.ticket.deleteMany({ where: { id: ticket.id } });
+    await finalPrisma.user.update({ where: { id: updatedWebUser!.id }, data: { telegramId: null } });
+    await finalPrisma.user.delete({ where: { id: updatedWebUser!.id } });
+    await finalPrisma.$disconnect();
+  });
+});
+

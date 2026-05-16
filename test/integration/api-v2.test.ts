@@ -3,12 +3,15 @@ import { db } from '@/lib/db';
 import { POST } from '@/app/api/v2/route';
 import { NextRequest } from 'next/server';
 import { revalidateTag } from 'next/cache';
+import crypto from 'crypto';
 
 import { type User, type Service } from '@prisma/client';
 
 describe('B2B API v2: Zod & Compatibility', () => {
   let user: User;
   let service: Service;
+  const rawKey = 'SUPER_SECRET_KEY_123';
+  const hashedKey = crypto.createHash('sha256').update(rawKey).digest('hex');
 
   beforeEach(async () => {
     // Relying on global setup to TRUNCATE DB
@@ -22,8 +25,8 @@ describe('B2B API v2: Zod & Compatibility', () => {
     // 1. Seed user with balance
     user = await db.user.create({
       data: {
-        email: 'api.user@test.com',
-        apiKey: 'SUPER_SECRET_KEY_123',
+        email: `test-api-${Date.now()}@test.com`,
+        apiKeyHash: hashedKey,
         balance: 500000, // 5000 RUB
       }
     });
@@ -67,7 +70,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
   });
 
   it('Computes services list mapping correctly (action: services)', async () => {
-    const res = await makeRequest({ key: user.apiKey!, action: 'services' });
+    const res = await makeRequest({ key: 'SUPER_SECRET_KEY_123', action: 'services' });
     expect(res.status).toBe(200);
     const data = await res.json();
     
@@ -80,7 +83,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
   it('Successfully creates order and deduces balance (action: add)', async () => {
     // 1k item at 150 RUB = 15000 cents
     const res = await makeRequest({ 
-      key: user.apiKey!, 
+      key: 'SUPER_SECRET_KEY_123', 
       action: 'add',
       service: '777', // sent as string from PHP typically
       link: 'https://example.com',
@@ -100,7 +103,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
   it('Loose Compatibility: Prevents attacks, but emits standard errors', async () => {
     // Sending empty string instead of number (A common B2B dirty bug)
     const res = await makeRequest({ 
-      key: user.apiKey!, 
+      key: 'SUPER_SECRET_KEY_123', 
       action: 'add',
       service: '', // Empty service ID
       link: 'https://example.com',
@@ -115,7 +118,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
   });
 
   it('Returns balance formatted as RUB (action: balance)', async () => {
-    const res = await makeRequest({ key: user.apiKey!, action: 'balance' });
+    const res = await makeRequest({ key: 'SUPER_SECRET_KEY_123', action: 'balance' });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.balance).toBe('5000.0000'); // 500000 cents / 100
@@ -139,14 +142,14 @@ describe('B2B API v2: Zod & Compatibility', () => {
     });
 
     // Single order
-    let res = await makeRequest({ key: user.apiKey!, action: 'status', order: '9999' });
+    let res = await makeRequest({ key: 'SUPER_SECRET_KEY_123', action: 'status', order: '9999' });
     let data = await res.json();
     expect(data.status).toBe('In progress');
     expect(data.remains).toBe('50');
     expect(data.charge).toBe('15.0000');
 
     // Multiple orders
-    res = await makeRequest({ key: user.apiKey!, action: 'status', orders: '9999,8888' });
+    res = await makeRequest({ key: 'SUPER_SECRET_KEY_123', action: 'status', orders: '9999,8888' });
     data = await res.json();
     expect(data['9999'].status).toBe('In progress');
     expect(data['8888'].error).toBe('Incorrect order ID');
@@ -158,9 +161,9 @@ describe('B2B API v2: Zod & Compatibility', () => {
         userId: user.id, serviceId: service.id, link: 'test.com', quantity: 100, charge: 1500, providerCost: 1000, numericId: 9999, status: 'IN_PROGRESS', remains: 50
       }
     });
-    const res = await makeRequest({ key: user.apiKey!, action: 'cancel', order: '9999' });
+    const res = await makeRequest({ key: 'SUPER_SECRET_KEY_123', action: 'cancel', order: '9999' });
     const data = await res.json();
-    expect(data.success).toBe('We will attempt to cancel this order. Cancellation is not guaranteed.');
+    expect(data.error).toBe('Cancellation via API is not supported. Contact support.');
   });
 
   it('Returns error for refill without externalRefill support (action: refill)', async () => {
@@ -169,7 +172,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
         userId: user.id, serviceId: service.id, link: 'test.com', quantity: 100, charge: 1500, providerCost: 1000, numericId: 9999, status: 'IN_PROGRESS', remains: 50
       }
     });
-    const res = await makeRequest({ key: user.apiKey!, action: 'refill', order: '9999' });
+    const res = await makeRequest({ key: 'SUPER_SECRET_KEY_123', action: 'refill', order: '9999' });
     const data = await res.json();
     // Because isRefillEnabled is false by default on the service
     expect(data.error).toBe('Refill is only available manually via support ticket for reseller platforms.');

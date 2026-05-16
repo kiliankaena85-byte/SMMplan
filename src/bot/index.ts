@@ -69,6 +69,64 @@ bot.catch(async (err: any, ctx: any) => {
 // ── COMMANDS ──
 bot.start(async (ctx: any) => {
   const tgId = String(ctx.from.id);
+  const payload = ctx.payload;
+
+  // Level 1: Smart Bind Protocol
+  if (payload && payload.startsWith('tg_bind_')) {
+    const bindToken = await db.authToken.findUnique({
+      where: { token: payload }
+    });
+
+    if (bindToken && !bindToken.used && bindToken.expiresAt > new Date()) {
+      const webUserId = bindToken.userId;
+
+      try {
+        await db.$transaction(async (tx) => {
+          await tx.authToken.update({
+            where: { id: bindToken.id },
+            data: { used: true }
+          });
+
+          const tempUser = await tx.user.findFirst({ where: { telegramId: tgId } });
+          
+          if (tempUser && tempUser.id !== webUserId) {
+            // Merge: move tickets to main account
+            await tx.ticket.updateMany({
+              where: { userId: tempUser.id },
+              data: { userId: webUserId }
+            });
+            
+            // Delete temp user if it's a pure bot stub
+            if (tempUser.email.startsWith('tg_')) {
+              // Delete dependencies first if needed, but tickets are moved, sessions deleted by cascade
+              await tx.user.delete({ where: { id: tempUser.id } });
+            } else {
+              await tx.user.update({ where: { id: tempUser.id }, data: { telegramId: null } });
+            }
+          }
+
+          // Bind to Web User
+          await tx.user.update({
+            where: { id: webUserId },
+            data: { telegramId: tgId }
+          });
+        });
+
+        await ctx.reply(
+          `✅ <b>Telegram успешно привязан!</b>\n\n` +
+          `Оператор службы поддержки теперь видит вашу историю заказов. Чем я могу помочь?`,
+          { parse_mode: 'HTML' }
+        );
+      } catch (err) {
+        console.error('[Bot Bind] Merge error:', err);
+        await ctx.reply('⚠️ Произошла ошибка при привязке аккаунта. Пожалуйста, обратитесь в поддержку.');
+      }
+      return;
+    } else {
+      await ctx.reply('❌ Ссылка для привязки недействительна или устарела. Пожалуйста, авторизуйтесь на сайте и нажмите кнопку поддержки снова.');
+      // Continue normal flow just in case
+    }
+  }
 
   // Upsert user by telegramId
   let user = await db.user.findFirst({ where: { telegramId: tgId } });
@@ -90,6 +148,25 @@ bot.start(async (ctx: any) => {
         telegramId: tgId,
       }
     });
+  }
+
+  if (payload === 'support') {
+    await ctx.reply(
+      `🎧 <b>Служба поддержки Smmplan</b>\n\n` +
+      `Просто напишите ваш вопрос, отправьте фото или голосовое сообщение прямо в этот чат, и оператор ответит вам здесь же.`,
+      {
+        parse_mode: 'HTML',
+        reply_markup: {
+          keyboard: [
+            [{ text: '🛍 Каталог' }, { text: '📦 Мои заказы' }],
+            [{ text: '💰 Пополнить' }, { text: '🆘 Поддержка' }],
+            [{ text: '👥 Рефералы' }]
+          ],
+          resize_keyboard: true,
+        }
+      }
+    );
+    return;
   }
 
   await ctx.reply(

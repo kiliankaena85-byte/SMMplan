@@ -2,21 +2,25 @@ import { db } from '@/lib/db';
 import { sendMail } from '@/lib/smtp';
 
 class TicketService {
-  async getOrCreateTicket(userId: string, subject: string) {
-    const existing = await db.ticket.findFirst({
-      where: { userId, status: { not: 'CLOSED' } },
-      orderBy: { updatedAt: 'desc' }
-    });
+  async getOrCreateTicket(userId: string, subject: string, source: string = 'WEB') {
+    return await db.$transaction(async (tx) => {
+      const existing = await tx.ticket.findFirst({
+        where: { userId, status: { not: 'CLOSED' } },
+        orderBy: { updatedAt: 'desc' }
+      });
 
-    if (existing) return existing;
+      if (existing) return existing;
 
-    return db.ticket.create({
-      data: { userId, subject }
+      return tx.ticket.create({
+        data: { userId, subject, source }
+      });
+    }, {
+      isolationLevel: 'Serializable'
     });
   }
 
-  async addMessage(ticketId: string, sender: 'USER' | 'STAFF' | 'INTERNAL', text: string, mediaUrl?: string, mediaType?: string, replyToId?: string) {
-    let telegramMsgId: string | undefined = undefined;
+  async addMessage(ticketId: string, sender: 'USER' | 'STAFF' | 'INTERNAL', text: string, mediaUrl?: string, mediaType?: string, replyToId?: string, incomingTelegramMsgId?: string) {
+    let telegramMsgId: string | undefined = incomingTelegramMsgId;
     
     // Fetch ticket and user info beforehand for Telegram sending
     const ticketToUpdate = await db.ticket.findUnique({ 
@@ -51,10 +55,12 @@ class TicketService {
       }
     });
 
+    const newStatus = sender === 'STAFF' ? 'PENDING' : (sender === 'USER' ? 'OPEN' : ticketToUpdate.status);
+    
     await db.ticket.update({
       where: { id: ticketId },
       data: { 
-        status: sender === 'STAFF' ? 'PENDING' : 'OPEN',
+        status: newStatus,
         ...(sender === 'STAFF' && !ticketToUpdate.firstRespondedAt ? { firstRespondedAt: new Date() } : {})
       }
     });
@@ -67,13 +73,21 @@ class TicketService {
         : `<p style="color: #64748b; font-size: 14px;">Пожалуйста, войдите в панель управления (Dashboard), чтобы ответить.</p>`;
 
       const replyToAddress = `support+${message.ticket.id}@smmplan.ru`;
+      
+      const escapeHtml = (unsafe: string) => unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+        .replace(/\n/g, "<br>");
 
       void sendMail(message.ticket.user.email, `Support Reply: ${message.ticket.subject}`, `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
           <h2 style="color: #4f46e5;">Новое сообщение от поддержки Smmplan</h2>
-          <p><strong>Тема:</strong> ${message.ticket.subject}</p>
+          <p><strong>Тема:</strong> ${escapeHtml(message.ticket.subject)}</p>
           <div style="background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #4f46e5;">
-            ${text}
+            ${escapeHtml(text)}
           </div>
           ${actionText}
         </div>

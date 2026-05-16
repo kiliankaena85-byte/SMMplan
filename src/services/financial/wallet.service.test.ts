@@ -15,9 +15,13 @@ describe('WalletService', () => {
 
   describe('charge', () => {
     it('returns error if amount <= 0', async () => {
-      vi.mocked(db.$transaction).mockImplementation(async (cb: any) => cb({}));
-      await expect(WalletService.charge('user1', 0, 'test')).resolves.toEqual(expect.objectContaining({ success: false, error: expect.stringContaining('greater than zero') }));
-      await expect(WalletService.charge('user1', -50, 'test')).resolves.toEqual(expect.objectContaining({ success: false, error: expect.stringContaining('greater than zero') }));
+      vi.mocked(db.$transaction).mockImplementation(async (cb: any) => cb(db));
+      await expect(WalletService.charge('user1', 0, 'test')).resolves.toEqual(
+        expect.objectContaining({ success: false, error: expect.stringContaining('positive finite number') })
+      );
+      await expect(WalletService.charge('user1', -50, 'test')).resolves.toEqual(
+        expect.objectContaining({ success: false, error: expect.stringContaining('positive finite number') })
+      );
     });
 
     it('returns error if db transaction fails', async () => {
@@ -36,8 +40,8 @@ describe('WalletService', () => {
             create: vi.fn().mockResolvedValueOnce({ id: 'entry1' })
           },
           user: {
-            findUnique: vi.fn().mockResolvedValueOnce({ id: 'user1', balance: 500 }),
-            update: vi.fn().mockResolvedValueOnce({ balance: 400 })
+            updateMany: vi.fn().mockResolvedValueOnce({ count: 1 }),
+            findUniqueOrThrow: vi.fn().mockResolvedValueOnce({ balance: 400 })
           }
         };
         return cb(tx);
@@ -69,7 +73,10 @@ describe('WalletService', () => {
       vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
         const tx = {
           ledgerEntry: { findUnique: vi.fn().mockResolvedValueOnce(null) },
-          user: { findUnique: vi.fn().mockResolvedValueOnce(null) }
+          user: {
+            updateMany: vi.fn().mockResolvedValueOnce({ count: 0 }),
+            findUnique: vi.fn().mockResolvedValueOnce(null)
+          }
         };
         return cb(tx);
       });
@@ -83,7 +90,10 @@ describe('WalletService', () => {
       vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
         const tx = {
           ledgerEntry: { findUnique: vi.fn().mockResolvedValueOnce(null) },
-          user: { findUnique: vi.fn().mockResolvedValueOnce({ id: 'user1', balance: 50 }) }
+          user: {
+            updateMany: vi.fn().mockResolvedValueOnce({ count: 0 }),
+            findUnique: vi.fn().mockResolvedValueOnce({ id: 'user1', balance: 50 })
+          }
         };
         return cb(tx);
       });
@@ -96,8 +106,10 @@ describe('WalletService', () => {
 
   describe('credit', () => {
     it('returns error if amount <= 0', async () => {
-      vi.mocked(db.$transaction).mockImplementation(async (cb: any) => cb({}));
-      await expect(WalletService.credit('user1', 0, 'test')).resolves.toEqual(expect.objectContaining({ success: false, error: expect.stringContaining('greater than zero') }));
+      vi.mocked(db.$transaction).mockImplementation(async (cb: any) => cb(db));
+      await expect(WalletService.credit('user1', 0, 'test')).resolves.toEqual(
+        expect.objectContaining({ success: false, error: expect.stringContaining('positive finite number') })
+      );
     });
 
     it('returns error if db transaction fails', async () => {

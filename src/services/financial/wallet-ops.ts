@@ -14,8 +14,8 @@ export const WalletOps = {
     reason: string,
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
-    if (amountCents <= 0) {
-      throw new Error('Charge amount must be strictly greater than zero.');
+    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+      throw new Error('Charge amount must be a strictly positive finite number.');
     }
 
     const { idempotencyKey, adminId } = opts || {};
@@ -87,8 +87,8 @@ export const WalletOps = {
     reason: string,
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
-    if (amountCents <= 0) {
-      throw new Error('Credit amount must be strictly greater than zero.');
+    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+      throw new Error('Credit amount must be a strictly positive finite number.');
     }
 
     const { idempotencyKey, adminId } = opts || {};
@@ -133,8 +133,8 @@ export const WalletOps = {
     reason: string,
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
-    if (amountCents === 0) {
-      throw new Error('Adjustment amount cannot be zero.');
+    if (!Number.isFinite(amountCents) || amountCents === 0) {
+      throw new Error('Adjustment amount must be a finite non-zero number.');
     }
 
     const { idempotencyKey, adminId } = opts || {};
@@ -184,8 +184,8 @@ export const WalletOps = {
     reason: string,
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
-    if (amountCents <= 0) {
-      throw new Error('Refund amount must be strictly greater than zero.');
+    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+      throw new Error('Refund amount must be a strictly positive finite number.');
     }
 
     const { idempotencyKey, adminId } = opts || {};

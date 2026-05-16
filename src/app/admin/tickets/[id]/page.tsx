@@ -98,13 +98,16 @@ export default async function AdminTicketChatPage({ params }: { params: Promise<
 
         {/* ── Right panel: Client profile sidebar ── */}
         <div className="w-[350px] shrink-0 overflow-y-auto bg-card border border-border rounded-xl shadow-sm">
-          <ClientProfileSidebar user={{ 
-            ...activeTicket.user, 
-            balance: Number(activeTicket.user.balance), 
-            totalSpent: Number(activeTicket.user.totalSpent), 
-            orders: activeTicket.user.orders.map(o => ({ ...o, charge: Number(o.charge) })), 
-            payments: activeTicket.user.payments.map(p => ({ ...p, amount: Number(p.amount) })) 
-          }} />
+          <ClientProfileSidebar 
+            ticketId={activeTicket.id}
+            user={{ 
+              ...activeTicket.user, 
+              balance: Number(activeTicket.user.balance), 
+              totalSpent: Number(activeTicket.user.totalSpent), 
+              orders: activeTicket.user.orders.map(o => ({ ...o, charge: Number(o.charge) })), 
+              payments: activeTicket.user.payments.map(p => ({ ...p, amount: Number(p.amount) })) 
+            }} 
+          />
         </div>
       </div>
     </div>

@@ -49,12 +49,14 @@ export function MegaFooter() {
           <p className="text-sm text-muted-foreground">Наша команда на связи 24/7. Среднее время ответа составляет 15 минут.</p>
           
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link 
-              href={ROUTES.DASHBOARD.TICKETS}
+            <a 
+              href="/api/support/telegram"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center h-12 px-6 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-md hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 transition-all w-full sm:w-auto"
             >
-              Создать тикет
-            </Link>
+              Поддержка в Telegram
+            </a>
             <a 
               href="mailto:support@smmplan.ru"
               className="inline-flex items-center justify-center h-12 px-6 rounded-xl bg-content2 text-foreground font-bold text-sm border border-border/50 hover:bg-content3 hover:border-border transition-all w-full sm:w-auto gap-2"

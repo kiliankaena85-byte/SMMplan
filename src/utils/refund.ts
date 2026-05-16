@@ -20,5 +20,6 @@ export function calculatePartialRefund(order: {
   if (order.quantity <= 0 || order.remains <= 0 || charge <= 0) {
     return 0;
   }
-  return Math.floor((order.remains / order.quantity) * charge);
+  const calculated = Math.floor((order.remains / order.quantity) * charge);
+  return Math.min(calculated, charge);
 }

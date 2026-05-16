@@ -27,17 +27,17 @@ const workerConfig = {
 const orderWorker = new Worker('ordersQueue', orderProcessor, workerConfig);
 const syncWorker = new Worker('syncQueue', syncProcessor, workerConfig);
 const catalogWorker = new Worker('catalogQueue', catalogProcessor, workerConfig);
-const cleanupWorker = new Worker('cleanup', async () => { await runCleanup(); }, { connection });
+const cleanupWorker = new Worker('cleanup', async () => { await runCleanup(); }, workerConfig);
 const telegramWorker = new Worker('telegram-notifications', async (job) => {
   await sendAdminAlertSync(job.data.message, job.data.severity);
 }, {
-  connection,
+  ...workerConfig,
   limiter: {
     max: 20, // max 20 messages
     duration: 1000, // per 1 second
   }
 });
-const etaWorker = new Worker('eta-recalc', async () => { await runETARecalculation(); }, { connection });
+const etaWorker = new Worker('eta-recalc', async () => { await runETARecalculation(); }, workerConfig);
 
 // ── P2.1: DLQ — Dead Letter Queue handler ────────────────────────────────────
 const MAX_ATTEMPTS = 3; // Must match createQueue defaults
