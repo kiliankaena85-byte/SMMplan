@@ -32,7 +32,7 @@ export function RefillsTable({ refills }: { refills: RefillProps[] }) {
         <Table.ScrollContainer>
           <Table.Content aria-label="Заявки на докрутку (Refills)">
             <Table.Header>
-              <Table.Column>REFILL ID</Table.Column>
+              <Table.Column isRowHeader>REFILL ID</Table.Column>
               <Table.Column>ЗАКАЗ</Table.Column>
               <Table.Column>КЛИЕНТ</Table.Column>
               <Table.Column>УСЛУГА</Table.Column>

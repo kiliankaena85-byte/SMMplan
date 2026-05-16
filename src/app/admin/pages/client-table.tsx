@@ -17,7 +17,7 @@ export function PagesTable({ pages }: { pages: PageType[] }) {
         <Table.ScrollContainer>
           <Table.Content aria-label="CMS Pages">
             <Table.Header>
-              <Table.Column>TITLE</Table.Column>
+              <Table.Column isRowHeader>TITLE</Table.Column>
               <Table.Column>SLUG</Table.Column>
               <Table.Column>UPDATED AT</Table.Column>
               <Table.Column className="text-right">ACTION</Table.Column>

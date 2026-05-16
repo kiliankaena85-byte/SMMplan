@@ -86,7 +86,7 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
           <div className="w-full">
             <Table aria-label="Команда и Escrow Guard">
               <Table.Header>
-                <Table.Column>EMAIL</Table.Column>
+                <Table.Column isRowHeader>EMAIL</Table.Column>
                 <Table.Column>РОЛЬ</Table.Column>
                 <Table.Column className="text-right">ДНЕВНОЙ ЛИМИТ (КОП.) И ДЕЙСТВИЕ</Table.Column>
               </Table.Header>
@@ -153,7 +153,7 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
           <div className="w-full">
             <Table aria-label="Назначение ролей">
               <Table.Header>
-                <Table.Column>КЛИЕНТ</Table.Column>
+                <Table.Column isRowHeader>КЛИЕНТ</Table.Column>
                 <Table.Column className="text-right">СМЕНИТЬ РОЛЬ</Table.Column>
               </Table.Header>
               {/* @ts-ignore */}

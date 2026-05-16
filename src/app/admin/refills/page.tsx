@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { Card, CardContent, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
+import { Card, CardContent } from '@/components/admin/hero-ui';
 import Link from 'next/link';
 import { Package, RefreshCw } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/page-header';

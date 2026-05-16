@@ -29,15 +29,24 @@ export function ClientOrdersTable({ orders }: { orders: OrderType[] }) {
         <Table.ScrollContainer>
           <Table.Content aria-label="Заказы клиента">
             <Table.Header>
-              <Table.Column>#</Table.Column>
+              <Table.Column isRowHeader>#</Table.Column>
               <Table.Column>УСЛУГА</Table.Column>
               <Table.Column className="text-right">КОЛ-ВО</Table.Column>
               <Table.Column className="text-right">СУММА</Table.Column>
               <Table.Column>СТАТУС</Table.Column>
               <Table.Column>ДАТА</Table.Column>
             </Table.Header>
-            <Table.Body renderEmptyState={() => "Нет заказов"}>
-              {orders.map(o => (
+            <Table.Body>
+              {orders.length === 0 ? (
+                <Table.Row key="empty">
+                  <Table.Cell>Нет заказов</Table.Cell>
+                  <Table.Cell>{' '}</Table.Cell>
+                  <Table.Cell>{' '}</Table.Cell>
+                  <Table.Cell>{' '}</Table.Cell>
+                  <Table.Cell>{' '}</Table.Cell>
+                  <Table.Cell>{' '}</Table.Cell>
+                </Table.Row>
+              ) : orders.map(o => (
                 <Table.Row key={o.id}>
                   <Table.Cell>
                     <Link href={`/admin/orders?q=${o.numericId}`} className="font-mono text-xs text-primary hover:underline">

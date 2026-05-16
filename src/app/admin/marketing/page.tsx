@@ -1,6 +1,5 @@
 import { adminMarketingService } from '@/services/admin/marketing.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@/components/admin/hero-ui';
 import { Gift, TrendingUp, Users, Wallet } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { MarketingTabs } from './client-tabs';

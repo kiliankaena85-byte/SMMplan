@@ -15,7 +15,7 @@ export function LoginForm() {
     success: false,
   });
 
-  if (state.success) {
+  if (state?.success) {
     return (
       <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-6 text-center space-y-3">
         <div className="flex justify-center">
@@ -54,7 +54,7 @@ export function LoginForm() {
         </div>
       </div>
 
-      {state.error && (
+      {state?.error && (
         <div
           className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5"
           role="alert"
