@@ -35,7 +35,7 @@ export default async function AdminTicketChatPage({ params }: { params: Promise<
   }
 
   return (
-    <div className="flex-1 p-8 pt-6 animate-in fade-in duration-500 ease-out flex flex-col h-screen">
+    <div className="flex-1 animate-in fade-in duration-500 ease-out flex flex-col h-[calc(100vh-7rem)] min-h-[500px]">
       <div className="flex items-center justify-between mb-4">
         <AdminPageHeader 
           title="Диалог с клиентом" 

@@ -151,7 +151,16 @@ export async function checkProviderConnection(rawId: string) {
             if (!providerRecord) throw new Error("Provider not found");
             
             const instance = await providerService.getProviderInstance(providerRecord);
-            const balanceData = await instance.getBalance();
+            
+            // 🌊 WAVE 3.1: Network Timeout Protection
+            // Force a 5-second timeout so the UI gets a clean error instead of 504 Gateway Timeout
+            const timeoutPromise = new Promise<never>((_, reject) => 
+                setTimeout(() => reject(new Error("Таймаут ожидания ответа провайдера (5 сек)")), 5000)
+            );
+            const balanceData = await Promise.race([
+                instance.getBalance(),
+                timeoutPromise
+            ]);
             
             return { 
                 success: true, 
@@ -180,7 +189,14 @@ export async function getGlobalProviderLiquidity() {
             await Promise.allSettled(providers.map(async (provider) => {
                 try {
                     const instance = await providerService.getProviderInstance(provider);
-                    const balanceData = await instance.getBalance();
+                    
+                    const timeoutPromise = new Promise<never>((_, reject) => 
+                        setTimeout(() => reject(new Error("Timeout")), 5000)
+                    );
+                    const balanceData = await Promise.race([
+                        instance.getBalance(),
+                        timeoutPromise
+                    ]);
                     
                     const balance = parseFloat(balanceData.balance) || 0;
                     const currency = (balanceData.currency || provider.balanceCurrency || 'RUB').toUpperCase();

@@ -1,4 +1,5 @@
-import { createQueue } from '../lib/queue-manager';
+import { createQueue, type CatalogMutationPayload } from '../lib/queue-manager';
+export { type CatalogMutationPayload };
 
 export interface OrderJobPayload {
   orderId: string;
@@ -39,6 +40,10 @@ export interface ETAJobPayload {
 // Instantiate queues using NextJS-safe singleton
 export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue');
 const syncQueue = createQueue<SyncJobPayload>('syncQueue');
+export const catalogQueue = createQueue<CatalogMutationPayload>('catalogQueue', {
+  attempts: 2,
+  backoff: { type: 'exponential', delay: 10000 }
+});
 
 // P2.1: Dead Letter Queue — removeOnFail: false to preserve failed jobs for inspection
 export const dlqQueue = createQueue<DLQJobPayload>('dead-letter-queue', {

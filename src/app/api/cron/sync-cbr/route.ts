@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { CBRRateService } from '@/services/system/cbr-rate.service';
 import { getRedisConnection } from '@/lib/queue-manager';
+import { catalogQueue } from '@/workers/queues';
 
 /**
  * T-007: Cron endpoint to sync CBR Exchange Rate.
@@ -30,6 +31,15 @@ export async function GET(req: NextRequest) {
     let result;
     try {
       result = await CBRRateService.syncCBRExchangeRate();
+      
+      // 🌊 WAVE 1.4: Background Sync Fix
+      // If the rate was updated successfully, trigger the background price denormalization
+      if (result.updated && result.systemRate) {
+         await catalogQueue.add('sync-prices-bg', { 
+            type: 'SYNC_PRICES', 
+            usdToRub: result.systemRate 
+         });
+      }
     } finally {
       await redis.del(lockKey);
     }

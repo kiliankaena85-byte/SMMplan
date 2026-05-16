@@ -205,41 +205,54 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
     const parsed = bulkCancelSchema.safeParse({ orderIds });
     if (!parsed.success) throw new Error('Invalid IDs or too many items');
 
-    const result = await db.$transaction(async (tx) => {
-      const orders = await tx.order.findMany({
-        where: { id: { in: parsed.data.orderIds } },
-      });
+    const orders = await db.order.findMany({
+      where: { id: { in: parsed.data.orderIds } },
+    });
 
-      let totalRefunded = 0;
-      let count = 0;
+    let totalRefunded = 0;
+    let count = 0;
 
-      for (const order of orders) {
-        if (!['COMPLETED', 'CANCELED'].includes(order.status)) {
-          let refundCents = 0;
-          if (order.status === 'PENDING' || order.status === 'AWAITING_PAYMENT') {
-            refundCents = Number(order.charge);
-          } else {
-            refundCents = calculatePartialRefund(order);
-          }
+    // 🌊 WAVE 2.1: Atomized transactions instead of a global blanket
+    // We iterate outside of the transaction to prevent holding the lock
+    // on `user.balance` for multiple seconds, avoiding Database Contention.
+    for (const order of orders) {
+      if (!['COMPLETED', 'CANCELED'].includes(order.status)) {
+        try {
+          await db.$transaction(async (tx) => {
+            // Re-fetch inside transaction to ensure isolation
+            const safeOrder = await tx.order.findUnique({
+              where: { id: order.id }
+            });
+            
+            if (!safeOrder || ['COMPLETED', 'CANCELED'].includes(safeOrder.status)) return;
 
-          await tx.order.update({
-            where: { id: order.id },
-            data: { status: 'CANCELED' },
-          });
+            let refundCents = 0;
+            if (safeOrder.status === 'PENDING' || safeOrder.status === 'AWAITING_PAYMENT') {
+              refundCents = Number(safeOrder.charge);
+            } else {
+              refundCents = calculatePartialRefund(safeOrder);
+            }
 
-          if (refundCents > 0) {
-            await WalletOps.refund(tx, order.userId, refundCents,
-              `Массовая отмена заказа #${order.numericId}`,
-              { adminId: admin.id }
-            );
+            await tx.order.update({
+              where: { id: safeOrder.id },
+              data: { status: 'CANCELED' },
+            });
+
+            if (refundCents > 0) {
+              await WalletOps.refund(tx, safeOrder.userId, refundCents,
+                `Массовая отмена заказа #${safeOrder.numericId}`,
+                { adminId: admin.id }
+              );
+            }
             totalRefunded += refundCents;
-          }
-          count++;
+            count++;
+          }, { isolationLevel: 'Serializable' });
+        } catch (e) {
+          console.error(`[bulkCancelOrdersAction] Failed to cancel order ${order.id}:`, e);
+          // We continue to the next order rather than failing the entire batch
         }
       }
-
-      return { count, totalRefunded };
-    }, { isolationLevel: 'Serializable' });
+    }
 
     auditAdmin({
       adminId: admin.id,
@@ -247,14 +260,14 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
       action: 'ORDER_BULK_CANCEL',
       target: 'batch',
       targetType: 'ORDER',
-      newValue: { count: result.count, totalRefunded: result.totalRefunded },
+      newValue: { count, totalRefunded },
     });
 
     revalidatePath('/admin/orders');
     return { 
       success: true as const, 
-      cancelledCount: result.count, 
-      totalRefundCents: result.totalRefunded 
+      cancelledCount: count, 
+      totalRefundCents: totalRefunded 
     };
   });
 }

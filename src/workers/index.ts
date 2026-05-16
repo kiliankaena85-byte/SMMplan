@@ -8,6 +8,7 @@ import orderProcessor from './processors/order.processor';
 import syncProcessor from './processors/sync.processor';
 import { runCleanup } from './processors/cleanup.processor';
 import { runETARecalculation } from './processors/eta.processor';
+import catalogProcessor from './processors/catalog.processor';
 import { orderService } from '../services/core/order.service';
 
 const log = logger.child({ component: 'WorkerManager' });
@@ -25,6 +26,7 @@ const workerConfig = {
 
 const orderWorker = new Worker('ordersQueue', orderProcessor, workerConfig);
 const syncWorker = new Worker('syncQueue', syncProcessor, workerConfig);
+const catalogWorker = new Worker('catalogQueue', catalogProcessor, workerConfig);
 const cleanupWorker = new Worker('cleanup', async () => { await runCleanup(); }, { connection });
 const telegramWorker = new Worker('telegram-notifications', async (job) => {
   await sendAdminAlertSync(job.data.message, job.data.severity);
@@ -90,6 +92,7 @@ async function handleDeadLetter(
 
 orderWorker.on('failed', (job, err) => { handleDeadLetter('ordersQueue', job, err); });
 syncWorker.on('failed', (job, err) => { handleDeadLetter('syncQueue', job, err); });
+catalogWorker.on('failed', (job, err) => { handleDeadLetter('catalogQueue', job, err); });
 cleanupWorker.on('failed', (job, err) => { log.error('Cleanup job failed', { error: err.message }); });
 telegramWorker.on('failed', (job, err) => { log.error('Telegram notification failed', { error: err.message }); });
 
@@ -114,7 +117,7 @@ ensureSyncCron().catch(e => log.error('Failed to setup Sync Cron', { error: (e a
 ensureCleanupCron().catch(e => log.error('Failed to setup Cleanup Cron', { error: (e as Error).message }));
 ensureETACron().catch(e => log.error('Failed to setup ETA Cron', { error: (e as Error).message }));
 
-log.info('All workers started', { queues: ['ordersQueue', 'syncQueue', 'cleanup'] });
+log.info('All workers started', { queues: ['ordersQueue', 'syncQueue', 'catalogQueue', 'cleanup'] });
 
 // ── Graceful Shutdown (12-Factor App) ────────────────────────────────────────
 const shutdown = async () => {
@@ -124,6 +127,7 @@ const shutdown = async () => {
   await Promise.all([
     orderWorker.close(),
     syncWorker.close(),
+    catalogWorker.close(),
     cleanupWorker.close(),
     telegramWorker.close(),
     etaWorker.close(),

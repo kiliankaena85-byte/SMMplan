@@ -3,6 +3,7 @@
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { adminCatalogService } from '@/services/admin/catalog.service';
+import { catalogQueue } from '@/workers/queues';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { updateMarkupSchema, toggleServiceSchema, bulkUpdateMarkupSchema } from '@/validators/admin.validators';
@@ -11,7 +12,7 @@ import { auditAdmin } from '@/lib/admin-audit';
 import { requireStaffPermission } from '@/lib/server/rbac';
 
 async function updateMarkupAction(formData: FormData) {
-  const result = await requireStaffPermission('catalog', 'edit', async (admin) => {
+  const result = await requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = updateMarkupSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('serviceId и markup обязательны');
     const { serviceId, markup } = parsed.data;
@@ -70,7 +71,7 @@ async function toggleServiceAction(formData: FormData) {
  * Pass markup=0 to auto-calculate from Pricing Ladder.
  */
 export async function bulkUpdateMarkupAction(formData: FormData) {
-  const result = await requireStaffPermission('catalog', 'edit', async (admin) => {
+  const result = await requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = bulkUpdateMarkupSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) {
       throw new Error('Наценка должна быть в диапазоне 1.0–151.0');
@@ -81,9 +82,13 @@ export async function bulkUpdateMarkupAction(formData: FormData) {
     if (categoryId) filter.categoryId = categoryId;
     if (platform) filter.platform = platform;
 
-    await adminCatalogService.bulkUpdateMarkup(filter, markup, {
-      id: admin.id,
-      email: admin.email,
+    // 🌊 WAVE 1.3: Background Catalog Processing
+    // We send this to the BullMQ worker to prevent Vercel 15s timeout
+    await catalogQueue.add('bulk-markup-bg', {
+      type: 'BULK_MARKUP',
+      filter,
+      markupPercent: markup,
+      admin: { id: admin.id, email: admin.email, role: admin.role }
     });
 
     auditAdmin({

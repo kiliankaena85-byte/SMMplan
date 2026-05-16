@@ -9,7 +9,7 @@ import { ProviderBalanceCell } from "./components/provider-balance-cell";
 export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) {
   return (
     <div className="w-full">
-      <Table aria-label="Провайдеры" className="rounded-2xl border border-border shadow-sm bg-card backdrop-blur-xl overflow-hidden p-0">
+      <Table aria-label="Провайдеры" className="w-full rounded-2xl border border-border shadow-sm bg-card backdrop-blur-xl overflow-hidden p-0">
         <Table.Header>
           <Table.Column className="bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Название / API</Table.Column>
           <Table.Column className="bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Услуги</Table.Column>

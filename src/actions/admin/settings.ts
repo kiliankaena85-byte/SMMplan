@@ -5,7 +5,7 @@ import { roleSchema, globalSettingsSchema } from '@/validators/admin.validators'
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { settingsService } from '@/services/admin/settings.service';
-import { adminCatalogService } from '@/services/admin/catalog.service';
+import { catalogQueue } from '@/workers/queues';
 import { VaultService } from '@/lib/vault';
 import { auditAdmin } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
@@ -103,10 +103,9 @@ export async function updateGlobalSettings(formData: FormData) {
     // Atomic Re-pricing: trigger background sync if rate changed
     if (isRateChanged && exchangeRateUSD) {
        try {
-         await adminCatalogService.syncDenormalizedPrices(exchangeRateUSD);
+         await catalogQueue.add('sync-prices-bg', { type: 'SYNC_PRICES', usdToRub: exchangeRateUSD });
        } catch (err) {
-         console.error('[SettingsAction] Background price sync failed:', err);
-         // Optionally, we could return a partial success warning, but logging is minimum.
+         console.error('[SettingsAction] Failed to enqueue background price sync:', err);
        }
     }
 

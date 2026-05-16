@@ -29,6 +29,7 @@ import {
   SAFETY_FLOOR_MARKUP,
   applyBeautifulRounding,
 } from '@/lib/financial-constants';
+import { PriceHistoryButton } from './price-history-modal';
 
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
@@ -41,13 +42,17 @@ function BatchActionBar({
   selectedIds,
   onClear,
   usdToRub,
+  canEditFinance,
 }: {
   selectedIds: string[];
   onClear: () => void;
   usdToRub: number;
+  canEditFinance: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [markupInput, setMarkupInput] = useState('');
+  const [markupPercentInput, setMarkupPercentInput] = useState('');
+
+  const minPercent = ((SAFETY_MULTIPLIER - 1) * 100).toFixed(0);
 
   function handleEnable() {
     startTransition(async () => {
@@ -66,14 +71,15 @@ function BatchActionBar({
   }
 
   function handleSetMarkup() {
-    const m = parseFloat(markupInput);
+    const percent = parseFloat(markupPercentInput);
+    const m = (percent / 100) + 1;
     if (isNaN(m) || m < SAFETY_MULTIPLIER) {
-      toast.error(`Минимальная маржа: ${SAFETY_MULTIPLIER.toFixed(2)}x`);
+      toast.error(`Минимальная наценка: +${minPercent}%`);
       return;
     }
     startTransition(async () => {
       const r = await batchSetMarkupAction(selectedIds, m);
-      if (r.success) { toast.success(`💰 Маржа x${m} для ${r.count} услуг`); onClear(); }
+      if (r.success) { toast.success(`💰 Наценка +${percent}% для ${r.count} услуг`); onClear(); }
       else toast.error(r.error ?? 'Ошибка');
     });
   }
@@ -90,17 +96,29 @@ function BatchActionBar({
         onClick={handleDisable} disabled={isPending}
         className="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/15 text-destructive border border-rose-500/30 hover:bg-rose-500/25 transition-all duration-200 disabled:opacity-50"
       >🚫 Отключить</button>
-      <div className="flex items-center gap-1">
-        <input
-          type="number" step="0.1" placeholder={`Множитель (мин ${SAFETY_MULTIPLIER.toFixed(1)})`}
-          value={markupInput} onChange={e => setMarkupInput(e.target.value)}
-          className="w-40 px-2 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-        />
-        <button
-          onClick={handleSetMarkup} disabled={isPending}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50"
-        >Применить маржу</button>
-      </div>
+      {canEditFinance && (
+        <div className="flex items-center gap-1 group relative">
+          <span className="text-xs font-medium text-muted-foreground">+</span>
+          <input
+            type="number" step="1" placeholder={`Наценка в % (мин ${minPercent})`}
+            value={markupPercentInput} onChange={e => setMarkupPercentInput(e.target.value)}
+            className="w-44 px-2 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+          />
+          <span className="text-xs font-medium text-muted-foreground">%</span>
+          
+          {/* Preview Tooltip */}
+          {parseFloat(markupPercentInput) > 0 && (
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-1 rounded-md shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
+              Пример: при закупе 100₽ клиент заплатит {(100 * ((parseFloat(markupPercentInput) / 100) + 1)).toFixed(0)}₽
+            </div>
+          )}
+
+          <button
+            onClick={handleSetMarkup} disabled={isPending}
+            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50"
+          >Применить наценку</button>
+        </div>
+      )}
       <button
         onClick={onClear}
         className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-all duration-200"
@@ -110,7 +128,7 @@ function BatchActionBar({
 }
 
 // ─── Sub-component: Inline Price Cell ──────────────────────────────────────
-function InlinePriceCell({ service, usdToRub }: { service: CatalogServiceDTO, usdToRub: number }) {
+function InlinePriceCell({ service, usdToRub, canEditFinance }: { service: CatalogServiceDTO, usdToRub: number, canEditFinance: boolean }) {
   const [markup, setMarkup] = useState(service.markup);
   // localPrice reflects what the user sees/edits in RUB
   const [localPrice, setLocalPrice] = useState(calcRetailPrice(service.rate, service.markup, usdToRub));
@@ -130,6 +148,13 @@ function InlinePriceCell({ service, usdToRub }: { service: CatalogServiceDTO, us
     }
   }
 
+  function handlePercentChange(val: string) {
+    const newPercent = parseFloat(val) || 0;
+    const newMarkup = (newPercent / 100) + 1;
+    setMarkup(newMarkup);
+    setLocalPrice(calcRetailPrice(service.rate, newMarkup, usdToRub));
+  }
+
   async function save() {
     // Round for beauty before final calculation
     const roundedPrice = applyBeautifulRounding(localPrice);
@@ -142,7 +167,7 @@ function InlinePriceCell({ service, usdToRub }: { service: CatalogServiceDTO, us
       toast.error(
         <div className="flex flex-col gap-1">
           <span className="font-bold text-destructive flex items-center gap-1"><AlertCircle className="w-4 h-4" /> Ошибка маржинальности</span>
-          <span>Цена <b>{roundedPrice} ₽</b> (x{finalMarkup.toFixed(2)}) ниже порога безубыточности <b>x{SAFETY_MULTIPLIER.toFixed(2)}</b>.</span>
+          <span>Цена <b>{roundedPrice} ₽</b> (+{((finalMarkup - 1) * 100).toFixed(0)}%) ниже порога безубыточности <b>+{((SAFETY_MULTIPLIER - 1) * 100).toFixed(0)}%</b>.</span>
         </div>
       );
       // Revert UI
@@ -161,7 +186,7 @@ function InlinePriceCell({ service, usdToRub }: { service: CatalogServiceDTO, us
         toast.success(
           <div className="flex flex-col">
             <span className="font-bold">Цена обновлена</span>
-            <span className="text-[11px] opacity-80">Установлено: {roundedPrice} ₽ (x{finalMarkup.toFixed(2)})</span>
+            <span className="text-[11px] opacity-80">Установлено: {roundedPrice} ₽ (+{((finalMarkup - 1) * 100).toFixed(0)}%)</span>
           </div>
         );
         setLocalPrice(roundedPrice);
@@ -171,39 +196,60 @@ function InlinePriceCell({ service, usdToRub }: { service: CatalogServiceDTO, us
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[9px] uppercase text-muted-foreground font-bold tracking-tight">Цена (₽)</span>
-        <div className="relative group">
-          <input
-            type="number"
-            value={localPrice}
-            onChange={e => handlePriceChange(e.target.value)}
-            onBlur={save}
-            onKeyDown={e => e.key === 'Enter' && save()}
-            disabled={isPending}
-            className={`w-24 px-2 py-1.5 text-xs font-mono font-bold rounded-lg border outline-none transition-all duration-200 tabular-nums
-              ${isBelowSafety
-                ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
-                : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
-              } disabled:opacity-50`}
-          />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none group-focus-within:hidden">₽</span>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[9px] uppercase text-muted-foreground font-bold tracking-tight">Цена (₽)</span>
+          <div className="relative group">
+            <input
+              type="number"
+              value={localPrice}
+              onChange={e => handlePriceChange(e.target.value)}
+              onBlur={save}
+              onKeyDown={e => e.key === 'Enter' && save()}
+              disabled={isPending || !canEditFinance}
+              className={`w-20 px-2 py-1.5 text-xs font-mono font-bold rounded-lg border outline-none transition-all duration-200 tabular-nums
+                ${isBelowSafety
+                  ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
+                  : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
+                } disabled:opacity-50 ${!canEditFinance && 'bg-muted border-transparent text-muted-foreground'}`}
+            />
+          </div>
         </div>
-      </div>
-      
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[9px] uppercase text-muted-foreground font-bold tracking-tight">Наценка</span>
-        <div className={`text-xs font-mono font-medium px-2 py-1.5 rounded-lg border border-transparent bg-muted/40 tabular-nums ${isBelowSafety ? 'text-destructive bg-destructive/10 border-destructive/20' : 'text-muted-foreground'}`}>
-          x{markup.toFixed(2)}
+        
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[9px] uppercase text-muted-foreground font-bold tracking-tight">Наценка (%)</span>
+          <div className="relative group">
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">+</span>
+            <input
+              type="number"
+              value={markup > 0 ? ((markup - 1) * 100).toFixed(0) : "0"}
+              onChange={e => handlePercentChange(e.target.value)}
+              onBlur={save}
+              onKeyDown={e => e.key === 'Enter' && save()}
+              disabled={isPending || !canEditFinance}
+              className={`w-20 pl-5 pr-2 py-1.5 text-xs font-mono font-bold rounded-lg border outline-none transition-all duration-200 tabular-nums
+                ${isBelowSafety
+                  ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
+                  : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
+                } disabled:opacity-50 ${!canEditFinance && 'bg-muted border-transparent text-muted-foreground'}`}
+            />
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
+          </div>
         </div>
       </div>
 
-      {isBelowSafety && (
-        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive font-bold border border-destructive/30 animate-pulse">
-          УБЫТОК
-        </span>
-      )}
+      <div className="flex items-center gap-2">
+         <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20">
+           Прибыль: {(localPrice - providerCostRub).toFixed(2)} ₽
+         </span>
+         {isBelowSafety && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-destructive/20 text-destructive font-bold border border-destructive/30 animate-pulse">
+            УБЫТОК
+          </span>
+        )}
+        <PriceHistoryButton serviceId={service.id} />
+      </div>
     </div>
   );
 }
@@ -263,11 +309,13 @@ export function CatalogTable({
   services, 
   usdToRub,
   canEdit = true,
+  canEditFinance = true,
   canSeeRates = true
 }: { 
   services: CatalogServiceDTO[], 
   usdToRub: number,
   canEdit?: boolean,
+  canEditFinance?: boolean,
   canSeeRates?: boolean
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -292,14 +340,14 @@ export function CatalogTable({
   return (
     <div className="space-y-4">
       {selected.size > 0 && canEdit && (
-        <BatchActionBar selectedIds={selectedIds} onClear={() => setSelected(new Set())} usdToRub={usdToRub} />
+        <BatchActionBar selectedIds={selectedIds} onClear={() => setSelected(new Set())} usdToRub={usdToRub} canEditFinance={canEditFinance} />
       )}
 
       <div className="rounded-xl border border-default-200 bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table className="w-full text-sm text-left">
             <Table.ScrollContainer>
-              <Table.Content aria-label="Каталог услуг">
+              <Table.Content aria-label="Каталог услуг" className="w-full">
                 <Table.Header>
                 <Table.Column key="checkbox" className={canEdit ? "w-10 px-4" : "hidden"}>
                   <input
@@ -309,8 +357,8 @@ export function CatalogTable({
                     disabled={!canEdit}
                   />
                 </Table.Column>
-                <Table.Column key="id" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">ID</Table.Column>
-                <Table.Column key="name" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[250px]">Услуга / Категория</Table.Column>
+                <Table.Column isRowHeader key="id" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">ID</Table.Column>
+                <Table.Column key="name" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[250px] w-full">Услуга / Категория</Table.Column>
                 <Table.Column key="rate" className={`text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right ${!canSeeRates ? "hidden" : ""}`}>Закуп ($)</Table.Column>
                 <Table.Column key="price" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ценообразование {canEdit ? '(RUB)' : ''}</Table.Column>
                 <Table.Column key="orders" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right hidden lg:table-cell">Заказы</Table.Column>
@@ -377,9 +425,9 @@ export function CatalogTable({
                         </div>
                       ) : <span className="sr-only">Rate hidden</span>}
                     </Table.Cell>
-                    <Table.Cell key={`cell-price-${s.id}`} className="py-4 px-4">
+                    <Table.Cell key={`cell-price-${s.id}`} className="py-4 px-4 w-[280px]">
                       {canEdit ? (
-                        <InlinePriceCell service={s} usdToRub={usdToRub} />
+                        <InlinePriceCell service={s} usdToRub={usdToRub} canEditFinance={canEditFinance} />
                       ) : (
                         <div className="text-sm font-mono font-bold text-foreground">
                           {applyBeautifulRounding(s.rate * s.markup * usdToRub).toLocaleString('ru-RU')} ₽

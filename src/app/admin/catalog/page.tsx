@@ -37,8 +37,11 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   }) : null;
 
   const isOwner = user?.role === 'OWNER';
-  const canSeeRates = isOwner || (user?.role !== 'SUPPORT');
-  const canEdit = isOwner || (user?.role !== 'SUPPORT'); // Support can only view
+  const permissions = user?.staffRole?.permissions || [];
+
+  const canSeeRates = isOwner || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && (p.canView || p.canEdit));
+  const canEdit = isOwner || permissions.some(p => p.section.toUpperCase() === 'CATALOG' && p.canEdit);
+  const canEditFinance = isOwner || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && p.canEdit);
 
   const params = await searchParams;
   const search = params.q || '';
@@ -219,7 +222,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
               </form>
 
               {/* Bulk Markup Tool */}
-              {canEdit && (
+              {canEditFinance && (
                 <form action={bulkUpdateMarkupAction} className="md:w-auto flex items-center p-3 gap-3 bg-muted/50/50">
                   {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-tight hidden lg:inline">Массовая маржа:</span>
@@ -237,7 +240,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
           </CardContent>
         </Card>
 
-        <CatalogTable services={services} usdToRub={usdToRub} canEdit={canEdit} canSeeRates={canSeeRates} />
+        <CatalogTable services={services} usdToRub={usdToRub} canEdit={canEdit} canEditFinance={canEditFinance} canSeeRates={canSeeRates} />
         
         {/* Pagination / Load More */}
         {hasMore && (

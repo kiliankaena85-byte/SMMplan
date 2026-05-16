@@ -54,20 +54,30 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
 // ---
 
 // 1. Order Processing Queue (Mass, Pending)
-const orderProcessingQueue = createQueue<{ orderId: string }>('order-processing', {
+export const orderProcessingQueue = createQueue<{ orderId: string }>('order-processing', {
   attempts: 3,
   backoff: { type: 'exponential', delay: 5000 }
 });
 
 // 2. Status Sync Queue (Polling Provider API)
-const statusSyncQueue = createQueue<{ providerId: string }>('status-sync');
+export const statusSyncQueue = createQueue<{ providerId: string }>('status-sync');
 
 
 
 // 4. Failover & Auto-Monitoring
-const failoverQueue = createQueue<{ orderId: string }>('order-failover', {
+export const failoverQueue = createQueue<{ orderId: string }>('order-failover', {
   attempts: 2,
   backoff: { type: 'exponential', delay: 30000 }
+});
+
+// 5. Catalog Mutations (Mass updates, Price syncing)
+export type CatalogMutationPayload = 
+  | { type: 'SYNC_PRICES'; usdToRub: number }
+  | { type: 'BULK_MARKUP'; filter: { categoryId?: string; platform?: string }; markupPercent: number; admin: any };
+
+export const catalogMutationsQueue = createQueue<CatalogMutationPayload>('catalog-mutations', {
+  attempts: 2,
+  backoff: { type: 'exponential', delay: 10000 }
 });
 
 // Graceful closing of all connections
@@ -76,5 +86,6 @@ export const closeQueues = async () => {
     await statusSyncQueue.close();
 
     await failoverQueue.close();
+    await catalogMutationsQueue.close();
     if (redisConnection) await redisConnection.quit();
 };

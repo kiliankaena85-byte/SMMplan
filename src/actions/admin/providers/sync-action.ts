@@ -44,6 +44,12 @@ export async function adminSyncProviderCatalog() {
       });
       const serviceMap = new Map(existingServices.map(s => [s.externalId, s]));
 
+      // 🌊 WAVE 4: Batch Arrays for Transactions
+      const updatesBatch: any[] = [];
+      const createsBatch: any[] = [];
+      const newCategoriesMap = new Map<string, { networkId: string; name: string }>();
+      const createdNetworkSlugs = new Set<string>();
+
       for (const apiService of apiServices) {
         if (apiService.type !== "Default") continue;
 
@@ -55,17 +61,25 @@ export async function adminSyncProviderCatalog() {
         let categoryId = catMap.get(mapKey);
 
         if (!categoryId) {
-          const network = await db.network.upsert({
-            where: { slug: canonicalSlug },
-            update: {},
-            create: { name: platform, slug: canonicalSlug, sort: 0 },
-          });
-          const newCat = await db.category.create({
-            data: { networkId: network.id, name: catName, sort: 0 },
-          });
-          categoryId = newCat.id;
-          catMap.set(mapKey, categoryId);
-          createdCats++;
+          // Pre-compute network/category to create them in batch or first step
+          if (!createdNetworkSlugs.has(canonicalSlug)) {
+             await db.network.upsert({
+               where: { slug: canonicalSlug },
+               update: {},
+               create: { name: platform, slug: canonicalSlug, sort: 0 },
+             });
+             createdNetworkSlugs.add(canonicalSlug);
+          }
+          
+          const network = await db.network.findUnique({ where: { slug: canonicalSlug } });
+          if (network) {
+              const newCat = await db.category.create({
+                data: { networkId: network.id, name: catName, sort: 0 },
+              });
+              categoryId = newCat.id;
+              catMap.set(mapKey, categoryId);
+              createdCats++;
+          }
         }
 
         const externalId = String(apiService.service);
@@ -83,29 +97,39 @@ export async function adminSyncProviderCatalog() {
             const pct = (priceDelta * 100).toFixed(1);
             const reason = `${direction} цены на ${pct}%: ${oldRate.toFixed(4)} → ${newRate.toFixed(4)}`;
 
-            await db.service.update({
-              where: { id: existing.id },
-              data: {
-                isQuarantined: true,
-                pendingRate: newRate,
-                quarantineReason: reason,
-                quarantinedAt: new Date(),
-                minQty: minInt,
-                maxQty: maxInt,
-                lastSeenAt: new Date(),
-              },
-            });
+            updatesBatch.push(
+              db.service.update({
+                where: { id: existing.id },
+                data: {
+                  isQuarantined: true,
+                  pendingRate: newRate,
+                  quarantineReason: reason,
+                  quarantinedAt: new Date(),
+                  minQty: minInt,
+                  maxQty: maxInt,
+                  lastSeenAt: new Date(),
+                },
+              })
+            );
             quarantinedServices++;
           } else if (!existing.isQuarantined) {
-            // Apply dynamic markup recalculation to keep prices "beautiful"
-            const rawRetail = applyPricingLadder(newRate * usdToRub);
-            const retailFromLadder = applyBeautifulRounding(rawRetail);
-            const calculatedMarkup = newRate > 0 ? Math.round((retailFromLadder / (newRate * usdToRub)) * 100) / 100 : existing.markup;
+            // 🌊 WAVE 4.1: FIX MARGIN DESTRUCTION
+            // Do NOT recalculate markup. Keep existing markup exactly as is!
+            const retailRub = applyBeautifulRounding(newRate * existing.markup * usdToRub);
 
-            await db.service.update({
-              where: { id: existing.id },
-              data: { rate: newRate, markup: calculatedMarkup, minQty: minInt, maxQty: maxInt, isActive: true, lastSeenAt: new Date() },
-            });
+            updatesBatch.push(
+              db.service.update({
+                where: { id: existing.id },
+                data: { 
+                  rate: newRate, 
+                  pricePer1000Cents: Math.round(retailRub * 100),
+                  minQty: minInt, 
+                  maxQty: maxInt, 
+                  isActive: true, 
+                  lastSeenAt: new Date() 
+                },
+              })
+            );
             updatedServices++;
           }
         } else {
@@ -114,24 +138,38 @@ export async function adminSyncProviderCatalog() {
           const calculatedMarkup =
             newRate > 0 ? Math.round((retailFromLadder / (newRate * usdToRub)) * 100) / 100 : 3.0;
 
-          await db.service.create({
-            data: {
-              name: analysis.suggestedName || apiService.name,
-              categoryId,
-              rate: newRate,
-              markup: calculatedMarkup,
-              minQty: minInt,
-              maxQty: maxInt,
-              externalId,
-              isActive: true,
-              isDripFeedEnabled: !!apiService.dripfeed,
-              isRefillEnabled: !!apiService.refill,
-              isCancelEnabled: !!apiService.cancel,
-              lastSeenAt: new Date(),
-            },
-          });
+          if (categoryId) {
+             createsBatch.push({
+                name: analysis.suggestedName || apiService.name,
+                categoryId,
+                rate: newRate,
+                markup: calculatedMarkup,
+                pricePer1000Cents: Math.round(retailFromLadder * 100),
+                minQty: minInt,
+                maxQty: maxInt,
+                externalId,
+                isActive: true,
+                isDripFeedEnabled: !!apiService.dripfeed,
+                isRefillEnabled: !!apiService.refill,
+                isCancelEnabled: !!apiService.cancel,
+                lastSeenAt: new Date(),
+             });
+          }
           newServices++;
         }
+      }
+
+      // 🌊 WAVE 4.2: Execute Updates in Transactions
+      for (let i = 0; i < updatesBatch.length; i += 100) {
+        await db.$transaction(updatesBatch.slice(i, i + 100));
+      }
+
+      // 🌊 WAVE 4.3: Execute Creates in Bulk
+      if (createsBatch.length > 0) {
+        await db.service.createMany({
+           data: createsBatch,
+           skipDuplicates: true
+        });
       }
 
       // Apply post-sync rules (blacklist, hide, reclassify, cap maxQty)

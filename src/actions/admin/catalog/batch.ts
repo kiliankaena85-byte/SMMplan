@@ -61,7 +61,7 @@ export async function batchSetMarkupAction(
   serviceIds: string[],
   markup: number
 ) {
-  return requireStaffPermission('catalog', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const ids = batchIdsSchema.safeParse(serviceIds);
     if (!ids.success) {
       return { success: false as const, error: 'Invalid service IDs' };
@@ -116,7 +116,7 @@ export async function updateServiceMarkupAction(
   serviceId: string,
   markup: number
 ) {
-  return requireStaffPermission('catalog', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const markupValidation = markupSchema.safeParse(markup);
     if (!markupValidation.success) {
       return {
