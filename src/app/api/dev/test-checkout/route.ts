@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     serviceId: service.id,
     link: "https://test.com",
     quantity: 100,
-    email: "test@smmplan.ru",
+    email: "test@smmplan.pro",
     gateway: "yookassa"
   });
   

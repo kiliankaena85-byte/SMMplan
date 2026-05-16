@@ -41,7 +41,7 @@ describe('TicketService', () => {
         id: 'ticket-1',
         subject: 'Test Subject',
         source: 'WEB',
-        user: { id: 'user-1', email: 'test@smmplan.ru', telegramId: null }
+        user: { id: 'user-1', email: 'test@smmplan.pro', telegramId: null }
       };
 
       vi.mocked(db.ticket.findUnique).mockResolvedValueOnce(mockTicket as any);
@@ -58,10 +58,10 @@ describe('TicketService', () => {
       // Assertions
       expect(sendMail).toHaveBeenCalledTimes(1);
       expect(sendMail).toHaveBeenCalledWith(
-        'test@smmplan.ru',
+        'test@smmplan.pro',
         'Support Reply: Test Subject',
         expect.stringContaining('Hello via Email'),
-        'support+ticket-1@smmplan.ru'
+        'support+ticket-1@smmplan.pro'
       );
     });
 
@@ -70,7 +70,7 @@ describe('TicketService', () => {
         id: 'ticket-2',
         subject: 'Test Subject',
         source: 'TELEGRAM',
-        user: { id: 'user-2', email: 'test2@smmplan.ru', telegramId: '123456789' }
+        user: { id: 'user-2', email: 'test2@smmplan.pro', telegramId: '123456789' }
       };
 
       vi.mocked(db.ticket.findUnique).mockResolvedValueOnce(mockTicket as any);

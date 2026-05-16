@@ -72,7 +72,7 @@ class TicketService {
         ? `<p style="color: #64748b; font-size: 14px;">Для ответа на это сообщение, просто напишите ответное письмо.</p>`
         : `<p style="color: #64748b; font-size: 14px;">Пожалуйста, войдите в панель управления (Dashboard), чтобы ответить.</p>`;
 
-      const replyToAddress = `support+${message.ticket.id}@smmplan.ru`;
+      const replyToAddress = `support+${message.ticket.id}@smmplan.pro`;
       
       const escapeHtml = (unsafe: string) => unsafe
         .replace(/&/g, "&amp;")

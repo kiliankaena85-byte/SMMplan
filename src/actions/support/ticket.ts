@@ -214,7 +214,7 @@ export async function requestTelegramBind(formData: FormData) {
     throw new Error('У пользователя уже есть веб-аккаунт');
   }
 
-  const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.ru';
+  const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
   const magicLink = `${host}/api/support/telegram?forceAuth=true`;
 
   const messageText = `🎧 <b>Служба поддержки Smmplan</b>\n\nЧтобы мы могли найти ваши заказы и оформить возврат средств на баланс, пожалуйста, подтвердите владение заказом по ссылке: ${magicLink}`;

@@ -36,7 +36,7 @@ export class UnifiedPaymentService {
         }
       });
 
-      const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.ru'}/dashboard`;
+      const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro'}/dashboard`;
       let paymentUrl = '';
       let remoteGatewayId = '';
 

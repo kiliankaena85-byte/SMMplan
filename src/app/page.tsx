@@ -26,10 +26,10 @@ export default async function Home() {
             "@context": "https://schema.org",
             "@type": "WebSite",
             name: "Smmplan",
-            url: "https://smmplan.ru",
+            url: "https://smmplan.pro",
             potentialAction: {
               "@type": "SearchAction",
-              target: "https://smmplan.ru/?q={search_term_string}",
+              target: "https://smmplan.pro/?q={search_term_string}",
               "query-input": "required name=search_term_string",
             },
           }),

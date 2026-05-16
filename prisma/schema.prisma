@@ -125,6 +125,7 @@ model UrlPattern {
 model Category {
   id        String    @id @default(cuid())
   name      String
+  slug      String    @unique @default(cuid())
   networkId String?
   network   Network?  @relation(fields: [networkId], references: [id], onDelete: Restrict)
   sort      Int       @default(0)
@@ -196,6 +197,7 @@ model Provider {
   apiKey          String // Encrypted API key
   isActive        Boolean  @default(true)
   metadata        Json? // { httpMethod, requestType, headers, keyField, actionField }
+  providerType    String   @default("SMM_PANEL") // SMM_PANEL, SMS_ACTIVATE
   syncLock        Boolean  @default(false)
   balanceCurrency String   @default("USD")
   createdAt       DateTime @default(now())
@@ -508,6 +510,8 @@ model SupportTemplate {
   updatedAt DateTime @updatedAt
 }
 
+
+
 // Telemetry
 model AnalyticsEvent {
   id        String   @id @default(cuid())
@@ -610,4 +614,14 @@ model RoutingAuditLog {
   toProviderId   String?
   reason         String?
   createdAt      DateTime @default(now())
+}
+
+// Global System Settings (Key-Value Store)
+model SystemSetting {
+  key         String   @id // e.g. "SUPPORT_EMAIL", "COMPANY_INN"
+  value       String   // String value, can be stringified JSON if needed
+  group       String   @default("GENERAL") // e.g. "CONTACTS", "LEGAL", "SEO"
+  description String?  // Admin-facing description
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?  // Admin email who last updated it
 }

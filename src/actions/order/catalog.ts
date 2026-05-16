@@ -24,7 +24,8 @@ export type PublicService = {
 export type PublicCategory = {
   id: string;
   name: string;
-  icon: string;
+  slug: string;
+  networkId: string | null;
 };
 
 export type PublicNetwork = {
@@ -72,10 +73,11 @@ export async function getPublicCatalogAction() {
         name: net.name,
         slug: net.slug,
         icon: net.icon && (net.icon.startsWith('/') || net.icon.startsWith('http')) ? net.icon : icon, // prefer valid absolute/relative SVG custom icons or fallback
-        categories: net.categories.map(c => ({
-          id: c.id,
-          name: c.name,
-          icon: "/icons/list.svg" // fallback
+        categories: net.categories.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          slug: cat.slug,
+          networkId: cat.networkId
         }))
       };
     });

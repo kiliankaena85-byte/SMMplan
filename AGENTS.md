@@ -54,13 +54,19 @@
 src/
 ├── actions/       # Server Actions (requireAdmin guard)
 ├── app/           # Pages & Layouts (App Router)
+├── bot/           # Telegram Bot infrastructure (Telegraf, Scenes)
 ├── components/    # React Components
 │   ├── admin/     # Admin panel components
-│   └── client/    # Client-facing components
-├── lib/           # Shared utilities (prisma client, auth)
-├── services/      # Business logic services
+│   └── landing/   # Client-facing and landing components
+├── data/          # Static data or mocks
+├── hooks/         # Custom React hooks
+├── lib/           # Shared utilities (prisma client, auth, SMTP, Redis)
+├── services/      # Business logic services (eta, financial, admin)
 ├── types/         # TypeScript type definitions
-└── utils/         # Pure utility functions
+├── utils/         # Pure utility functions
+├── validators/    # Zod schemas for forms and API validation
+├── workers/       # BullMQ Background Workers (orders, tg_posts, etc.)
+└── proxy.ts       # Proxy configurations
 ```
 
 ### Component Conventions

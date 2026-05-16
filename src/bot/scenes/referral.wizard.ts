@@ -42,7 +42,7 @@ export const referralWizard = new Scenes.WizardScene(
       user.referralCode = newCode;
     }
 
-    const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.ru';
+    const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
     const link = `${host}/?ref=${user.referralCode}`;
     const earned = (user.referralBalance ?? 0) / 100;
     const refsCount = user._count?.referrals ?? 0;

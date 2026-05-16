@@ -59,7 +59,7 @@ export default function PrivacyPage() {
             <h3 className="text-lg font-bold text-slate-900 mt-8 mb-4">6. Контакты</h3>
             <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 mt-4 text-xs font-mono">
               По всем вопросам, касающимся обработки персональных данных, обращайтесь:<br />
-              Email: privacy@smmplan.ru<br />
+              Email: privacy@smmplan.pro<br />
             </div>
           </div>
         </article>

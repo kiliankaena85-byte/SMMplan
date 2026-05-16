@@ -60,7 +60,7 @@ export default function RefundPage() {
 
             <h3 className="text-lg font-bold text-slate-900 mt-8 mb-4">5. Процедура инициации возврата</h3>
             <p>
-              Для запроса возврата (в случаях, предусмотренных п.3), Заказчику необходимо обратиться в Службу Поддержки через систему тикетов в Личном Кабинете или по адресу <a href="mailto:support@smmplan.ru" className="text-sky-500 hover:underline">support@smmplan.ru</a>, указав ID заказа и причину запроса. Заявки рассматриваются в течение 3 рабочих дней.
+              Для запроса возврата (в случаях, предусмотренных п.3), Заказчику необходимо обратиться в Службу Поддержки через систему тикетов в Личном Кабинете или по адресу <a href="mailto:support@smmplan.pro" className="text-sky-500 hover:underline">support@smmplan.pro</a>, указав ID заказа и причину запроса. Заявки рассматриваются в течение 3 рабочих дней.
             </p>
           </div>
         </article>

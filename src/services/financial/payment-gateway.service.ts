@@ -57,7 +57,7 @@ export class YooKassaGateway extends BasePaymentGateway {
 
     if (!params.isTestMode) {
       payload.receipt = {
-        customer: { email: params.email || 'no-reply@smmplan.ru' },
+        customer: { email: params.email || 'no-reply@smmplan.pro' },
         items: [{
           description: "Услуги цифрового маркетинга",
           quantity: "1.00",

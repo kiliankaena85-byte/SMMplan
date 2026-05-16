@@ -105,7 +105,7 @@ export async function sendOrderCompletedMail(email: string, orderId: string, ser
       <h2 style="color: #10b981;">Заказ #<span>${orderId}</span> выполнен! ✅</h2>
       <p style="color: #71717a; line-height: 1.5;">Ваш заказ на услугу <strong>${serviceName}</strong> был успешно выполнен.</p>
       <div style="margin-top: 32px; text-align: center;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.ru'}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro'}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
           Посмотреть мои заказы
         </a>
       </div>

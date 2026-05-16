@@ -58,7 +58,7 @@ export function MegaFooter() {
               Поддержка в Telegram
             </a>
             <a 
-              href="mailto:support@smmplan.ru"
+              href="mailto:support@smmplan.pro"
               className="inline-flex items-center justify-center h-12 px-6 rounded-xl bg-content2 text-foreground font-bold text-sm border border-border/50 hover:bg-content3 hover:border-border transition-all w-full sm:w-auto gap-2"
             >
               <Mail className="w-4 h-4" /> Email
@@ -68,8 +68,15 @@ export function MegaFooter() {
 
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 border-t border-border/40 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium text-muted-foreground/60 relative z-10">
-        <p>© {new Date().getFullYear()} Smmplan Lite. Все права защищены.</p>
+      <div className="max-w-7xl mx-auto px-6 border-t border-border/40 pt-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs font-medium text-muted-foreground/60 relative z-10">
+        <div className="flex flex-col gap-1.5">
+          <p>© {new Date().getFullYear()} Smmplan Lite. Все права защищены.</p>
+          <p className="text-[10px] opacity-70">
+            Официальный сервис продвижения. ИНН: 000000000000 / ОГРНИП: 300000000000000
+            {/* TODO(SEO): Впишите реальные реквизиты юр.лица для прохождения YMYL-фильтров Яндекса */}
+          </p>
+          <p className="text-[10px] opacity-70">Адрес: г. Москва (укажите реальный адрес офиса)</p>
+        </div>
         <p className="flex items-center gap-1">Designed with <span className="text-rose-500/70">❤</span> for B2B Growth</p>
       </div>
     </footer>

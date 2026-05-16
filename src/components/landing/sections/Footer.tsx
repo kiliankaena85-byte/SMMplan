@@ -53,11 +53,11 @@ export function Footer() {
                 </div>
                 Задать вопрос в Telegram
               </a>
-              <a href="mailto:support@smmplan.ru" className="flex items-center gap-3 text-sm text-slate-300 hover:text-white transition-colors group">
+              <a href="mailto:support@smmplan.pro" className="flex items-center gap-3 text-sm text-slate-300 hover:text-white transition-colors group">
                 <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center group-hover:bg-slate-700 transition-colors">
                   <svg className="w-4 h-4 text-muted-foreground group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 </div>
-                support@smmplan.ru
+                support@smmplan.pro
               </a>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">

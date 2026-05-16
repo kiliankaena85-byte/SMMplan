@@ -18,9 +18,9 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
   let service: EscrowService;
   let clientId: string;
 
-  const ownerAdmin = { id: 'owner-1', email: 'owner@smmplan.ru', role: 'OWNER', supportLimitCents: 999999 };
-  const adminAdmin = { id: 'admin-1', email: 'admin@smmplan.ru', role: 'ADMIN', supportLimitCents: 999999 };
-  const supportAgent = { id: 'support-1', email: 'support@smmplan.ru', role: 'SUPPORT', supportLimitCents: 50000 }; // 500 RUB
+  const ownerAdmin = { id: 'owner-1', email: 'owner@smmplan.pro', role: 'OWNER', supportLimitCents: 999999 };
+  const adminAdmin = { id: 'admin-1', email: 'admin@smmplan.pro', role: 'ADMIN', supportLimitCents: 999999 };
+  const supportAgent = { id: 'support-1', email: 'support@smmplan.pro', role: 'SUPPORT', supportLimitCents: 50000 }; // 500 RUB
 
   beforeEach(async () => {
     service = new EscrowService();
@@ -34,7 +34,7 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
 
     // Create support user (needed for supportLimitCents lookup, but we pass it via AdminContext)
     await db.user.create({
-      data: { id: 'support-1', email: 'support@smmplan.ru', role: 'SUPPORT', supportLimitCents: 50000 },
+      data: { id: 'support-1', email: 'support@smmplan.pro', role: 'SUPPORT', supportLimitCents: 50000 },
     });
   });
 

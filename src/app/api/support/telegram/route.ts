@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     if (!session || !session.userId) {
       if (forceAuth) {
         // Требуем обязательной авторизации (Level 2 Protocol)
-        const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.ru';
+        const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
         const callbackUrl = encodeURIComponent('/api/support/telegram?forceAuth=true');
         return NextResponse.redirect(`${host}/auth?callbackUrl=${callbackUrl}`);
       }
