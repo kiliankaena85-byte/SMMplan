@@ -272,6 +272,7 @@ export function ImportWizard({ categories, providers }: { categories: any[], pro
                setFilters={setFilters}
                pagination={pagination}
                priceMode={priceMode}
+               markup={parseFloat(markup) || 0}
             />
           )}
         </div>

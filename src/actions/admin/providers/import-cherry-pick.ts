@@ -10,6 +10,23 @@ import { db } from "@/lib/db";
 
 import { redis } from "@/lib/redis";
 
+import { z } from 'zod';
+
+const rawServiceSchema = z.object({
+  service: z.union([z.string(), z.number()]),
+  name: z.string(),
+  type: z.string().optional(),
+  category: z.string().optional(),
+  rate: z.union([z.string(), z.number()]),
+  min: z.union([z.string(), z.number()]),
+  max: z.union([z.string(), z.number()]),
+  refill: z.boolean().optional(),
+  cancel: z.boolean().optional(),
+  dripfeed: z.boolean().optional(),
+  desc: z.string().optional(),
+  description: z.string().optional(),
+}).passthrough(); // Allow extra fields
+
 // --- [NEW] Pagination & Filtering API ---
 export async function fetchPaginatedExternalServices(
     providerId: string,
@@ -168,8 +185,32 @@ export async function fetchExternalServices(providerId?: string, forceRefresh = 
         const providerInstance = await providerService.getProviderInstance(providerDbRecord);
         const rawServices = await providerInstance.getServices();
         
+        // Filter raw services using Zod Schema
+        const validRawServices = [];
+        let invalidCount = 0;
+        
+        if (Array.isArray(rawServices)) {
+            for (const s of rawServices) {
+                const parsed = rawServiceSchema.safeParse(s);
+                if (parsed.success) {
+                    validRawServices.push(parsed.data);
+                } else {
+                    if (invalidCount < 3) {
+                        console.warn(`[Provider Sync] Invalid service format (sample):`, parsed.error.issues);
+                    }
+                    invalidCount++;
+                }
+            }
+        } else {
+            throw new Error("Provider did not return an array of services");
+        }
+
+        if (invalidCount > 0) {
+            console.warn(`[Provider Sync] Ignored ${invalidCount} invalid services from provider ${providerDbRecord.name}`);
+        }
+
         // Data Intelligence: Normalize services using SmartAnalyzerLogic
-        services = rawServices.map((s: any) => {
+        services = validRawServices.map((s: any) => {
             const analyzed = SmartAnalyzerLogic.detectSync(s.name, s.description || '', s.category || '');
             return {
                 ...s,

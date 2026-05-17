@@ -287,19 +287,24 @@ class AdminCatalogService {
     // Map live services for O(1) lookup
     const liveMap = new Map(liveServices.map((s: any) => [s.service.toString(), s]));
 
-    let importedCount = 0;
+    // Fetch all existing external IDs for this provider in one query
+    const existingServices = await db.service.findMany({
+      where: { providerId: providerDbRecord.id, externalId: { in: toImportShadow.map(s => s.service.toString()) } },
+      select: { externalId: true }
+    });
+    const existingSet = new Set(existingServices.map(s => s.externalId));
+
+    const servicesToCreate = [];
     const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
     
     for (const shadowExt of toImportShadow) {
+      const extId = shadowExt.service.toString();
+      
       // Skip if already exists
-      const existing = await db.service.findFirst({
-        where: { externalId: shadowExt.service.toString() },
-      });
-
-      if (existing) continue;
+      if (existingSet.has(extId)) continue;
 
       // 3. Live Price Check
-      const liveExt = liveMap.get(shadowExt.service.toString());
+      const liveExt = liveMap.get(extId);
       if (!liveExt) {
         // Service was removed by provider between caching and importing!
         console.warn(`[Live-Check] Service ${shadowExt.service} was removed by provider. Skipping.`);
@@ -326,33 +331,38 @@ class AdminCatalogService {
         effectiveMarkup = SAFETY_FLOOR_MARKUP;
       }
 
-      await db.service.create({
-        data: {
-          name: shadowExt.cleanName || liveExt.name, // Use AI Clean Name
-          description: liveExt.description || shadowExt.description,
-          externalId: liveExt.service.toString(),
-          categoryId,
-          providerId: providerDbRecord.id,
-          providerCurrency: providerCurrency,
-          rate: rawRate, // Live provider rate
-          markup: effectiveMarkup,
-          pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
-          minQty: parseInt(liveExt.min, 10) || 10,
-          maxQty: parseInt(liveExt.max, 10) || 10000,
-          features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
-          anomalyScore: shadowExt.metrics?.anomalyScore || 0,
-          targetType: shadowExt.metrics?.targetType || 'POST',
-          customDataType: shadowExt.metrics?.customDataType || 'NONE',
-          isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
-          isActive: true,
-          isDripFeedEnabled: liveExt.dripfeed ?? false,
-          isRefillEnabled: liveExt.refill ?? false,
-          isCancelEnabled: liveExt.cancel ?? false,
-          lastSeenAt: new Date(),
-        },
+      servicesToCreate.push({
+        name: shadowExt.cleanName || liveExt.name, // Use AI Clean Name
+        description: liveExt.description || shadowExt.description || null,
+        externalId: extId,
+        categoryId,
+        providerId: providerDbRecord.id,
+        providerCurrency: providerCurrency,
+        rate: rawRate, // Live provider rate
+        markup: effectiveMarkup,
+        pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
+        minQty: parseInt(liveExt.min, 10) || 10,
+        maxQty: parseInt(liveExt.max, 10) || 10000,
+        features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
+        anomalyScore: shadowExt.metrics?.anomalyScore || 0,
+        targetType: shadowExt.metrics?.targetType || 'POST',
+        customDataType: shadowExt.metrics?.customDataType || 'NONE',
+        isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
+        isActive: true,
+        isDripFeedEnabled: liveExt.dripfeed ?? false,
+        isRefillEnabled: liveExt.refill ?? false,
+        isCancelEnabled: liveExt.cancel ?? false,
+        lastSeenAt: new Date(),
       });
+    }
 
-      importedCount++;
+    let importedCount = 0;
+    if (servicesToCreate.length > 0) {
+       const result = await db.service.createMany({
+           data: servicesToCreate,
+           skipDuplicates: true
+       });
+       importedCount = result.count;
     }
 
     auditAdmin({

@@ -12,6 +12,7 @@ interface ServicesTableProps {
   setFilters: (f: any) => void;
   pagination: { page: number; totalPages: number; total: number; pageSize: number };
   priceMode?: 'per1000' | 'per1';
+  markup?: number;
 }
 
 export function ServicesTable({ 
@@ -23,7 +24,8 @@ export function ServicesTable({
   filters,
   setFilters,
   pagination,
-  priceMode = 'per1000'
+  priceMode = 'per1000',
+  markup = 0
 }: ServicesTableProps) {
   
   const platformMap: Record<string, {name: string, color: string, icon: string}> = {
@@ -151,14 +153,20 @@ export function ServicesTable({
                     <td className="px-4 py-3 text-sm font-mono">
                       <div className="flex flex-col gap-1">
                         <span className="text-foreground font-semibold">
+                          <span className="text-muted-foreground mr-1">Розница:</span>
                           {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 4 }).format(
-                            (s.rateRub !== undefined ? s.rateRub : parseFloat(s.rate)) / (priceMode === 'per1' ? 1000 : 1)
+                            ((s.rateRub !== undefined ? s.rateRub : parseFloat(s.rate)) * (1 + markup / 100)) / (priceMode === 'per1' ? 1000 : 1)
                           )} ₽
                           <span className="text-[10px] text-muted-foreground font-sans ml-1 font-normal">/ {priceMode === 'per1' ? '1 шт' : '1000 шт'}</span>
                         </span>
+                        <span className="text-[10px] text-muted-foreground" title={`Закупка (в рублях)`}>
+                          Закупка: {new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 4 }).format(
+                            (s.rateRub !== undefined ? s.rateRub : parseFloat(s.rate)) / (priceMode === 'per1' ? 1000 : 1)
+                          )} ₽
+                        </span>
                         {s.providerCurrency === 'USD' && (
                           <span className="text-[10px] text-muted-foreground" title={`Курс: ${s.usdRate || 90} ₽`}>
-                            Оригинал: ${new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(
+                            Провайдер: ${new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 }).format(
                               parseFloat(s.rate) / (priceMode === 'per1' ? 1000 : 1)
                             )}
                           </span>
