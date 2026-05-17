@@ -5,7 +5,7 @@ import { SmartOrderForm } from '@/components/orders/SmartOrderForm';
 import { MassOrderForm } from '@/components/orders/MassOrderForm';
 import { Link2, LayoutList } from 'lucide-react';
 
-export default function NewOrderPage() {
+export default function NewOrderPage({ userEmail }: { userEmail?: string }) {
   const [tab, setTab] = useState<'single' | 'mass'>('single');
 
   return (
@@ -39,7 +39,7 @@ export default function NewOrderPage() {
       </div>
 
       <div className="mt-6">
-        {tab === 'single' ? <SmartOrderForm /> : <MassOrderForm />}
+        {tab === 'single' ? <SmartOrderForm /> : <MassOrderForm userEmail={userEmail} />}
       </div>
     </div>
   );

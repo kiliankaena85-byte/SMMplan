@@ -6,6 +6,7 @@ import {
   User, Mail, Calendar, Shield,
   CreditCard, TrendingUp, Settings, Star,
 } from 'lucide-react';
+import PasswordCard from '@/components/dashboard/settings/PasswordCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export default async function ClientSettingsPage() {
     where: { id: session.userId },
     select: {
       email: true,
+      passwordHash: true,
       balance: true,
       totalSpent: true,
       createdAt: true,
@@ -133,6 +135,9 @@ export default async function ClientSettingsPage() {
           ))}
         </div>
       </div>
+
+      {/* Password Management */}
+      <PasswordCard hasPassword={!!user.passwordHash} />
 
       {/* Referral balance usage info */}
       {(user.referralBalance ?? 0) > 0 && (

@@ -6,13 +6,20 @@ import { SubmitButton } from '@/components/admin/submit-button';
 import { massOrderCalculateAction, massOrderCheckoutAction } from '@/actions/order/mass';
 import { Zap, AlertCircle, CheckCircle2, Loader2, Wallet, CreditCard, Bitcoin } from 'lucide-react';
 
-export function MassOrderForm() {
+export function MassOrderForm({ userEmail }: { userEmail?: string }) {
   const [text, setText] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(userEmail || '');
   const [gateway, setGateway] = useState<'yookassa' | 'balance' | 'cryptobot'>('yookassa');
   
   const [calculation, setCalculation] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState('');
+
+  React.useEffect(() => {
+    if (!idempotencyKey) {
+      setIdempotencyKey(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36));
+    }
+  }, [idempotencyKey]);
 
   const handleCalculate = async () => {
     setIsCalculating(true);
@@ -32,8 +39,10 @@ export function MassOrderForm() {
   };
 
   const handleCheckout = async () => {
-    const res = await massOrderCheckoutAction({ text, email, gateway });
+    const finalEmail = userEmail || email;
+    const res = await massOrderCheckoutAction({ text, email: finalEmail || undefined, gateway, idempotencyKey });
     if (res.success && res.data?.paymentUrl) {
+      setIdempotencyKey('');
       window.location.href = res.data.paymentUrl;
     }
     return res;
@@ -105,17 +114,19 @@ export function MassOrderForm() {
 
               {calculation.validCount > 0 && (
                 <ActionForm action={handleCheckout} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ваш Email</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="address@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full h-12 px-4 rounded-xl border border-border bg-background text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
-                    />
-                  </div>
+                  {!userEmail && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ваш Email</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="address@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full h-12 px-4 rounded-xl border border-border bg-background text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-3">
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Способ оплаты</label>

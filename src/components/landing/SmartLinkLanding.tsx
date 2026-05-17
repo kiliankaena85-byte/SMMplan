@@ -2,16 +2,10 @@
 
 import { useOrderEngine } from "@/hooks/useOrderEngine";
 import { PublicNetwork } from "@/actions/order/catalog";
-import { checkoutAction } from "@/actions/order/checkout";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { Zap, Check, CheckCircle2, Loader2, Link2, LogIn, ChevronRight, ChevronLeft, CheckSquare, Square, Shield, CreditCard, Mail, GripHorizontal, X, ChevronDown, Edit3 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import React, { useState, useRef, useMemo } from "react";
-import Image from "next/image";
+import { motion } from "framer-motion";
+import { Zap, LogIn } from "lucide-react";
+import React from "react";
 import Link from "next/link";
-import { toast } from "sonner";
 import { ROUTES } from "@/lib/routes";
 import { TrustBar } from "./TrustBar";
 import { WhyUs } from "./WhyUs";
@@ -29,9 +23,9 @@ import { HeroInput } from "./order-engine/HeroInput";
 import { DynamicPayloadWarnings } from "./order-engine/DynamicPayloadWarnings";
 import { BottomCheckout } from "./order-engine/BottomCheckout";
 import { MegaFooter } from "./MegaFooter";
-import { SocialIcon } from "@/components/ui/SocialIcon";
-import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
-import { IconClock, IconBox } from "@tabler/icons-react";
+import { IconBox } from "@tabler/icons-react";
+import { MassOrderPreview } from "./order-engine/MassOrderPreview";
+import { MassConfirmEmailModal } from "./order-engine/MassConfirmEmailModal";
 
 export function SmartLinkLanding({
   initialCatalog,
@@ -68,6 +62,9 @@ export function SmartLinkLanding({
     isCalculating,
     pricing,
     totalPriceFormatted,
+    isMassMode,
+    massCalculation,
+    isMassCalculating,
   } = engine;
 
   const {
@@ -75,6 +72,8 @@ export function SmartLinkLanding({
     showEmailModal, setShowEmailModal,
     showLinkModal, setShowLinkModal,
     linkHasError, setLinkHasError,
+    showMassConfirmModal, setShowMassConfirmModal,
+    handleMassCheckoutConfirm,
     handleCheckout
   } = useCheckoutOrchestrator({ engine });
 
@@ -198,78 +197,79 @@ export function SmartLinkLanding({
 
           {/* Витрина интерфейса */}
           <div className="w-full bg-content1 rounded-3xl overflow-hidden mt-6">
-             {/* НЕТ АНИМАЦИИ СКРЫТИЯ (ПРОСИЛИ ПОКАЗАТЬ КАК МОКАП ДАЖЕ ДО ФОКУСА ИЛИ АКТИВИРОВАТЬ СРАЗУ)
-                 Мы будем показывать интерфейс всегда, чтобы работал как красивая витрина */}
-             <div className="w-full flex flex-col will-change-transform">
-               
-               {/* SECTION 1.0: MOBILE SELECTORS (< MD) */}
-               <MobileSelectors engine={engine} />
+             {isMassMode ? (
+               <MassOrderPreview
+                 engine={engine}
+                 handleCheckout={handleCheckout}
+                 isSubmitting={isSubmitting}
+               />
+             ) : (
+               <div className="w-full flex flex-col will-change-transform">
+                 {/* SECTION 1.0: MOBILE SELECTORS (< MD) */}
+                 <MobileSelectors engine={engine} />
 
-               {/* SECTION 1: NETWORKS (Top Tabs Premium) - Hidden on Mobile */}
-               <NetworkSelector engine={engine} />
+                 {/* SECTION 1: NETWORKS (Top Tabs Premium) - Hidden on Mobile */}
+                 <NetworkSelector engine={engine} />
 
-               {/* SECTION 2: COLUMNS (Categories & Services & Checkout) — HARD BOUNDARY */}
-               <div className="flex flex-col lg:flex-row min-h-[400px] border-b border-border/50 relative items-start">
-                 
-                 {/* 2.1 Left Column: Categories (Tablet Horizontal / Desktop Vertical) */}
-                 <CategorySidebar engine={engine} />
+                 {/* SECTION 2: COLUMNS (Categories & Services & Checkout) — HARD BOUNDARY */}
+                 <div className="flex flex-col lg:flex-row min-h-[400px] border-b border-border/50 relative items-start">
+                   {/* 2.1 Left Column: Categories (Tablet Horizontal / Desktop Vertical) */}
+                   <CategorySidebar engine={engine} />
 
-                  {/* MIDDLE WRAPPER */}
-                  <div className="flex flex-col flex-1 min-w-0 border-r border-border/50 pb-12 lg:pb-0">
-                    {/* 2.2 Center Column: Services Container */}
-                    <div className="p-4 md:p-6 lg:p-8 bg-content1 relative flex flex-col min-h-0">
-                    <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
-                      <h3 className="font-extrabold text-foreground text-xl md:text-2xl flex items-center gap-3">
-                         Выберите тариф {services.length > 0 && <span className="text-sm font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">{services.length}</span>}
-                      </h3>
-                    </div>
+                   {/* MIDDLE WRAPPER */}
+                   <div className="flex flex-col flex-1 min-w-0 border-r border-border/50 pb-12 lg:pb-0">
+                     {/* 2.2 Center Column: Services Container */}
+                     <div className="p-4 md:p-6 lg:p-8 bg-content1 relative flex flex-col min-h-0">
+                       <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
+                         <h3 className="font-extrabold text-foreground text-xl md:text-2xl flex items-center gap-3">
+                           Выберите тариф {services.length > 0 && <span className="text-sm font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">{services.length}</span>}
+                         </h3>
+                       </div>
 
-                    <>
-                      {services.length === 0 && isLoading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 pt-4">
-                           {Array.from({length: 8}).map((_, i) => (
-                             <div key={i} className="w-full flex flex-col p-5 md:p-6 min-h-[400px] bg-content2 border border-border/50 shadow-sm animate-pulse rounded-[2rem]" />
-                           ))}
-                        </div>
-                      ) : services.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2rem] min-h-[320px] p-8">
-                          <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center">
-                            <IconBox className="w-8 h-8 text-primary/60" />
-                          </div>
-                          <div className="text-center space-y-1.5">
-                            <p className="text-base font-bold text-foreground">
-                              {!networkId ? 'Выберите платформу' : !categoryId ? 'Выберите категорию' : 'Услуги не найдены'}
-                            </p>
-                            <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-                              {!networkId 
-                                ? 'Вставьте ссылку на профиль/пост выше, или выберите нужную соцсеть из списка.' 
-                                : !categoryId 
-                                ? 'Выберите нужную категорию услуг в меню слева.' 
-                                : 'В этой категории пока нет доступных услуг. Попробуйте выбрать другую.'}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={`pb-8 pt-4 transition-opacity duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                           
-                           {/* Main Grid Render */}
-                           <ServiceGrid engine={engine} />
-                        </div>
-                      )}
-                    </>
-                  </div>
-                  {/* Note: Middle Wrapper continues through Section 3 & 4 */}
+                       <>
+                         {services.length === 0 && isLoading ? (
+                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 pt-4">
+                             {Array.from({length: 8}).map((_, i) => (
+                               <div key={i} className="w-full flex flex-col p-5 md:p-6 min-h-[400px] bg-content2 border border-border/50 shadow-sm animate-pulse rounded-[2rem]" />
+                             ))}
+                           </div>
+                         ) : services.length === 0 ? (
+                           <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2rem] min-h-[320px] p-8">
+                             <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center">
+                               <IconBox className="w-8 h-8 text-primary/60" />
+                             </div>
+                             <div className="text-center space-y-1.5">
+                               <p className="text-base font-bold text-foreground">
+                                 {!networkId ? 'Выберите платформу' : !categoryId ? 'Выберите категорию' : 'Услуги не найдены'}
+                               </p>
+                               <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                                 {!networkId
+                                   ? 'Вставьте ссылку на профиль/пост выше, или выберите нужную соцсеть из списка.'
+                                   : !categoryId
+                                   ? 'Выберите нужную категорию услуг в меню слева.'
+                                   : 'В этой категории пока нет доступных услуг. Попробуйте выбрать другую.'}
+                               </p>
+                             </div>
+                           </div>
+                         ) : (
+                           <div className={`pb-8 pt-4 transition-opacity duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                             {/* Main Grid Render */}
+                             <ServiceGrid engine={engine} />
+                           </div>
+                         )}
+                       </>
+                     </div>
 
-               {/* SECTION 3: DYNAMIC PAYLOAD & WARNINGS */}
-               <DynamicPayloadWarnings engine={engine} />
+                     {/* SECTION 3: DYNAMIC PAYLOAD & WARNINGS */}
+                     <DynamicPayloadWarnings engine={engine} />
 
-               {/* SECTION 4: BOTTOM CHECKOUT AREA */}
-               <BottomCheckout engine={engine} handleCheckout={handleCheckout} isSubmitting={isSubmitting} />
-               
-               </div> {/* Closes MIDDLE WRAPPER */}
-               </div> {/* Closes SECTION 2: COLUMNS lg:flex-row */}
+                     {/* SECTION 4: BOTTOM CHECKOUT AREA */}
+                     <BottomCheckout engine={engine} handleCheckout={handleCheckout} isSubmitting={isSubmitting} />
 
-             </div>
+                   </div> {/* Closes MIDDLE WRAPPER */}
+                 </div> {/* Closes SECTION 2: COLUMNS lg:flex-row */}
+               </div>
+             )}
           </div>
         </div>
         
@@ -288,19 +288,21 @@ export function SmartLinkLanding({
       <MegaFooter contactSettings={contactSettings} />
 
       {/* ══════════ DESKTOP STICKY CHECKOUT BAR (Финтех-бар) ══════════ */}
-      <StickyCheckoutBar
-        selectedService={selectedService}
-        url={url}
-        setShowLinkModal={setShowLinkModal}
-        quantity={quantity}
-        setQuantity={setQuantity}
-        pricing={pricing}
-        agreedToTerms={agreedToTerms}
-        setAgreedToTerms={setAgreedToTerms}
-        isSubmitting={isSubmitting}
-        handleCheckout={handleCheckout}
-        onClearSelection={() => setSelectedService(null)}
-      />
+      {!isMassMode && (
+        <StickyCheckoutBar
+          selectedService={selectedService}
+          url={url}
+          setShowLinkModal={setShowLinkModal}
+          quantity={quantity}
+          setQuantity={setQuantity}
+          pricing={pricing}
+          agreedToTerms={agreedToTerms}
+          setAgreedToTerms={setAgreedToTerms}
+          isSubmitting={isSubmitting}
+          handleCheckout={handleCheckout}
+          onClearSelection={() => setSelectedService(null)}
+        />
+      )}
 
       {/* ══════════ LINK MODAL (Progressive Disclosure) ══════════ */}
       <LinkModal
@@ -321,6 +323,18 @@ export function SmartLinkLanding({
         totalPriceFormatted={totalPriceFormatted}
         isSubmitting={isSubmitting}
         handleCheckout={handleCheckout}
+      />
+
+      {/* ══════════ MASS ORDER CONFIRM MODAL ══════════ */}
+      <MassConfirmEmailModal
+        showMassConfirmModal={showMassConfirmModal}
+        setShowMassConfirmModal={setShowMassConfirmModal}
+        email={email}
+        setEmail={setEmail}
+        totalPriceFormatted={massCalculation ? massCalculation.totalRub.toFixed(2) : "0.00"}
+        isSubmitting={isSubmitting}
+        handleMassCheckoutConfirm={handleMassCheckoutConfirm}
+        validCount={massCalculation ? massCalculation.validCount : 0}
       />
     </div>
   );

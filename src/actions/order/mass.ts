@@ -15,11 +15,19 @@ const massOrderSchema = z.object({
   text: z.string().min(1, 'Введите данные для заказа'),
   email: z.string().email('Введите корректный email').nullable().optional(),
   gateway: z.enum(['yookassa', 'cryptobot', 'balance']).default('yookassa'),
+  idempotencyKey: z.string().optional(),
 });
 
 export const parseMassOrderText = async (text: string) => {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  const orders: { serviceId: string; numericId: number; link: string; quantity: number }[] = [];
+  const orders: { 
+    serviceId: string; 
+    numericId: number; 
+    link: string; 
+    quantity: number; 
+    providerId?: string | null; 
+    providerServiceId?: string | null; 
+  }[] = [];
   const errors: { line: number; text: string; error: string }[] = [];
 
   for (let i = 0; i < lines.length; i++) {
@@ -50,23 +58,53 @@ export const parseMassOrderText = async (text: string) => {
     const numericIds = orders.map(o => o.numericId);
     const services = await db.service.findMany({
       where: { numericId: { in: numericIds }, isActive: true },
-      select: { id: true, numericId: true, minQty: true, maxQty: true, name: true }
+      include: { 
+        category: { 
+          include: { network: true } 
+        } 
+      }
     });
 
     const serviceMap = new Map(services.map(s => [s.numericId, s]));
+    const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
 
     for (let i = 0; i < orders.length; i++) {
       const order = orders[i];
       const service = serviceMap.get(order.numericId);
       if (!service) {
-        errors.push({ line: -1, text: `${order.numericId}`, error: `Услуга ID ${order.numericId} не найдена или неактивна` });
+        errors.push({ line: i + 1, text: `${order.numericId}`, error: `Услуга ID ${order.numericId} не найдена или неактивна` });
+        continue;
+      }
+
+      // 1. Quarantine & Cooldown check
+      if (service.cooldownUntil && service.cooldownUntil > new Date()) {
+        errors.push({ line: i + 1, text: `${order.numericId} | ${order.link} | ${order.quantity}`, error: `Услуга "${service.name}" временно приостановлена для контроля качества.` });
         continue;
       }
       
       if (order.quantity < service.minQty || order.quantity > service.maxQty) {
-        errors.push({ line: -1, text: `${order.numericId} | ${order.link} | ${order.quantity}`, error: `Количество для "${service.name}" должно быть от ${service.minQty} до ${service.maxQty}` });
-      } else {
-        order.serviceId = service.id;
+        errors.push({ line: i + 1, text: `${order.numericId} | ${order.link} | ${order.quantity}`, error: `Количество для "${service.name}" должно быть от ${service.minQty} до ${service.maxQty}` });
+        continue;
+      }
+
+      // 2. Link Normalization and Validation
+      try {
+        const platformSlug = service.category?.network?.slug?.toUpperCase() || '';
+        const targetType = service.targetType || 'POST';
+        const normalizedLink = mutateLink(order.link, platformSlug, targetType);
+        const validator = getLinkValidator(platformSlug, targetType);
+        const linkResult = validator.safeParse(normalizedLink);
+
+        if (!linkResult.success) {
+          errors.push({ line: i + 1, text: `${order.numericId} | ${order.link} | ${order.quantity}`, error: linkResult.error.errors[0].message });
+        } else {
+          order.link = normalizedLink;
+          order.serviceId = service.id;
+          order.providerId = service.providerId;
+          order.providerServiceId = service.externalId;
+        }
+      } catch (e: any) {
+        errors.push({ line: i + 1, text: `${order.numericId} | ${order.link} | ${order.quantity}`, error: e.message || 'Ошибка валидации ссылки' });
       }
     }
   }
@@ -95,7 +133,7 @@ export const massOrderCalculateAction = async (input: { text: string }) => {
        } catch (e: any) {
          errors.push({ line: -1, text: order.link, error: e.message });
        }
-    }
+     }
 
     return { 
       totalRub: totalCents / 100, 
@@ -108,8 +146,8 @@ export const massOrderCalculateAction = async (input: { text: string }) => {
 };
 
 export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSchema>) => {
-  return createSafeAction(massOrderSchema, input, async (data: z.infer<typeof massOrderSchema>) => {
-    const { text, email, gateway } = data;
+  return createSafeAction(massOrderSchema as any, input, async (data: any) => {
+    const { text, email, gateway, idempotencyKey } = data;
     
     // 0. IDOR Prevention & Anti-Fraud
     const isAllowed = await RateLimitService.check("massCheckoutCore", 5, 60);
@@ -135,6 +173,21 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     
     const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
 
+    // 0.5 Idempotency check
+    if (idempotencyKey) {
+      const existingOrder = await db.order.findFirst({
+        where: { idempotencyKey, userId: user.id },
+        include: { payment: true }
+      });
+      if (existingOrder && existingOrder.payment) {
+        console.info(`[MassCheckout] Idempotency hit for key ${idempotencyKey}`);
+        return {
+          paymentId: existingOrder.paymentId,
+          paymentUrl: existingOrder.payment.checkoutUrl || ''
+        };
+      }
+    }
+
     const reqHeaders = await headers();
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
@@ -151,6 +204,8 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
        orderCreationData.push({
          userId: user.id,
          serviceId: order.serviceId,
+         providerId: order.providerId,
+         providerServiceId: order.providerServiceId,
          link: order.link,
          quantity: order.quantity,
          charge: pricing.totalCents,
@@ -160,7 +215,8 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
          isDripFeed: false,
          remains: order.quantity,
          consentIp,
-         consentUserAgent
+         consentUserAgent,
+         idempotencyKey
        });
     }
 

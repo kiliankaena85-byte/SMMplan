@@ -68,7 +68,7 @@ export default function LoginPage() {
           <div className="text-center lg:text-left">
             <h1 className="text-2xl font-bold text-foreground">Вход в аккаунт</h1>
             <p className="text-muted-foreground text-sm mt-2">
-              Введите email — мы пришлём ссылку для входа. Пароль не нужен.
+              Войдите в личный кабинет по паролю или с помощью ссылки на почту.
             </p>
           </div>
 
@@ -80,7 +80,7 @@ export default function LoginPage() {
               Новый пользователь?
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Аккаунт создаётся автоматически при первом входе — пароль не нужен
+              Аккаунт создаётся автоматически при первом входе по ссылке. Затем вы сможете установить постоянный пароль.
             </p>
           </div>
 

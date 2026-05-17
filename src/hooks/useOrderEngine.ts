@@ -45,6 +45,18 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [pricing, setPricing] = useState<PricingResult | null>(null);
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   
+  // Mass Order states
+  const [massCalculation, setMassCalculation] = useState<{
+    totalRub: number;
+    totalCents: number;
+    validCount: number;
+    errors: { line: number; text: string; error: string }[];
+    validOrders: any[];
+  } | null>(null);
+  const [isMassCalculating, setIsMassCalculating] = useState(false);
+
+  const isMassMode = url.includes("\n") || url.includes("|");
+
   // Status states
   const [isLoading, setIsLoading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -208,6 +220,45 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     return () => clearTimeout(handler);
   }, [selectedService, quantity]);
 
+  // 5.5 Calculate Mass Order Price (Debounced)
+  useEffect(() => {
+    if (!isMassMode || !url.trim()) {
+      setMassCalculation(null);
+      return;
+    }
+
+    const handler = setTimeout(async () => {
+      setIsMassCalculating(true);
+      try {
+        const { massOrderCalculateAction } = await import("@/actions/order/mass");
+        const res = await massOrderCalculateAction({ text: url });
+        if (res.success) {
+          setMassCalculation(res.data);
+        } else {
+          setMassCalculation({
+            totalRub: 0,
+            totalCents: 0,
+            validCount: 0,
+            errors: [{ line: 0, text: "", error: res.error || "Ошибка парсинга" }],
+            validOrders: []
+          });
+        }
+      } catch (e: any) {
+        setMassCalculation({
+          totalRub: 0,
+          totalCents: 0,
+          validCount: 0,
+          errors: [{ line: 0, text: "", error: e.message || "Неизвестная ошибка" }],
+          validOrders: []
+        });
+      } finally {
+        setIsMassCalculating(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [url, isMassMode]);
+
   // Form Validation
   const validate = useCallback(() => {
     let currentUrl = url;
@@ -310,6 +361,11 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     isCalculating,
     error,
     validationErrors,
+    
+    // Mass Mode
+    isMassMode,
+    massCalculation,
+    isMassCalculating,
     
     // Methods
     validate

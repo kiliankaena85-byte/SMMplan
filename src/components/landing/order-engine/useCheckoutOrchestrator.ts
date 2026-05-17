@@ -12,9 +12,50 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkHasError, setLinkHasError] = useState(false);
+  const [showMassConfirmModal, setShowMassConfirmModal] = useState(false);
+
+  const handleMassCheckoutConfirm = async (confirmedEmail: string) => {
+    const { url } = engine;
+    setIsSubmitting(true);
+    try {
+      const { massOrderCheckoutAction } = await import('@/actions/order/mass');
+      const res = await massOrderCheckoutAction({
+        text: url,
+        email: confirmedEmail,
+        gateway: 'yookassa'
+      });
+      if (res.success) {
+        if (res.data?.paymentUrl) {
+          window.location.href = res.data.paymentUrl;
+        } else {
+          toast.error('Не удалось получить ссылку на оплату. Обратитесь в поддержку.', { position: 'top-center' });
+        }
+      } else {
+        toast.error(res.error || 'Ошибка создания заказа. Попробуйте еще раз.', { position: 'top-center' });
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Ошибка платежного шлюза.', { position: 'top-center' });
+    } finally {
+      setIsSubmitting(false);
+      setShowMassConfirmModal(false);
+    }
+  };
 
   const handleCheckout = async () => {
-    const { selectedService, url, quantity, customData, agreedToTerms, email } = engine;
+    const { selectedService, url, quantity, customData, agreedToTerms, email, isMassMode, massCalculation } = engine;
+
+    if (isMassMode) {
+      if (!massCalculation || massCalculation.validCount === 0) {
+        toast.error("Нет валидных заказов для оформления. Пожалуйста, исправьте ошибки.", { position: 'top-center' });
+        return;
+      }
+      if (!agreedToTerms) {
+        toast.error("Пожалуйста, ознакомьтесь и согласитесь с условиями Оферты.", { position: 'top-center' });
+        return;
+      }
+      setShowMassConfirmModal(true);
+      return;
+    }
 
     if (!selectedService) {
       toast.error("Пожалуйста, выберите услугу.", { position: 'top-center' });
@@ -138,6 +179,9 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
     setShowLinkModal,
     linkHasError,
     setLinkHasError,
+    showMassConfirmModal,
+    setShowMassConfirmModal,
+    handleMassCheckoutConfirm,
     handleCheckout
   };
 }
