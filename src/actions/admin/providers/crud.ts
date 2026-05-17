@@ -239,11 +239,28 @@ export async function getGlobalProviderLiquidity() {
                 }
             }));
 
+            // Calculate Burn Rate (Provider cost spent in last 24h)
+            const yesterday = new Date();
+            yesterday.setHours(yesterday.getHours() - 24);
+            
+            const recentOrders = await db.order.findMany({
+                where: {
+                    createdAt: { gte: yesterday },
+                    status: { notIn: ['ERROR', 'CANCELED'] }
+                },
+                select: { providerCost: true }
+            });
+
+            // providerCost is in Cents (RUB)
+            const burnRate24hCents = recentOrders.reduce((sum, order) => sum + Number(order.providerCost || 0), 0);
+            const burnRate24hRub = burnRate24hCents / 100;
+
             return { 
                 success: true, 
                 totalRub, 
                 activeCount,
-                errorCount
+                errorCount,
+                burnRate24h: burnRate24hRub
             };
         } catch (e: any) {
             return { success: false, error: e.message || "Failed to calculate global liquidity" };

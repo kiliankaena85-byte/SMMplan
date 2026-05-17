@@ -24,64 +24,69 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
           key={srv.id}
           onClick={() => {
             if (isQuarantined) return;
-            if (isSelected) {
-              setSelectedService(null);
-            } else {
-              setSelectedService(srv);
-            }
+            setSelectedService(isSelected ? null : srv);
           }}
-          className={`group w-full flex flex-col p-5 md:p-6 border-2 rounded-[2rem] relative overflow-visible transition-all duration-500 ease-out h-full ${
-            isQuarantined ? 'cursor-not-allowed opacity-60 grayscale-[0.3] bg-content1' 
-            : isSelected ? 'cursor-pointer border-transparent text-primary-foreground z-[50] bg-primary shadow-[0_20px_50px_-15px] shadow-primary/40' : 'cursor-pointer bg-content1 border-border/50 z-[1] hover:border-border hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:-translate-y-1 shadow-sm'
+          className={`group w-full flex flex-col p-6 border-2 rounded-3xl relative overflow-visible transition-all duration-300 ease-out h-full ${
+            isQuarantined ? 'cursor-not-allowed opacity-75 grayscale-[0.5] bg-content2 border-transparent' 
+            : isSelected ? 'cursor-pointer border-transparent text-primary-foreground z-[50] bg-primary shadow-2xl shadow-primary/30 scale-[1.02]' 
+            : 'cursor-pointer bg-content1 border-border/40 z-[1] hover:border-border hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1'
           }`}
         >
-          <div className={`absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/20 to-transparent ${isSelected && !isQuarantined ? 'opacity-100' : 'group-hover:opacity-10'}`} />
+          <div className={`absolute inset-0 rounded-3xl opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/20 to-transparent ${isSelected && !isQuarantined ? 'opacity-100' : 'group-hover:opacity-10'}`} />
+          
           {srv.badge && !isQuarantined && (
             <div 
-              className={`absolute -top-3 -right-2 z-20 px-2.5 py-1 rounded-md text-[10px] tracking-widest font-black uppercase transition-all duration-300 pointer-events-none flex items-center justify-center transform-gpu border-2 ${
+              className={`absolute -top-3 -right-2 z-20 px-3 py-1 rounded-full text-[10px] tracking-widest font-black uppercase transition-all duration-300 pointer-events-none flex items-center justify-center transform-gpu border-2 ${
                 isSelected 
-                  ? 'bg-content1 text-primary border-primary shadow-[0_8px_16px_-4px] shadow-primary/30' 
-                  : 'bg-primary text-primary-foreground border-transparent shadow-sm'
+                  ? 'bg-content1 text-primary border-primary shadow-lg shadow-primary/30' 
+                  : 'bg-primary text-primary-foreground border-transparent shadow-md'
               }`}
             >
               {srv.badge}
             </div>
           )}
           {isQuarantined && (
-            <div className="absolute -top-3 -right-2 z-20 px-2.5 py-1 rounded-md text-[10px] tracking-widest font-black uppercase shadow-sm bg-rose-100 text-rose-700 border-2 border-rose-200">
-              QUALITY CHECK
+            <div className="absolute -top-3 -right-2 z-20 px-3 py-1 rounded-full text-[10px] tracking-widest font-black uppercase shadow-sm bg-danger text-danger-foreground border-2 border-danger-200">
+              КАРАНТИН
             </div>
           )}
           
-          <div className="flex-1 flex flex-col pt-1 relative z-10">
-             <h4 className={`font-extrabold text-[15px] transition-colors duration-300 leading-[22px] mb-4 min-h-[44px] break-words ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>{srv.name}</h4>
-             <div className="flex-1 mb-5 flex flex-col">
-               <p className={`text-[13px] font-medium leading-relaxed p-4 rounded-xl border transition-all duration-300 ${isSelected && !isQuarantined ? 'bg-content1/10 border-white/20 text-white/90 shadow-inner' : isQuarantined ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-default-100/60 border-border/60 text-muted-foreground'}`}>
+          <div className="flex-1 flex flex-col pt-2 relative z-10">
+             <h4 className={`font-extrabold text-base transition-colors duration-300 leading-snug mb-4 min-h-[44px] break-words ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>
+               {srv.name}
+             </h4>
+             <div className="flex-1 mb-6 flex flex-col">
+               <p className={`text-sm font-medium leading-relaxed p-4 rounded-2xl border transition-all duration-300 ${
+                  isSelected && !isQuarantined ? 'bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground/90 shadow-inner' 
+                  : isQuarantined ? 'bg-danger/10 border-danger/20 text-danger' 
+                  : 'bg-content2/50 border-border/50 text-muted-foreground'
+                }`}>
                  <span className="line-clamp-6">
                    {isQuarantined 
-                     ? `Временно приостановлено для контроля качества (до ${new Date(srv.cooldownUntil!).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}). Пожалуйста, выберите аналогичную рабочую услугу.` 
+                     ? `Услуга временно приостановлена (до ${new Date(srv.cooldownUntil!).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}). Пожалуйста, выберите аналогичную услугу из списка.` 
                      : (srv.description || (srv.name.toLowerCase().includes('без гарант') 
-                     ? "Услуга без гарантии. В случае отписок или списаний восстановление (докрутка) не производится." 
-                     : "Стандартные условия сервиса. Скорость и качество зависят от выбранного провайдера."))}
+                     ? "Услуга без гарантии. В случае отписок восстановление не производится." 
+                     : "Стандартные условия сервиса. Скорость зависит от текущей нагрузки провайдера."))}
                  </span>
                </p>
              </div>
-             <p className={`text-xs font-bold flex items-center transition-colors duration-300 justify-between mt-auto px-1 ${isSelected ? 'text-white/70' : 'text-muted-foreground'}`}>
-               <span>Запуск: <span className={isSelected ? 'text-white' : 'text-foreground'}>{srv.speed}</span></span>
-               <span>Мин: <span className={isSelected ? 'text-white' : 'text-foreground'}>{srv.minQty}</span></span>
+             <p className={`text-xs font-bold flex items-center transition-colors duration-300 justify-between mt-auto px-1 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/80'}`}>
+               <span>Запуск: <span className={isSelected ? 'text-primary-foreground' : 'text-foreground'}>{srv.speed}</span></span>
+               <span>Мин: <span className={isSelected ? 'text-primary-foreground' : 'text-foreground'}>{srv.minQty}</span></span>
              </p>
           </div>
-          <div className={`mt-5 pt-4 flex justify-between items-end px-1 relative z-10 transition-colors duration-300 ${isSelected ? 'border-t border-white/20' : 'border-t border-border/50'}`}>
+          
+          <div className={`mt-6 pt-5 flex justify-between items-end px-1 relative z-10 transition-colors duration-300 ${isSelected ? 'border-t border-primary-foreground/20' : 'border-t border-border/40'}`}>
             <div>
-              <p className={`text-[10px] uppercase font-black tracking-wider mb-1 transition-colors duration-300 ${isSelected ? 'text-white/70' : 'text-muted-foreground'}`}>Цена за 1 шт.</p>
-              <p className={`text-2xl font-black tabular-nums leading-none transition-colors duration-300 ${isSelected ? 'text-white' : 'text-foreground'}`}>
+              <p className={`text-[10px] uppercase font-black tracking-wider mb-1.5 transition-colors duration-300 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>Цена за 1 шт.</p>
+              <p className={`text-3xl font-black tabular-nums leading-none transition-colors duration-300 ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>
                   {parseFloat(((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000).toFixed(4) : (srv.pricePer1kRub / 1000).toFixed(2))).toString()} ₽
               </p>
             </div>
-            <div className={`w-7 h-7 rounded-full border-[2.5px] flex items-center justify-center transition-all duration-300 ${
-              isSelected ? 'border-white bg-content1 scale-110 shadow-md text-primary' : 'border-border bg-content2 text-slate-300 group-hover:border-primary/50 group-hover:text-primary'
+            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+              isSelected ? 'border-primary-foreground bg-primary-foreground text-primary shadow-sm scale-110' : 'border-border/60 bg-transparent text-transparent group-hover:border-border'
             }`}>
-              <Check className="w-4 h-4" strokeWidth={3} />
+              <Check className="w-4 h-4" strokeWidth={isSelected ? 4 : 3} />
             </div>
           </div>
         </Card>
@@ -96,40 +101,38 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
         role="button"
         tabIndex={0}
         onClick={() => {
-           if (selectedService?.id === srv.id) {
-             setSelectedService(null);
-          } else {
-             setSelectedService(srv);
-           }
+           setSelectedService(selectedService?.id === srv.id ? null : srv);
            setIsServiceDropdownOpen(false);
         }}
-        className={`cursor-pointer w-full text-left p-3 rounded-xl transition-all flex items-start justify-between gap-3 relative overflow-hidden ${
+        className={`cursor-pointer w-full text-left p-4 rounded-2xl transition-all flex items-start justify-between gap-4 relative overflow-hidden border-2 ${
            selectedService?.id === srv.id 
-           ? 'bg-primary/5 border-primary/20' 
-           : 'hover:bg-content2 border-transparent'
-        } border`}
+           ? 'bg-primary/5 border-primary/30 shadow-md' 
+           : 'hover:bg-content2 border-transparent hover:border-border/50'
+        }`}
       >
-        <div className="flex-1 flex flex-col pt-0.5">
+        <div className="flex-1 flex flex-col">
           <div className="font-bold text-[13px] sm:text-sm leading-tight text-foreground line-clamp-3">
-            <span className={`text-[9px] font-mono px-1 py-0.5 rounded mr-1.5 align-middle inline-block -mt-0.5 shrink-0 ${selectedService?.id === srv.id ? 'bg-primary/20 text-primary' : 'bg-default-100 text-muted-foreground'}`}>
+            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded mr-2 align-middle inline-block -mt-0.5 shrink-0 ${selectedService?.id === srv.id ? 'bg-primary text-primary-foreground' : 'bg-default-100 text-muted-foreground'}`}>
                ID {srv.numericId}
             </span>
             {srv.name}
           </div>
-          <div className="mt-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-3">
-            <span>{((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000) : (srv.pricePer1kRub / 1000)).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽/шт</span>
-            <span>Мин: {srv.minQty}</span>
+          <div className="mt-2 text-xs font-semibold text-muted-foreground flex items-center gap-3">
+            <span className={selectedService?.id === srv.id ? 'text-primary' : ''}>
+              {((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000) : (srv.pricePer1kRub / 1000)).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽/шт
+            </span>
+            <span className="opacity-70">Мин: {srv.minQty}</span>
           </div>
         </div>
-        <div className="flex flex-col items-end justify-start gap-2 shrink-0 pt-0.5">
+        <div className="flex flex-col items-end justify-start shrink-0 pt-0.5">
            {selectedService?.id === srv.id && (
-              <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center mt-0.5">
-                 <CheckCircle2 className="w-3 h-3 text-primary-foreground" />
+              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-sm">
+                 <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" strokeWidth={3} />
               </div>
            )}
         </div>
       </div>
-   ));
+    ));
   }, [services, selectedService, setSelectedService]);
 
   return (

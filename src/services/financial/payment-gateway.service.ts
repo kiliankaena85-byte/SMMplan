@@ -171,10 +171,11 @@ class BalanceGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     const amountCents = Math.round(params.amountRub * 100);
     const remoteId = `internal_${Date.now()}`;
+    const { ordersQueue } = await import('@/workers/queues');
 
     // Perform atomic deduction inside the transaction to prevent race condition double-spending
-    await MutexManager.withLock(`balance_lock_${params.userId}`, 30000, 5000, async () => {
-      await db.$transaction(async (tx) => {
+    const updatedOrderIds: string[] = await MutexManager.withLock(`balance_lock_${params.userId}`, 30000, 5000, async () => {
+      return await db.$transaction(async (tx) => {
         // Atomic WalletOps deduction
         await WalletOps.charge(tx, params.userId, amountCents, params.description);
 
@@ -183,19 +184,32 @@ class BalanceGateway extends BasePaymentGateway {
           data: { status: 'SUCCEEDED', gatewayId: remoteId }
         });
 
+        // Update any specific order if passed
+        const ids = [];
         if (params.orderId) {
           await tx.order.update({
             where: { id: params.orderId },
             data: { status: 'PENDING' }
           });
+          ids.push(params.orderId);
         }
+
+        // Also update any orders linked to this paymentId (Mass Orders / Basket)
+        const basketOrders = await tx.order.findMany({ where: { paymentId: params.paymentId, status: 'AWAITING_PAYMENT' } });
+        if (basketOrders.length > 0) {
+          await tx.order.updateMany({
+            where: { paymentId: params.paymentId, status: 'AWAITING_PAYMENT' },
+            data: { status: 'PENDING' }
+          });
+          ids.push(...basketOrders.map(o => o.id));
+        }
+        
+        return ids;
       });
     });
 
-    if (params.orderId) {
-      // Add to queue with cooling-off delay (Consistency Fix)
-      const { ordersQueue } = await import('@/workers/queues');
-      await ordersQueue.add('order-dispatch', { orderId: params.orderId }, { delay: 3 * 60 * 1000 });
+    for (const id of updatedOrderIds) {
+      await ordersQueue.add('order-dispatch', { orderId: id }, { delay: 3 * 60 * 1000 });
     }
 
     return {

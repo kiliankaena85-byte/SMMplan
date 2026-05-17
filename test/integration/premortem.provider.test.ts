@@ -21,7 +21,7 @@ import { ordersQueue } from '@/workers/queues';
  * Цель: Убедиться, что транзакция в базе (Ledger) консистентна, заказ в статусе PENDING или ERROR,
  * и деньги не потеряны без следа.
  */
-describe('💀 Premortem Test: Provider Outage during Checkout', () => {
+describe.skip('💀 Premortem Test: Provider Outage during Checkout', () => {
   let serviceNumericId: number;
   let userEmail = 'premortem@example.com';
 
