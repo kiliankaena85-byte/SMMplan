@@ -23,7 +23,9 @@ test.describe('Users Management Flow', () => {
     await page.goto('/admin/clients');
 
     // Get the user link and perform a hard navigation to bypass router cache
-    const href = await page.locator(`a:has-text("${testEmail}")`).getAttribute('href');
+    const userLink = page.locator(`a:has-text("${testEmail}")`);
+    await expect(userLink).toBeVisible({ timeout: 10000 });
+    const href = await userLink.getAttribute('href');
     await page.goto(href!);
     
     // Wait for the UI to load inside the page

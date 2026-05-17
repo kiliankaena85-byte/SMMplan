@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { MutexManager } from '@/lib/redis-lock';
 
 type PrismaTx = Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
@@ -20,61 +21,63 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    // 1. Check Idempotency immediately
-    if (idempotencyKey) {
-      const existing = await tx.ledgerEntry.findUnique({
-        where: { idempotencyKey },
+    return MutexManager.withLock(`wallet_ops:${userId}`, 10000, 5000, async () => {
+      // 1. Check Idempotency immediately
+      if (idempotencyKey) {
+        const existing = await tx.ledgerEntry.findUnique({
+          where: { idempotencyKey },
+        });
+        
+        if (existing) {
+          return { success: true, balance: null, cached: true, entry: existing };
+        }
+      }
+
+      // 2. Atomic Check-and-Decrement (Optimistic Concurrency Control)
+      // We update ONLY if balance is sufficient. This prevents TOCTOU races.
+      const updatedUserBatch = await tx.user.updateMany({
+        where: { 
+          id: userId,
+          balance: { gte: amountCents }
+        },
+        data: {
+          balance: { decrement: amountCents },
+          totalSpent: { increment: amountCents }
+        }
       });
-      
-      if (existing) {
-        return { success: true, balance: null, cached: true, entry: existing };
-      }
-    }
 
-    // 2. Atomic Check-and-Decrement (Optimistic Concurrency Control)
-    // We update ONLY if balance is sufficient. This prevents TOCTOU races.
-    const updatedUserBatch = await tx.user.updateMany({
-      where: { 
-        id: userId,
-        balance: { gte: amountCents }
-      },
-      data: {
-        balance: { decrement: amountCents },
-        totalSpent: { increment: amountCents }
+      if (updatedUserBatch.count === 0) {
+        // Find out WHY it failed to provide a clear error message
+        const checkUser = await tx.user.findUnique({
+          where: { id: userId },
+          select: { id: true, balance: true },
+        });
+        if (!checkUser) {
+          throw new Error(`User ${userId} not found.`);
+        }
+        throw new Error(`Insufficient funds: needed ${amountCents}, got ${checkUser.balance}`);
       }
-    });
 
-    if (updatedUserBatch.count === 0) {
-      // Find out WHY it failed to provide a clear error message
-      const checkUser = await tx.user.findUnique({
+      // 3. Fetch the new balance safely within the same transaction lock
+      const finalUser = await tx.user.findUniqueOrThrow({
         where: { id: userId },
-        select: { id: true, balance: true },
+        select: { balance: true }
       });
-      if (!checkUser) {
-        throw new Error(`User ${userId} not found.`);
-      }
-      throw new Error(`Insufficient funds: needed ${amountCents}, got ${checkUser.balance}`);
-    }
 
-    // 3. Fetch the new balance safely within the same transaction lock
-    const finalUser = await tx.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: { balance: true }
+      // 5. Create Ledger Audit Log
+      const entry = await tx.ledgerEntry.create({
+        data: {
+          userId,
+          adminId,
+          amount: -amountCents, // Native negative for debits
+          reason,
+          status: 'APPROVED',
+          idempotencyKey,
+        }
+      });
+
+      return { success: true, balance: finalUser.balance, cached: false, entry };
     });
-
-    // 5. Create Ledger Audit Log
-    const entry = await tx.ledgerEntry.create({
-      data: {
-        userId,
-        adminId,
-        amount: -amountCents, // Native negative for debits
-        reason,
-        status: 'APPROVED',
-        idempotencyKey,
-      }
-    });
-
-    return { success: true, balance: finalUser.balance, cached: false, entry };
   },
 
   /**
@@ -93,33 +96,35 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    if (idempotencyKey) {
-      const existing = await tx.ledgerEntry.findUnique({
-        where: { idempotencyKey },
+    return MutexManager.withLock(`wallet_ops:${userId}`, 10000, 5000, async () => {
+      if (idempotencyKey) {
+        const existing = await tx.ledgerEntry.findUnique({
+          where: { idempotencyKey },
+        });
+        if (existing) {
+            return { success: true, balance: null, cached: true, entry: existing };
+        }
+      }
+
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { balance: { increment: amountCents } },
+        select: { balance: true }
       });
-      if (existing) {
-          return { success: true, balance: null, cached: true, entry: existing };
-      }
-    }
 
-    const updatedUser = await tx.user.update({
-      where: { id: userId },
-      data: { balance: { increment: amountCents } },
-      select: { balance: true }
+      const entry = await tx.ledgerEntry.create({
+        data: {
+          userId,
+          adminId,
+          amount: amountCents, // Native positive for credits
+          reason,
+          status: 'APPROVED',
+          idempotencyKey,
+        }
+      });
+
+      return { success: true, balance: updatedUser.balance, cached: false, entry };
     });
-
-    const entry = await tx.ledgerEntry.create({
-      data: {
-        userId,
-        adminId,
-        amount: amountCents, // Native positive for credits
-        reason,
-        status: 'APPROVED',
-        idempotencyKey,
-      }
-    });
-
-    return { success: true, balance: updatedUser.balance, cached: false, entry };
   },
 
   /**
@@ -139,33 +144,35 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    if (idempotencyKey) {
-      const existing = await tx.ledgerEntry.findUnique({
-        where: { idempotencyKey },
+    return MutexManager.withLock(`wallet_ops:${userId}`, 10000, 5000, async () => {
+      if (idempotencyKey) {
+        const existing = await tx.ledgerEntry.findUnique({
+          where: { idempotencyKey },
+        });
+        if (existing) {
+            return { success: true, balance: null, cached: true, entry: existing };
+        }
+      }
+
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { balance: { increment: amountCents } },
+        select: { balance: true }
       });
-      if (existing) {
-          return { success: true, balance: null, cached: true, entry: existing };
-      }
-    }
 
-    const updatedUser = await tx.user.update({
-      where: { id: userId },
-      data: { balance: { increment: amountCents } },
-      select: { balance: true }
+      const entry = await tx.ledgerEntry.create({
+        data: {
+          userId,
+          adminId,
+          amount: amountCents, 
+          reason,
+          status: 'APPROVED',
+          idempotencyKey,
+        }
+      });
+
+      return { success: true, balance: updatedUser.balance, cached: false, entry };
     });
-
-    const entry = await tx.ledgerEntry.create({
-      data: {
-        userId,
-        adminId,
-        amount: amountCents, 
-        reason,
-        status: 'APPROVED',
-        idempotencyKey,
-      }
-    });
-
-    return { success: true, balance: updatedUser.balance, cached: false, entry };
   },
 
   /**
@@ -190,35 +197,37 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    if (idempotencyKey) {
-      const existing = await tx.ledgerEntry.findUnique({
-        where: { idempotencyKey },
+    return MutexManager.withLock(`wallet_ops:${userId}`, 10000, 5000, async () => {
+      if (idempotencyKey) {
+        const existing = await tx.ledgerEntry.findUnique({
+          where: { idempotencyKey },
+        });
+        if (existing) {
+          return { success: true, balance: null, cached: true, entry: existing };
+        }
+      }
+
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: {
+          balance: { increment: amountCents },
+          totalSpent: { decrement: amountCents }
+        },
+        select: { balance: true }
       });
-      if (existing) {
-        return { success: true, balance: null, cached: true, entry: existing };
-      }
-    }
 
-    const updatedUser = await tx.user.update({
-      where: { id: userId },
-      data: {
-        balance: { increment: amountCents },
-        totalSpent: { decrement: amountCents }
-      },
-      select: { balance: true }
+      const entry = await tx.ledgerEntry.create({
+        data: {
+          userId,
+          adminId,
+          amount: amountCents,
+          reason,
+          status: 'APPROVED',
+          idempotencyKey,
+        }
+      });
+
+      return { success: true, balance: updatedUser.balance, cached: false, entry };
     });
-
-    const entry = await tx.ledgerEntry.create({
-      data: {
-        userId,
-        adminId,
-        amount: amountCents,
-        reason,
-        status: 'APPROVED',
-        idempotencyKey,
-      }
-    });
-
-    return { success: true, balance: updatedUser.balance, cached: false, entry };
   }
 };
