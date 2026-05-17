@@ -111,8 +111,8 @@ function RowActions({ order }: { order: OrderColumn }) {
     <div className="flex items-center gap-1.5">
       <Link
         href={`?edit_order_id=${order.id}`}
-        className="inline-flex items-center justify-center p-1.5 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition-colors"
-        title="Редактировать заказ"
+        className="inline-flex items-center justify-center p-1.5 bg-sky-50 text-sky-600 rounded hover:bg-sky-100 transition-colors"
+        title="Открыть панель деталей"
       >
         <Edit2 className="w-3.5 h-3.5" />
       </Link>
@@ -196,19 +196,19 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   },
   {
     accessorKey: 'numericId',
-    header: 'ID',
-    cell: ({ row }) => (
-      <div className="flex flex-col text-xs leading-snug tabular-nums tracking-tight">
-        <span className="font-bold text-foreground whitespace-nowrap">
-          {row.original.numericId}
-        </span>
-        {row.original.externalId && canSeeRates && (
-          <span className="text-muted-foreground font-normal whitespace-nowrap">
-            ({row.original.externalId})
-          </span>
-        )}
-      </div>
-    ),
+    header: 'Заказ',
+    cell: ({ row }) => {
+      const dateStr = new Date(row.original.createdAt).toLocaleString('ru-RU', { 
+        day: '2-digit', month: '2-digit', year: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+      }).replace(',', '');
+      return (
+        <div className="flex flex-col text-xs leading-snug">
+          <div className="font-bold text-foreground tabular-nums tracking-tight">#{row.original.numericId}</div>
+          <div className="text-muted-foreground text-[10px] tabular-nums mt-0.5">{dateStr}</div>
+        </div>
+      );
+    },
   },
   {
     accessorKey: 'user.email',
@@ -227,45 +227,60 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   },
   {
     id: 'info',
-    header: 'Информация',
+    header: 'Услуга и Информация',
     cell: ({ row }) => {
       const order = row.original;
-      const dateStr = new Date(order.createdAt).toLocaleString('ru-RU', { 
-        year: 'numeric', month: '2-digit', day: '2-digit', 
-        hour: '2-digit', minute: '2-digit', second: '2-digit' 
-      }).replace(',', '');
-
       return (
-        <div className="flex flex-col text-[13px] leading-relaxed text-foreground space-y-0.5 py-1">
-          <div><span className="text-muted-foreground mr-1">Категория:</span>{order.service.category.network?.name || 'Без сети'}</div>
-          <div><span className="text-muted-foreground mr-1">Активность:</span>{order.service.category.name}</div>
-          <div><span className="text-muted-foreground mr-1">Сервис:</span>{order.service.name}</div>
-          <div className="flex flex-wrap items-baseline">
-            <span className="text-muted-foreground mr-1">Ссылка:</span>
-            <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 hover:underline break-all transition-colors">
+        <div className="flex flex-col text-[13px] leading-relaxed text-foreground py-1 min-w-[300px] max-w-[400px]">
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-[80px] shrink-0">Категория:</span>
+            <span className="font-medium text-foreground truncate" title={order.service.category.network?.name || '—'}>{order.service.category.network?.name || '—'}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-[80px] shrink-0">Активность:</span>
+            <span className="font-medium text-foreground truncate" title={order.service.category.name}>{order.service.category.name}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-[80px] shrink-0">Сервис:</span>
+            <span className="font-medium text-foreground truncate" title={order.service.name}>{order.service.name}</span>
+          </div>
+          <div className="flex gap-2 mt-1">
+            <span className="text-muted-foreground w-[80px] shrink-0">Ссылка:</span>
+            <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 hover:underline break-all" onClick={e => e.stopPropagation()}>
               {order.link}
             </a>
           </div>
-          <div><span className="text-muted-foreground mr-1">Кол-во:</span>{order.quantity.toLocaleString('ru-RU')}</div>
-          <div><span className="text-muted-foreground mr-1">Дата создания:</span>{dateStr}</div>
+          <div className="flex gap-2 mt-0.5">
+            <span className="text-muted-foreground w-[80px] shrink-0">Кол-во:</span>
+            <span className="font-medium tabular-nums text-foreground">{(order.quantity).toLocaleString('ru-RU')}</span>
+          </div>
           
           <details className="mt-1.5 group">
             <summary className="text-sky-600 hover:text-sky-800 cursor-pointer text-xs select-none list-none inline-flex items-center transition-colors font-medium">
-              <span className="group-open:hidden">Показать детали</span>
-              <span className="hidden group-open:inline">Скрыть детали</span>
+              <span className="group-open:hidden">Показать логи и детали</span>
+              <span className="hidden group-open:inline">Скрыть логи</span>
             </summary>
             <div className="mt-1.5 pt-1.5 border-t border-border/50 text-xs text-foreground space-y-1">
-              <div><span className="text-muted-foreground mr-1">Провайдер:</span>{order.providerName || '—'}</div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Провайдер:</span>
+                <span className="font-medium">{order.providerName || '—'}</span>
+              </div>
               {canSeeRates && (
                 <>
-                  <div><span className="text-muted-foreground mr-1">ID заказа у провайдера:</span>{order.externalId ? `#${order.externalId}` : '—'}</div>
-                  <div><span className="text-muted-foreground mr-1">Себестоимость:</span>{(order.providerCost / 100).toFixed(2)} ₽</div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ID у провайдера:</span>
+                    <span className="font-mono">{order.externalId ? `#${order.externalId}` : '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Себестоимость:</span>
+                    <span className="tabular-nums">{(order.providerCost / 100).toFixed(2)} ₽</span>
+                  </div>
                 </>
               )}
               {order.error && (
-                <div className="flex flex-col mt-1">
-                  <span className="text-muted-foreground">Комментарий провайдера:</span>
-                  <span className="text-destructive break-words font-mono mt-0.5">{order.error}</span>
+                <div className="flex flex-col mt-1.5 bg-destructive/5 border border-destructive/20 rounded p-1.5">
+                  <span className="text-[10px] uppercase font-bold text-destructive">Ошибка провайдера:</span>
+                  <span className="text-destructive break-words font-mono mt-0.5 leading-tight">{order.error}</span>
                 </div>
               )}
               {order.isDripFeed && order.dripExternalIds && order.dripExternalIds.length > 0 && (
@@ -288,9 +303,9 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   },
   {
     accessorKey: 'charge',
-    header: 'Цена',
+    header: () => <div className="text-right">Цена</div>,
     cell: ({ row }) => (
-      <div className="text-xs font-semibold whitespace-nowrap text-foreground tabular-nums">
+      <div className="text-xs font-semibold whitespace-nowrap text-foreground tabular-nums text-right">
         {(row.original.charge / 100).toFixed(2)} ₽
       </div>
     ),

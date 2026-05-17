@@ -147,7 +147,9 @@ model Service {
   providerId  String? // Link to Provider who fulfills this service
   provider    Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
   rate        Float // provider rate per 1000
+  providerCurrency String @default("USD") // Dual-Ledger: tracks original currency of rate
   markup      Float     @default(3.0) // 300% markup
+  anomalyScore Int      @default(0) // Data Intelligence: 0-100 score for suspicious provider claims
   minQty      Int       @default(10)
   maxQty      Int       @default(100000)
   externalId  String? // mapped ID to provider
@@ -176,6 +178,11 @@ model Service {
   etaSampleCount Int       @default(0) // Number of completed orders behind the estimate
   etaSpeedClass  String? // FAST | MEDIUM | SLOW | ULTRA_SLOW
   etaUpdatedAt   DateTime? // Last ETA recalculation timestamp
+
+  // Link Target & Format Validation (Wave 2)
+  targetType        String   @default("POST") // POST, PROFILE, CHANNEL, COMMENT, POLL, VK_WALL, etc.
+  customDataType    String   @default("NONE") // NONE, TEXTAREA, NUMBER
+  isMediaGroupAware Boolean  @default(false) // If false, backend splits "123-125" into separate orders
 
   isActive          Boolean  @default(true)
   pricePer1000Cents Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
@@ -364,11 +371,32 @@ model SystemSettings {
   siteLogoUrl    String? // URL to uploaded logo
   siteFaviconUrl String? // URL to uploaded favicon
 
+  // SMTP Settings (Email Integration)
+  smtpHost           String?
+  smtpPort           Int     @default(465)
+  smtpUser           String?
+  smtpPassword       String? // AES-256-GCM encrypted
+  supportEmailDomain String? // e.g. "smmplan.pro" used for inbound webhook
+
   // Robokassa (encrypted)
   robokassaLogin    String?
   robokassaPassword String?
 
   updatedAt DateTime @updatedAt
+
+  // Contact & Social Information
+  contactSupportEmail    String?
+  contactPrivacyEmail    String?
+  contactTelegramBot     String?
+  contactTelegramChannel String?
+  contactWhatsApp        String?
+  contactVk              String?
+
+  // Legal Information
+  legalCompanyName    String?
+  legalCompanyInn     String?
+  legalCompanyOgrnip  String?
+  legalCompanyAddress String?
 }
 
 model Ticket {
@@ -510,8 +538,6 @@ model SupportTemplate {
   updatedAt DateTime @updatedAt
 }
 
-
-
 // Telemetry
 model AnalyticsEvent {
   id        String   @id @default(cuid())
@@ -619,9 +645,71 @@ model RoutingAuditLog {
 // Global System Settings (Key-Value Store)
 model SystemSetting {
   key         String   @id // e.g. "SUPPORT_EMAIL", "COMPANY_INN"
-  value       String   // String value, can be stringified JSON if needed
+  value       String // String value, can be stringified JSON if needed
   group       String   @default("GENERAL") // e.g. "CONTACTS", "LEGAL", "SEO"
-  description String?  // Admin-facing description
+  description String? // Admin-facing description
   updatedAt   DateTime @updatedAt
-  updatedBy   String?  // Admin email who last updated it
+  updatedBy   String? // Admin email who last updated it
+}
+
+// ── Enterprise CMS ──
+
+enum ContentType {
+  PAGE
+  ACADEMY_LESSON
+  GLOSSARY_TERM
+  NEWS_POST
+}
+
+model ContentCategory {
+  id       String            @id @default(cuid())
+  name     String
+  slug     String            @unique
+  parentId String?
+  parent   ContentCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children ContentCategory[] @relation("CategoryTree")
+  items    ContentItem[]
+
+  sort      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+}
+
+model ContentItem {
+  id         String      @id @default(cuid())
+  type       ContentType @default(PAGE)
+  slug       String      @unique
+  title      String
+  excerpt    String?
+  coverImage String?
+
+  // Dual Storage
+  contentJson String? // Stored as stringified JSON block array
+  contentHtml String? // Rendered HTML
+
+  // Relations
+  categoryId String?
+  category   ContentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // Metadata & Stats
+  authorName String?
+  viewCount  Int     @default(0)
+
+  // Publishing Workflow
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  readTimeMinutes Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([slug])
+  @@index([categoryId])
 }

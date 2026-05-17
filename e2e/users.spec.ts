@@ -19,11 +19,16 @@ test.describe('Users Management Flow', () => {
       });
     }
 
-    // 2. Go to Clients page and select the user
-    await page.goto(`/admin/clients?userId=${testUser.id}`);
+    // 2. Go to Clients page
+    await page.goto('/admin/clients');
 
-    // Wait for the UI to load
-    await expect(page.getByText('Корректировка баланса')).toBeVisible({ timeout: 15000 });
+    // Get the user link and perform a hard navigation to bypass router cache
+    const href = await page.locator(`a:has-text("${testEmail}")`).getAttribute('href');
+    await page.goto(href!);
+    
+    // Wait for the UI to load inside the page
+    await page.waitForTimeout(2000); // give it a moment
+    await expect(page.locator('input[name="amount"]')).toBeVisible({ timeout: 15000 });
 
     // 3. Fill amount and reason
     await page.locator('input[name="amount"]').fill('50000'); // 500 RUB (50000 kopecks)
@@ -33,7 +38,7 @@ test.describe('Users Management Flow', () => {
     page.once('dialog', dialog => dialog.accept());
 
     // 5. Submit
-    await page.getByRole('button', { name: /Применить/i }).click();
+    await page.getByRole('button', { name: 'Применить изменение' }).click();
 
     // 6. Verify balance in UI reflects 500.00
     // Because the UI formats 50000 kopecks as '500.00 ₽'

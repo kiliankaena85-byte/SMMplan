@@ -17,6 +17,7 @@ export type PublicService = {
   description: string | null;
   speed: string;
   badge: string;
+  targetType?: string | null;
   features?: any;
   cooldownUntil?: string | null;
 };
@@ -126,6 +127,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           maxQty: s.maxQty,
           speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',
           badge,
+          targetType: s.targetType,
           features: s.features,
           cooldownUntil: s.cooldownUntil ? s.cooldownUntil.toISOString() : null
        };

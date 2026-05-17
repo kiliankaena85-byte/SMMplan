@@ -82,46 +82,7 @@
   }
 }
 
-.dark, .sky-dark, .emerald-dark, .violet-dark, [data-theme='dark'], [data-theme='sky-dark'], [data-theme='emerald-dark'], [data-theme='violet-dark'] {
-    /* ── Base (Dark) ── */
-    --color-background: #0f172a; /* slate-900 */
-    --color-foreground: #f8fafc; /* slate-50 */
 
-    /* ── Card (Dark) ── */
-    --color-card: #1e293b;
-    --color-card-foreground: #f8fafc;
-
-    /* ── Popover (Dark) ── */
-    --color-popover: #1e293b;
-    --color-popover-foreground: #f8fafc;
-
-    /* ── Primary (sky-500 for better contrast) ── */
-    --color-primary: #0ea5e9;
-    --color-primary-foreground: #ffffff;
-
-    /* ── Secondary (slate-800) ── */
-    --color-secondary: #1e293b;
-    --color-secondary-foreground: #f8fafc;
-
-    /* ── Muted (slate-800 / slate-300 for contrast) ── */
-    --color-muted: #1e293b;
-    --color-muted-foreground: #cbd5e1;
-
-    /* ── Accent ── */
-    --color-accent: #1e293b;
-    --color-accent-foreground: #f8fafc;
-
-    /* ── Destructive (rose-500) ── */
-    --color-destructive: #f43f5e;
-    --color-destructive-foreground: #f8fafc;
-
-    /* ── Borders & Inputs (slate-700) ── */
-    --color-border: #334155;
-    --color-input: #1e293b;
-
-    /* ── Focus Ring (sky-400) ── */
-    --color-ring: #0ea5e9;
-}
 
 /* --- THEME: EMERALD (Финансовая, Конверсионная) --- */
 .emerald-light, .emerald-dark, [data-theme="emerald-light"], [data-theme="emerald-dark"] {

@@ -40,8 +40,8 @@ export function DynamicPayloadWarnings({ engine }: DynamicPayloadWarningsProps) 
   return (
     <div className="bg-background/50 p-6 md:px-8 flex flex-col gap-4">
       {isMismatch && (
-         <div className="w-full bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 flex items-start gap-3 shadow-sm">
-           <Zap className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
+         <div className="w-full bg-danger-50 dark:bg-danger-50/10 border border-danger-200 dark:border-danger-900/50 text-danger-700 dark:text-danger-500 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+           <Zap className="w-5 h-5 shrink-0 mt-0.5 text-danger-500" />
            <div className="text-sm">
              <p className="font-bold">Критическое несовпадение платформы!</p>
              <p className="mt-1 opacity-90">Вы вставили ссылку для <strong>{engine.platform}</strong>, но пытаетесь заказать услугу для <strong>{activeNetworkName}</strong>. Заказ заблокирован, пожалуйста, исправьте ссылку или выберите правильную соцсеть.</p>
@@ -50,8 +50,8 @@ export function DynamicPayloadWarnings({ engine }: DynamicPayloadWarningsProps) 
       )}
 
       {isLiveStream && (
-         <div className="w-full bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 flex items-start gap-3">
-           <Zap className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
+         <div className="w-full bg-danger-50 dark:bg-danger-50/10 border border-danger-200 dark:border-danger-900/50 text-danger-700 dark:text-danger-500 rounded-xl p-4 flex items-start gap-3">
+           <Zap className="w-5 h-5 shrink-0 mt-0.5 text-danger-500" />
            <div className="text-sm">
              <p className="font-bold">Внимание: Заказ на Прямой Эфир!</p>
              <p className="mt-1 opacity-90">Услуга для запущенной трансляции. Если стрим прервется, гарантия сгорает!</p>
@@ -60,8 +60,8 @@ export function DynamicPayloadWarnings({ engine }: DynamicPayloadWarningsProps) 
       )}
 
       {isPrivateChannel && (
-         <div className="w-full bg-amber-50 border border-amber-200 text-amber-700 rounded-xl p-4 flex items-start gap-3">
-           <Zap className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+         <div className="w-full bg-warning-50 dark:bg-warning-50/10 border border-warning-200 dark:border-warning-900/50 text-warning-700 dark:text-warning-500 rounded-xl p-4 flex items-start gap-3">
+           <Zap className="w-5 h-5 shrink-0 mt-0.5 text-warning-500" />
            <div className="text-sm">
              <p className="font-bold">Требуется приватная ссылка</p>
              <p className="mt-1 opacity-90">Используйте ссылку-приглашение (напр. t.me/+AbcDeF). Иначе заказ будет отменен.</p>

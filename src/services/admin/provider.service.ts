@@ -16,6 +16,39 @@ export type ProviderListDTO = {
   createdAt: string;
 };
 
+export type ApiMappingDTO = {
+  httpMethod?: 'GET' | 'POST';
+  contentType?: 'form' | 'json';
+  auth: {
+    type: 'body' | 'query' | 'header';
+    field: string;
+    prefix?: string;
+  };
+  order: {
+    serviceField: string;
+    linkField: string;
+    quantityField: string;
+  };
+  response: {
+    orderIdField: string;
+    errorField: string;
+  };
+  catalog?: {
+    itemsPath?: string;
+    serviceIdField?: string;
+    nameField?: string;
+    priceField?: string;
+    minField?: string;
+    maxField?: string;
+    typeField?: string;
+    descField?: string;
+  };
+  balance?: {
+    balancePath?: string;
+    currencyPath?: string;
+  };
+};
+
 /** Detail DTO for edit form — includes metadata but NEVER the raw apiKey */
 export type ProviderDetailDTO = {
   id: string;
@@ -23,9 +56,7 @@ export type ProviderDetailDTO = {
   apiUrl: string;
   isActive: boolean;
   balanceCurrency: string;
-  httpMethod: string;
-  requestType: string;
-  headersJson: string;   // stringified JSON for textarea display
+  mapping: ApiMappingDTO | null; // null means Standard v2 integration
   hasApiKey: boolean;    // true = key is set; the key itself is never exposed
 };
 
@@ -95,11 +126,7 @@ class AdminProviderService {
       apiUrl: p.apiUrl,
       isActive: p.isActive,
       balanceCurrency: p.balanceCurrency,
-      httpMethod: (meta.httpMethod as string) || 'POST',
-      requestType: (meta.requestType as string) || 'form',
-      headersJson: meta.headers
-        ? JSON.stringify(meta.headers, null, 2)
-        : '{\n  "User-Agent": "Smmplan/1.0"\n}',
+      mapping: (meta.mapping as ApiMappingDTO) || null,
       hasApiKey: Boolean(p.apiKey && p.apiKey.length > 0),
     };
   }

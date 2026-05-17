@@ -21,7 +21,7 @@ export class ProviderService {
     // Decrypt the API Key before passing it to the provider
     const decryptedKey = VaultService.decrypt(config.apiKey);
 
-    return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey);
+    return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, config.metadata as any);
   }
 
   /**
@@ -36,11 +36,11 @@ export class ProviderService {
     const isTest = await SettingsManager.isTestMode();
     if (isTest) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, 'test');
+      return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, 'test', config.metadata as any);
     }
     // Production path: decrypt and use real provider
     const decryptedKey = VaultService.decrypt(config.apiKey);
-    return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey);
+    return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, config.metadata as any);
   }
 
   /**

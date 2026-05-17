@@ -164,6 +164,81 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
           </form>
         </div>
       </Card>
+
+      {/* Email & SMTP */}
+      <Card className="rounded-2xl border-border shadow-sm bg-card backdrop-blur-xl">
+        <div className="p-8 space-y-8">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="p-1 px-2.5 bg-blue-500/20 text-blue-500 rounded-md text-[10px] font-bold">MAIL</span>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Почта (SMTP & Inbound)</h3>
+          </div>
+
+          <form action={formAction} className="space-y-8">
+            <div className="space-y-6">
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Отправка писем (SMTP)</div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">SMTP Host</Label>
+                  <Input
+                    name="smtpHost"
+                    defaultValue={settings.smtpHost || ''}
+                    placeholder="smtp.example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">SMTP Port</Label>
+                  <Input
+                    name="smtpPort"
+                    type="number"
+                    defaultValue={settings.smtpPort || 465}
+                    placeholder="465"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пользователь (Email)</Label>
+                  <Input
+                    name="smtpUser"
+                    defaultValue={settings.smtpUser || ''}
+                    placeholder="support@smmplan.pro"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пароль приложения</Label>
+                  <Input
+                    name="smtpPassword"
+                    type="password"
+                    placeholder={settings.smtpPassword ? '••••••••••••••••' : 'Не настроено'}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Прием писем (Inbound)</div>
+              <div className="max-w-md space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email Домен (для тикетов)</Label>
+                <Input
+                  name="supportEmailDomain"
+                  defaultValue={settings.supportEmailDomain || ''}
+                  placeholder="smmplan.pro"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Используется для генерации адреса <code>support+ticketId@домен</code>
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border flex justify-between items-center">
+              <p className="text-[10px] text-muted-foreground">Если поля пустые, используются настройки из .env (fallback)</p>
+              <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md">
+                {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Сохранить настройки почты
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Card>
     </div>
   );
 }

@@ -24,6 +24,10 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
+    "@blocknote/core": "^0.51.0",
+    "@blocknote/mantine": "^0.51.0",
+    "@blocknote/react": "^0.51.0",
+    "@blocknote/server-util": "^0.51.0",
     "@heroui/react": "^3.0.3",
     "@heroui/styles": "^3.0.3",
     "@heroui/system": "^2.4.28",
@@ -45,6 +49,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "framer-motion": "^12.38.0",
+    "html-react-parser": "^6.1.1",
     "ioredis": "^5.10.1",
     "isomorphic-dompurify": "^3.10.0",
     "jose": "^5.9.6",

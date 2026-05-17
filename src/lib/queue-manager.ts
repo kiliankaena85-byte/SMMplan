@@ -73,6 +73,8 @@ export const failoverQueue = createQueue<{ orderId: string }>('order-failover', 
 // 5. Catalog Mutations (Mass updates, Price syncing)
 export type CatalogMutationPayload = 
   | { type: 'SYNC_PRICES'; usdToRub: number }
+  | { type: 'SYNC_PROVIDER_CATALOG'; providerId: string; admin: any }
+  | { type: 'SYNC_ALL_CATALOGS'; admin: any }
   | { type: 'BULK_MARKUP'; filter: { categoryId?: string; platform?: string }; markupPercent: number; admin: any };
 
 export const catalogMutationsQueue = createQueue<CatalogMutationPayload>('catalog-mutations', {

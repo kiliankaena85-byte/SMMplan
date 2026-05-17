@@ -15,12 +15,23 @@
 
 ## Architecture Rules
 
-### Zero-Defect Execution Protocol (AUTONOMOUS SURGEON)
-**🔴 ОБЯЗАТЕЛЬНО для всех AI-агентов (Gemini, Cursor, Copilot) при написании кода:**
-1. **Architectural Pause**: ПЕРЕД написанием кода явно прочекайте границы: где Server Component, где Client Component.
-2. **Data Leak Prevention**: КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО отправлять сырые объекты Prisma или коммерческую тайну (rate, markup) на клиент. Всегда формируйте строгие DTO.
-3. **Dead-UI Prevention**: Не оставляйте "кнопки-пустышки". Если фича не готова — скрывайте UI (`{false && <Component/>}`).
-4. **Mandatory Self-Verification**: После изменения файлов, ДО финального рапорта пользователю, агент **ОБЯЗАН** запустить в фоне проверку типов (`npx tsc --noEmit` или `npm run build` для проверки). Ошибки нужно править автономно!
+### Zero-Defect Execution Protocol (TRIPLE-AGENT STRATEGY)
+**🔴 ОБЯЗАТЕЛЬНО для всех AI-агентов при обработке любого запроса:**
+
+1. **Phase 1: Analyst (`gsd-prompt-engineer`)**:
+   - ПЕРЕД любой работой задай уточняющие вопросы (3-5 шт).
+   - Сформируй четкое ТЗ (UI-SPEC/API-SPEC).
+   - Не начинай кодить, пока не будет "High-Definition" понимания задачи.
+
+2. **Phase 2: Researcher (`gsd-research-autopsy`)**:
+   - Проведи глубокий поиск (EN/RU).
+   - Найди 3 подтверждения для каждой гипотезы.
+   - Сформируй Risk Matrix (P×I) и список Edge-Cases.
+
+3. **Phase 3: Surgeon (`gsd-surgeon`)**:
+   - Реализуй код строго по ТЗ и данным из исследования.
+   - Соблюдай границы Server/Client и защиту от утечек данных.
+   - Проверь типы (`npx tsc --noEmit`) перед сдачей.
 
 ### Server/Client Boundary
 - Server Components по умолчанию. `'use client'` только при необходимости (hooks, browser APIs).
@@ -48,6 +59,13 @@
 - **НЕОБХОДИМОСТЬ:** Архитектура Smmplan разделена на веб-сервер (`next start`) и фоновые процессы (`BullMQ`, `Cron`). 
 - **ДЕПЛОЙ:** На production (Ubuntu/Docker) веб-сервер и воркеры обязаны запускаться параллельно! Если веб-сервер запущен, а команда `npm run worker` (запускающая `tsx src/workers/index.ts`) нет, то заказы будут навечно "зависать" в Redis в статусе "PENDING", а Telegram/VK отложенные посты не будут публиковаться.
 - Всегда включайте воркера в `docker-compose.yml` или `PM2` экосистему отдельными процессами.
+
+### Provider Synchronization (Cherry-Pick Architecture)
+**🔴 ОБЯЗАТЕЛЬНАЯ архитектура работы с провайдерами (Anti-Mass-Sync):**
+1. **Shadow Catalog (Теневой буфер):** КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать сырые каталоги провайдеров (5000+ услуг) в таблицу `Service` PostgreSQL. Все `fetch` к провайдерам должны сохраняться во временный Redis-кэш (`provider:{id}:catalog`).
+2. **Cherry-Pick Import:** Админ работает с витриной из Redis. В БД `Service` попадают ТОЛЬКО те услуги, которые админ выбрал вручную (с применением ИИ-маппинга категорий).
+3. **Auto-Pricing Engine:** Запрещено вычислять маржу без учета кросс-курса ЦБ РФ (USD/RUB). Margin Worker должен не просто блокировать услугу при подорожании у провайдера, а **пересчитывать розничную цену** для сохранения процента маржи.
+4. **Zombie Eraser:** Ночная синхронизация обязана помечать услуги как `isActive = false`, если провайдер удалил их из своего API.
 
 ### File Structure
 ```

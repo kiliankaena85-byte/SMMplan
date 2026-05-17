@@ -47,6 +47,9 @@ export class YooKassaGateway extends BasePaymentGateway {
 
     const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
     
+    const { SettingsProvider } = await import('@/lib/settings');
+    const supportDomain = await SettingsProvider.getSupportEmailDomain();
+
     const payload: any = {
       amount: { value: params.amountRub.toFixed(2), currency: 'RUB' },
       capture: true,
@@ -57,7 +60,7 @@ export class YooKassaGateway extends BasePaymentGateway {
 
     if (!params.isTestMode) {
       payload.receipt = {
-        customer: { email: params.email || 'no-reply@smmplan.pro' },
+        customer: { email: params.email || `no-reply@${supportDomain}` },
         items: [{
           description: "Услуги цифрового маркетинга",
           quantity: "1.00",

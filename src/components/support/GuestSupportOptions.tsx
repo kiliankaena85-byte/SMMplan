@@ -9,7 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 
-export function GuestSupportOptions() {
+interface GuestSupportOptionsProps {
+  telegramBotUsername: string;
+  supportEmail: string;
+}
+
+export function GuestSupportOptions({ telegramBotUsername, supportEmail }: GuestSupportOptionsProps) {
   const [state, action, isPending] = useActionState(
     async (prevState: any, formData: FormData) => {
       return await createGuestTicketAction(formData);
@@ -64,7 +69,7 @@ export function GuestSupportOptions() {
           size="lg"
           className="w-full bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/25 rounded-full h-16 text-lg"
         >
-          <a href="https://t.me/smmplan_support_bot" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+          <a href={`https://t.me/${telegramBotUsername}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
             <IconBrandTelegram size={24} />
             <span>Написать в Telegram</span>
           </a>

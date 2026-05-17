@@ -76,11 +76,40 @@ export async function updateGlobalSettings(formData: FormData) {
       yookassaTestSecretKey: rawYookassaTestSecret,
       cryptoBotToken: rawCryptoBotToken,
       exchangeRateUSD,
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPassword: rawSmtpPassword,
+      supportEmailDomain,
+      contactSupportEmail,
+      contactPrivacyEmail,
+      contactTelegramBot,
+      contactTelegramChannel,
+      contactWhatsApp,
+      contactVk,
+      legalCompanyName,
+      legalCompanyInn,
+      legalCompanyOgrnip,
+      legalCompanyAddress,
     } = parsed.data;
 
     const oldSettings = await db.systemSettings.findUnique({ where: { id: 'global' } });
 
-    const dataToUpdate: any = { maintenanceMode, siteName, siteDescription };
+    const dataToUpdate: any = { 
+      maintenanceMode, 
+      siteName, 
+      siteDescription,
+      contactSupportEmail,
+      contactPrivacyEmail,
+      contactTelegramBot,
+      contactTelegramChannel,
+      contactWhatsApp,
+      contactVk,
+      legalCompanyName,
+      legalCompanyInn,
+      legalCompanyOgrnip,
+      legalCompanyAddress
+    };
     if (welcomeMessage !== null) dataToUpdate.welcomeMessage = welcomeMessage;
     
     let isRateChanged = false;
@@ -97,6 +126,13 @@ export async function updateGlobalSettings(formData: FormData) {
     if (yookassaTestShopId) dataToUpdate.yookassaTestShopId = yookassaTestShopId;
     if (rawYookassaTestSecret) dataToUpdate.yookassaTestSecretKey = VaultService.encrypt(rawYookassaTestSecret);
     if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
+
+    // Email / SMTP settings
+    if (smtpHost !== null) dataToUpdate.smtpHost = smtpHost;
+    if (smtpPort !== undefined) dataToUpdate.smtpPort = smtpPort;
+    if (smtpUser !== null) dataToUpdate.smtpUser = smtpUser;
+    if (rawSmtpPassword) dataToUpdate.smtpPassword = VaultService.encrypt(rawSmtpPassword);
+    if (supportEmailDomain !== null) dataToUpdate.supportEmailDomain = supportEmailDomain;
 
     await settingsService.updateSystemSettings(dataToUpdate);
 

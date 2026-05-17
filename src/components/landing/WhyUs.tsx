@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { IconSparkles, IconShieldCheck, IconTrendingUp, IconDiamond } from "@tabler/icons-react";
 
-export function WhyUs() {
+export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
   return (
     <section aria-labelledby="why-us-heading" className="mx-auto max-w-6xl px-4 py-24">
       <div className="text-center mb-16">
@@ -11,7 +11,7 @@ export function WhyUs() {
           Платформа нового поколения
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium">
-          Более 10 000 клиентов доверяют Smmplan своё продвижение не просто так. Мы переосмыслили B2B опыт накрутки.
+          Более 10 000 клиентов доверяют {companyName} своё продвижение не просто так. Мы переосмыслили B2B опыт накрутки.
         </p>
       </div>
 

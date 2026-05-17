@@ -56,11 +56,11 @@ export const columns: ColumnDef<ClientColumn>[] = [
   },
   {
     accessorKey: 'balance',
-    header: 'Баланс',
+    header: () => <div className="text-right">Баланс</div>,
     cell: ({ row }) => {
       const u = row.original;
       return (
-        <div className="font-semibold text-xs">
+        <div className="font-semibold text-xs tabular-nums tracking-tight text-right">
           {(Number(u.balance) / 100).toFixed(2)} ₽
           {Number(u.quarantineBalance) > 0 && (
             <span className="block text-[10px] text-orange-600 font-medium whitespace-nowrap mt-0.5">
@@ -73,16 +73,16 @@ export const columns: ColumnDef<ClientColumn>[] = [
   },
   {
     accessorKey: 'totalSpent',
-    header: 'LTV (Прибыль)',
+    header: () => <div className="text-right">LTV (Прибыль)</div>,
     cell: ({ row }) => {
-      return <div className="text-xs font-medium">{(Number(row.original.totalSpent) / 100).toLocaleString('ru-RU')} ₽</div>;
+      return <div className="text-xs font-medium tabular-nums tracking-tight text-right">{(Number(row.original.totalSpent) / 100).toLocaleString('ru-RU')} ₽</div>;
     },
   },
   {
     accessorKey: '_count.orders',
-    header: 'Заказы',
+    header: () => <div className="text-right">Заказы</div>,
     cell: ({ row }) => {
-      return <div className="text-xs">{row.original._count.orders}</div>;
+      return <div className="text-xs tabular-nums tracking-tight text-right">{row.original._count.orders.toLocaleString('ru-RU')}</div>;
     },
   },
   {

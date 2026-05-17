@@ -36,7 +36,12 @@ export class UnifiedPaymentService {
         }
       });
 
-      const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro'}/dashboard`;
+      const { SettingsProvider } = await import('@/lib/settings');
+      const settings = await SettingsProvider.getContactAndLegalSettings();
+      const companyName = settings.COMPANY_NAME || "Smmplan";
+      const supportDomain = await SettingsProvider.getSupportEmailDomain();
+
+      const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`}/dashboard`;
       let paymentUrl = '';
       let remoteGatewayId = '';
 
@@ -99,7 +104,7 @@ export class UnifiedPaymentService {
             fiat: 'RUB',
             amount: amountRub.toFixed(2),
             description,
-            hidden_message: `Smmplan Deposit`,
+            hidden_message: `${companyName} Deposit`,
             payload: payment.id
           })
         });

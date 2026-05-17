@@ -6,6 +6,7 @@ import { getServicesByCategoryAction, PublicNetwork, PublicCategory, PublicServi
 import { calculatePriceAction } from "@/actions/order/checkout";
 import { PricingResult } from "@/services/marketing.service";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
+import { mutateLink, getLinkValidator } from "@/validators/link-mutators";
 import { formatCents } from "@/lib/utils";
 import { orderFormSchema } from "@/validators/order.validators";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
@@ -209,8 +210,20 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
 
   // Form Validation
   const validate = useCallback(() => {
+    let currentUrl = url;
+
+    // Advanced Link Validation & Mutation
+    if (selectedService && platform && platform !== IntelligencePlatform.OTHER) {
+       const targetType = selectedService.targetType || 'POST';
+       const cleanUrl = mutateLink(currentUrl, platform, targetType);
+       if (cleanUrl !== currentUrl) {
+           currentUrl = cleanUrl;
+           setUrl(cleanUrl);
+       }
+    }
+
     const result = orderFormSchema.safeParse({
-      link: url,
+      link: currentUrl,
       quantity,
       email,
       serviceId: selectedService?.id || "",
@@ -218,18 +231,32 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       agreedToTerms
     });
 
+    const errors: Record<string, string> = {};
     if (!result.success) {
-      const errors: Record<string, string> = {};
       result.error.errors.forEach(err => {
         if (err.path[0]) errors[err.path[0].toString()] = err.message;
       });
+    }
+
+    // Override generic URL error with strict targetType error if applicable
+    if (selectedService && platform && platform !== IntelligencePlatform.OTHER) {
+       const targetType = selectedService.targetType || 'POST';
+       const validator = getLinkValidator(platform, targetType);
+       const linkResult = validator.safeParse(currentUrl);
+       
+       if (!linkResult.success) {
+           errors['link'] = linkResult.error.errors[0].message;
+       }
+    }
+
+    if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       return false;
     }
     
     setValidationErrors({});
     return true;
-  }, [url, quantity, email, selectedService, customData, agreedToTerms]);
+  }, [url, quantity, email, selectedService, customData, agreedToTerms, platform]);
 
   // Helper getters
   const totalPriceFormatted = pricing 

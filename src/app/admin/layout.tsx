@@ -119,13 +119,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 <span className="text-amber-100 text-xs ml-2">Заказы не отправляются провайдерам. Ghost Proxy перехватывает трафик.</span>
               </div>
             </div>
-            <a href="/admin/settings?tab=system" className="text-xs font-bold bg-background/20 hover:bg-background/30 px-3 py-1 rounded-lg transition-colors">
+            <Link href="/admin/settings?tab=system" className="text-xs font-bold bg-background/20 hover:bg-background/30 px-3 py-1 rounded-lg transition-colors">
               Выключить →
-            </a>
+            </Link>
           </div>
         )}
-        <main className="flex-1 rounded-2xl bg-background/95 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border/50 overflow-x-hidden overflow-y-auto scrollbar-hide relative transition-all duration-300">
-          <div className="min-h-full p-4 md:p-8 lg:p-10">
+        <main className="flex-1 w-full rounded-2xl bg-background/95 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border/50 overflow-x-hidden overflow-y-auto scrollbar-hide relative transition-all duration-300">
+          <div className="min-h-full w-full p-4 md:p-8 lg:p-10">
             {children}
           </div>
         </main>

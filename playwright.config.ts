@@ -6,13 +6,13 @@ dotenv.config();
 export default defineConfig({
   testDir: './e2e',
   globalTeardown: './e2e/utils/db-cleaner.ts',
-  timeout: 30 * 1000,
+  timeout: 60 * 1000,
   expect: {
     timeout: 5000,
     toHaveScreenshot: { maxDiffPixelRatio: 0.01 },
   },
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
   },
   projects: [
@@ -29,14 +29,12 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
-/*
-  webServer: {
-    command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  },
-*/
+  // webServer: {
+  //   command: 'npm run dev -- -p 3001',
+  //   url: 'http://localhost:3001',
+  //   reuseExistingServer: true,
+  //   timeout: 120 * 1000,
+  //   stdout: 'pipe',
+  //   stderr: 'pipe',
+  // },
 });

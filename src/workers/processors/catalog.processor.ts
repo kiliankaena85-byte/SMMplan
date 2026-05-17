@@ -20,6 +20,32 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
         break;
       }
       
+      case 'SYNC_ALL_CATALOGS': {
+        const { admin } = payload;
+        console.log(`[CatalogProcessor] Starting background sync for ALL catalogs...`);
+        const { db } = await import('../../lib/db');
+        const { catalogQueue } = await import('../queues');
+        const providers = await db.provider.findMany({ where: { isActive: true } });
+        
+        for (const provider of providers) {
+            await catalogQueue.add('sync-provider-catalog', {
+                type: 'SYNC_PROVIDER_CATALOG',
+                providerId: provider.id,
+                admin
+            });
+            console.log(`[CatalogProcessor] Queued SYNC_PROVIDER_CATALOG for ${provider.id} (${provider.name})`);
+        }
+        break;
+      }
+
+      case 'SYNC_PROVIDER_CATALOG': {
+        const { providerId, admin } = payload;
+        console.log(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
+        const stats = await adminCatalogService.syncProviderCatalog(providerId, admin);
+        console.log(`[CatalogProcessor] Catalog sync completed. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
+        break;
+      }
+      
       case 'BULK_MARKUP': {
         const { markupPercent, filter, admin } = payload;
         console.log(`[CatalogProcessor] Starting background bulk markup...`);

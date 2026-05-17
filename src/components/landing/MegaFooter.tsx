@@ -3,7 +3,26 @@ import Link from "next/link";
 import { Zap, ShieldCheck, CreditCard, Mail, ArrowUpRight } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 
-export function MegaFooter() {
+export function MegaFooter({ 
+  contactSettings 
+}: { 
+  contactSettings?: {
+    SITE_NAME?: string;
+    COMPANY_NAME?: string;
+    SUPPORT_EMAIL?: string;
+    TELEGRAM_SUPPORT_BOT?: string;
+    LEGAL_INN?: string;
+    LEGAL_OGRNIP?: string;
+    LEGAL_ADDRESS?: string;
+  }
+}) {
+  const siteName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "Smmplan Lite";
+  const companyName = contactSettings?.COMPANY_NAME || "Smmplan Lite";
+  const supportEmail = contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro";
+  const inn = contactSettings?.LEGAL_INN || "000000000000";
+  const ogrnip = contactSettings?.LEGAL_OGRNIP || "300000000000000";
+  const address = contactSettings?.LEGAL_ADDRESS || "г. Москва (укажите реальный адрес офиса)";
+
   return (
     <footer className="bg-background text-foreground pt-24 pb-12 border-t border-border relative overflow-hidden mt-auto">
       {/* Premium Glow & Grid */}
@@ -18,7 +37,7 @@ export function MegaFooter() {
             <div className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shadow-inner">
               <Zap className="w-5 h-5 text-primary" />
             </div>
-            <span className="text-2xl font-black tracking-tight text-foreground">Smmplan</span>
+            <span className="text-2xl font-black tracking-tight text-foreground">{siteName}</span>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
             Платформа нового поколения для B2B продвижения. Мгновенный запуск, строгая конфиденциальность и официальная работа с гарантиями.
@@ -58,7 +77,7 @@ export function MegaFooter() {
               Поддержка в Telegram
             </a>
             <a 
-              href="mailto:support@smmplan.pro"
+              href={`mailto:${supportEmail}`}
               className="inline-flex items-center justify-center h-12 px-6 rounded-xl bg-content2 text-foreground font-bold text-sm border border-border/50 hover:bg-content3 hover:border-border transition-all w-full sm:w-auto gap-2"
             >
               <Mail className="w-4 h-4" /> Email
@@ -70,12 +89,11 @@ export function MegaFooter() {
 
       <div className="max-w-7xl mx-auto px-6 border-t border-border/40 pt-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs font-medium text-muted-foreground/60 relative z-10">
         <div className="flex flex-col gap-1.5">
-          <p>© {new Date().getFullYear()} Smmplan Lite. Все права защищены.</p>
+          <p>© {new Date().getFullYear()} {companyName}. Все права защищены.</p>
           <p className="text-[10px] opacity-70">
-            Официальный сервис продвижения. ИНН: 000000000000 / ОГРНИП: 300000000000000
-            {/* TODO(SEO): Впишите реальные реквизиты юр.лица для прохождения YMYL-фильтров Яндекса */}
+            Официальный сервис продвижения. ИНН: {inn} / ОГРНИП: {ogrnip}
           </p>
-          <p className="text-[10px] opacity-70">Адрес: г. Москва (укажите реальный адрес офиса)</p>
+          <p className="text-[10px] opacity-70">Адрес: {address}</p>
         </div>
         <p className="flex items-center gap-1">Designed with <span className="text-rose-500/70">❤</span> for B2B Growth</p>
       </div>

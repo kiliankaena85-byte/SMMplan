@@ -7,15 +7,46 @@ import { auditAdmin } from "@/lib/admin-audit";
 import { providerService } from "@/services/providers/provider.service";
 import { z } from "zod";
 
+const apiMappingSchema = z.object({
+  httpMethod: z.enum(['GET', 'POST']).optional().default('POST'),
+  contentType: z.enum(['form', 'json']).optional().default('form'),
+  auth: z.object({
+    type: z.enum(['body', 'query', 'header']),
+    field: z.string().min(1),
+    prefix: z.string().optional()
+  }),
+  order: z.object({
+    serviceField: z.string().min(1),
+    linkField: z.string().min(1),
+    quantityField: z.string().min(1),
+  }),
+  response: z.object({
+    orderIdField: z.string().min(1),
+    errorField: z.string().min(1),
+  }),
+  catalog: z.object({
+    itemsPath: z.string().optional(),
+    serviceIdField: z.string().optional(),
+    nameField: z.string().optional(),
+    priceField: z.string().optional(),
+    minField: z.string().optional(),
+    maxField: z.string().optional(),
+    typeField: z.string().optional(),
+    descField: z.string().optional(),
+  }).optional(),
+  balance: z.object({
+    balancePath: z.string().optional(),
+    currencyPath: z.string().optional(),
+  }).optional()
+});
+
 const providerSchema = z.object({
   name: z.string().min(1).max(255),
   apiUrl: z.string().url("Must be a valid URL"),
   apiKey: z.string(),
   isActive: z.boolean().default(false),
   balanceCurrency: z.string().length(3, "Use 3-letter ISO code like USD").toUpperCase(),
-  httpMethod: z.enum(["GET", "POST"]),
-  requestType: z.enum(["JSON", "FORM", "QUERY"]),
-  headers: z.record(z.string()).default({})
+  mapping: apiMappingSchema.nullable().optional(),
 });
 
 const idSchema = z.string().min(1);
@@ -26,9 +57,7 @@ export async function createProvider(rawData: {
   apiKey: string;
   isActive: boolean;
   balanceCurrency: string;
-  httpMethod: string;
-  requestType: string;
-  headers: Record<string, string>;
+  mapping?: any;
 }) {
   return requireStaffPermission('providers', 'edit', async (admin) => {
     const data = providerSchema.parse(rawData);
@@ -38,9 +67,7 @@ export async function createProvider(rawData: {
     
     // Prepare metadata json
     const metadata = {
-       httpMethod: data.httpMethod,
-       requestType: data.requestType,
-       headers: data.headers
+       mapping: data.mapping || null
     };
 
     const provider = await db.provider.create({
@@ -73,9 +100,7 @@ export async function updateProvider(rawId: string, rawData: {
   apiKey?: string; // If empty, we don't update
   isActive: boolean;
   balanceCurrency: string;
-  httpMethod: string;
-  requestType: string;
-  headers: Record<string, string>;
+  mapping?: any;
 }) {
   return requireStaffPermission('providers', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
@@ -92,9 +117,7 @@ export async function updateProvider(rawId: string, rawData: {
       isActive: data.isActive,
       balanceCurrency: data.balanceCurrency,
       metadata: {
-         httpMethod: data.httpMethod,
-         requestType: data.requestType,
-         headers: data.headers
+         mapping: data.mapping || null
       }
     };
 
@@ -228,3 +251,91 @@ export async function getGlobalProviderLiquidity() {
     });
 }
 
+/**
+ * Server Action for Zombie Eraser
+ * Triggers a manual synchronization of the provider's catalog to find deleted/reappeared services.
+ */
+export async function syncProviderCatalogAction(rawId: string) {
+    return requireStaffPermission('providers', 'edit', async (admin) => {
+        try {
+            const id = idSchema.parse(rawId);
+            const { adminCatalogService } = await import('@/services/admin/catalog.service');
+            
+            const stats = await adminCatalogService.syncProviderCatalog(id, admin);
+            
+            return {
+                success: true,
+                stats
+            };
+        } catch (e: any) {
+            return { success: false, error: e.message || "Синхронизация не удалась" };
+        }
+    });
+}
+
+export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMethod: 'GET'|'POST', contentType: 'form'|'json', authConfig: any, providerId?: string) {
+    return requireStaffPermission('providers', 'edit', async () => {
+        try {
+            let finalApiKey = apiKey;
+            if (!finalApiKey && providerId) {
+                const existing = await db.provider.findUnique({ where: { id: providerId } });
+                if (existing && existing.apiKey) {
+                    finalApiKey = VaultService.decrypt(existing.apiKey);
+                }
+            }
+
+            const providerService = (await import('@/services/providers/provider.service')).providerService;
+            const mockProvider = {
+                id: 'mock',
+                name: 'Mock',
+                apiUrl,
+                apiKey: VaultService.encrypt(finalApiKey),
+                balanceCurrency: 'USD',
+                isActive: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                metadata: {
+                    mapping: {
+                        httpMethod,
+                        contentType,
+                        auth: authConfig
+                    }
+                }
+            };
+            
+            const instance = await providerService.getProviderInstance(mockProvider as any);
+            const servicesResponse = await (instance as any).request({ action: 'services' }, 0);
+            
+            let servicesKeys: string[] = [];
+            let itemsPath = '$';
+            
+            if (Array.isArray(servicesResponse) && servicesResponse.length > 0) {
+                servicesKeys = Object.keys(servicesResponse[0]);
+            } else if (typeof servicesResponse === 'object' && servicesResponse !== null) {
+                for (const [key, val] of Object.entries(servicesResponse)) {
+                    if (Array.isArray(val) && val.length > 0) {
+                        itemsPath = key;
+                        servicesKeys = Object.keys(val[0]);
+                        break;
+                    }
+                }
+            }
+
+            const balanceResponse = await (instance as any).request({ action: 'balance' }, 0);
+            let balanceKeys: string[] = [];
+            if (typeof balanceResponse === 'object' && balanceResponse !== null) {
+                balanceKeys = Object.keys(balanceResponse);
+            }
+
+            return {
+                success: true,
+                schema: {
+                    catalog: { itemsPath, keys: servicesKeys },
+                    balance: { keys: balanceKeys }
+                }
+            };
+        } catch (e: any) {
+            return { success: false, error: e.message || "Failed to infer schema" };
+        }
+    });
+}

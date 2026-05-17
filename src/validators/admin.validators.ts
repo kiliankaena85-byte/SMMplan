@@ -49,6 +49,21 @@ export const globalSettingsSchema = z.object({
   yookassaTestSecretKey: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   cryptoBotToken: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   exchangeRateUSD: z.coerce.number().min(0).optional(),
+  smtpHost: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  smtpPort: z.coerce.number().int().optional().default(465),
+  smtpUser: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  smtpPassword: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  supportEmailDomain: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  contactSupportEmail: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  contactPrivacyEmail: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  contactTelegramBot: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  contactTelegramChannel: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  contactWhatsApp: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  contactVk: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  legalCompanyName: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  legalCompanyInn: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  legalCompanyOgrnip: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  legalCompanyAddress: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
 });
 
 // Orders

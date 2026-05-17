@@ -106,3 +106,19 @@ export async function ensureETACron() {
     }
   );
 }
+
+/**
+ * P1: Schedule daily catalog sync (Zombie Eraser) at 04:00
+ */
+export async function ensureCatalogSyncCron() {
+  await catalogQueue.add(
+    'daily-catalog-sync',
+    { type: 'SYNC_ALL_CATALOGS', admin: { id: 'system', email: 'system@cron', role: 'SUPERADMIN' } },
+    {
+      repeat: {
+        pattern: '0 4 * * *' // 4:00 AM daily
+      },
+      jobId: 'catalog-sync-singleton'
+    }
+  );
+}

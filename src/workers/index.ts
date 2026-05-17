@@ -2,7 +2,7 @@ import { Worker } from 'bullmq';
 import { getRedisConnection } from '../lib/queue-manager';
 import { db } from '../lib/db';
 import { logger } from '../lib/logger';
-import { ensureSyncCron, ensureCleanupCron, ensureETACron, dlqQueue, cleanupQueue, telegramQueue, etaQueue } from './queues';
+import { ensureSyncCron, ensureCleanupCron, ensureETACron, ensureCatalogSyncCron, dlqQueue, cleanupQueue, telegramQueue, etaQueue } from './queues';
 import { sendAdminAlert, sendAdminAlertSync } from '../lib/notifications';
 import orderProcessor from './processors/order.processor';
 import syncProcessor from './processors/sync.processor';
@@ -116,6 +116,7 @@ const heartbeatInterval = setInterval(updateHeartbeat, 60_000);
 ensureSyncCron().catch(e => log.error('Failed to setup Sync Cron', { error: (e as Error).message }));
 ensureCleanupCron().catch(e => log.error('Failed to setup Cleanup Cron', { error: (e as Error).message }));
 ensureETACron().catch(e => log.error('Failed to setup ETA Cron', { error: (e as Error).message }));
+ensureCatalogSyncCron().catch(e => log.error('Failed to setup Catalog Sync Cron', { error: (e as Error).message }));
 
 log.info('All workers started', { queues: ['ordersQueue', 'syncQueue', 'catalogQueue', 'cleanup'] });
 

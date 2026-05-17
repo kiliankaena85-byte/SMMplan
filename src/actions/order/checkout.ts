@@ -141,38 +141,21 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error('Слишком длинные пользовательские данные (макс. 5000 символов)');
     }
 
-    // Strict Platform specific URL validation
-    const platform = service.category?.network?.name?.toLowerCase() || '';
+    // [OMNI-AUDIT 9.4] Phase P3: Robust Server-Side Validation & Mutation
+    const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
     
-    // [OMNI-AUDIT 9.4] Robust URL Sanitization using IntelligenceLinkAnalyzer
-    const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
-    const analyzer = new IntelligenceLinkAnalyzer();
-    const analyzedLink = await analyzer.analyze(link);
-    const sanitizedLink = analyzedLink.canonicalUrl;
+    const platformSlug = service.category?.network?.slug?.toUpperCase() || '';
+    const targetType = service.targetType || 'POST';
+
+    // 1. Clean the link according to provider rules
+    const normalizedLink = mutateLink(link, platformSlug, targetType);
+
+    // 2. Validate the cleaned link
+    const validator = getLinkValidator(platformSlug, targetType);
+    const linkResult = validator.safeParse(normalizedLink);
     
-    const normalizedLink = sanitizedLink.trim();
-    const normalizedLower = normalizedLink.toLowerCase();
-    
-    if (platform === 'telegram') {
-      const tgRegex = /^(https?:\/\/)?(t\.me\/|@)[a-zA-Z0-9_]{4,}/i;
-      if (!tgRegex.test(normalizedLink)) {
-        throw new Error('Для Telegram ссылка должна быть в формате t.me/username или @username');
-      }
-    } else if (platform.includes('vk')) {
-      const vkRegex = /^(https?:\/\/)?(vk\.com|vk\.ru)\/[a-zA-Z0-9_.-]+/i;
-      if (!vkRegex.test(normalizedLink)) {
-        throw new Error('Для ВКонтакте ссылка должна начинаться с vk.com/ или vk.ru/');
-      }
-    } else if (platform === 'instagram') {
-      const igRegex = /^(https?:\/\/)?(www\.)?instagram\.com\/[a-zA-Z0-9_.-]+/i;
-      if (!igRegex.test(normalizedLink)) {
-        throw new Error('Для Instagram ссылка должна начинаться с instagram.com/');
-      }
-    } else if (platform === 'youtube') {
-      const ytRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/i;
-      if (!ytRegex.test(normalizedLink)) {
-        throw new Error('Для YouTube ссылка должна начинаться с youtube.com/ или youtu.be/');
-      }
+    if (!linkResult.success) {
+      throw new Error(linkResult.error.errors[0].message);
     }
 
     const isTestMode = await SettingsManager.isTestMode();

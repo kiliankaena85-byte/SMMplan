@@ -87,6 +87,21 @@ class SettingsService {
     yookassaSecretKey?: string;
     cryptoBotToken?: string;
     exchangeRateUSD?: number;
+    smtpHost?: string | null;
+    smtpPort?: number;
+    smtpUser?: string | null;
+    smtpPassword?: string | null;
+    supportEmailDomain?: string | null;
+    contactSupportEmail?: string | null;
+    contactPrivacyEmail?: string | null;
+    contactTelegramBot?: string | null;
+    contactTelegramChannel?: string | null;
+    contactWhatsApp?: string | null;
+    contactVk?: string | null;
+    legalCompanyName?: string | null;
+    legalCompanyInn?: string | null;
+    legalCompanyOgrnip?: string | null;
+    legalCompanyAddress?: string | null;
   }) {
     return db.systemSettings.upsert({
       where: { id: 'global' },

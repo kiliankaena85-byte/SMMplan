@@ -358,7 +358,7 @@ export function CatalogTable({
                   />
                 </Table.Column>
                 <Table.Column isRowHeader key="id" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">ID</Table.Column>
-                <Table.Column key="name" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[250px] w-full">Услуга / Категория</Table.Column>
+                <Table.Column key="name" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[250px] w-full">Классификация и Название</Table.Column>
                 <Table.Column key="rate" className={`text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right ${!canSeeRates ? "hidden" : ""}`}>Закуп ($)</Table.Column>
                 <Table.Column key="price" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ценообразование {canEdit ? '(RUB)' : ''}</Table.Column>
                 <Table.Column key="orders" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right hidden lg:table-cell">Заказы</Table.Column>
@@ -399,18 +399,28 @@ export function CatalogTable({
                       </span>
                     </Table.Cell>
                     <Table.Cell key={`cell-name-${s.id}`} className="py-4 px-4">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground leading-tight">
-                            {s.name}
-                          </span>
-                          {s.isQuarantined && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-warning font-bold border border-amber-500/20">
-                              ⚠️ КАРАНТИН
-                            </span>
-                          )}
+                      <div className="flex flex-col text-[12px] leading-relaxed text-foreground py-1 min-w-[250px]">
+                        <div className="flex gap-2">
+                          <span className="text-muted-foreground w-[70px] shrink-0">Соцсеть:</span>
+                          <span className="font-medium text-foreground truncate" title={s.networkName || '—'}>{s.networkName || '—'}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground mt-1">{s.categoryName}</span>
+                        <div className="flex gap-2">
+                          <span className="text-muted-foreground w-[70px] shrink-0">Категория:</span>
+                          <span className="font-medium text-foreground truncate" title={s.categoryName}>{s.categoryName}</span>
+                        </div>
+                        <div className="flex gap-2 items-start mt-0.5">
+                          <span className="text-muted-foreground w-[70px] shrink-0">Услуга:</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-foreground leading-tight" title={s.name}>
+                              {s.name}
+                            </span>
+                            {s.isQuarantined && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-warning font-bold border border-amber-500/20 whitespace-nowrap">
+                                ⚠️ КАРАНТИН
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </Table.Cell>
                     <Table.Cell key={`cell-rate-${s.id}`} className={`py-4 px-4 text-right ${!canSeeRates ? "hidden" : ""}`}>

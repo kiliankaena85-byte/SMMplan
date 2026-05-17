@@ -240,6 +240,11 @@ export function SmartOrderForm() {
               className={`${inputCls} h-14 pl-12 pr-4 text-base`}
             />
           </div>
+          {validationErrors.link && (
+            <p className="text-sm text-rose-500 font-semibold mt-2 px-1 animate-in slide-in-from-top-1">
+              {validationErrors.link}
+            </p>
+          )}
 
           {/* Service list */}
           <div className="space-y-2" role="listbox" aria-label="Список тарифов">

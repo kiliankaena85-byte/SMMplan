@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { ClientDetailClient } from './client-detail-client';
-import { banUserAction, unbanUserAction, loginAsAction } from '@/actions/admin/users';
+import { banUserAction, unbanUserAction, loginAsAction, updateBalanceAction } from '@/actions/admin/users';
 import { SubmitButton } from '@/components/admin/submit-button';
 import { ActionForm } from '@/components/admin/action-form';
 import { ClientOrdersTable } from './client-orders-table';
@@ -183,6 +183,25 @@ export default async function ClientDetailPage({ params }: Props) {
 
       {/* Interactive client panel */}
       <ClientDetailClient user={dto} />
+
+      {/* Balance Adjustment Block */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">💰 Корректировка баланса</h3>
+        <ActionForm action={updateBalanceAction} className="space-y-3 max-w-sm">
+          <input type="hidden" name="userId" value={user.id} />
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Сумма (в копейках, − для списания)</label>
+            <input type="number" name="amount" placeholder="10000 = 100₽" required className="w-full h-9 text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Причина / Комментарий</label>
+            <input name="reason" placeholder="Например: Бонус за регистрацию" required className="w-full h-9 text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
+          </div>
+          <SubmitButton className="w-full h-9 text-sm gap-1.5" confirmMessage="Вы уверены, что хотите изменить баланс клиента?">
+            Применить изменение
+          </SubmitButton>
+        </ActionForm>
+      </div>
 
       {/* Recent orders */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">

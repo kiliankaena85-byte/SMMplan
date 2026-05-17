@@ -158,29 +158,6 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                   </CardContent>
                 </Card>
 
-                {/* Balance Adjustment - Hidden for Support */}
-                {canSeeFinances && (
-                  <Card className="shadow-sm">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">💰 Корректировка баланса</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ActionForm action={updateBalanceAction} className="space-y-3">
-                        <input type="hidden" name="userId" value={userCard.id} />
-                        <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">Сумма (в копейках, − для списания)</label>
-                          <Input type="number" name="amount" placeholder="10000 = 100₽" required className="h-9 text-sm" />
-                        </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">Причина / Комментарий</label>
-                          <Input type="text" name="reason" placeholder="Например: Компенсация за #1234" required className="h-9 text-sm" />
-                        </div>
-                        <SubmitButton className="w-full text-xs h-9" confirmMessage="Изменить баланс клиента? Убедитесь, что указана корректная причина, так как это действие отразится в аудит-логе.">Применить</SubmitButton>
-                      </ActionForm>
-                    </CardContent>
-                  </Card>
-                )}
-
                 {/* Recent Orders */}
                 <Card className="shadow-sm">
                   <CardHeader className="pb-3">

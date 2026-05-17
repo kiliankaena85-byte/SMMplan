@@ -19,7 +19,8 @@ export async function saveAiImportedServiceAction(
   providerService: any, 
   categoryId: string, 
   markup: number, 
-  optimizedData: { newName: string; newDescription: string; requirements: string[] }
+  optimizedData: { newName: string; newDescription: string; requirements: string[] },
+  providerId: string
 ) {
   return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
     try {
@@ -29,7 +30,8 @@ export async function saveAiImportedServiceAction(
         [String(providerService.service)], 
         categoryId, 
         markup, 
-        admin
+        admin,
+        providerId
       );
       
       if (res.importedCount === 0) {

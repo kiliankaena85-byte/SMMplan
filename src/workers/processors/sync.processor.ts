@@ -5,9 +5,11 @@ import { providerService } from '../../services/providers/provider.service';
 import { WalletService } from '../../services/financial/wallet.service';
 import { RefundPolicyService } from '../../services/financial/refund-policy.service';
 import { sendOrderCompletedMail } from '../../lib/smtp';
+import { logger } from '../../lib/logger';
 
+const log = logger.child({ component: 'SyncProcessor' });
 export default async function syncProcessor(job: Job<SyncJobPayload>) {
-  console.log('[SyncProcessor] Beginning massive status sync...');
+  log.info('Beginning massive status sync...');
 
   // 1. Get all active providers
   const activeProviders = await db.provider.findMany({
@@ -98,7 +100,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
 
           if (allCompleted && order.currentRun >= (order.runs || 1)) {
               await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });
-              sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(console.error);
+              sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(err => log.error('Failed to send completion email', { cause: err }));
           } else if (anyCanceled) {
               // Canceled mini-run -> We mark generic Drip-Feed as Partial
               const updated = await db.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: totalRemainsText } });
@@ -113,7 +115,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           if (!s) {
               const orderAgeHours = (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
               if (orderAgeHours > 72) {
-                  console.warn(`[SyncProcessor] Order ${order.externalId} missing from provider for >72h. Marking ERROR.`);
+                  log.warn(`Order ${order.externalId} missing from provider for >72h. Marking ERROR.`);
                   const updated = await db.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: 'Орфан-заказ: провайдер удалил заказ' } });
                   await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Орфан-заказ: провайдер удалил заказ)');
               }
@@ -123,10 +125,10 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           // If the provider returned "Incorrect order ID", it's a string, we treat it as an Error
           if (typeof s === 'string') {
               if (order.waitingUntil && new Date() < order.waitingUntil) {
-                  console.warn(`[SyncProcessor] Order ${order.externalId} string error: ${s}. Smart Waiting until ${order.waitingUntil.toISOString()}`);
+                  log.warn(`Order ${order.externalId} string error: ${s}. Smart Waiting until ${order.waitingUntil.toISOString()}`);
                   continue; // Skip, waiting
               }
-              console.warn(`[SyncProcessor] Order ${order.externalId} returned string error: ${s}`);
+              log.warn(`Order ${order.externalId} returned string error: ${s}`);
               const updated = await db.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: s } });
               await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Ошибка синхронизации или истек таймер)');
               continue;
@@ -142,7 +144,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
             
             // WAVE 4.1: TRIGGER B (SILENT FAILURE QUARANTINE)
             const { QuarantineService } = await import('@/services/providers/quarantine.service');
-            QuarantineService.evaluateTriggerB(order.serviceId).catch(console.error); // Fire and forget
+            QuarantineService.evaluateTriggerB(order.serviceId).catch(err => log.error('Quarantine trigger B failed', { cause: err })); // Fire and forget
           } 
           else if (['PARTIAL'].includes(providerStatus)) {
             // Partial -> Mathematical Proportional Refund
@@ -151,7 +153,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           } 
           else if (['COMPLETED'].includes(providerStatus)) {
             await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });
-            sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(console.error);
+            sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(err => log.error('Failed to send completion email', { cause: err }));
           }
           // PENDING / PROCESSING etc -> just update remains
           else {
@@ -162,7 +164,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
         }
       }
     } catch (e: any) {
-      console.error(`[SyncProcessor] Exception while pinging Provider ${providerDef.id}:`, e.message);
+      log.error(`Exception while pinging Provider ${providerDef.id}`, { cause: e });
 
       // Update SLA Monitoring (Error)
       try {
@@ -174,7 +176,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           }
         });
       } catch (slaErr: any) {
-        console.error(`[SyncProcessor] Failed to update SLA error metrics for ${providerDef.id}:`, slaErr.message);
+        log.error(`Failed to update SLA error metrics for ${providerDef.id}`, { cause: slaErr });
       }
     }
   }));
@@ -185,7 +187,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     await QuarantineService.restoreExpiredQuarantines();
     await QuarantineService.evaluateTriggerC(); // Check for stuck orders globally
   } catch (e: any) {
-    console.error('[SyncProcessor] Failed to execute Quarantine Service tasks:', e.message);
+    log.error('Failed to execute Quarantine Service tasks', { cause: e });
   }
 
   // ── Sweep Orphaned PENDING Orders ─────────────────────────────────────────
@@ -202,15 +204,15 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     });
 
     if (orphanOrders.length > 0) {
-      console.warn(`[SyncProcessor] Found ${orphanOrders.length} orphaned PENDING orders. Sweeping...`);
+      log.warn(`Found ${orphanOrders.length} orphaned PENDING orders. Sweeping...`);
       const { orderService } = await import('../../services/core/order.service');
       for (const orphan of orphanOrders) {
         await orderService.failOrderTerminal(orphan.id, 'Авто-отмена: заказ завис в очереди на отправку (Timeout > 15m)');
       }
     }
   } catch (e: any) {
-    console.error('[SyncProcessor] Failed to execute Orphan Sweeper:', e.message);
+    log.error('Failed to execute Orphan Sweeper', { cause: e });
   }
 
-  console.log('[SyncProcessor] Finished massive status sync.');
+  log.info('Finished massive status sync.');
 }

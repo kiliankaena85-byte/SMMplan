@@ -7,15 +7,16 @@ import { ArrowLeft } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default async function ImportProvidersPage() {
-  // Fetch categories via service (no direct db in page)
+  // Fetch categories via service
   const categories = await adminProviderService.listCategories();
+  
+  // Fetch all active providers
+  const providers = await adminProviderService.listProviders();
+  const activeProviders = providers.filter(p => p.isActive);
 
-  // Verify we have an active default provider
   let errorMsg: string | null = null;
-  try {
-    await providerService.getDefaultProvider();
-  } catch (e: unknown) {
-    errorMsg = e instanceof Error ? e.message : 'Провайдер не настроен';
+  if (activeProviders.length === 0) {
+    errorMsg = 'Нет активных провайдеров для импорта';
   }
 
   return (
@@ -49,7 +50,7 @@ export default async function ImportProvidersPage() {
           </Link>
         </div>
       ) : (
-        <ImportWizard categories={categories} />
+        <ImportWizard categories={categories} providers={activeProviders} />
       )}
     </div>
   );

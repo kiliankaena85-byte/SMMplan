@@ -14,7 +14,14 @@ import { Badge } from '@/components/ui/badge';
 import { updateSupportLimit } from '@/actions/admin/team';
 import { updateUserRole } from '@/actions/admin/settings';
 import { toast } from 'sonner';
-import { Table } from '@heroui/react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Search, ShieldAlert, UserPlus, Loader2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 
@@ -83,42 +90,51 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
             </div>
           </div>
 
-          <div className="w-full">
-            <Table aria-label="Команда и Escrow Guard">
-              <Table.Header>
-                <Table.Column isRowHeader>EMAIL</Table.Column>
-                <Table.Column>РОЛЬ</Table.Column>
-                <Table.Column className="text-right">ДНЕВНОЙ ЛИМИТ (КОП.) И ДЕЙСТВИЕ</Table.Column>
-              </Table.Header>
-              {/* @ts-ignore */}
-              <Table.Body emptyContent="Сотрудников нет">
-                {staffUsers.map((u) => (
-                  <Table.Row key={u.id}>
-                    <Table.Cell>
-                      <span className="font-mono text-xs font-bold text-foreground">{u.email}</span>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge className={`font-bold text-[10px] uppercase ${u.role === 'OWNER' ? 'bg-destructive/20 text-destructive border-destructive/30' : 'bg-emerald-500/20 text-success border-emerald-500/30'}`}>
-                        {u.role}
-                      </Badge>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <form action={handleUpdateLimit} className="flex gap-2 items-center justify-end">
-                        <input type="hidden" name="userId" value={u.id} />
-                        <Input 
-                          type="number" 
-                          name="limit" 
-                          defaultValue={u.supportLimitCents || 0} 
-                          className="w-32 text-right font-mono font-bold"
-                        />
-                        <SubmitButton label="Сохранить" className="font-bold text-[10px] uppercase tracking-wider h-8" />
-                      </form>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
-          </div>
+            <div className="rounded-md border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>EMAIL</TableHead>
+                    <TableHead>РОЛЬ</TableHead>
+                    <TableHead className="text-right">ДНЕВНОЙ ЛИМИТ (КОП.) И ДЕЙСТВИЕ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {staffUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center">
+                        Сотрудников нет
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    staffUsers.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>
+                          <span className="font-mono text-xs font-bold text-foreground">{u.email}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge intent={u.role === 'OWNER' ? 'destructive' : 'primary'} className={`font-bold text-[10px] uppercase ${u.role === 'OWNER' ? 'bg-destructive/20 text-destructive border-destructive/30' : 'bg-emerald-500/20 text-success border-emerald-500/30'}`}>
+                            {u.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <form action={handleUpdateLimit} className="flex gap-2 items-center justify-end">
+                            <input type="hidden" name="userId" value={u.id} />
+                            <Input 
+                              type="number" 
+                              name="limit" 
+                              defaultValue={u.supportLimitCents || 0} 
+                              className="w-32 text-right font-mono font-bold"
+                            />
+                            <SubmitButton label="Сохранить" className="font-bold text-[10px] uppercase tracking-wider h-8" />
+                          </form>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
         </div>
       </Card>
 
@@ -150,38 +166,47 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
             <SearchButton />
           </form>
 
-          <div className="w-full">
-            <Table aria-label="Назначение ролей">
-              <Table.Header>
-                <Table.Column isRowHeader>КЛИЕНТ</Table.Column>
-                <Table.Column className="text-right">СМЕНИТЬ РОЛЬ</Table.Column>
-              </Table.Header>
-              {/* @ts-ignore */}
-              <Table.Body emptyContent={searchQuery ? "Пользователь не найден" : "Начните поиск по email для смены роли"}>
-                {regularUsers.map((u) => (
-                  <Table.Row key={u.id}>
-                    <Table.Cell>
-                      <span className="text-xs font-mono font-bold text-foreground">{u.email}</span>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <form action={handleUpdateRole} className="flex gap-2 items-center justify-end">
-                        <input type="hidden" name="userId" value={u.id} />
-                        <Select name="role" defaultValue={u.role}>
-                          <SelectTrigger className="w-32" size="sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="USER">USER</SelectItem>
-                            <SelectItem value="SUPPORT">SUPPORT</SelectItem>
-                            <SelectItem value="MANAGER">MANAGER</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <SubmitButton label="Назначить" className="text-[10px] font-bold uppercase tracking-wider h-8" />
-                      </form>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
+          <div className="rounded-md border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>КЛИЕНТ</TableHead>
+                  <TableHead className="text-right">СМЕНИТЬ РОЛЬ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {regularUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="h-24 text-center">
+                      {searchQuery ? "Пользователь не найден" : "Начните поиск по email для смены роли"}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  regularUsers.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell>
+                        <span className="text-xs font-mono font-bold text-foreground">{u.email}</span>
+                      </TableCell>
+                      <TableCell>
+                        <form action={handleUpdateRole} className="flex gap-2 items-center justify-end">
+                          <input type="hidden" name="userId" value={u.id} />
+                          <Select name="role" defaultValue={u.role}>
+                            <SelectTrigger className="w-32" size="sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="USER">USER</SelectItem>
+                              <SelectItem value="SUPPORT">SUPPORT</SelectItem>
+                              <SelectItem value="MANAGER">MANAGER</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <SubmitButton label="Назначить" className="text-[10px] font-bold uppercase tracking-wider h-8" />
+                        </form>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
             </Table>
           </div>
         </div>

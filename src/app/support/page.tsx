@@ -1,12 +1,18 @@
 import { Metadata } from 'next';
 import { GuestSupportOptions } from '@/components/support/GuestSupportOptions';
+import { SettingsProvider } from '@/lib/settings';
 
-export const metadata: Metadata = {
-  title: 'Служба поддержки | Smmplan',
-  description: 'Обратная связь и помощь. Напишите нам в Telegram или на Email.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await SettingsProvider.getContactAndLegalSettings();
+  return {
+    title: `Служба поддержки | ${settings.COMPANY_NAME}`,
+    description: 'Обратная связь и помощь. Напишите нам в Telegram или на Email.',
+  };
+}
 
-export default function SupportPage() {
+export default async function SupportPage() {
+  const settings = await SettingsProvider.getContactAndLegalSettings();
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center py-20 px-4">
       {/* Background Gradients */}
@@ -23,7 +29,10 @@ export default function SupportPage() {
           </p>
         </div>
 
-        <GuestSupportOptions />
+        <GuestSupportOptions 
+          telegramBotUsername={settings.TELEGRAM_SUPPORT_BOT} 
+          supportEmail={settings.SUPPORT_EMAIL} 
+        />
       </div>
     </div>
   );

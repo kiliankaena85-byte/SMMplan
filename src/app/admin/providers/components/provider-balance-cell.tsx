@@ -63,7 +63,9 @@ export function ProviderBalanceCell({ providerId }: { providerId: string }) {
         ? 'bg-destructive/10 border-destructive/30 text-destructive' 
         : 'bg-emerald-500/10 border-emerald-500/20 text-success'
     }`}>
-      <span className="font-mono font-bold text-sm tracking-tight">{balance}</span>
+      <span className="font-mono font-bold text-sm tracking-tight">
+        {new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(numBalance)}
+      </span>
       <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">{currency}</span>
     </div>
   );

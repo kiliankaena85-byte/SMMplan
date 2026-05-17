@@ -5,6 +5,7 @@ import { createTopUpPaymentAction } from '@/actions/user/top-up.action';
 import { activatePromoCodeAction } from '@/actions/user/promo';
 import { CreditCard, Banknote, Wallet, Gift, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const PRESETS = [300, 500, 1000, 2000, 5000, 10000];
 
@@ -184,9 +185,9 @@ export default function AddFundsPage() {
           />
           <label htmlFor="legal-consent" className="text-xs text-muted-foreground leading-relaxed">
             Я подтверждаю заказ и соглашаюсь с{' '}
-            <a href="/legal/terms" target="_blank" className="text-primary hover:underline font-medium">Договором оферты</a>{' '}
+            <Link href="/legal/terms" target="_blank" className="text-primary hover:underline font-medium">Договором оферты</Link>{' '}
             и{' '}
-            <a href="/legal/refund" target="_blank" className="text-primary hover:underline font-medium">Политикой возврата (Refund Policy)</a>.
+            <Link href="/legal/refund" target="_blank" className="text-primary hover:underline font-medium">Политикой возврата (Refund Policy)</Link>.
           </label>
         </div>
 

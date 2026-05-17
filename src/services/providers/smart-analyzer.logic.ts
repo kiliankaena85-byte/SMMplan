@@ -18,6 +18,10 @@ export interface AnalyzedService {
     requirements?: string;
     geo?: string;
     warranty?: number;
+    metrics?: any; // Will be properly typed as ProcurementMetrics
+    cleanName?: string;
+    customDataType?: 'NONE' | 'TEXTAREA' | 'NUMBER';
+    isMediaGroupAware?: boolean;
 }
 
 const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
@@ -205,10 +209,15 @@ const GEO_MAP: Record<string, string[]> = {
     'CN': ['китай', 'china', '🇨🇳'],
 };
 
+import { NameTokenizerService } from './name-tokenizer.service';
+
 export const SmartAnalyzerLogic = class {
     static detectSync(name: string, description: string = '', categoryInput: string = '', dynamicPlatforms?: Array<{ slug: string, keywords: string[], name: string }>): AnalyzedService {
         const sanitizedDescription = DescriptionSanitizer.sanitize(description);
         const nameNode = name.toLowerCase();
+        
+        // Tokenize Name
+        const tokenized = NameTokenizerService.tokenize(name, categoryInput);
         const safeCategoryInput = String(categoryInput || '');
         const catInputLower = safeCategoryInput.toLowerCase();
         const fullContent = (name + ' ' + sanitizedDescription + ' ' + safeCategoryInput).toLowerCase();
@@ -434,6 +443,19 @@ export const SmartAnalyzerLogic = class {
             }
         }
 
+        // 5. Custom Data & Media Group Detection
+        let customDataType: 'NONE' | 'TEXTAREA' | 'NUMBER' = 'NONE';
+        if (category === 'POLLS' || fullContent.includes('номер ответ') || fullContent.includes('за вариант')) {
+            customDataType = 'NUMBER';
+        } else if (fullContent.includes('свой текст') || fullContent.includes('кастомн') || fullContent.includes('по списку') || fullContent.includes('custom')) {
+            customDataType = 'TEXTAREA';
+        }
+
+        let isMediaGroupAware = false;
+        if (fullContent.includes('медиагрупп') || fullContent.includes('media group') || fullContent.includes('альбом')) {
+            isMediaGroupAware = true;
+        }
+
         return {
             platform: platformEnum,
             platformSlug,
@@ -442,9 +464,13 @@ export const SmartAnalyzerLogic = class {
             isPrivate,
             description_ru: desc,
             suggestedName: name.replace(/\[.*?\]/g, '').trim(),
+            cleanName: tokenized.cleanName,
             requirements: requirements.trim() || undefined,
             geo,
-            warranty
+            warranty,
+            customDataType,
+            isMediaGroupAware,
+            metrics: tokenized.metrics
         };
     }
 

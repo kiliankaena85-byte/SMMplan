@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { sendMail } from '@/lib/smtp';
+import { SettingsProvider } from '@/lib/settings';
 
 class TicketService {
   async getOrCreateTicket(userId: string, subject: string, source: string = 'WEB') {
@@ -72,7 +73,10 @@ class TicketService {
         ? `<p style="color: #64748b; font-size: 14px;">Для ответа на это сообщение, просто напишите ответное письмо.</p>`
         : `<p style="color: #64748b; font-size: 14px;">Пожалуйста, войдите в панель управления (Dashboard), чтобы ответить.</p>`;
 
-      const replyToAddress = `support+${message.ticket.id}@smmplan.pro`;
+      const supportDomain = await SettingsProvider.getSupportEmailDomain();
+      const settings = await SettingsProvider.getContactAndLegalSettings();
+      const companyName = settings.COMPANY_NAME || "Smmplan";
+      const replyToAddress = `support+${message.ticket.id}@${supportDomain}`;
       
       const escapeHtml = (unsafe: string) => unsafe
         .replace(/&/g, "&amp;")
@@ -84,7 +88,7 @@ class TicketService {
 
       void sendMail(message.ticket.user.email, `Support Reply: ${message.ticket.subject}`, `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
-          <h2 style="color: #4f46e5;">Новое сообщение от поддержки Smmplan</h2>
+          <h2 style="color: #4f46e5;">Новое сообщение от поддержки ${companyName}</h2>
           <p><strong>Тема:</strong> ${escapeHtml(message.ticket.subject)}</p>
           <div style="background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #4f46e5;">
             ${escapeHtml(text)}

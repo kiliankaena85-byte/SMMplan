@@ -1,7 +1,7 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { Chip, Tooltip } from '@heroui/react';
+import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Mail, MessageCircle, MessageSquare } from 'lucide-react';
 
@@ -18,10 +18,10 @@ export type TicketColumn = {
   lastMessageSender: string | null;
 };
 
-const STATUS_MAP: Record<string, { color: 'default' | 'success' | 'warning' | 'danger' | 'accent', label: string }> = {
-  OPEN: { color: 'danger', label: 'Открыт' },
-  PENDING: { color: 'warning', label: 'Ожидает' },
-  CLOSED: { color: 'default', label: 'Закрыт' },
+const STATUS_MAP: Record<string, { intent: 'default' | 'primary' | 'secondary' | 'outline' | 'destructive' | 'gradient', label: string, extraClasses: string }> = {
+  OPEN: { intent: 'destructive', label: 'Открыт', extraClasses: 'bg-destructive/20 text-destructive border-destructive/30' },
+  PENDING: { intent: 'outline', label: 'Ожидает', extraClasses: 'bg-warning/20 text-warning border-warning/30' },
+  CLOSED: { intent: 'secondary', label: 'Закрыт', extraClasses: 'bg-muted text-muted-foreground' },
 };
 
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
@@ -79,11 +79,11 @@ export const columns: ColumnDef<TicketColumn>[] = [
     accessorKey: 'status',
     header: 'Статус',
     cell: ({ row }) => {
-      const config = STATUS_MAP[row.original.status] || { color: 'default', label: row.original.status };
+      const config = STATUS_MAP[row.original.status] || { intent: 'default', label: row.original.status, extraClasses: '' };
       return (
-        <Chip color={config.color} size="sm" variant="soft" className="font-bold text-[10px] uppercase tracking-wider">
+        <Badge intent={config.intent as any} className={`font-bold text-[10px] uppercase tracking-wider ${config.extraClasses}`}>
           {config.label}
-        </Chip>
+        </Badge>
       );
     },
   },

@@ -9,6 +9,14 @@ export interface DecryptedPaymentSecrets {
   cryptoBotToken: string | null;
 }
 
+export interface DecryptedSmtpSettings {
+  smtpHost: string | null;
+  smtpPort: number;
+  smtpUser: string | null;
+  smtpPassword: string | null;
+  supportEmailDomain: string | null;
+}
+
 /**
  * SettingsProvider: Optimized, cached, and Zod-validated source for system settings.
  * Part of Wave 2 Refactoring: Eliminated redundant fetching and added caching.
@@ -37,9 +45,17 @@ export class SettingsProvider {
           opexMonthly: 0,
           maintenanceMode: false,
           isTestMode: false,
-          siteName: "Smmplan",
+          siteName: "Smmplan Lite",
           siteDescription: "",
-          exchangeRateUSD: 95.0
+          exchangeRateUSD: 95.0,
+          contactSupportEmail: "support@smmplan.pro",
+          contactPrivacyEmail: "privacy@smmplan.pro",
+          contactTelegramBot: "smmplan_support_bot",
+          contactTelegramChannel: "smmplan_support",
+          legalCompanyName: "Smmplan Lite",
+          legalCompanyInn: "Укажите ИНН",
+          legalCompanyOgrnip: "Укажите ОГРНИП",
+          legalCompanyAddress: "г. Москва",
         }
       });
     },
@@ -73,6 +89,50 @@ export class SettingsProvider {
       yookassaShopId: shopId,
       yookassaSecretKey: secretKeyRaw ? VaultService.decrypt(secretKeyRaw) : null,
       cryptoBotToken: settings.cryptoBotToken ? VaultService.decrypt(settings.cryptoBotToken) : null
+    };
+  }
+
+  /**
+   * Securely decrypts and returns SMTP credentials.
+   */
+  static async getSmtpSettings(): Promise<DecryptedSmtpSettings> {
+    const settings = await this.getCached();
+    
+    return {
+      smtpHost: settings.smtpHost,
+      smtpPort: settings.smtpPort || 465,
+      smtpUser: settings.smtpUser,
+      smtpPassword: settings.smtpPassword ? VaultService.decrypt(settings.smtpPassword) : null,
+      supportEmailDomain: settings.supportEmailDomain,
+    };
+  }
+
+  /**
+   * Returns the inbound support email domain.
+   */
+  static async getSupportEmailDomain(): Promise<string> {
+    const settings = await this.getCached();
+    return settings.supportEmailDomain || process.env.SUPPORT_EMAIL_DOMAIN || "smmplan.pro";
+  }
+
+  /**
+   * Returns all dynamic contact and legal information, completely replacing the old KV store.
+   */
+  static async getContactAndLegalSettings() {
+    const settings = await this.getCached();
+    return {
+      SITE_NAME: settings.siteName || "Smmplan Lite",
+      SITE_DESCRIPTION: settings.siteDescription || "",
+      SUPPORT_EMAIL: settings.contactSupportEmail || "support@smmplan.pro",
+      PRIVACY_EMAIL: settings.contactPrivacyEmail || "privacy@smmplan.pro",
+      TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || "smmplan_support_bot",
+      TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || "smmplan_support",
+      WHATSAPP: settings.contactWhatsApp || "",
+      VK: settings.contactVk || "",
+      COMPANY_NAME: settings.legalCompanyName || "Smmplan Lite",
+      COMPANY_INN: settings.legalCompanyInn || "Укажите ИНН",
+      COMPANY_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
+      COMPANY_ADDRESS: settings.legalCompanyAddress || "г. Москва",
     };
   }
 

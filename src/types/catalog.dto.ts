@@ -10,6 +10,7 @@ export interface CatalogServiceDTO {
   externalId: string | null;
   categoryId: string;
   categoryName: string;
+  networkName: string | null;
   networkSlug: string | null;
   /** Provider cost per 1000 — visible only in admin, never to clients */
   rate: number;

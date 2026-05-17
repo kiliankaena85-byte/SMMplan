@@ -100,7 +100,7 @@ export function BottomCheckout({ engine, handleCheckout, isSubmitting }: BottomC
             <Button 
                onClick={handleCheckout}
                disabled={isSubmitting}
-               className={`min-w-[200px] h-16 rounded-full px-8 bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-2 group ${
+               className={`min-w-[200px] h-16 rounded-full px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)] transition-all flex items-center justify-center gap-2 group ${
                   isSubmitting ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'
                }`}
             >

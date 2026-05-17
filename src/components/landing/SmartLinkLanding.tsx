@@ -35,11 +35,22 @@ import { IconClock, IconBox } from "@tabler/icons-react";
 
 export function SmartLinkLanding({
   initialCatalog,
-  initialEmail
+  initialEmail,
+  contactSettings
 }: {
   initialCatalog: PublicNetwork[];
   initialEmail?: string;
+  contactSettings?: {
+    SITE_NAME?: string;
+    COMPANY_NAME?: string;
+    SUPPORT_EMAIL?: string;
+    TELEGRAM_SUPPORT_BOT?: string;
+    LEGAL_INN?: string;
+    LEGAL_OGRNIP?: string;
+    LEGAL_ADDRESS?: string;
+  };
 }) {
+  const companyName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "Smmplan";
   const engine = useOrderEngine(initialCatalog, initialEmail);
   const {
     url, setUrl,
@@ -83,7 +94,7 @@ export function SmartLinkLanding({
             <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-[0_2px_10px] shadow-primary/10">
               <Zap className="w-4 h-4 text-primary fill-current" />
             </div>
-            <span className="text-xl font-extrabold tracking-tight text-foreground hidden sm:block">Smmplan</span>
+            <span className="text-xl font-extrabold tracking-tight text-foreground hidden sm:block">{companyName}</span>
           </Link>
 
           <nav className="hidden md:flex gap-8 text-sm font-bold text-muted-foreground">
@@ -268,13 +279,13 @@ export function SmartLinkLanding({
       {/* Trust and WhyUs wrappers */}
       <div className="relative z-10 -mt-10 bg-background">
         <TrustBar />
-        <WhyUs />
+        <WhyUs companyName={companyName} />
         <Reviews />
-        <FAQ />
+        <FAQ companyName={companyName} />
       </div>
       
       {/* ── Секция 3: Подвал "Premium Trust" (Mega-Footer) ── */}
-      <MegaFooter />
+      <MegaFooter contactSettings={contactSettings} />
 
       {/* ══════════ DESKTOP STICKY CHECKOUT BAR (Финтех-бар) ══════════ */}
       <StickyCheckoutBar

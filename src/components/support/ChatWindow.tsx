@@ -385,7 +385,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <div className="flex items-center gap-2 bg-black/5 p-2.5 rounded-xl border border-black/10 mb-2">
                        <div className="text-2xl drop-shadow-sm">📄</div>
                        <div className="text-sm font-semibold truncate flex-1 leading-tight text-foreground/90">Приложенный<br/>документ</div>
-                       <a href={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} target="_blank" className="text-primary text-[10px] font-bold px-2.5 py-1.5 bg-background shadow-sm border border-default-200 rounded-md hover:bg-default-50 transition-colors">Открыть</a>
+                       <a href={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} target="_blank" rel="noopener noreferrer" className="text-primary text-[10px] font-bold px-2.5 py-1.5 bg-background shadow-sm border border-default-200 rounded-md hover:bg-default-50 transition-colors">Открыть</a>
                     </div>
                   )}
 

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { redis } from '@/lib/redis';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
 import { sendAdminAlert } from '@/lib/notifications';
@@ -29,7 +30,7 @@ type CatalogRow = {
   isActive: boolean;
   isDripFeedEnabled: boolean;
   isRefillEnabled: boolean;
-  category: { id: string; name: string };
+  category: { id: string; name: string; network?: { name: string; slug: string } | null };
   _count: { orders: number };
 };
 
@@ -81,7 +82,7 @@ class AdminCatalogService {
       where,
       orderBy: { numericId: 'asc' },
       include: {
-        category: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true, network: { select: { name: true, slug: true } } } },
         _count: { select: { orders: true } },
       },
     });
@@ -163,52 +164,190 @@ class AdminCatalogService {
   }
 
   /**
-   * Import selected services from a provider into our catalog.
-   * Cherry-pick: only imports the selected IDs.
+   * Zombie Eraser & Catalog Synchronization
+   * Finds services that were deleted by the provider and marks them inactive.
+   * Auto-restores services that reappeared.
    */
+  async syncProviderCatalog(providerId: string, admin: { id: string; email: string }) {
+    const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
+    if (!providerDbRecord) throw new Error('Провайдер не найден');
+    if (providerDbRecord.syncLock) throw new Error('Синхронизация отключена (syncLock)');
+
+    const providerInstance = await providerService.getProviderInstance(providerDbRecord);
+    const liveServices = await providerInstance.getServices();
+    
+    if (!Array.isArray(liveServices) || liveServices.length === 0) {
+      throw new Error('API провайдера вернуло пустой список или ошибку. Синхронизация прервана (защита).');
+    }
+
+    const liveMap = new Map(liveServices.map((s: any) => [String(s.service), s]));
+    
+    const ourServices = await db.service.findMany({
+      where: { providerId }
+    });
+
+    let zombiesDisabled = 0;
+    let resurrected = 0;
+    let priceAnomalies = 0;
+
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const QUARANTINE_THRESHOLD = 0.2; // 20% price increase tolerance
+
+    for (const s of ourServices) {
+      if (!s.externalId) continue;
+      
+      const liveExt = liveMap.get(s.externalId);
+      
+      if (!liveExt) {
+        // ZOMBIE DETECTION
+        if (s.isActive) {
+          await db.service.update({
+            where: { id: s.id },
+            data: { 
+              isActive: false, 
+              cooldownReason: 'ZOMBIE_AUTO_DISABLED',
+              cooldownUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+            }
+          });
+          zombiesDisabled++;
+        }
+      } else {
+        // LIVE SERVICE
+        if (!s.isActive && s.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
+          // Check Price Spike before resurrecting
+          const rawRate = parseFloat(liveExt.rate);
+          const oldRate = s.rate;
+          
+          if (oldRate > 0 && rawRate > oldRate * (1 + QUARANTINE_THRESHOLD)) {
+            // Price spiked! Quarantine it
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isQuarantined: true,
+                pendingRate: rawRate,
+                quarantineReason: `Zombie Resurrection: Цена выросла с $${oldRate} до $${rawRate}`,
+                quarantinedAt: new Date()
+              }
+            });
+            priceAnomalies++;
+          } else {
+            // Safe to resurrect
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: true,
+                cooldownReason: null,
+                cooldownUntil: null,
+                rate: rawRate,
+                pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * s.markup * usdToRub) * 100)
+              }
+            });
+            resurrected++;
+          }
+        }
+      }
+    }
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'PROVIDER_CATALOG_SYNC',
+      target: providerId,
+      targetType: 'PROVIDER',
+      newValue: { zombiesDisabled, resurrected, priceAnomalies },
+    });
+
+    return { zombiesDisabled, resurrected, priceAnomalies };
+  }
+
   async importServices(
     externalIds: string[],
     categoryId: string,
     defaultMarkup: number,
-    admin: { id: string; email: string }
+    admin: { id: string; email: string },
+    providerId: string
   ) {
-    const providerServices = await this.getProviderServices();
-    const toImport = providerServices.filter(s => externalIds.includes(s.service.toString()));
+    // 1. Fetch from Shadow Catalog (Redis) to get the AI-normalized names and metrics
+    const cacheKey = `provider:${providerId}:shadow_catalog`;
+    const cached = await redis.get(cacheKey);
+    let shadowServices: any[] = [];
+    if (cached) {
+      try { shadowServices = JSON.parse(cached); } catch(e) {}
+    }
 
-    if (toImport.length === 0) throw new Error('Не найдены услуги для импорта');
+    const toImportShadow = shadowServices.filter(s => externalIds.includes(s.service.toString()));
+    if (toImportShadow.length === 0) throw new Error('Не найдены услуги для импорта в теневом каталоге (Обновите каталог)');
+
+    // 2. LIVE-CHECK: Fetch fresh prices from Provider API to prevent Cache Poisoning
+    const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
+    if (!providerDbRecord) throw new Error('Провайдер не найден');
+    const providerInstance = await providerService.getProviderInstance(providerDbRecord);
+    const liveServices = await providerInstance.getServices();
+    
+    // Map live services for O(1) lookup
+    const liveMap = new Map(liveServices.map((s: any) => [s.service.toString(), s]));
 
     let importedCount = 0;
-    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
     
-    for (const ext of toImport) {
+    for (const shadowExt of toImportShadow) {
       // Skip if already exists
       const existing = await db.service.findFirst({
-        where: { externalId: ext.service.toString() },
+        where: { externalId: shadowExt.service.toString() },
       });
 
       if (existing) continue;
 
-      const rawRate = parseFloat(ext.rate);
+      // 3. Live Price Check
+      const liveExt = liveMap.get(shadowExt.service.toString());
+      if (!liveExt) {
+        // Service was removed by provider between caching and importing!
+        console.warn(`[Live-Check] Service ${shadowExt.service} was removed by provider. Skipping.`);
+        continue;
+      }
+
+      // Use the LIVE rate, not the cached one
+      const rawRate = parseFloat(liveExt.rate);
+      
+      // Handle Currency Conversion (Avoid double-conversion for RUB providers)
+      const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
+      const exchangeRate = providerCurrency === 'RUB' ? 1.0 : globalUsdToRub;
+
       let effectiveMarkup = defaultMarkup;
+      
+      // Auto-pricing engine
       if (defaultMarkup <= 0) {
-        const retailFromLadder = applyPricingLadder(rawRate * usdToRub);
-        effectiveMarkup = rawRate > 0 ? Math.round((retailFromLadder / (rawRate * usdToRub)) * 100) / 100 : 3.0;
+        const retailFromLadder = applyPricingLadder(rawRate * exchangeRate);
+        effectiveMarkup = rawRate > 0 ? Math.round((retailFromLadder / (rawRate * exchangeRate)) * 100) / 100 : 3.0;
+      }
+      
+      // Safety Floor Check
+      if (effectiveMarkup < SAFETY_FLOOR_MARKUP) {
+        effectiveMarkup = SAFETY_FLOOR_MARKUP;
       }
 
       await db.service.create({
         data: {
-          name: ext.name,
-          externalId: ext.service.toString(),
+          name: shadowExt.cleanName || liveExt.name, // Use AI Clean Name
+          description: liveExt.description || shadowExt.description,
+          externalId: liveExt.service.toString(),
           categoryId,
-          rate: rawRate,
+          providerId: providerDbRecord.id,
+          providerCurrency: providerCurrency,
+          rate: rawRate, // Live provider rate
           markup: effectiveMarkup,
-          pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * usdToRub) * 100),
-          minQty: parseInt(ext.min, 10) || 10,
-          maxQty: parseInt(ext.max, 10) || 100000,
+          pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
+          minQty: parseInt(liveExt.min, 10) || 10,
+          maxQty: parseInt(liveExt.max, 10) || 10000,
+          features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
+          anomalyScore: shadowExt.metrics?.anomalyScore || 0,
+          targetType: shadowExt.metrics?.targetType || 'POST',
+          customDataType: shadowExt.metrics?.customDataType || 'NONE',
+          isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
           isActive: true,
-          isDripFeedEnabled: ext.dripfeed ?? false,
-          isRefillEnabled: ext.refill ?? false,
-          isCancelEnabled: ext.cancel ?? false,
+          isDripFeedEnabled: liveExt.dripfeed ?? false,
+          isRefillEnabled: liveExt.refill ?? false,
+          isCancelEnabled: liveExt.cancel ?? false,
           lastSeenAt: new Date(),
         },
       });
@@ -222,7 +361,7 @@ class AdminCatalogService {
       action: 'SERVICES_IMPORT',
       target: categoryId,
       targetType: 'SERVICE',
-      newValue: { importedCount, externalIds },
+      newValue: { importedCount, externalIds, providerId },
     });
 
     return { importedCount, totalRequested: externalIds.length };
