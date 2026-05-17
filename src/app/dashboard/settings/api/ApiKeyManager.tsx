@@ -68,7 +68,7 @@ export default function ApiKeyManager({ hasKey }: { hasKey: boolean }) {
                 Скопируйте ключ прямо сейчас. В целях безопасности он больше никогда не будет показан.
               </p>
               <div className="flex gap-2">
-                <div className="flex-1 min-w-0 bg-white border border-emerald-200 rounded-lg px-4 py-2.5 font-mono text-sm text-foreground truncate select-all">
+                <div className="flex-1 min-w-0 bg-card border border-emerald-200 rounded-lg px-4 py-2.5 font-mono text-sm text-foreground truncate select-all">
                   {newKey}
                 </div>
                 <button
@@ -77,8 +77,8 @@ export default function ApiKeyManager({ hasKey }: { hasKey: boolean }) {
                   aria-label="Скопировать API-ключ"
                   className={`shrink-0 px-4 py-2.5 rounded-lg border font-medium text-sm transition-all duration-200 ${
                     copied
-                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                      : 'bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                      ? 'bg-emerald-600 border-emerald-600 text-primary-foreground shadow-sm'
+                      : 'bg-card border-emerald-200 text-emerald-700 hover:bg-emerald-50'
                   }`}
                 >
                   {copied ? 'Скопировано!' : 'Скопировать'}

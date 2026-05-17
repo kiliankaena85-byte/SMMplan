@@ -1,5 +1,4 @@
 import { Prisma } from '@prisma/client';
-import { MutexManager } from '@/lib/redis-lock';
 
 type PrismaTx = Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
@@ -21,7 +20,8 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    return MutexManager.withLock(`wallet_ops:${userId}`, 10000, 5000, async () => {
+    // Removed Redis Mutex: PostgreSQL handles row-level locking securely. Holding a DB transaction open 
+    // while waiting for an external Redis lock is an anti-pattern that leads to connection pool exhaustion.
       // 1. Check Idempotency immediately
       if (idempotencyKey) {
         const existing = await tx.ledgerEntry.findUnique({
@@ -77,7 +77,6 @@ export const WalletOps = {
       });
 
       return { success: true, balance: finalUser.balance, cached: false, entry };
-    });
   },
 
   /**
@@ -96,7 +95,7 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    return MutexManager.withLock(`wallet_ops:${userId}`, 10000, 5000, async () => {
+    // Removed Redis Mutex to prevent DB connection pool exhaustion.
       if (idempotencyKey) {
         const existing = await tx.ledgerEntry.findUnique({
           where: { idempotencyKey },
@@ -124,7 +123,7 @@ export const WalletOps = {
       });
 
       return { success: true, balance: updatedUser.balance, cached: false, entry };
-    });
+    // Removed Mutex wrapper closing bracket
   },
 
   /**
@@ -144,7 +143,7 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    return MutexManager.withLock(`wallet_ops:${userId}`, 10000, 5000, async () => {
+    // Removed Redis Mutex to prevent DB connection pool exhaustion.
       if (idempotencyKey) {
         const existing = await tx.ledgerEntry.findUnique({
           where: { idempotencyKey },
@@ -172,7 +171,7 @@ export const WalletOps = {
       });
 
       return { success: true, balance: updatedUser.balance, cached: false, entry };
-    });
+    // Removed Mutex wrapper closing bracket
   },
 
   /**
@@ -197,7 +196,7 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    return MutexManager.withLock(`wallet_ops:${userId}`, 10000, 5000, async () => {
+    // Removed Redis Mutex to prevent DB connection pool exhaustion.
       if (idempotencyKey) {
         const existing = await tx.ledgerEntry.findUnique({
           where: { idempotencyKey },
@@ -228,6 +227,6 @@ export const WalletOps = {
       });
 
       return { success: true, balance: updatedUser.balance, cached: false, entry };
-    });
+    // Removed Mutex wrapper closing bracket
   }
 };

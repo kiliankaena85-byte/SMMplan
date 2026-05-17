@@ -24,7 +24,7 @@ export class NameTokenizerService {
      */
     static tokenize(rawName: string, category: string = ''): TokenizedName {
         let cleanName = rawName;
-        let quality: ProcurementMetrics['quality'] = 'UNKNOWN';
+        let quality: ProcurementMetrics['quality'];
         let velocity: number | null = null;
         let dropRate: number | null = null;
         let hasRefill = false;

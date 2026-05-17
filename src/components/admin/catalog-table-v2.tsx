@@ -90,11 +90,11 @@ function BatchActionBar({
       <div className="flex-1 h-px bg-border" />
       <button
         onClick={handleEnable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-success border border-emerald-500/30 hover:bg-emerald-500/25 transition-all duration-200 disabled:opacity-50"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-emerald-500/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50"
       >✅ Включить</button>
       <button
         onClick={handleDisable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/15 text-destructive border border-rose-500/30 hover:bg-rose-500/25 transition-all duration-200 disabled:opacity-50"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/15 text-destructive border border-rose-500/30 hover:bg-destructive/25 transition-all duration-200 disabled:opacity-50"
       >🚫 Отключить</button>
       {canEditFinance && (
         <div className="flex items-center gap-1 group relative">
@@ -240,7 +240,7 @@ function InlinePriceCell({ service, usdToRub, canEditFinance }: { service: Catal
       </div>
 
       <div className="flex items-center gap-2">
-         <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20">
+         <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-success/10 text-emerald-600 font-bold border border-emerald-500/20">
            Прибыль: {(localPrice - providerCostRub).toFixed(2)} ₽
          </span>
          {isBelowSafety && (
@@ -330,7 +330,8 @@ export function CatalogTable({
   function toggleOne(id: string) {
     setSelected(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -415,7 +416,7 @@ export function CatalogTable({
                               {s.name}
                             </span>
                             {s.isQuarantined && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-warning font-bold border border-amber-500/20 whitespace-nowrap">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-warning/15 text-warning font-bold border border-amber-500/20 whitespace-nowrap">
                                 ⚠️ КАРАНТИН
                               </span>
                             )}
@@ -451,7 +452,7 @@ export function CatalogTable({
                     </Table.Cell>
                     <Table.Cell key={`cell-status-${s.id}`} className="py-4 px-4 text-center">
                       {canEdit ? <StatusToggle service={s} /> : (
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.isActive ? 'bg-emerald-500/15 text-success' : 'bg-muted text-muted-foreground'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.isActive ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'}`}>
                           {s.isActive ? 'Вкл' : 'Выкл'}
                         </span>
                       )}

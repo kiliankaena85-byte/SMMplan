@@ -28,7 +28,7 @@ export function ActionForm({
        <form action={formAction} className={className} ref={formRef}>
            {children}
            {state?.error && (
-               <p className="text-red-500 text-sm mt-2 font-medium" role="alert" aria-live="assertive">{state.error}</p>
+               <p className="text-destructive text-sm mt-2 font-medium" role="alert" aria-live="assertive">{state.error}</p>
            )}
        </form>
    );

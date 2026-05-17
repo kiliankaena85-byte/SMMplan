@@ -165,7 +165,7 @@ export default function PasswordCard({ hasPassword }: { hasPassword: boolean }) 
 
         <div className="flex items-center justify-between pt-2 border-t border-border/40">
           <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <Check className="w-3.5 h-3.5 text-success shrink-0" />
             Минимум 8 символов, цифры и буквы
           </div>
           <Button

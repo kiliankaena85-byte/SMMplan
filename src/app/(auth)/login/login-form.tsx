@@ -59,7 +59,7 @@ export function LoginForm() {
     return (
       <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-6 text-center space-y-3">
         <div className="flex justify-center">
-          <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+          <CheckCircle2 className="w-10 h-10 text-success" />
         </div>
         <h3 className="font-bold text-foreground">Проверьте почту</h3>
         <p className="text-sm text-muted-foreground leading-relaxed">

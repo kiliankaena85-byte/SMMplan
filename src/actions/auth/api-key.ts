@@ -4,11 +4,17 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
+import { RateLimitService } from '@/services/core/rate-limit.service';
 
 export async function generateApiKey() {
   const session = await verifySession();
   if (!session) {
     return { success: false, error: 'Unauthorized' };
+  }
+
+  const isAllowed = await RateLimitService.check(`generate-api-key:${session.userId}`, 5, 3600);
+  if (!isAllowed) {
+    return { success: false, error: 'Too many API keys generated recently. Please try again later.' };
   }
 
   // Generate a random hex key

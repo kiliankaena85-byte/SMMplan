@@ -66,7 +66,7 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
           <div className="text-xs font-bold text-destructive uppercase tracking-widest mb-1">Открытые (SLA)</div>
           <div className="text-2xl font-black text-destructive">{stats.open}</div>
         </div>
-        <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl shadow-sm">
+        <div className="bg-warning/10 border border-amber-500/20 p-4 rounded-xl shadow-sm">
           <div className="text-xs font-bold text-warning uppercase tracking-widest mb-1">Ожидают</div>
           <div className="text-2xl font-black text-warning">{stats.pending}</div>
         </div>

@@ -120,7 +120,7 @@ export function SuccessContent() {
           <div className="flex justify-center">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-amber-50 border-4 border-amber-200 flex items-center justify-center">
-                <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+                <Loader2 className="w-10 h-10 text-warning animate-spin" />
               </div>
               <div className="absolute inset-0 rounded-full border-4 border-amber-200 animate-ping opacity-20" />
             </div>
@@ -145,7 +145,7 @@ export function SuccessContent() {
             </div>
             <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-amber-500 rounded-full transition-all duration-1000"
+                className="h-full bg-warning rounded-full transition-all duration-1000"
                 style={{ width: `${Math.min(((pollCount + 1) / MAX_POLLS) * 100, 100)}%` }}
               />
             </div>
@@ -160,7 +160,7 @@ export function SuccessContent() {
           {pollCount >= 5 && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left animate-in fade-in duration-300">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
                 <div className="text-sm text-amber-800">
                   <p className="font-semibold mb-1">Подтверждение задерживается</p>
                   <p>Если вы уже оплатили — не волнуйтесь, мы автоматически зачислим платёж, когда банк пришлёт подтверждение. Вы также можете проверить статус позже в разделе «Мои заказы».</p>
@@ -205,7 +205,7 @@ export function SuccessContent() {
           <div className="flex justify-center">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-emerald-50 border-4 border-emerald-100 flex items-center justify-center">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+                <CheckCircle2 className="w-12 h-12 text-success" />
               </div>
               <div className="absolute inset-0 rounded-full border-4 border-emerald-200 animate-ping opacity-20" />
             </div>
@@ -289,7 +289,7 @@ export function SuccessContent() {
       <div className="max-w-md w-full text-center space-y-6 animate-in fade-in duration-500">
         <div className="flex justify-center">
           <div className="w-20 h-20 rounded-full bg-rose-50 border-4 border-rose-100 flex items-center justify-center">
-            <AlertTriangle className="w-10 h-10 text-rose-500" />
+            <AlertTriangle className="w-10 h-10 text-destructive" />
           </div>
         </div>
         <div className="space-y-2">

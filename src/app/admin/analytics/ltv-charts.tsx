@@ -53,7 +53,7 @@ export function LTVCharts({ ltv }: LTVChartsProps) {
             </div>
             <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
               <div 
-                className="h-full bg-emerald-500 transition-all duration-1000" 
+                className="h-full bg-success transition-all duration-1000" 
                 style={{ width: `${ltv.top10PercentShare}%` }} 
               />
             </div>

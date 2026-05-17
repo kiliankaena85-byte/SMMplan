@@ -61,7 +61,7 @@ export function ProviderBalanceCell({ providerId }: { providerId: string }) {
     <div className={`flex items-baseline gap-1.5 px-2.5 py-1 rounded-md border w-fit ${
       isLowBalance 
         ? 'bg-destructive/10 border-destructive/30 text-destructive' 
-        : 'bg-emerald-500/10 border-emerald-500/20 text-success'
+        : 'bg-success/10 border-emerald-500/20 text-success'
     }`}>
       <span className="font-mono font-bold text-sm tracking-tight">
         {new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(numBalance)}

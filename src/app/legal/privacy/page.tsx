@@ -16,7 +16,7 @@ export default function PrivacyPage() {
           На главную
         </Link>
         
-        <article className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 md:p-12 prose prose-slate max-w-none">
+        <article className="bg-card rounded-3xl shadow-sm border border-slate-200 p-8 md:p-12 prose prose-slate max-w-none">
           <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-8">
             Политика конфиденциальности
           </h1>

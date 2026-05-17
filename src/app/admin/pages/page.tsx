@@ -15,7 +15,7 @@ export default async function AdminPagesList() {
           <h1 className="text-3xl font-bold tracking-tight">CMS Pages</h1>
           <p className="text-muted-foreground">Manage textual content for the public website.</p>
         </div>
-        <Link href="/admin/pages/new" className="px-4 py-2 bg-slate-900 text-white rounded-md text-sm font-medium hover:bg-slate-800 transition-colors">
+        <Link href="/admin/pages/new" className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">
           Create New Page
         </Link>
       </div>

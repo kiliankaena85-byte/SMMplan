@@ -64,7 +64,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
           trigger || (
             <Button 
               size="sm" 
-              className="w-full sm:w-auto px-4 py-1.5 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors flex items-center gap-2 shadow-sm h-8"
+              className="w-full sm:w-auto px-4 py-1.5 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-primary-foreground transition-colors flex items-center gap-2 shadow-sm h-8"
             >
               <Wallet className="w-3 h-3" /> Оплатить / Проверить
             </Button>
@@ -105,7 +105,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
               </div>
               {!canPayFromBalance && (
                 <div className="absolute inset-y-0 right-4 flex items-center">
-                  <span className="text-xs font-medium text-rose-500 bg-rose-500/10 px-2 py-1 rounded">Недостаточно</span>
+                  <span className="text-xs font-medium text-destructive bg-destructive/10 px-2 py-1 rounded">Недостаточно</span>
                 </div>
               )}
               {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}

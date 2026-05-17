@@ -53,8 +53,8 @@ export default function ManualRefillModal({
   const isOverLimit = remaining !== null && remaining < 0 && limitRub !== null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm shadow-2xl">
-      <div className="bg-white rounded-2xl w-full max-w-lg flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-foreground/60 flex items-center justify-center p-4 backdrop-blur-sm shadow-2xl">
+      <div className="bg-card rounded-2xl w-full max-w-lg flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -67,7 +67,7 @@ export default function ManualRefillModal({
           
           {limitRub !== null && (
             <div className={`mb-6 p-3 rounded-xl border flex gap-3 text-sm transition-colors ${isOverLimit ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-indigo-50/50 border-indigo-100 text-indigo-800'}`}>
-               <Info className={`w-5 h-5 shrink-0 ${isOverLimit ? 'text-rose-500' : 'text-indigo-400'}`} />
+               <Info className={`w-5 h-5 shrink-0 ${isOverLimit ? 'text-destructive' : 'text-indigo-400'}`} />
                <div>
                   Ваш лимит доверия на этот месяц: <strong>{limitRub} ₽</strong>.<br/>
                   Это бюджет на спасение репутации <strong>за счет компании</strong>. Обязательно укажите где и на что сделан заказ!
@@ -85,10 +85,10 @@ export default function ManualRefillModal({
                   placeholder="Пример: 15.50" 
                   value={costText} 
                   onChange={e => setCostText(e.target.value)}
-                  className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:ring-2 transition-all bg-white ${isOverLimit ? 'border-rose-300 focus:ring-rose-500/20' : 'border-slate-200 focus:border-transparent focus:ring-indigo-500'}`}
+                  className={`w-full text-base border rounded-xl px-4 py-3 outline-none focus:ring-2 transition-all bg-card ${isOverLimit ? 'border-rose-300 focus:ring-rose-500/20' : 'border-slate-200 focus:border-transparent focus:ring-indigo-500'}`}
                   autoFocus
                 />
-                {isOverLimit && <div className="text-xs text-rose-500 font-medium mt-1">Превышает доступный лимит!</div>}
+                {isOverLimit && <div className="text-xs text-destructive font-medium mt-1">Превышает доступный лимит!</div>}
             </div>
             
             <div>
@@ -98,7 +98,7 @@ export default function ManualRefillModal({
                   placeholder="Пример: VexBoost висит. Перезаказал 1000 подписчиков вручную на JAP, id #81923" 
                   value={note} 
                   onChange={e => setNote(e.target.value)}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[100px] resize-y bg-white leading-relaxed"
+                  className="w-full text-sm border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[100px] resize-y bg-card leading-relaxed"
                 />
             </div>
 
@@ -117,7 +117,7 @@ export default function ManualRefillModal({
             
             <div className="flex justify-end gap-3 mt-6 pt-2">
               <Button intent="outline" type="button" onClick={onClose} className="rounded-xl border-slate-200">Отмена</Button>
-              <Button type="submit" disabled={isPending || isOverLimit || !costText || !note} className={`rounded-xl text-white ${isOverLimit ? 'bg-rose-500 hover:bg-rose-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+              <Button type="submit" disabled={isPending || isOverLimit || !costText || !note} className={`rounded-xl text-primary-foreground ${isOverLimit ? 'bg-destructive hover:bg-destructive/90' : 'bg-primary hover:bg-primary'}`}>
                 {isPending ? 'Запись...' : 'Списать и логировать'}
               </Button>
             </div>

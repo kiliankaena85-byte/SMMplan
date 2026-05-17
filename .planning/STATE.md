@@ -19,7 +19,10 @@ Last activity: 2026-05-15 — Catalog UI stabilization (HeroUI v3 strict collect
 - [x] Analytics: Service-level profitability charts & LTV tables.
 - [x] Tickets: Complete refactoring to HeroUI (AI-assisted replies abandoned per architectural decision).
 - [x] Provider Sync Hardening: Webhook routing integration (VexBoost).
+- [x] **Financial Integrity:** Removed Redis-based locks (MutexManager) from WalletOps & PaymentGateway, shifting to native PostgreSQL Serializable isolation.
+- [x] **Architectural Audit:** Confirmed no Next.js RSC boundary violations, trust boundary leaks, or N+1 query patterns in Admin routes.
 
 ### Next:
-- [ ] E2E Testing Coverage Expansion (beyond Catalog).
+- [ ] Technical Debt: Resolve 29,620 ESLint strict mode errors (`any` types, `unused-vars`) via bulk auto-fix and targeted typing refactoring.
+- [ ] Catalog Import UAT: Finalize robust import logic for provider services (Shadow Catalog).
 - [ ] Phase 2: Production Hardening (Docker, CI/CD, Linux Migration).

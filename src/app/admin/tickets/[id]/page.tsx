@@ -16,11 +16,13 @@ export const dynamic = 'force-dynamic';
 export default async function AdminTicketChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
-  const [activeTicket, templates, session] = await Promise.all([
+  const [activeTicket, templatesResult, session] = await Promise.all([
     adminTicketService.getTicketDetails(id),
     getTemplates(),
     verifySession(),
   ]);
+
+  const templates = Array.isArray(templatesResult) ? templatesResult : [];
 
   if (!activeTicket) return notFound();
 
@@ -90,8 +92,8 @@ export default async function AdminTicketChatPage({ params }: { params: Promise<
               initialMessages={activeTicket.messages}
               isStaff={true}
               initialTemplates={templates}
-              onSendMessage={adminReplyTicket}
-              editTicketMessage={editTicketMessage}
+              onSendMessage={async (fd) => { await adminReplyTicket(fd); }}
+              editTicketMessage={async (fd) => { await editTicketMessage(fd); }}
             />
           </div>
         </div>

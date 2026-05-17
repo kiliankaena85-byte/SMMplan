@@ -166,7 +166,7 @@ export default async function CategoryServicesPage({ params }: { params: Promise
                     {service.minQty} шт.
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/5 px-2 py-1 rounded-md border border-emerald-500/10">
+                    <span className="text-[10px] font-bold text-emerald-600 bg-success/5 px-2 py-1 rounded-md border border-emerald-500/10">
                       {service.speed}
                     </span>
                   </td>

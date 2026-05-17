@@ -31,7 +31,7 @@ export function EmailModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4"
       onClick={() => setShowEmailModal(false)}
     >
       <motion.div
@@ -94,7 +94,7 @@ export function EmailModal({
               }
             }}
             disabled={!email.includes('@') || isSubmitting}
-            className="h-14 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-base shadow-lg transition-all flex items-center gap-2"
+            className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-lg transition-all flex items-center gap-2"
           >
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
               <>Перейти к оплате <ChevronRight className="w-5 h-5" /></>

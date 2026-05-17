@@ -239,7 +239,7 @@ export function ImportWizard({ categories, providers }: { categories: any[], pro
       </div>
 
       {error && <div className="p-3 bg-destructive/10 text-destructive border border-destructive/20 rounded-md text-sm">{error}</div>}
-      {success && <div className="p-3 bg-green-500/10 text-green-700 border border-green-500/20 rounded-md text-sm">{success}</div>}
+      {success && <div className="p-3 bg-success/10 text-green-700 border border-green-500/20 rounded-md text-sm">{success}</div>}
 
       {/* Main Workspace: Sidebar + Table */}
       <div className="flex flex-col md:flex-row gap-6 items-start">

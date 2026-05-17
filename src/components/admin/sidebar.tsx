@@ -51,7 +51,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
       <div className={cn("absolute z-50 transition-all duration-500", collapsed ? "top-6 left-1/2 -translate-x-1/2" : "top-7 right-4")}>
         <button 
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center justify-center w-8 h-8 rounded-md bg-background/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-sky-500/20 hover:border-sky-500/30 opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-105"
+          className="flex items-center justify-center w-8 h-8 rounded-md bg-background/5 border border-white/5 text-muted-foreground hover:text-primary-foreground hover:bg-sky-500/20 hover:border-sky-500/30 opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-105"
         >
           {collapsed ? <PanelLeftOpen className="w-4 h-4 ml-0.5" /> : <PanelLeftClose className="w-4 h-4 mr-0.5" />}
         </button>
@@ -138,7 +138,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
             href="/dashboard/new-order"
             title={collapsed ? "Клиент" : undefined}
             className={cn(
-              "flex items-center px-4 py-2.5 text-sm font-medium rounded-sm text-muted-foreground hover:bg-background/5 hover:text-white transition-colors whitespace-nowrap border border-transparent hover:border-white/10 group",
+              "flex items-center px-4 py-2.5 text-sm font-medium rounded-sm text-muted-foreground hover:bg-background/5 hover:text-primary-foreground transition-colors whitespace-nowrap border border-transparent hover:border-white/10 group",
               collapsed && "justify-center px-0 w-12 h-12 mx-auto"
             )}
           >

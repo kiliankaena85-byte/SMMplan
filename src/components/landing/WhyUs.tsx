@@ -47,7 +47,7 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
         {/* Card 2: Small Span Transparent Conditions */}
         <div className="md:col-span-1 bg-content1 rounded-[2rem] p-8 relative overflow-hidden group border border-border/50 dark:border-border/40 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300">
           <div className="relative z-10 flex flex-col h-full">
-            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform dark:bg-emerald-500/10">
+            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform dark:bg-success/10">
               <IconShieldCheck className="w-6 h-6" stroke={1.5} />
             </div>
             <h3 className="text-xl font-bold text-foreground mb-3">Прозрачные условия</h3>
@@ -61,7 +61,7 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
         <div className="md:col-span-1 bg-content1 rounded-[2rem] p-8 relative overflow-hidden group border border-border/50 dark:border-border/40 hover:shadow-2xl hover:shadow-rose-500/10 transition-all duration-300">
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
-              <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center mb-6 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform dark:bg-rose-500/10">
+              <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center mb-6 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform dark:bg-destructive/10">
                 <IconDiamond className="w-6 h-6" stroke={1.5} />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-3">Персональные скидки</h3>
@@ -73,7 +73,7 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
         </div>
 
         {/* Card 4: Large B2B Reseller Suite & API Hub Card */}
-        <div className="md:col-span-2 bg-slate-900 dark:bg-slate-950 border border-indigo-500/20 text-white rounded-[2rem] p-8 relative overflow-hidden group shadow-2xl transition-all duration-300 hover:shadow-indigo-500/10">
+        <div className="md:col-span-2 bg-primary dark:bg-slate-950 border border-indigo-500/20 text-primary-foreground rounded-[2rem] p-8 relative overflow-hidden group shadow-2xl transition-all duration-300 hover:shadow-indigo-500/10">
           {/* Background Ambient Glow */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-full blur-3xl opacity-60 group-hover:opacity-90 group-hover:scale-110 transition-all duration-500 -translate-y-1/3 translate-x-1/3" />
           
@@ -88,30 +88,30 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
                 </div>
                 <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">B2B Интеграция</span>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Решения для Реселлеров & API Hub</h3>
+              <h3 className="text-2xl font-bold text-primary-foreground mb-4">Решения для Реселлеров & API Hub</h3>
               
               {/* Triple-Hook Feature List */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
-                <div className="flex items-start gap-2 bg-white/5 p-3 rounded-xl border border-white/5">
+                <div className="flex items-start gap-2 bg-card/5 p-3 rounded-xl border border-white/5">
                   <IconFileSpreadsheet className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" stroke={1.5} />
                   <div>
-                    <h4 className="text-sm font-semibold text-white">Массовый заказ</h4>
+                    <h4 className="text-sm font-semibold text-primary-foreground">Массовый заказ</h4>
                     <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Умный Excel-парсер с автоочисткой ссылок</p>
                   </div>
                 </div>
                 
-                <div className="flex items-start gap-2 bg-white/5 p-3 rounded-xl border border-white/5">
+                <div className="flex items-start gap-2 bg-card/5 p-3 rounded-xl border border-white/5">
                   <IconTerminal2 className="w-5 h-5 text-violet-400 shrink-0 mt-0.5" stroke={1.5} />
                   <div>
-                    <h4 className="text-sm font-semibold text-white">PerfectPanel API</h4>
+                    <h4 className="text-sm font-semibold text-primary-foreground">PerfectPanel API</h4>
                     <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Спецификация v2 для автоматизации</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 bg-white/5 p-3 rounded-xl border border-white/5">
+                <div className="flex items-start gap-2 bg-card/5 p-3 rounded-xl border border-white/5">
                   <IconDiamond className="w-5 h-5 text-pink-400 shrink-0 mt-0.5" stroke={1.5} />
                   <div>
-                    <h4 className="text-sm font-semibold text-white">Wholesale Цены</h4>
+                    <h4 className="text-sm font-semibold text-primary-foreground">Wholesale Цены</h4>
                     <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">Накопительный дисконт до 15% пожизненно</p>
                   </div>
                 </div>
@@ -125,7 +125,7 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
               </p>
               <Link 
                 href="/auth/register?role=reseller&promo=B2BSTART"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white text-xs font-extrabold shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shrink-0"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-primary-foreground text-xs font-extrabold shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shrink-0"
               >
                 <span>Кабинет Реселлера</span>
                 <IconArrowUpRight className="w-3.5 h-3.5" />

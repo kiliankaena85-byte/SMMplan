@@ -79,7 +79,7 @@ export class VaultService {
       // Silent return was masking APP_ENCRYPTION_KEY rotation failures:
       // encrypted blob would be used as API key, causing all providers to silently fail.
       const msg = error instanceof Error ? error.message : String(error);
-      throw new Error(`[VaultService] Decryption failed — possible key rotation or data corruption: ${msg}`);
+      throw new Error(`[VaultService] Decryption failed — possible key rotation or data corruption: ${msg}`, { cause: error });
     }
   }
 

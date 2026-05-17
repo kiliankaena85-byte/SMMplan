@@ -53,7 +53,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       value: fmt(metrics.revenueGross),
       sub: 'Все поступления',
       icon: DollarSign,
-      color: 'bg-emerald-500',
+      color: 'bg-success',
       textColor: 'text-success',
     },
     {
@@ -61,7 +61,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       value: `-${fmt(metrics.refunds)}`,
       sub: 'Отмены и частичные',
       icon: TrendingDown,
-      color: 'bg-rose-500',
+      color: 'bg-destructive',
       textColor: 'text-destructive',
     },
     {
@@ -69,7 +69,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       value: `-${fmt(metrics.cogs)}`,
       sub: 'Расход провайдерам',
       icon: TrendingDown,
-      color: 'bg-amber-500',
+      color: 'bg-warning',
       textColor: 'text-warning',
     },
     {
@@ -98,7 +98,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
           <div key={k.label} className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <div className={`p-2.5 rounded-xl ${k.color} text-white shadow-lg`}>
+                <div className={`p-2.5 rounded-xl ${k.color} text-primary-foreground shadow-lg`}>
                   <k.icon className="w-5 h-5" />
                 </div>
                 <div className="text-right">
@@ -142,7 +142,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
                 </div>
               ))}
 
-              <div className={`mt-8 p-6 rounded-3xl flex justify-between items-center transition-all ${metrics.profitNet >= 0 ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-rose-500 text-white shadow-rose-200'} shadow-2xl`}>
+              <div className={`mt-8 p-6 rounded-3xl flex justify-between items-center transition-all ${metrics.profitNet >= 0 ? 'bg-success text-primary-foreground shadow-success/20' : 'bg-destructive text-primary-foreground shadow-destructive/20'} shadow-2xl`}>
                 <div className="space-y-0.5">
                   <span className="text-xs font-black uppercase tracking-widest opacity-80">Чистая прибыль (EBITDA)</span>
                   <p className="text-[10px] font-bold opacity-60">За выбранный период: {period}</p>

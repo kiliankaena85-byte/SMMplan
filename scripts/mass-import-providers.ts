@@ -68,7 +68,7 @@ async function main() {
     console.log("Fetching providers from DB...");
     const providers = await prisma.provider.findMany({ where: { isActive: true } });
     
-    let allServices: any[] = [];
+    const allServices: any[] = [];
 
     console.log("Wiping existing imported services to resolve duplication...");
     await prisma.service.deleteMany({
@@ -147,7 +147,7 @@ async function main() {
         const seenCombinations = new Set<string>();
 
         for (const tier of tiers) {
-            let tierList = list.filter(item => item.tier === tier);
+            const tierList = list.filter(item => item.tier === tier);
             if (tierList.length === 0) continue;
 
             tierList.sort((a, b) => parseFloat(a.raw.rate) - parseFloat(b.raw.rate));

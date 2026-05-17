@@ -75,7 +75,7 @@ export class EscrowService {
       }, { isolationLevel: 'Serializable' });
     } catch (error: any) {
       if (error.code === 'P2034') {
-        throw new Error("Транзакция отклонена: Баланс пользователя изменяется в данный момент. Повторите попытку.");
+        throw new Error("Транзакция отклонена: Баланс пользователя изменяется в данный момент. Повторите попытку.", { cause: error });
       }
       throw error;
     }

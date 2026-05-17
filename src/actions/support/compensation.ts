@@ -1,7 +1,7 @@
 'use server';
 
-import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { requireStaffPermission } from '@/lib/server/rbac';
 import { revalidatePath } from 'next/cache';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { z } from 'zod';
@@ -15,13 +15,7 @@ const compensationSchema = z.object({
 });
 
 export async function logManualCompensation(formData: FormData) {
-  const session = await verifySession();
-  if (!session) throw new Error('Unauthorized');
-
-  const user = await db.user.findUnique({ where: { id: session.userId } });
-  if (!user || !['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role)) {
-    throw new Error('Forbidden');
-  }
+  return requireStaffPermission('support', 'edit', async (user) => {
 
   const parsed = compensationSchema.safeParse({
     ticketId: formData.get('ticketId'),
@@ -112,7 +106,8 @@ export async function logManualCompensation(formData: FormData) {
     });
   });
 
-  revalidatePath('/admin/tickets');
-  revalidatePath(`/admin/tickets/${ticketId}`, 'page');
-  revalidatePath(`/admin/finance`);
+    revalidatePath('/admin/tickets');
+    revalidatePath(`/admin/tickets/${ticketId}`, 'page');
+    revalidatePath(`/admin/finance`);
+  });
 }

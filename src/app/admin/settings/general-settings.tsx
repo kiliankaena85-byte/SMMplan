@@ -133,7 +133,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
       <Card className="rounded-2xl border-border shadow-sm bg-card backdrop-blur-xl">
         <div className="p-8 space-y-6">
           <div className="flex items-center gap-2 mb-2">
-            <span className="p-1 px-2.5 bg-emerald-500/20 text-emerald-500 rounded-md text-[10px] font-bold">LEGAL</span>
+            <span className="p-1 px-2.5 bg-success/20 text-success rounded-md text-[10px] font-bold">LEGAL</span>
             <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Юридическая информация</h3>
           </div>
           

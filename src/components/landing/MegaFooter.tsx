@@ -95,7 +95,7 @@ export function MegaFooter({
           </p>
           <p className="text-[10px] opacity-70">Адрес: {address}</p>
         </div>
-        <p className="flex items-center gap-1">Designed with <span className="text-rose-500/70">❤</span> for B2B Growth</p>
+        <p className="flex items-center gap-1">Designed with <span className="text-destructive/70">❤</span> for B2B Growth</p>
       </div>
     </footer>
   );

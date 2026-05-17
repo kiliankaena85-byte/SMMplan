@@ -63,7 +63,7 @@ export function ProfitCategoriesTable({ categories, fmt }: { categories: any[], 
               <TableCell className="px-4 py-3 text-right tabular-nums text-muted-foreground">{fmt(c.cogs)}</TableCell>
               <TableCell className="px-4 py-3 text-right tabular-nums font-black text-success">{fmt(c.profit)}</TableCell>
               <TableCell className="px-4 py-3 text-right">
-                 <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] ${c.marginPct > 40 ? 'bg-emerald-500/15 text-success' : 'bg-amber-500/15 text-warning'}`}>
+                 <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] ${c.marginPct > 40 ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'}`}>
                    {c.marginPct.toFixed(1)}%
                  </span>
               </TableCell>

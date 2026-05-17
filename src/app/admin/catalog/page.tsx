@@ -107,7 +107,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
               <Link
                 href="/admin/catalog"
                 className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  !categoryId ? 'bg-primary text-white shadow-md' : 'text-muted-foreground hover:bg-muted'
+                  !categoryId ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted'
                 }`}
               >
                 <span>Все услуги</span>
@@ -118,7 +118,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
                   key={cat.id}
                   href={`/admin/catalog?category=${cat.id}`}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                    categoryId === cat.id ? 'bg-primary text-white shadow-md' : 'text-muted-foreground hover:bg-muted'
+                    categoryId === cat.id ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
                   <span className="truncate mr-2">{cat.name}</span>

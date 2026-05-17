@@ -123,7 +123,7 @@ test.describe('Telegram Support Binding Flows', () => {
       });
     }
 
-    let ticket = await prisma.ticket.create({
+    const ticket = await prisma.ticket.create({
       data: {
         subject: 'E2E Telegram Ticket',
         status: 'OPEN',

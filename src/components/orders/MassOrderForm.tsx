@@ -72,7 +72,7 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
             type="button"
             onClick={handleCalculate}
             disabled={isCalculating || !text.trim()}
-            className="bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 px-6 py-2.5 rounded-xl font-semibold shadow-sm transition-all flex items-center gap-2"
+            className="bg-zinc-900 text-primary-foreground hover:bg-zinc-800 disabled:opacity-50 px-6 py-2.5 rounded-xl font-semibold shadow-sm transition-all flex items-center gap-2"
           >
             {isCalculating && <Loader2 className="w-4 h-4 animate-spin" />}
             Подсчитать стоимость
@@ -137,15 +137,15 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
                         <span className={`text-sm font-semibold ${gateway === 'balance' ? 'text-primary' : 'text-foreground'}`}>Баланс</span>
                       </label>
 
-                      <label className={`cursor-pointer flex items-center gap-3 p-4 rounded-xl border transition-all ${gateway === 'yookassa' ? 'border-zinc-900 bg-zinc-900 text-white ring-1 ring-zinc-900' : 'border-border bg-background hover:bg-muted/50'}`}>
+                      <label className={`cursor-pointer flex items-center gap-3 p-4 rounded-xl border transition-all ${gateway === 'yookassa' ? 'border-zinc-900 bg-zinc-900 text-primary-foreground ring-1 ring-zinc-900' : 'border-border bg-background hover:bg-muted/50'}`}>
                         <input type="radio" name="gateway" value="yookassa" checked={gateway === 'yookassa'} onChange={() => setGateway('yookassa')} className="sr-only" />
-                        <CreditCard className={`w-5 h-5 ${gateway === 'yookassa' ? 'text-white' : 'text-muted-foreground'}`} />
-                        <span className={`text-sm font-semibold ${gateway === 'yookassa' ? 'text-white' : 'text-foreground'}`}>Картой / СБП</span>
+                        <CreditCard className={`w-5 h-5 ${gateway === 'yookassa' ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                        <span className={`text-sm font-semibold ${gateway === 'yookassa' ? 'text-primary-foreground' : 'text-foreground'}`}>Картой / СБП</span>
                       </label>
 
                       <label className={`cursor-pointer flex items-center gap-3 p-4 rounded-xl border transition-all ${gateway === 'cryptobot' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600' : 'border-border bg-background hover:bg-muted/50'}`}>
                         <input type="radio" name="gateway" value="cryptobot" checked={gateway === 'cryptobot'} onChange={() => setGateway('cryptobot')} className="sr-only" />
-                        <Bitcoin className={`w-5 h-5 ${gateway === 'cryptobot' ? 'text-indigo-600' : 'text-muted-foreground'}`} />
+                        <Bitcoin className={`w-5 h-5 ${gateway === 'cryptobot' ? 'text-primary' : 'text-muted-foreground'}`} />
                         <span className={`text-sm font-semibold ${gateway === 'cryptobot' ? 'text-indigo-700' : 'text-foreground'}`}>CryptoBot</span>
                       </label>
                     </div>

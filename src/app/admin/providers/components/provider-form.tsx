@@ -442,7 +442,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
                         disabled={inferLoading}
                         className={`whitespace-nowrap px-4 py-2 text-xs font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 shadow-sm ${
                           inferredSchema 
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                            ? 'bg-emerald-600 text-primary-foreground hover:bg-emerald-700' 
                             : 'bg-primary text-primary-foreground hover:bg-primary/90'
                         }`}
                       >
@@ -451,11 +451,11 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
                     </div>
                     
                     {inferredSchema && (
-                      <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-md animate-in slide-in-from-top-2">
+                      <div className="mt-3 p-3 bg-success/10 border border-emerald-500/20 rounded-md animate-in slide-in-from-top-2">
                         <p className="text-xs text-emerald-800 font-medium mb-1">✅ Мы нашли следующие поля в API:</p>
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {inferredSchema.catalogKeys.slice(0, 15).map(k => (
-                              <span key={k} className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-900 rounded text-[10px] font-mono border border-emerald-500/20">
+                              <span key={k} className="px-1.5 py-0.5 bg-success/20 text-emerald-900 rounded text-[10px] font-mono border border-emerald-500/20">
                                 {k}
                               </span>
                           ))}
@@ -648,9 +648,9 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
                 <div className="xl:col-span-1">
                   <div className="bg-[#1e1e1e] rounded-xl border border-border overflow-hidden sticky top-6">
                     <div className="bg-[#2d2d2d] px-4 py-2 border-b border-border flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
-                      <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-destructive"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-warning"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
                       <span className="text-xs text-gray-400 font-mono ml-2">Live Preview: {mapping.httpMethod} /api</span>
                     </div>
                     <div className="p-4 text-xs font-mono text-blue-300 leading-relaxed overflow-x-auto">

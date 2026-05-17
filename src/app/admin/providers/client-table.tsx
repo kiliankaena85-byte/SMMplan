@@ -117,7 +117,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                           ? "bg-muted text-muted-foreground border-border hover:bg-muted"
                           : provider.errorCount5m > 0
                           ? "bg-destructive/20 text-destructive border-destructive/30 hover:bg-destructive/30"
-                          : "bg-emerald-500/20 text-success border-emerald-500/30 hover:bg-emerald-500/30"
+                          : "bg-success/20 text-success border-emerald-500/30 hover:bg-success/30"
                       }`}
                     >
                       {!provider.isActive 

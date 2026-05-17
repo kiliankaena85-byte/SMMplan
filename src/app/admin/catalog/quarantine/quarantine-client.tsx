@@ -89,7 +89,7 @@ export function QuarantineClient({ initialItems }: Props) {
         <button
           onClick={handleApproveAll}
           disabled={isPending}
-          className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-all duration-200 disabled:opacity-50"
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-success text-primary-foreground hover:bg-success/90 transition-all duration-200 disabled:opacity-50"
           aria-label="Принять все изменения цен"
         >
           ✅ Принять все
@@ -129,7 +129,7 @@ export function QuarantineClient({ initialItems }: Props) {
                         </div>
                       </Table.Cell>
                       <Table.Cell>
-                        <span className="text-xs px-2 py-1 rounded-md bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                        <span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-amber-700 border border-amber-500/20">
                           {item.quarantineReason}
                         </span>
                       </Table.Cell>
@@ -154,7 +154,7 @@ export function QuarantineClient({ initialItems }: Props) {
                             onClick={() => handleApprove(item)}
                             disabled={isPending}
                             aria-label={`Принять новую цену для ${item.name}`}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-success border border-emerald-500/30 hover:bg-emerald-500/25 transition-all duration-200 disabled:opacity-50"
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-emerald-500/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50"
                           >
                             ✅ Принять
                           </button>

@@ -101,7 +101,7 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
-            <button type="submit" className="px-6 py-2 text-sm font-semibold text-white bg-slate-900 shadow-sm rounded-md hover:bg-slate-800 transition-colors">
+            <button type="submit" className="px-6 py-2 text-sm font-semibold text-primary-foreground bg-primary shadow-sm rounded-md hover:bg-primary/90 transition-colors">
               Фильтр
             </button>
           </form>

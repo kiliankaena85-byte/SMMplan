@@ -33,7 +33,7 @@ export function ServicesTable({
     'TG': { name: 'Telegram', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: '✈️' },
     'VK': { name: 'ВКонтакте', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: '💙' },
     'YT': { name: 'YouTube', color: 'bg-red-100 text-red-700 border-red-200', icon: '▶️' },
-    'TT': { name: 'TikTok', color: 'bg-zinc-800 text-white border-zinc-700', icon: '🎵' },
+    'TT': { name: 'TikTok', color: 'bg-zinc-800 text-primary-foreground border-zinc-700', icon: '🎵' },
     'X': { name: 'Twitter (X)', color: 'bg-slate-100 text-slate-800 border-slate-300', icon: '𝕏' },
   };
 
@@ -147,7 +147,7 @@ export function ServicesTable({
                         {metrics.targetType && <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[10px] font-medium border border-purple-200" title="Тип ссылки (Роутинг)">🎯 {metrics.targetType}</span>}
                         {metrics.customDataType && <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-medium border border-orange-200" title="Требует доп. ввода">📝 {metrics.customDataType}</span>}
                         {metrics.isMediaGroupAware && <span className="bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded text-[10px] font-medium border border-teal-200" title="Поддержка фото-альбомов (MediaGroup)">📦 MediaGroup</span>}
-                        {s.alreadyImported && <span className="bg-slate-800 text-white px-1.5 py-0.5 rounded text-[10px] font-medium">IMPORTED</span>}
+                        {s.alreadyImported && <span className="bg-slate-800 text-primary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">IMPORTED</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm font-mono">

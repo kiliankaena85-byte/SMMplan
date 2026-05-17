@@ -23,7 +23,7 @@ import { ordersQueue } from '@/workers/queues';
  */
 describe.skip('💀 Premortem Test: Provider Outage during Checkout', () => {
   let serviceNumericId: number;
-  let userEmail = 'premortem@example.com';
+  const userEmail = 'premortem@example.com';
 
   beforeEach(async () => {
     // Включаем тестовый режим

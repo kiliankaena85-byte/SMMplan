@@ -44,7 +44,7 @@ export default async function ImportProvidersPage() {
           <p className="text-sm mb-4">{errorMsg}</p>
           <Link
             href="/admin/providers/new"
-            className="inline-block bg-amber-600 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-amber-700 transition-all duration-200"
+            className="inline-block bg-amber-600 text-primary-foreground px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-amber-700 transition-all duration-200"
           >
             + Добавить провайдера
           </Link>

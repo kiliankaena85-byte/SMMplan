@@ -113,7 +113,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
-            <button type="submit" className="px-6 py-2 text-sm font-semibold text-white bg-slate-900 shadow-sm rounded-md hover:bg-slate-800 transition-colors">Найти</button>
+            <button type="submit" className="px-6 py-2 text-sm font-semibold text-primary-foreground bg-primary shadow-sm rounded-md hover:bg-primary/90 transition-colors">Найти</button>
           </form>
         </CardContent>
       </Card>
@@ -176,7 +176,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               {hasMore && nextCursor && (
                 <Link
                   href={`/admin/orders?q=${encodeURIComponent(query)}&status=${statusFilter}&cursor=${nextCursor}`}
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-indigo-700 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary transition-colors"
                 >
                   Следующая →
                 </Link>

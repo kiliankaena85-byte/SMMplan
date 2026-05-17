@@ -5,6 +5,7 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { requireStaffPermission } from '@/lib/server/rbac';
 
 const financeSettingsSchema = z.object({
   taxRate: z.coerce.number().optional().default(0),
@@ -12,26 +13,22 @@ const financeSettingsSchema = z.object({
 });
 
 export async function updateSystemSettings(formData: FormData) {
-  const session = await verifySession();
-  if (!session) throw new Error('Unauthorized');
+  const result = await requireStaffPermission('finance', 'edit', async (admin) => {
+    const parsed = financeSettingsSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!parsed.success) throw new Error('Validation error');
+    const { taxRate, opexMonthly: opexRubles } = parsed.data;
+    const opexMonthly = Math.round(opexRubles * 100);
 
-  const user = await db.user.findUnique({ where: { id: session.userId } });
-  if (user?.role !== 'ADMIN' && user?.role !== 'OWNER') throw new Error('Forbidden');
-
-  const parsed = financeSettingsSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) throw new Error('Validation error');
-  const { taxRate, opexMonthly: opexRubles } = parsed.data;
-  const opexMonthly = Math.round(opexRubles * 100);
-
-  await accountingService.updateSettings(taxRate, opexMonthly);
+    await accountingService.updateSettings(taxRate, opexMonthly);
   
-  await db.auditLog.create({
-    data: {
-      userId: session.userId,
-      action: 'UPDATE_FINANCE_SETTINGS',
-      details: `Updated taxRate to ${taxRate}%, opexMonthly to ${opexRubles} RUB`
-    }
-  });
+    await db.auditLog.create({
+      data: {
+        userId: admin.id,
+        action: 'UPDATE_FINANCE_SETTINGS',
+        details: `Updated taxRate to ${taxRate}%, opexMonthly to ${opexRubles} RUB`
+      }
+    });
 
-  revalidatePath('/admin/finance');
+    revalidatePath('/admin/finance');
+  });
 }

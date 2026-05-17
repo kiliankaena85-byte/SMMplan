@@ -12,12 +12,12 @@ const cleanInstagramUrl = (url: string, targetType: string): string => {
   try {
     const urlObj = new URL(url);
     urlObj.search = ''; // Strip ?igshid=... and everything else
-    let cleaned = urlObj.toString();
+    const cleaned = urlObj.toString();
     
     // For stories, users often paste /stories/username/123123
     // But providers require the profile URL for story views.
     if (targetType === 'STORY') {
-      const match = cleaned.match(/\/stories\/([^\/]+)/);
+      const match = cleaned.match(/\/stories\/([^/]+)/);
       if (match) {
         return `https://www.instagram.com/${match[1]}/`;
       }
@@ -50,7 +50,7 @@ const cleanVkUrl = (url: string): string => {
 };
 
 const cleanTelegramUrl = (url: string): string => {
-  let cleaned = url.replace(/telegram\.me/, 't.me');
+  const cleaned = url.replace(/telegram\.me/, 't.me');
   try {
     const urlObj = new URL(cleaned);
     // Remove ?single
@@ -77,7 +77,7 @@ const cleanYoutubeUrl = (url: string): string => {
           const v = urlObj.searchParams.get('v');
           if (v) return `https://www.youtube.com/watch?v=${v}`;
       }
-  } catch {}
+  } catch { /* ignore */ }
   return url;
 };
 

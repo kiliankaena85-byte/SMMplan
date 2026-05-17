@@ -17,9 +17,9 @@ describe('SettingsProvider (Dynamic Branding)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Invalidate cached settings
-    // @ts-ignore - access private/protected property for testing purposes
+    // @ts-expect-error - access private/protected property for testing purposes
     SettingsProvider.cachedSettings = null;
-    // @ts-ignore
+    // @ts-expect-error: override for testing
     SettingsProvider.lastFetch = 0;
   });
 

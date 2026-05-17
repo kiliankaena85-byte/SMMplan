@@ -28,7 +28,7 @@ class SupportBotService {
 
     // Find or Create Active Ticket FIRST, because we need ticketId for media storage
     const subject = ctx.message.text?.substring(0, 50) || ctx.message.caption?.substring(0, 50) || 'Медиа сообщение';
-    let ticket = await ticketService.getOrCreateTicket(userId, subject, 'TELEGRAM');
+    const ticket = await ticketService.getOrCreateTicket(userId, subject, 'TELEGRAM');
 
     // 2. Photo
     if (ctx.message.photo && ctx.message.photo.length > 0) {
@@ -154,7 +154,7 @@ class SupportBotService {
     } catch (e: any) {
       console.error('[SupportBot] Failed to edit telegram message:', e.message);
       if (e.message.includes('message is not modified')) return true; // It's fine
-      throw new Error(e.message); // throw to show Toast in Admin
+      throw new Error(e.message, { cause: e }); // throw to show Toast in Admin
     }
   }
 
@@ -167,7 +167,7 @@ class SupportBotService {
       return true;
     } catch (e: any) {
       console.error('[SupportBot] Failed to delete telegram message:', e.message);
-      throw new Error(e.message);
+      throw new Error(e.message, { cause: e });
     }
   }
 
@@ -192,7 +192,7 @@ class SupportBotService {
           await ctx.reply('⚠️ Прием медиафайлов временно ограничен (сработал антиспам). Опишите проблему текстом.');
           return null;
        }
-    } catch {}
+    } catch { /* ignore */ }
 
     try {
       const fileLink = await ctx.telegram.getFileLink(fileId);

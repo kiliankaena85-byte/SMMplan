@@ -24,7 +24,9 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
         const combined = Array.from(new Set([...sortedPrefs, ...DEFAULT_TOP]));
         setTopSlugs(combined.slice(0, 6));
       }
-    } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
   }, [DEFAULT_TOP]);
 
   const handleNetworkSelect = (net: any) => {
@@ -44,7 +46,9 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
       
       const combined = Array.from(new Set([...sortedPrefs, ...DEFAULT_TOP]));
       setTopSlugs(combined.slice(0, 6));
-    } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
   };
 
   const { topNetworks, otherNetworks } = useMemo(() => {

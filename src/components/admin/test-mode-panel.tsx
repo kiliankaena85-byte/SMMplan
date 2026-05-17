@@ -69,8 +69,8 @@ export function TestModePanel({ initialIsTestMode }: TestModePanelProps) {
           disabled={isPending}
           className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
             isTestMode 
-              ? 'bg-amber-500 focus:ring-amber-500' 
-              : 'bg-emerald-500 focus:ring-emerald-500'
+              ? 'bg-warning focus:ring-amber-500' 
+              : 'bg-success focus:ring-emerald-500'
           } ${isPending ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
         >
           <span

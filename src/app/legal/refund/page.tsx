@@ -16,10 +16,10 @@ export default function RefundPage() {
           На главную
         </Link>
         
-        <article className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 md:p-12 prose prose-slate max-w-none">
+        <article className="bg-card rounded-3xl shadow-sm border border-slate-200 p-8 md:p-12 prose prose-slate max-w-none">
           <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
             <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center">
-              <ShieldAlert className="w-6 h-6 text-rose-500" />
+              <ShieldAlert className="w-6 h-6 text-destructive" />
             </div>
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight m-0">
               Политика возврата

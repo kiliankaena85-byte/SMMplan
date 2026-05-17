@@ -64,8 +64,8 @@ export default function TemplateManagerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm shadow-2xl">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-foreground/60 flex items-center justify-center p-4 backdrop-blur-sm shadow-2xl">
+      <div className="bg-card rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -79,7 +79,7 @@ export default function TemplateManagerModal({
           <div className="mb-6 flex justify-between items-center">
             <p className="text-sm text-slate-500">Добавьте быстрые ответы для часто задаваемых вопросов.</p>
             {editingId !== 'new' && (
-              <Button size="sm" onClick={handleCreateNew} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm">
+              <Button size="sm" onClick={handleCreateNew} className="bg-primary hover:bg-primary text-primary-foreground rounded-xl shadow-sm">
                 + Добавить шаблон
               </Button>
             )}
@@ -87,7 +87,7 @@ export default function TemplateManagerModal({
 
           <div className="space-y-4">
             {editingId === 'new' && (
-              <div className="p-4 bg-white border border-indigo-200 rounded-xl shadow-sm relative">
+              <div className="p-4 bg-card border border-indigo-200 rounded-xl shadow-sm relative">
                 <div className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-3">Новый шаблон</div>
                 <input 
                   type="text" 
@@ -105,7 +105,7 @@ export default function TemplateManagerModal({
                 />
                 <div className="flex gap-2 justify-end mt-4">
                   <Button intent="outline" size="sm" onClick={() => setEditingId(null)} className="rounded-xl border-slate-200">Отмена</Button>
-                  <Button size="sm" onClick={handleSave} disabled={isPending || !label.trim() || !text.trim()} className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700">
+                  <Button size="sm" onClick={handleSave} disabled={isPending || !label.trim() || !text.trim()} className="rounded-xl bg-primary text-primary-foreground hover:bg-primary">
                     {isPending ? 'Сохранение...' : 'Сохранить шаблон'}
                   </Button>
                 </div>
@@ -113,7 +113,7 @@ export default function TemplateManagerModal({
             )}
 
             {templates.length === 0 && editingId !== 'new' && (
-              <div className="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-white">
+              <div className="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-card">
                 Шаблонов пока нет. Добавьте первый!
               </div>
             )}
@@ -121,7 +121,7 @@ export default function TemplateManagerModal({
             {templates.map(tmpl => (
               <div key={tmpl.id}>
                 {editingId === tmpl.id ? (
-                  <div className="p-4 bg-white border border-indigo-200 rounded-xl shadow-sm relative animate-in fade-in">
+                  <div className="p-4 bg-card border border-indigo-200 rounded-xl shadow-sm relative animate-in fade-in">
                      <div className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-3">Редактирование</div>
                     <input 
                       type="text" 
@@ -137,19 +137,19 @@ export default function TemplateManagerModal({
                       className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[100px] resize-y bg-slate-50 leading-relaxed"
                     />
                     <div className="flex justify-between items-center mt-4">
-                      <Button intent="ghost" size="sm" onClick={() => handleDelete(tmpl.id)} className="text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+                      <Button intent="ghost" size="sm" onClick={() => handleDelete(tmpl.id)} className="text-destructive hover:text-rose-600 hover:bg-rose-50">
                         Удалить
                       </Button>
                       <div className="flex gap-2">
                         <Button intent="outline" size="sm" onClick={() => setEditingId(null)} className="rounded-xl border-slate-200">Отмена</Button>
-                        <Button size="sm" onClick={handleSave} disabled={isPending || !label.trim() || !text.trim()} className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700">
+                        <Button size="sm" onClick={handleSave} disabled={isPending || !label.trim() || !text.trim()} className="rounded-xl bg-primary text-primary-foreground hover:bg-primary">
                           {isPending ? 'Сохранение...' : 'Сохранить'}
                         </Button>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="group bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-indigo-300 transition-colors flex flex-col justify-between items-start gap-4 cursor-pointer" onClick={() => handleEdit(tmpl)}>
+                  <div className="group bg-card border border-slate-200 rounded-xl p-4 shadow-sm hover:border-indigo-300 transition-colors flex flex-col justify-between items-start gap-4 cursor-pointer" onClick={() => handleEdit(tmpl)}>
                      <div className="w-full">
                        <h3 className="font-bold text-sm text-slate-800 mb-1.5 flex items-center gap-2">
                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] uppercase font-bold">{tmpl.label}</span>

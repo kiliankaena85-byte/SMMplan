@@ -138,24 +138,24 @@ model Category {
 }
 
 model Service {
-  id          String    @id @default(cuid())
-  numericId   Int       @unique @default(autoincrement())
-  name        String
-  description String? // Public SEO description (shown to clients)
-  features    Json? // Structured metadata extracted by AI (geo, speed, warranty)
-  categoryId  String
-  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  providerId  String? // Link to Provider who fulfills this service
-  provider    Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
-  rate        Float // provider rate per 1000
-  providerCurrency String @default("USD") // Dual-Ledger: tracks original currency of rate
-  markup      Float     @default(3.0) // 300% markup
-  anomalyScore Int      @default(0) // Data Intelligence: 0-100 score for suspicious provider claims
-  minQty      Int       @default(10)
-  maxQty      Int       @default(100000)
-  externalId  String? // mapped ID to provider
-  dataHash    String? // MD5 for diff-sync
-  lastSeenAt  DateTime? // Last time provider confirmed this service exists
+  id               String    @id @default(cuid())
+  numericId        Int       @unique @default(autoincrement())
+  name             String
+  description      String? // Public SEO description (shown to clients)
+  features         Json? // Structured metadata extracted by AI (geo, speed, warranty)
+  categoryId       String
+  category         Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  providerId       String? // Link to Provider who fulfills this service
+  provider         Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  rate             Float // provider rate per 1000
+  providerCurrency String    @default("USD") // Dual-Ledger: tracks original currency of rate
+  markup           Float     @default(3.0) // 300% markup
+  anomalyScore     Int       @default(0) // Data Intelligence: 0-100 score for suspicious provider claims
+  minQty           Int       @default(10)
+  maxQty           Int       @default(100000)
+  externalId       String? // mapped ID to provider
+  dataHash         String? // MD5 for diff-sync
+  lastSeenAt       DateTime? // Last time provider confirmed this service exists
 
   // API v2 feature flags
   isDripFeedEnabled Boolean @default(true)
@@ -181,9 +181,9 @@ model Service {
   etaUpdatedAt   DateTime? // Last ETA recalculation timestamp
 
   // Link Target & Format Validation (Wave 2)
-  targetType        String   @default("POST") // POST, PROFILE, CHANNEL, COMMENT, POLL, VK_WALL, etc.
-  customDataType    String   @default("NONE") // NONE, TEXTAREA, NUMBER
-  isMediaGroupAware Boolean  @default(false) // If false, backend splits "123-125" into separate orders
+  targetType        String  @default("POST") // POST, PROFILE, CHANNEL, COMMENT, POLL, VK_WALL, etc.
+  customDataType    String  @default("NONE") // NONE, TEXTAREA, NUMBER
+  isMediaGroupAware Boolean @default(false) // If false, backend splits "123-125" into separate orders
 
   isActive          Boolean  @default(true)
   pricePer1000Cents Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)

@@ -13,7 +13,7 @@ const buttonVariants = cva(
         destructive: "bg-destructive text-destructive-foreground hover:opacity-90 shadow-sm",
         outline: "border border-border bg-transparent hover:bg-accent hover:text-accent-foreground",
         ghost: "hover:bg-accent hover:text-accent-foreground text-foreground/80",
-        glass: "bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20",
+        glass: "bg-card/10 backdrop-blur-md border border-white/20 text-primary-foreground hover:bg-card/20",
         dark: "bg-foreground text-background shadow-md hover:opacity-90",
         tint: "bg-primary/10 text-primary hover:bg-primary/20", // The pure blue accent used sparingly
       },

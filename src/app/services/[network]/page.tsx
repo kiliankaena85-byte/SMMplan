@@ -102,7 +102,7 @@ export default async function NetworkServicesPage({ params }: { params: Promise<
                            <span className="text-[11px] text-muted-foreground bg-muted px-2 py-1 rounded-md">
                              От {service.minQty.toLocaleString('ru-RU')} шт.
                            </span>
-                           <span className="text-[11px] text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md font-medium">
+                           <span className="text-[11px] text-emerald-600 bg-success/10 px-2 py-1 rounded-md font-medium">
                              {service.speed}
                            </span>
                         </div>

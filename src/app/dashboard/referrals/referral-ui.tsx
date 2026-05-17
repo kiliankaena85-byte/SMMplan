@@ -60,14 +60,14 @@ export function ReferralUi({
             label: 'Заработано',
             value: earnedRub.toFixed(0),
             suffix: '₽',
-            color: 'text-emerald-500 bg-emerald-500/10',
+            color: 'text-success bg-success/10',
           },
           {
             icon: Gift,
             label: 'Ваш бонус',
             value: '15',
             suffix: '%',
-            color: 'text-amber-500 bg-amber-500/10',
+            color: 'text-warning bg-warning/10',
           },
         ].map(({ icon: Icon, label, value, suffix, color }) => (
           <div
@@ -100,7 +100,7 @@ export function ReferralUi({
             <div className="text-xs text-muted-foreground mt-0.5">
               Моментальный перевод доступного бонуса ({earnedRub.toFixed(2)} ₽) на основной счет
             </div>
-            {error && <div className="text-xs text-red-500 mt-1">{error}</div>}
+            {error && <div className="text-xs text-destructive mt-1">{error}</div>}
           </div>
           <button
             onClick={handleTransfer}

@@ -156,8 +156,8 @@ export class UniversalProvider implements BaseProvider {
           const data = JSON.parse(text) as T;
           await CircuitBreaker.recordSuccess(this.apiUrl);
           return data;
-        } catch (jsonErr) {
-          throw new Error(`Provider returned invalid JSON: ${text.substring(0, 100)}...`);
+        } catch (jsonErr: any) {
+          throw new Error(`Provider returned invalid JSON: ${text.substring(0, 100)}...`, { cause: jsonErr });
         }
 
       } catch (error: any) {
@@ -167,7 +167,7 @@ export class UniversalProvider implements BaseProvider {
               continue;
            }
            await CircuitBreaker.recordFailure(this.apiUrl);
-           throw new Error('Provider Request Timeout (15s)');
+           throw new Error('Provider Request Timeout (15s)', { cause: error });
         }
         
         // Don't record failure if the circuit was already OPEN
@@ -216,7 +216,7 @@ export class UniversalProvider implements BaseProvider {
     // Increase retries for large requests
     const res = await this.request<any>({ action: 'services' }, 3);
     
-    let servicesArray: any[] = [];
+    let servicesArray: any[];
 
     if (this.mapping && this.mapping.catalog) {
       const c = this.mapping.catalog;
@@ -270,7 +270,7 @@ export class UniversalProvider implements BaseProvider {
       })) as ProviderServiceDto[];
     } catch (err: any) {
       console.error("[API] Zod parsing failed for getServices:", err);
-      throw new Error(`Provider schema validation failed: ${err.message}`);
+      throw new Error(`Provider schema validation failed: ${err.message}`, { cause: err });
     }
   }
 

@@ -24,7 +24,7 @@ export class PaymentService {
     try {
       // 1. Double-check against real gateway API in production
       if (!isDevSandbox && process.env.NODE_ENV === 'production' && gatewayType === 'yookassa') {
-        const { SettingsManager } = require('@/lib/settings');
+        const { SettingsManager } = await import('@/lib/settings');
         const secrets = await SettingsManager.getPaymentSecrets();
         
         // We attempt to verify with YooKassa if secrets are configured
@@ -84,9 +84,9 @@ export class PaymentService {
           throw new Error('PAYMENT_AMOUNT_MISMATCH: Underpayment detected. Order rejected.');
         }
 
-        let processedPaymentId = '';
-        let isOrderPayment = false;
-        let linkedOrderId = '';
+        let processedPaymentId: string;
+        let isOrderPayment: boolean;
+        let linkedOrderId: string;
 
         if (currentPayment) {
           const updated = await tx.payment.updateMany({
@@ -105,8 +105,8 @@ export class PaymentService {
 
         // Award Referral Commission on successful new fund influx
         try {
-          const { LoyaltyService } = require('@/services/users/loyalty.service');
-          await LoyaltyService.awardCommission(tx, userId, amount);
+          const { LoyaltyService } = await import('@/services/users/loyalty.service');
+          await LoyaltyService.awardCommission(tx, userId, amount, linkedOrderId || processedPaymentId);
         } catch (e: any) {
           console.error(`[PaymentService] Failed to award commission for payment ${processedPaymentId}:`, e);
         }
@@ -164,7 +164,7 @@ export class PaymentService {
       
       // Dispatch paid orders to processing queue
       if (activatedOrders.length > 0) {
-        const { ordersQueue } = require('@/workers/queues');
+        const { ordersQueue } = await import('@/workers/queues');
         for (const activated of activatedOrders) {
           await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
         }
@@ -213,8 +213,8 @@ export class PaymentService {
 
         // Award Referral Commission on successful test fund influx
         try {
-          const { LoyaltyService } = require('@/services/users/loyalty.service');
-          await LoyaltyService.awardCommission(tx, payment.userId, payment.amount);
+          const { LoyaltyService } = await import('@/services/users/loyalty.service');
+          await LoyaltyService.awardCommission(tx, payment.userId, Number(payment.amount), payment.orderId || paymentId);
         } catch (e: any) {
           console.error(`[PaymentService] Failed to award commission for test payment ${paymentId}:`, e);
         }
@@ -266,7 +266,7 @@ export class PaymentService {
 
       // Dispatch paid orders to processing queue
       if (activatedOrders.length > 0) {
-        const { ordersQueue } = require('@/workers/queues');
+        const { ordersQueue } = await import('@/workers/queues');
         for (const activated of activatedOrders) {
           await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
         }

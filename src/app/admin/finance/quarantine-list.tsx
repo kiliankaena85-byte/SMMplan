@@ -90,7 +90,7 @@ export function QuarantineList({ entries }: QuarantineListProps) {
               </Button>
               <Button
                 size="sm"
-                className="font-bold text-[10px] uppercase tracking-wider h-8 shadow-md text-white bg-emerald-500 hover:bg-emerald-600"
+                className="font-bold text-[10px] uppercase tracking-wider h-8 shadow-md text-primary-foreground bg-success hover:bg-success/90"
                 disabled={isPending}
                 onClick={() => handleAction(entry.id, 'approve')}
               >

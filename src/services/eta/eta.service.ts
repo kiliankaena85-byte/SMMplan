@@ -141,25 +141,30 @@ export async function recalculateAllETAs(): Promise<{ updated: number; skipped: 
   }
 
   // ── Pass 3: Batch UPDATE ──
-  let updated = 0;
   const now = new Date();
 
-  // Use a transaction for atomicity
-  await db.$transaction(
-    allResults.map((row) =>
-      db.service.update({
-        where: { id: row.serviceId },
-        data: {
-          etaP50Seconds: Math.round(row.p50_seconds),
-          etaP90Seconds: Math.round(row.p90_seconds),
-          etaSampleCount: row.sample_count,
-          etaSpeedClass: row.speed_class,
-          etaUpdatedAt: now,
-        },
-      })
-    )
-  );
-  updated = allResults.length;
+  // Chunk results to prevent connection pool exhaustion and memory bloat
+  const CHUNK_SIZE = 500;
+  for (let i = 0; i < allResults.length; i += CHUNK_SIZE) {
+    const chunk = allResults.slice(i, i + CHUNK_SIZE);
+    
+    // Use a transaction for atomicity per chunk
+    await db.$transaction(
+      chunk.map((row) =>
+        db.service.update({
+          where: { id: row.serviceId },
+          data: {
+            etaP50Seconds: Math.round(row.p50_seconds),
+            etaP90Seconds: Math.round(row.p90_seconds),
+            etaSampleCount: row.sample_count,
+            etaSpeedClass: row.speed_class,
+            etaUpdatedAt: now,
+          },
+        })
+      )
+    );
+  }
+  const updated = allResults.length;
 
   const skipped = speedClassRows.length - updated;
   const durationMs = Date.now() - startMs;

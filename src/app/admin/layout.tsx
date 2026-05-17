@@ -53,7 +53,7 @@ const ADMIN_NAVIGATION = [
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   OWNER:   { label: 'Владелец',  color: 'bg-primary/20 text-indigo-300 border-primary/30' },
   ADMIN:   { label: 'Админ',     color: 'bg-sky-500/20 text-sky-400 border-sky-500/30' },
-  MANAGER: { label: 'Менеджер',  color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  MANAGER: { label: 'Менеджер',  color: 'bg-success/20 text-emerald-400 border-emerald-500/30' },
   SUPPORT: { label: 'Саппорт',   color: 'bg-muted/500/40 text-slate-300 border-slate-500/30' },
 };
 
@@ -98,7 +98,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       />
       
       {/* Mobile static nav fallback */}
-      <aside className="md:hidden w-full bg-slate-900 border-b border-slate-800 text-white p-4 z-10 shadow-md">
+      <aside className="md:hidden w-full bg-primary border-b border-slate-800 text-primary-foreground p-4 z-10 shadow-md">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-sky-400">
             Smmplan
@@ -111,7 +111,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <div className="flex-1 max-h-screen overflow-hidden p-2 md:p-4 z-10 relative flex flex-col">
         {/* Global Test Mode Warning Banner */}
         {isTestMode && (
-          <div className="mb-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white px-4 py-2.5 flex items-center justify-between shadow-lg shadow-amber-200/50 animate-pulse-slow">
+          <div className="mb-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-primary-foreground px-4 py-2.5 flex items-center justify-between shadow-lg shadow-amber-200/50 animate-pulse-slow">
             <div className="flex items-center gap-3">
               <span className="text-xl">🧪</span>
               <div>

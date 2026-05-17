@@ -44,7 +44,7 @@ const ImageZoomModal = ({ url, onClose }: { url: string; onClose: () => void }) 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] bg-foreground/95 flex items-center justify-center p-4 cursor-zoom-out backdrop-blur-sm" onClick={onClose}>
       <div 
         className="relative w-full h-full max-w-7xl max-h-[90vh] flex items-center justify-center overflow-hidden rounded-xl"
         onClick={(e) => {
@@ -66,9 +66,9 @@ const ImageZoomModal = ({ url, onClose }: { url: string; onClose: () => void }) 
           }
         />
       </div>
-      <button className="absolute top-6 right-6 text-white/50 text-4xl p-4 hover:text-white transition-colors" aria-label="Закрыть">✕</button>
+      <button className="absolute top-6 right-6 text-primary-foreground/50 text-4xl p-4 hover:text-primary-foreground transition-colors" aria-label="Закрыть">✕</button>
       {!isZoomed && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 text-white/80 rounded-full text-sm font-medium backdrop-blur-md">
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-4 py-2 bg-foreground/50 text-primary-foreground/80 rounded-full text-sm font-medium backdrop-blur-md">
           Кликните для увеличения
         </div>
       )}
@@ -264,8 +264,8 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
       {/* Drag & Drop Overlay */}
       {isDragging && (
         <div className="absolute inset-0 z-[100] bg-indigo-500/10 backdrop-blur-sm border-2 border-dashed border-indigo-400 rounded-lg flex items-center justify-center pointer-events-none">
-          <div className="bg-white/90 px-8 py-6 rounded-2xl shadow-xl flex flex-col items-center">
-            <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4">
+          <div className="bg-card/90 px-8 py-6 rounded-2xl shadow-xl flex flex-col items-center">
+            <div className="w-16 h-16 bg-indigo-100 text-primary rounded-full flex items-center justify-center mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
             </div>
             <p className="text-xl font-bold text-slate-800">Перетащите файл сюда</p>
@@ -317,19 +317,19 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <div className="absolute -left-20 top-2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
                       <button 
                         onClick={() => setReplyingTo(msg)}
-                        className="p-2 text-slate-400 hover:text-indigo-600 rounded-full bg-white shadow-sm border border-slate-100"
+                        className="p-2 text-slate-400 hover:text-primary rounded-full bg-card shadow-sm border border-slate-100"
                         title="Ответить"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
                       </button>
                       {isExpired ? (
-                        <div className="p-2 text-slate-300 rounded-full bg-white shadow-sm border border-slate-100 cursor-not-allowed" title="Заблокировано Telegram API (>48ч)">
+                        <div className="p-2 text-slate-300 rounded-full bg-card shadow-sm border border-slate-100 cursor-not-allowed" title="Заблокировано Telegram API (>48ч)">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                         </div>
                       ) : (
                         <button 
                           onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }}
-                          className="p-2 text-slate-400 hover:text-amber-600 rounded-full bg-white shadow-sm border border-slate-100"
+                          className="p-2 text-slate-400 hover:text-amber-600 rounded-full bg-card shadow-sm border border-slate-100"
                           title="Редактировать"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
@@ -341,7 +341,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <div className="absolute -right-10 top-2 opacity-0 group-hover:opacity-100 flex transition-opacity">
                       <button 
                         onClick={() => setReplyingTo(msg)}
-                        className="p-2 text-slate-400 hover:text-indigo-600 rounded-full bg-white shadow-sm border border-slate-100"
+                        className="p-2 text-slate-400 hover:text-primary rounded-full bg-card shadow-sm border border-slate-100"
                         title="Ответить"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
@@ -361,7 +361,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                   
                   {/* Reply Quote */}
                   {!msg.isDeleted && msg.replyTo && (
-                    <div className={`mb-2 p-2 rounded-lg border-l-2 text-xs ${msg.sender === 'STAFF' ? 'bg-black/10 border-white/40 text-primary-foreground' : 'bg-default-100 border-primary/50 text-foreground'}`}>
+                    <div className={`mb-2 p-2 rounded-lg border-l-2 text-xs ${msg.sender === 'STAFF' ? 'bg-foreground/10 border-white/40 text-primary-foreground' : 'bg-default-100 border-primary/50 text-foreground'}`}>
                        <div className="font-bold opacity-70 mb-0.5">{msg.replyTo.sender}</div>
                        <div className="opacity-80 line-clamp-2">{msg.replyTo.text || 'Медиа сообщение'}</div>
                     </div>
@@ -382,7 +382,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <audio src={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} controls className="w-full mb-2 max-w-[250px] opacity-90 hover:opacity-100 transition-opacity" />
                   )}
                   {!msg.isDeleted && msg.mediaUrl && msg.mediaUrl !== 'uploading...' && msg.mediaType === 'document' && (
-                    <div className="flex items-center gap-2 bg-black/5 p-2.5 rounded-xl border border-black/10 mb-2">
+                    <div className="flex items-center gap-2 bg-foreground/5 p-2.5 rounded-xl border border-black/10 mb-2">
                        <div className="text-2xl drop-shadow-sm">📄</div>
                        <div className="text-sm font-semibold truncate flex-1 leading-tight text-foreground/90">Приложенный<br/>документ</div>
                        <a href={`/api/media/${encodeURIComponent(msg.mediaUrl)}`} target="_blank" rel="noopener noreferrer" className="text-primary text-[10px] font-bold px-2.5 py-1.5 bg-background shadow-sm border border-default-200 rounded-md hover:bg-default-50 transition-colors">Открыть</a>
@@ -393,10 +393,10 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <div className="italic text-sm">Удалено (Видно только стаффу)</div>
                   ) : editingMessageId === msg.id ? (
                     <div className="mt-2 animate-in fade-in zoom-in-95 duration-200">
-                      <textarea value={editingText} onChange={e => setEditingText(e.target.value)} className="w-full text-sm text-slate-900 bg-white border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]" autoFocus />
+                      <textarea value={editingText} onChange={e => setEditingText(e.target.value)} className="w-full text-sm text-slate-900 bg-card border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]" autoFocus />
                       <div className="flex gap-2 justify-end mt-2">
-                         <button onClick={() => setEditingMessageId(null)} className="text-[11px] font-bold uppercase bg-white/50 text-slate-700 px-3 py-1.5 rounded border border-slate-300 hover:bg-white">Отмена</button>
-                         <button onClick={() => handleEditSubmit(msg.id)} className="text-[11px] font-bold uppercase bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 shadow-sm border border-indigo-700">Сохранить</button>
+                         <button onClick={() => setEditingMessageId(null)} className="text-[11px] font-bold uppercase bg-card/50 text-slate-700 px-3 py-1.5 rounded border border-slate-300 hover:bg-card">Отмена</button>
+                         <button onClick={() => handleEditSubmit(msg.id)} className="text-[11px] font-bold uppercase bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary shadow-sm border border-indigo-700">Сохранить</button>
                       </div>
                     </div>
                   ) : (
@@ -428,7 +428,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="p-4 bg-white border-t border-slate-200">
+      <form onSubmit={handleSubmit} className="p-4 bg-card border-t border-slate-200">
         
         {isStaff && (initialTemplates.length > 0 || true) && (
           <div className="flex flex-wrap gap-1.5 mb-3 items-center">
@@ -454,7 +454,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                 key={t.id} 
                 type="button" 
                 onClick={() => setText(t.text)}
-                className="px-2 py-1 border border-slate-200 text-[10px] font-bold bg-white text-slate-600 rounded-md hover:bg-slate-50 border hover:border-slate-300 transition-colors"
+                className="px-2 py-1 border border-slate-200 text-[10px] font-bold bg-card text-slate-600 rounded-md hover:bg-slate-50 border hover:border-slate-300 transition-colors"
                 title={t.text}
               >
                 {t.label}
@@ -502,7 +502,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
              📎
           </button>
           
-          <div className="flex-1 relative flex items-center border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent bg-white">
+          <div className="flex-1 relative flex items-center border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent bg-card">
             {file && (
               <div className="absolute left-2 pl-1.5 pr-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-medium rounded-md border border-indigo-200 flex items-center gap-1 z-10 max-w-[150px]">
                  <span className="truncate">{file.name}</span>
@@ -521,7 +521,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
           <button
             type="submit"
             disabled={(!text.trim() && !file) || sending}
-            className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shrink-0"
+            className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary disabled:opacity-50 transition-colors shrink-0"
           >
             Отправить
           </button>

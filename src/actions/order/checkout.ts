@@ -160,12 +160,13 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     const isTestMode = await SettingsManager.isTestMode();
 
-    // 3. Find or create user by email using atomic upsert (prevents race conditions)
-    const user = await db.user.upsert({
-      where: { email: email.toLowerCase() },
-      update: {},
-      create: { email: email.toLowerCase() }
-    });
+    // 3. Find or create user by email (SECURITY FIX: Track if new user to prevent IDOR auto-login)
+    let user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
+    let isNewUser = false;
+    if (!user) {
+      user = await db.user.create({ data: { email: email.toLowerCase() } });
+      isNewUser = true;
+    }
 
     // 4. Calculate price based on TOTAL quantity and actual User ID for Loyalty Tier eval
     const totalQuantity = (runs && runs > 0) ? quantity * runs : quantity;
@@ -237,9 +238,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     });
 
     // 6. Generate payment URL (gateway-specific API calls)
-    const amountRub = (pricing.totalCents / 100).toFixed(2);
-    let paymentUrl = '';
-    let remoteGatewayId = '';
+    let paymentUrl: string | undefined;
+    let remoteGatewayId: string | undefined;
     let host = reqHeaders.get("host") || "localhost:3000";
     if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
@@ -304,11 +304,15 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       
       await Promise.allSettled(rollbackPromises);
       
-      throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод');
+      throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
     }
 
     // 8. Auto-Login using cookies (Frictionless checkout)
-    await createSession(user.id);
+    // SECURITY FIX: Prevent Account Takeover by only auto-logging in NEW users, or already authenticated users
+    const currentSession = await verifySession();
+    if (isNewUser || (currentSession && currentSession.userId === user.id)) {
+      await createSession(user.id);
+    }
 
     revalidatePath('/dashboard', 'layout');
 
@@ -439,9 +443,8 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
       return { paymentId: newPayment.id };
     });
 
-    const amountRub = (Number(order.charge) / 100).toFixed(2);
-    let paymentUrl = '';
-    let remoteGatewayId = '';
+    let paymentUrl: string | undefined;
+    let remoteGatewayId: string | undefined;
     let host = reqHeaders.get("host") || "localhost:3000";
     if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
@@ -478,7 +481,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     } catch (gatewayErr: any) {
       console.error('[RetryCheckout] Gateway failed', gatewayErr);
       await db.payment.update({ where: { id: result.paymentId }, data: { status: 'CANCELED' } });
-      throw new Error(gatewayErr.message || 'Ошибка генерации платежа. Попробуйте другой метод');
+      throw new Error(gatewayErr.message || 'Ошибка генерации платежа. Попробуйте другой метод', { cause: gatewayErr });
     }
 
     revalidatePath('/dashboard', 'layout');

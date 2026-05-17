@@ -19,12 +19,12 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  COMPLETED:       'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+  COMPLETED:       'text-success bg-success/10 border-emerald-500/20',
   IN_PROGRESS:     'text-blue-500    bg-blue-500/10    border-blue-500/20',
   PENDING:         'text-orange-500  bg-orange-500/10  border-orange-500/20',
   AWAITING_PAYMENT:'text-orange-500  bg-orange-500/10  border-orange-500/20',
   PROVISIONING:    'text-indigo-500  bg-indigo-500/10  border-indigo-500/20',
-  ERROR:           'text-red-500     bg-red-500/10     border-red-500/20',
+  ERROR:           'text-destructive     bg-destructive/10     border-red-500/20',
   CANCELED:        'text-muted-foreground bg-muted border-border',
 };
 
@@ -161,7 +161,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </div>
           
           {order.status === 'ERROR' && order.error && (
-            <div className="mt-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 p-4 rounded-xl">
+            <div className="mt-4 bg-destructive/10 border border-rose-500/20 text-destructive p-4 rounded-xl">
               <label className="text-xs font-bold uppercase tracking-wider block mb-1">
                 Системная ошибка
               </label>

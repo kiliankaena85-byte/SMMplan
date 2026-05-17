@@ -3,8 +3,8 @@
 # Все AI-генерируемые изменения ОБЯЗАНЫ соблюдать эти правила.
 
 ## Stack
-- **Framework**: Next.js 16.0.10 (App Router, Turbopack)
-- **UI**: React 19.0.0
+- **Framework**: Next.js 16.2.6 (App Router, Turbopack)
+- **UI**: React 19.2.6
 - **Styling**: Tailwind CSS 4.0.0 (`@theme` directive в `globals.css`, CSS-first config)
 - **Component Library**: HeroUI v3 (dot notation API: `<Table.Header>`, `<Table.Column>`)
 - **ORM**: Prisma 5 (PostgreSQL)

@@ -101,14 +101,16 @@ export async function setOrderStatusAction(
       const oldStatus = order.status;
       const newStatus = status;
 
+      const TERMINAL_REFUNDED_STATUSES = ['COMPLETED', 'CANCELED', 'ERROR'];
+
       let refundCents = 0;
-      if (newStatus === 'CANCELED' && !['COMPLETED', 'CANCELED'].includes(oldStatus)) {
+      if (['CANCELED', 'ERROR'].includes(newStatus) && !TERMINAL_REFUNDED_STATUSES.includes(oldStatus)) {
         if (oldStatus === 'PENDING' || oldStatus === 'AWAITING_PAYMENT') {
           refundCents = Number(order.charge);
         } else {
           refundCents = calculatePartialRefund(order);
         }
-      } else if (newStatus === 'PARTIAL' && !['COMPLETED', 'CANCELED'].includes(oldStatus)) {
+      } else if (newStatus === 'PARTIAL' && !TERMINAL_REFUNDED_STATUSES.includes(oldStatus)) {
         const orderForRefund = { ...order, remains: remains ?? order.remains };
         refundCents = calculatePartialRefund(orderForRefund);
       }
@@ -127,7 +129,7 @@ export async function setOrderStatusAction(
       if (refundCents > 0) {
         await WalletOps.refund(tx, order.userId, refundCents,
           `Ручная смена статуса заказа #${order.numericId}: ${oldStatus}→${newStatus}`,
-          { adminId: admin.id }
+          { adminId: admin.id, idempotencyKey: `refund_${order.id}_${newStatus}` }
         );
       }
 
@@ -160,7 +162,7 @@ export async function forceCompleteOrderAction(orderId: string) {
         where: { id: orderId },
       });
 
-      if (['COMPLETED', 'CANCELED'].includes(order.status)) {
+      if (['COMPLETED', 'CANCELED', 'ERROR', 'PARTIAL'].includes(order.status)) {
         throw new Error('Order is already in a terminal state');
       }
 
@@ -177,7 +179,7 @@ export async function forceCompleteOrderAction(orderId: string) {
       if (refundCents > 0) {
         await WalletOps.refund(tx, order.userId, refundCents,
           `Force Complete #${order.numericId} with partial refund`,
-          { adminId: admin.id }
+          { adminId: admin.id, idempotencyKey: `refund_${order.id}_FORCE_COMPLETE` }
         );
       }
 
@@ -216,7 +218,7 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
     // We iterate outside of the transaction to prevent holding the lock
     // on `user.balance` for multiple seconds, avoiding Database Contention.
     for (const order of orders) {
-      if (!['COMPLETED', 'CANCELED'].includes(order.status)) {
+      if (!['COMPLETED', 'CANCELED', 'ERROR'].includes(order.status)) {
         try {
           await db.$transaction(async (tx) => {
             // Re-fetch inside transaction to ensure isolation
@@ -224,14 +226,11 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
               where: { id: order.id }
             });
             
-            if (!safeOrder || ['COMPLETED', 'CANCELED'].includes(safeOrder.status)) return;
+            if (!safeOrder || ['COMPLETED', 'CANCELED', 'ERROR'].includes(safeOrder.status)) return;
 
-            let refundCents = 0;
-            if (safeOrder.status === 'PENDING' || safeOrder.status === 'AWAITING_PAYMENT') {
-              refundCents = Number(safeOrder.charge);
-            } else {
-              refundCents = calculatePartialRefund(safeOrder);
-            }
+            const refundCents = (safeOrder.status === 'PENDING' || safeOrder.status === 'AWAITING_PAYMENT')
+              ? Number(safeOrder.charge)
+              : calculatePartialRefund(safeOrder);
 
             await tx.order.update({
               where: { id: safeOrder.id },
@@ -241,7 +240,7 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
             if (refundCents > 0) {
               await WalletOps.refund(tx, safeOrder.userId, refundCents,
                 `Массовая отмена заказа #${safeOrder.numericId}`,
-                { adminId: admin.id }
+                { adminId: admin.id, idempotencyKey: `refund_${safeOrder.id}_CANCELED` }
               );
             }
             totalRefunded += refundCents;

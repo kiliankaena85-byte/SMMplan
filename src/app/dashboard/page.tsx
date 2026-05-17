@@ -18,11 +18,11 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  COMPLETED:       'text-emerald-500 bg-emerald-500/10',
+  COMPLETED:       'text-success bg-success/10',
   IN_PROGRESS:     'text-sky-500     bg-sky-500/10',
   PENDING:         'text-orange-500  bg-orange-500/10',
   AWAITING_PAYMENT:'text-orange-500  bg-orange-500/10',
-  ERROR:           'text-rose-500    bg-rose-500/10',
+  ERROR:           'text-destructive    bg-destructive/10',
   CANCELED:        'text-muted-foreground bg-muted',
 };
 

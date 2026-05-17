@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import sanitizeHtml from 'sanitize-html';
 import { z } from 'zod';
+import { requireStaffPermission } from '@/lib/server/rbac';
 
 const pageSchema = z.object({
   id: z.string().optional(),
@@ -15,15 +16,10 @@ const pageSchema = z.object({
 });
 
 export async function savePage(formData: FormData) {
-  const session = await verifySession();
-  if (!session) throw new Error('Unauthorized');
-
-  const user = await db.user.findUnique({ where: { id: session.userId } });
-  if (!user || (user.role !== 'ADMIN' && user.role !== 'OWNER')) throw new Error('Forbidden'); // Only ADMIN/OWNER can edit CMS
-
-  const parsed = pageSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) return;
-  const { id: pageId, slug, title, content: rawContent } = parsed.data;
+  return requireStaffPermission('settings', 'edit', async (admin) => {
+    const parsed = pageSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!parsed.success) return;
+    const { id: pageId, slug, title, content: rawContent } = parsed.data;
 
   // Sanitize HTML to prevent XSS (OWASP A01)
   const content = sanitizeHtml(rawContent, {
@@ -47,15 +43,16 @@ export async function savePage(formData: FormData) {
     });
   }
 
-  await db.auditLog.create({
-    data: {
-      userId: session.userId,
-      action: 'CMS_PAGE_SAVE',
-      details: `Saved page: ${title} (/${slug})`
-    }
-  });
+    await db.auditLog.create({
+      data: {
+        userId: admin.id,
+        action: 'CMS_PAGE_SAVE',
+        details: `Saved page: ${title} (/${slug})`
+      }
+    });
 
-  revalidatePath('/admin/pages');
-  revalidatePath(`/p/${slug}`);
-  redirect('/admin/pages');
+    revalidatePath('/admin/pages');
+    revalidatePath(`/p/${slug}`);
+    redirect('/admin/pages');
+  });
 }

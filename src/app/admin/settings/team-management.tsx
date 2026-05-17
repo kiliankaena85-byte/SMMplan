@@ -113,7 +113,7 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
                           <span className="font-mono text-xs font-bold text-foreground">{u.email}</span>
                         </TableCell>
                         <TableCell>
-                          <Badge intent={u.role === 'OWNER' ? 'destructive' : 'primary'} className={`font-bold text-[10px] uppercase ${u.role === 'OWNER' ? 'bg-destructive/20 text-destructive border-destructive/30' : 'bg-emerald-500/20 text-success border-emerald-500/30'}`}>
+                          <Badge intent={u.role === 'OWNER' ? 'destructive' : 'primary'} className={`font-bold text-[10px] uppercase ${u.role === 'OWNER' ? 'bg-destructive/20 text-destructive border-destructive/30' : 'bg-success/20 text-success border-emerald-500/30'}`}>
                             {u.role}
                           </Badge>
                         </TableCell>

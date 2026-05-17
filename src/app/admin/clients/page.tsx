@@ -57,10 +57,10 @@ export default async function AdminClientsPage({ searchParams }: Props) {
         description={
           <>
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>Всего: {stats.total}</span>
-            <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>Активные: {stats.active}</span>
-            <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div>Забанены: {stats.banned}</span>
+            <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-success rounded-full"></div>Активные: {stats.active}</span>
+            <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-destructive rounded-full"></div>Забанены: {stats.banned}</span>
             {canSeeFinances && (
-               <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>Liability: <span className="tabular-nums font-bold">{(Number(stats.totalLiability) / 100).toLocaleString('ru-RU')} ₽</span></span>
+               <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-warning rounded-full"></div>Liability: <span className="tabular-nums font-bold">{(Number(stats.totalLiability) / 100).toLocaleString('ru-RU')} ₽</span></span>
             )}
           </>
         }
@@ -202,7 +202,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
               ) : <div />}
               {hasMore && nextCursor && (
                 <Link href={`/admin/clients?q=${encodeURIComponent(search)}&cursor=${nextCursor}`}
-                  className="px-3 py-1.5 text-sm text-white bg-primary rounded-md hover:bg-indigo-700">
+                  className="px-3 py-1.5 text-sm text-primary-foreground bg-primary rounded-md hover:bg-primary">
                   Следующая →
                 </Link>
               )}

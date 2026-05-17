@@ -48,12 +48,12 @@ export function MassOrderPreview({ engine, handleCheckout, isSubmitting }: MassO
               className="bg-content2 border border-green-500/20 hover:border-green-500/40 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 shadow-sm"
             >
               <div className="flex items-start gap-3 min-w-0 flex-1">
-                <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center text-success shrink-0 mt-0.5">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">
                       ID {order.serviceId}
                     </span>
                     <h4 className="text-sm font-bold text-foreground truncate max-w-[250px] sm:max-w-[350px]">
@@ -94,20 +94,20 @@ export function MassOrderPreview({ engine, handleCheckout, isSubmitting }: MassO
               className="bg-content2 border border-red-500/20 hover:border-red-500/40 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-200 shadow-sm"
             >
               <div className="flex items-start gap-3 min-w-0 flex-1">
-                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive shrink-0 mt-0.5">
                   <AlertTriangle className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
                       Строка {err.line}
                     </span>
-                    <h4 className="text-sm font-bold text-red-500">Ошибка разбора</h4>
+                    <h4 className="text-sm font-bold text-destructive">Ошибка разбора</h4>
                   </div>
                   <p className="text-xs text-muted-foreground truncate mt-1 font-mono font-medium bg-content3/50 px-2 py-1 rounded-lg">
                     {err.text || "[пустая строка]"}
                   </p>
-                  <p className="text-xs text-red-500 font-bold mt-1.5 flex items-center gap-1">
+                  <p className="text-xs text-destructive font-bold mt-1.5 flex items-center gap-1">
                     • {err.error}
                   </p>
                 </div>
@@ -137,11 +137,11 @@ export function MassOrderPreview({ engine, handleCheckout, isSubmitting }: MassO
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Валидных заказов:</span>
-            <span className="text-green-500 font-bold tabular-nums">{validCount}</span>
+            <span className="text-success font-bold tabular-nums">{validCount}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Заказов с ошибками:</span>
-            <span className="text-red-500 font-bold tabular-nums">{errors.length}</span>
+            <span className="text-destructive font-bold tabular-nums">{errors.length}</span>
           </div>
         </div>
 
@@ -184,7 +184,7 @@ export function MassOrderPreview({ engine, handleCheckout, isSubmitting }: MassO
         <Button
           onClick={handleCheckout}
           disabled={validCount === 0 || isSubmitting}
-          className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-base shadow-lg transition-all flex items-center justify-center gap-2"
+          className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-lg transition-all flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
             <Loader2 className="w-5 h-5 animate-spin" />

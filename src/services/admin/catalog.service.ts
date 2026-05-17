@@ -444,7 +444,7 @@ class AdminCatalogService {
       where.category = { network: { slug: filter.platform } };
     }
 
-    let updatedCount = 0;
+    let updatedCount: number;
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
     if (newMarkup <= 0) {

@@ -22,7 +22,7 @@ export class CircuitBreaker {
    */
   static async check(providerUrl: string): Promise<void> {
     let host = providerUrl;
-    try { host = new URL(providerUrl).hostname; } catch(e) {}
+    try { host = new URL(providerUrl).hostname; } catch(e) { /* ignore */ }
 
     const redis = getRedisConnection();
     
@@ -50,7 +50,7 @@ export class CircuitBreaker {
    */
   static async recordSuccess(providerUrl: string): Promise<void> {
     let host = providerUrl;
-    try { host = new URL(providerUrl).hostname; } catch(e) {}
+    try { host = new URL(providerUrl).hostname; } catch(e) { /* ignore */ }
 
     const redis = getRedisConnection();
     
@@ -65,7 +65,7 @@ export class CircuitBreaker {
    */
   static async recordFailure(providerUrl: string): Promise<void> {
     let host = providerUrl;
-    try { host = new URL(providerUrl).hostname; } catch(e) {}
+    try { host = new URL(providerUrl).hostname; } catch(e) { /* ignore */ }
 
     const redis = getRedisConnection();
     

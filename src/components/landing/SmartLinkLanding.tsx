@@ -159,27 +159,27 @@ export function SmartLinkLanding({
           }}
           className="text-center space-y-5 mb-10 max-w-3xl relative z-10 w-full mt-4"
         >
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-[1.05] drop-shadow-sm">
-            Ускоряем ваши <span className="text-white">соцсети</span>
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-primary-foreground leading-[1.05] drop-shadow-sm">
+            Ускоряем ваши <span className="text-primary-foreground">соцсети</span>
           </h1>
-          <p className="text-lg text-white/90 leading-relaxed font-medium max-w-xl mx-auto drop-shadow-sm">
+          <p className="text-lg text-primary-foreground/90 leading-relaxed font-medium max-w-xl mx-auto drop-shadow-sm">
             Автоматическая платформа для продвижения в социальных сетях с мгновенным запуском.
           </p>
           {/* Social Proof Stats */}
           <div className="flex items-center justify-center gap-6 sm:gap-10 pt-2">
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-white tabular-nums drop-shadow-sm">15+</p>
-              <p className="text-xs font-bold text-white/80 uppercase tracking-wider drop-shadow-sm">Платформ</p>
+              <p className="text-2xl sm:text-3xl font-black text-primary-foreground tabular-nums drop-shadow-sm">15+</p>
+              <p className="text-xs font-bold text-primary-foreground/80 uppercase tracking-wider drop-shadow-sm">Платформ</p>
             </div>
-            <div className="w-px h-10 bg-white/20"></div>
+            <div className="w-px h-10 bg-card/20"></div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-white tabular-nums drop-shadow-sm">300+</p>
-              <p className="text-xs font-bold text-white/80 uppercase tracking-wider drop-shadow-sm">Услуг</p>
+              <p className="text-2xl sm:text-3xl font-black text-primary-foreground tabular-nums drop-shadow-sm">300+</p>
+              <p className="text-xs font-bold text-primary-foreground/80 uppercase tracking-wider drop-shadow-sm">Услуг</p>
             </div>
-            <div className="w-px h-10 bg-white/20"></div>
+            <div className="w-px h-10 bg-card/20"></div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-white tabular-nums drop-shadow-sm">24/7</p>
-              <p className="text-xs font-bold text-white/80 uppercase tracking-wider drop-shadow-sm">Поддержка</p>
+              <p className="text-2xl sm:text-3xl font-black text-primary-foreground tabular-nums drop-shadow-sm">24/7</p>
+              <p className="text-xs font-bold text-primary-foreground/80 uppercase tracking-wider drop-shadow-sm">Поддержка</p>
             </div>
           </div>
         </motion.div>

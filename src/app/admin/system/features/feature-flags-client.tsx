@@ -24,8 +24,8 @@ interface Props {
 }
 
 const STATE_CONFIG: Record<FlagState, { label: string; badge: string; next: FlagState }> = {
-  ON:   { label: 'Включён', badge: 'bg-emerald-500/15 text-success border border-emerald-500/30', next: 'OFF' },
-  TEST: { label: 'Тест',    badge: 'bg-amber-500/15 text-warning border border-amber-500/30', next: 'ON' },
+  ON:   { label: 'Включён', badge: 'bg-success/15 text-success border border-emerald-500/30', next: 'OFF' },
+  TEST: { label: 'Тест',    badge: 'bg-warning/15 text-warning border border-amber-500/30', next: 'ON' },
   OFF:  { label: 'Выключен', badge: 'bg-muted text-muted-foreground border border-border', next: 'TEST' },
 };
 
@@ -65,9 +65,9 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
       {/* Legend */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground bg-card border border-border rounded-xl p-4">
         <span className="font-medium text-foreground">Состояния:</span>
-        <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/15 text-success border border-emerald-500/30">Включён</span>
+        <span className="px-2 py-0.5 rounded-full text-xs bg-success/15 text-success border border-emerald-500/30">Включён</span>
         <span>— работает для всех клиентов</span>
-        <span className="px-2 py-0.5 rounded-full text-xs bg-amber-500/15 text-warning border border-amber-500/30">Тест</span>
+        <span className="px-2 py-0.5 rounded-full text-xs bg-warning/15 text-warning border border-amber-500/30">Тест</span>
         <span>— только для тестовых аккаунтов</span>
         <span className="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground border border-border">Выключен</span>
         <span>— полностью отключён</span>

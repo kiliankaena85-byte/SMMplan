@@ -27,14 +27,14 @@ describe('Pricing Invariants & Property Tests', () => {
     promoType: string | null = null,
     promoDiscount: number = 0
   ) => {
-    // @ts-ignore
+    // @ts-expect-error: override for testing
     db.user.findUnique.mockResolvedValue({
       id: 'test-user',
       totalSpent: BigInt(userTotalSpent),
       personalDiscount: userPersonalDiscount
     });
 
-    // @ts-ignore
+    // @ts-expect-error: override for testing
     db.service.findUnique.mockResolvedValue({
       id: 'test-service',
       rate: serviceRate,
@@ -44,7 +44,7 @@ describe('Pricing Invariants & Property Tests', () => {
     });
 
     if (promoType) {
-      // @ts-ignore
+      // @ts-expect-error: override for testing
       db.promoCode.findUnique.mockResolvedValue({
         code: 'TESTPROMO',
         isActive: true,
@@ -55,7 +55,7 @@ describe('Pricing Invariants & Property Tests', () => {
         amount: promoType === 'VOUCHER' ? promoDiscount : 0
       });
     } else {
-      // @ts-ignore
+      // @ts-expect-error: override for testing
       db.promoCode.findUnique.mockResolvedValue(null);
     }
   };
@@ -109,9 +109,9 @@ describe('Pricing Invariants & Property Tests', () => {
       const totalSpent = Math.floor(Math.random() * 200000000); // Up to 2m RUB
       
       // Setup dynamic mock for each run
-      // @ts-ignore
+      // @ts-expect-error: override for testing
       db.user.findUnique.mockResolvedValue({ totalSpent: BigInt(totalSpent), personalDiscount });
-      // @ts-ignore
+      // @ts-expect-error: override for testing
       db.service.findUnique.mockResolvedValue({ rate, markup, minQty: 1, maxQty: 1000000 });
 
       const result = await marketingService.calculatePrice('test-user', 'test-service', qty);

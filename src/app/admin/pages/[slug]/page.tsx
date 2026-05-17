@@ -28,7 +28,7 @@ export default async function AdminPageEditor({ params }: { params: Promise<{ sl
       </div>
 
       <div className="bg-background p-6 rounded-md shadow-sm border border-border">
-        <form action={savePage} className="space-y-6">
+        <form action={async (fd) => { await savePage(fd); }} className="space-y-6">
           {page && <input type="hidden" name="id" value={page.id} />}
           
           <div className="grid grid-cols-2 gap-6">

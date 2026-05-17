@@ -54,7 +54,7 @@ export function ProviderLiquidityWidget() {
       <div className="bg-card text-card-foreground rounded-2xl p-6 lg:p-7 shadow-sm border border-rose-500/30 transition-all hover:shadow-md h-[240px] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <span className="text-muted-foreground text-sm font-semibold tracking-wide">Внешняя ликвидность</span>
-          <AlertTriangle className="w-4 h-4 text-rose-500" />
+          <AlertTriangle className="w-4 h-4 text-destructive" />
         </div>
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           <p className="text-sm text-destructive mb-2">{error || 'Ошибка загрузки'}</p>
@@ -117,7 +117,7 @@ export function ProviderLiquidityWidget() {
         
         <div className="flex gap-3 mt-auto w-full">
           <Link href="/admin/providers" className="flex-1">
-            <button className="w-full bg-slate-900 text-white font-semibold rounded-xl text-sm h-11 shadow-sm hover:bg-slate-800 transition-colors">
+            <button className="w-full bg-primary text-primary-foreground font-semibold rounded-xl text-sm h-11 shadow-sm hover:bg-primary/90 transition-colors">
               Провайдеры ({data.activeCount}) {data.errorCount > 0 && <span className="text-rose-400">({data.errorCount} сбоев)</span>}
             </button>
           </Link>

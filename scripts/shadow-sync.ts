@@ -22,7 +22,7 @@ async function main() {
                  continue;
             }
 
-            const validServices = services.map(s => ({
+            const validServices = services.map((s: any) => ({
                 id: String(s.service || s.id),
                 name: s.name,
                 type: s.type,
@@ -34,7 +34,7 @@ async function main() {
                 refill: s.refill === true || s.refill === '1',
                 cancel: s.cancel === true || s.cancel === '1',
                 desc: s.desc || s.description || ''
-            })).filter(s => s.id && s.name && !isNaN(s.rate));
+            })).filter((s: any) => s.id && s.name && !isNaN(s.rate));
 
             console.log(`Validated ${validServices.length} services.`);
 

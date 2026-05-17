@@ -109,7 +109,7 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
                  <button 
                     type="submit" 
                     disabled={loading}
-                    className="inline-flex justify-center bg-primary text-white rounded py-2 px-4 shadow-sm text-sm font-medium hover:bg-indigo-700"
+                    className="inline-flex justify-center bg-primary text-primary-foreground rounded py-2 px-4 shadow-sm text-sm font-medium hover:bg-primary"
                  >
                     {editingId ? "Сохранить" : "Добавить"}
                  </button>

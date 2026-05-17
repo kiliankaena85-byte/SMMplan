@@ -19,7 +19,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
       where: { id: 'global' },
       data: { isTestMode: true }
     });
-    // @ts-ignore
+    // @ts-expect-error: override for testing
     revalidateTag('settings');
     
     // 1. Seed user with balance

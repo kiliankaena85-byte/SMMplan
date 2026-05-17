@@ -32,7 +32,7 @@ export function DripFeedSettings({
         <h3 className="font-medium text-sm text-zinc-900">Настройки Drip-feed</h3>
         <button 
           onClick={() => setEnabled(false)}
-          className="text-xs text-zinc-500 hover:text-red-500"
+          className="text-xs text-zinc-500 hover:text-destructive"
         >
           Удалить
         </button>

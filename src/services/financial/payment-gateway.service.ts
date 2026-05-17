@@ -174,18 +174,11 @@ class BalanceGateway extends BasePaymentGateway {
     const { ordersQueue } = await import('@/workers/queues');
 
     // Perform atomic deduction inside the transaction to prevent race condition double-spending
-    const updatedOrderIds: string[] = await MutexManager.withLock(`balance_lock_${params.userId}`, 30000, 5000, async () => {
-      return await db.$transaction(async (tx) => {
-        // Atomic WalletOps deduction
-        await WalletOps.charge(tx, params.userId, amountCents, params.description);
+    const updatedOrderIds: string[] = await db.$transaction(async (tx) => {
+      // Atomic WalletOps deduction (already handles totalSpent increment securely)
+      await WalletOps.charge(tx, params.userId, amountCents, params.description);
 
-        // W2-4 FIX: Increment totalSpent when paying from balance
-        await tx.user.update({
-          where: { id: params.userId },
-          data: { totalSpent: { increment: amountCents } }
-        });
-
-        await tx.payment.update({
+      await tx.payment.update({
           where: { id: params.paymentId },
           data: { status: 'SUCCEEDED', gatewayId: remoteId }
         });
@@ -211,7 +204,6 @@ class BalanceGateway extends BasePaymentGateway {
         }
         
         return ids;
-      });
     });
 
     for (const id of updatedOrderIds) {

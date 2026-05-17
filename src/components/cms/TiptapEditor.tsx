@@ -31,7 +31,7 @@ export default function TiptapEditor({ content, name }: TiptapEditorProps) {
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+    <div className="border border-slate-200 rounded-lg overflow-hidden bg-card">
       {/* Toolbar */}
       <div className="flex flex-wrap gap-1 p-2 border-b border-slate-200 bg-slate-50">
         <ToolbarBtn
@@ -118,8 +118,8 @@ function ToolbarBtn({ onClick, active, label, className }: {
       onClick={onClick}
       className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${className || ''} ${
         active
-          ? 'bg-indigo-600 text-white'
-          : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-card text-slate-700 hover:bg-slate-100 border border-slate-200'
       }`}
     >
       {label}

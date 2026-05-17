@@ -37,9 +37,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
   function getColorClass(pct: number) {
     if (pct === 0 && maxCount === 1) return 'bg-muted text-muted-foreground';
-    if (pct < 30) return 'bg-rose-500 text-white shadow-rose-500/20';
-    if (pct < 50) return 'bg-amber-500 text-white shadow-amber-500/20';
-    return 'bg-emerald-500 text-white shadow-emerald-500/20';
+    if (pct < 30) return 'bg-destructive text-primary-foreground shadow-destructive/20';
+    if (pct < 50) return 'bg-warning text-primary-foreground shadow-warning/20';
+    return 'bg-success text-primary-foreground shadow-success/20';
   }
 
   const fmt = (v: number) => (v / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 }) + ' ₽';
@@ -104,7 +104,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           <CardContent className="pt-8 pb-12 flex flex-col items-center justify-center gap-1">
 
             <div className="w-full max-w-md flex flex-col items-center">
-              <div className="w-full py-4 text-center rounded-t-xl font-black bg-primary text-white shadow-lg text-sm uppercase tracking-wider">
+              <div className="w-full py-4 text-center rounded-t-xl font-black bg-primary text-primary-foreground shadow-lg text-sm uppercase tracking-wider">
                 1. Трафик (Лендинг): {funnel.linkPasted}
               </div>
               <div className="text-[10px] font-bold text-muted-foreground py-2 uppercase tracking-tighter">BASE (100%)</div>

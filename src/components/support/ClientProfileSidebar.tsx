@@ -32,7 +32,7 @@ export type ClientProfileData = {
 };
 
 const ORDER_STATUS_MAP: Record<string, { label: string, color: string }> = {
-  IN_PROGRESS: { label: 'В работе', color: 'text-indigo-600 bg-indigo-50' },
+  IN_PROGRESS: { label: 'В работе', color: 'text-primary bg-indigo-50' },
   PENDING: { label: 'Ожидание', color: 'text-amber-600 bg-amber-50' },
   COMPLETED: { label: 'Выполнен', color: 'text-emerald-600 bg-emerald-50' },
   CANCELED: { label: 'Отменен', color: 'text-slate-500 bg-slate-50' },
@@ -84,7 +84,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
           {user.email}
         </h3>
         {user.email.startsWith('tg_') && (
-          <div className="w-full mb-3 mt-1 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-lg p-2 text-[10px] text-center font-medium">
+          <div className="w-full mb-3 mt-1 bg-warning/10 text-amber-600 border border-amber-500/20 rounded-lg p-2 text-[10px] text-center font-medium">
             <p className="mb-2">Временный профиль. Вы можете запросить у клиента авторизацию:</p>
             <div className="mb-3">
               <button 
@@ -97,7 +97,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
                     await requestTelegramBind(fd);
                   });
                 }}
-                className="w-full py-1.5 px-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md font-bold transition-colors disabled:opacity-50"
+                className="w-full py-1.5 px-2 bg-warning hover:bg-amber-600 text-primary-foreground rounded-md font-bold transition-colors disabled:opacity-50"
               >
                 {isPending ? 'Отправка...' : 'Отправить ссылку для привязки'}
               </button>
@@ -110,7 +110,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
                   id="manual-bind-email"
                   disabled={isPending}
                   placeholder="email@client.ru" 
-                  className="flex-1 bg-white border border-amber-500/30 rounded px-2 py-1 outline-none text-slate-800" 
+                  className="flex-1 bg-card border border-amber-500/30 rounded px-2 py-1 outline-none text-slate-800" 
                 />
                 <button 
                   disabled={isPending}
@@ -122,7 +122,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
                     fd.set('targetEmail', email);
                     await adminManualTelegramBind(fd);
                   })}
-                  className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded font-bold transition-colors disabled:opacity-50"
+                  className="bg-warning hover:bg-amber-600 text-primary-foreground px-2 py-1 rounded font-bold transition-colors disabled:opacity-50"
                 >
                   OK
                 </button>
@@ -168,7 +168,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
              {user.orders.map(order => {
                const st = ORDER_STATUS_MAP[order.status] || { label: order.status, color: 'text-slate-500 bg-slate-50' };
                return (
-                 <div key={order.id} className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm flex flex-col gap-2">
+                 <div key={order.id} className="bg-card border border-slate-100 rounded-xl p-3 shadow-sm flex flex-col gap-2">
                    <div className="flex justify-between items-start">
                      <span className="text-[10px] font-mono text-slate-400">#{order.id.slice(-6)}</span>
                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${st.color}`}>
@@ -189,7 +189,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
            </div>
 
            {user.orders.length > 0 && (
-             <Link href={`/admin/orders?userId=${user.id}`} className="block mt-2 text-[11px] text-center font-bold text-indigo-500 hover:text-indigo-600 transition-colors">
+             <Link href={`/admin/orders?userId=${user.id}`} className="block mt-2 text-[11px] text-center font-bold text-indigo-500 hover:text-primary transition-colors">
                Смотреть все заказы →
              </Link>
            )}
@@ -207,7 +207,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
              {user.payments.map(payment => {
                const st = PAYMENT_STATUS_MAP[payment.status] || { label: payment.status, color: 'text-slate-500 bg-slate-50' };
                return (
-                 <div key={payment.id} className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm flex items-center justify-between gap-2">
+                 <div key={payment.id} className="bg-card border border-slate-100 rounded-xl p-3 shadow-sm flex items-center justify-between gap-2">
                    <div>
                      <div className="text-xs font-bold text-slate-800">
                        {(payment.amount / 100).toLocaleString('ru-RU')} {payment.gateway === 'cryptobot' ? 'USDT' : '₽'}

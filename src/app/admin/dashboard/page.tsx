@@ -101,7 +101,7 @@ export default async function AdminDashboardPage() {
             
             <div className="flex gap-3 mb-8 w-full">
                <Link href="/admin/finance" className="flex-1">
-                 <Button className="w-full bg-slate-900 text-white font-semibold rounded-xl text-sm h-11 shadow-sm hover:!bg-slate-800">
+                 <Button className="w-full bg-primary text-primary-foreground font-semibold rounded-xl text-sm h-11 shadow-sm hover:!bg-primary/90">
                     Финансы
                  </Button>
                </Link>
@@ -173,11 +173,11 @@ export default async function AdminDashboardPage() {
                </div>
              </Link>
              
-             <Link href="/admin/orders?status=ERROR" className="bg-rose-500 text-white rounded-2xl p-5 shadow-[0_8px_20px_rgb(244,63,94,0.2)] flex flex-col hover:scale-[1.02] transition-transform">
+             <Link href="/admin/orders?status=ERROR" className="bg-destructive text-primary-foreground rounded-2xl p-5 shadow-[0_8px_20px_rgb(244,63,94,0.2)] flex flex-col hover:scale-[1.02] transition-transform">
                <div className="flex justify-between items-start mb-6">
                  <span className="text-rose-100 text-sm font-medium">Ошибки</span>
                  <div className="w-8 h-8 rounded-full bg-background/20 flex items-center justify-center">
-                   <Settings className="w-4 h-4 text-white" />
+                   <Settings className="w-4 h-4 text-primary-foreground" />
                  </div>
                </div>
                <div className="mt-auto">

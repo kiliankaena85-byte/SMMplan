@@ -181,7 +181,7 @@ export function SmartOrderForm() {
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 ${
                 (engine.networkId === net.id || (!engine.networkId && engine.catalog[0].id === net.id))
-                  ? 'bg-zinc-800 text-white shadow-sm'
+                  ? 'bg-zinc-800 text-primary-foreground shadow-sm'
                   : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900'
               }`}
             >
@@ -241,7 +241,7 @@ export function SmartOrderForm() {
             />
           </div>
           {validationErrors.link && (
-            <p className="text-sm text-rose-500 font-semibold mt-2 px-1 animate-in slide-in-from-top-1">
+            <p className="text-sm text-destructive font-semibold mt-2 px-1 animate-in slide-in-from-top-1">
               {validationErrors.link}
             </p>
           )}
@@ -320,13 +320,13 @@ export function SmartOrderForm() {
                   <div className="space-y-4">
                     {/* Warnings */}
                     {isLiveStream && (
-                      <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold p-3 rounded-lg flex items-start gap-2">
+                      <div className="bg-destructive/10 border border-rose-500/20 text-destructive text-xs font-bold p-3 rounded-lg flex items-start gap-2">
                         <span className="text-base leading-none">⚡</span>
                         Внимание! Услуга только для запущенного стрима. Если стрим прервется — гарантия сгорает.
                       </div>
                     )}
                     {isPrivateChannel && (
-                      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-bold p-3 rounded-lg flex items-start gap-2">
+                      <div className="bg-warning/10 border border-amber-500/20 text-warning text-xs font-bold p-3 rounded-lg flex items-start gap-2">
                         <span className="text-base leading-none">⚠️</span>
                         Услуга для закрытых каналов. В поле "Ссылка" указывайте только пригласительную ссылку (t.me/+...).
                       </div>
@@ -567,7 +567,7 @@ export function SmartOrderForm() {
 
       {/* REQUIREMENTS MODAL */}
       {showRequirementsModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-primary/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
           <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform animate-in zoom-in-95 duration-200">
             <div className="p-6 pb-0">
               <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
@@ -581,7 +581,7 @@ export function SmartOrderForm() {
               <ul className="space-y-3 mb-6 bg-amber-50/50 p-4 rounded-xl border border-amber-100">
                 {modalRequirements.map((req, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-foreground font-medium">
-                    <span className="text-amber-500 mt-0.5">•</span> <span>{linkifyText(req)}</span>
+                    <span className="text-warning mt-0.5">•</span> <span>{linkifyText(req)}</span>
                   </li>
                 ))}
               </ul>
@@ -598,7 +598,7 @@ export function SmartOrderForm() {
               <button 
                 type="button"
                 onClick={confirmRequirementsAndSubmit} 
-                className="flex-1 px-4 py-3 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 rounded-xl transition-colors shadow-sm"
+                className="flex-1 px-4 py-3 text-sm font-bold bg-warning text-primary-foreground hover:bg-amber-600 rounded-xl transition-colors shadow-sm"
               >
                 Я ознакомился, оплатить
               </button>
