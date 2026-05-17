@@ -27,11 +27,12 @@ SMMplan_lite is an automated, smart SMM panel optimized for high margins with no
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1
+Phases execute in numeric order: 1, 999.1
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. B2B Reseller API Gateway | 1/1 | Completed | x |
+| 999.1. B2B Promo Banner | 1/1 | Completed | x |
 
 ### Phase 2: Production Hardening (Docker, CI/CD, Deployment Architecture)
 
@@ -45,16 +46,16 @@ Plans:
 
 ## Backlog
 
-### Phase 999.1: B2B Promo Banner on Landing (Frictionless Acquisition) (BACKLOG)
+### Phase 999.1: B2B Promo Banner on Landing (Frictionless Acquisition) (COMPLETED)
 
 **Goal:** Promote B2B reseller cabinet and mass ordering capabilities to professional agencies on the main guest landing page without cluttering the minimalist core single-order UX.
 **Requirements:**
 - Add a premium, high-converting CTA card/banner inside [WhyUs.tsx](file:///d:/SMM_plan_2/src/components/landing/WhyUs.tsx) or [SmartLinkLanding.tsx](file:///d:/SMM_plan_2/src/components/landing/SmartLinkLanding.tsx) pointing to the registration page.
 - Showcase B2B benefits: Excel batch parsing, pre-funded balance payments, discount tiers, and API access.
-**Plans:** 0 plans
+**Plans:** 1/1 (PLAN.md)
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] 1. Bento Card Integration in WhyUs.tsx (Completed)
 
 ### Phase 999.2: Guest Mass Order Demo & Pre-Registration Gateway (BACKLOG)
 
