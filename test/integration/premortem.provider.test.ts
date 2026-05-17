@@ -65,12 +65,13 @@ describe('💀 Premortem Test: Provider Outage during Checkout', () => {
     // Поскольку B2B API (action=add) списывает средства и сразу кидает заказ в очередь:
     const { POST } = await import('@/app/api/v2/route');
     
+    const crypto = await import('crypto');
     // Создаем пользователя с балансом
     const user = await db.user.create({
       data: {
         email: userEmail,
-        balance: 100000n, // 1000 RUB
-        apiKey: 'premortem-key',
+        balance: 100000000n, // huge balance
+        apiKeyHash: crypto.createHash('sha256').update('premortem-key').digest('hex'),
         role: 'USER',
       }
     });
@@ -86,8 +87,10 @@ describe('💀 Premortem Test: Provider Outage during Checkout', () => {
     // или 200 с ошибкой создания. 
     // Наша цель: проверить, что try/catch ловит ошибку мока queueManager и не роняет Node.js.
     const res = await POST(req);
+    const resText = await res.text();
+    console.log('API RESPONSE:', resText);
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = JSON.parse(resText);
     
     // Заказ должен быть создан в базе! Ошибка очереди не отменяет оплаченный заказ.
     // Очередь должна попытаться переотправить заказ позже.
@@ -100,8 +103,8 @@ describe('💀 Premortem Test: Provider Outage during Checkout', () => {
 
     // Проверяем, что деньги СПИСАНЫ (ведь заказ принят нами)
     const updatedUser = await db.user.findUnique({ where: { id: user.id } });
-    // Баланс: начальный 100000n минус стоимость заказа
-    expect(updatedUser?.balance).toBe(100000n - (orderInDb?.charge || 0n));
+    // Баланс: начальный 100000000n минус стоимость заказа
+    expect(updatedUser?.balance).toBe(100000000n - BigInt(orderInDb?.charge || 0n));
 
     // Убедимся, что мок действительно вызывался и упал
     expect(ordersQueue.add).toHaveBeenCalledOnce();
