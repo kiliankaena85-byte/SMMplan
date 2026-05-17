@@ -19,10 +19,10 @@ export async function sendMagicLink(email: string, token: string) {
       return;
     }
     console.warn('⚠️ SMTP_HOST is not set. Magic link printed to console only.');
-    console.log('------------ MAGIC LINK ------------');
-    console.log(`To: ${email}`);
-    console.log(`Link: ${link}`);
-    console.log('------------------------------------');
+    console.info('------------ MAGIC LINK ------------');
+    console.info(`To: ${email}`);
+    console.info(`Link: ${link}`);
+    console.info('------------------------------------');
     return;
   }
 
@@ -66,8 +66,8 @@ export async function sendMail(email: string, subject: string, htmlContent: stri
       return;
     }
     console.warn('⚠️ SMTP_HOST is not set. Email printed to console only.');
-    console.log(`[EMAIL to ${email}] ${subject}:`);
-    console.log(htmlContent);
+    console.info(`[EMAIL to ${email}] ${subject}:`);
+    console.info(htmlContent);
     return;
   }
 

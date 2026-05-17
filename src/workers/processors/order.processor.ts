@@ -87,7 +87,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       }
     });
 
-    console.log(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
+    console.info(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
 
   } catch (error: any) {
     console.error(`[OrderProcessor] Failed Order ${order.id} on attempt ${job.attemptsMade}:`, error.message);

@@ -166,7 +166,7 @@ export class QuarantineService {
                 }
             });
 
-            console.log(`[ElasticQuarantine] Restored ${expired.length} expired quarantined services: ${ids.join(', ')}`);
+            console.info(`[ElasticQuarantine] Restored ${expired.length} expired quarantined services: ${ids.join(', ')}`);
             await sendAdminAlert(`✅ [Quarantine] Карантин снят с ${expired.length} услуг. Они снова доступны для заказа.\n${expired.map(s => `- ${s.name}`).join('\n')}`, 'INFO');
 
         } catch (error) {

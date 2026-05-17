@@ -90,7 +90,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
               <button 
                 disabled={isPending}
                 onClick={() => {
-                  console.log('[Sidebar] Request Auth Link Clicked');
+                  console.info('[Sidebar] Request Auth Link Clicked');
                   startTransition(async () => {
                     const fd = new FormData();
                     fd.set('ticketId', ticketId);

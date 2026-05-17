@@ -192,7 +192,7 @@ const requestBindSchema = z.object({
 
 export async function requestTelegramBind(formData: FormData) {
   try {
-    console.log('[requestTelegramBind] Action started');
+    console.info('[requestTelegramBind] Action started');
     const session = await verifySession();
     if (!session) throw new Error('Unauthorized');
 
@@ -205,7 +205,7 @@ export async function requestTelegramBind(formData: FormData) {
     throw new Error('Invalid ticketId');
   }
   const { ticketId } = parsed.data;
-  console.log('[requestTelegramBind] Processing ticketId:', ticketId);
+  console.info('[requestTelegramBind] Processing ticketId:', ticketId);
 
   const ticket = await db.ticket.findUnique({ where: { id: ticketId }, include: { user: true } });
   if (!ticket) throw new Error('Ticket not found');

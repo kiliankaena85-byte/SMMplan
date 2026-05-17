@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing order ID in payload" }, { status: 400 });
     }
 
-    console.log(`[Webhook] Received update signal for external ID: ${externalId}`);
+    console.info(`[Webhook] Received update signal for external ID: ${externalId}`);
 
     // 1. Find the order
     const order = await db.order.findFirst({
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     });
 
     if (!order) {
-      console.log(`[Webhook] Order with external ID ${externalId} not found or not active.`);
+      console.info(`[Webhook] Order with external ID ${externalId} not found or not active.`);
       return NextResponse.json({ message: "Order not found or not active" }, { status: 200 });
     }
 
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     const providerStatus = s.status.toUpperCase();
     const parsedRemains = parseInt(s.remains || "0", 10);
 
-    console.log(`[Webhook] Verified true status for ${externalId}: ${providerStatus}`);
+    console.info(`[Webhook] Verified true status for ${externalId}: ${providerStatus}`);
 
     // 3. Apply standard Sync Logic
     if (order.isDripFeed) {
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       // The massive Cron worker will eventually finalize the overarching drip order.
       // But we can trigger a micro-update here.
       if (['COMPLETED', 'PARTIAL', 'CANCELED'].includes(providerStatus)) {
-        console.log(`[Webhook] DripFeed run ${externalId} completed/canceled. Waiting for main Cron to aggregate.`);
+        console.info(`[Webhook] DripFeed run ${externalId} completed/canceled. Waiting for main Cron to aggregate.`);
       }
       return NextResponse.json({ success: true, message: "DripFeed signal acknowledged" });
     }

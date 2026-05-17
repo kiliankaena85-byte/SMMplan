@@ -283,7 +283,7 @@ bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 
 if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SKIP_BOT !== 'true') {
   if (TOKEN && TOKEN !== 'dummy_token') {
     bot.launch().then(() => {
-      console.log('[Bot] ✅ Telegram bot launched successfully');
+      console.info('[Bot] ✅ Telegram bot launched successfully');
     }).catch((e: any) => {
       console.error('[Bot] ❌ Failed to launch:', e.message);
     });
@@ -295,24 +295,24 @@ if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SK
  * Handles SIGTERM/SIGINT signals from Docker/PM2/tini
  */
 async function handleShutdown(signal: string) {
-  console.log(`[Bot] --- Signal ${signal} received. Graceful shutdown ---`);
+  console.info(`[Bot] --- Signal ${signal} received. Graceful shutdown ---`);
 
   try {
     // 1. Stop the Telegram bot polling
     if (bot) {
-      console.log('[Bot] Stopping bot polling...');
+      console.info('[Bot] Stopping bot polling...');
       bot.stop(signal);
     }
 
     // 2. Close database connection pool
     try {
       await db.$disconnect();
-      console.log('[Bot] Prisma connection pool closed.');
+      console.info('[Bot] Prisma connection pool closed.');
     } catch (e) {
       console.error('[Bot] Error disconnecting Prisma:', e);
     }
 
-    console.log('[Bot] --- All processes stopped. Exiting. ---');
+    console.info('[Bot] --- All processes stopped. Exiting. ---');
     process.exit(0);
   } catch (err) {
     console.error('[Bot] Error during graceful shutdown:', err);

@@ -44,7 +44,7 @@ export class PaymentService {
                     if (realAmount < amount) {
                         throw new Error(`PAYMENT_AMOUNT_MISMATCH: Webhook amount ${amount} exceeds Real amount ${realAmount}`);
                     }
-                    console.log(`[Payment] Safely verified YooKassa payment ${gatewayId}`);
+                    console.info(`[Payment] Safely verified YooKassa payment ${gatewayId}`);
                 } else {
                     throw new Error(`GATEWAY_ERROR: Failed to contact YooKassa API or Payment Not Found (${response.status})`);
                 }
@@ -75,7 +75,7 @@ export class PaymentService {
           : await tx.payment.findUnique({ where: { gatewayId } });
 
         if (currentPayment && currentPayment.status === 'SUCCEEDED') {
-          console.log(`[Payment] ${gatewayId} already processed (atomic idempotency hit)`);
+          console.info(`[Payment] ${gatewayId} already processed (atomic idempotency hit)`);
           return;
         }
 

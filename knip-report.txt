@@ -1,65 +1,11 @@
-﻿тЧЗ injected env (14) from .env // tip: тМШ override existing { override: true }
-Unused files (102)
-check-owner.ts                                               
-check.ts                                                     
-e2e/auth.setup.ts                                            
-editor.js                                                    
-find-debt.js                                                 
-fix-provider.ts                                              
-inspect-services.ts                                          
-inspect-vexboost.ts                                          
-manual-sync.ts                                               
-ping.ts                                                      
-prepare_vex_data.js                                          
-prisma/seed-data/vexboost-services.ts                        
-refactor_ui.js                                               
-rename-vexboost.js                                           
-scratch-desktop-panel.js                                     
-scratch-replace.js                                           
-scripts/ai-cherry-pick.ts                                    
-scripts/ai-rebrand-catalog.ts                                
-scripts/analytics/full-run.ts                                
-scripts/analyze-categories.ts                                
-scripts/analyze-service-names.ts                             
-scripts/catalog-audit.ts                                     
-scripts/check-db.ts                                          
-scripts/check-premium.ts                                     
-scripts/cleanup-service-names.ts                             
-scripts/create-admin-link.mjs                                
-scripts/curate-catalog.ts                                    
-scripts/director-audit.ts                                    
-scripts/fix-catalog.ts                                       
-scripts/fix-import.ts                                        
-scripts/fix-taxonomy-meta.ts                                 
-scripts/full-catalog-dump.ts                                 
-scripts/gen-admin-token.ts                                   
-scripts/gen-art-token.ts                                     
-scripts/import-curated-catalog.ts                            
-scripts/isolate-autoservices.ts                              
-scripts/migrate-basket-relations.ts                          
-scripts/normalize-catalog-3tier.ts                           
-scripts/pen-test.ts                                          
-scripts/provider-intelligence.ts                             
-scripts/pull-one.ts                                          
-scripts/qa-simulator-p2.ts                                   
-scripts/qa-simulator.ts                                      
-scripts/reconcile-ledger.ts                                  
-scripts/reconciliation.ts                                    
-scripts/register-providers.ts                                
-scripts/seed-mock-services.ts                                
-scripts/seed-rbac.ts                                         
-scripts/seed-test-orders.ts                                  
-scripts/show-tree.ts                                         
-scripts/smart-importer.ts                                    
-scripts/stress-test.ts                                       
-scripts/sync-vexboost.ts                                     
-scripts/test-cbr.ts                                          
-scripts/test-tx.js                                           
+﻿тЧЗ injected env (15) from .env // tip: тМШ enable debugging { debug: true }
+Unused files (44)
+src/actions/admin/category.ts                                
 src/actions/admin/finance/invoice.ts                         
+src/actions/admin/providers/ai-import.ts                     
 src/actions/order/basketCheckout.ts                          
 src/actions/order/mass-order.ts                              
 src/actions/support/media.ts                                 
-src/app/admin/dashboard/financial-chart.tsx                  
 src/bot/commands/admin.command.ts                            
 src/bot/commands/cancel.command.ts                           
 src/bot/commands/orders.command.ts                           
@@ -69,161 +15,114 @@ src/bot/middleware/project.middleware.ts
 src/bot/utils/menu.utils.ts                                  
 src/bot/utils/notification-templates.ts                      
 src/bot/utils/redis-session.ts                               
+src/components/landing/LandingContext.tsx                    
 src/components/landing/LegalFooter.tsx                       
 src/components/landing/MassOrderModal.tsx                    
-src/components/landing/order-engine/CategorySidebar.tsx      
 src/components/landing/order-engine/DynamicPayloads.tsx      
 src/components/landing/order-engine/MobileServiceDropdown.tsx
 src/components/landing/order-engine/OrderSummaryBar.tsx      
 src/components/landing/order-engine/PlatformSelector.tsx     
-src/components/landing/order-engine/ServiceCard.tsx          
-src/components/landing/order-engine/ServiceGrid.tsx          
 src/components/landing/order-engine/SmartInput.tsx           
-src/components/landing/OrderEngineSection.tsx                
 src/components/landing/sections/Footer.tsx                   
 src/components/landing/sections/Header.tsx                   
+src/components/landing/v2/ServiceCatalog.tsx                 
 src/components/orders/MassOrderForm.tsx                      
 src/components/ui/aurora-background.tsx                      
+src/hooks/useABThemeTest.ts                                  
 src/hooks/useLandingOrderEngine.ts                           
 src/hooks/useServicePricing.ts                               
 src/hooks/useTrackEvent.ts                                   
 src/hooks/useUrlSync.ts                                      
 src/hooks/useUrlValidation.ts                                
-src/lib/analytics.ts                                         
-src/lib/constants/brandColors.ts                             
 src/lib/server/rate-limit.ts                                 
 src/lib/status-labels.ts                                     
 src/lib/utils/detectPlatformFromUrl.ts                       
 src/lib/validators/urlValidator.ts                           
+src/services/admin/ai-catalog.service.ts                     
 src/services/core/mass-order.service.ts                      
+src/services/settings.service.ts                             
 src/services/users/index.ts                                  
 src/types/providers.ts                                       
 src/utils/currency.ts                                        
-test-checkout.ts                                             
-test-smart-logic.ts                                          
-update-descriptions.ts                                       
-Unused dependencies (5)
-@heroui/styles           package.json:28:6
-@number-flow/react       package.json:31:6
-@radix-ui/react-icons    package.json:33:6
-@types/dompurify         package.json:41:6
-react-medium-image-zoom  package.json:59:6
-Unused devDependencies (4)
-@types/node-fetch         package.json:74:6
-baseline-browser-mapping  package.json:80:6
-eslint-config-next        package.json:83:6
-ts-node                   package.json:88:6
-Unlisted dependencies (3)
-dotenv      playwright.config.ts:3:25
-decimal.js  src/bot/bot.test.ts:10:25
-dotenv      src/bot/index.ts:12:25   
-Unused exports (90)
-updateMarkupAction           function  src/actions/admin/catalog.ts:13:23                   
-toggleServiceAction          function  src/actions/admin/catalog.ts:41:23                   
-getMarkupAnalyticsAction     function  src/actions/admin/catalog.ts:109:23                  
-getClientProfileAction       function  src/actions/admin/clients.ts:108:23                  
-deleteProvider               function  src/actions/admin/providers/crud.ts:123:23           
-getServiceRoutes             function  src/actions/admin/routing.actions.ts:15:23           
-NAV                                    src/app/dashboard/sidebar-nav.tsx:18:14              
-MOBILE_NAV                             src/app/dashboard/sidebar-nav.tsx:30:14              
-badgeVariants                          src/components/ui/badge.tsx:33:17                    
-buttonVariants                         src/components/ui/button.tsx:59:18                   
-CardFooter                             src/components/ui/card.tsx:50:28                     
-Command                                src/components/ui/command.tsx:189:3                  
-CommandShortcut                        src/components/ui/command.tsx:196:3                  
-DialogClose                            src/components/ui/dialog.tsx:151:3                   
-DialogFooter                           src/components/ui/dialog.tsx:154:3                   
-DialogOverlay                          src/components/ui/dialog.tsx:156:3                   
-DialogPortal                           src/components/ui/dialog.tsx:157:3                   
-DropdownMenuPortal                     src/components/ui/dropdown-menu.tsx:254:3            
-DropdownMenuRadioGroup                 src/components/ui/dropdown-menu.tsx:261:3            
-DropdownMenuRadioItem                  src/components/ui/dropdown-menu.tsx:262:3            
-DropdownMenuShortcut                   src/components/ui/dropdown-menu.tsx:264:3            
-DropdownMenuSub                        src/components/ui/dropdown-menu.tsx:265:3            
-DropdownMenuSubTrigger                 src/components/ui/dropdown-menu.tsx:266:3            
-DropdownMenuSubContent                 src/components/ui/dropdown-menu.tsx:267:3            
-InputGroupButton                       src/components/ui/input-group.tsx:155:3              
-InputGroupText                         src/components/ui/input-group.tsx:156:3              
-InputGroupInput                        src/components/ui/input-group.tsx:157:3              
-InputGroupTextarea                     src/components/ui/input-group.tsx:158:3              
-SelectGroup                            src/components/ui/select.tsx:193:3                   
-SelectLabel                            src/components/ui/select.tsx:195:3                   
-SelectScrollDownButton                 src/components/ui/select.tsx:196:3                   
-SelectScrollUpButton                   src/components/ui/select.tsx:197:3                   
-SelectSeparator                        src/components/ui/select.tsx:198:3                   
-SheetTrigger                           src/components/ui/sheet.tsx:131:3                    
-SheetClose                             src/components/ui/sheet.tsx:132:3                    
-SheetFooter                            src/components/ui/sheet.tsx:135:3                    
-SheetDescription                       src/components/ui/sheet.tsx:137:3                    
-TableFooter                            src/components/ui/table.tsx:111:3                    
-TableCaption                           src/components/ui/table.tsx:115:3                    
-tabsListVariants                       src/components/ui/tabs.tsx:82:52                     
-BALANCE_SAFETY_LIMIT                   src/lib/bigint-serializer.ts:35:14                   
-checkBalanceSafetyLimit      function  src/lib/bigint-serializer.ts:37:17                   
-CircuitBreakerOpenException  class     src/lib/circuit-breaker.ts:3:14                      
-TAX_USN_INCOME_RATE                    src/lib/financial-constants.ts:18:14                 
-TAX_VAT_USN_SPECIAL_RATE               src/lib/financial-constants.ts:21:14                 
-ACQUIRING_YOOKASSA_CARDS               src/lib/financial-constants.ts:28:14                 
-ACQUIRING_SAFE_MAX                     src/lib/financial-constants.ts:31:14                 
-MAX_MARKUP_MULTIPLIER                  src/lib/financial-constants.ts:45:14                 
-CURRENCY_SPREAD_BUFFER                 src/lib/financial-constants.ts:56:14                 
-SYNC_JITTER_THRESHOLD                  src/lib/financial-constants.ts:64:14                 
-DEFAULT_PRICING_LADDER                 src/lib/financial-constants.ts:94:14                 
-TOTAL_TAX_FROM_REVENUE                 src/lib/financial-constants.ts:107:14                
-logContextStorage                      src/lib/logger.ts:30:14                              
-runWithLogContext            function  src/lib/logger.ts:33:17                              
-getCorrelationId             function  src/lib/logger.ts:38:17                              
-orderProcessingQueue                   src/lib/queue-manager.ts:57:14                       
-statusSyncQueue                        src/lib/queue-manager.ts:63:14                       
-failoverQueue                          src/lib/queue-manager.ts:68:14                       
-AI_CATALOG_SYSTEM_PROMPT               src/services/admin/ai-catalog.service.ts:3:14        
-RebrandOutputSchema                    src/services/admin/ai-catalog.service.ts:38:14       
-AiCatalogService             class     src/services/admin/ai-catalog.service.ts:46:14       
-AiSupportService             class     src/services/admin/ai-support.service.ts:3:14        
-AnalyticsService             class     src/services/admin/analytics.service.ts:24:14        
-AdminCatalogService          class     src/services/admin/catalog.service.ts:50:14          
-AdminOrderService            class     src/services/admin/order.service.ts:27:14            
-AdminProviderService         class     src/services/admin/provider.service.ts:34:14         
-SettingsService              class     src/services/admin/settings.service.ts:3:14          
-AdminTicketService           class     src/services/admin/ticket.service.ts:28:14           
-AdminUserService             class     src/services/admin/user.service.ts:53:14             
-CANONICAL_MAP                          src/services/analyzer/category-matcher.ts:11:14      
-OrderService                 class     src/services/core/order.service.ts:22:14             
-AccountingService            class     src/services/financial/accounting.service.ts:16:14   
-MarketingService             class     src/services/marketing.service.ts:19:14              
-BLACKLISTED_SERVICES                   src/services/providers/post-sync-rules.ts:28:14      
-HIDDEN_SERVICES                        src/services/providers/post-sync-rules.ts:34:14      
-MAX_QTY_CAP                            src/services/providers/post-sync-rules.ts:49:14      
-RECLASSIFY_RULES                       src/services/providers/post-sync-rules.ts:56:14      
-PLATFORMS                              src/services/providers/smart-analyzer.logic.ts:23:14 
-CATEGORIES                             src/services/providers/smart-analyzer.logic.ts:24:14 
-TARGET_TYPES                           src/services/providers/smart-analyzer.logic.ts:25:14 
-PLATFORM_LABELS                        src/services/providers/smart-analyzer.logic.ts:27:14 
-TARGET_TYPE_LABELS                     src/services/providers/smart-analyzer.logic.ts:103:14
-PLATFORM_KEYWORDS                      src/services/providers/smart-analyzer.logic.ts:123:14
-CATEGORY_MAP                           src/services/providers/smart-analyzer.logic.ts:168:14
-GEO_MAP                                src/services/providers/smart-analyzer.logic.ts:194:14
-TicketService                class     src/services/support/ticket.service.ts:4:14          
-cbrRateService                         src/services/system/cbr-rate.service.ts:49:14        
-PREDEFINED_FLAGS                       src/services/system/feature-flag.service.ts:30:14    
-entryIdSchema                          src/validators/admin.validators.ts:14:14             
-syncQueue                              src/workers/queues.ts:36:14                          
-Unused exported types (18)
-OrdersChartData           type       src/app/admin/dashboard/orders-chart.tsx:14:13   
-BadgeProps                interface  src/components/ui/badge.tsx:23:18                
-ButtonProps               interface  src/components/ui/button.tsx:39:18               
-LogContext                interface  src/lib/logger.ts:24:18                          
-AIOptimizedService        type       src/services/admin/ai-catalog.service.ts:44:13   
-ServiceProfitability      interface  src/services/admin/analytics.service.ts:3:18     
-CategoryProfitability     interface  src/services/admin/analytics.service.ts:14:18    
-CatalogRow                type       src/services/admin/catalog.service.ts:17:13      
-ProviderExternalService   type       src/services/admin/catalog.service.ts:36:13      
-AdminOrderRow             type       src/services/admin/order.service.ts:9:13         
-OrderSearchParams         type       src/services/admin/order.service.ts:18:13        
-AdminTicketRow            type       src/services/admin/ticket.service.ts:6:13        
-AdminUserRow              type       src/services/admin/user.service.ts:8:13          
-UserCard                  type       src/services/admin/user.service.ts:22:13         
-IntelligenceLinkMetadata  interface  src/services/analyzer/link-analyzer.ts:3:18      
-CreateOrderInput          type       src/services/core/order.service.ts:9:13          
-FinancialMetrics          interface  src/services/financial/accounting.service.ts:3:18
-OrderFormData             type       src/validators/order.validators.ts:20:13         
+Unused dependencies (6)
+@heroui/styles           package.json:32:6
+@number-flow/react       package.json:35:6
+@radix-ui/react-icons    package.json:37:6
+@types/dompurify         package.json:45:6
+isomorphic-dompurify     package.json:54:6
+react-medium-image-zoom  package.json:65:6
+Unused devDependencies (3)
+baseline-browser-mapping  package.json:86:6
+eslint-config-next        package.json:89:6
+ts-node                   package.json:95:6
+Unlisted dependencies (14)
+jquery         .temp/competitors/smm-panel-free/assets/plugins/aos/test/aos.spec.js:1:15                           
+jquery         .temp/competitors/smm-panel-free/assets/plugins/aos/test/calculateOffset.spec.js:1:15               
+jquery         .temp/competitors/smm-panel-free/assets/plugins/aos/test/elements.spec.js:1:15                      
+jquery         .temp/competitors/smm-panel-free/themes/pergo/assets/plugins/aos/test/aos.spec.js:1:15              
+jquery         .temp/competitors/smm-panel-free/themes/pergo/assets/plugins/aos/test/calculateOffset.spec.js:1:15  
+jquery         .temp/competitors/smm-panel-free/themes/pergo/assets/plugins/aos/test/elements.spec.js:1:15         
+jquery         .temp/competitors/smm-panel-free/themes/regular/assets/plugins/aos/test/aos.spec.js:1:15            
+jquery         .temp/competitors/smm-panel-free/themes/regular/assets/plugins/aos/test/calculateOffset.spec.js:1:15
+jquery         .temp/competitors/smm-panel-free/themes/regular/assets/plugins/aos/test/elements.spec.js:1:15       
+dotenv         playwright.config.ts:3:25                                                                           
+dotenv/config  scripts/ai-cherry-pick.ts:1:8                                                                       
+node-fetch     scripts/pen-test.ts:1:19                                                                            
+decimal.js     src/bot/bot.test.ts:10:25                                                                           
+dotenv         src/bot/index.ts:12:25                                                                              
+Unresolved imports (1)
+../src/app/api/workers/sync-catalog/route  scripts/qa-simulator-p2.ts:161:11
+Unused exports (49)
+deleteContent             function  src/actions/admin/content.ts:136:23                     
+adminSyncProviderCatalog  function  src/actions/admin/providers/sync-action.ts:20:23        
+BRAND_COLORS                        src/components/landing/order-engine/BrandColors.ts:1:14 
+badgeVariants                       src/components/ui/badge.tsx:33:17                       
+buttonVariants                      src/components/ui/button.tsx:57:18                      
+CardFooter                          src/components/ui/card.tsx:38:28                        
+Command                             src/components/ui/command.tsx:189:3                     
+CommandShortcut                     src/components/ui/command.tsx:196:3                     
+DialogClose                         src/components/ui/dialog.tsx:151:3                      
+DialogFooter                        src/components/ui/dialog.tsx:154:3                      
+DialogOverlay                       src/components/ui/dialog.tsx:156:3                      
+DialogPortal                        src/components/ui/dialog.tsx:157:3                      
+DropdownMenuPortal                  src/components/ui/dropdown-menu.tsx:254:3               
+DropdownMenuRadioGroup              src/components/ui/dropdown-menu.tsx:261:3               
+DropdownMenuRadioItem               src/components/ui/dropdown-menu.tsx:262:3               
+DropdownMenuShortcut                src/components/ui/dropdown-menu.tsx:264:3               
+DropdownMenuSub                     src/components/ui/dropdown-menu.tsx:265:3               
+DropdownMenuSubTrigger              src/components/ui/dropdown-menu.tsx:266:3               
+DropdownMenuSubContent              src/components/ui/dropdown-menu.tsx:267:3               
+InputGroupButton                    src/components/ui/input-group.tsx:155:3                 
+InputGroupText                      src/components/ui/input-group.tsx:156:3                 
+InputGroupInput                     src/components/ui/input-group.tsx:157:3                 
+InputGroupTextarea                  src/components/ui/input-group.tsx:158:3                 
+SelectGroup                         src/components/ui/select.tsx:193:3                      
+SelectLabel                         src/components/ui/select.tsx:195:3                      
+SelectScrollDownButton              src/components/ui/select.tsx:196:3                      
+SelectScrollUpButton                src/components/ui/select.tsx:197:3                      
+SelectSeparator                     src/components/ui/select.tsx:198:3                      
+SheetTrigger                        src/components/ui/sheet.tsx:131:3                       
+SheetClose                          src/components/ui/sheet.tsx:132:3                       
+SheetFooter                         src/components/ui/sheet.tsx:135:3                       
+SheetDescription                    src/components/ui/sheet.tsx:137:3                       
+TableFooter                         src/components/ui/table.tsx:111:3                       
+TableCaption                        src/components/ui/table.tsx:115:3                       
+tabsListVariants                    src/components/ui/tabs.tsx:82:52                        
+BRAND_COLORS                        src/lib/constants/brandColors.ts:1:14                   
+orderProcessingQueue                src/lib/queue-manager.ts:57:14                          
+statusSyncQueue                     src/lib/queue-manager.ts:63:14                          
+failoverQueue                       src/lib/queue-manager.ts:68:14                          
+catalogMutationsQueue               src/lib/queue-manager.ts:80:14                          
+YooKassaGateway           class     src/services/financial/payment-gateway.service.ts:31:14 
+CryptoBotGateway          class     src/services/financial/payment-gateway.service.ts:123:14
+BalanceGateway            class     src/services/financial/payment-gateway.service.ts:170:14
+MockGateway               class     src/services/financial/payment-gateway.service.ts:208:14
+cleanInstagramUrl                   src/validators/link-mutators.ts:11:14                   
+cleanVkUrl                          src/validators/link-mutators.ts:31:14                   
+cleanTelegramUrl                    src/validators/link-mutators.ts:52:14                   
+cleanYoutubeUrl                     src/validators/link-mutators.ts:64:14                   
+cleanTikTokUrl                      src/validators/link-mutators.ts:84:14                   
+Unused exported types (3)
+BadgeProps          interface  src/components/ui/badge.tsx:23:18                    
+ButtonProps         interface  src/components/ui/button.tsx:39:18                   
+ProcurementMetrics  interface  src/services/providers/name-tokenizer.service.ts:7:18

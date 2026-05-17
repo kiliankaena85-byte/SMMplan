@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    console.log('[SyncOrdersCron] Starting inline synchronous order sync...');
+    console.info('[SyncOrdersCron] Starting inline synchronous order sync...');
     const redis = getRedisConnection();
     const lockKey = 'cron:sync-orders:lock';
     
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
       await redis.del(lockKey);
     }
 
-    console.log('[SyncOrdersCron] Synchronization completed successfully.');
+    console.info('[SyncOrdersCron] Synchronization completed successfully.');
     return NextResponse.json({ success: true, timestamp: new Date().toISOString() });
   } catch (error: any) {
     console.error('[SyncOrdersCron] Error during execution:', error);

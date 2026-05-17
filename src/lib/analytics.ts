@@ -29,7 +29,7 @@ export function trackEvent(eventName: string, params?: Record<string, unknown>) 
       }
       
       if (process.env.NODE_ENV === "development") {
-        console.log(`[Analytics Track]: ${eventName}`, params);
+        console.info(`[Analytics Track]: ${eventName}`, params);
       }
     }
   } catch (e) {

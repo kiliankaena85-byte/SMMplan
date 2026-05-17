@@ -14,15 +14,15 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
     switch (payload.type) {
       case 'SYNC_PRICES': {
         const { usdToRub } = payload;
-        console.log(`[CatalogProcessor] Starting background price sync with rate ${usdToRub}...`);
+        console.info(`[CatalogProcessor] Starting background price sync with rate ${usdToRub}...`);
         await adminCatalogService.syncDenormalizedPrices(usdToRub);
-        console.log(`[CatalogProcessor] Price sync completed successfully.`);
+        console.info(`[CatalogProcessor] Price sync completed successfully.`);
         break;
       }
       
       case 'SYNC_ALL_CATALOGS': {
         const { admin } = payload;
-        console.log(`[CatalogProcessor] Starting background sync for ALL catalogs...`);
+        console.info(`[CatalogProcessor] Starting background sync for ALL catalogs...`);
         const { db } = await import('../../lib/db');
         const { catalogQueue } = await import('../queues');
         const providers = await db.provider.findMany({ where: { isActive: true } });
@@ -33,29 +33,29 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
                 providerId: provider.id,
                 admin
             });
-            console.log(`[CatalogProcessor] Queued SYNC_PROVIDER_CATALOG for ${provider.id} (${provider.name})`);
+            console.info(`[CatalogProcessor] Queued SYNC_PROVIDER_CATALOG for ${provider.id} (${provider.name})`);
         }
         break;
       }
 
       case 'SYNC_PROVIDER_CATALOG': {
         const { providerId, admin } = payload;
-        console.log(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
+        console.info(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
         const stats = await adminCatalogService.syncProviderCatalog(providerId, admin);
-        console.log(`[CatalogProcessor] Catalog sync completed. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
+        console.info(`[CatalogProcessor] Catalog sync completed. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
         break;
       }
       
       case 'BULK_MARKUP': {
         const { markupPercent, filter, admin } = payload;
-        console.log(`[CatalogProcessor] Starting background bulk markup...`);
+        console.info(`[CatalogProcessor] Starting background bulk markup...`);
         // We reuse the existing logic, but from a worker context
         const result = await adminCatalogService.bulkUpdateMarkup(
           filter,
           markupPercent,
           admin
         );
-        console.log(`[CatalogProcessor] Bulk markup completed. Updated ${result.updatedCount} services.`);
+        console.info(`[CatalogProcessor] Bulk markup completed. Updated ${result.updatedCount} services.`);
         break;
       }
         

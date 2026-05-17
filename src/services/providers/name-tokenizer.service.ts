@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-export interface ProcurementMetrics {
+interface ProcurementMetrics {
     quality: 'PREMIUM' | 'HIGH' | 'MEDIUM' | 'LOW' | 'BOTS' | 'UNKNOWN';
     velocity: number | null; // Max items per day
     geo: string;

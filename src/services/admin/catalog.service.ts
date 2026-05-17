@@ -503,7 +503,7 @@ class AdminCatalogService {
       select: { id: true, rate: true, markup: true }
     });
 
-    console.log(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
+    console.info(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
 
     for (let i = 0; i < allServices.length; i += 100) {
       const batch = allServices.slice(i, i + 100);
@@ -514,7 +514,7 @@ class AdminCatalogService {
       await db.$transaction(updates);
     }
 
-    console.log(`[AdminCatalogService] Price sync completed.`);
+    console.info(`[AdminCatalogService] Price sync completed.`);
   }
 
   /**

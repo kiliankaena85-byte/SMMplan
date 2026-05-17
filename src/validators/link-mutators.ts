@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 // --- 🧹 MUTATORS (Cleaners) ---
 
-export const cleanInstagramUrl = (url: string, targetType: string): string => {
+const cleanInstagramUrl = (url: string, targetType: string): string => {
   try {
     const urlObj = new URL(url);
     urlObj.search = ''; // Strip ?igshid=... and everything else
@@ -28,7 +28,7 @@ export const cleanInstagramUrl = (url: string, targetType: string): string => {
   }
 };
 
-export const cleanVkUrl = (url: string): string => {
+const cleanVkUrl = (url: string): string => {
   let cleaned = url.replace(/m\.vk\.com/, 'vk.com');
   // Extract photo ID from z=photo... if it's nested in a wall post
   const photoMatch = cleaned.match(/z=(photo-?\d+_\d+)/);
@@ -49,7 +49,7 @@ export const cleanVkUrl = (url: string): string => {
   }
 };
 
-export const cleanTelegramUrl = (url: string): string => {
+const cleanTelegramUrl = (url: string): string => {
   let cleaned = url.replace(/telegram\.me/, 't.me');
   try {
     const urlObj = new URL(cleaned);
@@ -61,7 +61,7 @@ export const cleanTelegramUrl = (url: string): string => {
   }
 };
 
-export const cleanYoutubeUrl = (url: string): string => {
+const cleanYoutubeUrl = (url: string): string => {
   if (url.includes('youtu.be/')) {
       const id = url.split('youtu.be/')[1]?.split('?')[0];
       if (id) return `https://www.youtube.com/watch?v=${id}`;
@@ -81,7 +81,7 @@ export const cleanYoutubeUrl = (url: string): string => {
   return url;
 };
 
-export const cleanTikTokUrl = (url: string): string => {
+const cleanTikTokUrl = (url: string): string => {
     // For TikTok, mobile share links (vm.tiktok.com) have tracking query params too.
     try {
         const urlObj = new URL(url);

@@ -70,7 +70,7 @@ export async function POST(request: Request) {
          return NextResponse.json({ error: 'Payment double-check validation failed' }, { status: 400 });
       }
 
-      console.log(`[Webhook] Successfully processed payment ${gatewayId}`);
+      console.info(`[Webhook] Successfully processed payment ${gatewayId}`);
     }
 
     return NextResponse.json({ ok: true });

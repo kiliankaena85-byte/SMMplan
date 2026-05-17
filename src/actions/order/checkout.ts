@@ -89,7 +89,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         include: { payment: true }
       });
       if (existingOrder) {
-        console.log(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);
+        console.info(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);
         return {
           orderId: existingOrder.id,
           paymentId: existingOrder.paymentId,

@@ -28,7 +28,7 @@ export abstract class BasePaymentGateway {
   async checkStatusSync?(gatewayId: string): Promise<boolean>;
 }
 
-export class YooKassaGateway extends BasePaymentGateway {
+class YooKassaGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     if (params.isTestMode || process.env.NODE_ENV === 'test' || params.email === 'e2e-tester@test.com') {
       return {
@@ -120,7 +120,7 @@ export class YooKassaGateway extends BasePaymentGateway {
   }
 }
 
-export class CryptoBotGateway extends BasePaymentGateway {
+class CryptoBotGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     if (params.isTestMode || process.env.NODE_ENV === 'test') {
       return {
@@ -167,7 +167,7 @@ export class CryptoBotGateway extends BasePaymentGateway {
   }
 }
 
-export class BalanceGateway extends BasePaymentGateway {
+class BalanceGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     const amountCents = Math.round(params.amountRub * 100);
     const remoteId = `internal_${Date.now()}`;
@@ -205,7 +205,7 @@ export class BalanceGateway extends BasePaymentGateway {
   }
 }
 
-export class MockGateway extends BasePaymentGateway {
+class MockGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     return {
       paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
