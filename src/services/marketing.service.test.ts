@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { marketingService } from './marketing.service';
 import { db } from '@/lib/db';
-import { TOTAL_MANDATORY_DEDUCTIONS } from '@/lib/financial-constants';
+import {
+  calculateSafetyFloorCents,
+  MAX_TOTAL_DISCOUNT,
+  TOTAL_MANDATORY_DEDUCTIONS,
+  applyBeautifulRounding,
+} from '@/lib/financial-constants';
 
 const MOCK_USD_TO_RUB = 95.0;
 
@@ -61,7 +66,9 @@ describe('MarketingService', () => {
       const res = await marketingService.calculatePrice(null, 'srv1', 50);
       
       const expectedProviderCostCents = Math.round(((1.0 * MOCK_USD_TO_RUB * 100) / 1000) * 50);
-      const expectedTotal = Math.round(expectedProviderCostCents * 3.0);
+      const rawRetailPer1000Rub = 1.0 * 3.0 * MOCK_USD_TO_RUB;
+      const beautifulRetailPer1000Rub = applyBeautifulRounding(rawRetailPer1000Rub);
+      const expectedTotal = Math.round((beautifulRetailPer1000Rub * 100 / 1000) * 50);
       
       expect(res.discountPercent).toBe(0);
       expect(res.discountCents).toBe(0);

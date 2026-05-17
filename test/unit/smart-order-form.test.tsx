@@ -133,16 +133,16 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     vi.mocked(useOrderEngine).mockReturnValue(state as any);
     render(<SmartOrderForm />);
 
-    // Ensure the implicit consent text is present
-    const consentText = screen.getByText(/Нажимая Оплатить, вы соглашаетесь с/i);
+    // Ensure the consent text is present
+    const consentText = screen.getByText(/Я подтверждаю заказ и соглашаюсь с/i);
     expect(consentText).toBeDefined();
 
-    // Ensure there is no checkbox for terms
-    const checkboxes = screen.queryAllByRole('checkbox');
-    // It might find the drip-feed checkbox, but the "agreedToTerms" checkbox should be gone.
-    // If Drip-feed is the only one, then it's correct. 
-    // Just ensure the button is enabled by default (not blocked by terms).
-    const submitBtn = screen.getByRole('button', { name: /Создать заказ/i }) as HTMLButtonElement;
-    expect(submitBtn.disabled).toBe(false); 
+    // Ensure the explicit consent checkbox is rendered
+    const checkbox = screen.getByRole('checkbox', { name: /Согласие с публичной офертой/i });
+    expect(checkbox).toBeDefined();
+
+    // The submit button should be disabled by default because agreedToTerms is false in mock state
+    const submitBtn = screen.getByRole('button', { name: /Создать заказ и перейти к оплате/i }) as HTMLButtonElement;
+    expect(submitBtn.disabled).toBe(true);
   });
 });

@@ -217,16 +217,15 @@ describe('Security Tests (QA-4: Security & Penetration Tester)', () => {
       expect(VaultService.decrypt(enc2)).toBe(text);
     });
 
-    // TC-SEC-EXTRA: Tampered ciphertext returns the ciphertext itself (VaultService returns original on fail)
-    it('TC-SEC-EXTRA: Tampered ciphertext returns original payload (GCM auth tag fails)', () => {
+    // TC-SEC-EXTRA: Tampered ciphertext throws an error (VaultService throws on fail)
+    it('TC-SEC-EXTRA: Tampered ciphertext throws an error (GCM auth tag fails)', () => {
       const encrypted = VaultService.encrypt('my-key');
       const parts = encrypted.split(':');
       // Flip a character in the ciphertext
       parts[2] = parts[2].slice(0, -2) + 'ff';
       const tampered = parts.join(':');
 
-      const result = VaultService.decrypt(tampered);
-      expect(result).toBe(tampered); // VaultService behavior
+      expect(() => VaultService.decrypt(tampered)).toThrowError(/Decryption failed/);
     });
 
     // TC-SEC-EXTRA: Non-formatted string returns original

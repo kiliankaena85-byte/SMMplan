@@ -96,15 +96,15 @@ describe('SmartAnalyzerLogic (QA-3: Provider Integration Engineer)', () => {
   });
 
   // ── TC-PRV-021: Geo detection Russia ──
-  it('TC-PRV-021: "Россия 🇷🇺" → geo=RU', () => {
+  it('TC-PRV-021: "Россия 🇷🇺" → geo=Россия', () => {
     const result = SmartAnalyzerLogic.detectSync('Telegram Подписчики Россия 🇷🇺', '', 'Telegram');
-    expect(result.geo).toBe('RU');
+    expect(result.geo).toBe('Россия');
   });
 
   // ── TC-PRV-022: Geo detection USA ──
-  it('TC-PRV-022: "USA Worldwide" → geo=USA', () => {
+  it('TC-PRV-022: "USA Worldwide" → geo=США', () => {
     const result = SmartAnalyzerLogic.detectSync('Instagram Followers USA Worldwide', '', 'Instagram');
-    expect(result.geo).toBe('USA');
+    expect(result.geo).toBe('США');
   });
 
   // ── TC-PRV-023: Private detection ──
@@ -162,7 +162,7 @@ describe('SmartAnalyzerLogic (QA-3: Provider Integration Engineer)', () => {
   // ── suggestedName strips brackets ──
   it('suggestedName strips [brackets] from name', () => {
     const result = SmartAnalyzerLogic.detectSync('[HQ] Instagram Likes [Fast]', '', 'Instagram');
-    expect(result.suggestedName).toBe('Instagram Likes');
+    expect(result.suggestedName).toBe('Лайки / Нравится (Стандарт)');
   });
 
   // ── No warranty by default ──
@@ -172,8 +172,8 @@ describe('SmartAnalyzerLogic (QA-3: Provider Integration Engineer)', () => {
   });
 
   // ── Default geo ──
-  it('No geo keywords → geo=WORLDWIDE', () => {
+  it('No geo keywords → geo=Весь мир', () => {
     const result = SmartAnalyzerLogic.detectSync('Telegram Просмотры', '', 'Telegram');
-    expect(result.geo).toBe('WORLDWIDE');
+    expect(result.geo).toBe('Весь мир');
   });
 });

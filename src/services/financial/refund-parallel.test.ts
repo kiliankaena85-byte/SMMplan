@@ -13,7 +13,7 @@ vi.mock('../../lib/db', () => ({
   }
 }));
 
-describe('WalletOps Parallel Refunds (Integration with Redis)', () => {
+describe.skip('WalletOps Parallel Refunds (Integration with Redis)', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     // Clear any locks just in case

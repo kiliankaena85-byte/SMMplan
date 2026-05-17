@@ -39,7 +39,7 @@ function mapRefillStatus(internal: string): string {
 export async function POST(request: NextRequest) {
   try {
     // W5-3 SECURITY FIX: Limit content length to prevent DoS via huge payloads before parsing
-    const contentLength = request.headers.get('content-length');
+    const contentLength = request.headers?.get ? request.headers.get('content-length') : null;
     if (contentLength && parseInt(contentLength, 10) > 500 * 1024) {
       return NextResponse.json({ error: 'Payload too large (max 500KB)' }, { status: 413 });
     }

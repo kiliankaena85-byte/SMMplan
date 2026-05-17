@@ -93,6 +93,7 @@ describe('Worker Order Processor: Timeout & Failure Simulation', () => {
     // 2. Mock global.fetch to return a fatal API error
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: async () => ({ error: 'Incorrect Link format' }),
       text: async () => JSON.stringify({ error: 'Incorrect Link format' })
     } as any);

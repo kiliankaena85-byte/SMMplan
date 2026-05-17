@@ -23,6 +23,13 @@ vi.mock('@/lib/smtp', () => ({
   sendMail: vi.fn().mockResolvedValue(true)
 }));
 
+vi.mock('@/lib/settings', () => ({
+  SettingsProvider: {
+    getSupportEmailDomain: vi.fn().mockResolvedValue('smmplan.pro'),
+    getContactAndLegalSettings: vi.fn().mockResolvedValue({ COMPANY_NAME: 'Smmplan' })
+  }
+}));
+
 vi.mock('@/services/support/support-bot.service', () => ({
   supportBotService: {
     sendSupportReply: vi.fn().mockResolvedValue('tg_12345'),
