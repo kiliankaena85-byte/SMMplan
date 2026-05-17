@@ -67,7 +67,10 @@ export class SettingsProvider {
    * Direct database fetch (uncached). Use only for Admin UI or logic that requires real-time data.
    */
   static async getDirect(): Promise<SystemSettings> {
-    return this.getCached(); // unstable_cache handles revalidation automatically, but we can bypass if needed
+    const settings = await db.systemSettings.findUnique({ where: { id: "global" } });
+    if (settings) return settings;
+    // Fallback to cached (which handles initialization if missing)
+    return this.getCached();
   }
 
   /**
@@ -166,6 +169,19 @@ export class SettingsProvider {
       update: { isTestMode: enable },
       create: { id: "global", isTestMode: enable }
     });
+    const { redis } = await import('./redis');
+    await redis.set('settings:isTestMode', String(enable));
+    (revalidateTag as any)('settings');
+  }
+
+  static async setMaintenanceMode(enable: boolean) {
+    await db.systemSettings.upsert({
+      where: { id: "global" },
+      update: { maintenanceMode: enable },
+      create: { id: "global", maintenanceMode: enable }
+    });
+    const { redis } = await import('./redis');
+    await redis.set('settings:maintenanceMode', String(enable));
     (revalidateTag as any)('settings');
   }
 }

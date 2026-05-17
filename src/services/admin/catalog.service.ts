@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
@@ -272,7 +273,7 @@ class AdminCatalogService {
     const cached = await redis.get(cacheKey);
     let shadowServices: any[] = [];
     if (cached) {
-      try { shadowServices = JSON.parse(cached); } catch(e) {}
+      try { shadowServices = JSON.parse(cached); } catch { /* ignore */ }
     }
 
     const toImportShadow = shadowServices.filter(s => externalIds.includes(s.service.toString()));
@@ -615,3 +616,6 @@ class AdminCatalogService {
 }
 
 export const adminCatalogService = new AdminCatalogService();
+
+
+

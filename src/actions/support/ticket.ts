@@ -229,7 +229,8 @@ export async function requestTelegramBind(formData: FormData) {
 
 const manualBindSchema = z.object({
   ticketId: z.string().min(1),
-  targetEmail: z.string().email('Некорректный email')
+  targetEmail: z.string().email('Некорректный email'),
+  confirm: z.string().optional()
 });
 
 export async function adminManualTelegramBind(formData: FormData) {
@@ -238,11 +239,12 @@ export async function adminManualTelegramBind(formData: FormData) {
     if (!session) throw new Error('Unauthorized');
 
   const admin = await db.user.findUnique({ where: { id: session.userId } });
-  if (!admin || !['ADMIN', 'SUPPORT', 'OWNER'].includes(admin.role)) throw new Error('Forbidden');
+  // W6-5: SUPPORT cannot call manual bind
+  if (!admin || !['ADMIN', 'OWNER'].includes(admin.role)) throw new Error('Forbidden: Only ADMIN or OWNER can manually bind Telegram accounts');
 
   const parsed = manualBindSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) throw new Error('Invalid input');
-  const { ticketId, targetEmail } = parsed.data;
+  const { ticketId, targetEmail, confirm } = parsed.data;
 
   const ticket = await db.ticket.findUnique({ where: { id: ticketId }, include: { user: true } });
   if (!ticket) throw new Error('Ticket not found');
@@ -252,9 +254,27 @@ export async function adminManualTelegramBind(formData: FormData) {
     throw new Error('Этот профиль не является временным Telegram-аккаунтом');
   }
 
-  const webUser = await db.user.findUnique({ where: { email: targetEmail } });
+  const webUser = await db.user.findUnique({ 
+    where: { email: targetEmail },
+    include: { _count: { select: { orders: true } } }
+  });
   if (!webUser) {
     throw new Error('Целевой аккаунт с таким email не найден');
+  }
+
+  // W6-4: Add confirmationToken flow
+  if (confirm !== 'true') {
+    const tempUserOrders = await db.order.count({ where: { userId: tempUser.id } });
+    return { 
+      preview: true, 
+      data: {
+        tempUserEmail: tempUser.email,
+        tempUserOrders: tempUserOrders,
+        targetEmail: webUser.email,
+        targetBalance: (Number(webUser.balance) / 100).toFixed(2),
+        targetOrders: webUser._count.orders
+      }
+    };
   }
 
   await db.$transaction(async (tx) => {
@@ -291,6 +311,7 @@ export async function adminManualTelegramBind(formData: FormData) {
   });
 
   revalidatePath(`/admin/tickets`);
+  return { success: true };
   } catch (err) {
     console.error('[adminManualTelegramBind] Error:', err);
     throw err;

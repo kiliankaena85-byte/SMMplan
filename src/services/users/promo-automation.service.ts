@@ -24,7 +24,9 @@ export class PromoAutomationService {
       for (const rule of rules) {
         if (totalSpentCents >= rule.spendThreshold) {
           // Idempotency: Ensure we don't issue the same bonus twice to the same user
-          const uniqueHash = crypto.createHash('md5').update(userId).digest('hex').substring(0, 6).toUpperCase();
+          // W7-3 SECURITY FIX: Use HMAC with a secret to prevent guessable deterministic promo codes
+          const secret = process.env.JWT_SECRET || 'default-promo-secret-123';
+          const uniqueHash = crypto.createHmac('sha256', secret).update(userId + rule.percent).digest('hex').substring(0, 8).toUpperCase();
           const deterministicCode = `VIP${rule.percent}-${uniqueHash}`;
 
           // Idempotency check: Upsert to gracefully handle race conditions without throwing unique constraint error

@@ -16,6 +16,7 @@ const massOrderSchema = z.object({
   email: z.string().email('Введите корректный email').nullable().optional(),
   gateway: z.enum(['yookassa', 'cryptobot', 'balance']).default('yookassa'),
   idempotencyKey: z.string().optional(),
+  expectedTotalRub: z.number().optional(), // W2-2: for TOCTOU price validation
 });
 
 export const parseMassOrderText = async (text: string) => {
@@ -125,9 +126,24 @@ export const massOrderCalculateAction = async (input: { text: string }) => {
     let totalCents = 0;
     const validOrders = [];
     
+    // W4-4 FIX: Preload user and services to avoid N+1 queries in loop
+    let user = null;
+    if (userId) {
+      user = await db.user.findUnique({ where: { id: userId } });
+    }
+    const serviceIds = orders.map(o => o.serviceId);
+    const services = await db.service.findMany({ where: { id: { in: serviceIds } } });
+    const serviceMap = new Map(services.map(s => [s.id, s]));
+
     for (const order of orders) {
        try {
-         const pricing = await marketingService.calculatePrice(userId, order.serviceId, order.quantity);
+         const pricing = await marketingService.calculatePrice(
+           userId, 
+           order.serviceId, 
+           order.quantity, 
+           null, 
+           { user, service: serviceMap.get(order.serviceId) }
+         );
          totalCents += pricing.totalCents;
          validOrders.push({ ...order, priceRub: pricing.totalCents / 100 });
        } catch (e: any) {
@@ -198,8 +214,23 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     let totalCents = 0;
     const orderCreationData: any[] = [];
     
+    // W2-3: Generate unique keys for each order in the batch, rather than re-using the checkout request's idempotency key
+    const crypto = (await import('crypto')).default;
+    const isTestMode = await SettingsManager.isTestMode(); // W4-5 FIX
+
+    // W4-4 FIX: Preload services to avoid N+1 queries in loop
+    const serviceIds = orders.map(o => o.serviceId);
+    const services = await db.service.findMany({ where: { id: { in: serviceIds } } });
+    const serviceMap = new Map(services.map(s => [s.id, s]));
+
     for (const order of orders) {
-       const pricing = await marketingService.calculatePrice(user.id, order.serviceId, order.quantity);
+       const pricing = await marketingService.calculatePrice(
+         user.id, 
+         order.serviceId, 
+         order.quantity, 
+         null, 
+         { user, service: serviceMap.get(order.serviceId) }
+       );
        totalCents += pricing.totalCents;
        orderCreationData.push({
          userId: user.id,
@@ -216,8 +247,19 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
          remains: order.quantity,
          consentIp,
          consentUserAgent,
-         idempotencyKey
+         idempotencyKey: crypto.randomUUID(), // W2-3 FIX
+         isTest: isTestMode // W4-5 FIX
        });
+    }
+    
+    // W2-2 FIX: TOCTOU Price Validation
+    if (data.expectedTotalRub !== undefined) {
+      const expectedCents = Math.round(data.expectedTotalRub * 100);
+      const diff = Math.abs(totalCents - expectedCents);
+      // Allow max 1% deviation (e.g. currency rate fluctuated slightly during checkout)
+      if (diff > expectedCents * 0.01 && diff > 100) {
+        throw new Error(`Цена изменилась с момента расчета. Ожидалось: ${data.expectedTotalRub} ₽, сейчас: ${totalCents / 100} ₽. Пожалуйста, обновите заказ.`);
+      }
     }
 
     if (gateway !== 'balance' && totalCents < 1000) {
@@ -227,8 +269,6 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     if (gateway === 'balance' && user.balance < totalCents) {
       throw new Error("Недостаточно средств на балансе");
     }
-
-    const isTestMode = await SettingsManager.isTestMode();
 
     // Create Payment and Orders in Transaction
     const result = await db.$transaction(async (tx) => {

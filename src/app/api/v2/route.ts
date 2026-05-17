@@ -38,6 +38,12 @@ function mapRefillStatus(internal: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // W5-3 SECURITY FIX: Limit content length to prevent DoS via huge payloads before parsing
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 500 * 1024) {
+      return NextResponse.json({ error: 'Payload too large (max 500KB)' }, { status: 413 });
+    }
+
     // SMM APIs typically send x-www-form-urlencoded data
     const formData = await request.formData().catch(() => null);
     if (!formData) {
@@ -52,8 +58,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate Limiting (OWASP A04)
+    // W3-4 SECURITY FIX: Do not store raw API keys in Redis. Hash them first.
     // Limit: 50 requests per 60 seconds per API key
-    const isAllowed = await RateLimitService.checkCustomKey(key, 50, 60);
+    const crypto = (await import('crypto')).default;
+    const hashedKey = crypto.createHash('sha256').update(key).digest('hex');
+    const isAllowed = await RateLimitService.checkCustomKey(hashedKey, 50, 60);
     if (!isAllowed) {
       return NextResponse.json({ error: 'Too many requests. Limit 50/minute.' }, { status: 429 });
     }
@@ -67,7 +76,7 @@ export async function POST(request: NextRequest) {
     // 2. Route by Action
     switch (action) {
       case 'services':
-        return await handleServices(user);
+        return await handleServices(user, formData);
       case 'add':
         return await handleAdd(user, formData);
       case 'status':
@@ -93,10 +102,15 @@ export async function POST(request: NextRequest) {
 // ACTION HANDLERS
 // ----------------------------------------------------------------------
 
-async function handleServices(user: any) {
+async function handleServices(user: any, formData: FormData) {
+  const offset = formData.get('offset')?.toString() || '0';
+  const skip = parseInt(offset, 10);
+
   const services = await db.service.findMany({
     include: { category: true },
-    where: { isActive: true }
+    where: { isActive: true },
+    take: 500,
+    skip: isNaN(skip) ? 0 : skip
   });
 
   const finalFormatted = await marketingService.getB2BFormattedServices(user, services);

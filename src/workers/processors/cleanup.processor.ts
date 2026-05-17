@@ -58,13 +58,24 @@ export async function runCleanup(): Promise<void> {
   });
 
   // ── 4. Orders: Zombie AWAITING_PAYMENT ────────────────────────────────────
+  // W2-1 FIX: Don't blindly cancel — check if a payment was recently confirmed.
+  // YooKassa webhooks can arrive up to 5 minutes late. Cancelling a paid order
+  // before the webhook arrives causes financial loss for the client.
   const zombieThreshold = new Date(now);
   zombieThreshold.setHours(zombieThreshold.getHours() - 24);
+
+  // Only cancel if no associated payment is in SUCCEEDED or PENDING (recent) state
+  const safeZombieThreshold = new Date(now);
+  safeZombieThreshold.setHours(safeZombieThreshold.getHours() - 25); // Extra 1-hour buffer
 
   const zombieOrdersResult = await db.order.updateMany({
     where: { 
       status: 'AWAITING_PAYMENT',
-      createdAt: { lt: zombieThreshold } 
+      createdAt: { lt: safeZombieThreshold },
+      // Only cancel if payment is not in a succeeded or recently pending state
+      payment: {
+        status: { notIn: ['SUCCEEDED', 'PENDING'] }
+      }
     },
     data: { 
       status: 'CANCELED', 

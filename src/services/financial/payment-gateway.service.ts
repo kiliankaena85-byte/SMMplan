@@ -179,6 +179,12 @@ class BalanceGateway extends BasePaymentGateway {
         // Atomic WalletOps deduction
         await WalletOps.charge(tx, params.userId, amountCents, params.description);
 
+        // W2-4 FIX: Increment totalSpent when paying from balance
+        await tx.user.update({
+          where: { id: params.userId },
+          data: { totalSpent: { increment: amountCents } }
+        });
+
         await tx.payment.update({
           where: { id: params.paymentId },
           data: { status: 'SUCCEEDED', gatewayId: remoteId }

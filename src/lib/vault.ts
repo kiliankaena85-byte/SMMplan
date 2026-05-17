@@ -75,8 +75,11 @@ export class VaultService {
       
       return decrypted;
     } catch (error) {
-      console.warn('[VaultService] Decryption failed, returning original payload:', error instanceof Error ? error.message : error);
-      return encryptedPayload;
+      // W0-5 SECURITY FIX: Throw instead of silent fallback.
+      // Silent return was masking APP_ENCRYPTION_KEY rotation failures:
+      // encrypted blob would be used as API key, causing all providers to silently fail.
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`[VaultService] Decryption failed — possible key rotation or data corruption: ${msg}`);
     }
   }
 

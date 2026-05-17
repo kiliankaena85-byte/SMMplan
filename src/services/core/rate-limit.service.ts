@@ -107,6 +107,12 @@ export class RateLimitService {
     failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
   ): Promise<boolean> {
     try {
+      // W6-1 SECURITY FIX: Prevent Redis OOM or DB bloat from huge custom keys
+      if (!key || key.length > 256) {
+        console.warn(`[RATE_LIMIT_CUSTOM] Blocked key exceeding max length or empty`);
+        return false;
+      }
+      
       const now = new Date();
       const redisKey = `ratelimit:custom:${key}`;
 

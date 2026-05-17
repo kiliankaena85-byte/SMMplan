@@ -171,7 +171,7 @@ export default async function CategoryServicesPage({ params }: { params: Promise
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-end whitespace-nowrap">
                       <span className="font-black text-foreground text-base">{(service.pricePer1kRub / 1000).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
                     </div>
                   </td>

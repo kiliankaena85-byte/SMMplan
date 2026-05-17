@@ -70,6 +70,29 @@ export async function requireStaffPermission<T>(
   }
 }
 
+// W3-3 SECURITY FIX: Strict guard for OWNER-only operations (e.g. settings changes, ownership transfers)
+export async function requireOwnerPermission<T>(
+  action: (user: User) => Promise<T>
+): Promise<T | { success: false; error: string }> {
+  try {
+    const userId = await getSessionUserId();
+    if (!userId) return { success: false, error: "Unauthorized access" };
+
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user) return { success: false, error: "Forbidden: User not found" };
+
+    if (user.role !== 'OWNER') {
+       console.warn(`[RBAC] User ${userId} attempted to execute OWNER Action but has role ${user.role}`);
+       return { success: false, error: "Forbidden: OWNER context required" };
+    }
+
+    return await action(user);
+  } catch (error: any) {
+    console.error("[RBAC] Execution Error:", error);
+    return { success: false, error: "Internal Server Error during execution" };
+  }
+}
+
 
 
 import { redirect } from "next/navigation";

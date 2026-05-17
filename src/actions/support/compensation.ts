@@ -9,7 +9,7 @@ import crypto from 'crypto';
 
 const compensationSchema = z.object({
   ticketId: z.string().min(1),
-  costRub: z.number().positive(),
+  costRub: z.number().positive().max(50000), // W4-3 FIX: Upper limit
   note: z.string().min(3),
   topUpBalance: z.boolean().default(false)
 });

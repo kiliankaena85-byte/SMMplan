@@ -210,9 +210,10 @@ const GEO_MAP: Record<string, string[]> = {
 };
 
 import { NameTokenizerService } from './name-tokenizer.service';
+import { compileServiceMetrics, normalizeGeo } from '@/utils/translation-dictionary';
 
 export const SmartAnalyzerLogic = class {
-    static detectSync(name: string, description: string = '', categoryInput: string = '', dynamicPlatforms?: Array<{ slug: string, keywords: string[], name: string }>): AnalyzedService {
+    static detectSync(name: string, description: string = '', categoryInput: string = '', dynamicPlatforms?: Array<{ slug: string, keywords: string[], name: string }>, basePriceUsd: number = 0): AnalyzedService {
         const sanitizedDescription = DescriptionSanitizer.sanitize(description);
         const nameNode = name.toLowerCase();
         
@@ -456,18 +457,45 @@ export const SmartAnalyzerLogic = class {
             isMediaGroupAware = true;
         }
 
+        // 6. Anti-Liar Dictionary Translation
+        const geoTagMatch = name.match(/\[(.*?)\]/);
+        let rawGeo = geoTagMatch ? geoTagMatch[1] : undefined;
+        if (rawGeo && (rawGeo.includes('|') || rawGeo.length > 20)) {
+            // Complex bracket like Stream-Promotion: [UHQ | Россия | 10К/Д]
+            // We rely on the GEO_MAP 'geo' variable we already detected above
+            rawGeo = undefined;
+        }
+        const compiledGeo = rawGeo ? normalizeGeo(rawGeo) : normalizeGeo(geo);
+        const metricsCompiler = compileServiceMetrics(name, basePriceUsd);
+        const tagsStr = metricsCompiler.translatedTags.filter(Boolean).join('. ');
+        let finalDescription = tagsStr ? `${tagsStr}. Гео: ${compiledGeo}.` : `Гео: ${compiledGeo}.`;
+        if (requirements.trim()) {
+            finalDescription += `\nТребования: ${requirements.trim()}`;
+        }
+        if (!metricsCompiler.isRefill) {
+            finalDescription += `\nВнимание: Возможны отписки. Без гарантии восстановления.`;
+        }
+        
+        // Anti-Liar: Возвращаем оригинальное описание провайдера, чтобы оно не "обрезалось"
+        if (desc && desc.length > 5) {
+            finalDescription += `\n\n--- Оригинальное описание провайдера ---\n${desc}`;
+        }
+        
+        const categoryLabel = CATEGORY_LABELS[category] || 'Продвижение';
+        const finalName = `${categoryLabel} (${metricsCompiler.tier})`;
+
         return {
             platform: platformEnum,
             platformSlug,
             category: category as any,
             targetType,
             isPrivate,
-            description_ru: desc,
-            suggestedName: name.replace(/\[.*?\]/g, '').trim(),
+            description_ru: finalDescription,
+            suggestedName: finalName,
             cleanName: tokenized.cleanName,
             requirements: requirements.trim() || undefined,
-            geo,
-            warranty,
+            geo: compiledGeo,
+            warranty: metricsCompiler.warrantyDays || warranty,
             customDataType,
             isMediaGroupAware,
             metrics: tokenized.metrics

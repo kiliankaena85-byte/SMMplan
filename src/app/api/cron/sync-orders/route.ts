@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const secret = url.searchParams.get('secret');
+  const authHeader = req.headers.get('authorization');
+  const secret = authHeader?.replace('Bearer ', '');
 
   if (secret !== process.env.CRON_SECRET) {
     console.warn('[SyncOrdersCron] Unauthorized access attempt blocked');
@@ -45,3 +45,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
+

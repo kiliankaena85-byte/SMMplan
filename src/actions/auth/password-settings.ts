@@ -106,6 +106,11 @@ export async function changePasswordAction(formData: FormData) {
       data: { passwordHash: hashed }
     });
 
+    // W3-2 SECURITY FIX: Invalidate all existing sessions on password change
+    await db.session.deleteMany({
+      where: { userId: session.userId }
+    });
+
     revalidatePath('/dashboard/settings');
     return { success: true };
   } catch (error: any) {

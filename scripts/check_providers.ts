@@ -1,12 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-
 const prisma = new PrismaClient();
 
 async function main() {
-  const p = await prisma.provider.findMany();
-  console.log(p.map(x => `"${x.name}"`));
+    const providers = await prisma.provider.findMany();
+    console.log("Providers:");
+    console.table(providers);
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+main().catch(console.error).finally(() => prisma.$disconnect());

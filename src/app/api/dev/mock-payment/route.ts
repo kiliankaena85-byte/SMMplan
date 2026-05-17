@@ -45,6 +45,12 @@ export async function GET(req: NextRequest) {
           }
         }
 
+        // W5-4: Mass Orders support (for basket/cart)
+        await tx.order.updateMany({ 
+          where: { paymentId: payment.id, status: 'AWAITING_PAYMENT' }, 
+          data: { status: 'PENDING' } 
+        });
+
         // Ledger entry INSIDE transaction with idempotency key
         await tx.ledgerEntry.create({
           data: {

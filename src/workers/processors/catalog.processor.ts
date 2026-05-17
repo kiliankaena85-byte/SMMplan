@@ -67,3 +67,4 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
     throw error; // Let BullMQ retry and eventually DLQ
   }
 }
+

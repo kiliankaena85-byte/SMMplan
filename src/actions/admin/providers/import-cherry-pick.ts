@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { adminCatalogService } from "@/services/admin/catalog.service";
 import { providerService } from "@/services/providers/provider.service";
-import { NameTokenizerService } from "@/services/providers/name-tokenizer.service";
 import { SmartAnalyzerLogic } from "@/services/providers/smart-analyzer.logic";
 import { db } from "@/lib/db";
 
@@ -185,6 +185,11 @@ export async function fetchExternalServices(providerId?: string, forceRefresh = 
         const providerInstance = await providerService.getProviderInstance(providerDbRecord);
         const rawServices = await providerInstance.getServices();
         
+        // Fetch exchange settings for Anti-Liar dictionary
+        const settings = await db.systemSettings.findUnique({ where: { id: "global" }, select: { exchangeRateUSD: true } });
+        const usdRate = settings?.exchangeRateUSD || 90.0;
+        const currency = providerDbRecord.balanceCurrency || 'USD';
+        
         // Filter raw services using Zod Schema
         const validRawServices = [];
         let invalidCount = 0;
@@ -211,7 +216,9 @@ export async function fetchExternalServices(providerId?: string, forceRefresh = 
 
         // Data Intelligence: Normalize services using SmartAnalyzerLogic
         services = validRawServices.map((s: any) => {
-            const analyzed = SmartAnalyzerLogic.detectSync(s.name, s.description || '', s.category || '');
+            const rawRate = parseFloat(s.rate) || 0;
+            const basePriceUsd = currency === 'RUB' ? rawRate / usdRate : rawRate;
+            const analyzed = SmartAnalyzerLogic.detectSync(s.name, s.description || '', s.category || '', undefined, basePriceUsd);
             return {
                 ...s,
                 cleanName: analyzed.cleanName,
@@ -266,3 +273,5 @@ export async function importSelectedServices(externalIds: string[], categoryId: 
         }
     });
 }
+
+

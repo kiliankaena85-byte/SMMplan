@@ -1,4 +1,4 @@
-import { VaultService } from '../../lib/vault';
+// W0-4: VaultService import removed — decryption now happens in ProviderService before passing key here
 import { 
   BaseProvider, 
   OrderCreationParams, 
@@ -20,8 +20,8 @@ const ProviderServiceSchema = z.object({
   min: z.union([z.string(), z.number()]).transform(String),
   max: z.union([z.string(), z.number()]).transform(String),
   type: z.string().optional().default("Default"),
-  desc: z.string().optional(),
-  description: z.string().optional(),
+  desc: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
   dripfeed: z.union([z.number(), z.boolean(), z.string()]).optional(),
   refill: z.union([z.number(), z.boolean(), z.string()]).optional(),
   cancel: z.union([z.number(), z.boolean(), z.string()]).optional(),
@@ -35,10 +35,11 @@ export class UniversalProvider implements BaseProvider {
   private mapping: ApiMappingDTO | null;
   private userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-  constructor(apiUrl: string, encryptedKey: string, metadata?: { mapping?: ApiMappingDTO | null }) {
+  constructor(apiUrl: string, apiKey: string, metadata?: { mapping?: ApiMappingDTO | null }) {
     this.apiUrl = apiUrl;
-    const decrypted = VaultService.decrypt(encryptedKey);
-    this.apiKey = decrypted || encryptedKey;
+    // W0-4 FIX: Accept already-decrypted key. Decryption happens in ProviderService.
+    // Previously had double-decrypt here which caused silent failures with keys containing ':'
+    this.apiKey = apiKey;
     this.mapping = metadata?.mapping || null;
   }
 
@@ -119,11 +120,19 @@ export class UniversalProvider implements BaseProvider {
           signal: controller.signal
         });
 
+        // W5-2: Check Content-Length for DoS prevention
+        const contentLength = response.headers.get('content-length');
+        if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) { // 10MB limit
+           throw new Error('Provider response exceeds size limit (10MB)');
+        }
+
         // Handle Rate Limits (429)
         if (response.status === 429) {
           if (attempt < retries) {
+            // W5-3: Correct Retry-After parsing
             const retryAfter = response.headers.get('Retry-After');
-            const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 30000; // Default 30s for 429
+            const parsed = parseInt(retryAfter || '', 10);
+            const waitTime = (!isNaN(parsed) && parsed > 0) ? Math.min(parsed * 1000, 60000) : 30000;
             console.warn(`[API] 429 Rate Limit from ${this.apiUrl}. Waiting ${waitTime}ms...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
             continue;

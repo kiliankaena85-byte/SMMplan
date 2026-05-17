@@ -109,7 +109,7 @@ export default async function NetworkServicesPage({ params }: { params: Promise<
                       </div>
                       
                       <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
-                        <div className="text-sm">
+                        <div className="text-sm whitespace-nowrap">
                           <span className="font-bold text-foreground text-lg">{(service.pricePer1kRub / 1000).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽</span>
                           <span className="text-muted-foreground text-xs ml-1">/ шт.</span>
                         </div>

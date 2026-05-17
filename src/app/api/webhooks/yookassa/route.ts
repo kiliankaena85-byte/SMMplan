@@ -15,7 +15,32 @@ export async function POST(req: NextRequest) {
        return NextResponse.json({ error: 'Unauthorized IP' }, { status: 403 });
     }
 
-    const rawBody = await req.json();
+    const rawText = await req.text();
+    
+    // W1-1 SECURITY FIX: HMAC-SHA256 signature verification (preferred over IP-only whitelist)
+    // YooKassa sends webhook notifications — verify authenticity if secret is configured
+    const webhookSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
+    const providedSignature = req.headers.get('x-sha256-signature') || req.headers.get('digest');
+    
+    if (webhookSecret && providedSignature) {
+      const crypto = (await import('crypto')).default;
+      const expectedSig = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(rawText, 'utf8')
+        .digest('hex');
+      if (expectedSig !== providedSignature.replace(/^sha256=/i, '')) {
+        console.error('[YooKassa] HMAC signature mismatch — possible webhook forgery attempt');
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
+      }
+    } else if (process.env.NODE_ENV === 'production') {
+      // Fallback: IP whitelist (less secure but operational without webhook secret)
+      if (!isYooKassa) {
+        console.error(`[Webhook] Unrecognized YooKassa IP and no HMAC secret: ${ip}`);
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
+    }
+
+    const rawBody = JSON.parse(rawText);
     
     // YooKassa Webhook Payload Example:
     // { type: 'notification', event: 'payment.succeeded', object: { id: '2abc', amount: { value: '100.00' }, metadata: { userId: '123' } } }

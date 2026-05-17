@@ -139,3 +139,4 @@ export async function sendOrderCompletedMail(email: string, orderId: string, ser
   `;
   return sendMail(email, `Ваш заказ #${orderId} выполнен!`, htmlContent);
 }
+

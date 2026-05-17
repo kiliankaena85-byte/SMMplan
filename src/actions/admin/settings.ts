@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { settingsService } from '@/services/admin/settings.service';
 import { catalogQueue } from '@/workers/queues';
 import { VaultService } from '@/lib/vault';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
 
 
@@ -37,7 +37,7 @@ export async function updateUserRole(formData: FormData) {
 
     const ipAddress = await getClientIp();
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'USER_ROLE_CHANGE',

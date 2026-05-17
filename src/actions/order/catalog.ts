@@ -111,10 +111,16 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
 
     return services.map(s => {
        let badge = "";
-       const nameLower = s.name.toLowerCase();
-       if (nameLower.includes('гарант') && !nameLower.includes('без гарант')) badge = "ГАРАНТИЯ";
+       // Names are strictly "Category Name • Tier"
+       const parts = s.name.split('•');
+       const tierName = parts.length > 1 ? parts[parts.length - 1].trim().toLowerCase() : "";
+
+       if (tierName === 'премиум') badge = "ПРЕМИУМ";
+       else if (tierName === 'эконом') badge = "ЭКОНОМ";
+       else if (tierName === 'живые') badge = "ЖИВЫЕ";
+       else if (tierName === 'стандарт') badge = "СТАНДАРТ";
+       else if (s.name.toLowerCase().includes('гарант')) badge = "ГАРАНТИЯ";
        else if (s.rate < 0.1) badge = "ХИТ";
-       else if (s.rate > 2.0) badge = "ПРЕМИУМ";
 
        return {
           id: s.id,

@@ -24,25 +24,17 @@ class AiSupportService {
     const lastMessages = ticket.messages.map(m => `${m.sender}: ${m.text}`).join('\n');
     const userContext = `User: ${ticket.user.email}, Balance: ${(Number(ticket.user.balance) / 100).toFixed(2)} RUB. Recent orders: ${ticket.user.orders.map(o => `${o.service.name} (${o.status})`).join(', ')}`;
 
-    const prompt = `
-      You are a support agent for SMMplan, an SMM services platform.
-      Current context:
-      ${userContext}
+    const systemInstruction = `You are a support agent for SMMplan, an SMM services platform.
+You help users with questions about their orders and services.
+Context about the current user:
+- Email: ${ticket.user.email}
+- Balance: ${(Number(ticket.user.balance) / 100).toFixed(2)} RUB
+- Recent orders: ${ticket.user.orders.map(o => `${o.service.name} (${o.status})`).join(', ') || 'None'}
+Write a professional, polite, and helpful response in Russian. Keep it concise.
+If the user needs a refund, explain that support can issue compensations up to 50,000 RUB.`;
 
-      Chat history:
-      ${lastMessages}
-
-      Task: Write a professional, polite, and helpful response in Russian.
-      If the user is asking about a problem, acknowledge it.
-      If the user needs a refund, explain that support can issue compensations up to 1000 RUB.
-      Keep it concise and helpful.
-      Response should be only the message text.
-    `;
-
-    // Call Gemini (pseudo-code or real implementation if SDK is available)
-    // Based on GEMINI.md: use 'gemini-3-flash'
     try {
-      const response = await this.callGemini(prompt);
+      const response = await this.callGemini(systemInstruction, ticket.messages);
       return response;
     } catch (err) {
       console.error('[AI Support] Generation failed:', err);
@@ -50,22 +42,37 @@ class AiSupportService {
     }
   }
 
-  private async callGemini(prompt: string): Promise<string> {
+  private async callGemini(systemInstruction: string, userMessages: Array<{sender: string; text: string}>): Promise<string> {
      const apiKey = process.env.GEMINI_API_KEY;
      if (!apiKey) return "AI API Key missing";
 
-     const model = 'gemini-3-flash-preview'; // As per GEMINI.md
+     const model = 'gemini-3-flash-preview';
+     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
      
-     // Note: Using standard fetch for Gemini API
-     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-     
+     // W1-3 SECURITY FIX: Structured messages — system instruction separate from user data.
+     // Previously: raw user text was concat'd into prompt string → prompt injection risk.
+     // Now: Gemini receives clean role-based structure, user content is sandboxed.
+     const contents = userMessages.map(m => ({
+       role: m.sender === 'USER' ? 'user' : 'model',
+       parts: [{ text: m.text }]
+     }));
+
      const res = await fetch(url, {
        method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
+       headers: { 
+         'Content-Type': 'application/json',
+         'x-goog-api-key': apiKey
+       },
        body: JSON.stringify({
-         contents: [{ parts: [{ text: prompt }] }]
+         system_instruction: { parts: [{ text: systemInstruction }] },
+         contents
        })
      });
+
+     if (!res.ok) {
+       console.error(`[AI Support] API Error ${res.status}: ${await res.text()}`);
+       throw new Error(`Gemini API returned ${res.status}`);
+     }
 
      const data = await res.json();
      return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI";

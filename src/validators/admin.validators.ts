@@ -48,7 +48,7 @@ export const globalSettingsSchema = z.object({
   yookassaTestShopId: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   yookassaTestSecretKey: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   cryptoBotToken: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  exchangeRateUSD: z.coerce.number().min(0).optional(),
+  exchangeRateUSD: z.coerce.number().min(50).max(300).optional(), // W4-1 FIX: Financial limits
   smtpHost: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   smtpPort: z.coerce.number().int().optional().default(465),
   smtpUser: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),

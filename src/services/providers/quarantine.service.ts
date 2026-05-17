@@ -70,6 +70,16 @@ export class QuarantineService {
                         // TRIGGER B ACTIVATED!
                         const service = await db.service.findUnique({ where: { id: serviceId } });
                         if (service && (!service.cooldownUntil || service.cooldownUntil < new Date())) {
+                            // W6-6: Prevent spamming alerts: check Redis if we already alerted
+                            const { redis } = await import('@/lib/redis');
+                            if (redis) {
+                                const alertKey = `alert:trigger_b:${service.id}`;
+                                const alreadyAlerted = await redis.get(alertKey);
+                                if (alreadyAlerted) return;
+                                
+                                // Set lock for 6 hours
+                                await redis.set(alertKey, '1', 'EX', 6 * 60 * 60);
+                            }
                             let cooldownHours = 0.5; // default 30 mins
                             if (service.cooldownReason === 'DELAYED_CANCEL_STRIKE_1') cooldownHours = 2;
                             else if (service.cooldownReason === 'DELAYED_CANCEL_STRIKE_2') cooldownHours = 12;
@@ -174,3 +184,4 @@ export class QuarantineService {
         }
     }
 }
+

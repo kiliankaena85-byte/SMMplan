@@ -52,14 +52,20 @@ class MarketingService {
     userId: string | null | undefined,
     serviceId: string,
     quantity: number,
-    promoCodeStr?: string | null
+    promoCodeStr?: string | null,
+    preloadedContext?: { user?: any | null, service?: any | null }
   ): Promise<PricingResult> {
     let user = null;
     if (userId) {
-      user = await db.user.findUnique({ where: { id: userId } });
+      user = preloadedContext && preloadedContext.user !== undefined 
+          ? preloadedContext.user 
+          : await db.user.findUnique({ where: { id: userId } });
     }
 
-    const service = await db.service.findUnique({ where: { id: serviceId } });
+    const service = preloadedContext && preloadedContext.service !== undefined
+        ? preloadedContext.service
+        : await db.service.findUnique({ where: { id: serviceId } });
+        
     if (!service) throw new Error('Service not found');
 
     if (quantity < service.minQty || quantity > service.maxQty) {

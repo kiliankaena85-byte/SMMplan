@@ -2,7 +2,14 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { db } from './db';
 
-const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
+// W0-2 SECURITY FIX: Fail-fast — never allow hardcoded fallback in any environment
+if (!process.env.JWT_SECRET) {
+  throw new Error(
+    'FATAL: JWT_SECRET environment variable is not set. ' +
+    'This is required for session security. Add it to your .env file.'
+  );
+}
+const secretKey = process.env.JWT_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 
 export async function createSession(userId: string) {
@@ -52,6 +59,11 @@ export async function verifySession() {
     const sessionId = payload.sessionId as string;
     const session = await db.session.findUnique({ where: { id: sessionId } });
     if (!session) return null;
+
+    // W3-1 SECURITY FIX: Enforce database-level session expiration
+    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+      return null;
+    }
 
     return { userId: payload.userId as string };
   } catch (err) {

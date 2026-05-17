@@ -176,6 +176,11 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error("Минимальная сумма для оплаты картой или криптовалютой — 10 ₽. Увеличьте количество услуги или авторизуйтесь для оплаты с баланса.");
     }
 
+    // W5-1 SECURITY FIX: Explicitly check balance before transaction
+    if (gateway === 'balance' && user.balance < pricing.totalCents) {
+      throw new Error("Недостаточно средств на балансе. Пожалуйста, пополните счет.");
+    }
+
     const reqHeaders = await headers();
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";

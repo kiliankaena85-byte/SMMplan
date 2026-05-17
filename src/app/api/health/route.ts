@@ -9,7 +9,11 @@ export const revalidate = 0;
 const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
 const WORKER_STALE_THRESHOLD_MS = 130_000; // 130s: 60s interval + 70s tolerance
 
-export async function GET() {
+export async function GET(req: Request) {
+  const authHeader = req.headers.get('authorization');
+  const secret = authHeader?.replace('Bearer ', '');
+  const isAuthorized = secret === process.env.CRON_SECRET;
+
   const startTime = Date.now();
 
   // ── 1. Database ──────────────────────────────────────────────────────────
@@ -67,6 +71,13 @@ export async function GET() {
   const overallStatus = isCritical ? 'unhealthy' : isDegraded ? 'degraded' : 'healthy';
   const httpStatus = isCritical ? 503 : 200;
 
+  if (!isAuthorized) {
+    return NextResponse.json(
+      { status: overallStatus, timestamp: new Date().toISOString() },
+      { status: httpStatus }
+    );
+  }
+
   return NextResponse.json(
     {
       status: overallStatus,
@@ -84,9 +95,7 @@ export async function GET() {
       },
       timestamp: new Date().toISOString(),
       total_latency_ms: Date.now() - startTime,
-      version: process.env.npm_package_version || '1.0.0',
       uptime_s: Math.round(process.uptime()),
-      environment: process.env.NODE_ENV,
     },
     { status: httpStatus }
   );

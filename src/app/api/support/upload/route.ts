@@ -52,7 +52,16 @@ export async function POST(req: NextRequest) {
     // 5. Save the file locally
     const buffer = Buffer.from(await file.arrayBuffer());
     const hash = crypto.createHash('md5').update(buffer).digest('hex');
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+    
+    // W6-3 SECURITY FIX: Enforce strict mime-to-extension mapping to prevent malicious extensions (e.g., .php uploaded as image/png)
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'application/pdf': 'pdf'
+    };
+    const ext = mimeToExt[file.type] || 'bin';
+    
     const relativePath = `tickets/${ticket.id}/${hash}.${ext}`;
     const absolutePath = path.join(process.cwd(), 'private', 'uploads', ...relativePath.split('/'));
 

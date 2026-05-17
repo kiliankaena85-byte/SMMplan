@@ -32,3 +32,31 @@ export function auditAdmin(params: {
     console.error('[AdminAudit] Failed to write log:', err);
   });
 }
+
+/**
+ * Awaitable version of auditAdmin for critical operations where we MUST ensure the log is saved
+ * (e.g. role changes, financial changes).
+ */
+export async function auditAdminAwaitable(params: {
+  adminId: string;
+  adminEmail: string;
+  action: string;
+  target: string;
+  targetType: 'USER' | 'SERVICE' | 'ORDER' | 'SETTINGS' | 'PROVIDER' | 'TICKET' | 'LEDGER';
+  oldValue?: unknown;
+  newValue?: unknown;
+  ipAddress?: string;
+}) {
+  return db.adminAuditLog.create({
+    data: {
+      adminId: params.adminId,
+      adminEmail: params.adminEmail,
+      action: params.action,
+      target: params.target,
+      targetType: params.targetType,
+      oldValue: params.oldValue != null ? JSON.stringify(params.oldValue) : null,
+      newValue: params.newValue != null ? JSON.stringify(params.newValue) : null,
+      ipAddress: params.ipAddress ?? null,
+    },
+  });
+}
