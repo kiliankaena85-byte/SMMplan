@@ -1,4 +1,4 @@
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import { db } from '../../lib/db';
 import { OrderJobPayload } from '../queues';
 import { providerService } from '../../services/providers/provider.service';
@@ -31,7 +31,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
 
   const providerDef = order.service.provider;
   if (!providerDef.apiUrl || !providerDef.apiKey) {
-    throw new Error('Provider missing API URL or Encrypted Key');
+    throw new UnrecoverableError('Provider missing API URL or Encrypted Key');
   }
 
   try {
@@ -100,8 +100,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     const maxAttempts = job.opts?.attempts || 3;
 
     // === WAVE 4.1: TRIGGER A (INSTANT API CRASH QUARANTINE) ===
-    // Run quarantine only on the final attempt before throwing to DLQ
-    if (job.attemptsMade >= maxAttempts && !isNetworkError) {
+    if (!isNetworkError) {
         // It's a business logic API Error ("Service disabled", "Invalid link", "Not enough funds")
         
         // Anti-Fraud check: "Not enough funds" means our Provider wallet is empty.
@@ -114,13 +113,14 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
             const { QuarantineService } = await import('@/services/providers/quarantine.service');
             await QuarantineService.evaluateTriggerA(order.serviceId, error.message);
         }
+
+        // BullMQ UnrecoverableError throws immediately and moves to failed queue without consuming more retries
+        throw new UnrecoverableError(error.message);
     }
     // ==========================================================
 
     // Unconditionally throw the error! 
-    // BullMQ will handle exponential backoff.
-    // On the final attempt, this triggers the 'failed' event which goes to the DLQ.
-    // DLQ then calls orderService.failOrderTerminal() which uses the safe, atomic WalletOps.
+    // BullMQ will handle exponential backoff for network errors.
     throw error;
   }
 }

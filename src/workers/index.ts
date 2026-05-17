@@ -58,8 +58,8 @@ async function handleDeadLetter(
     error: err.message,
   });
 
-  // Only DLQ after all retries are exhausted
-  if (job.attemptsMade >= maxAttempts) {
+  // Only DLQ after all retries are exhausted OR if it's a fatal error
+  if (job.attemptsMade >= maxAttempts || err.name === 'UnrecoverableError') {
     try {
       await dlqQueue.add('dead-letter', {
         originalQueue: queueName,
