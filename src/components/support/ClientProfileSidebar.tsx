@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { ChevronRight, ChevronLeft, User, ShoppingCart, CreditCard } from 'lucide-react';
 import Link from 'next/link';
+import { formatBalance } from '@/lib/utils';
 
 type OrderSummary = {
   id: string;
@@ -137,11 +138,11 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
         <div className="flex w-full gap-2">
           <div className="flex-1 bg-muted/40 rounded-xl p-3 border border-border">
             <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Баланс</div>
-            <div className="font-bold text-emerald-600 text-sm">{(user.balance / 100).toLocaleString('ru-RU')} ₽</div>
+            <div className="font-bold text-emerald-600 text-sm">{formatBalance(user.balance)}</div>
           </div>
           <div className="flex-1 bg-muted/40 rounded-xl p-3 border border-border">
             <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">LTV</div>
-            <div className="font-bold text-foreground text-sm">{(user.totalSpent / 100).toLocaleString('ru-RU')} ₽</div>
+            <div className="font-bold text-foreground text-sm">{formatBalance(user.totalSpent)}</div>
           </div>
         </div>
 
@@ -180,7 +181,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
                    </div>
                    <div className="flex justify-between items-center mt-1">
                      <span className="text-[10px] text-slate-500">{order.quantity} шт.</span>
-                     <span className="text-[10px] font-bold text-slate-700">{(order.charge / 100).toLocaleString('ru-RU')} ₽</span>
+                     <span className="text-[10px] font-bold text-slate-700">{formatBalance(order.charge)}</span>
                    </div>
                  </div>
                );
@@ -210,7 +211,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
                  <div key={payment.id} className="bg-card border border-slate-100 rounded-xl p-3 shadow-sm flex items-center justify-between gap-2">
                    <div>
                      <div className="text-xs font-bold text-slate-800">
-                       {(payment.amount / 100).toLocaleString('ru-RU')} {payment.gateway === 'cryptobot' ? 'USDT' : '₽'}
+                       {payment.gateway === 'cryptobot' ? `${(payment.amount / 100).toLocaleString('ru-RU')} USDT` : formatBalance(payment.amount)}
                      </div>
                      <div className="text-[10px] text-slate-400 mt-0.5 capitalize">{payment.gateway.replace('yookassa', 'Ru Карта')}</div>
                    </div>

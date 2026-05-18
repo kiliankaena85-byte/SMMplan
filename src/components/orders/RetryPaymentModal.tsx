@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { formatBalance } from '@/lib/utils';
 
 interface RetryPaymentModalProps {
   orderId: string;
@@ -100,7 +101,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
               <div className="flex flex-col items-start">
                 <span className="font-semibold text-foreground">Внутренний баланс</span>
                 <span className="text-xs text-muted-foreground mt-0.5">
-                  Доступно: {balanceRub.toLocaleString('ru-RU')} ₽
+                  Доступно: {formatBalance(balance)}
                 </span>
               </div>
               {!canPayFromBalance && (

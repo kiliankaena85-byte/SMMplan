@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { ShoppingCart, Wallet, Users, TrendingUp, ArrowRight, Clock } from 'lucide-react';
+import { formatBalance } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,7 +94,7 @@ export default async function DashboardPage() {
             <Wallet className="w-4 h-4 text-muted-foreground/60" />
           </div>
           <div className="text-2xl font-black text-foreground tracking-tight font-mono tabular-nums">
-            {(Number(user.balance) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
+            {formatBalance(user.balance)}
           </div>
           <Link
             href="/dashboard/add-funds"

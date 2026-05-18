@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { SidebarNav, MobileBottomNav } from './sidebar-nav';
+import { formatBalance } from '@/lib/utils';
 
 export default async function DashboardLayout({
   children,
@@ -19,10 +20,7 @@ export default async function DashboardLayout({
 
   if (!user) redirect('/login');
 
-  const balanceRub = (Number(user.balance) / 100).toLocaleString('ru-RU', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const balanceRub = formatBalance(user.balance);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -39,7 +37,7 @@ export default async function DashboardLayout({
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold text-foreground tabular-nums">
-            {(Number(user.balance) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
+            {formatBalance(user.balance)}
           </span>
           <Link
             href="/dashboard/add-funds"

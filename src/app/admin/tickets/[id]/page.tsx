@@ -10,6 +10,7 @@ import ChatWindow from '@/components/support/ChatWindow';
 import TicketActionsDropdown from '@/components/support/TicketActionsDropdown';
 import ClientProfileSidebar from '@/components/support/ClientProfileSidebar';
 import { AdminPageHeader } from '@/components/admin/page-header';
+import { formatBalance } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,7 +72,7 @@ export default async function AdminTicketChatPage({ params }: { params: Promise<
                   </span>
                   <span className="w-1 h-1 rounded-full bg-border" />
                   <span className="text-success flex items-center gap-1 px-1.5 py-0.5 bg-success/10 rounded-md">
-                    <Wallet className="w-3 h-3" /> {(Number(activeTicket.user.balance) / 100).toLocaleString('ru-RU')} ₽
+                    <Wallet className="w-3 h-3" /> {formatBalance(activeTicket.user.balance)}
                   </span>
                 </div>
               </div>

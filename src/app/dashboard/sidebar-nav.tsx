@@ -60,7 +60,7 @@ export function SidebarNav({
         <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">
           Баланс
         </div>
-        <div className="text-lg font-bold text-foreground tabular-nums">{balanceRub} ₽</div>
+        <div className="text-lg font-bold text-foreground tabular-nums">{balanceRub}</div>
         <Link
           href="/dashboard/add-funds"
           className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-lg py-1.5 hover:bg-primary/90 transition-all duration-200"

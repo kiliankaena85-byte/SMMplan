@@ -6,6 +6,7 @@ import { banUserAction, unbanUserAction, loginAsAction, updateBalanceAction } fr
 import { SubmitButton } from '@/components/admin/submit-button';
 import { ActionForm } from '@/components/admin/action-form';
 import { ClientOrdersTable } from './client-orders-table';
+import { formatBalance } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -168,10 +169,10 @@ export default async function ClientDetailPage({ params }: Props) {
       {/* Stats strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Баланс', value: `${(Number(user.balance) / 100).toFixed(2)} ₽`, accent: 'text-foreground', note: user.quarantineBalance > 0 ? `🔒 ${(Number(user.quarantineBalance) / 100).toFixed(2)} ₽ эскроу` : null },
-          { label: 'LTV', value: `${(Number(user.totalSpent) / 100).toLocaleString('ru-RU')} ₽`, accent: 'text-success', note: null },
+          { label: 'Баланс', value: formatBalance(user.balance), accent: 'text-foreground', note: user.quarantineBalance > 0 ? `🔒 ${formatBalance(user.quarantineBalance)} эскроу` : null },
+          { label: 'LTV', value: formatBalance(user.totalSpent), accent: 'text-success', note: null },
           { label: 'Заказов', value: ordersCount.toString(), accent: 'text-foreground', note: `${ticketsCount} тикетов` },
-          { label: 'Реф. баланс', value: `${(user.referralBalance / 100).toFixed(2)} ₽`, accent: 'text-violet-600', note: user.referralCode ? `Код: ${user.referralCode}` : 'Нет кода' },
+          { label: 'Реф. баланс', value: formatBalance(user.referralBalance), accent: 'text-violet-600', note: user.referralCode ? `Код: ${user.referralCode}` : 'Нет кода' },
         ].map(s => (
           <div key={s.label} className="bg-card border border-border rounded-xl p-4">
             <div className="text-xs text-muted-foreground mb-1">{s.label}</div>

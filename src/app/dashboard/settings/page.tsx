@@ -7,6 +7,7 @@ import {
   CreditCard, TrendingUp, Settings, Star,
 } from 'lucide-react';
 import PasswordCard from '@/components/dashboard/settings/PasswordCard';
+import { formatBalance } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,9 +40,9 @@ export default async function ClientSettingsPage() {
 
   if (!user) redirect('/login');
 
-  const balanceRub    = (Number(user.balance) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
-  const spentRub      = (Number(user.totalSpent) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
-  const refBalanceRub = ((user.referralBalance ?? 0) / 100).toFixed(2);
+  const balanceFormatted    = formatBalance(user.balance);
+  const spentFormatted      = formatBalance(user.totalSpent);
+  const refBalanceFormatted = formatBalance(user.referralBalance ?? 0);
 
   const memberSince = user.createdAt.toLocaleDateString('ru-RU', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -93,8 +94,8 @@ export default async function ClientSettingsPage() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: CreditCard, label: 'Баланс',       value: `${balanceRub} ₽`,        color: 'text-primary bg-primary/10' },
-          { icon: TrendingUp, label: 'Потрачено всего', value: `${spentRub} ₽`,        color: 'text-success bg-success/10' },
+          { icon: CreditCard, label: 'Баланс',       value: balanceFormatted,        color: 'text-primary bg-primary/10' },
+          { icon: TrendingUp, label: 'Потрачено всего', value: spentFormatted,        color: 'text-success bg-success/10' },
           { icon: Settings,   label: 'Заказов',       value: user._count.orders.toString(), color: 'text-blue-500 bg-blue-500/10' },
           { icon: Star,       label: 'Рефералов',     value: user._count.referrals.toString(), color: 'text-warning bg-warning/10' },
         ].map(({ icon: Icon, label, value, color }) => (
@@ -120,7 +121,7 @@ export default async function ClientSettingsPage() {
         <div className="divide-y divide-border">
           {[
             { icon: Mail,     label: 'Email',             value: user.email },
-            { icon: Star,     label: 'Реферальный баланс', value: `${refBalanceRub} ₽` },
+            { icon: Star,     label: 'Реферальный баланс', value: refBalanceFormatted },
             { icon: Shield,   label: 'Реф. код',          value: user.referralCode ?? '—' },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-center gap-4 px-5 py-4">
@@ -145,7 +146,7 @@ export default async function ClientSettingsPage() {
           <Star className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-emerald-800 mb-0.5">
-              У вас {refBalanceRub} ₽ реферального баланса
+              У вас {refBalanceFormatted} реферального баланса
             </p>
             <p className="text-xs text-emerald-700 mb-3">
               Реферальный баланс начисляется автоматически — 15% с каждого заказа приглашённых вами пользователей.
