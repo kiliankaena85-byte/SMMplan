@@ -352,10 +352,10 @@ class OrderService {
       console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e.message);
       try {
         const { sendAdminAlert } = await import('@/lib/notifications');
-        await sendAdminAlert(
+        sendAdminAlert(
           `🚨 failOrderTerminal ERROR\n\norderId: ${orderId}\nreason: ${reason}\nerror: ${e.message}`,
           'CRITICAL'
-        ).catch(() => {}); // алерт не должен кидать дальше
+        );
       } catch (importErr) {
         // Fallback catch in case import itself fails
       }

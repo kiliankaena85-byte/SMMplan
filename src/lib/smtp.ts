@@ -147,3 +147,37 @@ export async function sendOrderCompletedMail(email: string, orderId: string, ser
   return sendMail(email, `Ваш заказ #${orderId} выполнен!`, htmlContent);
 }
 
+export async function sendOrderPaidMail(email: string, orderId: string, serviceName: string) {
+  const { supportDomain } = await getEmailContext();
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e4e4e7;">
+      <h2 style="color: #10b981;">Заказ #<span>${orderId}</span> оплачен и взят в работу! 🚀</h2>
+      <p style="color: #71717a; line-height: 1.5;">Ваш заказ на услугу <strong>${serviceName}</strong> успешно оплачен.</p>
+      <div style="margin-top: 32px; text-align: center;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
+          Посмотреть мои заказы
+        </a>
+      </div>
+    </div>
+  `;
+  return sendMail(email, `Ваш заказ #${orderId} оплачен!`, htmlContent);
+}
+
+export async function sendOrderCanceledMail(email: string, orderId: string, serviceName: string) {
+  const { supportDomain } = await getEmailContext();
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e4e4e7;">
+      <h2 style="color: #ef4444;">Заказ #<span>${orderId}</span> отменен ❌</h2>
+      <p style="color: #71717a; line-height: 1.5;">Ваш заказ на услугу <strong>${serviceName}</strong> был отменен. Средства возвращены на ваш баланс.</p>
+      <div style="margin-top: 32px; text-align: center;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
+          Посмотреть детали
+        </a>
+      </div>
+    </div>
+  `;
+  return sendMail(email, `Ваш заказ #${orderId} отменен`, htmlContent);
+}
+

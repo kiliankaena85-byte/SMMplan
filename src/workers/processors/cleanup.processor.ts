@@ -124,7 +124,7 @@ export async function runCleanup(): Promise<void> {
     });
     await sendAdminAlert(
       '⚠️ cleanup MAX_ITERATIONS reached. Возможно накопилось >1000 зомби.',
-      'WARN'
+      'WARNING'
     );
   }
 
@@ -195,7 +195,7 @@ export async function runOrphanSweep(): Promise<void> {
       log.info(`Swept ${sweptCount} orphan PENDING orders`, { durationMs: Date.now() - startedAt });
       await sendAdminAlert(
         `🧹 *sweep-orphans автоотмена*\nОбработано зависших заказов: ${sweptCount}\n\n${sweptDetails.join('\n')}`,
-        'WARN'
+        'WARNING'
       );
     }
   }
