@@ -8,33 +8,47 @@ async function getEmailContext() {
   return { companyName, supportDomain };
 }
 
+async function getTransporter() {
+  const s = await SettingsProvider.getSmtpSettings();
+
+  if (!s.smtpHost || !s.smtpUser || !s.smtpPassword) {
+    return null; // SMTP не сконфигурирован
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: s.smtpHost,
+    port: s.smtpPort || 465,
+    secure: true,
+    auth: {
+      user: s.smtpUser,
+      pass: s.smtpPassword,
+    }
+  });
+
+  return { transporter, smtpUser: s.smtpUser };
+}
+
 export async function sendMagicLink(email: string, token: string) {
   const { companyName } = await getEmailContext();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const link = `${baseUrl}/api/auth/verify?token=${token}`;
 
-  if (!process.env.SMTP_HOST) {
+  const result = await getTransporter();
+
+  if (!result) {
     if (process.env.NODE_ENV === 'production') {
-      console.error(`[SMTP] Error: Cannot send email to ${email} - SMTP_HOST is missing.`);
-      return;
+      console.error(`[SMTP] Not configured in AdminPanel`);
+    } else {
+      console.warn(`[SMTP] Not configured. Email skipped.`);
+      console.info('------------ MAGIC LINK ------------');
+      console.info(`To: ${email}`);
+      console.info(`Link: ${link}`);
+      console.info('------------------------------------');
     }
-    console.warn('⚠️ SMTP_HOST is not set. Magic link printed to console only.');
-    console.info('------------ MAGIC LINK ------------');
-    console.info(`To: ${email}`);
-    console.info(`Link: ${link}`);
-    console.info('------------------------------------');
     return;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 465,
-    secure: true,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS,
-    },
-  });
+  const { transporter, smtpUser } = result;
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e4e4e7;">
@@ -50,7 +64,7 @@ export async function sendMagicLink(email: string, token: string) {
   `;
 
   await transporter.sendMail({
-    from: `"${companyName} Support" <${process.env.SMTP_USER}>`,
+    from: `"${companyName} Support" <${smtpUser}>`,
     to: email,
     subject: 'Ваша ссылка для входа',
     html: htmlContent,
@@ -59,30 +73,23 @@ export async function sendMagicLink(email: string, token: string) {
 
 export async function sendMail(email: string, subject: string, htmlContent: string, replyTo?: string) {
   const { companyName } = await getEmailContext();
+  const result = await getTransporter();
 
-  if (!process.env.SMTP_HOST) {
+  if (!result) {
     if (process.env.NODE_ENV === 'production') {
-      console.error(`[SMTP] Error: Cannot send email to ${email} - SMTP_HOST is missing.`);
-      return;
+      console.error(`[SMTP] Not configured in AdminPanel`);
+    } else {
+      console.warn(`[SMTP] Not configured. Email skipped.`);
+      console.info(`[EMAIL to ${email}] ${subject}:`);
+      console.info(htmlContent);
     }
-    console.warn('⚠️ SMTP_HOST is not set. Email printed to console only.');
-    console.info(`[EMAIL to ${email}] ${subject}:`);
-    console.info(htmlContent);
     return;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 465,
-    secure: true,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS,
-    },
-  });
+  const { transporter, smtpUser } = result;
 
   await transporter.sendMail({
-    from: `"${companyName} Support" <${process.env.SMTP_USER}>`,
+    from: `"${companyName} Support" <${smtpUser}>`,
     to: email,
     subject,
     html: htmlContent,
