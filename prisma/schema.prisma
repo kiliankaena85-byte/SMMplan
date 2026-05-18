@@ -401,13 +401,31 @@ model SystemSettings {
   legalCompanyAddress String?
 }
 
+enum TicketStatus {
+  OPEN
+  PENDING
+  CLOSED
+}
+
+enum TicketSource {
+  WEB
+  TELEGRAM
+  EMAIL
+}
+
+enum MessageSender {
+  USER
+  STAFF
+  INTERNAL
+}
+
 model Ticket {
   id      String @id @default(cuid())
   userId  String
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject String
-  status  String @default("OPEN") // OPEN, PENDING, CLOSED
-  source  String @default("WEB") // WEB, TELEGRAM, EMAIL
+  status  TicketStatus @default(OPEN)
+  source  TicketSource @default(WEB)
 
   firstRespondedAt DateTime? // SLA: First Response Time (FRT)
   resolvedAt       DateTime? // SLA: Time to Resolution (TTR)
@@ -426,7 +444,7 @@ model TicketMessage {
   id        String  @id @default(cuid())
   ticketId  String
   ticket    Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  sender    String // USER, STAFF, INTERNAL
+  sender    MessageSender
   text      String
   mediaUrl  String? // relative path to uploaded file
   mediaType String? // "image", "audio", "video"

@@ -1,9 +1,10 @@
 import { db } from '@/lib/db';
 import { sendMail } from '@/lib/smtp';
 import { SettingsProvider } from '@/lib/settings';
+import { TicketSource, TicketStatus, MessageSender } from '@prisma/client';
 
 class TicketService {
-  async getOrCreateTicket(userId: string, subject: string, source: string = 'WEB') {
+  async getOrCreateTicket(userId: string, subject: string, source: TicketSource = 'WEB') {
     return await db.$transaction(async (tx) => {
       const existing = await tx.ticket.findFirst({
         where: { userId, status: { not: 'CLOSED' } },
@@ -20,7 +21,7 @@ class TicketService {
     });
   }
 
-  async addMessage(ticketId: string, sender: 'USER' | 'STAFF' | 'INTERNAL', text: string, mediaUrl?: string, mediaType?: string, replyToId?: string, incomingTelegramMsgId?: string) {
+  async addMessage(ticketId: string, sender: MessageSender, text: string, mediaUrl?: string, mediaType?: string, replyToId?: string, incomingTelegramMsgId?: string) {
     let telegramMsgId: string | undefined = incomingTelegramMsgId;
     
     // Fetch ticket and user info beforehand for Telegram sending

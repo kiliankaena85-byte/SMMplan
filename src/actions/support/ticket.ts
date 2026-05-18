@@ -23,6 +23,8 @@ export async function generateSmartReplyAction(ticketId: string) {
 }
 
 
+import { RateLimitService } from '@/services/core/rate-limit.service';
+
 const createTicketSchema = z.object({
   subject: z.string().min(1),
   message: z.string().min(1)
@@ -49,6 +51,13 @@ export async function createTicket(formData: FormData) {
   const session = await verifySession();
   if (!session) throw new Error('Unauthorized');
 
+  // Rate Limit: Prevent ticket spam (max 5 tickets per 1 hour)
+  const isAllowedUser = await RateLimitService.checkCustomKey(`create_ticket_user:${session.userId}`, 5, 3600);
+  const isAllowedIp = await RateLimitService.check('create_ticket_ip', 10, 3600);
+  if (!isAllowedUser || !isAllowedIp) {
+    throw new Error('Вы создаете слишком много обращений. Пожалуйста, подождите некоторое время.');
+  }
+
   const parsed = createTicketSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) throw new Error('Данные тикета заполнены неверно');
   const { subject, message } = parsed.data;
@@ -63,6 +72,13 @@ export async function createTicket(formData: FormData) {
 export async function addTicketMessage(formData: FormData) {
   const session = await verifySession();
   if (!session) throw new Error('Unauthorized');
+
+  // Rate Limit: Prevent message flooding (max 60 messages per 1 minute)
+  const isAllowedUser = await RateLimitService.checkCustomKey(`add_message_user:${session.userId}`, 60, 60);
+  const isAllowedIp = await RateLimitService.check('add_message_ip', 100, 60);
+  if (!isAllowedUser || !isAllowedIp) {
+    throw new Error('Слишком много сообщений. Пожалуйста, подождите перед следующим ответом.');
+  }
 
   const parsed = ticketMessageSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) throw new Error('Сообщение не может быть пустым');

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { jwtVerify } from 'jose';
+import { Prisma } from '@prisma/client';
 
 if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
 const secretKey = process.env.JWT_SECRET;
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
       if (!ticket) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const whereClause: any = { ticketId };
+    const whereClause: Prisma.TicketMessageWhereInput = { ticketId };
     if (after) {
       whereClause.createdAt = { gt: new Date(after) };
     }
@@ -48,11 +49,25 @@ export async function GET(req: NextRequest) {
       whereClause.sender = { not: 'INTERNAL' };
     }
 
+    const limit = Math.min(
+      Math.max(parseInt(req.nextUrl.searchParams.get('limit') || '50', 10), 1),
+      100
+    );
+    const cursor = req.nextUrl.searchParams.get('cursor') || undefined;
+
     const messages = await db.ticketMessage.findMany({
       where: whereClause,
       orderBy: { createdAt: 'asc' },
-      include: { replyTo: true }
+      take: limit + 1, // Fetch limit + 1 to check if there is a next page
+      include: { replyTo: true },
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
     });
+
+    let nextCursor: string | null = null;
+    if (messages.length > limit) {
+      const nextPageItem = messages.pop(); // Remove the extra item
+      nextCursor = nextPageItem?.id || null;
+    }
 
     const mappedMessages = messages.map(m => ({
       id: m.id,
@@ -71,7 +86,11 @@ export async function GET(req: NextRequest) {
       } : null,
     }));
 
-    return NextResponse.json({ messages: mappedMessages, ticketStatus: ticket.status });
+    return NextResponse.json({ 
+      messages: mappedMessages, 
+      ticketStatus: ticket.status,
+      nextCursor 
+    });
   } catch {
     return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
   }
