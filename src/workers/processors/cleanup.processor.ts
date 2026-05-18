@@ -68,23 +68,35 @@ export async function runCleanup(): Promise<void> {
   const safeZombieThreshold = new Date(now);
   safeZombieThreshold.setHours(safeZombieThreshold.getHours() - 25); // Extra 1-hour buffer
 
-  const zombieOrdersResult = await db.order.updateMany({
+  const zombies = await db.order.findMany({
     where: { 
       status: 'AWAITING_PAYMENT',
       createdAt: { lt: safeZombieThreshold },
-      // Only cancel if payment is not in a succeeded or recently pending state
-      payment: {
-        status: { notIn: ['SUCCEEDED', 'PENDING'] }
-      }
+      payment: { status: { notIn: ['SUCCEEDED', 'PENDING'] } }
     },
-    data: { 
-      status: 'CANCELED', 
-      error: 'Ожидание оплаты истекло (авто-отмена системы)' 
-    }
+    select: { id: true }
   });
 
+  let canceledCount = 0;
+  if (zombies.length > 0) {
+    const { LoyaltyService } = await import('@/services/users/loyalty.service');
+    for (const zombie of zombies) {
+      await db.$transaction(async (tx) => {
+        await tx.order.update({
+          where: { id: zombie.id },
+          data: { 
+            status: 'CANCELED', 
+            error: 'Ожидание оплаты истекло (авто-отмена системы)' 
+          }
+        });
+        await LoyaltyService.reverseCommission(tx, zombie.id);
+      });
+      canceledCount++;
+    }
+  }
+
   log.info('Zombie AWAITING_PAYMENT cleanup done', { 
-    canceled: zombieOrdersResult.count,
+    canceled: canceledCount,
     olderThan: zombieThreshold.toISOString()
   });
 
