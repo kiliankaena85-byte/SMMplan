@@ -128,10 +128,14 @@ export class PaymentService {
               serviceName: order.service?.name ?? null,
               numericId: order.numericId 
             });
-            await tx.user.update({
-              where: { id: userId },
-              data: { totalSpent: { increment: amount } }
-            });
+            await WalletOps.credit(tx, userId, amount,
+              `Оплата заказа #${order.numericId} через шлюз`,
+              { idempotencyKey: `gateway-credit-${processedPaymentId}` }
+            );
+            await WalletOps.charge(tx, userId, Number(order.charge),
+              `Списание за заказ #${order.numericId}`,
+              { idempotencyKey: `gateway-charge-${order.id}` }
+            );
           }
         }
 
@@ -158,14 +162,19 @@ export class PaymentService {
               });
            }
 
-           // Increment User Total Spent for all Basket items
-           const aggregateCharge = basketOrders.reduce((acc, order) => acc + Number(order.charge), 0);
-           if (aggregateCharge > 0) {
-              await tx.user.update({
-                where: { id: userId },
-                data: { totalSpent: { increment: aggregateCharge } }
-              });
-           }
+            // Credit full paid amount first
+            await WalletOps.credit(tx, userId, amount,
+              `Оплата корзины заказов через шлюз`,
+              { idempotencyKey: `gateway-credit-${processedPaymentId}` }
+            );
+            // Charge each order individually
+            for (const order of basketOrders) {
+               await WalletOps.charge(tx, userId, Number(order.charge),
+                 `Списание за заказ #${order.numericId ?? order.id}`,
+                 { idempotencyKey: `gateway-charge-${order.id}` }
+               );
+            }
+
         }
 
         if (!isOrderPayment && basketOrders.length === 0) {
@@ -260,10 +269,14 @@ export class PaymentService {
               numericId: order.numericId
             });
             
-            await tx.user.update({
-              where: { id: payment.userId },
-              data: { totalSpent: { increment: payment.amount } }
-            });
+            await WalletOps.credit(tx, payment.userId, Number(payment.amount),
+              `Оплата заказа #${order.numericId} через шлюз`,
+              { idempotencyKey: `gateway-credit-${paymentId}` }
+            );
+            await WalletOps.charge(tx, payment.userId, Number(order.charge),
+              `Списание за заказ #${order.numericId}`,
+              { idempotencyKey: `gateway-charge-${order.id}` }
+            );
           }
         }
 
@@ -288,14 +301,19 @@ export class PaymentService {
               });
            }
 
-           // Increment Total Spent for test basket items
-           const aggregateCharge = basketOrders.reduce((acc, order) => acc + Number(order.charge), 0);
-           if (aggregateCharge > 0) {
-              await tx.user.update({
-                 where: { id: payment.userId },
-                 data: { totalSpent: { increment: aggregateCharge } }
-              });
-           }
+            // Credit full paid amount first
+            await WalletOps.credit(tx, payment.userId, Number(payment.amount),
+              `Оплата корзины заказов через шлюз`,
+              { idempotencyKey: `gateway-credit-${paymentId}` }
+            );
+            // Charge each order individually
+            for (const order of basketOrders) {
+               await WalletOps.charge(tx, payment.userId, Number(order.charge),
+                 `Списание за заказ #${order.numericId ?? order.id}`,
+                 { idempotencyKey: `gateway-charge-${order.id}` }
+               );
+            }
+
         }
       });
 
