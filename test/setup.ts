@@ -19,8 +19,14 @@ beforeAll(() => {
   }));
 });
 
-beforeEach(async () => {
-    // Clean test database for each test to achieve perfect isolation
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function resetTestDb() {
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const tablenames = await db.$queryRaw<Array<{ tablename: string }>>`
         SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename != '_prisma_migrations';
@@ -31,7 +37,7 @@ beforeEach(async () => {
           .join(', ');
 
       if (tables.length > 0) {
-        await db.$executeRawUnsafe(`TRUNCATE TABLE ${tables} CASCADE;`);
+        await db.$executeRawUnsafe(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE;`);
       }
 
       // Pre-create singleton settings to avoid P2002 race conditions in getCached
@@ -47,9 +53,24 @@ beforeEach(async () => {
           exchangeRateUSD: 95.0
         }
       });
+      
+      return;
     } catch (error) {
-      console.error('[Test Setup] Failed to run truncate/init on test db:', error);
+      const msg = error instanceof Error ? error.message : String(error);
+      const isTransient =
+        /deadlock|write conflict|could not serialize|timeout/i.test(msg);
+
+      if (!isTransient || attempt === MAX_RETRIES) {
+        throw error;
+      }
+
+      await sleep(100 * attempt);
     }
+  }
+}
+
+beforeEach(async () => {
+  await resetTestDb();
 });
 
 afterAll(async () => {

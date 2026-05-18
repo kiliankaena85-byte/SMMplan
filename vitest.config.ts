@@ -6,6 +6,13 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.temp/**', '**/.git/**', '**/e2e/**'],
+    clearMocks: true,
+    restoreMocks: true,
+    unstubGlobals: true,
+    pool: 'forks',
+    testTimeout: 10000,
+    hookTimeout: 10000,
     setupFiles: ['./test/setup.ts'],
     globals: true,
     alias: {

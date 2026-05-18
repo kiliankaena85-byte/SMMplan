@@ -1,9 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { type Service } from '@prisma/client';
 
+const mockCookieStore = {
+  get: vi.fn(),
+  set: vi.fn(),
+  delete: vi.fn(),
+};
+
+const mockHeadersStore = new Headers({
+  'x-forwarded-for': '127.0.0.1',
+  'user-agent': 'vitest',
+});
+
 vi.mock('next/headers', () => ({
-  headers: () => new Map([['x-forwarded-for', '127.0.0.1']]),
-  cookies: () => ({ set: vi.fn(), get: vi.fn(), delete: vi.fn() })
+  headers: vi.fn(async () => mockHeadersStore),
+  cookies: vi.fn(async () => mockCookieStore),
 }));
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
