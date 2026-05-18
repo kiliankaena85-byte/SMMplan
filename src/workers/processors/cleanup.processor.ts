@@ -223,10 +223,39 @@ export async function runOrphanSweep(): Promise<void> {
         }
 
         if (jobState === 'failed') {
-          const refundRub = (Number(orphan.charge) / 100).toFixed(2);
-          const msg = `[CRITICAL][ACTION REQUIRED] dead-letter не отработал. Ручной возврат требуется! Order ${orphan.id}, User ${orphan.userId}, Amount ${refundRub} RUB`;
-          log.error(msg);
-          criticalAlerts.push(`🚨 Dead-letter Failure: Заказ #${orphan.numericId} (ID: ${orphan.id}), Пользователь: ${orphan.userId}. Сумма: ${refundRub} ₽. Воркер полностью упал, но статус не изменен! Требуется ручной возврат.`);
+          // Attempt auto-recovery via failOrderTerminal
+          try {
+            const { orderService } = await import('@/services/core/order.service');
+            await orderService.failOrderTerminal(
+              orphan.id,
+              'Автовосстановление: Dead-letter job failed, recovered by orphan sweep',
+              false
+            );
+
+            // Verify recovery succeeded
+            const recovered = await db.order.findUnique({
+              where: { id: orphan.id },
+              select: { status: true }
+            });
+
+            if (recovered?.status === 'ERROR') {
+              log.warn(`[ARCH-2] Auto-recovered failed job order ${orphan.id} → ERROR + refund`);
+              criticalAlerts.push(
+                `⚠️ Авто-восстановление: Заказ #${orphan.numericId} (ID: ${orphan.id}) переведён в ERROR и деньги возвращены. Dead-letter ранее не отработал.`
+              );
+            } else {
+              // failOrderTerminal returned null = order was already terminal
+              log.info(`[ARCH-2] Order ${orphan.id} already terminal, no action needed`);
+            }
+          } catch (recoveryErr: any) {
+            // Auto-recovery failed — escalate to manual
+            const refundRub = (Number(orphan.charge) / 100).toFixed(2);
+            const msg = `[CRITICAL][ACTION REQUIRED] ARCH-2 auto-recovery failed. Order ${orphan.id}, User ${orphan.userId}, Amount ${refundRub} RUB. Error: ${recoveryErr.message}`;
+            log.error(msg);
+            criticalAlerts.push(
+              `🚨 КРИТИЧНО: Авто-восстановление НЕ УДАЛОСЬ. Заказ #${orphan.numericId} (ID: \`${orphan.id}\`), Пользователь: \`${orphan.userId}\`. Сумма: ${refundRub} ₽. Требуется ручной возврат.`
+            );
+          }
           continue;
         }
         
