@@ -285,13 +285,14 @@ class OrderService {
    */
   async failOrderTerminal(orderId: string, reason: string, isRawReason: boolean = false): Promise<void> {
     try {
-      await db.$transaction(async (tx) => {
+      const txResult = await db.$transaction(async (tx) => {
         const order = await tx.order.findUnique({
-          where: { id: orderId }
+          where: { id: orderId },
+          include: { user: true, service: true }
         });
 
         if (!order || ['COMPLETED', 'CANCELED', 'PARTIAL', 'ERROR', 'IN_PROGRESS'].includes(order.status)) {
-          return; // Already terminal or in progress
+          return null; // Already terminal or in progress
         }
 
         // Update status
@@ -320,19 +321,29 @@ class OrderService {
             { idempotencyKey: refundKey }
           );
         }
+
+        return {
+          email: order.user?.email,
+          numericId: order.numericId.toString(),
+          serviceName: order.service?.name
+        };
       }, { isolationLevel: 'Serializable' });
 
       // Email Notification for Failed/Canceled
-      import('../../lib/smtp').then(({ sendOrderCanceledMail }) => {
-        db.order.findUnique({ where: { id: orderId }, include: { user: true, service: true } }).then(o => {
-          if (o?.user?.email && o?.service?.name) {
-            sendOrderCanceledMail(o.user.email, o.numericId.toString(), o.service.name).catch(console.error);
-          }
-        });
-      });
+      if (txResult?.email && txResult?.serviceName) {
+        try {
+          const { sendOrderCanceledMail } = await import('../../lib/smtp');
+          await sendOrderCanceledMail(txResult.email, txResult.numericId, txResult.serviceName);
+        } catch (mailErr: any) {
+          console.error(`[OrderService] Failed to send cancellation email for ${orderId}:`, mailErr.message);
+        }
+      }
 
     } catch (e: any) {
       console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e.message);
+      import('@/lib/notifications').then(({ sendAdminAlert }) => {
+        sendAdminAlert(`🚨 Ошибка в failOrderTerminal для заказа ${orderId}: ${e.message}`, 'CRITICAL').catch(console.error);
+      });
     }
   }
 }
