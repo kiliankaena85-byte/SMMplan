@@ -96,3 +96,65 @@ export async function runCleanup(): Promise<void> {
     loginLog: loginLogResult.count,
   });
 }
+
+/**
+ * Sweep orphans: Finds PENDING orders that are older than 15 minutes and pushes them back to dispatch.
+ */
+export async function runOrphanSweep(): Promise<void> {
+  const startedAt = Date.now();
+  const threshold = new Date(Date.now() - 15 * 60 * 1000); // 15 mins
+  
+  const orphans = await db.order.findMany({
+    where: {
+      status: 'PENDING',
+      updatedAt: { lt: threshold }
+    },
+    select: { id: true, numericId: true, userId: true, charge: true, createdAt: true }
+  });
+
+  if (orphans.length > 0) {
+    const { orderService } = await import('../../services/core/order.service');
+    const { sendAdminAlert } = await import('@/lib/notifications');
+    let sweptCount = 0;
+
+    for (const orphan of orphans) {
+      // Optimistic lock: ensure it's still PENDING before we take over
+      const updated = await db.order.updateMany({
+        where: {
+          id: orphan.id,
+          status: 'PENDING'
+        },
+        data: { status: 'CANCELING' } // Temporary state to prevent worker pickup
+      });
+
+      if (updated.count === 0) {
+        // Worker picked it up just now, skip
+        continue;
+      }
+
+      // Safe to cancel and refund
+      const reason = 'Заказ отменён автоматически: не удалось передать в обработку. Средства возвращены на баланс.';
+      await orderService.failOrderTerminal(orphan.id, reason);
+      
+      sweptCount++;
+      
+      const minutesPending = Math.round((Date.now() - orphan.createdAt.getTime()) / 60000);
+      const refundRub = (Number(orphan.charge) / 100).toFixed(2);
+      
+      await sendAdminAlert(
+        `🧹 *sweep-orphans автоотмена*\n\n` +
+        `Order ID: \`${orphan.id}\` (#${orphan.numericId})\n` +
+        `User ID: \`${orphan.userId}\`\n` +
+        `Created: ${orphan.createdAt.toISOString()}\n` +
+        `Pending duration: ${minutesPending} min\n` +
+        `Refund: ${refundRub} RUB`,
+        'WARN'
+      );
+    }
+    
+    if (sweptCount > 0) {
+      log.info(`Swept ${sweptCount} orphan PENDING orders`, { durationMs: Date.now() - startedAt });
+    }
+  }
+}
+
