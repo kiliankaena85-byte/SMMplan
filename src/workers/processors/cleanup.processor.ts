@@ -265,21 +265,23 @@ export async function runInProgressTTLSweep(): Promise<void> {
       let refundCents = 0;
       let delivered = 0;
 
+      let reasonText = '';
       if (remains <= 0) {
         targetStatus = 'COMPLETED';
         refundCents = 0;
         delivered = quantity;
+        reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}.`;
       } else if (remains >= quantity) {
         targetStatus = 'ERROR';
         refundCents = Number(charge);
         delivered = 0;
+        reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено 0 из ${quantity}. Стоимость возвращена на баланс.`;
       } else {
         targetStatus = 'PARTIAL';
         refundCents = calculatePartialRefund({ remains, quantity, charge });
         delivered = Math.max(0, quantity - remains);
+        reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}. Невыполненный остаток возвращён на баланс.`;
       }
-
-      const reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}. Остаток возвращён на баланс.`;
 
       try {
         await db.$transaction(async (tx) => {
