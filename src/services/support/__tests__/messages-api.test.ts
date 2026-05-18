@@ -69,6 +69,7 @@ describe('Support Messages API GET Route', () => {
       isEdited: false,
       originalText: null,
       replyTo: null,
+      attachments: [],
     }));
 
     vi.mocked(db.ticketMessage.findMany).mockResolvedValueOnce(mockMessages as any);
@@ -142,6 +143,7 @@ describe('Support Messages API GET Route', () => {
       isEdited: false,
       originalText: null,
       replyTo: null,
+      attachments: [],
     }));
 
     vi.mocked(db.ticketMessage.findMany).mockResolvedValueOnce(mockMessages as any);

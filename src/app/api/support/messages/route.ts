@@ -9,14 +9,21 @@ const secretKey = process.env.JWT_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 
 export async function GET(req: NextRequest) {
+  // Auth errors → 401
+  let userId: string;
   try {
     // Auth check via cookie
     const token = req.cookies.get('session_token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] });
-    const userId = payload.userId as string;
+    userId = payload.userId as string;
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
+  // Business logic errors → 500
+  try {
     const ticketId = req.nextUrl.searchParams.get('ticketId');
     const after = req.nextUrl.searchParams.get('after'); // ISO date — only get messages after this time
 
@@ -115,8 +122,9 @@ export async function GET(req: NextRequest) {
       ticketStatus: ticket.status,
       nextCursor 
     });
-  } catch {
-    return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+  } catch (error) {
+    console.error('[messages/route] Unexpected error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
