@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Clock, LayoutDashboard } from 'lucide-react';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
+import { OrderProgressBar } from '@/components/orders/OrderProgressBar';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,7 @@ const STATUS_LABEL: Record<string, string> = {
   AWAITING_PAYMENT:'Ожидает оплаты',
   ERROR:           'Ошибка',
   CANCELED:        'Отменён',
+  PARTIAL:         'Частично',
   PROVISIONING:    'Запуск',
 };
 
@@ -25,6 +27,7 @@ const STATUS_COLOR: Record<string, string> = {
   AWAITING_PAYMENT:'text-orange-500  bg-orange-500/10  border-orange-500/20',
   PROVISIONING:    'text-indigo-500  bg-indigo-500/10  border-indigo-500/20',
   ERROR:           'text-destructive     bg-destructive/10     border-red-500/20',
+  PARTIAL:         'text-warning         bg-warning/10         border-amber-500/20',
   CANCELED:        'text-muted-foreground bg-muted border-border',
 };
 
@@ -109,6 +112,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
         </div>
+
+        {/* Progress Bar */}
+        <OrderProgressBar 
+          status={order.status} 
+          quantity={order.quantity} 
+          remains={order.remains} 
+        />
 
         {/* Info Grid */}
         <div className="p-5 space-y-5">
