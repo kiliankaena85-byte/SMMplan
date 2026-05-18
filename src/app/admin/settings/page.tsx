@@ -31,6 +31,15 @@ export default async function AdminSettingsPage({
     db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
   ]);
 
+  const sanitizedSettings = {
+    ...settings,
+    yookassaSecretKey: settings.yookassaSecretKey ? '••••••••••••••••' : null,
+    yookassaTestSecretKey: settings.yookassaTestSecretKey ? '••••••••••••••••' : null,
+    cryptoBotToken: settings.cryptoBotToken ? '••••••••••••••••' : null,
+    smtpPassword: settings.smtpPassword ? '••••••••••••••••' : null,
+    inboundEmailWebhookSecret: settings.inboundEmailWebhookSecret ? '••••••••••••••••' : null,
+  };
+
   const regularUsers = users.filter((u) => u.role === 'USER' || u.role === 'BANNED');
 
   const tabs = [
@@ -70,15 +79,15 @@ export default async function AdminSettingsPage({
         {/* ── TAB 1: SYSTEM ── */}
         {activeTab === 'system' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
-            <TestModePanel initialIsTestMode={settings.isTestMode} />
-            <GeneralSettings settings={settings} />
+            <TestModePanel initialIsTestMode={sanitizedSettings.isTestMode} />
+            <GeneralSettings settings={sanitizedSettings} />
           </div>
         )}
 
         {/* ── TAB 2: INTEGRATIONS ── */}
         {activeTab === 'integrations' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
-            <IntegrationsSettings settings={settings} />
+            <IntegrationsSettings settings={sanitizedSettings} />
           </div>
         )}
 

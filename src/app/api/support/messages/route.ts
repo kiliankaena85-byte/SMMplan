@@ -25,12 +25,17 @@ export async function GET(req: NextRequest) {
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
-    if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
     const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
-    if (ticket.userId !== userId && !isStaff) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    let ticket;
+
+    if (isStaff) {
+      ticket = await db.ticket.findUnique({ where: { id: ticketId } });
+      if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    } else {
+      ticket = await db.ticket.findFirst({
+        where: { id: ticketId, userId: userId }
+      });
+      if (!ticket) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const whereClause: any = { ticketId };

@@ -5,6 +5,12 @@ const nextConfig = {
 
   typescript: { ignoreBuildErrors: true },
 
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
+
   // OSAD-V2: Security Headers (OWASP A05)
   async headers() {
     return [

@@ -373,11 +373,12 @@ model SystemSettings {
   siteFaviconUrl String? // URL to uploaded favicon
 
   // SMTP Settings (Email Integration)
-  smtpHost           String?
-  smtpPort           Int     @default(465)
-  smtpUser           String?
-  smtpPassword       String? // AES-256-GCM encrypted
-  supportEmailDomain String? // e.g. "smmplan.pro" used for inbound webhook
+  smtpHost                  String?
+  smtpPort                  Int     @default(465)
+  smtpUser                  String?
+  smtpPassword              String? // AES-256-GCM encrypted
+  supportEmailDomain        String? // e.g. "smmplan.pro" used for inbound webhook
+  inboundEmailWebhookSecret String? // Secret for validating incoming webhook payloads
 
   // Robokassa (encrypted)
   robokassaLogin    String?

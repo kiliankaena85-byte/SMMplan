@@ -54,6 +54,7 @@ export const globalSettingsSchema = z.object({
   smtpUser: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   smtpPassword: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   supportEmailDomain: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  inboundEmailWebhookSecret: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   contactSupportEmail: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   contactPrivacyEmail: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
   contactTelegramBot: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),

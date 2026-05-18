@@ -81,6 +81,7 @@ export async function updateGlobalSettings(formData: FormData) {
       smtpUser,
       smtpPassword: rawSmtpPassword,
       supportEmailDomain,
+      inboundEmailWebhookSecret: rawInboundSecret,
       contactSupportEmail,
       contactPrivacyEmail,
       contactTelegramBot,
@@ -133,6 +134,7 @@ export async function updateGlobalSettings(formData: FormData) {
     if (smtpUser !== null) dataToUpdate.smtpUser = smtpUser;
     if (rawSmtpPassword) dataToUpdate.smtpPassword = VaultService.encrypt(rawSmtpPassword);
     if (supportEmailDomain !== null) dataToUpdate.supportEmailDomain = supportEmailDomain;
+    if (rawInboundSecret) dataToUpdate.inboundEmailWebhookSecret = VaultService.encrypt(rawInboundSecret);
 
     await settingsService.updateSystemSettings(dataToUpdate);
 

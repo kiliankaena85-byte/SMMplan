@@ -111,6 +111,15 @@ export class SettingsProvider {
   }
 
   /**
+   * Securely decrypts and returns the inbound email webhook secret.
+   * This is server-only and NOT returned in any public setting endpoints.
+   */
+  static async getInboundEmailWebhookSecret(): Promise<string | null> {
+    const settings = await this.getCached();
+    return settings.inboundEmailWebhookSecret ? VaultService.decrypt(settings.inboundEmailWebhookSecret) : null;
+  }
+
+  /**
    * Returns the inbound support email domain.
    */
   static async getSupportEmailDomain(): Promise<string> {
