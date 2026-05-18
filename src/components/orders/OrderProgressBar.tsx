@@ -43,11 +43,15 @@ export function OrderProgressBar({ status, quantity, remains }: OrderProgressBar
       barColor = 'bg-success';
       break;
     case 'CANCELED':
-      label = 'Отменено';
+      label = quantity > 0 && delivered > 0
+        ? `Отменено (выполнено ${delivered.toLocaleString('ru-RU')} из ${quantity.toLocaleString('ru-RU')})`
+        : 'Отменено';
       barColor = 'bg-muted-foreground';
       break;
     case 'ERROR':
-      label = 'Ошибка выполнения';
+      label = quantity > 0 && delivered > 0
+        ? `Ошибка выполнения (выполнено ${delivered.toLocaleString('ru-RU')} из ${quantity.toLocaleString('ru-RU')})`
+        : 'Ошибка выполнения';
       barColor = 'bg-muted-foreground';
       break;
     default:
