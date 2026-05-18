@@ -49,7 +49,7 @@ class OrderService {
         );
 
         // 2b. Create Order in DB
-        return await tx.order.create({
+        const createdOrder = await tx.order.create({
           data: {
             userId,
             serviceId: input.serviceId,
@@ -69,6 +69,15 @@ class OrderService {
             customData: input.customData,
           }
         });
+
+        // 2c. Award pending commission based on Margin
+        const margin = input.charge - input.providerCost;
+        if (margin > 0) {
+          const { LoyaltyService } = await import('../users/loyalty.service');
+          await LoyaltyService.awardCommission(tx, userId, margin, createdOrder.id);
+        }
+
+        return createdOrder;
       }, { isolationLevel: 'Serializable' });
 
       // 3. Dispatch to Queues (Drip-feed is now passed natively to the provider)
@@ -341,9 +350,15 @@ class OrderService {
 
     } catch (e: any) {
       console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e.message);
-      import('@/lib/notifications').then(({ sendAdminAlert }) => {
-        sendAdminAlert(`🚨 Ошибка в failOrderTerminal для заказа ${orderId}: ${e.message}`, 'CRITICAL').catch(console.error);
-      });
+      try {
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        await sendAdminAlert(
+          `🚨 failOrderTerminal ERROR\n\norderId: ${orderId}\nreason: ${reason}\nerror: ${e.message}`,
+          'CRITICAL'
+        ).catch(() => {}); // алерт не должен кидать дальше
+      } catch (importErr) {
+        // Fallback catch in case import itself fails
+      }
     }
   }
 }

@@ -103,13 +103,8 @@ export class PaymentService {
           throw new Error('ORPHAN_WEBHOOK: Stray webhooks are no longer allowed to credit accounts. All payments must be initiated by the system.');
         }
 
-        // Award Referral Commission on successful new fund influx
-        try {
-          const { LoyaltyService } = await import('@/services/users/loyalty.service');
-          await LoyaltyService.awardCommission(tx, userId, amount, linkedOrderId || processedPaymentId);
-        } catch (e: any) {
-          console.error(`[PaymentService] Failed to award commission for payment ${processedPaymentId}:`, e);
-        }
+        // [FIN-009] Removed awardCommission from payment.service.ts. 
+        // Referral commissions are now awarded in order.service.ts based on order margin.
 
         // Assign funds locally
         if (isOrderPayment && linkedOrderId) {
@@ -211,13 +206,8 @@ export class PaymentService {
 
         capturedUserId = payment.userId;
 
-        // Award Referral Commission on successful test fund influx
-        try {
-          const { LoyaltyService } = await import('@/services/users/loyalty.service');
-          await LoyaltyService.awardCommission(tx, payment.userId, Number(payment.amount), payment.orderId || paymentId);
-        } catch (e: any) {
-          console.error(`[PaymentService] Failed to award commission for test payment ${paymentId}:`, e);
-        }
+        // [FIN-009] Removed awardCommission from payment.service.ts.
+        // Referral commissions are now awarded in order.service.ts based on order margin.
 
         // Activate linked order
         if (payment.orderId) {
