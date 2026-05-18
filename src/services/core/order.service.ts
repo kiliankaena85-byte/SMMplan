@@ -203,7 +203,12 @@ class OrderService {
         'Error':       'ERROR'
       };
 
-      const internalStatus = (statusMap[providerStatus] || providerStatus.toUpperCase()) as OrderStatus;
+      const internalStatus = (statusMap[providerStatus] || providerStatus?.toUpperCase()) as OrderStatus;
+
+      if (!internalStatus || !Object.values(OrderStatus).includes(internalStatus)) {
+        console.error(`[ORDER_SERVICE] Invalid status mapping: providerStatus "${providerStatus}" mapped to non-enum value "${internalStatus}"`);
+        return { success: false };
+      }
 
       // 2. Run Atomic Transaction
       return await db.$transaction(async (tx) => {
