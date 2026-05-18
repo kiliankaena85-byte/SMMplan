@@ -76,6 +76,8 @@ export async function updateGlobalSettings(formData: FormData) {
       yookassaTestSecretKey: rawYookassaTestSecret,
       cryptoBotToken: rawCryptoBotToken,
       exchangeRateUSD,
+      emailProvider,
+      resendApiKey: rawResendApiKey,
       smtpHost,
       smtpPort,
       smtpUser,
@@ -129,6 +131,10 @@ export async function updateGlobalSettings(formData: FormData) {
     if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
 
     // Email / SMTP settings
+    if (emailProvider !== undefined) dataToUpdate.emailProvider = emailProvider;
+    if (rawResendApiKey && rawResendApiKey.trim() !== '') {
+      dataToUpdate.resendApiKey = VaultService.encrypt(rawResendApiKey.trim());
+    }
     if (smtpHost !== null) dataToUpdate.smtpHost = smtpHost;
     if (smtpPort !== undefined) dataToUpdate.smtpPort = smtpPort;
     if (smtpUser !== null) dataToUpdate.smtpUser = smtpUser;

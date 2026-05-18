@@ -36,6 +36,7 @@ export default async function AdminSettingsPage({
     yookassaSecretKey: settings.yookassaSecretKey ? '••••••••••••••••' : null,
     yookassaTestSecretKey: settings.yookassaTestSecretKey ? '••••••••••••••••' : null,
     cryptoBotToken: settings.cryptoBotToken ? '••••••••••••••••' : null,
+    resendApiKey: settings.resendApiKey ? '••••••••••••••••' : null,
     smtpPassword: settings.smtpPassword ? '••••••••••••••••' : null,
     inboundEmailWebhookSecret: settings.inboundEmailWebhookSecret ? '••••••••••••••••' : null,
   };

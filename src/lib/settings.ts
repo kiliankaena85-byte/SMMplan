@@ -9,7 +9,9 @@ export interface DecryptedPaymentSecrets {
   cryptoBotToken: string | null;
 }
 
-export interface DecryptedSmtpSettings {
+export interface DecryptedEmailSettings {
+  emailProvider: string;
+  resendApiKey: string | null;
   smtpHost: string | null;
   smtpPort: number;
   smtpUser: string | null;
@@ -98,10 +100,15 @@ export class SettingsProvider {
   /**
    * Securely decrypts and returns SMTP credentials.
    */
-  static async getSmtpSettings(): Promise<DecryptedSmtpSettings> {
+  static async getEmailSettings(): Promise<DecryptedEmailSettings> {
     const settings = await this.getCached();
     
+    const emailProvider = settings.emailProvider || 'SMTP';
+    const resendKeyRaw = settings.resendApiKey;
+    
     return {
+      emailProvider,
+      resendApiKey: (resendKeyRaw && resendKeyRaw.trim() !== '') ? VaultService.decrypt(resendKeyRaw) : null,
       smtpHost: settings.smtpHost,
       smtpPort: settings.smtpPort || 465,
       smtpUser: settings.smtpUser,

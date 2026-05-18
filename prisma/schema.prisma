@@ -373,6 +373,8 @@ model SystemSettings {
   siteFaviconUrl String? // URL to uploaded favicon
 
   // SMTP Settings (Email Integration)
+  emailProvider             String  @default("SMTP")
+  resendApiKey              String?
   smtpHost                  String?
   smtpPort                  Int     @default(465)
   smtpUser                  String?

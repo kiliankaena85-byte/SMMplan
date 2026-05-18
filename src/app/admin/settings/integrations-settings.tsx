@@ -175,9 +175,35 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
 
           <form action={formAction} className="space-y-8">
             <div className="space-y-6">
-              <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Отправка писем (SMTP)</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Отправка писем</div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Провайдер писем</Label>
+                  <select
+                    name="emailProvider"
+                    defaultValue={settings.emailProvider || 'SMTP'}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="SMTP">SMTP (Nodemailer)</option>
+                    <option value="RESEND">Resend SDK</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-2 md:col-span-2 pt-4 border-t border-border">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ключ API Resend</Label>
+                  <Input
+                    name="resendApiKey"
+                    type="password"
+                    placeholder={settings.resendApiKey ? '••••••••••••••••' : 'Не настроено'}
+                  />
+                  <p className="text-[10px] text-muted-foreground">Используется, если выбран провайдер Resend.</p>
+                </div>
+
+                <div className="space-y-2 mt-4 md:col-span-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Настройки SMTP (Nodemailer)</Label>
+                </div>
+
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">SMTP Host</Label>
                   <Input
