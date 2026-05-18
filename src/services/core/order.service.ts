@@ -1,4 +1,5 @@
 import { db } from '../../lib/db';
+import { OrderStatus } from '@prisma/client';
 import { SettingsProvider } from '../../lib/settings';
 import { WalletService } from '../financial/wallet.service';
 import { WalletOps } from '../financial/wallet-ops';
@@ -202,7 +203,7 @@ class OrderService {
         'Error':       'ERROR'
       };
 
-      const internalStatus = statusMap[providerStatus] || providerStatus.toUpperCase();
+      const internalStatus = (statusMap[providerStatus] || providerStatus.toUpperCase()) as OrderStatus;
 
       // 2. Run Atomic Transaction
       return await db.$transaction(async (tx) => {

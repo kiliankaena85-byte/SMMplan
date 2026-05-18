@@ -48,7 +48,7 @@ async function main() {
     });
   }
 
-  const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'PARTIAL', 'CANCELED', 'AWAITING_PAYMENT', 'ERROR'];
+  const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'PARTIAL', 'CANCELED', 'AWAITING_PAYMENT', 'ERROR'] as const;
   const errors = [null, null, null, 'Can not reach provider API', 'Invalid link format'];
 
   for (let i = 0; i < 20; i++) {

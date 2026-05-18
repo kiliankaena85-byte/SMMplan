@@ -234,7 +234,7 @@ model Order {
   dripExternalIds   String[]  @default([]) // History of run IDs for Drip-Feed
   link              String
   quantity          Int
-  status            String    @default("AWAITING_PAYMENT") // AWAITING_PAYMENT, PENDING, IN_PROGRESS, COMPLETED, PARTIAL, CANCELED, ERROR
+  status            OrderStatus @default(AWAITING_PAYMENT)
   remains           Int       @default(0) // Outstanding amount to deliver
   charge            BigInt // price paid by user in Cents
   providerCost      BigInt // exact cost from provider in Cents
@@ -651,6 +651,19 @@ model SystemSetting {
   description String? // Admin-facing description
   updatedAt   DateTime @updatedAt
   updatedBy   String? // Admin email who last updated it
+}
+
+// ── Order Status Enum ──
+enum OrderStatus {
+  AWAITING_PAYMENT
+  PENDING
+  PROVISIONING
+  IN_PROGRESS
+  COMPLETED
+  PARTIAL
+  CANCELED
+  ERROR
+  CANCELING
 }
 
 // ── Enterprise CMS ──

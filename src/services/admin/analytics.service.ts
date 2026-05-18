@@ -69,7 +69,7 @@ class AnalyticsService {
         const deliveredQty = order.quantity - order.remains;
         revenue = Math.round((deliveredQty / order.quantity) * Number(order.charge));
         cogs = Math.round((deliveredQty / order.quantity) * Number(order.providerCost));
-      } else if (order.status === 'CANCELLED') {
+      } else if (order.status === 'CANCELED') {
         revenue = 0;
         cogs = 0;
       }

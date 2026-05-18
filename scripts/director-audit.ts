@@ -9,7 +9,7 @@ async function main() {
   
   const stuckOrders = await prisma.order.count({
     where: {
-      status: { in: ['PENDING', 'PROCESSING'] },
+      status: { in: ['PENDING', 'IN_PROGRESS'] },
       createdAt: { lt: twentyFourHoursAgo }
     }
   });
