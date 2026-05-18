@@ -234,7 +234,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         data: { paymentId: payment.id }
       });
 
-      return { orderId: newOrder.id, paymentId: payment.id };
+      return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId };
     });
 
     // 6. Generate payment URL (gateway-specific API calls)
@@ -259,7 +259,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         amountRub: pricing.totalCents / 100,
         email: email,
         successUrl,
-        description: `SEO-Аудит и консультация (Заказ #${result.orderId})`,
+        description: `Оплата заказа #${result.numericId} (SMMplan)`,
         isTestMode: isTestMode || email === 'e2e-tester@test.com'
       });
       
@@ -465,7 +465,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         amountRub: Number(order.charge) / 100,
         email: order.email || order.user.email,
         successUrl,
-        description: `SEO-Аудит и консультация (Заказ #${order.id})`,
+        description: `Оплата заказа #${order.numericId} (SMMplan)`,
         isTestMode
       });
 
