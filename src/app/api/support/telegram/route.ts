@@ -2,11 +2,20 @@ import { NextResponse } from 'next/server';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import crypto from 'crypto';
+import { SettingsProvider } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'smmplan_bot';
+  const contactSettings = await SettingsProvider.getContactAndLegalSettings();
+  const botUsername = contactSettings.TELEGRAM_SUPPORT_BOT;
+
+  if (!botUsername) {
+    console.error('[TelegramSupport] TELEGRAM_SUPPORT_BOT not configured in settings');
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
+    return NextResponse.redirect(`${appUrl}/dashboard`);
+  }
+
   const baseUrl = `https://t.me/${botUsername}`;
   
   try {
