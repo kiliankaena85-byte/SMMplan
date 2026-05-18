@@ -158,6 +158,9 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     if (!categoryId) {
       setServices([]);
       setSelectedService(null);
+      setDripFeedEnabled(false);
+      setRuns(2);
+      setDripInterval(5);
       return;
     }
 
@@ -195,6 +198,9 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   useEffect(() => {
     if (selectedService) {
       setQuantity(selectedService.minQty);
+      setDripFeedEnabled(false);
+      setRuns(2);
+      setDripInterval(5);
     }
   }, [selectedService]);
 

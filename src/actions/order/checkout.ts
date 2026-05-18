@@ -9,7 +9,7 @@ import { verifySession, createSession } from '@/lib/session';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
-import { WalletOps } from '@/services/financial/wallet-ops';
+import { WalletOps, WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
 import crypto from 'crypto';
 import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
 import { sendOrderPaidMail } from '@/lib/smtp';
@@ -132,6 +132,10 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     if (!service.externalId) {
       throw new Error("Услуга не привязана к провайдеру");
+    }
+
+    if (runs && !service.isDripFeedEnabled) {
+      throw new Error("Эта услуга не поддерживает Drip-feed (постепенную подачу)");
     }
 
     if (quantity < service.minQty || quantity > service.maxQty) {
@@ -305,6 +309,15 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       
       await Promise.allSettled(rollbackPromises);
       
+      if (gatewayErr instanceof WalletInsufficientFundsError) {
+        throw new Error('Недостаточно средств на балансе. Пожалуйста, пополните счет.');
+      }
+      if (gatewayErr instanceof WalletUserNotFoundError) {
+        throw new Error('Пользователь не найден. Пожалуйста, авторизуйтесь заново.');
+      }
+      if (gatewayErr instanceof WalletInvalidAmountError) {
+        throw new Error('Некорректная сумма операции.');
+      }
       throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
     }
 

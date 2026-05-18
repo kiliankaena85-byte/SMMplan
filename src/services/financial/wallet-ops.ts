@@ -2,6 +2,30 @@ import { Prisma } from '@prisma/client';
 
 type PrismaTx = Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
+export class WalletInsufficientFundsError extends Error {
+  readonly code = 'INSUFFICIENT_FUNDS';
+  constructor(needed: number, got: number | bigint) {
+    super(`Insufficient funds: needed ${needed}, got ${got}`);
+    this.name = 'WalletInsufficientFundsError';
+  }
+}
+
+export class WalletUserNotFoundError extends Error {
+  readonly code = 'USER_NOT_FOUND';
+  constructor(userId: string) {
+    super(`User ${userId} not found.`);
+    this.name = 'WalletUserNotFoundError';
+  }
+}
+
+export class WalletInvalidAmountError extends Error {
+  readonly code = 'INVALID_AMOUNT';
+  constructor(action: 'Charge' | 'Credit' | 'Adjustment' | 'Refund') {
+    super(`${action} amount must be a strictly positive finite number.`);
+    this.name = 'WalletInvalidAmountError';
+  }
+}
+
 export const WalletOps = {
   /**
    * Safe charge mechanism without creating a new transaction.
@@ -15,7 +39,7 @@ export const WalletOps = {
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
     if (!Number.isFinite(amountCents) || amountCents <= 0) {
-      throw new Error('Charge amount must be a strictly positive finite number.');
+      throw new WalletInvalidAmountError('Charge');
     }
 
     const { idempotencyKey, adminId } = opts || {};
@@ -53,9 +77,9 @@ export const WalletOps = {
           select: { id: true, balance: true },
         });
         if (!checkUser) {
-          throw new Error(`User ${userId} not found.`);
+          throw new WalletUserNotFoundError(userId);
         }
-        throw new Error(`Insufficient funds: needed ${amountCents}, got ${checkUser.balance}`);
+        throw new WalletInsufficientFundsError(amountCents, checkUser.balance);
       }
 
       // 3. Fetch the new balance safely within the same transaction lock
@@ -90,7 +114,7 @@ export const WalletOps = {
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
     if (!Number.isFinite(amountCents) || amountCents <= 0) {
-      throw new Error('Credit amount must be a strictly positive finite number.');
+      throw new WalletInvalidAmountError('Credit');
     }
 
     const { idempotencyKey, adminId } = opts || {};
@@ -137,7 +161,7 @@ export const WalletOps = {
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
     if (!Number.isFinite(amountCents) || amountCents === 0) {
-      throw new Error('Adjustment amount must be a finite non-zero number.');
+      throw new WalletInvalidAmountError('Adjustment');
     }
 
     const { idempotencyKey, adminId } = opts || {};
@@ -190,7 +214,7 @@ export const WalletOps = {
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
     if (!Number.isFinite(amountCents) || amountCents <= 0) {
-      throw new Error('Refund amount must be a strictly positive finite number.');
+      throw new WalletInvalidAmountError('Refund');
     }
 
     const { idempotencyKey, adminId } = opts || {};

@@ -10,6 +10,7 @@ import { getClientIp } from '@/utils/ip';
 import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SettingsManager } from '@/lib/settings';
+import { WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
 
 const massOrderSchema = z.object({
   text: z.string().min(1, 'Введите данные для заказа'),
@@ -338,6 +339,16 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
         where: { paymentId: result.paymentId },
         data: { status: 'ERROR', error: gatewayErr.message || 'Ошибка генерации платежа' }
       });
+      
+      if (gatewayErr instanceof WalletInsufficientFundsError) {
+        throw new Error('Недостаточно средств на балансе. Пожалуйста, пополните счет.');
+      }
+      if (gatewayErr instanceof WalletUserNotFoundError) {
+        throw new Error('Пользователь не найден. Пожалуйста, авторизуйтесь заново.');
+      }
+      if (gatewayErr instanceof WalletInvalidAmountError) {
+        throw new Error('Некорректная сумма операции.');
+      }
       throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
     }
 
