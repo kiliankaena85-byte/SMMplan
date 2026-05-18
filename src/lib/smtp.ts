@@ -1,6 +1,9 @@
 import nodemailer from 'nodemailer';
 import { SettingsProvider } from '@/lib/settings';
 import { Resend } from 'resend';
+import { logger } from '@/lib/logger';
+
+const log = logger.child({ component: 'SMTP' });
 
 async function getEmailContext() {
   const settings = await SettingsProvider.getContactAndLegalSettings();
@@ -14,7 +17,7 @@ async function getTransporter() {
 
   if (s.emailProvider === 'RESEND') {
     if (!s.resendApiKey) {
-      console.error('[smtp] RESEND selected but API key is not configured');
+      log.error('RESEND selected but API key is not configured');
       throw new Error('Email provider is set to Resend but API key is missing. Check admin settings.');
     }
     return { provider: 'RESEND', resend: new Resend(s.resendApiKey), smtpUser: s.smtpUser, fromEmail: s.smtpUser || 'no-reply@smmplan.pro' };
@@ -46,13 +49,9 @@ export async function sendMagicLink(email: string, token: string) {
 
   if (!result) {
     if (process.env.NODE_ENV === 'production') {
-      console.error(`[SMTP] Not configured in AdminPanel`);
+      log.error('Not configured in AdminPanel');
     } else {
-      console.warn(`[SMTP] Not configured. Email skipped.`);
-      console.info('------------ MAGIC LINK ------------');
-      console.info(`To: ${email}`);
-      console.info(`Link: ${link}`);
-      console.info('------------------------------------');
+      log.warn('Not configured. Email skipped.', { action: 'MAGIC_LINK', email, link });
     }
     return;
   }
@@ -71,7 +70,7 @@ export async function sendMagicLink(email: string, token: string) {
   `;
 
   if (result.provider === 'RESEND') {
-    console.info(`[smtp] Sending via RESEND`, { to: email, subject: 'Ваша ссылка для входа' });
+    log.info('Sending via RESEND', { to: email, subject: 'Ваша ссылка для входа' });
     const { data, error } = await result.resend!.emails.send({
       from: `"${companyName} Support" <${result.fromEmail}>`,
       to: email,
@@ -79,11 +78,11 @@ export async function sendMagicLink(email: string, token: string) {
       html: htmlContent,
     });
     if (error) {
-      console.error('[smtp] Resend delivery failed', { to: email, subject: 'Ваша ссылка для входа', code: error.name });
+      log.error('Resend delivery failed', { to: email, subject: 'Ваша ссылка для входа', code: error.name, error: error.message });
       throw new Error(`Resend error: ${error.message}`);
     }
   } else {
-    console.info(`[smtp] Sending via SMTP`, { to: email, subject: 'Ваша ссылка для входа' });
+    log.info('Sending via SMTP', { to: email, subject: 'Ваша ссылка для входа' });
     await result.transporter!.sendMail({
       from: `"${companyName} Support" <${result.fromEmail}>`,
       to: email,
@@ -99,17 +98,15 @@ export async function sendMail(email: string, subject: string, htmlContent: stri
 
   if (!result) {
     if (process.env.NODE_ENV === 'production') {
-      console.error(`[SMTP] Not configured in AdminPanel`);
+      log.error('Not configured in AdminPanel');
     } else {
-      console.warn(`[SMTP] Not configured. Email skipped.`);
-      console.info(`[EMAIL to ${email}] ${subject}:`);
-      console.info(htmlContent);
+      log.warn('Not configured. Email skipped.', { to: email, subject });
     }
     return;
   }
 
   if (result.provider === 'RESEND') {
-    console.info(`[smtp] Sending via RESEND`, { to: email, subject });
+    log.info('Sending via RESEND', { to: email, subject });
     const { data, error } = await result.resend!.emails.send({
       from: `"${companyName} Support" <${result.fromEmail}>`,
       to: email,
@@ -118,11 +115,11 @@ export async function sendMail(email: string, subject: string, htmlContent: stri
       ...(replyTo ? { reply_to: replyTo } : {}),
     });
     if (error) {
-      console.error('[smtp] Resend delivery failed', { to: email, subject, code: error.name });
+      log.error('Resend delivery failed', { to: email, subject, code: error.name, error: error.message });
       throw new Error(`Resend error: ${error.message}`);
     }
   } else {
-    console.info(`[smtp] Sending via SMTP`, { to: email, subject });
+    log.info('Sending via SMTP', { to: email, subject });
     await result.transporter!.sendMail({
       from: `"${companyName} Support" <${result.fromEmail}>`,
       to: email,
