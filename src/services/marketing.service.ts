@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import {
   calculateSafetyFloorCents,
   MAX_TOTAL_DISCOUNT,
@@ -146,7 +147,7 @@ class MarketingService {
   /**
    * Applies the use of a promo code atomically if required.
    */
-  async consumePromoCode(tx: any, promoCodeStr?: string | null) {
+  async consumePromoCode(tx: Prisma.TransactionClient, promoCodeStr?: string | null) {
     if (!promoCodeStr) return;
 
     const promo = await tx.promoCode.findUnique({ where: { code: promoCodeStr } });

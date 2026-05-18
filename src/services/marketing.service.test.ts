@@ -107,21 +107,21 @@ describe('MarketingService', () => {
 
   describe('consumePromoCode', () => {
     it('does nothing if no code provided', async () => {
-      await expect(marketingService.consumePromoCode({}, null)).resolves.toBeUndefined();
+      await expect(marketingService.consumePromoCode({} as any, null)).resolves.toBeUndefined();
     });
 
     it('throws if promo is invalid/inactive', async () => {
-      const tx = { promoCode: { findUnique: vi.fn().mockResolvedValueOnce({ isActive: false }) } };
+      const tx = { promoCode: { findUnique: vi.fn().mockResolvedValueOnce({ isActive: false }) } } as any;
       await expect(marketingService.consumePromoCode(tx, 'CODE')).rejects.toThrow('Промокод недействителен');
     });
 
     it('throws if promo uses maxed out', async () => {
-      const tx = { promoCode: { findUnique: vi.fn().mockResolvedValueOnce({ isActive: true, maxUses: 1, uses: 1 }) } };
+      const tx = { promoCode: { findUnique: vi.fn().mockResolvedValueOnce({ isActive: true, maxUses: 1, uses: 1 }) } } as any;
       await expect(marketingService.consumePromoCode(tx, 'CODE')).rejects.toThrow('Лимит использований промокода исчерпан');
     });
 
     it('throws if promo is expired', async () => {
-      const tx = { promoCode: { findUnique: vi.fn().mockResolvedValueOnce({ isActive: true, maxUses: 0, expiresAt: new Date(Date.now() - 1000) }) } };
+      const tx = { promoCode: { findUnique: vi.fn().mockResolvedValueOnce({ isActive: true, maxUses: 0, expiresAt: new Date(Date.now() - 1000) }) } } as any;
       await expect(marketingService.consumePromoCode(tx, 'CODE')).rejects.toThrow('Срок действия промокода истёк');
     });
 
@@ -131,7 +131,7 @@ describe('MarketingService', () => {
           findUnique: vi.fn().mockResolvedValueOnce({ id: 'p1', isActive: true, maxUses: 2, uses: 0, expiresAt: null }),
           update: vi.fn().mockResolvedValueOnce({ id: 'p1', maxUses: 2, uses: 1 })
         } 
-      };
+      } as any;
       await expect(marketingService.consumePromoCode(tx, 'CODE')).resolves.toBeUndefined();
     });
 
@@ -141,7 +141,7 @@ describe('MarketingService', () => {
           findUnique: vi.fn().mockResolvedValueOnce({ id: 'p1', isActive: true, maxUses: 1, uses: 0, expiresAt: null }),
           update: vi.fn().mockResolvedValueOnce({ id: 'p1', maxUses: 1, uses: 2 })
         } 
-      };
+      } as any;
       await expect(marketingService.consumePromoCode(tx, 'CODE')).rejects.toThrow('Лимит использований промокода исчерпан');
     });
   });
