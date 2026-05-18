@@ -6,7 +6,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import crypto from 'crypto';
 
-const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
+if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
+const secretKey = process.env.JWT_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];

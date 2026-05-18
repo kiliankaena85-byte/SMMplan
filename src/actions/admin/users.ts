@@ -11,7 +11,8 @@ import { updateBalanceSchema, userIdSchema } from '@/validators/admin.validators
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { getClientIp } from '@/utils/ip';
 
-const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
+if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
+const secretKey = process.env.JWT_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 
 export async function updateBalanceAction(formData: FormData) {

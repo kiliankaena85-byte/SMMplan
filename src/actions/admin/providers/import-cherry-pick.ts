@@ -11,10 +11,11 @@ import { db } from "@/lib/db";
 import { redis } from "@/lib/redis";
 
 import { z } from 'zod';
+import { SecuritySanitizer } from "@/utils/security-sanitizer";
 
 const rawServiceSchema = z.object({
   service: z.union([z.string(), z.number()]),
-  name: z.string(),
+  name: z.string().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
   type: z.string().optional(),
   category: z.string().optional(),
   rate: z.union([z.string(), z.number()]),
@@ -23,8 +24,8 @@ const rawServiceSchema = z.object({
   refill: z.boolean().optional(),
   cancel: z.boolean().optional(),
   dripfeed: z.boolean().optional(),
-  desc: z.string().optional(),
-  description: z.string().optional(),
+  desc: z.string().optional().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
+  description: z.string().optional().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
 }).passthrough(); // Allow extra fields
 
 // --- [NEW] Pagination & Filtering API ---

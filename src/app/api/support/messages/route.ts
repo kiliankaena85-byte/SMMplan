@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { jwtVerify } from 'jose';
 
-const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
+if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
+const secretKey = process.env.JWT_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 
 export async function GET(req: NextRequest) {

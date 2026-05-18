@@ -5,7 +5,8 @@ import { db } from '@/lib/db';
 import path from 'path';
 import fs from 'fs/promises';
 
-const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
+if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
+const secretKey = process.env.JWT_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 
 const MIME_MAP: Record<string, string> = {

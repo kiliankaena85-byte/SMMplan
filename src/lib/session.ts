@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { db } from './db';
 
 // W0-2 SECURITY FIX: Fail-fast — never allow hardcoded fallback in any environment
@@ -12,14 +12,22 @@ if (!process.env.JWT_SECRET) {
 const secretKey = process.env.JWT_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 
+import { getClientIp } from '@/utils/ip';
+
 export async function createSession(userId: string) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 дней
   
+  const reqHeaders = await cookies().then(() => headers()); // await context
+  const userAgent = reqHeaders.get('user-agent') || 'unknown';
+  const ipAddress = await getClientIp();
+
   // Создаем запись в БД
   const session = await db.session.create({
     data: {
       userId,
       expiresAt,
+      userAgent,
+      ipAddress,
     }
   });
 
@@ -62,6 +70,14 @@ export async function verifySession() {
 
     // W3-1 SECURITY FIX: Enforce database-level session expiration
     if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+      return null;
+    }
+
+    // OSAD-V2 SECURITY FIX: Session Fixation / Hijacking Protection (User-Agent verify)
+    const reqHeaders = await headers();
+    const currentUserAgent = reqHeaders.get('user-agent') || 'unknown';
+    if (session.userAgent && session.userAgent !== 'unknown' && session.userAgent !== currentUserAgent) {
+      console.warn(`[verifySession] Session Hijacking blocked: User-Agent mismatch for user ${payload.userId}`);
       return null;
     }
 
