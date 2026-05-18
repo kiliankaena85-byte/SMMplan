@@ -9,6 +9,13 @@ vi.mock('@/lib/settings', () => ({
       COMPANY_NAME: 'TestBrand',
     }),
     getSupportEmailDomain: vi.fn().mockResolvedValue('testbrand.com'),
+    getSmtpSettings: vi.fn().mockResolvedValue({
+      smtpHost: 'smtp.test.com',
+      smtpPort: 465,
+      smtpUser: 'no-reply@testbrand.com',
+      smtpPassword: 'secretpassword',
+      supportEmailDomain: 'testbrand.com',
+    }),
   }
 }));
 
@@ -27,8 +34,6 @@ vi.mock('nodemailer', () => {
 describe('SMTP Module', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.SMTP_HOST = 'smtp.test.com';
-    process.env.SMTP_USER = 'no-reply@testbrand.com';
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.testbrand.com';
   });
 
