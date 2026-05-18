@@ -149,7 +149,8 @@ class AdminTicketService {
           },
         },
         messages: { 
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
+          take: 51,
           include: { replyTo: true }
         },
       },
@@ -209,8 +210,16 @@ class AdminTicketService {
       }
     }
     
+    let nextCursor: string | null = null;
+    const activeMessages = [...ticket.messages];
+    if (activeMessages.length > 50) {
+      const extraItem = activeMessages.pop();
+      nextCursor = extraItem?.id || null;
+    }
+    activeMessages.reverse();
+
     // 2. Add current ticket messages
-    stitchedMessages.push(...ticket.messages.map(m => mapMessage(m)));
+    stitchedMessages.push(...activeMessages.map(m => mapMessage(m)));
 
     return {
       id: ticket.id,
@@ -219,6 +228,7 @@ class AdminTicketService {
       source: ticket.source,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
+      nextCursor,
       user: {
         id: ticket.user.id,
         email: ticket.user.email,

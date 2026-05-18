@@ -30,6 +30,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [quantity, setQuantity] = useState(100);
   const [email, setEmail] = useState(initialEmail);
   const [customData, setCustomData] = useState("");
+  const [promoCode, setPromoCode] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   
   // Drip-feed states
@@ -208,7 +209,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       const res = await calculatePriceAction(
         selectedService.id, 
         quantity, 
-        "", 
+        promoCode, 
         dripFeedEnabled ? runs : undefined
       );
       if (res.success && res.data) {
@@ -218,7 +219,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     }, 300);
 
     return () => clearTimeout(handler);
-  }, [selectedService, quantity]);
+  }, [selectedService, quantity, promoCode]);
 
   // 5.5 Calculate Mass Order Price (Debounced)
   useEffect(() => {
@@ -340,6 +341,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     quantity, setQuantity,
     email, setEmail,
     customData, setCustomData,
+    promoCode, setPromoCode,
     agreedToTerms, setAgreedToTerms,
     
     // Drip-feed

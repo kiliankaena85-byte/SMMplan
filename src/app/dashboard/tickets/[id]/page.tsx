@@ -3,8 +3,8 @@ import { verifySession } from '@/lib/session';
 import { notFound, redirect } from 'next/navigation';
 import { addTicketMessage } from '@/actions/support/ticket';
 import Link from 'next/link';
-import { ArrowLeft, Send, Lock } from 'lucide-react';
-import { TicketPoller } from '@/components/support/TicketPoller';
+import { ArrowLeft } from 'lucide-react';
+import ChatWindow from '@/components/support/ChatWindow';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,29 +25,53 @@ export default async function ClientTicketChatPage({
       subject: true,
       status: true,
       userId: true,
-      messages: {
-        where: { sender: { not: 'INTERNAL' } },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          id: true,
-          text: true,
-          sender: true,
-          createdAt: true,
-        },
-      },
     },
   });
 
-  // Security: ensure ticket belongs to the current user
   if (!ticket || ticket.userId !== session.userId) return notFound();
+
+  // Fetch only the latest 50 messages, check if there is a 51st (next page)
+  const rawMessages = await db.ticketMessage.findMany({
+    where: { 
+      ticketId: id,
+      sender: { not: 'INTERNAL' }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 51,
+    include: { replyTo: true }
+  });
+
+  let nextCursor: string | null = null;
+  const activeMessages = [...rawMessages];
+  if (activeMessages.length > 50) {
+    const extraItem = activeMessages.pop();
+    nextCursor = extraItem?.id || null;
+  }
+  activeMessages.reverse();
+
+  const initialMessages = activeMessages.map(m => ({
+    id: m.id,
+    sender: m.sender,
+    text: m.text,
+    mediaUrl: m.mediaUrl,
+    mediaType: m.mediaType,
+    createdAt: m.createdAt.toISOString(),
+    isDeleted: m.isDeleted,
+    isEdited: m.isEdited,
+    originalText: m.originalText,
+    replyTo: m.replyTo ? {
+      id: m.replyTo.id,
+      text: m.replyTo.text,
+      sender: m.replyTo.sender
+    } : null
+  }));
 
   const isClosed = ticket.status === 'CLOSED';
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500">
-      <TicketPoller ticketId={ticket.id} isClosed={isClosed} />
+    <div className="space-y-4 animate-in fade-in duration-500 flex flex-col h-[calc(100vh-7rem)] min-h-[500px]">
       {/* Header / breadcrumb */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         <Link
           href="/dashboard/tickets"
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200"
@@ -58,7 +82,7 @@ export default async function ClientTicketChatPage({
         </Link>
       </div>
 
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 shrink-0">
         <h1 className="text-xl font-bold text-foreground leading-tight">
           {ticket.subject}
         </h1>
@@ -77,76 +101,16 @@ export default async function ClientTicketChatPage({
         </span>
       </div>
 
-      {/* Chat messages */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="space-y-4 p-5 max-h-[60vh] overflow-y-auto">
-          {ticket.messages.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground py-6">
-              Сообщений пока нет
-            </p>
-          )}
-
-          {ticket.messages.map((msg) => {
-            const isUser = msg.sender === 'USER';
-            return (
-              <div
-                key={msg.id}
-                className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                    isUser
-                      ? 'bg-primary text-primary-foreground rounded-br-sm'
-                      : 'bg-muted text-foreground rounded-bl-sm'
-                  }`}
-                >
-                  <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
-                  <div
-                    className={`text-[10px] mt-1.5 font-medium opacity-70 ${
-                      isUser ? 'text-right' : 'text-left'
-                    }`}
-                  >
-                    {isUser ? 'Вы' : 'Служба поддержки'} ·{' '}
-                    {msg.createdAt.toLocaleTimeString('ru-RU', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Reply form or closed notice */}
-        <div className="border-t border-border bg-muted/20 p-4">
-          {isClosed ? (
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-2">
-              <Lock className="w-4 h-4" />
-              Тикет закрыт. Создайте новое обращение если нужна помощь.
-            </div>
-          ) : (
-            <form action={addTicketMessage} className="flex gap-3">
-              <input type="hidden" name="ticketId" value={ticket.id} />
-              <textarea
-                name="message"
-                required
-                rows={2}
-                placeholder="Напишите сообщение..."
-                aria-label="Текст сообщения поддержке"
-                className="flex-1 rounded-xl border border-border bg-background text-foreground text-sm px-4 py-2.5 outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 resize-none"
-              />
-              <button
-                type="submit"
-                aria-label="Отправить сообщение"
-                className="self-end px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 shrink-0 flex items-center gap-1.5 text-sm font-semibold"
-              >
-                <Send className="w-4 h-4" />
-                <span className="hidden sm:inline">Отправить</span>
-              </button>
-            </form>
-          )}
-        </div>
+      {/* Chat messages using premium ChatWindow */}
+      <div className="flex-1 bg-card border border-border rounded-2xl overflow-hidden flex flex-col min-h-0 shadow-sm">
+        <ChatWindow
+          ticketId={ticket.id}
+          initialMessages={initialMessages}
+          isStaff={false}
+          onSendMessage={addTicketMessage}
+          initialNextCursor={nextCursor}
+          isClosed={isClosed}
+        />
       </div>
     </div>
   );

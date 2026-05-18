@@ -40,6 +40,7 @@ export function SmartOrderForm() {
     selectedService, setSelectedService,
     quantity, setQuantity,
     email, setEmail,
+    promoCode, setPromoCode,
     dripFeedEnabled, setDripFeedEnabled,
     runs, setRuns,
     dripInterval, setDripInterval,
@@ -128,6 +129,7 @@ export function SmartOrderForm() {
       runs:     dripFeedEnabled ? runs     : undefined,
       interval: dripFeedEnabled ? dripInterval : undefined,
       customData: engine.customData || undefined,
+      promoCodeStr: promoCode || undefined,
       gateway,
       idempotencyKey: idempotencyKeyRef.current,
     });
@@ -422,6 +424,23 @@ export function SmartOrderForm() {
                     aria-label="Email для уведомлений о заказе"
                     className={`${inputCls} text-base pl-10 h-11`}
                     placeholder="your@email.com"
+                  />
+                </div>
+              </div>
+
+              {/* Promo Code */}
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                  Промокод
+                </label>
+                <div className="relative">
+                  <input
+                    value={promoCode}
+                    onChange={e => setPromoCode(e.target.value.toUpperCase())}
+                    type="text"
+                    aria-label="Промокод"
+                    className={`${inputCls} text-base px-4 h-11 uppercase font-mono tracking-wider`}
+                    placeholder="WINTER2026"
                   />
                 </div>
               </div>

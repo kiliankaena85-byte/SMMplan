@@ -14,6 +14,7 @@ const STATUS_LABEL: Record<string, string> = {
   AWAITING_PAYMENT:'Ожидает оплаты',
   ERROR:           'Ошибка',
   CANCELED:        'Отменён',
+  PARTIAL:         'Частично',
   PROVISIONING:    'Запуск',
 };
 
@@ -23,6 +24,7 @@ const STATUS_COLOR: Record<string, string> = {
   PENDING:         'text-orange-500  bg-orange-500/10',
   AWAITING_PAYMENT:'text-orange-500  bg-orange-500/10',
   ERROR:           'text-destructive    bg-destructive/10',
+  PARTIAL:         'text-warning        bg-warning/10',
   CANCELED:        'text-muted-foreground bg-muted',
 };
 

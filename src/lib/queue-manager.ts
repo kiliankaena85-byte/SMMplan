@@ -37,6 +37,7 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
     }) as unknown as Queue<PayloadType, any, string>;
   }
 
+
   return new Queue<PayloadType, any, string>(name, {
     connection: getRedisConnection(),
     defaultJobOptions: {
@@ -177,6 +178,23 @@ export async function ensureCatalogSyncCron() {
   );
 }
 
+
+/**
+ * C3: Schedule orphan sweep cron every 10 minutes.
+ * Picks up PENDING orders that were abandoned during dispatch due to Redis/process failures.
+ */
+export async function ensureOrphanSweepCron() {
+  await cleanupQueue.add(
+    'sweep-orphans',
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '*/10 * * * *' // Every 10 minutes
+      },
+      jobId: 'sweep-orphans-singleton'
+    }
+  );
+}
 
 export const closeQueues = async () => {
     await ordersQueue.close();

@@ -2,11 +2,11 @@ import { Worker } from 'bullmq';
 import { getRedisConnection } from '../lib/queue-manager';
 import { db } from '../lib/db';
 import { logger } from '../lib/logger';
-import { ensureSyncCron, ensureCleanupCron, ensureETACron, ensureCatalogSyncCron, dlqQueue, cleanupQueue, telegramQueue, etaQueue } from './queues';
+import { ensureSyncCron, ensureCleanupCron, ensureETACron, ensureCatalogSyncCron, ensureOrphanSweepCron, dlqQueue, cleanupQueue, telegramQueue, etaQueue } from '../lib/queue-manager';
 import { sendAdminAlert, sendAdminAlertSync } from '../lib/notifications';
 import orderProcessor from './processors/order.processor';
 import syncProcessor from './processors/sync.processor';
-import { runCleanup } from './processors/cleanup.processor';
+import { runCleanup, runOrphanSweep } from './processors/cleanup.processor';
 import { runETARecalculation } from './processors/eta.processor';
 import catalogProcessor from './processors/catalog.processor';
 import { orderService } from '../services/core/order.service';
@@ -27,7 +27,13 @@ const workerConfig = {
 const orderWorker = new Worker('ordersQueue', orderProcessor, workerConfig);
 const syncWorker = new Worker('syncQueue', syncProcessor, workerConfig);
 const catalogWorker = new Worker('catalogQueue', catalogProcessor, workerConfig);
-const cleanupWorker = new Worker('cleanup', async () => { await runCleanup(); }, workerConfig);
+const cleanupWorker = new Worker('cleanup', async (job) => { 
+  if (job.name === 'sweep-orphans') {
+    await runOrphanSweep();
+  } else {
+    await runCleanup(); 
+  }
+}, workerConfig);
 const telegramWorker = new Worker('telegram-notifications', async (job) => {
   await sendAdminAlertSync(job.data.message, job.data.severity);
 }, {
@@ -117,6 +123,7 @@ ensureSyncCron().catch(e => log.error('Failed to setup Sync Cron', { error: (e a
 ensureCleanupCron().catch(e => log.error('Failed to setup Cleanup Cron', { error: (e as Error).message }));
 ensureETACron().catch(e => log.error('Failed to setup ETA Cron', { error: (e as Error).message }));
 ensureCatalogSyncCron().catch(e => log.error('Failed to setup Catalog Sync Cron', { error: (e as Error).message }));
+ensureOrphanSweepCron().catch(e => log.error('Failed to setup Orphan Sweep Cron', { error: (e as Error).message }));
 
 log.info('All workers started', { queues: ['ordersQueue', 'syncQueue', 'catalogQueue', 'cleanup'] });
 

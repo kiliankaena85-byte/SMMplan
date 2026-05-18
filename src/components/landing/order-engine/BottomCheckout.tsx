@@ -16,6 +16,7 @@ export function BottomCheckout({ engine, handleCheckout, isSubmitting }: BottomC
     url, setUrl,
     email, setEmail,
     quantity, setQuantity,
+    promoCode, setPromoCode,
     selectedService,
     agreedToTerms, setAgreedToTerms,
     isCalculating,
@@ -42,7 +43,7 @@ export function BottomCheckout({ engine, handleCheckout, isSubmitting }: BottomC
       </div>
 
       {/* Top row with inputs */}
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
          <div className="space-y-3">
             <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-2">Email для чека</label>
             <div className="relative">
@@ -70,6 +71,16 @@ export function BottomCheckout({ engine, handleCheckout, isSubmitting }: BottomC
                 setQuantity(val);
               }} 
               className="w-full h-16 px-6 rounded-full border-2 border-border/60 bg-content2 shadow-sm text-xl font-black tabular-nums text-foreground focus:bg-background focus:border-primary/50 focus:shadow-lg focus:shadow-primary/10 outline-none transition-all"
+            />
+         </div>
+         <div className="space-y-3">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-2">Промокод</label>
+            <input 
+              type="text" 
+              value={promoCode} 
+              onChange={e => setPromoCode(e.target.value.toUpperCase())} 
+              placeholder="WINTER2026"
+              className="w-full h-16 px-6 rounded-full border-2 border-border/60 bg-content2 shadow-sm text-[15px] font-mono tracking-wider uppercase text-foreground placeholder:text-muted-foreground/50 focus:bg-background focus:border-primary/50 focus:shadow-lg focus:shadow-primary/10 outline-none transition-all"
             />
          </div>
       </div>

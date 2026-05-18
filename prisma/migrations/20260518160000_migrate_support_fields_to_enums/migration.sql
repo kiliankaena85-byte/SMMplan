@@ -11,10 +11,12 @@ CREATE TYPE "MessageSender" AS ENUM ('USER', 'STAFF', 'INTERNAL');
 DROP INDEX IF EXISTS "Ticket_source_idx";
 
 -- AlterTable (Safe conversion of Ticket columns)
+ALTER TABLE "Ticket" ALTER COLUMN "status" DROP DEFAULT;
 ALTER TABLE "Ticket" ALTER COLUMN "status" TYPE "TicketStatus" USING "status"::"TicketStatus";
 ALTER TABLE "Ticket" ALTER COLUMN "status" SET DEFAULT 'OPEN';
 ALTER TABLE "Ticket" ALTER COLUMN "status" SET NOT NULL;
 
+ALTER TABLE "Ticket" ALTER COLUMN "source" DROP DEFAULT;
 ALTER TABLE "Ticket" ALTER COLUMN "source" TYPE "TicketSource" USING "source"::"TicketSource";
 ALTER TABLE "Ticket" ALTER COLUMN "source" SET DEFAULT 'WEB';
 ALTER TABLE "Ticket" ALTER COLUMN "source" SET NOT NULL;

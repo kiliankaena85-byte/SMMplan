@@ -118,7 +118,7 @@ function RowActions({ order }: { order: OrderColumn }) {
       </Link>
       <button
         onClick={handleCancel}
-        disabled={isPending || ['COMPLETED', 'CANCELED'].includes(order.status)}
+        disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL'].includes(order.status)}
         className="inline-flex items-center justify-center p-1.5 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 transition-colors disabled:opacity-40"
         title="Отменить заказ"
       >

@@ -462,6 +462,7 @@ model TicketMessage {
 
   @@index([ticketId])
   @@index([telegramMsgId])
+  @@index([ticketId, createdAt])
 }
 
 model Page {

@@ -271,7 +271,7 @@ function OrderDrawer({
             </button>
             <button
               onClick={handleCancel}
-              disabled={isPending || ['COMPLETED', 'CANCELED'].includes(order.status)}
+              disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL'].includes(order.status)}
               aria-label="Отменить заказ"
               className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-rose-300 bg-destructive/10 text-rose-700 hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40"
             >

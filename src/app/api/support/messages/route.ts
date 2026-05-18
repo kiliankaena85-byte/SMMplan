@@ -55,18 +55,33 @@ export async function GET(req: NextRequest) {
     );
     const cursor = req.nextUrl.searchParams.get('cursor') || undefined;
 
-    const messages = await db.ticketMessage.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'asc' },
-      take: limit + 1, // Fetch limit + 1 to check if there is a next page
-      include: { replyTo: true },
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
-    });
-
+    let messages;
     let nextCursor: string | null = null;
-    if (messages.length > limit) {
-      const nextPageItem = messages.pop(); // Remove the extra item
-      nextCursor = nextPageItem?.id || null;
+
+    if (after) {
+      // Polling mode: get all new messages in chronological order
+      messages = await db.ticketMessage.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'asc' },
+        include: { replyTo: true }
+      });
+    } else {
+      // Pagination mode: get messages in reverse chronological order
+      const fetchedMessages = await db.ticketMessage.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        take: limit + 1,
+        include: { replyTo: true },
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
+      });
+
+      if (fetchedMessages.length > limit) {
+        const nextPageItem = fetchedMessages.pop();
+        nextCursor = nextPageItem?.id || null;
+      }
+
+      // Reverse so the client receives them chronologically (oldest first)
+      messages = fetchedMessages.reverse();
     }
 
     const mappedMessages = messages.map(m => ({

@@ -27,8 +27,12 @@ interface ChatWindowProps {
   initialMessages: Message[];
   isStaff?: boolean;
   initialTemplates?: { id: string, label: string, text: string }[];
-  onSendMessage: (formData: FormData) => Promise<void>;
-  editTicketMessage?: (formData: FormData) => Promise<void>;
+  // TODO: Bring back strict typing (e.g. Promise<void | ActionResponse>) once H5 (MessageAttachment) is stabilized.
+  // Using Promise<any> as a temporary compromise to support direct Server Actions passing without wrappers.
+  onSendMessage: (formData: FormData) => Promise<any>;
+  editTicketMessage?: (formData: FormData) => Promise<any>;
+  initialNextCursor?: string | null;
+  isClosed?: boolean;
 }
 
 const ImageZoomModal = ({ url, onClose }: { url: string; onClose: () => void }) => {
@@ -76,8 +80,10 @@ const ImageZoomModal = ({ url, onClose }: { url: string; onClose: () => void }) 
   );
 };
 
-export default function ChatWindow({ ticketId, initialMessages, isStaff = false, initialTemplates = [], onSendMessage, editTicketMessage }: ChatWindowProps) {
+export default function ChatWindow({ ticketId, initialMessages, isStaff = false, initialTemplates = [], onSendMessage, editTicketMessage, initialNextCursor = null, isClosed = false }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -90,6 +96,28 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   const [isAiPending, startAiTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLoadOlder = async () => {
+    if (!nextCursor || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const res = await fetch(`/api/support/messages?ticketId=${ticketId}&cursor=${nextCursor}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (data.messages && data.messages.length > 0) {
+        setMessages(prev => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const newMsgs = data.messages.filter((m: Message) => !existingIds.has(m.id));
+          return [...newMsgs, ...prev];
+        });
+      }
+      setNextCursor(data.nextCursor);
+    } catch {
+      toast.error('Не удалось загрузить историю сообщений');
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   const handleAiReply = () => {
     startAiTransition(async () => {
@@ -276,6 +304,25 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background/50 relative">
+        {nextCursor && (
+          <div className="flex justify-center py-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleLoadOlder}
+              disabled={loadingOlder}
+              className="px-4 py-2 text-xs font-bold text-primary bg-primary/10 border border-primary/20 hover:bg-primary/25 rounded-xl transition-all duration-200 flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+            >
+              {loadingOlder ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Загрузка...</span>
+                </>
+              ) : (
+                <span>Загрузить предыдущие сообщения</span>
+              )}
+            </button>
+          </div>
+        )}
         <AnimatePresence initial={false}>
         {messages.map((msg, index) => {
           const showSeparator = index > 0 && messages[index - 1].isHistorical && !msg.isHistorical;
@@ -428,117 +475,124 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="p-4 bg-card border-t border-slate-200">
-        
-        {isStaff && (initialTemplates.length > 0 || true) && (
-          <div className="flex flex-wrap gap-1.5 mb-3 items-center">
-            <span className="text-[10px] text-slate-400 font-bold uppercase mr-1 flex items-center shrink-0">Помощник:</span>
-            
-            {/* AI Smart Reply Button */}
-            <button
-              type="button"
-              onClick={handleAiReply}
-              disabled={isAiPending}
-              className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-[10px] font-bold text-indigo-700 rounded-md hover:bg-indigo-100 transition-all flex items-center gap-1.5 shadow-sm"
-            >
-              {isAiPending ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Sparkles className="w-3 h-3" />
-              )}
-              AI Ответ
-            </button>
-
-            {initialTemplates.map(t => (
-              <button 
-                key={t.id} 
-                type="button" 
-                onClick={() => setText(t.text)}
-                className="px-2 py-1 border border-slate-200 text-[10px] font-bold bg-card text-slate-600 rounded-md hover:bg-slate-50 border hover:border-slate-300 transition-colors"
-                title={t.text}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2 w-full">
-          <AnimatePresence>
-          {replyingTo && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
-              animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
-              exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-              className="flex items-center justify-between bg-primary-50 border-l-4 border-primary px-3 py-2 rounded-lg mb-1"
-            >
-              <div>
-                <div className="text-[10px] font-bold text-primary-700 uppercase tracking-wider">Ответ для {replyingTo.sender}</div>
-                <div className="text-xs text-foreground/80 line-clamp-1">{replyingTo.text || 'Медиа сообщение'}</div>
-              </div>
-              <button type="button" onClick={() => setReplyingTo(null)} className="p-1 text-primary-400 hover:text-primary-700 font-bold ml-2 transition-colors">✕</button>
-            </motion.div>
-          )}
-          </AnimatePresence>
-          <div className="flex gap-2 w-full">
-          <input
-             type="file"
-             className="hidden"
-             ref={fileInputRef}
-             accept="image/jpeg,image/png,image/webp,application/pdf"
-             onChange={(e) => {
-               if (e.target.files && e.target.files[0]) {
-                 setFile(e.target.files[0]);
-               }
-             }}
-          />
-          <button 
-             type="button"
-             onClick={() => fileInputRef.current?.click()}
-             className="px-3 bg-slate-100 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-200 hover:text-slate-700 transition-colors flex items-center justify-center shrink-0"
-             title="Прикрепить файл (скриншот или PDF чек)"
-             aria-label="Прикрепить файл (скриншот или PDF чек)"
-          >
-             📎
-          </button>
+      {isClosed ? (
+        <div className="p-6 bg-muted/20 border-t border-border flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground select-none shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-muted-foreground/60"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Тикет закрыт. Создайте новое обращение если нужна помощь.</span>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="p-4 bg-card border-t border-slate-200">
           
-          <div className="flex-1 relative flex items-center border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent bg-card">
-            {file && (
-              <div className="absolute left-2 pl-1.5 pr-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-medium rounded-md border border-indigo-200 flex items-center gap-1 z-10 max-w-[150px]">
-                 <span className="truncate">{file.name}</span>
-                 <button type="button" onClick={() => setFile(null)} className="opacity-60 hover:opacity-100 font-bold ml-1" aria-label="Удалить прикрепленный файл">✕</button>
-              </div>
-            )}
-            <input
-              type="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={file ? "" : "Введите ваше сообщение..."}
-              className={`w-full bg-transparent border-none px-4 py-2.5 text-sm focus:outline-none ${file ? 'pl-[170px]' : ''}`}
-            />
-          </div>
+          {isStaff && (initialTemplates.length > 0 || true) && (
+            <div className="flex flex-wrap gap-1.5 mb-3 items-center">
+              <span className="text-[10px] text-slate-400 font-bold uppercase mr-1 flex items-center shrink-0">Помощник:</span>
+              
+              {/* AI Smart Reply Button */}
+              <button
+                type="button"
+                onClick={handleAiReply}
+                disabled={isAiPending}
+                className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-[10px] font-bold text-indigo-700 rounded-md hover:bg-indigo-100 transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                {isAiPending ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3 h-3" />
+                )}
+                AI Ответ
+              </button>
 
-          <button
-            type="submit"
-            disabled={(!text.trim() && !file) || sending}
-            className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary disabled:opacity-50 transition-colors shrink-0"
-          >
-            Отправить
-          </button>
-        </div>
-        {isStaff && (
-          <label className="flex items-center gap-2 mt-3 text-xs text-amber-600 font-medium cursor-pointer w-max bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200">
+              {initialTemplates.map(t => (
+                <button 
+                  key={t.id} 
+                  type="button" 
+                  onClick={() => setText(t.text)}
+                  className="px-2 py-1 border border-slate-200 text-[10px] font-bold bg-card text-slate-600 rounded-md hover:bg-slate-50 border hover:border-slate-300 transition-colors"
+                  title={t.text}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 w-full">
+            <AnimatePresence>
+            {replyingTo && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                className="flex items-center justify-between bg-primary-50 border-l-4 border-primary px-3 py-2 rounded-lg mb-1"
+              >
+                <div>
+                  <div className="text-[10px] font-bold text-primary-700 uppercase tracking-wider">Ответ для {replyingTo.sender}</div>
+                  <div className="text-xs text-foreground/80 line-clamp-1">{replyingTo.text || 'Медиа сообщение'}</div>
+                </div>
+                <button type="button" onClick={() => setReplyingTo(null)} className="p-1 text-primary-400 hover:text-primary-700 font-bold ml-2 transition-colors">✕</button>
+              </motion.div>
+            )}
+            </AnimatePresence>
+            <div className="flex gap-2 w-full">
             <input
-              type="checkbox"
-              checked={isInternal}
-              onChange={(e) => setIsInternal(e.target.checked)}
-              className="rounded border-amber-300 text-amber-600 focus:ring-amber-500" 
+               type="file"
+               className="hidden"
+               ref={fileInputRef}
+               accept="image/jpeg,image/png,image/webp,application/pdf"
+               onChange={(e) => {
+                 if (e.target.files && e.target.files[0]) {
+                   setFile(e.target.files[0]);
+                 }
+               }}
             />
-            🔒 Скрытая заметка (невидна клиенту)
-          </label>
-        )}
-        </div>
-      </form>
+            <button 
+               type="button"
+               onClick={() => fileInputRef.current?.click()}
+               className="px-3 bg-slate-100 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-200 hover:text-slate-700 transition-colors flex items-center justify-center shrink-0"
+               title="Прикрепить файл (скриншот или PDF чек)"
+               aria-label="Прикрепить файл (скриншот или PDF чек)"
+            >
+               📎
+            </button>
+            
+            <div className="flex-1 relative flex items-center border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent bg-card">
+              {file && (
+                <div className="absolute left-2 pl-1.5 pr-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-medium rounded-md border border-indigo-200 flex items-center gap-1 z-10 max-w-[150px]">
+                   <span className="truncate">{file.name}</span>
+                   <button type="button" onClick={() => setFile(null)} className="opacity-60 hover:opacity-100 font-bold ml-1" aria-label="Удалить прикрепленный файл">✕</button>
+                </div>
+              )}
+              <input
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={file ? "" : "Введите ваше сообщение..."}
+                className={`w-full bg-transparent border-none px-4 py-2.5 text-sm focus:outline-none ${file ? 'pl-[170px]' : ''}`}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={(!text.trim() && !file) || sending}
+              className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary disabled:opacity-50 transition-colors shrink-0"
+            >
+              Отправить
+            </button>
+          </div>
+          {isStaff && (
+            <label className="flex items-center gap-2 mt-3 text-xs text-amber-600 font-medium cursor-pointer w-max bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200">
+              <input
+                type="checkbox"
+                checked={isInternal}
+                onChange={(e) => setIsInternal(e.target.checked)}
+                className="rounded border-amber-300 text-amber-600 focus:ring-amber-500" 
+              />
+              🔒 Скрытая заметка (невидна клиенту)
+            </label>
+          )}
+          </div>
+        </form>
+      )}
 
       {/* Zoom Modal */}
       {zoomedImage && (

@@ -114,11 +114,9 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
             await QuarantineService.evaluateTriggerA(order.serviceId, error.message);
         }
 
-        // W7-2 FIX: Mark order as ERROR in DB to prevent infinite stuck PENDING states, including for Drip-Feed
-        await db.order.update({
-          where: { id: order.id },
-          data: { status: 'ERROR' }
-        });
+        // W7-2 FIX: Properly fail order with refund to prevent financial leakage
+        const { orderService } = await import('../../services/core/order.service');
+        await orderService.failOrderTerminal(order.id, `Провайдер отклонил заказ: ${error.message}`);
 
         // BullMQ UnrecoverableError throws immediately and moves to failed queue without consuming more retries
         throw new UnrecoverableError(error.message);

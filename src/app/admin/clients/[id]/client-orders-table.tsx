@@ -4,12 +4,12 @@ import { Table } from '@/components/admin/hero-ui';
 import Link from 'next/link';
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING:    'bg-warning/20  text-amber-700',
-  PROCESSING: 'bg-blue-100   text-blue-700',
-  COMPLETED:  'bg-success/20 text-emerald-700',
-  FAILED:     'bg-destructive/20   text-rose-700',
-  CANCELLED:  'bg-muted  text-muted-foreground',
-  PARTIAL:    'bg-orange-100 text-orange-700',
+  PENDING:     'bg-warning/20 text-amber-700',
+  IN_PROGRESS: 'bg-blue-100 text-blue-700',
+  COMPLETED:   'bg-success/20 text-emerald-700',
+  ERROR:       'bg-destructive/20 text-rose-700',
+  CANCELED:    'bg-muted text-muted-foreground',
+  PARTIAL:     'bg-warning/20 text-amber-700',
 };
 
 type OrderType = {

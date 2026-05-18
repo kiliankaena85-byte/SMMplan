@@ -92,8 +92,9 @@ export default async function AdminTicketChatPage({ params }: { params: Promise<
               initialMessages={activeTicket.messages}
               isStaff={true}
               initialTemplates={templates}
-              onSendMessage={async (fd) => { await adminReplyTicket(fd); }}
-              editTicketMessage={async (fd) => { await editTicketMessage(fd); }}
+              onSendMessage={adminReplyTicket}
+              editTicketMessage={editTicketMessage}
+              initialNextCursor={activeTicket.nextCursor}
             />
           </div>
         </div>

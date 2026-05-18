@@ -85,7 +85,7 @@ describe('Support Messages API GET Route', () => {
     // Verify Prisma findMany options
     expect(db.ticketMessage.findMany).toHaveBeenCalledWith(expect.objectContaining({
       take: 51,
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
     }));
   });
 

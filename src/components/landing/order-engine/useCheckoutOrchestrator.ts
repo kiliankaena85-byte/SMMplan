@@ -42,7 +42,7 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
   };
 
   const handleCheckout = async () => {
-    const { selectedService, url, quantity, customData, agreedToTerms, email, isMassMode, massCalculation } = engine;
+    const { selectedService, url, quantity, customData, agreedToTerms, email, isMassMode, massCalculation, promoCode } = engine;
 
     if (isMassMode) {
       if (!massCalculation || massCalculation.validCount === 0) {
@@ -159,6 +159,7 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
       quantity,
       email,
       customData: customData.trim() || undefined,
+      promoCodeStr: promoCode.trim() || undefined,
       gateway: 'yookassa' // Standard generic checkout via yookassa
     });
     

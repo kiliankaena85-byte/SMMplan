@@ -77,4 +77,61 @@ export class LoyaltyService {
       }
     });
   }
+
+  /**
+   * Confirms a pending commission when an order completes.
+   * Moves it from PENDING to CONFIRMED.
+   */
+  static async confirmCommission(tx: any, orderId: string): Promise<void> {
+    const commissions = await tx.commission.findMany({
+      where: { orderId, status: 'PENDING' }
+    });
+
+    for (const comm of commissions) {
+      await tx.commission.update({
+        where: { id: comm.id },
+        data: { status: 'CONFIRMED' }
+      });
+      // The amount is already in referralBalance. No need to increment it again.
+      // But we can create an audit log.
+      await tx.auditLog.create({
+        data: {
+          userId: comm.referrerId,
+          action: 'REFERRAL_CONFIRMED',
+          details: `Комиссия за заказ переведена в статус подтвержденной.`
+        }
+      });
+    }
+  }
+
+  /**
+   * Reverses a pending commission if the order fails.
+   * Moves it from PENDING to REVERSED and decrements referralBalance.
+   */
+  static async reverseCommission(tx: any, orderId: string): Promise<void> {
+    const commissions = await tx.commission.findMany({
+      where: { orderId, status: 'PENDING' }
+    });
+
+    for (const comm of commissions) {
+      await tx.commission.update({
+        where: { id: comm.id },
+        data: { status: 'REVERSED' }
+      });
+      
+      // Withdraw the amount from the referrer's referral balance
+      await tx.user.update({
+        where: { id: comm.referrerId },
+        data: { referralBalance: { decrement: comm.amount } }
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: comm.referrerId,
+          action: 'REFERRAL_REVERSED',
+          details: `Комиссия отозвана из-за отмены/ошибки заказа.`
+        }
+      });
+    }
+  }
 }
