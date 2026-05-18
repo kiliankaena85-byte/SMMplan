@@ -115,18 +115,10 @@ class MarketingService {
     }
 
     // 4. Calculate Final Cents
-    let discountCents = Math.round((originalTotalCents * maxDiscountPercent) / 100);
-    // Apply VOUCHER discount (additive to percentage)
-    if (promoFixedDiscountCents > 0) {
-      discountCents += promoFixedDiscountCents;
-    }
+    const percentDiscountCents = Math.round((originalTotalCents * maxDiscountPercent) / 100);
+    const voucherCents = promoFixedDiscountCents;
 
-    // [SAFETY] Hard ceiling on total discount cents — prevents stacking exploits
-    const maxAllowedDiscountCents = Math.floor((originalTotalCents * MAX_TOTAL_DISCOUNT) / 100);
-    if (discountCents > maxAllowedDiscountCents) {
-      discountCents = maxAllowedDiscountCents;
-    }
-
+    let discountCents = percentDiscountCents + voucherCents;
     let totalCents = originalTotalCents - discountCents;
 
     // 5. [SAFETY FLOOR] Never sell below break-even after taxes & gateway fees.
