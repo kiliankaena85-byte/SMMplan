@@ -198,7 +198,7 @@ export class PaymentService {
           if (activated.userEmail && activated.serviceName) {
             void sendOrderPaidMail(
               activated.userEmail,
-              activated.numericId!.toString(),
+              activated.numericId?.toString() ?? activated.id,
               activated.serviceName
             ).catch(err => console.error('[H1] sendOrderPaidMail failed', err));
           }
@@ -328,7 +328,7 @@ export class PaymentService {
           if (activated.userEmail && activated.serviceName) {
             void sendOrderPaidMail(
               activated.userEmail,
-              activated.numericId!.toString(),
+              activated.numericId?.toString() ?? activated.id,
               activated.serviceName
             ).catch(err => console.error('[H1] sendOrderPaidMail failed', err));
           }
