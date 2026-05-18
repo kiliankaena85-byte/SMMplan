@@ -68,31 +68,64 @@ export async function runCleanup(): Promise<void> {
   const safeZombieThreshold = new Date(now);
   safeZombieThreshold.setHours(safeZombieThreshold.getHours() - 25); // Extra 1-hour buffer
 
-  const zombies = await db.order.findMany({
-    where: { 
-      status: 'AWAITING_PAYMENT',
-      createdAt: { lt: safeZombieThreshold },
-      payment: { status: { notIn: ['SUCCEEDED', 'PENDING'] } }
-    },
-    select: { id: true }
-  });
-
   let canceledCount = 0;
-  if (zombies.length > 0) {
-    const { LoyaltyService } = await import('@/services/users/loyalty.service');
+  let hasMore = true;
+  const MAX_ITERATIONS = 20; // 20 × 50 = 1000 zombies max
+  let iterations = 0;
+
+  const { LoyaltyService } = await import('@/services/users/loyalty.service');
+  const { sendAdminAlert } = await import('@/lib/notifications');
+
+  while (hasMore && iterations < MAX_ITERATIONS) {
+    iterations++;
+
+    const zombies = await db.order.findMany({
+      where: { 
+        status: 'AWAITING_PAYMENT',
+        createdAt: { lt: safeZombieThreshold },
+        payment: { status: { notIn: ['SUCCEEDED', 'PENDING'] } }
+      },
+      select: { id: true },
+      take: 50 // [FIN-010] Batching for performance protection
+    });
+
+    if (zombies.length === 0) {
+      hasMore = false;
+      break;
+    }
+
     for (const zombie of zombies) {
       await db.$transaction(async (tx) => {
-        await tx.order.update({
-          where: { id: zombie.id },
+        // [FIN-010] Optimistic lock to prevent Race Condition with incoming Webhooks
+        const updated = await tx.order.updateMany({
+          where: { id: zombie.id, status: 'AWAITING_PAYMENT' },
           data: { 
             status: 'CANCELED', 
             error: 'Ожидание оплаты истекло (авто-отмена системы)' 
           }
         });
-        await LoyaltyService.reverseCommission(tx, zombie.id);
+        
+        if (updated.count > 0) {
+          await LoyaltyService.reverseCommission(tx, zombie.id);
+          canceledCount++;
+        }
       });
-      canceledCount++;
     }
+
+    if (zombies.length < 50) {
+      hasMore = false; // Last page
+    }
+  }
+
+  if (iterations >= MAX_ITERATIONS) {
+    log.warn('runCleanup: reached MAX_ITERATIONS limit', {
+      canceledCount,
+      iterations
+    });
+    await sendAdminAlert(
+      '⚠️ cleanup MAX_ITERATIONS reached. Возможно накопилось >1000 зомби.',
+      'WARN'
+    );
   }
 
   log.info('Zombie AWAITING_PAYMENT cleanup done', { 
