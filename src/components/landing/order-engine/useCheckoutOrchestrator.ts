@@ -166,9 +166,23 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
     setIsSubmitting(false);
     if (res.success && res.data?.paymentUrl) {
       window.location.href = res.data.paymentUrl;
-    } else {
-      const errorMessage = !res.success ? res.error : "Ошибка создания заказа. Попробуйте снова.";
-      toast.error(errorMessage, { position: 'top-center' });
+    } else if (!res.success) {
+      if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
+        toast.error(
+          'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
+          {
+            position: 'top-center',
+            duration: 6000,
+            action: {
+              label: 'Мой баланс',
+              onClick: () => window.location.href = '/dashboard/add-funds'
+            }
+          }
+        );
+      } else {
+        const errorMessage = res.error || "Ошибка создания заказа. Попробуйте снова.";
+        toast.error(errorMessage, { position: 'top-center' });
+      }
     }
   };
 

@@ -21,6 +21,7 @@ export function BottomCheckout({ engine, handleCheckout, isSubmitting }: BottomC
     agreedToTerms, setAgreedToTerms,
     isCalculating,
     totalPriceFormatted,
+    pricingError,
   } = engine;
 
   return (
@@ -82,6 +83,17 @@ export function BottomCheckout({ engine, handleCheckout, isSubmitting }: BottomC
               placeholder="WINTER2026"
               className="w-full h-16 px-6 rounded-full border-2 border-border/60 bg-content2 shadow-sm text-[15px] font-mono tracking-wider uppercase text-foreground placeholder:text-muted-foreground/50 focus:bg-background focus:border-primary/50 focus:shadow-lg focus:shadow-primary/10 outline-none transition-all"
             />
+            {pricingError === 'voucher' && (
+              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mt-2">
+                <span>💳</span>
+                <span>
+                  Это ваучер на пополнение баланса.{' '}
+                  <Link href="/dashboard/add-funds" className="font-semibold underline">
+                    Активируйте его здесь
+                  </Link>
+                </span>
+              </div>
+            )}
          </div>
       </div>
 

@@ -95,22 +95,8 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    // Removed Redis Mutex to prevent DB connection pool exhaustion.
-      if (idempotencyKey) {
-        const existing = await tx.ledgerEntry.findUnique({
-          where: { idempotencyKey },
-        });
-        if (existing) {
-            return { success: true, balance: null, cached: true, entry: existing };
-        }
-      }
-
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: { balance: { increment: amountCents } },
-        select: { balance: true }
-      });
-
+    // Create-first pattern: atomic idempotency barrier
+    try {
       const entry = await tx.ledgerEntry.create({
         data: {
           userId,
@@ -122,8 +108,28 @@ export const WalletOps = {
         }
       });
 
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { balance: { increment: amountCents } },
+        select: { balance: true }
+      });
+
       return { success: true, balance: updatedUser.balance, cached: false, entry };
-    // Removed Mutex wrapper closing bracket
+    } catch (error: any) {
+      if (idempotencyKey && error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
+        // If tx is part of an outer interactive transaction, findUnique might fail due to aborted tx,
+        // but this handles the non-transactional or savepoint-capable cases gracefully.
+        try {
+          const existing = await tx.ledgerEntry.findUnique({
+            where: { idempotencyKey },
+          });
+          if (existing) return { success: true, balance: null, cached: true, entry: existing };
+        } catch (innerError) {
+          throw error; // Re-throw original P2002 if tx is aborted
+        }
+      }
+      throw error;
+    }
   },
 
   /**

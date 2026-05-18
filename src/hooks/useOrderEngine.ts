@@ -44,6 +44,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [platform, setPlatform] = useState<IntelligencePlatform | null>(null);
   const [manualPlatform, setManualPlatform] = useState<IntelligencePlatform | null>(null);
   const [pricing, setPricing] = useState<PricingResult | null>(null);
+  const [pricingError, setPricingError] = useState<'voucher' | null>(null);
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   
   // Mass Order states
@@ -214,6 +215,13 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       );
       if (res.success && res.data) {
         setPricing(res.data);
+        setPricingError(null);
+      } else if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
+        setPricing(null);
+        setPricingError('voucher');
+      } else {
+        setPricing(null);
+        setPricingError(null);
       }
       setIsCalculating(false);
     }, 300);
@@ -356,6 +364,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     availableCategories,
     services,
     pricing,
+    pricingError,
     totalPriceFormatted,
     
     // Status

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 /** Превращает URL в тексте в кликабельную ссылку */
 function linkifyText(text: string) {
@@ -136,7 +137,24 @@ export function SmartOrderForm() {
 
     if (res.success && res.data?.paymentUrl) {
       window.location.href = res.data.paymentUrl;
+      return res;
     }
+    
+    if (!res.success && res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
+      toast.error(
+        'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
+        {
+          position: 'top-center',
+          duration: 6000,
+          action: {
+            label: 'Мой баланс',
+            onClick: () => window.location.href = '/dashboard/add-funds'
+          }
+        }
+      );
+      return { ...res, error: undefined }; // Prevent ActionForm from showing a second toast
+    }
+
     return res;
   };
 

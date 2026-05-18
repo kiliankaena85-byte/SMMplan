@@ -2,6 +2,8 @@
 
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
+import { WalletOps } from "@/services/financial/wallet-ops";
+import { RateLimitService } from "@/services/core/rate-limit.service";
 
 export async function activatePromoCodeAction(code: string) {
   const session = await verifySession();
@@ -10,72 +12,68 @@ export async function activatePromoCodeAction(code: string) {
   const cleanCode = code.trim().toUpperCase();
   if (!cleanCode) throw new Error("Введите промокод");
 
-  return await db.$transaction(async (tx) => {
-    const promo = await tx.promoCode.findUnique({ where: { code: cleanCode } });
+  // Rate Limit: Prevent brute-force guessing
+  const isAllowed = await RateLimitService.checkCustomKey(`promo_activate_user:${session.userId}`, 5, 60);
+  if (!isAllowed) {
+    throw new Error("Слишком много попыток. Пожалуйста, подождите минуту.");
+  }
 
-    if (!promo || !promo.isActive) {
-      throw new Error("Промокод недействителен или не существует");
-    }
+  try {
+    return await db.$transaction(async (tx) => {
+      const promo = await tx.promoCode.findUnique({ where: { code: cleanCode } });
 
-    if (promo.maxUses > 0 && promo.uses >= promo.maxUses) {
-      throw new Error("Лимит использований промокода исчерпан");
-    }
-
-    if (promo.expiresAt && promo.expiresAt < new Date()) {
-      throw new Error("Срок действия промокода истёк");
-    }
-
-    // Check if user already used this promo code
-    const alreadyUsed = await tx.ledgerEntry.findFirst({
-      where: {
-        userId: session.userId,
-        reason: { contains: `Промокод: ${cleanCode}` }
+      if (!promo || !promo.isActive) {
+        throw new Error("Промокод недействителен или не существует");
       }
-    });
 
-    if (alreadyUsed) {
+      if (promo.expiresAt && promo.expiresAt < new Date()) {
+        throw new Error("Срок действия промокода истёк");
+      }
+
+      if (promo.type !== "VOUCHER") {
+        throw new Error("Этот промокод дает скидку на заказы. Примените его при оформлении заказа на главной странице.");
+      }
+
+      if (promo.amount <= 0) {
+        throw new Error("Этот промокод не содержит денежного бонуса");
+      }
+
+      // Check if user already used this promo code (using DB-level idempotency key)
+      const idempotencyKey = `promo-${cleanCode}-${session.userId}`;
+      const alreadyUsed = await tx.ledgerEntry.findUnique({
+        where: { idempotencyKey }
+      });
+
+      if (alreadyUsed) {
+        throw new Error("Вы уже активировали этот промокод");
+      }
+
+      // Optimistic Concurrency Control (OCC) for usage limits
+      const updatedPromo = await tx.promoCode.updateMany({
+        where: { 
+          id: promo.id,
+          ...(promo.maxUses > 0 ? { uses: { lt: promo.maxUses } } : {})
+        },
+        data: { uses: { increment: 1 } }
+      });
+
+      if (updatedPromo.count === 0) {
+        throw new Error("Лимит использований промокода исчерпан");
+      }
+
+      // Activate voucher -> Add to balance via WalletOps
+      const reason = `Активация ваучера: ${cleanCode}`;
+      await WalletOps.credit(tx, session.userId, promo.amount, reason, { idempotencyKey });
+
+      return { success: true, amount: promo.amount };
+    }, { isolationLevel: 'Serializable' });
+  } catch (error: any) {
+    if (error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
       throw new Error("Вы уже активировали этот промокод");
     }
-
-    if (promo.type !== "VOUCHER") {
-      throw new Error("Этот промокод дает скидку на заказы. Примените его при оформлении заказа на главной странице.");
+    if (error.code === 'P2034') {
+      throw new Error("Транзакция в обработке, пожалуйста, попробуйте еще раз.");
     }
-
-    if (promo.amount <= 0) {
-      throw new Error("Этот промокод не содержит денежного бонуса");
-    }
-
-    // Activate voucher -> Add to balance
-    await tx.user.update({
-      where: { id: session.userId },
-      data: { balance: { increment: promo.amount } }
-    });
-
-    await tx.promoCode.update({
-      where: { id: promo.id },
-      data: { uses: { increment: 1 } }
-    });
-
-    await tx.payment.create({
-      data: {
-        userId: session.userId,
-        amount: promo.amount,
-        currency: "RUB",
-        status: "COMPLETED",
-        gateway: "promo_code"
-      }
-    });
-
-    await tx.ledgerEntry.create({
-      data: {
-        userId: session.userId,
-        amount: promo.amount,
-        reason: `Активация промокода: ${cleanCode} (Промокод: ${cleanCode})`,
-        status: "APPROVED",
-        idempotencyKey: `promo-${cleanCode}-${session.userId}`
-      }
-    });
-
-    return { success: true, amount: promo.amount };
-  });
+    throw error;
+  }
 }

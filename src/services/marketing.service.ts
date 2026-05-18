@@ -93,7 +93,7 @@ class MarketingService {
       if (promo && promo.isActive && (promo.maxUses === 0 || promo.uses < promo.maxUses)) {
         if (!promo.expiresAt || promo.expiresAt > new Date()) {
           if (promo.type === 'VOUCHER') {
-            promoFixedDiscountCents = promo.amount;
+            throw new Error('VOUCHER_USE_BALANCE: Это ваучер на пополнение баланса. Активируйте его в разделе «Мой баланс», а затем оплатите заказ с баланса.');
           } else {
             promoDiscountPercent = promo.discountPercent;
           }
@@ -153,6 +153,9 @@ class MarketingService {
     
     if (!promo || !promo.isActive) {
       throw new Error('Промокод недействителен');
+    }
+    if (promo.type === 'VOUCHER') {
+      throw new Error('VOUCHER_USE_BALANCE: Ваучер не может быть применён к заказу напрямую.');
     }
     if (promo.maxUses > 0 && promo.uses >= promo.maxUses) {
       throw new Error('Лимит использований промокода исчерпан');
