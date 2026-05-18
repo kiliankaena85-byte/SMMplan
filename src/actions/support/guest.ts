@@ -7,6 +7,7 @@ import { RateLimitService } from '@/services/core/rate-limit.service';
 import { headers } from 'next/headers';
 
 const guestTicketSchema = z.object({
+  name: z.string().min(2, "Имя должно быть не короче 2 символов").max(100, "Имя слишком длинное"),
   email: z.string().email("Пожалуйста, введите корректный email"),
   message: z.string().min(10, "Вопрос должен быть не короче 10 символов").max(2000, "Вопрос слишком длинный")
 });
@@ -33,7 +34,7 @@ export async function createGuestTicketAction(formData: FormData) {
     if (!parsed.success) {
       return { success: false, error: parsed.error.errors[0].message };
     }
-    const { email, message } = parsed.data;
+    const { name, email, message } = parsed.data;
 
     // W1-2 SECURITY FIX: Prevent Account Squatting
     // If a real user with this email exists (has passwordHash), reject guest ticket creation.
@@ -63,7 +64,7 @@ export async function createGuestTicketAction(formData: FormData) {
     const ticket = await db.ticket.create({
       data: {
         userId: user.id,
-        subject: "Вопрос от гостя (с сайта)",
+        subject: `Вопрос от гостя: ${name}`,
         source: "EMAIL",
         status: "OPEN"
       }

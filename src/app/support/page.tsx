@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { GuestSupportOptions } from '@/components/support/GuestSupportOptions';
 import { SettingsProvider } from '@/lib/settings';
+import { verifySession } from '@/lib/session';
+import { redirect } from 'next/navigation';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await SettingsProvider.getContactAndLegalSettings();
@@ -11,6 +13,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SupportPage() {
+  const session = await verifySession();
+  if (session?.userId) {
+    redirect('/dashboard/tickets');
+  }
+
   const settings = await SettingsProvider.getContactAndLegalSettings();
 
   return (
