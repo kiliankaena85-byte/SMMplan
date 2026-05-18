@@ -106,54 +106,52 @@ export async function runOrphanSweep(): Promise<void> {
   
   const orphans = await db.order.findMany({
     where: {
-      status: 'PENDING',
+      status: { in: ['PENDING', 'CANCELING'] },
       updatedAt: { lt: threshold }
     },
-    select: { id: true, numericId: true, userId: true, charge: true, createdAt: true }
+    select: { id: true, numericId: true, userId: true, charge: true, createdAt: true, status: true }
   });
 
   if (orphans.length > 0) {
     const { orderService } = await import('../../services/core/order.service');
     const { sendAdminAlert } = await import('@/lib/notifications');
     let sweptCount = 0;
+    const sweptDetails: string[] = [];
 
     for (const orphan of orphans) {
-      // Optimistic lock: ensure it's still PENDING before we take over
-      const updated = await db.order.updateMany({
-        where: {
-          id: orphan.id,
-          status: 'PENDING'
-        },
-        data: { status: 'CANCELING' } // Temporary state to prevent worker pickup
-      });
+      if (orphan.status === 'PENDING') {
+        // Optimistic lock: ensure it's still PENDING before we take over
+        const updated = await db.order.updateMany({
+          where: {
+            id: orphan.id,
+            status: 'PENDING'
+          },
+          data: { status: 'CANCELING' } // Temporary state to prevent worker pickup
+        });
 
-      if (updated.count === 0) {
-        // Worker picked it up just now, skip
-        continue;
+        if (updated.count === 0) {
+          // Worker picked it up just now, skip
+          continue;
+        }
       }
 
       // Safe to cancel and refund
-      const reason = 'Заказ отменён автоматически: не удалось передать в обработку. Средства возвращены на баланс.';
-      await orderService.failOrderTerminal(orphan.id, reason);
+      const reason = `Автоотмена: заказ #${orphan.numericId} не удалось передать в обработку. Средства возвращены на баланс.`;
+      await orderService.failOrderTerminal(orphan.id, reason, true); // true = raw reason
       
       sweptCount++;
-      
       const minutesPending = Math.round((Date.now() - orphan.createdAt.getTime()) / 60000);
       const refundRub = (Number(orphan.charge) / 100).toFixed(2);
       
-      await sendAdminAlert(
-        `🧹 *sweep-orphans автоотмена*\n\n` +
-        `Order ID: \`${orphan.id}\` (#${orphan.numericId})\n` +
-        `User ID: \`${orphan.userId}\`\n` +
-        `Created: ${orphan.createdAt.toISOString()}\n` +
-        `Pending duration: ${minutesPending} min\n` +
-        `Refund: ${refundRub} RUB`,
-        'WARN'
-      );
+      sweptDetails.push(`• ID: \`${orphan.id}\` (#${orphan.numericId}), Юзер: \`${orphan.userId}\`, Висел: ${minutesPending} мин, Возврат: ${refundRub} ₽`);
     }
     
     if (sweptCount > 0) {
       log.info(`Swept ${sweptCount} orphan PENDING orders`, { durationMs: Date.now() - startedAt });
+      await sendAdminAlert(
+        `🧹 *sweep-orphans автоотмена*\nОбработано зависших заказов: ${sweptCount}\n\n${sweptDetails.join('\n')}`,
+        'WARN'
+      );
     }
   }
 }

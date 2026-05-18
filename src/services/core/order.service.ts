@@ -83,6 +83,17 @@ class OrderService {
       }
 
       // 4. Return success instantly to User Interface. No delays!
+      // Email Notification (Fire and Forget)
+      import('../../lib/smtp').then(({ sendOrderPaidMail }) => {
+        db.user.findUnique({ where: { id: userId }, select: { email: true } }).then(u => {
+          if (u?.email) {
+            db.service.findUnique({ where: { id: input.serviceId }, select: { name: true } }).then(s => {
+              if (s?.name) sendOrderPaidMail(u.email, newOrder.numericId.toString(), s.name).catch(console.error);
+            });
+          }
+        });
+      });
+
       return { success: true, orderId: newOrder.id };
 
     } catch (e: any) {
@@ -124,6 +135,10 @@ class OrderService {
           return { success: false, error: 'Заказ уже ушел в работу или отменен' };
         }
 
+        // Handle Referral Commissions (Reverse since canceled)
+        const { LoyaltyService } = await import('../users/loyalty.service');
+        await LoyaltyService.reverseCommission(tx, order.id);
+
         // 2. Refund to User Balance (ONLY if it was paid)
         if (!wasAwaitingPayment) {
           const refundKey = `refund-client-cancel-${order.id}`;
@@ -138,6 +153,17 @@ class OrderService {
             );
           }
         }
+
+        // Email Notification for Canceled
+        import('../../lib/smtp').then(({ sendOrderCanceledMail }) => {
+          db.user.findUnique({ where: { id: userId }, select: { email: true } }).then(u => {
+            if (u?.email) {
+              db.service.findUnique({ where: { id: order.serviceId }, select: { name: true } }).then(s => {
+                if (s?.name) sendOrderCanceledMail(u.email, order.numericId.toString(), s.name).catch(console.error);
+              });
+            }
+          });
+        });
 
         return { success: true };
       }, { isolationLevel: 'Serializable' });
@@ -218,6 +244,14 @@ class OrderService {
           }
         });
 
+        // 4.5. Handle Referral Commissions
+        const { LoyaltyService } = await import('../users/loyalty.service');
+        if (internalStatus === 'COMPLETED') {
+           await LoyaltyService.confirmCommission(tx, order.id);
+        } else if (internalStatus === 'ERROR' || internalStatus === 'CANCELED') {
+           await LoyaltyService.reverseCommission(tx, order.id);
+        }
+
         // 5. Apply Refund if needed
         if (refundCents > 0) {
           // Use a deterministic idempotency key to prevent double-crediting
@@ -249,15 +283,15 @@ class OrderService {
    * Terminal Failure (DLQ).
    * Marks order as ERROR, refunds the full amount automatically.
    */
-  async failOrderTerminal(orderId: string, reason: string): Promise<void> {
+  async failOrderTerminal(orderId: string, reason: string, isRawReason: boolean = false): Promise<void> {
     try {
       await db.$transaction(async (tx) => {
         const order = await tx.order.findUnique({
           where: { id: orderId }
         });
 
-        if (!order || ['COMPLETED', 'CANCELED', 'PARTIAL', 'ERROR'].includes(order.status)) {
-          return; // Already terminal
+        if (!order || ['COMPLETED', 'CANCELED', 'PARTIAL', 'ERROR', 'IN_PROGRESS'].includes(order.status)) {
+          return; // Already terminal or in progress
         }
 
         // Update status
@@ -266,6 +300,10 @@ class OrderService {
           data: { status: 'ERROR', updatedAt: new Date() }
         });
 
+        // Handle Referral Commissions (Reverse since error)
+        const { LoyaltyService } = await import('../users/loyalty.service');
+        await LoyaltyService.reverseCommission(tx, order.id);
+
         // Full Refund
         const refundKey = `refund-dlq-${order.id}`;
         const existingLedger = await tx.ledgerEntry.findUnique({
@@ -273,12 +311,26 @@ class OrderService {
         });
 
         if (!existingLedger && order.charge > 0) {
+          const finalReason = isRawReason 
+            ? reason 
+            : `Авто-возврат: Ошибка запуска (DLQ). Заказ #${order.numericId}. ${reason}`;
+
           await WalletOps.refund(tx, order.userId, Number(order.charge),
-            `Авто-возврат: Ошибка запуска (DLQ). Заказ #${order.numericId}. ${reason}`,
+            finalReason,
             { idempotencyKey: refundKey }
           );
         }
       }, { isolationLevel: 'Serializable' });
+
+      // Email Notification for Failed/Canceled
+      import('../../lib/smtp').then(({ sendOrderCanceledMail }) => {
+        db.order.findUnique({ where: { id: orderId }, include: { user: true, service: true } }).then(o => {
+          if (o?.user?.email && o?.service?.name) {
+            sendOrderCanceledMail(o.user.email, o.numericId.toString(), o.service.name).catch(console.error);
+          }
+        });
+      });
+
     } catch (e: any) {
       console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e.message);
     }
