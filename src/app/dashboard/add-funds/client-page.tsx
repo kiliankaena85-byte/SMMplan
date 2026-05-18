@@ -41,11 +41,7 @@ export default function AddFundsPage() {
     startTransition(async () => {
       try {
         const res = await createTopUpPaymentAction(amount, method);
-        if (res.success && res.paymentUrl) {
-          window.location.href = res.paymentUrl;
-        } else {
-          setError((res as { error?: string }).error || 'Ошибка при создании платежа');
-        }
+        window.location.href = res.paymentUrl;
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Неизвестная ошибка');
       }
@@ -62,15 +58,12 @@ export default function AddFundsPage() {
     startPromoTransition(async () => {
       try {
         const res = await activatePromoCodeAction(promoCode);
-        if (res?.success) {
-          setPromoSuccess(`Промокод активирован! Начислено ${(res.amount / 100).toFixed(2)} ₽`);
-          setPromoCode('');
-          router.refresh(); // Refresh balance in header
-        } else {
-          setPromoError((res as {error?: string})?.error || 'Неизвестная ошибка при активации');
-        }
-      } catch (e: any) {
-        setPromoError(e.message || 'Ошибка активации');
+        if (!res) throw new Error('Неизвестная ошибка при активации');
+        setPromoSuccess(`Промокод активирован! Начислено ${(res.amount / 100).toFixed(2)} ₽`);
+        setPromoCode('');
+        router.refresh(); // Refresh balance in header
+      } catch (e: unknown) {
+        setPromoError(e instanceof Error ? e.message : 'Ошибка активации');
       }
     });
   }
