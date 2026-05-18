@@ -82,13 +82,14 @@ export class SettingsProvider {
     const settings = await this.getCached();
     const useTestKeys = settings.isTestMode;
 
-    // In test mode: prefer test keys, fall back to production keys
+    // SECURITY: No fallback to prod keys in test mode.
+    // If test keys are not configured, return null — downstream will throw a clear error.
     const shopId = useTestKeys
-      ? (settings.yookassaTestShopId || settings.yookassaShopId)
-      : settings.yookassaShopId;
+      ? (settings.yookassaTestShopId ?? null)
+      : (settings.yookassaShopId ?? null);
     const secretKeyRaw = useTestKeys
-      ? (settings.yookassaTestSecretKey || settings.yookassaSecretKey)
-      : settings.yookassaSecretKey;
+      ? (settings.yookassaTestSecretKey ?? null)
+      : (settings.yookassaSecretKey ?? null);
 
     return {
       yookassaShopId: shopId,
