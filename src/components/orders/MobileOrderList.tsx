@@ -109,13 +109,19 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                   {order.status === 'IN_PROGRESS' && order.remains != null && (
                     <div className="mt-3 space-y-1">
                       <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>Выполнено</span>
-                        <span className="tabular-nums">{order.quantity - order.remains} / {order.quantity}</span>
+                        <span>
+                          {order.quantity - order.remains >= order.quantity 
+                            ? 'Завершение...' 
+                            : order.quantity - order.remains <= 0 
+                              ? 'Начинаем работу...' 
+                              : 'В работе'}
+                        </span>
+                        <span className="tabular-nums">{Math.min(order.quantity, Math.max(0, order.quantity - order.remains))} / {order.quantity}</span>
                       </div>
                       <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-primary rounded-full transition-all duration-500"
-                          style={{ width: `${Math.round(((order.quantity - order.remains) / order.quantity) * 100)}%` }}
+                          className={`h-full bg-primary rounded-full transition-all duration-500 ${(order.quantity - order.remains >= order.quantity) || (order.quantity - order.remains <= 0) ? 'animate-pulse opacity-80' : ''}`}
+                          style={{ width: `${Math.min(100, Math.max(0, Math.round(((order.quantity - order.remains) / order.quantity) * 100)))}%` }}
                         />
                       </div>
                     </div>

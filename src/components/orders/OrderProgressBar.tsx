@@ -8,6 +8,7 @@ interface OrderProgressBarProps {
 
 export function OrderProgressBar({ status, quantity, remains }: OrderProgressBarProps) {
   if (status === 'AWAITING_PAYMENT') return null;
+  if (status === 'IN_PROGRESS' && remains == null) return null;
 
   const safeQuantity = quantity > 0 ? quantity : 1;
   let delivered = quantity - remains;
@@ -30,7 +31,15 @@ export function OrderProgressBar({ status, quantity, remains }: OrderProgressBar
       barColor = 'bg-primary/50';
       break;
     case 'IN_PROGRESS':
-      label = `Выполнено ${delivered.toLocaleString('ru-RU')} из ${quantity.toLocaleString('ru-RU')}`;
+      if (percent === 100) {
+        label = `Завершение (доставлено ${quantity.toLocaleString('ru-RU')})`;
+        isIndeterminate = true;
+      } else if (percent === 0) {
+        label = `Начинаем работу (выполнено 0 из ${quantity.toLocaleString('ru-RU')})`;
+        isIndeterminate = true;
+      } else {
+        label = `В работе (выполнено ${delivered.toLocaleString('ru-RU')} из ${quantity.toLocaleString('ru-RU')})`;
+      }
       barColor = 'bg-blue-500';
       break;
     case 'PARTIAL':
