@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { WalletOps } from './wallet-ops';
 import { revalidatePath } from 'next/cache';
+import { sendOrderPaidMail } from '@/lib/smtp';
 
 export class PaymentService {
   /**
@@ -19,7 +20,7 @@ export class PaymentService {
     metadataType?: string,
     receiptId?: string
   ): Promise<boolean> {
-    const activatedOrders: { id: string; isDripFeed: boolean; userId: string; amount: number }[] = [];
+    const activatedOrders: { id: string; isDripFeed: boolean; userId: string; amount: number; userEmail?: string | null; serviceName?: string | null; numericId?: number }[] = [];
 
     try {
       // 1. Double-check against real gateway API in production
@@ -109,13 +110,24 @@ export class PaymentService {
         // Assign funds locally
         if (isOrderPayment && linkedOrderId) {
           // Activate linked order
-          const order = await tx.order.findUnique({ where: { id: linkedOrderId } });
+          const order = await tx.order.findUnique({ 
+            where: { id: linkedOrderId },
+            include: { user: { select: { email: true } }, service: { select: { name: true } } }
+          });
           if (order && order.status === 'AWAITING_PAYMENT') {
             await tx.order.update({
               where: { id: linkedOrderId },
               data: { status: 'PENDING' }
             });
-            activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed, userId: userId, amount: amount });
+            activatedOrders.push({ 
+              id: order.id, 
+              isDripFeed: order.isDripFeed, 
+              userId: userId, 
+              amount: amount,
+              userEmail: order.user?.email ?? null,
+              serviceName: order.service?.name ?? null,
+              numericId: order.numericId 
+            });
             await tx.user.update({
               where: { id: userId },
               data: { totalSpent: { increment: amount } }
@@ -124,7 +136,10 @@ export class PaymentService {
         }
 
         // --- NEW BASKET LOGIC (Deposit-Driven 1:N Orders) ---
-        const basketOrders = await tx.order.findMany({ where: { paymentId: processedPaymentId, status: 'AWAITING_PAYMENT' } });
+        const basketOrders = await tx.order.findMany({ 
+          where: { paymentId: processedPaymentId, status: 'AWAITING_PAYMENT' },
+          include: { user: { select: { email: true } }, service: { select: { name: true } } }
+        });
         if (basketOrders.length > 0) {
            await tx.order.updateMany({
               where: { paymentId: processedPaymentId, status: 'AWAITING_PAYMENT' },
@@ -132,7 +147,15 @@ export class PaymentService {
            });
            
            for (const order of basketOrders) {
-              activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed, userId: userId, amount: Number(order.charge) });
+              activatedOrders.push({ 
+                id: order.id, 
+                isDripFeed: order.isDripFeed, 
+                userId: userId, 
+                amount: Number(order.charge),
+                userEmail: order.user?.email ?? null,
+                serviceName: order.service?.name ?? null,
+                numericId: order.numericId 
+              });
            }
 
            // Increment User Total Spent for all Basket items
@@ -162,6 +185,14 @@ export class PaymentService {
         const { ordersQueue } = await import('@/workers/queues');
         for (const activated of activatedOrders) {
           await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
+          
+          if (activated.userEmail && activated.serviceName) {
+            void sendOrderPaidMail(
+              activated.userEmail,
+              activated.numericId!.toString(),
+              activated.serviceName
+            ).catch(err => console.error('[H1] sendOrderPaidMail failed', err));
+          }
         }
       }
 
@@ -183,7 +214,7 @@ export class PaymentService {
   async confirmPaymentById(paymentId: string): Promise<boolean> {
     try {
       let capturedUserId: string | null = null;
-      const activatedOrders: { id: string; isDripFeed: boolean }[] = [];
+      const activatedOrders: { id: string; isDripFeed: boolean; userEmail?: string | null; serviceName?: string | null; numericId?: number }[] = [];
 
       await db.$transaction(async (tx) => {
         const payment = await tx.payment.findUniqueOrThrow({
@@ -212,7 +243,8 @@ export class PaymentService {
         // Activate linked order
         if (payment.orderId) {
           const order = await tx.order.findUnique({
-            where: { id: payment.orderId }
+            where: { id: payment.orderId },
+            include: { user: { select: { email: true } }, service: { select: { name: true } } }
           });
 
           if (order && order.status === 'AWAITING_PAYMENT') {
@@ -220,7 +252,13 @@ export class PaymentService {
               where: { id: payment.orderId },
               data: { status: 'PENDING' }
             });
-            activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed });
+            activatedOrders.push({ 
+              id: order.id, 
+              isDripFeed: order.isDripFeed,
+              userEmail: order.user?.email ?? null,
+              serviceName: order.service?.name ?? null,
+              numericId: order.numericId
+            });
             
             await tx.user.update({
               where: { id: payment.userId },
@@ -230,7 +268,10 @@ export class PaymentService {
         }
 
         // --- NEW BASKET LOGIC (TEST MODE) ---
-        const basketOrders = await tx.order.findMany({ where: { paymentId: paymentId, status: 'AWAITING_PAYMENT' } });
+        const basketOrders = await tx.order.findMany({ 
+          where: { paymentId: paymentId, status: 'AWAITING_PAYMENT' },
+          include: { user: { select: { email: true } }, service: { select: { name: true } } }
+        });
         if (basketOrders.length > 0) {
            await tx.order.updateMany({
               where: { paymentId: paymentId, status: 'AWAITING_PAYMENT' },
@@ -238,7 +279,13 @@ export class PaymentService {
            });
            
            for (const order of basketOrders) {
-              activatedOrders.push({ id: order.id, isDripFeed: order.isDripFeed });
+              activatedOrders.push({ 
+                id: order.id, 
+                isDripFeed: order.isDripFeed,
+                userEmail: order.user?.email ?? null,
+                serviceName: order.service?.name ?? null,
+                numericId: order.numericId
+              });
            }
 
            // Increment Total Spent for test basket items
@@ -259,6 +306,14 @@ export class PaymentService {
         const { ordersQueue } = await import('@/workers/queues');
         for (const activated of activatedOrders) {
           await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
+          
+          if (activated.userEmail && activated.serviceName) {
+            void sendOrderPaidMail(
+              activated.userEmail,
+              activated.numericId!.toString(),
+              activated.serviceName
+            ).catch(err => console.error('[H1] sendOrderPaidMail failed', err));
+          }
         }
       }
 

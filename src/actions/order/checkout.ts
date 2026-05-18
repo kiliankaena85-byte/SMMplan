@@ -12,6 +12,7 @@ import { getClientIp } from '@/utils/ip';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import crypto from 'crypto';
 import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
+import { sendOrderPaidMail } from '@/lib/smtp';
 /**
  * Calculates price for display on the order form (no auth required).
  */
@@ -312,6 +313,14 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     const currentSession = await verifySession();
     if (isNewUser || (currentSession && currentSession.userId === user.id)) {
       await createSession(user.id);
+    }
+
+    if (gateway === 'balance') {
+      void sendOrderPaidMail(
+        user.email,
+        result.numericId.toString(),
+        service.name
+      ).catch(err => console.error('[H1] sendOrderPaidMail balance failed', err));
     }
 
     revalidatePath('/dashboard', 'layout');
