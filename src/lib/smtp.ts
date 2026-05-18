@@ -12,7 +12,11 @@ async function getEmailContext() {
   return { companyName, supportDomain };
 }
 
-async function getTransporter() {
+type TransporterResult =
+  | { provider: 'RESEND'; resend: Resend; fromEmail: string; smtpUser: string | null }
+  | { provider: 'SMTP'; transporter: nodemailer.Transporter; fromEmail: string; smtpUser: string | null };
+
+async function getTransporter(): Promise<TransporterResult | null> {
   const s = await SettingsProvider.getEmailSettings();
 
   if (s.emailProvider === 'RESEND') {
@@ -38,6 +42,42 @@ async function getTransporter() {
   });
 
   return { provider: 'SMTP', transporter, smtpUser: s.smtpUser, fromEmail: s.smtpUser };
+}
+
+type DispatchOptions = {
+  companyName: string;
+  to: string;
+  subject: string;
+  html: string;
+  replyTo?: string;
+};
+
+async function dispatch(result: TransporterResult, options: DispatchOptions) {
+  const fromAddress = `"${options.companyName} Support" <${result.fromEmail}>`;
+
+  if (result.provider === 'RESEND') {
+    log.info('Sending via RESEND', { to: options.to, subject: options.subject });
+    const { error } = await result.resend.emails.send({
+      from: fromAddress,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      ...(options.replyTo ? { reply_to: options.replyTo } : {}),
+    });
+    if (error) {
+      log.error('Resend delivery failed', { to: options.to, subject: options.subject, code: error.name });
+      throw new Error(`Resend error: ${error.message}`);
+    }
+  } else {
+    log.info('Sending via SMTP', { to: options.to, subject: options.subject });
+    await result.transporter.sendMail({
+      from: fromAddress,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      ...(options.replyTo ? { replyTo: options.replyTo } : {}),
+    });
+  }
 }
 
 export async function sendMagicLink(email: string, token: string) {
@@ -69,27 +109,7 @@ export async function sendMagicLink(email: string, token: string) {
     </div>
   `;
 
-  if (result.provider === 'RESEND') {
-    log.info('Sending via RESEND', { to: email, subject: 'Ваша ссылка для входа' });
-    const { data, error } = await result.resend!.emails.send({
-      from: `"${companyName} Support" <${result.fromEmail}>`,
-      to: email,
-      subject: 'Ваша ссылка для входа',
-      html: htmlContent,
-    });
-    if (error) {
-      log.error('Resend delivery failed', { to: email, subject: 'Ваша ссылка для входа', code: error.name, error: error.message });
-      throw new Error(`Resend error: ${error.message}`);
-    }
-  } else {
-    log.info('Sending via SMTP', { to: email, subject: 'Ваша ссылка для входа' });
-    await result.transporter!.sendMail({
-      from: `"${companyName} Support" <${result.fromEmail}>`,
-      to: email,
-      subject: 'Ваша ссылка для входа',
-      html: htmlContent,
-    });
-  }
+  await dispatch(result, { companyName, to: email, subject: 'Ваша ссылка для входа', html: htmlContent });
 }
 
 export async function sendMail(email: string, subject: string, htmlContent: string, replyTo?: string) {
@@ -105,29 +125,7 @@ export async function sendMail(email: string, subject: string, htmlContent: stri
     return;
   }
 
-  if (result.provider === 'RESEND') {
-    log.info('Sending via RESEND', { to: email, subject });
-    const { data, error } = await result.resend!.emails.send({
-      from: `"${companyName} Support" <${result.fromEmail}>`,
-      to: email,
-      subject,
-      html: htmlContent,
-      ...(replyTo ? { reply_to: replyTo } : {}),
-    });
-    if (error) {
-      log.error('Resend delivery failed', { to: email, subject, code: error.name, error: error.message });
-      throw new Error(`Resend error: ${error.message}`);
-    }
-  } else {
-    log.info('Sending via SMTP', { to: email, subject });
-    await result.transporter!.sendMail({
-      from: `"${companyName} Support" <${result.fromEmail}>`,
-      to: email,
-      subject,
-      html: htmlContent,
-      ...(replyTo ? { replyTo } : {}),
-    });
-  }
+  await dispatch(result, { companyName, to: email, subject, html: htmlContent, replyTo });
 }
 
 export async function sendAuthMail(email: string, otp: string) {
