@@ -4,14 +4,20 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * Mock Provider Endpoint (SMM API V2 Sandbox)
  * Used to test the SMM flow safely without hitting real external gateways.
- * 🔒 SECURITY: Blocked in production. Key validated via MOCK_PROVIDER_KEY env var.
- * Admin should configure a Provider with URL: /api/dev/mock-provider
- * and API Key matching process.env.MOCK_PROVIDER_KEY (default: 'mock-dev-key')
+ * 🔒 SECURITY:
+ *   - In production: only available when isTestMode=true (for staging testers).
+ *   - API Key validated via MOCK_PROVIDER_KEY env var (no hardcoded default).
+ *   - If MOCK_PROVIDER_KEY not set → 503 (endpoint unconfigured).
  */
 export async function POST(req: NextRequest) {
-  // Guard: Disable in production entirely
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  // Guard: In production, only allow when isTestMode is enabled in AdminPanel
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction) {
+    const { SettingsManager } = await import('@/lib/settings');
+    const isTestMode = await SettingsManager.isTestMode();
+    if (!isTestMode) {
+      return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+    }
   }
 
   try {
@@ -21,10 +27,13 @@ export async function POST(req: NextRequest) {
     const key = params.get('key');
     const action = params.get('action');
 
-    // Auth: validate against env-configured key (not hardcoded)
-    const expectedKey = process.env.MOCK_PROVIDER_KEY ?? 'mock-dev-key';
+    // Auth: validate against env-configured key — no hardcoded fallback
+    const expectedKey = process.env.MOCK_PROVIDER_KEY;
+    if (!expectedKey) {
+      return NextResponse.json({ error: 'Mock provider not configured (MOCK_PROVIDER_KEY not set)' }, { status: 503 });
+    }
     if (key !== expectedKey) {
-      return NextResponse.json({ error: 'Incorrect API key' }, { status: 200 });
+      return NextResponse.json({ error: 'Incorrect API key' }, { status: 403 });
     }
 
     // 1. Balance Action

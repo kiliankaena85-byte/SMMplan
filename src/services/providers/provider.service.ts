@@ -35,8 +35,12 @@ export class ProviderService {
   async getWorkerProviderInstance(config: Provider): Promise<BaseProvider> {
     const isTest = await SettingsManager.isTestMode();
     if (isTest) {
+      const mockKey = process.env.MOCK_PROVIDER_KEY;
+      if (!mockKey) {
+        throw new Error('MOCK_PROVIDER_KEY is not set. Configure it in .env to use test mode.');
+      }
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, 'test', config.metadata as any);
+      return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, mockKey, config.metadata as any);
     }
     // Production path: decrypt and use real provider
     const decryptedKey = VaultService.decrypt(config.apiKey);
