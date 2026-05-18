@@ -117,16 +117,9 @@ export const WalletOps = {
       return { success: true, balance: updatedUser.balance, cached: false, entry };
     } catch (error: any) {
       if (idempotencyKey && error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
-        // If tx is part of an outer interactive transaction, findUnique might fail due to aborted tx,
-        // but this handles the non-transactional or savepoint-capable cases gracefully.
-        try {
-          const existing = await tx.ledgerEntry.findUnique({
-            where: { idempotencyKey },
-          });
-          if (existing) return { success: true, balance: null, cached: true, entry: existing };
-        } catch (innerError) {
-          throw error; // Re-throw original P2002 if tx is aborted
-        }
+        // In a Serializable transaction, the transaction is already aborted here.
+        // We throw the error so the caller can handle it gracefully.
+        throw error;
       }
       throw error;
     }
