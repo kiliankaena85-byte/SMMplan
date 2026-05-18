@@ -193,7 +193,7 @@ export class PaymentService {
       if (activatedOrders.length > 0) {
         const { ordersQueue } = await import('@/workers/queues');
         for (const activated of activatedOrders) {
-          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
+          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1000 }); // 3 min cooling-off
           
           if (activated.userEmail && activated.serviceName) {
             void sendOrderPaidMail(
@@ -323,7 +323,7 @@ export class PaymentService {
       if (activatedOrders.length > 0) {
         const { ordersQueue } = await import('@/workers/queues');
         for (const activated of activatedOrders) {
-          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { delay: 3 * 60 * 1000 }); // 3 min cooling-off
+          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1000 }); // 3 min cooling-off
           
           if (activated.userEmail && activated.serviceName) {
             void sendOrderPaidMail(

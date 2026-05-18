@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
           const order = await tx.order.findUnique({ where: { id: payment.orderId } });
           if (order) {
             const { ordersQueue } = await import('@/workers/queues');
-            await ordersQueue.add('order-dispatch', { orderId: order.id }, { delay: 5000 });
+            await ordersQueue.add('order-dispatch', { orderId: order.id }, { jobId: `dispatch-${order.id}`, delay: 5000 });
           }
         }
 

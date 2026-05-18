@@ -83,7 +83,7 @@ class OrderService {
 
       // 3. Dispatch to Queues (Drip-feed is now passed natively to the provider)
       try {
-        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { delay: 3 * 60 * 1000 });
+        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: 3 * 60 * 1000 });
       } catch (queueError: any) {
         // [FIN-006] Premortem Bugfix: Ghost Order Prevention.
         // If Redis is down, we MUST NOT fail the request since the balance is already charged 

@@ -62,12 +62,12 @@ export default function AddFundsPage() {
     startPromoTransition(async () => {
       try {
         const res = await activatePromoCodeAction(promoCode);
-        if (res.success) {
+        if (res?.success) {
           setPromoSuccess(`Промокод активирован! Начислено ${(res.amount / 100).toFixed(2)} ₽`);
           setPromoCode('');
           router.refresh(); // Refresh balance in header
         } else {
-          setPromoError('Неизвестная ошибка при активации');
+          setPromoError((res as {error?: string})?.error || 'Неизвестная ошибка при активации');
         }
       } catch (e: any) {
         setPromoError(e.message || 'Ошибка активации');

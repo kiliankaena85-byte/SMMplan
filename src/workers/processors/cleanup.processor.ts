@@ -177,51 +177,89 @@ export async function runOrphanSweep(): Promise<void> {
   
   const orphans = await db.order.findMany({
     where: {
-      status: { in: ['PENDING', 'CANCELING'] },
-      updatedAt: { lt: threshold }
+      status: 'PENDING',
+      createdAt: { lt: threshold }
     },
     select: { id: true, numericId: true, userId: true, charge: true, createdAt: true, status: true }
   });
 
   if (orphans.length > 0) {
-    const { orderService } = await import('../../services/core/order.service');
     const { sendAdminAlert } = await import('@/lib/notifications');
+    const { ordersQueue } = await import('../../lib/queue-manager');
+    
     let sweptCount = 0;
     const sweptDetails: string[] = [];
+    const criticalAlerts: string[] = [];
 
     for (const orphan of orphans) {
-      if (orphan.status === 'PENDING') {
-        // Optimistic lock: ensure it's still PENDING before we take over
-        const updated = await db.order.updateMany({
-          where: {
-            id: orphan.id,
-            status: 'PENDING'
-          },
-          data: { status: 'CANCELING' } // Temporary state to prevent worker pickup
-        });
+      const jobId = `dispatch-${orphan.id}`;
+      let jobState: string | null = null;
+      let jobExists = false;
 
-        if (updated.count === 0) {
-          // Worker picked it up just now, skip
-          continue;
+      try {
+        const job = await ordersQueue.getJob(jobId);
+        if (job) {
+          jobExists = true;
+          jobState = await job.getState();
         }
+      } catch (redisErr: any) {
+        const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans getJob. Order ${orphan.id} remains PENDING. Error: ${redisErr.message}`;
+        log.error(msg);
+        criticalAlerts.push(`🚨 Ошибка Redis при проверке заказа #${orphan.numericId}: ${redisErr.message}`);
+        continue;
       }
 
-      // Safe to cancel and refund
-      const reason = `Автоотмена: заказ #${orphan.numericId} не удалось передать в обработку. Средства возвращены на баланс.`;
-      await orderService.failOrderTerminal(orphan.id, reason, true); // true = raw reason
-      
-      sweptCount++;
-      const minutesPending = Math.round((Date.now() - orphan.createdAt.getTime()) / 60000);
-      const refundRub = (Number(orphan.charge) / 100).toFixed(2);
-      
-      sweptDetails.push(`• ID: \`${orphan.id}\` (#${orphan.numericId}), Юзер: \`${orphan.userId}\`, Висел: ${minutesPending} мин, Возврат: ${refundRub} ₽`);
+      if (jobExists && jobState) {
+        if (['waiting', 'active', 'delayed', 'prioritized', 'waiting-children'].includes(jobState)) {
+          // Live job, false positive. Skip.
+          continue;
+        }
+
+        if (jobState === 'completed') {
+          const msg = `[CRITICAL][ACTION REQUIRED] Order PENDING but Job Completed. Data inconsistency! Order ${orphan.id}, Job ${jobId}`;
+          log.error(msg);
+          criticalAlerts.push(`🚨 Data Inconsistency: Заказ #${orphan.numericId} (ID: ${orphan.id}) висит PENDING, но очередь сообщает COMPLETED! Требуется ручной разбор.`);
+          continue;
+        }
+
+        if (jobState === 'failed') {
+          const refundRub = (Number(orphan.charge) / 100).toFixed(2);
+          const msg = `[CRITICAL][ACTION REQUIRED] dead-letter не отработал. Ручной возврат требуется! Order ${orphan.id}, User ${orphan.userId}, Amount ${refundRub} RUB`;
+          log.error(msg);
+          criticalAlerts.push(`🚨 Dead-letter Failure: Заказ #${orphan.numericId} (ID: ${orphan.id}), Пользователь: ${orphan.userId}. Сумма: ${refundRub} ₽. Воркер полностью упал, но статус не изменен! Требуется ручной возврат.`);
+          continue;
+        }
+        
+        // Any other state (should not happen in BullMQ, but just in case)
+        continue;
+      }
+
+      // If job does not exist -> Re-enqueue
+      try {
+        await ordersQueue.add('order-dispatch', { orderId: orphan.id }, { jobId });
+        sweptCount++;
+        const minutesPending = Math.round((Date.now() - orphan.createdAt.getTime()) / 60000);
+        log.warn(`[WARNING] recovered orphan orderId=${orphan.id} jobId=${jobId}`);
+        sweptDetails.push(`• Восстановлен: ID \`${orphan.id}\` (#${orphan.numericId}), висел ${minutesPending} мин`);
+      } catch (addErr: any) {
+        const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans add. Order ${orphan.id} remains PENDING. Error: ${addErr.message}`;
+        log.error(msg);
+        criticalAlerts.push(`🚨 Ошибка Redis при переотправке заказа #${orphan.numericId}: ${addErr.message}`);
+      }
     }
     
     if (sweptCount > 0) {
       log.info(`Swept ${sweptCount} orphan PENDING orders`, { durationMs: Date.now() - startedAt });
       await sendAdminAlert(
-        `🧹 *sweep-orphans автоотмена*\nОбработано зависших заказов: ${sweptCount}\n\n${sweptDetails.join('\n')}`,
+        `♻️ *sweep-orphans recovery*\nПоднято потерянных заказов: ${sweptCount}\n\n${sweptDetails.join('\n')}`,
         'WARNING'
+      );
+    }
+
+    if (criticalAlerts.length > 0) {
+      await sendAdminAlert(
+        `🔴 *sweep-orphans CRITICAL ERRORS*\nОбнаружены критические проблемы, требующие вмешательства:\n\n${criticalAlerts.join('\n\n')}`,
+        'CRITICAL'
       );
     }
   }
