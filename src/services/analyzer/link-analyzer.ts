@@ -25,7 +25,27 @@ export class IntelligenceLinkAnalyzer {
         }
         const sanitizedUrl = this.sanitize(rawUrl);
         const expandedUrl = await this.resolve(sanitizedUrl);
-        return this.match(expandedUrl);
+        const normalizedUrl = this.normalizeVkUrl(expandedUrl);
+        return this.match(normalizedUrl);
+    }
+
+    private normalizeVkUrl(url: string): string {
+        if (!url.includes('vk.com') && !url.includes('vk.ru') && !url.includes('vkvideo.ru')) return url;
+        try {
+            const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+            const wParam = parsed.searchParams.get('w');
+            const zParam = parsed.searchParams.get('z');
+            
+            if (wParam && /^(wall|clip|video)-?\d+_\d+/.test(wParam)) {
+                return `${parsed.origin}/${wParam}`;
+            }
+            if (zParam && /^(wall|clip|video)-?\d+_\d+/.test(zParam)) {
+                return `${parsed.origin}/${zParam}`;
+            }
+            return url;
+        } catch {
+            return url;
+        }
     }
 
     private sanitize(url: string): string {
@@ -63,18 +83,16 @@ export class IntelligenceLinkAnalyzer {
             if (url.includes('youtu.be/')) {
                 return url.replace('youtu.be/', 'youtube.com/watch?v=');
             }
-            if (url.includes('vm.tiktok.com/')) {
-                try {
-                    const fetchUrl = url.startsWith('http') ? url : `https://${url}`;
-                    const res = await fetch(fetchUrl, {
-                        method: 'HEAD', 
-                        redirect: 'follow',
-                        signal: AbortSignal.timeout(1500)
-                    });
-                    if (res.url) return res.url;
-                } catch (e) {
-                    // Silent fallback on timeout/error
-                }
+            try {
+                const fetchUrl = url.startsWith('http') ? url : `https://${url}`;
+                const res = await fetch(fetchUrl, {
+                    method: 'HEAD', 
+                    redirect: 'follow',
+                    signal: AbortSignal.timeout(1500)
+                });
+                if (res.url) return res.url;
+            } catch (e) {
+                // Silent fallback on timeout/error
             }
         }
         return url;

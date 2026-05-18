@@ -66,13 +66,45 @@ describe('IntelligenceLinkAnalyzer', () => {
 
         it('identifies live and reel metadata', async () => {
             const res = await analyzer.analyze('https://instagram.com/reel/C1234/');
-            // if rule exists it will match, if not it might fallback, testing the string matching inside link-analyzer
-            // 'isLive' tests includes('/live/') or includes('/reel/')
-            // Even if fallback, metadata is empty because fallback resets metadata.
-            // But if it matches INSTAGRAM rule:
             if (res.platform !== IntelligencePlatform.OTHER) {
                expect(res.metadata.isLive).toBe(true);
             }
+        });
+
+        it('recognizes Twitter posts and profiles correctly', async () => {
+            const postRes = await analyzer.analyze('https://x.com/elonmusk/status/123456');
+            expect(postRes.platform).toBe(IntelligencePlatform.TWITTER);
+            expect(postRes.type).toBe('post');
+
+            const profileRes = await analyzer.analyze('https://twitter.com/elonmusk');
+            expect(profileRes.platform).toBe(IntelligencePlatform.TWITTER);
+            expect(profileRes.type).toBe('profile');
+
+            const xProfileRes = await analyzer.analyze('https://x.com/elonmusk');
+            expect(xProfileRes.platform).toBe(IntelligencePlatform.TWITTER);
+            expect(xProfileRes.type).toBe('profile');
+        });
+
+        it('recognizes VK posts with and without query parameters', async () => {
+            const normalPost = await analyzer.analyze('https://vk.com/wall-123_456');
+            expect(normalPost.platform).toBe(IntelligencePlatform.VK);
+            expect(normalPost.type).toBe('post');
+
+            const queryPostW = await analyzer.analyze('https://vk.com/club123?w=wall-123_456');
+            expect(queryPostW.platform).toBe(IntelligencePlatform.VK);
+            expect(queryPostW.type).toBe('post');
+
+            const queryPostZ = await analyzer.analyze('https://vk.com/public123?z=video-123_456');
+            expect(queryPostZ.platform).toBe(IntelligencePlatform.VK);
+            expect(queryPostZ.type).toBe('post');
+
+            const profileRes = await analyzer.analyze('https://vk.com/username');
+            expect(profileRes.platform).toBe(IntelligencePlatform.VK);
+            expect(profileRes.type).toBe('profile');
+
+            const clubProfile = await analyzer.analyze('https://vk.com/club123');
+            expect(clubProfile.platform).toBe(IntelligencePlatform.VK);
+            expect(clubProfile.type).toBe('profile');
         });
 
         it('resolves generic http links to WEBSITE platform', async () => {
