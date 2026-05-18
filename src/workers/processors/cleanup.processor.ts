@@ -85,7 +85,13 @@ export async function runCleanup(): Promise<void> {
         createdAt: { lt: safeZombieThreshold },
         payment: { status: { notIn: ['SUCCEEDED', 'PENDING'] } }
       },
-      select: { id: true },
+      select: { 
+        id: true,
+        numericId: true,
+        paymentId: true,
+        user: { select: { email: true } },
+        service: { select: { name: true } }
+      },
       take: 50 // [FIN-010] Batching for performance protection
     });
 
@@ -95,6 +101,7 @@ export async function runCleanup(): Promise<void> {
     }
 
     for (const zombie of zombies) {
+      let shouldSendEmail = false;
       await db.$transaction(async (tx) => {
         // [FIN-010] Optimistic lock to prevent Race Condition with incoming Webhooks
         const updated = await tx.order.updateMany({
@@ -108,8 +115,20 @@ export async function runCleanup(): Promise<void> {
         if (updated.count > 0) {
           await LoyaltyService.reverseCommission(tx, zombie.id);
           canceledCount++;
+          if (zombie.paymentId) {
+            shouldSendEmail = true;
+          }
         }
       });
+
+      if (shouldSendEmail && zombie.user?.email && zombie.service?.name) {
+        const { sendOrderCanceledMail } = await import('@/lib/smtp');
+        sendOrderCanceledMail(
+          zombie.user.email,
+          zombie.numericId.toString(),
+          zombie.service.name
+        ).catch(err => log.error('Failed to send zombie cancellation email', { orderId: zombie.id, error: err.message }));
+      }
     }
 
     if (zombies.length < 50) {
