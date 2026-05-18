@@ -6,6 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { z } from 'zod';
 import { SettingsProvider } from '@/lib/settings';
+import { getMimeType } from '@/lib/mime';
 
 export const dynamic = 'force-dynamic';
 
@@ -232,63 +233,75 @@ export async function POST(req: NextRequest) {
 
     // Process attachments (if any)
     const attachments = body.Attachments || body.attachments || [];
-    let mediaUrl: string | undefined = undefined;
-    let mediaType: string | undefined = undefined;
+    const attachmentsToSave: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }> = [];
 
     if (attachments.length > 0) {
-      // 4.1 Log and notify support about discarded subsequent attachments to prevent domain integrity distortion
-      if (attachments.length > 1) {
-        console.error(`[CRITICAL] [ACTION REQUIRED] Email webhook contains multiple attachments (${attachments.length}). Subsequent attachments were discarded to prevent database integrity distortion. Sender: ${fromAddress}, Ticket ID: ${ticketId}`);
-        textBody += `\n\n[Система: Входящее письмо содержало еще ${attachments.length - 1} вложений. Они были автоматически отброшены для защиты целостности переписки. Пожалуйста, попросите пользователя отправить их в чате.]`;
-      }
+      // Whitelist extension check - whitelisted extensions verified exactly as documented in Whitelist policy
+      const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx', 'zip']);
 
-      const att = attachments[0]; // Take strictly first attachment to maintain correspondence model semantics
-      const content = att.Content || att.content; // base64
-      const mimeType = att.ContentType || att.contentType || 'application/octet-stream';
-      const originalName = att.Name || att.name || 'attachment';
-      
-      if (content) {
-        const buffer = Buffer.from(content, 'base64');
-        const cleanName = slugifyFileName(originalName);
+      for (const att of attachments) {
+        const content = att.Content || att.content; // base64
+        const originalName = att.Name || att.name || 'attachment';
+        const mimeType = att.ContentType || att.contentType || getMimeType(originalName);
         
-        // Split clean name into base and extension to insert safe suffix cleanly (Staff UX)
-        const extIndex = cleanName.lastIndexOf('.');
-        const baseName = extIndex !== -1 ? cleanName.substring(0, extIndex) : cleanName;
-        const rawExt = extIndex !== -1 ? cleanName.substring(extIndex + 1) : 'bin';
-        
-        // Whitelist extension check - whitelisted extensions verified exactly as documented in Whitelist policy
-        const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx', 'zip']);
-        const actualExt = ALLOWED_EXTENSIONS.has(rawExt.toLowerCase()) ? rawExt.toLowerCase() : 'bin';
-        
-        // Safe, recognizable name with short random suffix to prevent name collisions
-        const fileName = `${baseName}-${crypto.randomBytes(6).toString('hex')}.${actualExt}`;
-        
-        // Strict folder prefix containment check to double protect against traversal (C2)
-        const uploadBase = path.resolve(process.cwd(), 'private', 'uploads', 'tickets');
-        const dir = path.resolve(uploadBase, ticketId);
-        
-        if (!dir.startsWith(uploadBase)) {
-          console.error(`[CRITICAL] Path traversal attempt blocked! Dir: ${dir}, Base: ${uploadBase}`);
-          return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
-        }
-        
-        try {
-          await fs.mkdir(dir, { recursive: true });
-          await fs.writeFile(path.join(dir, fileName), buffer);
+        if (content) {
+          const buffer = Buffer.from(content, 'base64');
+          const cleanName = slugifyFileName(originalName);
           
-          mediaUrl = `/tickets/${ticketId}/${fileName}`;
+          // Split clean name into base and extension to insert safe suffix cleanly (Staff UX)
+          const extIndex = cleanName.lastIndexOf('.');
+          const baseName = extIndex !== -1 ? cleanName.substring(0, extIndex) : cleanName;
+          const rawExt = extIndex !== -1 ? cleanName.substring(extIndex + 1) : 'bin';
           
-          if (mimeType.startsWith('image/')) mediaType = 'image';
-          else if (mimeType.startsWith('video/')) mediaType = 'video';
-          else if (mimeType.startsWith('audio/')) mediaType = 'audio';
-          else mediaType = 'document';
-        } catch (fsError) {
-          console.error(`[CRITICAL] File system write failed for attachment ${originalName}:`, fsError);
+          const actualExt = ALLOWED_EXTENSIONS.has(rawExt.toLowerCase()) ? rawExt.toLowerCase() : 'bin';
+          
+          // Safe, recognizable name with short random suffix to prevent name collisions
+          const fileName = `${baseName}-${crypto.randomBytes(6).toString('hex')}.${actualExt}`;
+          
+          // Strict folder prefix containment check to double protect against traversal (C2)
+          const uploadBase = path.resolve(process.cwd(), 'private', 'uploads', 'tickets');
+          const dir = path.resolve(uploadBase, ticketId);
+          
+          if (!dir.startsWith(uploadBase)) {
+            console.error(`[CRITICAL] Path traversal attempt blocked! Dir: ${dir}, Base: ${uploadBase}`);
+            return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
+          }
+          
+          try {
+            await fs.mkdir(dir, { recursive: true });
+            await fs.writeFile(path.join(dir, fileName), buffer);
+            
+            const fileUrl = `/tickets/${ticketId}/${fileName}`;
+            
+            let extractedType = 'document';
+            if (mimeType.startsWith('image/')) extractedType = 'image';
+            else if (mimeType.startsWith('video/')) extractedType = 'video';
+            else if (mimeType.startsWith('audio/')) extractedType = 'audio';
+            
+            attachmentsToSave.push({
+              url: fileUrl,
+              type: extractedType,
+              mimeType,
+              name: originalName, // original filename (до slugify!)
+              size: buffer.length
+            });
+          } catch (fsError) {
+            console.error(`[CRITICAL] File system write failed for attachment ${originalName}:`, fsError);
+          }
         }
       }
     }
     
-    await ticketService.addMessage(ticketId, 'USER', textBody, mediaUrl, mediaType);
+    await ticketService.addMessage(
+      ticketId, 
+      'USER', 
+      textBody, 
+      undefined, 
+      undefined, 
+      undefined, 
+      undefined, 
+      attachmentsToSave
+    );
     
     return NextResponse.json({ success: true });
   } catch (e) {

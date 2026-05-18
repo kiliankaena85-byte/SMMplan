@@ -446,8 +446,8 @@ model TicketMessage {
   ticket    Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   sender    MessageSender
   text      String
-  mediaUrl  String? // relative path to uploaded file
-  mediaType String? // "image", "audio", "video"
+  mediaUrl  String? // @deprecated - relative path to uploaded file (legacy)
+  mediaType String? // @deprecated - "image", "audio", "video" (legacy)
 
   replyToId String?
   replyTo   TicketMessage?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
@@ -458,11 +458,29 @@ model TicketMessage {
   isEdited      Boolean @default(false)
   originalText  String?
 
+  attachments MessageAttachment[]
+
   createdAt DateTime @default(now())
 
   @@index([ticketId])
   @@index([telegramMsgId])
   @@index([ticketId, createdAt])
+}
+
+model MessageAttachment {
+  id        String        @id @default(cuid())
+  messageId String
+  message   TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  
+  url       String        // relative path to uploaded file (slugified)
+  type      String        // "image" | "audio" | "video" | "document"
+  mimeType  String        // exact MIME type
+  name      String        // original file name
+  size      Int?          // file size in bytes
+  
+  createdAt DateTime      @default(now())
+
+  @@index([messageId])
 }
 
 model Page {

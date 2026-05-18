@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
       messages = await db.ticketMessage.findMany({
         where: whereClause,
         orderBy: { createdAt: 'asc' },
-        include: { replyTo: true }
+        include: { replyTo: true, attachments: true }
       });
     } else {
       // Pagination mode: get messages in reverse chronological order
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: limit + 1,
-        include: { replyTo: true },
+        include: { replyTo: true, attachments: true },
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
       });
 
@@ -88,8 +88,8 @@ export async function GET(req: NextRequest) {
       id: m.id,
       sender: m.sender,
       text: m.text,
-      mediaUrl: m.mediaUrl,
-      mediaType: m.mediaType,
+      mediaUrl: m.mediaUrl || (m.attachments[0]?.url ?? null),
+      mediaType: m.mediaType || (m.attachments[0]?.type ?? null),
       createdAt: m.createdAt.toISOString(),
       isDeleted: m.isDeleted,
       isEdited: m.isEdited,
@@ -99,6 +99,15 @@ export async function GET(req: NextRequest) {
         text: m.replyTo.text,
         sender: m.replyTo.sender
       } : null,
+      attachments: m.attachments.map(att => ({
+        id: att.id,
+        url: att.url,
+        type: att.type,
+        mimeType: att.mimeType,
+        name: att.name,
+        size: att.size,
+        createdAt: att.createdAt.toISOString()
+      }))
     }));
 
     return NextResponse.json({ 

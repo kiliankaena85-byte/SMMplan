@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { sendMail } from '@/lib/smtp';
 import { SettingsProvider } from '@/lib/settings';
 import { TicketSource, TicketStatus, MessageSender } from '@prisma/client';
+import { getMimeType } from '@/lib/mime';
 
 class TicketService {
   async getOrCreateTicket(userId: string, subject: string, source: TicketSource = 'WEB') {
@@ -21,7 +22,17 @@ class TicketService {
     });
   }
 
-  async addMessage(ticketId: string, sender: MessageSender, text: string, mediaUrl?: string, mediaType?: string, replyToId?: string, incomingTelegramMsgId?: string) {
+  // TODO(Phase 2): Refactor addMessage to take a single options object instead of positional parameters to avoid parameter smell
+  async addMessage(
+    ticketId: string, 
+    sender: MessageSender, 
+    text: string, 
+    mediaUrl?: string, 
+    mediaType?: string, 
+    replyToId?: string, 
+    incomingTelegramMsgId?: string,
+    attachments?: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }>
+  ) {
     let telegramMsgId: string | undefined = incomingTelegramMsgId;
     
     // Fetch ticket and user info beforehand for Telegram sending
@@ -50,10 +61,46 @@ class TicketService {
       }
     }
 
+    // Build attachments to create with legacy support fallback
+    const attachmentsToCreate: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }> = [];
+    if (attachments && attachments.length > 0) {
+      attachmentsToCreate.push(...attachments);
+    } else if (mediaUrl) {
+      const name = mediaUrl.split('/').pop() || 'attachment';
+      const mimeType = getMimeType(name);
+      attachmentsToCreate.push({
+        url: mediaUrl,
+        type: (mediaType || 'document').toLowerCase(),
+        mimeType,
+        name
+      });
+    }
+
+    const legacyMediaUrl = mediaUrl || attachmentsToCreate[0]?.url || null;
+    const legacyMediaType = mediaType || attachmentsToCreate[0]?.type || null;
+
     const message = await db.ticketMessage.create({
-      data: { ticketId, sender, text, mediaUrl, mediaType, replyToId, telegramMsgId },
+      data: { 
+        ticketId, 
+        sender, 
+        text, 
+        mediaUrl: legacyMediaUrl, 
+        mediaType: legacyMediaType, 
+        replyToId, 
+        telegramMsgId,
+        attachments: attachmentsToCreate.length > 0 ? {
+          create: attachmentsToCreate.map(att => ({
+            url: att.url,
+            type: att.type,
+            mimeType: att.mimeType,
+            name: att.name, // original filename
+            size: att.size || null
+          }))
+        } : undefined
+      },
       include: {
-        ticket: { include: { user: true } }
+        ticket: { include: { user: true } },
+        attachments: true
       }
     });
 

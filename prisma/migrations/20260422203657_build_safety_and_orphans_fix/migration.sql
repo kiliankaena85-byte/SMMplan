@@ -9,6 +9,7 @@ CREATE TABLE "User" (
     "personalDiscount" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     "supportLimitCents" INTEGER NOT NULL DEFAULT 50000,
     "apiKey" TEXT,
+    "apiKeyHash" TEXT,
     "referralCode" TEXT,
     "referredById" TEXT,
     "referralBalance" INTEGER NOT NULL DEFAULT 0,
@@ -77,6 +78,7 @@ CREATE TABLE "Network" (
 CREATE TABLE "Category" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
     "networkId" TEXT,
     "sort" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -149,6 +151,7 @@ CREATE TABLE "Order" (
     "interval" INTEGER,
     "currentRun" INTEGER NOT NULL DEFAULT 0,
     "nextRunAt" TIMESTAMP(3),
+    "idempotencyKey" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -178,6 +181,8 @@ CREATE TABLE "Payment" (
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "gatewayId" TEXT,
     "gateway" TEXT NOT NULL DEFAULT 'yookassa',
+    "receiptId" TEXT,
+    "refundReceiptId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

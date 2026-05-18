@@ -38,7 +38,7 @@ export default async function ClientTicketChatPage({
     },
     orderBy: { createdAt: 'desc' },
     take: 51,
-    include: { replyTo: true }
+    include: { replyTo: true, attachments: true }
   });
 
   let nextCursor: string | null = null;
@@ -63,7 +63,16 @@ export default async function ClientTicketChatPage({
       id: m.replyTo.id,
       text: m.replyTo.text,
       sender: m.replyTo.sender
-    } : null
+    } : null,
+    attachments: m.attachments.map(a => ({
+      id: a.id,
+      url: a.url,
+      type: a.type,
+      mimeType: a.mimeType,
+      name: a.name,
+      size: a.size,
+      createdAt: a.createdAt.toISOString()
+    }))
   }));
 
   const isClosed = ticket.status === 'CLOSED';

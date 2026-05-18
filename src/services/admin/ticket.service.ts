@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import type { MessageAttachment } from '@prisma/client';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 
 // ── Types ──
@@ -151,7 +152,7 @@ class AdminTicketService {
         messages: { 
           orderBy: { createdAt: 'desc' },
           take: 51,
-          include: { replyTo: true }
+          include: { replyTo: true, attachments: true }
         },
       },
     });
@@ -167,7 +168,7 @@ class AdminTicketService {
         messages: {
           orderBy: { createdAt: 'desc' }, // Get newest first
           take: 15, // Limit to 15 per ticket to prevent DOM OOM
-          include: { replyTo: true }
+          include: { replyTo: true, attachments: true }
         }
       }
     });
@@ -196,6 +197,15 @@ class AdminTicketService {
         text: m.replyTo.text,
         sender: m.replyTo.sender
       } : null,
+      attachments: m.attachments ? m.attachments.map((a: MessageAttachment) => ({
+        id: a.id,
+        url: a.url,
+        type: a.type,
+        mimeType: a.mimeType,
+        name: a.name,
+        size: a.size,
+        createdAt: a.createdAt.toISOString()
+      })) : [],
       isHistorical,
       historicalTicketId: histTicketId,
       historicalSubject: histSubject
