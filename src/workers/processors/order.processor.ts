@@ -106,6 +106,12 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     console.error(`[OrderProcessor] Failed Order ${order.id} on attempt ${job.attemptsMade}:`, error.message);
     
     // Determine error type
+    // === ARCHITECTURE INVARIANT: No automatic failover ===
+    // If provider returns terminal error — order fails, refund is issued.
+    // Manual reroute is operator's responsibility via Admin UI.
+    // See: /admin/orders/[id] → Manual Reroute button
+    // Reason: client errors (bad link, closed profile) will fail on any provider.
+    // Auto-switching would cause double billing with no recovery benefit.
     const isNetworkError = error.message.includes('Provider HTTP Error') || 
                            error.message.includes('Provider Request Timeout') || 
                            error.message.includes('CircuitBreakerOpenException');

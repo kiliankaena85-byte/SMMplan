@@ -22,6 +22,8 @@ import {
   setOrderStatusAction,
   forceCompleteOrderAction,
   bulkCancelOrdersAction,
+  getFailoverPreview,
+  manualRerouteOrder,
 } from '@/actions/admin/orders';
 
 
@@ -52,11 +54,15 @@ function OrderDrawer({
 }) {
   const [selectedStatus, setSelectedStatus] = useState(order?.status ?? '');
   const [remains, setRemains] = useState(order?.remains ?? 0);
+  const [failoverPreview, setFailoverPreview] = useState<any>(null);
+  const [isFailoverModalOpen, setIsFailoverModalOpen] = useState(false);
+  const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [isPending, startTransition] = useTransition();
 
   React.useEffect(() => {
     setSelectedStatus(order?.status ?? '');
     setRemains(order?.remains ?? 0);
+    setIsFailoverModalOpen(false);
   }, [order]);
 
   if (!order) return null;
@@ -122,6 +128,38 @@ function OrderDrawer({
         onClose();
       } catch (e) {
         toast.error((e as Error).message ?? 'Ошибка');
+      }
+    });
+  }
+
+  function handleFailoverClick() {
+    if (!order) return;
+    startTransition(async () => {
+      try {
+        const preview = await getFailoverPreview(order.id);
+        if (preview.success) {
+          setFailoverPreview(preview);
+          if (preview.routes.length > 0) {
+            setSelectedRouteId(preview.routes[0].routeId);
+          }
+          setIsFailoverModalOpen(true);
+        }
+      } catch (e) {
+        toast.error((e as Error).message ?? 'Ошибка загрузки маршрутов');
+      }
+    });
+  }
+
+  function handleConfirmFailover() {
+    if (!order || !selectedRouteId) return;
+    startTransition(async () => {
+      try {
+        await manualRerouteOrder(order.id, selectedRouteId);
+        toast.success(`♻️ Заказ #${order.numericId} перезапущен через нового провайдера`);
+        setIsFailoverModalOpen(false);
+        onClose();
+      } catch (e) {
+        toast.error((e as Error).message ?? 'Ошибка при перезапуске');
       }
     });
   }
@@ -278,6 +316,17 @@ function OrderDrawer({
               <XCircle className="w-4 h-4" />
               Отменить заказ
             </button>
+            {['ERROR', 'CANCELED'].includes(order.status) && (
+              <button
+                onClick={handleFailoverClick}
+                disabled={isPending}
+                aria-label="Ручной перезапуск (Failover)"
+                className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all duration-200 disabled:opacity-40"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Failover (Сменить провайдера)
+              </button>
+            )}
           </div>
 
           {/* DripFeed info */}
@@ -292,6 +341,100 @@ function OrderDrawer({
           )}
         </div>
       </div>
+
+      {/* Failover Margin Preview Modal */}
+      {isFailoverModalOpen && failoverPreview && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-background w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-border">
+            <div className="px-6 py-4 border-b border-border bg-muted/30">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                ⚠️ Ручной перезапуск #{order.numericId}
+              </h3>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Выберите резервного провайдера:</label>
+                {failoverPreview.routes.length === 0 ? (
+                  <div className="text-sm text-destructive font-medium">Нет доступных резервных маршрутов</div>
+                ) : (
+                  <select
+                    value={selectedRouteId}
+                    onChange={e => setSelectedRouteId(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background outline-none focus:border-primary"
+                  >
+                    {failoverPreview.routes.map((r: any) => (
+                      <option key={r.routeId} value={r.routeId}>
+                        {r.providerName} (Закупка: {(r.newCostCents / 100).toFixed(2)} ₽)
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {selectedRouteId && failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId) && (
+                <div className="bg-muted/30 p-4 rounded-xl border border-border space-y-2 text-sm">
+                  <div className="font-bold mb-2">📊 Анализ маржи:</div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Баланс клиента:</span>
+                    <span className={failoverPreview.currentBalance < failoverPreview.clientPaidCents ? "text-destructive font-bold" : ""}>
+                      {(failoverPreview.currentBalance / 100).toFixed(2)} ₽
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Клиент заплатил:</span>
+                    <span>{(failoverPreview.clientPaidCents / 100).toFixed(2)} ₽</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Резервный провайдер:</span>
+                    <span>{(failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).newCostCents / 100).toFixed(2)} ₽</span>
+                  </div>
+                  <div className="h-px bg-border my-2" />
+                  <div className="flex justify-between font-bold">
+                    <span>Новая маржа:</span>
+                    <span className={failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).isMarginPositive ? 'text-success' : 'text-destructive'}>
+                      {(failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).marginCents / 100).toFixed(2)} ₽ 
+                      ({failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).marginPercent}%) 
+                      {failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).isMarginPositive ? ' ✅' : ' 🔴'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {failoverPreview.currentBalance < failoverPreview.clientPaidCents && (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-lg flex items-start gap-2">
+                  <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>
+                    У клиента недостаточно средств на балансе для повторного списания (нужно {(failoverPreview.clientPaidCents / 100).toFixed(2)} ₽). Failover невозможен.
+                  </div>
+                </div>
+              )}
+
+              {order.error && (
+                <div className="bg-warning/10 border border-warning/20 text-warning-foreground text-sm p-3 rounded-lg">
+                  <span className="font-bold text-warning-foreground">⚠️ Причина ошибки:</span> "{order.error}"<br/>
+                  <span className="text-muted-foreground mt-1 block">Убедитесь, что ссылка корректна перед перезапуском.</span>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setIsFailoverModalOpen(false)}
+                  className="flex-1 px-4 py-2 border border-border bg-background rounded-lg text-sm font-medium hover:bg-muted"
+                >
+                  Отменить
+                </button>
+                <button
+                  onClick={handleConfirmFailover}
+                  disabled={isPending || failoverPreview.routes.length === 0 || failoverPreview.currentBalance < failoverPreview.clientPaidCents}
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isPending ? 'Запуск...' : 'Подтвердить'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

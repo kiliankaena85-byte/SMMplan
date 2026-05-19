@@ -17,6 +17,8 @@ import { calculatePartialRefund } from '@/utils/refund';
 import { adminOrderService } from '@/services/admin/order.service';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { orderIdSchema } from '@/validators/admin.validators';
+import { ordersQueue } from '@/lib/queue-manager';
+import { SettingsManager } from '@/lib/settings';
 
 // ── Types & Schemas ──
 
@@ -272,6 +274,163 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
       cancelledCount: count, 
       totalRefundCents: totalRefunded 
     };
+  });
+}
+
+// ── Manual Failover Actions ──
+
+export async function getFailoverPreview(orderId: string) {
+  return requireStaffPermission('orders', 'edit', async () => {
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: {
+        service: {
+          include: {
+            serviceRoutes: {
+              where: { isActive: true },
+              include: { provider: true }
+            }
+          }
+        },
+        user: { select: { balance: true } }
+      }
+    });
+
+    if (!order) throw new Error('Order not found');
+    if (!['ERROR', 'CANCELED'].includes(order.status)) {
+      throw new Error('Заказ должен быть в статусе ERROR или CANCELED для перезапуска');
+    }
+
+    const usdToRub = await SettingsManager.getExchangeRateUSD();
+    const availableRoutes = order.service.serviceRoutes.filter(
+      r => r.providerId !== order.providerId
+    );
+
+    const routesWithPreview = availableRoutes.map(route => {
+      const exchangeRate = route.provider.currency === 'RUB' ? 1.0 : usdToRub;
+      const newCostCents = Math.round(route.provider.rate * exchangeRate * 100);
+      const marginCents = Number(order.charge) - newCostCents;
+      const marginPercent = Number(order.charge) > 0 
+        ? Math.round((marginCents / Number(order.charge)) * 100) 
+        : 0;
+
+      return {
+        routeId: route.id,
+        providerName: route.provider.name,
+        newCostCents,
+        marginCents,
+        marginPercent,
+        isMarginPositive: marginCents > 0
+      };
+    });
+
+    return {
+      success: true,
+      clientPaidCents: Number(order.charge),
+      currentBalance: order.user.balance,
+      routes: routesWithPreview
+    };
+  });
+}
+
+export async function manualRerouteOrder(orderId: string, newRouteId: string) {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
+    const result = await db.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, numericId: true, status: true, charge: true, userId: true, serviceId: true, providerId: true }
+      });
+
+      if (!order) throw new Error('Order not found');
+      if (!['ERROR', 'CANCELED'].includes(order.status)) {
+        throw new Error('Заказ уже обрабатывается');
+      }
+
+      const newRoute = await tx.serviceRoute.findFirst({
+        where: { id: newRouteId, serviceId: order.serviceId, isActive: true },
+        include: { provider: true }
+      });
+
+      if (!newRoute) throw new Error('Маршрут не найден или не активен');
+      if (newRoute.providerId === order.providerId) {
+        throw new Error('Выбран тот же самый провайдер');
+      }
+
+      const user = await tx.user.findUnique({
+        where: { id: order.userId },
+        select: { balance: true }
+      });
+
+      if (!user) throw new Error('User not found');
+      if (user.balance < order.charge) {
+        throw new Error(`Недостаточно средств: баланс ${(user.balance/100).toFixed(2)} ₽, требуется ${(Number(order.charge)/100).toFixed(2)} ₽`);
+      }
+
+      const usdToRub = await SettingsManager.getExchangeRateUSD();
+      const exchangeRate = newRoute.provider.currency === 'RUB' ? 1.0 : usdToRub;
+      const newProviderCostCents = Math.round(newRoute.provider.rate * exchangeRate * 100);
+
+      // Списание с баланса (перезапуск за счет пользователя, т.к. при ERROR/CANCELED был refund)
+      await tx.user.update({
+        where: { id: order.userId },
+        data: { balance: { decrement: order.charge } }
+      });
+
+      // Обновление заказа
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'PENDING',
+          providerId: newRoute.providerId,
+          providerServiceId: newRoute.providerServiceId,
+          providerCost: newProviderCostCents,
+          externalId: null,
+          error: null,
+          retryCount: 0
+        }
+      });
+
+      // LedgerEntry для биллинга
+      await tx.ledgerEntry.create({
+        data: {
+          userId: order.userId,
+          amount: -order.charge,
+          reason: `MANUAL_REROUTE: Order #${order.numericId}`,
+          idempotencyKey: `reroute_${orderId}_${newRouteId}`,
+        }
+      });
+
+      // Лог маршрутизации
+      await tx.routingAuditLog.create({
+        data: {
+          orderId: order.id,
+          serviceId: order.serviceId,
+          event: 'MANUAL_OVERRIDE',
+          oldProviderId: order.providerId,
+          newProviderId: newRoute.providerId,
+          reason: `Admin ${admin.email} triggered manual failover`
+        }
+      });
+
+      return { numericId: order.numericId, newProviderId: newRoute.providerId };
+    });
+
+    // После транзакции — отправка в BullMQ
+    await ordersQueue.add('process-order', { orderId }, {
+      jobId: `order-${orderId}-${Date.now()}`
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'MANUAL_REROUTE',
+      target: orderId,
+      targetType: 'ORDER',
+      newValue: { newProviderId: result.newProviderId }
+    });
+
+    revalidatePath('/admin/orders');
+    return { success: true as const, numericId: result.numericId };
   });
 }
 
