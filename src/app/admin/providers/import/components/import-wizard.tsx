@@ -141,7 +141,11 @@ export function ImportWizard({ categories, providers }: { categories: any[], pro
              const res = await importSelectedServices(chunk, targetCategory, multiplier, providerId);
              
              if (res && !res.success) {
-                 throw new Error(res.error || `Ошибка на пачке ${i}-${i+BATCH_SIZE}`);
+                 throw new Error(
+                   `Ошибка на услугах ${i+1}-${Math.min(i+BATCH_SIZE, total)} из ${total}. ` +
+                   `Уже импортировано: ${importedCount}. ` +
+                   `Ошибка: ${res.error}. Вы можете запустить импорт повторно — дубли будут пропущены.`
+                 );
              }
              
              importedCount += (res?.imported || 0);

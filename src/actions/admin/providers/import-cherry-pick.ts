@@ -26,7 +26,7 @@ const rawServiceSchema = z.object({
   dripfeed: z.boolean().optional(),
   desc: z.string().optional().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
   description: z.string().optional().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
-}).passthrough(); // Allow extra fields
+}).strip(); // Remove extra fields
 
 // --- [NEW] Pagination & Filtering API ---
 export async function fetchPaginatedExternalServices(
@@ -239,22 +239,11 @@ export async function fetchExternalServices(providerId?: string, forceRefresh = 
         await redis.setex(cacheKey, 86400, JSON.stringify(services));
      }
      
-     // Also fetch existing externalIds to denote which ones are already imported
-     const existing = await db.service.findMany({
-         select: { externalId: true, id: true, name: true }
-     });
-
-     const existingMap = new Map(existing.map(s => [s.externalId, s]));
-
      return {
         success: true,
+        count: services.length,
         source: services.length > 0 && forceRefresh ? 'api' : 'cache',
         providerId: providerDbId,
-        services: services.map((s: any) => ({
-            ...s,
-            alreadyImported: existingMap.has(String(s.service)),
-            localServiceId: existingMap.get(String(s.service))?.id
-        }))
      };
   });
 }

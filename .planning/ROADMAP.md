@@ -111,3 +111,25 @@ Plans:
 
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
+
+### Phase 999.7: Shadow Catalog Memory Optimization (BACKLOG)
+
+**Goal:** Optimize memory usage for the Shadow Catalog by preventing full JSON parsing on every page load or filter action.
+**Requirements:**
+- Implement a more efficient storage and querying strategy (e.g., Redis Hash, sorted sets, chunked storage, or a PostgreSQL staging table).
+- Risk mitigation: Prevent N simultaneous admin sessions from consuming N * 3-6MB of heap space.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
+
+### Phase 999.8: Active Service Price Drift Detection (BACKLOG)
+
+**Goal:** Prevent silent margin erosion by monitoring active services for gradual price increases below the 20% quarantine threshold.
+**Requirements:**
+- Implement a drift-check mechanism within `syncProviderCatalog`.
+- Create alerts for accumulated price increases over time that could silently reduce profitability.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
