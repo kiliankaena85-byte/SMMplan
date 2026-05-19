@@ -393,9 +393,9 @@ export function SmartOrderForm() {
                     type="button"
                     onClick={() => setQuantity(Math.max(selectedService.minQty, quantity - 100))}
                     aria-label={`Уменьшить количество до ${Math.max(selectedService.minQty, quantity - 100)}`}
-                    className="p-3 bg-background border border-border rounded-xl hover:bg-muted transition-all duration-200 shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
+                    className="min-w-[44px] min-h-[44px] p-3 bg-background border border-border rounded-xl hover:bg-muted transition-all duration-200 shrink-0 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-5 h-5" />
                   </button>
                   <input
                     type="number"
@@ -410,9 +410,9 @@ export function SmartOrderForm() {
                     type="button"
                     onClick={() => setQuantity(quantity + 100)}
                     aria-label={`Увеличить количество до ${quantity + 100}`}
-                    className="p-3 bg-background border border-border rounded-xl hover:bg-muted transition-all duration-200 shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
+                    className="min-w-[44px] min-h-[44px] p-3 bg-background border border-border rounded-xl hover:bg-muted transition-all duration-200 shrink-0 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-5 h-5" />
                   </button>
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-1 tabular-nums">
@@ -492,11 +492,11 @@ export function SmartOrderForm() {
                 <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
                   Способ оплаты
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => setGateway('yookassa')}
-                    className={`flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
+                    className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
                       gateway === 'yookassa'
                         ? 'border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20'
                         : 'border-border bg-background text-muted-foreground hover:bg-muted'
@@ -507,7 +507,7 @@ export function SmartOrderForm() {
                   <button
                     type="button"
                     onClick={() => setGateway('balance')}
-                    className={`flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
+                    className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
                       gateway === 'balance'
                         ? 'border-emerald-600 bg-emerald-600/10 text-emerald-600 shadow-sm ring-1 ring-emerald-600/20'
                         : 'border-border bg-background text-muted-foreground hover:bg-muted'
@@ -518,7 +518,7 @@ export function SmartOrderForm() {
                   <button
                     type="button"
                     onClick={() => setGateway('cryptobot')}
-                    className={`flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
+                    className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
                       gateway === 'cryptobot'
                         ? 'border-orange-500 bg-orange-500/10 text-orange-600 shadow-sm ring-1 ring-orange-500/20'
                         : 'border-border bg-background text-muted-foreground hover:bg-muted'

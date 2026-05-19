@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useTransition } from 'react';
 import { generateSmartReplyAction } from '@/actions/support/ticket';
-import { Sparkles, Loader2, MessageSquare, Plus } from 'lucide-react';
+import { Sparkles, Loader2, MessageSquare, Plus, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ClientDate } from '@/components/ui/client-date';
@@ -106,6 +106,24 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   const [isAiPending, startAiTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // U1.2 Fix: Track keyboard height via visualViewport API (iOS/Telegram WebView)
+  const [kbOffset, setKbOffset] = useState(0);
+  useEffect(() => {
+    if (!window.visualViewport) return;
+    const vp = window.visualViewport;
+    const update = () => {
+      const diff = window.innerHeight - vp.height;
+      setKbOffset(diff > 0 ? diff : 0);
+    };
+    vp.addEventListener('resize', update);
+    vp.addEventListener('scroll', update);
+    update();
+    return () => {
+      vp.removeEventListener('resize', update);
+      vp.removeEventListener('scroll', update);
+    };
+  }, []);
 
   const handleLoadOlder = async () => {
     if (!nextCursor || loadingOlder) return;
@@ -246,12 +264,16 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   // Auto-scroll on new messages
   const isFirstRender = useRef(true);
   useEffect(() => {
-    if (isFirstRender.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'auto' });
-      isFirstRender.current = false;
-    } else {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    // U1.3 Fix: Delay scrollIntoView for iOS keyboard layout recalc
+    const timer = setTimeout(() => {
+      if (isFirstRender.current) {
+        bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        isFirstRender.current = false;
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
   }, [messages.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -447,7 +469,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                   
                   {/* Actions hover */}
                   {!msg.isDeleted && msg.sender !== 'USER' && editingMessageId !== msg.id && editTicketMessage && (
-                    <div className="absolute -left-20 top-2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                    <div className="absolute -left-20 top-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex gap-1 transition-opacity">
                       <button 
                         onClick={() => setReplyingTo(msg)}
                         className="p-2 text-slate-400 hover:text-primary rounded-full bg-card shadow-sm border border-slate-100"
@@ -471,7 +493,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     </div>
                   )}
                   {!msg.isDeleted && msg.sender === 'USER' && (
-                    <div className="absolute -right-10 top-2 opacity-0 group-hover:opacity-100 flex transition-opacity">
+                    <div className="absolute -right-10 top-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex transition-opacity">
                       <button 
                         onClick={() => setReplyingTo(msg)}
                         className="p-2 text-slate-400 hover:text-primary rounded-full bg-card shadow-sm border border-slate-100"
@@ -680,7 +702,13 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
           <span>Тикет закрыт. Создайте новое обращение если нужна помощь.</span>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="p-4 bg-card border-t border-slate-200">
+        <form
+          onSubmit={handleSubmit}
+          className="p-4 bg-card border-t border-slate-200 transition-[bottom] duration-150"
+          style={{
+            paddingBottom: kbOffset > 0 ? '0.5rem' : 'max(1rem, env(safe-area-inset-bottom))',
+          }}
+        >
           
           {isStaff && (initialTemplates.length > 0 || true) && (
             <div className="flex flex-wrap gap-1.5 mb-3 items-center">
@@ -773,9 +801,10 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
             <button
               type="submit"
               disabled={(!text.trim() && !file) || sending}
-              className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary disabled:opacity-50 transition-colors shrink-0"
+              aria-label="Отправить сообщение"
+              className="min-w-[48px] min-h-[48px] p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0 flex items-center justify-center"
             >
-              Отправить
+              {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </button>
           </div>
           {isStaff && (

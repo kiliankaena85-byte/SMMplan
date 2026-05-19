@@ -78,7 +78,7 @@ export default async function ClientTicketChatPage({
   const isClosed = ticket.status === 'CLOSED';
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500 flex flex-col h-[calc(100vh-7rem)] min-h-[500px]">
+    <div className="space-y-4 animate-in fade-in duration-500 flex flex-col h-[calc(100dvh-7rem)] min-h-[500px]">
       {/* Header / breadcrumb */}
       <div className="flex items-center gap-3 shrink-0">
         <Link
