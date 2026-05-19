@@ -190,9 +190,13 @@ class AdminCatalogService {
     let zombiesDisabled = 0;
     let resurrected = 0;
     let priceAnomalies = 0;
+    let priceUpdatedSilent = 0;
+    let marginFloorBreaches = 0;
 
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
     const QUARANTINE_THRESHOLD = 0.2; // 20% price increase tolerance
+    const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
+    const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
 
     for (const s of ourServices) {
       if (!s.externalId) continue;
@@ -240,10 +244,75 @@ class AdminCatalogService {
                 cooldownReason: null,
                 cooldownUntil: null,
                 rate: rawRate,
-                pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * s.markup * usdToRub) * 100)
+                pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * s.markup * exchangeRate) * 100)
               }
             });
             resurrected++;
+          }
+        } else if (s.isActive && !s.isQuarantined) {
+          // Active Service Price Drift Detection
+          const oldRate = s.rate;
+          const newRate = parseFloat(liveExt.rate);
+
+          if (oldRate > 0 && newRate !== oldRate) {
+            const driftPercent = (newRate - oldRate) / oldRate;
+            
+            const currentRetailCents = s.pricePer1000Cents;
+            const newCostCents = newRate * exchangeRate * 100;
+            const actualMarkup = newCostCents > 0 ? (currentRetailCents / newCostCents) : s.markup;
+
+            if (actualMarkup < SAFETY_FLOOR_MARKUP) {
+              // 1. Margin Floor breach -> Quarantine
+              await db.service.update({
+                where: { id: s.id },
+                data: {
+                  isQuarantined: true,
+                  pendingRate: newRate,
+                  quarantineReason: `Margin Floor Breach: Наценка упала до ${actualMarkup.toFixed(2)}x (Min: ${SAFETY_FLOOR_MARKUP}x)`,
+                  quarantinedAt: new Date()
+                }
+              });
+              marginFloorBreaches++;
+              priceAnomalies++;
+            } else if (driftPercent > QUARANTINE_THRESHOLD) {
+              // 2. Quarantine threshold > 20%
+              await db.service.update({
+                where: { id: s.id },
+                data: {
+                  isQuarantined: true,
+                  pendingRate: newRate,
+                  quarantineReason: `Price Spike: Цена выросла с $${oldRate} до $${newRate} (+${(driftPercent * 100).toFixed(1)}%)`,
+                  quarantinedAt: new Date()
+                }
+              });
+              priceAnomalies++;
+            } else {
+              // 3, 4, 5. Silent update (Drift 5-20%, Drift < 5%, or Drop)
+              const newPriceCents = Math.round(applyBeautifulRounding(newRate * s.markup * exchangeRate) * 100);
+              await db.service.update({
+                where: { id: s.id },
+                data: {
+                  rate: newRate,
+                  pricePer1000Cents: newPriceCents
+                }
+              });
+              priceUpdatedSilent++;
+
+              if (driftPercent >= 0.05 && driftPercent <= QUARANTINE_THRESHOLD) {
+                await db.routingAuditLog.create({
+                  data: {
+                    serviceId: s.id,
+                    adminId: admin.id,
+                    action: 'PRICE_DRIFT',
+                    reason: `Drift +${(driftPercent * 100).toFixed(1)}%: $${oldRate} -> $${newRate}`
+                  }
+                });
+
+                if (driftPercent > 0.15) {
+                  sendAdminAlert(`⚠️ [Price Drift] Услуга ${s.id} (${s.name}): цена выросла на ${(driftPercent * 100).toFixed(1)}% ($${oldRate} -> $${newRate}). Розница не изменилась, наценка снизилась.`, 'WARNING');
+                }
+              }
+            }
           }
         }
       }
@@ -255,10 +324,10 @@ class AdminCatalogService {
       action: 'PROVIDER_CATALOG_SYNC',
       target: providerId,
       targetType: 'PROVIDER',
-      newValue: { zombiesDisabled, resurrected, priceAnomalies },
+      newValue: { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches },
     });
 
-    return { zombiesDisabled, resurrected, priceAnomalies };
+    return { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches };
   }
 
   async importServices(

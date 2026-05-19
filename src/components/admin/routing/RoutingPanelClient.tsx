@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Card, Button, Modal, ModalHeader, ModalBody, ModalFooter, Checkbox, Chip, Table, Alert, Select, Input, Switch } from '@heroui/react';
+import { Card, Button, Modal, ModalHeader, ModalBody, ModalFooter, Checkbox, Chip, Table, Alert, Input, Switch } from '@heroui/react';
 import { previewHotSwap, executeHotSwap, addServiceRoute, toggleRouteStatus, changeRoutePriority, deleteServiceRoute } from '@/actions/admin/routing.actions';
 import { toast } from 'sonner';
 
@@ -127,25 +127,25 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
       <Card className="p-6 shadow-sm border-l-4 border-l-default-400 bg-background">
         <h3 className="text-lg font-bold mb-4">Добавить новый маршрут</h3>
         <div className="flex flex-col md:flex-row items-end gap-4">
-          <Select 
-            label="Провайдер"
-            placeholder="Выберите провайдера"
-            selectedKeys={newProviderId ? [newProviderId] : []}
+          <select 
+            aria-label="Провайдер"
+            value={newProviderId}
             onChange={(e) => setNewProviderId(e.target.value)}
-            className="w-full md:max-w-xs"
+            className="w-full md:max-w-xs bg-default-100 border-none rounded-lg px-4 h-14 text-sm focus:ring-2 focus:ring-primary outline-none"
           >
+            <option value="" disabled>Выберите провайдера</option>
             {activeProviders?.map((p: any) => (
-              <Select.Item key={p.id} value={p.id}>{p.name}</Select.Item>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
-          </Select>
+          </select>
           <Input 
-            label="External ID (ID услуги у провайдера)"
+            aria-label="External ID (ID услуги у провайдера)"
             placeholder="Например: 1234"
             value={newExternalId}
             onChange={(e) => setNewExternalId(e.target.value)}
             className="w-full md:max-w-xs"
           />
-          <Button color="primary" onPress={handleAddRoute} isLoading={isPending} className="h-14 font-semibold">
+          <Button variant="primary" onPress={handleAddRoute} isPending={isPending} className="h-14 font-semibold">
             Добавить маршрут
           </Button>
         </div>
@@ -163,7 +163,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
           </div>
         </div>
         
-        <Table aria-label="Routes table" removeWrapper className="w-full">
+        <Table aria-label="Routes table" className="w-full">
           <Table.Header>
             <Table.Column id="provider">ПРОВАЙДЕР</Table.Column>
             <Table.Column id="external_id">EXTERNAL ID</Table.Column>
@@ -177,7 +177,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
                 <Table.Cell className="font-semibold">
                   <div className="flex flex-col gap-1">
                     <span className="text-foreground">{route.provider.name}</span>
-                    {route.isPrimary && <div><Chip size="sm" color="success" variant="flat">PRIMARY NODE</Chip></div>}
+                    {route.isPrimary && <div><Chip size="sm" color="success" variant="soft">PRIMARY NODE</Chip></div>}
                   </div>
                 </Table.Cell>
                 <Table.Cell className="font-mono text-sm">{route.providerServiceId}</Table.Cell>
@@ -185,12 +185,12 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
                   <div className="flex items-center gap-2">
                     <span className="w-4 text-center font-semibold text-lg">{route.priority}</span>
                     <div className="flex flex-col gap-0.5">
-                      <Button size="sm" isIconOnly variant="light" 
+                      <Button size="sm" isIconOnly variant="ghost" 
                               isDisabled={index === 0 || isPending}
                               onPress={() => handlePriority(route.id, 'up')}>
                         ↑
                       </Button>
-                      <Button size="sm" isIconOnly variant="light" 
+                      <Button size="sm" isIconOnly variant="ghost" 
                               isDisabled={index === sortedRoutes.length - 1 || isPending}
                               onPress={() => handlePriority(route.id, 'down')}>
                         ↓
@@ -201,10 +201,9 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
                 <Table.Cell>
                   <Switch 
                     isSelected={route.isActive} 
-                    onValueChange={() => handleToggle(route.id)}
+                    onChange={() => handleToggle(route.id)}
                     isDisabled={isPending || route.isPrimary}
                     size="sm"
-                    color="success"
                   >
                     {route.isActive ? 'Active' : 'Disabled'}
                   </Switch>
@@ -214,8 +213,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
                     {!route.isPrimary && (
                       <Button 
                         size="sm" 
-                        color="primary" 
-                        variant="flat" 
+                        variant="secondary" 
                         isDisabled={!route.isActive || isPending}
                         onPress={() => handleOpenSwap(route)}
                       >
@@ -225,8 +223,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
                     {!route.isPrimary && (
                       <Button 
                         size="sm" 
-                        color="danger" 
-                        variant="flat" 
+                        variant="danger-soft" 
                         isDisabled={isPending}
                         onPress={() => handleDelete(route.id)}
                       >
@@ -316,7 +313,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
                       rows={3}
                     />
                     
-                    <Checkbox isSelected={understood} onValueChange={setUnderstood}>
+                    <Checkbox isSelected={understood} onChange={setUnderstood}>
                       Я понимаю риски и подтверждаю переключение
                     </Checkbox>
                   </div>
@@ -327,7 +324,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
             </ModalBody>
             <ModalFooter>
               <Button variant="ghost" onPress={onClose} isDisabled={isPending}>Отмена</Button>
-              <Button variant="danger" onPress={confirmSwap} isLoading={isPending} isDisabled={!previewData}>
+              <Button variant="danger" onPress={confirmSwap} isPending={isPending} isDisabled={!previewData}>
                 Confirm Traffic Swap
               </Button>
             </ModalFooter>
