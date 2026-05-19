@@ -100,3 +100,14 @@ Plans:
 
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
+
+### Phase 999.6: Worker Backoff Policy Review (BACKLOG)
+
+**Goal:** Review and implement backoff strategies and retry limits for BullMQ workers to prevent Storm of Retries (DoS) if external providers or APIs fail.
+**Requirements:**
+- Audit all background queues for exponential backoff config.
+- Add max retry limits to avoid infinite looping.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
