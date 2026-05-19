@@ -83,8 +83,34 @@ export async function verifySession() {
     const reqHeaders = await headers();
     const currentUserAgent = reqHeaders.get('user-agent') || 'unknown';
     if (session.userAgent && session.userAgent !== 'unknown' && session.userAgent !== currentUserAgent) {
-      console.warn(`[verifySession] Session Hijacking blocked: User-Agent mismatch for user ${payload.userId}`);
-      return null;
+      // Не блокируем — UA меняется при обновлении браузера, это норма
+      // Обновляем UA в сессии (дедупликация будущих событий)
+      // Логируем в SecurityEvent для audit trail
+      console.warn(
+        `[Session] UA changed for session ${sessionId}: "${session.userAgent}" → "${currentUserAgent}". Updating.`
+      );
+
+      // Fire-and-forget: не блокируем запрос на запись в БД
+      Promise.all([
+        db.session.update({
+          where: { id: sessionId },
+          data: { userAgent: currentUserAgent },
+        }),
+        db.securityEvent.create({
+          data: {
+            event: 'SESSION_UA_CHANGED',
+            severity: 'WARNING',
+            details: {
+              sessionId,
+              userId: session.userId,
+              oldUserAgent: session.userAgent,
+              newUserAgent: currentUserAgent,
+            },
+          },
+        }),
+      ]).catch(err => {
+        console.error('[Session] Failed to update UA audit trail:', err.message);
+      });
     }
 
     return { userId: payload.userId as string };
