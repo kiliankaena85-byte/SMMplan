@@ -20,8 +20,13 @@ export async function POST(req: Request) {
     const { searchParams } = new URL(req.url);
     const secret = searchParams.get("secret");
     
-    // In production, configure WEBHOOK_SECRET in .env
-    const expectedSecret = process.env.WEBHOOK_SECRET || "smmplan-secure-webhook-2026";
+    // SD-01 SECURITY FIX: Fail-closed — reject all requests if WEBHOOK_SECRET is not configured.
+    // NEVER fall back to a hardcoded default.
+    const expectedSecret = process.env.WEBHOOK_SECRET;
+    if (!expectedSecret) {
+      console.error('[Webhook] FATAL: WEBHOOK_SECRET is not configured. Rejecting all requests.');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+    }
     if (secret !== expectedSecret) {
       console.warn(`[Webhook] Unauthorized access attempt. Secret mismatch.`);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

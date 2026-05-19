@@ -111,6 +111,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // SD-10 SECURITY FIX: Content-hash idempotency guard.
+    // Prevents replay attacks even when no timestamp header is present.
+    // Uses SHA-256 hash of the raw body stored in Redis with 5-min TTL.
+    const { redis } = await import('@/lib/redis');
+    const bodyHash = crypto.createHash('sha256').update(rawBody).digest('hex');
+    const idempotencyKey = `inbound-email:dedup:${bodyHash}`;
+    const isDuplicate = await redis.set(idempotencyKey, '1', 'EX', 300, 'NX');
+    if (!isDuplicate) {
+      // NX returns null if key already exists → this is a duplicate
+      console.warn('[Inbound Email] Duplicate webhook payload rejected (idempotency guard).');
+      return NextResponse.json({ success: true, deduplicated: true });
+    }
+
     // 3. HMAC or direct token webhook signature validation (C3)
     if (webhookSecret) {
       const signature = req.headers.get('x-webhook-signature') || 

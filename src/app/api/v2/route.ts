@@ -106,11 +106,15 @@ async function handleServices(user: any, formData: FormData) {
   const offset = formData.get('offset')?.toString() || '0';
   const skip = parseInt(offset, 10);
 
+  // SD-15 SECURITY FIX: Cap offset at 1000 and limit at 100 to reduce scraping attractiveness.
+  // Scrapers would need many requests (hitting rate limits) instead of bulk-dumping the catalog.
+  const safeSkip = isNaN(skip) ? 0 : Math.min(skip, 1000);
+
   const services = await db.service.findMany({
     include: { category: true },
     where: { isActive: true },
-    take: 500,
-    skip: isNaN(skip) ? 0 : skip
+    take: 100,
+    skip: safeSkip
   });
 
   const finalFormatted = await marketingService.getB2BFormattedServices(user, services);
@@ -206,7 +210,8 @@ async function handleStatus(user: User, formData: FormData) {
 
   if (ordersStr) {
     // Multiple
-    const ids = ordersStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+    // SD-09 SECURITY FIX: Cap batch size to prevent DoS via massive IN queries
+    const ids = ordersStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)).slice(0, 100);
     const orders = await db.order.findMany({
       where: {
         numericId: { in: ids },

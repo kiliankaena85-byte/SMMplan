@@ -86,13 +86,14 @@ model AuthToken {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  userAgent String?
-  ipAddress String?
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt      DateTime
+  userAgent      String?
+  ipAddress      String?
+  impersonatedBy String?  // SD-07: Admin ID who initiated Login-As (null = real session)
+  createdAt      DateTime @default(now())
 
   @@index([userId])
 }

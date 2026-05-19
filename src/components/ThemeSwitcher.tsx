@@ -37,7 +37,7 @@ export function ThemeSwitcher() {
   ];
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 flex items-center gap-3 bg-card/80 backdrop-blur-md border border-border/50 p-2 rounded-full shadow-lg">
+    <div className="hidden md:flex fixed bottom-4 left-4 z-50 items-center gap-3 bg-card/80 backdrop-blur-md border border-border/50 p-2 rounded-full shadow-lg">
       <div className="flex gap-1 items-center bg-muted/50 p-1 rounded-full">
         <button
           onClick={() => setMode('light')}

@@ -54,8 +54,31 @@ export async function createContent(formData: FormData) {
   }
 }
 
+// SD-12 SECURITY FIX: Runtime validation schema for content updates.
+// TypeScript types are erased at runtime — only Zod prevents field injection.
+const contentUpdateSchema = z.object({
+  title: z.string().min(3).optional(),
+  slug: z.string().min(2).refine((val) => {
+    const reservedWords: string[] = ["api", "admin", "auth", "_next", "static", "dashboard", "orders", "draft"];
+    return !reservedWords.includes(val.toLowerCase());
+  }, "Этот URL зарезервирован системой").optional(),
+  type: z.enum(["PAGE", "ACADEMY_LESSON", "GLOSSARY_TERM", "NEWS_POST"]).optional(),
+  categoryId: z.string().nullable().optional(),
+  excerpt: z.string().nullable().optional(),
+  contentJson: z.string().nullable().optional(),
+  isPublished: z.boolean().optional(),
+  metaTitle: z.string().nullable().optional(),
+  metaDescription: z.string().nullable().optional(),
+}).strict(); // .strict() rejects any fields not in the schema (e.g., id, authorName, publishedAt)
+
 export async function updateContent(id: string, updateData: Partial<z.infer<typeof contentSchema>>) {
   await enforcePageRole(["ADMIN", "OWNER"]);
+
+  // SD-12 FIX: Validate updateData through Zod before passing to Prisma
+  const parsed = contentUpdateSchema.safeParse(updateData);
+  if (!parsed.success) {
+    return { success: false, error: "Невалидные данные для обновления", errors: parsed.error.flatten().fieldErrors };
+  }
 
   try {
     // Внимание: Здесь мы сохраняем ТОЛЬКО JSON (Премортем Сценарий №5)
@@ -64,7 +87,7 @@ export async function updateContent(id: string, updateData: Partial<z.infer<type
 
     const item = await prisma.contentItem.update({
       where: { id },
-      data: updateData,
+      data: parsed.data, // Now guaranteed to only contain allowed fields
     });
 
     // Гранулярный сброс кэша (Скрытый риск №2)

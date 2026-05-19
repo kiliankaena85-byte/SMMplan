@@ -4,7 +4,7 @@ import { useOrderEngine } from '@/hooks/useOrderEngine';
 import { ActionForm } from '@/components/admin/action-form';
 import { checkoutAction } from '@/actions/order/checkout';
 import { DripFeedSettings } from '@/components/orders/DripFeedSettings';
-import { PlatformSelectorFallback } from '@/components/orders/PlatformSelectorFallback';
+
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import {
   Plus, Minus, Search, Mail, ArrowRight,
@@ -158,31 +158,19 @@ export function SmartOrderForm() {
     return res;
   };
 
-  const availablePlatforms = engine.catalog
-    .map(net => {
-      const slug = net.slug.toUpperCase();
-      const name = Object.values(IntelligencePlatform).find(v => v === slug) as IntelligencePlatform;
-      return name ? { id: net.id, name } : null;
-    })
-    .filter((p): p is { id: string; name: IntelligencePlatform } => p !== null);
 
-  const showFallback = !engine.platform && url.length > 5 && !isLoading && services.length === 0;
 
   return (
     <div className="space-y-6">
-      {/* ── Manual Selection Fallback (Error State) ── */}
-      {showFallback && (
-        <div className="animate-in fade-in slide-in-from-top-2 duration-500">
-           <PlatformSelectorFallback 
-             onSelect={(p) => engine.setManualPlatform(p)} 
-             availablePlatforms={availablePlatforms}
-           />
-        </div>
-      )}
+      {/* ── Manual Selection Fallback removed in favor of persistent Network Pills ── */}
 
       {/* ── Network pills (Manual Platform Selection) ── */}
-      {(!engine.platform && engine.catalog.length > 1) && (
-        <div
+      {engine.catalog.length > 0 && (
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-500">
+          <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            Выберите платформу
+          </label>
+          <div
           className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide"
           role="tablist"
           aria-label="Платформы"
@@ -208,6 +196,7 @@ export function SmartOrderForm() {
               {net.name}
             </button>
           ))}
+          </div>
         </div>
       )}
 

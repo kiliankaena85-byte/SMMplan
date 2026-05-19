@@ -5,6 +5,12 @@ import { revalidateTag } from 'next/cache';
 import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
+  // SD-04 SECURITY FIX: Completely disable in production to prevent session token leakage.
+  // This route exposes raw JWT tokens and all cookies — unacceptable attack surface in prod.
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   const session = await verifySession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

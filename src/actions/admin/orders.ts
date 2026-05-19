@@ -10,7 +10,7 @@
 
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { calculatePartialRefund } from '@/utils/refund';
@@ -46,7 +46,8 @@ export async function cancelOrderAction(formData: FormData) {
       email: admin.email,
     });
 
-    auditAdmin({
+    // SD-13 SECURITY FIX: Await audit for financial operations to guarantee non-repudiation
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_CANCEL',
@@ -70,7 +71,7 @@ export async function restartOrderAction(formData: FormData) {
       email: admin.email,
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_RESTART',
@@ -136,7 +137,8 @@ export async function setOrderStatusAction(
       return { oldStatus, refundCents, numericId: order.numericId };
     }, { isolationLevel: 'Serializable' });
 
-    auditAdmin({
+    // SD-13 SECURITY FIX: Await audit for refund-bearing status override
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_STATUS_OVERRIDE',
@@ -186,7 +188,8 @@ export async function forceCompleteOrderAction(orderId: string) {
       return { numericId: order.numericId, refundCents };
     }, { isolationLevel: 'Serializable' });
 
-    auditAdmin({
+    // SD-13 SECURITY FIX: Await audit for force complete with potential refund
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_FORCE_COMPLETE',
@@ -253,7 +256,8 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
       }
     }
 
-    auditAdmin({
+    // SD-13 SECURITY FIX: Await audit for bulk cancel with aggregated refund total
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_BULK_CANCEL',

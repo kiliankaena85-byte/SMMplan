@@ -14,7 +14,14 @@ export async function POST(request: Request) {
 
     const payload = await request.text();
     const secrets = await SettingsManager.getPaymentSecrets();
-    const CRYPTO_BOT_TOKEN = secrets.cryptoBotToken || 'test_token';
+
+    // SD-03 SECURITY FIX: Fail-closed — reject all requests if CryptoBot token is not configured.
+    // NEVER fall back to a hardcoded default ('test_token' was exploitable via HMAC forgery).
+    const CRYPTO_BOT_TOKEN = secrets.cryptoBotToken;
+    if (!CRYPTO_BOT_TOKEN) {
+      console.error('[Webhook] FATAL: CryptoBot token is not configured in SystemSettings. Rejecting.');
+      return NextResponse.json({ error: 'CryptoBot webhook not configured' }, { status: 503 });
+    }
 
     // Verify CryptoBot Signature
     const secret = crypto.createHash('sha256').update(CRYPTO_BOT_TOKEN).digest();

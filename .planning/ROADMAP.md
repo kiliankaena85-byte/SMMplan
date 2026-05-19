@@ -79,3 +79,24 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
+### Phase 999.4: Auth-Zone Routes E2E Testing (BACKLOG)
+
+**Goal:** Provide full automated routing coverage for authenticated zones (dashboard, admin) to ensure no runtime 404/500 errors exist for logged-in users.
+**Requirements:**
+- Implement Playwright E2E fixtures that simulate test-user and test-admin sessions.
+- Crawl all routes protected by verifySession to guarantee zero broken links in protected panels.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
+
+### Phase 999.5: User-Agent Hijack Protection Review (BACKLOG)
+
+**Goal:** Review and strengthen session hijacking defenses beyond the current User-Agent verification to prevent false-positive logouts and increase security.
+**Requirements:**
+- Perform an independent auth security review.
+- Evaluate alternative or supplementary hijacking protections (e.g. rotating refresh tokens, IP anomaly detection, device fingerprinting).
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)

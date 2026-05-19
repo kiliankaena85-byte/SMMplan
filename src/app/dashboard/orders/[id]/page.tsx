@@ -38,7 +38,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
 
   // CRITICAL SECURITY: IDOR Protection via userId check
-  const order = await db.order.findUnique({
+  const order = await db.order.findFirst({
     where: { 
       id: id,
       userId: session.userId 

@@ -72,9 +72,12 @@ export async function GET(req: Request) {
   const httpStatus = isCritical ? 503 : 200;
 
   if (!isAuthorized) {
+    // SD-14 SECURITY FIX: Unauthenticated callers always see { status: 'ok' }.
+    // Returning 'unhealthy' or 'degraded' to the public leaks internal state
+    // and aids reconnaissance by external actors.
     return NextResponse.json(
-      { status: overallStatus, timestamp: new Date().toISOString() },
-      { status: httpStatus }
+      { status: 'ok', timestamp: new Date().toISOString() },
+      { status: 200 }
     );
   }
 

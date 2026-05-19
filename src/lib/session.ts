@@ -51,10 +51,16 @@ export async function verifySession() {
   const sessionToken = (await cookies()).get('session_token')?.value;
 
   if (!sessionToken) {
-    if (process.env.NODE_ENV !== 'production' && process.env.DEV_AUTO_LOGIN === 'true') {
-      // ВРЕМЕННЫЙ ХАК: Авто-вход для локальной разработки
-      const devOwner = await db.user.findFirst({ where: { role: 'OWNER' } });
-      if (devOwner) return { userId: devOwner.id };
+    // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.
+    // Prevents accidental OWNER access on misconfigured staging/preview deployments.
+    if (process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
+      const bypassEmail = process.env.DEV_BYPASS_EMAIL;
+      console.log("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
+      const devUser = await db.user.findFirst({ 
+        where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
+      });
+      console.log("[verifySession] devUser found:", !!devUser);
+      if (devUser) return { userId: devUser.id };
     }
     return null;
   }
@@ -84,10 +90,15 @@ export async function verifySession() {
     return { userId: payload.userId as string };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
-    if (process.env.NODE_ENV !== 'production' && process.env.DEV_AUTO_LOGIN === 'true') {
-      // ВРЕМЕННЫЙ ХАК: Авто-вход для локальной разработки
-      const devOwner = await db.user.findFirst({ where: { role: 'OWNER' } });
-      if (devOwner) return { userId: devOwner.id };
+    // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.
+    if (process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
+      const bypassEmail = process.env.DEV_BYPASS_EMAIL;
+      console.log("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
+      const devUser = await db.user.findFirst({ 
+        where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
+      });
+      console.log("[verifySession] devUser found:", !!devUser);
+      if (devUser) return { userId: devUser.id };
     }
     return null;
   }

@@ -38,8 +38,12 @@ export async function GET(
     const { path: pathSegments } = await params;
     const relativePath = pathSegments.join('/');
 
-    // Security: prevent path traversal
-    if (relativePath.includes('..') || relativePath.includes('~')) {
+    // SD-08 SECURITY FIX: Robust path traversal prevention via resolved path containment.
+    // Simple string checks for '..' can be bypassed via encoding tricks.
+    // path.resolve() + startsWith() is the only reliable defense.
+    const uploadBase = path.resolve(process.cwd(), 'private', 'uploads');
+    const filePath = path.resolve(uploadBase, relativePath);
+    if (!filePath.startsWith(uploadBase + path.sep) && filePath !== uploadBase) {
       return new NextResponse('Forbidden', { status: 403 });
     }
 
@@ -55,8 +59,6 @@ export async function GET(
         return new NextResponse('Forbidden', { status: 403 });
       }
     }
-
-    const filePath = path.join(process.cwd(), 'private', 'uploads', relativePath);
 
     try {
       const file = await fs.readFile(filePath);

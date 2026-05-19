@@ -3,7 +3,7 @@
 import { db } from '@/lib/db';
 import { adminUserService } from '@/services/admin/user.service';
 import { escrowService } from '@/services/admin/escrow.service';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { SignJWT } from 'jose';
@@ -40,7 +40,8 @@ export async function updateBalanceAction(formData: FormData) {
       admin
     );
 
-    auditAdmin({
+    // SD-13 SECURITY FIX: Await audit for balance modification (financial operation)
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'UPDATE_BALANCE_REQUEST',
@@ -130,13 +131,20 @@ export async function loginAsAction(formData: FormData) {
     const targetUser = await db.user.findUniqueOrThrow({ where: { id: userId } });
     const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
 
+    // SD-07 SECURITY FIX: Record impersonation origin for audit trail integrity.
+    // Without this, impersonated sessions are indistinguishable from real user sessions.
     const impersonationSession = await db.session.create({
-      data: { userId: targetUser.id, expiresAt },
+      data: {
+        userId: targetUser.id,
+        expiresAt,
+        impersonatedBy: admin.id,
+      },
     });
 
     const sessionToken = await new SignJWT({
       sessionId: impersonationSession.id,
       userId: targetUser.id,
+      impersonatedBy: admin.id,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -157,7 +165,7 @@ export async function loginAsAction(formData: FormData) {
       action: 'LOGIN_AS_USER',
       target: userId,
       targetType: 'USER',
-      newValue: { targetEmail: targetUser.email, sessionExpires: expiresAt.toISOString() },
+      newValue: { targetEmail: targetUser.email, sessionExpires: expiresAt.toISOString(), impersonatedBy: admin.id },
     });
 
     revalidatePath('/dashboard/new-order');
