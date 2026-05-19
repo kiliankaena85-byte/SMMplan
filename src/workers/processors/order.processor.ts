@@ -3,6 +3,7 @@ import { db } from '../../lib/db';
 import { OrderJobPayload } from '../queues';
 import { providerService } from '../../services/providers/provider.service';
 import { WalletService } from '../../services/financial/wallet.service';
+import { SettingsManager } from '../../lib/settings';
 
 export default async function orderProcessor(job: Job<OrderJobPayload>) {
   const { orderId, isDripFeedChild } = job.data;
@@ -20,6 +21,18 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   // Double execution guard
   if (order.status !== 'PENDING') {
     console.warn(`[OrderProcessor] Order ${orderId} is not PENDING. Skip.`);
+    return;
+  }
+
+  // TEST ORDER GUARD — предотвращает отправку тестового заказа реальному провайдеру
+  const isTestMode = await SettingsManager.isTestMode();
+  if (order.isTest && !isTestMode) {
+    console.error(`[OrderProcessor] CRITICAL: Test order ${orderId} picked up in production mode. Failing safely.`);
+    const { orderService } = await import('../../services/core/order.service');
+    await orderService.failOrderTerminal(
+      orderId,
+      'SYSTEM_GUARD: Попытка отправки тестового заказа реальному провайдеру прервана.'
+    );
     return;
   }
 

@@ -118,7 +118,7 @@ export const adminMarketingService = {
           amount: amountToPayCents,
           reason: `Выплата реферального баланса (admin payout)`,
           status: 'APPROVED',
-          idempotencyKey: `referral-payout-${userId}-${Date.now()}`
+          idempotencyKey: `referral-payout-${userId}`
         },
       });
 
