@@ -48,6 +48,11 @@ export default async function ServiceRoutingPage({ params }: { params: Promise<{
     take: 10
   });
 
+  const activeProviders = await db.provider.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true }
+  });
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div>
@@ -62,6 +67,7 @@ export default async function ServiceRoutingPage({ params }: { params: Promise<{
         service={service} 
         routes={routes} 
         auditLogs={auditLogs} 
+        activeProviders={activeProviders}
       />
     </div>
   );

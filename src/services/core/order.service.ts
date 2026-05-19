@@ -49,11 +49,34 @@ class OrderService {
           { idempotencyKey }
         );
 
-        // 2b. Create Order in DB
+        // 2b. Snapshot Routing
+        const service = await tx.service.findUnique({
+          where: { id: input.serviceId },
+          select: { providerId: true, externalId: true }
+        });
+        
+        const primaryRoute = await tx.serviceRoute.findFirst({
+          where: {
+            serviceId: input.serviceId,
+            isPrimary: true,
+            isActive: true,
+          },
+          select: {
+            providerId: true,
+            providerServiceId: true,
+          },
+        });
+
+        const resolvedProviderId = primaryRoute?.providerId ?? service?.providerId;
+        const resolvedExternalId = primaryRoute?.providerServiceId ?? service?.externalId;
+
+        // 2c. Create Order in DB
         const createdOrder = await tx.order.create({
           data: {
             userId,
             serviceId: input.serviceId,
+            providerId: resolvedProviderId,
+            providerServiceId: resolvedExternalId,
             link: input.link,
             quantity: input.quantity,
             status: 'PENDING',
