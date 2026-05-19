@@ -4,6 +4,7 @@ import { generateSmartReplyAction } from '@/actions/support/ticket';
 import { Sparkles, Loader2, MessageSquare, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ClientDate } from '@/components/ui/client-date';
 
 interface Message {
 // ...
@@ -144,27 +145,103 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
     initialMessages.length > 0 ? initialMessages[initialMessages.length - 1].createdAt : new Date(0).toISOString()
   );
 
-  // Polling for new messages every 5 seconds
+  // SSE real-time message delivery (replaces 5s polling)
+  // VQ1 Answer: Uses exponential backoff (1s → 2s → 4s → 8s → 16s cap) to prevent
+  // Retry Storm on mobile network drops. Falls back to polling after 3 consecutive SSE failures.
   useEffect(() => {
-    const interval = setInterval(async () => {
-      if (document.hidden) return; // Prevent DDoS when tab is in background
+    if (isClosed) return;
+
+    let eventSource: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let failCount = 0;
+    let fallbackInterval: ReturnType<typeof setInterval> | null = null;
+    const MAX_FAILURES = 3;
+    const MAX_BACKOFF_MS = 16000;
+
+    const addNewMessages = (newMsgs: Message[]) => {
+      setMessages(prev => {
+        const existingIds = new Set(prev.map(m => m.id));
+        const filtered = newMsgs.filter(m => !existingIds.has(m.id));
+        if (filtered.length === 0) return prev;
+        return [...prev, ...filtered];
+      });
+    };
+
+    const startPollingFallback = () => {
+      if (fallbackInterval) return;
+      fallbackInterval = setInterval(async () => {
+        if (document.hidden) return;
+        try {
+          const res = await fetch(`/api/support/messages?ticketId=${ticketId}&after=${encodeURIComponent(lastCheckedRef.current)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.messages && data.messages.length > 0) {
+            addNewMessages(data.messages);
+            lastCheckedRef.current = data.messages[data.messages.length - 1].createdAt;
+          }
+        } catch { /* silent */ }
+      }, 5000);
+    };
+
+    const connectSSE = () => {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+
       try {
-        const res = await fetch(`/api/support/messages?ticketId=${ticketId}&after=${encodeURIComponent(lastCheckedRef.current)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.messages && data.messages.length > 0) {
-          setMessages(prev => {
-            const existingIds = new Set(prev.map(m => m.id));
-            const newMsgs = data.messages.filter((m: Message) => !existingIds.has(m.id));
-            if (newMsgs.length === 0) return prev;
-            return [...prev, ...newMsgs];
-          });
-          lastCheckedRef.current = data.messages[data.messages.length - 1].createdAt;
-        }
-      } catch { /* silent */ }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [ticketId]);
+        eventSource = new EventSource(`/api/support/chat/stream?ticketId=${ticketId}`);
+
+        eventSource.onopen = () => {
+          failCount = 0; // Reset on successful connection
+          // Stop fallback polling if SSE recovered
+          if (fallbackInterval) {
+            clearInterval(fallbackInterval);
+            fallbackInterval = null;
+          }
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'connected') return; // Initial handshake
+            if (data.id && data.text !== undefined) {
+              addNewMessages([data as Message]);
+              lastCheckedRef.current = data.createdAt || new Date().toISOString();
+            }
+          } catch { /* malformed SSE data, ignore */ }
+        };
+
+        eventSource.onerror = () => {
+          eventSource?.close();
+          eventSource = null;
+          failCount++;
+
+          if (failCount >= MAX_FAILURES) {
+            // Degrade gracefully to polling
+            startPollingFallback();
+            return;
+          }
+
+          // Exponential backoff: 1s, 2s, 4s, 8s, 16s cap
+          const backoffMs = Math.min(1000 * Math.pow(2, failCount - 1), MAX_BACKOFF_MS);
+          reconnectTimer = setTimeout(connectSSE, backoffMs);
+        };
+      } catch {
+        // EventSource constructor failed (e.g. blocked by CSP)
+        startPollingFallback();
+      }
+    };
+
+    connectSSE();
+
+    return () => {
+      eventSource?.close();
+      eventSource = null;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (fallbackInterval) clearInterval(fallbackInterval);
+    };
+  }, [ticketId, isClosed]);
 
   // Auto-scroll on new messages
   const isFirstRender = useRef(true);
@@ -409,7 +486,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <span>
                       {msg.sender === 'INTERNAL' ? '🔒 INTERNAL NOTE' : msg.sender}
                       {' • '}
-                      {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      <ClientDate date={msg.createdAt} format="time" />
                       {msg.isHistorical && ' (Архив)'}
                     </span>
                     {msg.isEdited && <span className="ml-2" title={msg.originalText || ''}>(изменено)</span>}

@@ -63,7 +63,7 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
                 }`}>
                  <span className="line-clamp-6">
                    {isQuarantined 
-                     ? `Услуга временно приостановлена (до ${new Date(srv.cooldownUntil!).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'})}). Пожалуйста, выберите аналогичную услугу из списка.` 
+                      ? `Услуга временно приостановлена. Пожалуйста, выберите аналогичную услугу из списка.` 
                      : (srv.description || (srv.name.toLowerCase().includes('без гарант') 
                      ? "Услуга без гарантии. В случае отписок восстановление не производится." 
                      : "Стандартные условия сервиса. Скорость зависит от текущей нагрузки провайдера."))}

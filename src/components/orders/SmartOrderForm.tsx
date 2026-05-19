@@ -10,7 +10,7 @@ import {
   Plus, Minus, Search, Mail, ArrowRight,
   Loader2, Clock, CheckCircle2, Wallet, CreditCard, Bitcoin
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -60,6 +60,7 @@ export function SmartOrderForm() {
   const [requirementsConfirmed, setRequirementsConfirmed] = useState(false);
   const [modalRequirements, setModalRequirements] = useState<string[]>([]);
   const [viewportBottom, setViewportBottom] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   React.useEffect(() => {
     idempotencyKeyRef.current = crypto.randomUUID();
@@ -106,6 +107,9 @@ export function SmartOrderForm() {
   };
 
   const handleAction = async () => {
+    if (submitting) return { error: 'Заказ уже обрабатывается' };
+    setSubmitting(true);
+    try {
     // 1. Adaptive validation block
     const sName = selectedService?.name.toLowerCase() || "";
     const isCustomComments = sName.includes('свои') || sName.includes('свой текст');
@@ -156,6 +160,9 @@ export function SmartOrderForm() {
     }
 
     return res;
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
@@ -571,6 +578,7 @@ export function SmartOrderForm() {
                     const sName = selectedService.name.toLowerCase();
                     const needsPayload = sName.includes('свои') || sName.includes('свой текст') || sName.includes('ключево') || sName.includes('опрос') || sName.includes('голосование');
                     if (needsPayload && !engine.customData.trim()) return true;
+                    if (submitting) return true;
                     return false;
                   })()}
                   aria-label="Создать заказ и перейти к оплате"
@@ -580,7 +588,11 @@ export function SmartOrderForm() {
                       : 'bg-muted text-muted-foreground cursor-not-allowed'
                   }`}
                 >
-                  Оплатить {totalPriceFormatted} ₽ <ArrowRight className="w-5 h-5" />
+                  {submitting ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Обработка...</>
+                  ) : (
+                    <>Оплатить {totalPriceFormatted} ₽ <ArrowRight className="w-5 h-5" /></>
+                  )}
                 </button>
               </div>
 

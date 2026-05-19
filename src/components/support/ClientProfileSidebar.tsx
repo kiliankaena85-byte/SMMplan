@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { ChevronRight, ChevronLeft, User, ShoppingCart, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { formatBalance } from '@/lib/utils';
+import { ClientDate } from '@/components/ui/client-date';
 
 type OrderSummary = {
   id: string;
@@ -132,7 +133,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
           </div>
         )}
         <p className="text-xs text-muted-foreground mb-4">
-          Регистрация: {new Date(user.createdAt).toLocaleDateString('ru-RU')}
+          Регистрация: <ClientDate date={user.createdAt} format="date" />
         </p>
 
         <div className="flex w-full gap-2">
@@ -220,7 +221,7 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
                        {st.label}
                      </span>
                      <div className="text-[9px] text-slate-400 mt-1">
-                       {new Date(payment.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
+                       <ClientDate date={payment.createdAt} format="date-short" />
                      </div>
                    </div>
                  </div>

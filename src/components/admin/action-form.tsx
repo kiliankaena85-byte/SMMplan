@@ -8,11 +8,11 @@ export function ActionForm({
   formRef
 }: { 
   action: (formData: FormData) => Promise<any>, 
-  children: React.ReactNode, 
+  children: React.ReactNode | ((props: { isPending: boolean }) => React.ReactNode),
   className?: string,
   formRef?: React.RefObject<HTMLFormElement | null>
 }) {
-   const [state, formAction] = useActionState(async (prevState: any, formData: FormData) => {
+   const [state, formAction, isPending] = useActionState(async (prevState: any, formData: FormData) => {
        try {
            const result = await action(formData);
            if (result && typeof result === 'object' && result.error) {
@@ -26,7 +26,9 @@ export function ActionForm({
 
    return (
        <form action={formAction} className={className} ref={formRef}>
-           {children}
+           <fieldset disabled={isPending} className="contents">
+             {typeof children === 'function' ? children({ isPending }) : children}
+           </fieldset>
            {state?.error && (
                <p className="text-destructive text-sm mt-2 font-medium" role="alert" aria-live="assertive">{state.error}</p>
            )}

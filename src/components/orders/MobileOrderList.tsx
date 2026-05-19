@@ -5,6 +5,7 @@ import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Drawer, DrawerContent, DrawerHeader, DrawerBody } from '@heroui/react';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
+import { ClientDate } from '@/components/ui/client-date';
 import { Clock, ExternalLink, LayoutDashboard } from 'lucide-react';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -131,10 +132,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="tabular-nums font-medium">{order.quantity.toLocaleString('ru-RU')} шт.</span>
                       <span>
-                        {new Date(order.createdAt).toLocaleDateString('ru-RU', {
-                          day: '2-digit',
-                          month: '2-digit',
-                        })}
+                        <ClientDate date={order.createdAt} format="date-short" />
                       </span>
                     </div>
                     
@@ -174,9 +172,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                 <h2 className="text-xl font-bold">Заказ #{selectedOrder?.numericId}</h2>
                 <div className="text-sm font-normal text-muted-foreground flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5" />
-                  {selectedOrder && new Date(selectedOrder.createdAt).toLocaleString('ru-RU', { 
-                    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-                  })}
+                  <ClientDate date={selectedOrder.createdAt} format="datetime" />
                 </div>
               </DrawerHeader>
               

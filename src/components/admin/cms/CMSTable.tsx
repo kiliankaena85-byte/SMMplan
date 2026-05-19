@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { ClientDate } from "@/components/ui/client-date";
 
 export function CMSTable({ items }: { items: any[] }) {
   if (!items || items.length === 0) {
@@ -55,7 +56,7 @@ export function CMSTable({ items }: { items: any[] }) {
               </TableCell>
               <TableCell className="text-sm">{item.authorName || "—"}</TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {new Date(item.createdAt).toLocaleDateString("ru-RU")}
+                <ClientDate date={item.createdAt} format="date" />
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
