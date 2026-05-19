@@ -22,8 +22,69 @@ export async function generateSmartReplyAction(ticketId: string) {
   });
 }
 
-
 import { RateLimitService } from '@/services/core/rate-limit.service';
+import { sseBroadcaster } from '@/lib/sse-broadcaster';
+
+// === LIVE CHAT SERVER ACTION ===
+const liveChatMessageSchema = z.object({
+  ticketId: z.string().min(1),
+  message: z.string().min(1, 'Сообщение не может быть пустым').max(4000),
+  orderId: z.string().optional()
+});
+
+/**
+ * Server Action: Send a live chat message from client cabinet.
+ * Broadcasts to SSE stream for real-time delivery to operator.
+ */
+export async function sendLiveChatMessage(formData: FormData) {
+  const session = await verifySession();
+  if (!session) throw new Error('Unauthorized');
+
+  // Anti-spam: 60 messages per minute
+  const isAllowed = await RateLimitService.checkCustomKey(`live_chat:${session.userId}`, 60, 60);
+  if (!isAllowed) {
+    throw new Error('Вы отправляете сообщения слишком быстро. Подождите.');
+  }
+
+  const parsed = liveChatMessageSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+
+  const { ticketId, message, orderId } = parsed.data;
+
+  // Security: user must own the ticket
+  const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
+  if (!ticket || ticket.userId !== session.userId) throw new Error('Forbidden');
+
+  // On-the-fly order binding (first message with order context)
+  if (orderId && !ticket.orderId) {
+    // Verify user owns the order too
+    const order = await db.order.findFirst({
+      where: { id: orderId, userId: session.userId }
+    });
+    if (order) {
+      await db.ticket.update({
+        where: { id: ticketId },
+        data: { orderId }
+      });
+    }
+  }
+
+  // Add message via unified omnichannel service
+  const savedMsg = await ticketService.addMessage(ticketId, 'USER', message);
+
+  // Broadcast to SSE listeners (real-time delivery to operator panel & client tabs)
+  sseBroadcaster.publish(ticketId, {
+    id: savedMsg.id,
+    sender: savedMsg.sender,
+    text: savedMsg.text,
+    createdAt: savedMsg.createdAt.toISOString(),
+    type: 'new_message'
+  });
+
+  revalidatePath(`/dashboard/tickets/${ticketId}`);
+  return { success: true };
+}
+
 
 const createTicketSchema = z.object({
   subject: z.string().min(1),
@@ -99,7 +160,19 @@ export async function adminReplyTicket(formData: FormData) {
 
     const sender = isInternal ? 'INTERNAL' : 'STAFF';
 
-    await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType, replyToId);
+    const savedMsg = await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType, replyToId);
+
+    // Broadcast STAFF replies to SSE stream (NOT internal notes)
+    if (sender === 'STAFF') {
+      sseBroadcaster.publish(ticketId, {
+        id: savedMsg.id,
+        sender: savedMsg.sender,
+        text: savedMsg.text,
+        createdAt: savedMsg.createdAt.toISOString(),
+        type: 'new_message'
+      });
+    }
+
     revalidatePath(`/admin/tickets/${ticketId}`);
     revalidatePath(`/admin/tickets`);
   });

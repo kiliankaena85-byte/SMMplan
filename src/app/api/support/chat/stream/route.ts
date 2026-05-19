@@ -1,0 +1,124 @@
+/**
+ * SSE Stream for Live Chat — Real-time message delivery to client cabinet.
+ *
+ * Security:
+ * - Authenticated via httpOnly session cookie (verifySession)
+ * - Authorization: user must own the ticket
+ * - Rate-limited by max concurrent connections per ticket (implicit via browser EventSource)
+ *
+ * Anti-buffering headers:
+ * - X-Accel-Buffering: no (Nginx/Cloudflare proxy compatibility)
+ * - Cache-Control: no-cache, no-transform
+ */
+
+export const dynamic = 'force-dynamic';
+
+import { NextRequest } from 'next/server';
+import { db } from '@/lib/db';
+import { sseBroadcaster } from '@/lib/sse-broadcaster';
+import { jwtVerify } from 'jose';
+
+if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
+const secretKey = process.env.JWT_SECRET;
+const encodedKey = new TextEncoder().encode(secretKey);
+
+// Max SSE connections per ticket to prevent resource exhaustion (VQ2)
+const MAX_CONNECTIONS_PER_TICKET = 10;
+
+export async function GET(req: NextRequest) {
+  // 1. Authentication via httpOnly cookie
+  let userId: string;
+  try {
+    const token = req.cookies.get('session_token')?.value;
+    if (!token) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] });
+    userId = payload.userId as string;
+  } catch {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  // 2. Extract and validate ticketId
+  const ticketId = req.nextUrl.searchParams.get('ticketId');
+  if (!ticketId) {
+    return new Response('ticketId required', { status: 400 });
+  }
+
+  // 3. Authorization: user must own the ticket OR be staff
+  const user = await db.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
+
+  if (isStaff) {
+    const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) {
+      return new Response('Not found', { status: 404 });
+    }
+  } else {
+    const ticket = await db.ticket.findFirst({
+      where: { id: ticketId, userId }
+    });
+    if (!ticket) {
+      return new Response('Forbidden', { status: 403 });
+    }
+  }
+
+  // 4. Connection limit guard (VQ2: prevents 10-tab resource exhaustion)
+  if (sseBroadcaster.getConnectionCount(ticketId) >= MAX_CONNECTIONS_PER_TICKET) {
+    return new Response('Too many connections for this chat', { status: 429 });
+  }
+
+  // 5. Construct SSE ReadableStream
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      // Send initial connection event
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`));
+
+      // Message listener — pushes new messages to SSE stream
+      const listener = (message: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(message)}\n\n`));
+        } catch {
+          // Stream already closed, cleanup will handle
+        }
+      };
+
+      // Subscribe to broadcaster
+      const unsubscribe = sseBroadcaster.subscribe(ticketId, listener);
+
+      // Heartbeat: keep-alive ping every 25s to prevent proxy/CDN timeout (C1)
+      const heartbeat = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(': heartbeat\n\n'));
+        } catch {
+          clearInterval(heartbeat);
+        }
+      }, 25000);
+
+      // Cleanup on client disconnect (C2)
+      req.signal.addEventListener('abort', () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+        try {
+          controller.close();
+        } catch {
+          // Already closed
+        }
+      });
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // C1: Prevents Nginx/Cloudflare buffering
+    },
+  });
+}

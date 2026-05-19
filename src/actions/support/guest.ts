@@ -3,8 +3,7 @@
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { RateLimitService } from '@/services/core/rate-limit.service';
-
-import { headers } from 'next/headers';
+import { getClientIp } from '@/utils/ip';
 
 const guestTicketSchema = z.object({
   name: z.string().min(2, "Имя должно быть не короче 2 символов").max(100, "Имя слишком длинное"),
@@ -15,8 +14,8 @@ const guestTicketSchema = z.object({
 export async function createGuestTicketAction(formData: FormData) {
   try {
     // 1. Rate Limit: Prevent spamming guest forms
-    const reqHeaders = await headers();
-    const realIp = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || 'unknown';
+    // ARCHITECTURE: Uses canonical getClientIp() — single source of truth for IP
+    const realIp = await getClientIp('unknown');
     
     // W6-3: IP-based global limit (max 10 requests per hour per IP)
     const isIpAllowed = await RateLimitService.check(`guest_ip:${realIp}`, 10, 3600);

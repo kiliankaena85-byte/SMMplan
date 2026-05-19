@@ -28,6 +28,9 @@ model User {
   referredById    String?
   referralBalance Int     @default(0)
   telegramId      String? // Telegram user ID for omnichannel support routing
+  phoneHash       String? @unique // SHA-256 hash of verified Telegram contact
+  isKycVerified   Boolean @default(false)
+
 
   // Operator notes (internal, never visible to client)
   adminNote          String? // Free-form operator note
@@ -263,6 +266,7 @@ model Order {
   paymentId String?
   payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   refills   Refill[]
+  tickets   Ticket[]
 
   idempotencyKey String? @unique // Wave 1: Token to prevent double order creation
 
@@ -430,6 +434,10 @@ model Ticket {
   status  TicketStatus @default(OPEN)
   source  TicketSource @default(WEB)
 
+  // Optional: Link ticket to a specific order for context (live chat)
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
   firstRespondedAt DateTime? // SLA: First Response Time (FRT)
   resolvedAt       DateTime? // SLA: Time to Resolution (TTR)
   tags             String[]  @default([]) // NLP Tagging
@@ -441,6 +449,7 @@ model Ticket {
 
   @@index([userId])
   @@index([source])
+  @@index([orderId])
 }
 
 model TicketMessage {
@@ -562,10 +571,12 @@ model LedgerEntry {
   amount         BigInt // Amount in Cents (positive = credit, negative = debit)
   reason         String // Mandatory justification text
   status         String   @default("APPROVED") // APPROVED, QUARANTINE, REJECTED
-  idempotencyKey String?  @unique // Unique token to prevent double-spending/credits
+  idempotencyKey  String?
+  transactionType String   @default("PAYMENT") // PAYMENT | REFUND | REROUTE | COMPENSATION
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@unique([idempotencyKey, transactionType])
   @@index([userId])
   @@index([status])
   @@index([adminId])

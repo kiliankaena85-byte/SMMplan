@@ -19,6 +19,14 @@ type TransporterResult =
 async function getTransporter(): Promise<TransporterResult | null> {
   const s = await SettingsProvider.getEmailSettings();
 
+  // DEPLOYMENT NOTE (РФ-инфраструктура):
+  // Resend и Twilio могут блокировать отправку на домены .ru или с российских IP.
+  // Для production в РФ рекомендуется использовать SMTP-провайдер:
+  //   - Yandex 360 для бизнеса: smtp.yandex.ru:465
+  //   - Mail.ru для бизнеса: smtp.mail.ru:465
+  //   - Локальный Postfix / MailCow
+  // Настройка SMTP производится в панели администратора → Настройки → Email.
+
   if (s.emailProvider === 'RESEND') {
     if (!s.resendApiKey) {
       log.error('RESEND selected but API key is not configured');

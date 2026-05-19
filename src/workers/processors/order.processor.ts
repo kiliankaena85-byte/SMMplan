@@ -103,48 +103,20 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     console.info(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
 
   } catch (error: any) {
-    console.error(`[OrderProcessor] Failed Order ${order.id} on attempt ${job.attemptsMade}:`, error.message);
-    
-    // Determine error type
-    // === ARCHITECTURE INVARIANT: No automatic failover ===
-    // If provider returns terminal error — order fails, refund is issued.
-    // Manual reroute is operator's responsibility via Admin UI.
-    // See: /admin/orders/[id] → Manual Reroute button
-    // Reason: client errors (bad link, closed profile) will fail on any provider.
-    // Auto-switching would cause double billing with no recovery benefit.
-    const isNetworkError = error.message.includes('Provider HTTP Error') || 
-                           error.message.includes('Provider Request Timeout') || 
-                           error.message.includes('CircuitBreakerOpenException');
+    // === FAIL-FAST ARCHITECTURE ===
+    // Any provider error (network timeout, API rejection, bad credentials,
+    // insufficient provider funds) instantly cancels the order and refunds
+    // the client. Zero retries. Zero quarantine. Zero complexity.
+    //
+    // Operator-facing diagnostics are delivered via admin alert.
+    // Manual reroute is available in Admin UI if needed.
+    console.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}:`, error.message);
 
-    const maxAttempts = job.opts?.attempts || 3;
+    const { orderService } = await import('../../services/core/order.service');
+    await orderService.failOrderTerminalFast(order.id, error.message);
 
-    // === WAVE 4.1: TRIGGER A (INSTANT API CRASH QUARANTINE) ===
-    if (!isNetworkError) {
-        // It's a business logic API Error ("Service disabled", "Invalid link", "Not enough funds")
-        
-        // Anti-Fraud check: "Not enough funds" means our Provider wallet is empty.
-        // DO NOT quarantine the service. We must quarantine the provider or alert the admin.
-        if (error.message.toLowerCase().includes('not enough funds') || error.message.toLowerCase().includes('balance')) {
-            const { sendAdminAlert } = await import('@/lib/notifications');
-            await sendAdminAlert(`🚨 КРИТИЧНО! У провайдера для услуги ${order.serviceId} кончился баланс! Заказы отклоняются!`);
-        } else {
-            // Standard Business Error Quarantine logic
-            const { QuarantineService } = await import('@/services/providers/quarantine.service');
-            await QuarantineService.evaluateTriggerA(order.serviceId, error.message);
-        }
-
-        // W7-2 FIX: Properly fail order with refund to prevent financial leakage
-        const { orderService } = await import('../../services/core/order.service');
-        await orderService.failOrderTerminal(order.id, `Провайдер отклонил заказ: ${error.message}`);
-
-        // BullMQ UnrecoverableError throws immediately and moves to failed queue without consuming more retries
-        throw new UnrecoverableError(error.message);
-    }
-    // ==========================================================
-
-    // Unconditionally throw the error! 
-    // BullMQ will handle exponential backoff for network errors.
-    throw error;
+    // UnrecoverableError tells BullMQ to NOT retry this job
+    throw new UnrecoverableError(`Fail-Fast: ${error.message}`);
   }
 }
 

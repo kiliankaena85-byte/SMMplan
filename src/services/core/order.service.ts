@@ -175,7 +175,7 @@ class OrderService {
         // 2. Refund to User Balance (ONLY if it was paid)
         if (!wasAwaitingPayment) {
           const refundKey = `refund-client-cancel-${order.id}`;
-          const existingLedger = await tx.ledgerEntry.findUnique({
+          const existingLedger = await tx.ledgerEntry.findFirst({
              where: { idempotencyKey: refundKey }
           });
 
@@ -296,7 +296,7 @@ class OrderService {
           const refundKey = `refund-order-${order.id}`;
           
           // Check if ledger entry with this key already exists
-          const existingLedger = await tx.ledgerEntry.findUnique({
+          const existingLedger = await tx.ledgerEntry.findFirst({
              where: { idempotencyKey: refundKey }
           });
 
@@ -345,7 +345,7 @@ class OrderService {
 
         // Full Refund
         const refundKey = `refund-dlq-${order.id}`;
-        const existingLedger = await tx.ledgerEntry.findUnique({
+        const existingLedger = await tx.ledgerEntry.findFirst({
            where: { idempotencyKey: refundKey }
         });
 
@@ -388,6 +388,103 @@ class OrderService {
       } catch (importErr) {
         // Fallback catch in case import itself fails
       }
+    }
+  }
+
+  /**
+   * Fail-Fast Order Termination (Zero Retries).
+   * Instantly marks order as CANCELED, refunds full charge, reverses
+   * affiliate commission, and sends a critical admin alert.
+   *
+   * ARCHITECTURE: This is the primary error handler under the "Fail-Fast"
+   * directive — any provider API failure (network or business) triggers
+   * immediate, atomic cancellation. No retries, no quarantine, no rerouting.
+   */
+  async failOrderTerminalFast(orderId: string, reason: string): Promise<void> {
+    try {
+      const txResult = await db.$transaction(async (tx) => {
+        const order = await tx.order.findUnique({
+          where: { id: orderId },
+          include: { user: true, service: true }
+        });
+
+        // Prevent duplicate processing on terminal orders
+        if (!order || ['COMPLETED', 'CANCELED', 'PARTIAL', 'ERROR'].includes(order.status)) {
+          return null;
+        }
+
+        // 1. Atomically change order status to CANCELED
+        await tx.order.update({
+          where: { id: order.id },
+          data: {
+            status: 'CANCELED',
+            error: `Fail-Fast: ${reason}`,
+            updatedAt: new Date()
+          }
+        });
+
+        // 2. Reverse affiliate commission if it was awarded
+        const { LoyaltyService } = await import('../users/loyalty.service');
+        await LoyaltyService.reverseCommission(tx, order.id);
+
+        // 3. Full refund via LedgerEntry (idempotent — prevents double-spend)
+        const refundKey = `refund-failfast-${order.id}`;
+        const existingLedger = await tx.ledgerEntry.findFirst({
+          where: { idempotencyKey: refundKey }
+        });
+
+        if (!existingLedger && order.charge > 0) {
+          await WalletOps.refund(
+            tx,
+            order.userId,
+            Number(order.charge),
+            `Авто-возврат (Fail-Fast): Заказ #${order.numericId} отменен из-за ошибки провайдера. Причина: ${reason}`,
+            { idempotencyKey: refundKey }
+          );
+        }
+
+        return {
+          numericId: order.numericId,
+          serviceName: order.service?.name || 'Неизвестная услуга',
+          email: order.user?.email
+        };
+      }, { isolationLevel: 'Serializable' });
+
+      // 4. Fire-and-forget notifications (outside transaction)
+      if (txResult) {
+        // Admin alert
+        try {
+          const { sendAdminAlert } = await import('@/lib/notifications');
+          await sendAdminAlert(
+            `🚨 [FAIL-FAST] Заказ #${txResult.numericId} автоматически отменен!\n` +
+            `Услуга: ${txResult.serviceName}\n` +
+            `Ошибка провайдера: ${reason}`,
+            'CRITICAL'
+          );
+        } catch { /* non-fatal */ }
+
+        // Email notification to client
+        if (txResult.email) {
+          try {
+            const { sendOrderCanceledMail } = await import('../../lib/smtp');
+            await sendOrderCanceledMail(
+              txResult.email,
+              txResult.numericId.toString(),
+              txResult.serviceName
+            );
+          } catch { /* non-fatal */ }
+        }
+      }
+    } catch (e: any) {
+      console.error(`[OrderService] failOrderTerminalFast failed for ${orderId}:`, e.message);
+      // Last-resort admin alert
+      try {
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        sendAdminAlert(
+          `🚨 failOrderTerminalFast CRITICAL ERROR\n\norderId: ${orderId}\nreason: ${reason}\nerror: ${e.message}`,
+          'CRITICAL'
+        );
+      } catch { /* absolute last resort */ }
     }
   }
 }
