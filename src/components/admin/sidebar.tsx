@@ -16,6 +16,7 @@ interface NavItem {
   label: string;
   icon: string;
   section?: string;
+  badge?: number;
 }
 
 interface NavGroup {
@@ -121,6 +122,15 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                     <IconComponent className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
                   </span>
                   {!collapsed && <span className={cn("tracking-wide transition-all", isActive && "font-semibold")}>{tab.label}</span>}
+                  
+                  {!collapsed && tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="ml-auto mr-1 px-1.5 py-0.5 rounded-md bg-destructive text-[10px] font-bold text-destructive-foreground shadow-sm shadow-destructive/50">
+                      {tab.badge}
+                    </span>
+                  )}
+                  {collapsed && tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.8)] border border-slate-900" />
+                  )}
                   
                   {/* Hover Glow Behind */}
                   <div className="absolute inset-0 bg-gradient-to-r from-sky-500/0 via-sky-500/0 to-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-lg" />

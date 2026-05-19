@@ -73,10 +73,25 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/dashboard/new-order');
   }
 
+  const anomalyCount = await db.service.count({
+    where: {
+      OR: [
+        { isQuarantined: true },
+        { cooldownReason: 'ZOMBIE_AUTO_DISABLED', isActive: false },
+        { cooldownUntil: { gt: new Date() }, cooldownReason: { not: 'ZOMBIE_AUTO_DISABLED' } },
+      ]
+    }
+  });
+
   // Filter navigation based on RBAC
   const navigation = ADMIN_NAVIGATION.map(group => ({
     ...group,
-    items: group.items.filter(item => {
+    items: group.items.map(item => {
+      if (item.section === 'quarantine' && anomalyCount > 0) {
+        return { ...item, badge: anomalyCount };
+      }
+      return item;
+    }).filter(item => {
       if (user.role === 'OWNER') return true;
       if (!user.staffRole) return false;
       return user.staffRole.permissions.some((p: any) => p.section === item.section && p.canView);

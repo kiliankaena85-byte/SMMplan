@@ -136,17 +136,31 @@ export async function approveQuarantinedService(serviceId: string) {
   return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
-      select: { id: true, rate: true, pendingRate: true, isQuarantined: true },
+      select: { 
+        id: true, 
+        rate: true, 
+        markup: true, 
+        pendingRate: true, 
+        isQuarantined: true, 
+        providerCurrency: true 
+      },
     });
 
     if (!service?.isQuarantined || service.pendingRate === null) {
       return { success: false, error: "Service not in quarantine" };
     }
 
+    const usdToRub = await SettingsManager.getExchangeRateUSD();
+    const exchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+    const newPricePer1000Cents = Math.round(
+      applyBeautifulRounding(service.pendingRate * service.markup * exchangeRate) * 100
+    );
+
     await db.service.update({
       where: { id: serviceId },
       data: {
         rate: service.pendingRate,
+        pricePer1000Cents: newPricePer1000Cents,
         isQuarantined: false,
         pendingRate: null,
         quarantineReason: null,
@@ -161,7 +175,7 @@ export async function approveQuarantinedService(serviceId: string) {
       target: serviceId,
       targetType: "SERVICE",
       oldValue: { rate: service.rate },
-      newValue: { rate: service.pendingRate },
+      newValue: { rate: service.pendingRate, pricePer1000Cents: newPricePer1000Cents },
     });
 
     return { success: true };
@@ -193,16 +207,25 @@ export async function approveAllQuarantined() {
   return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
     const quarantined = await db.service.findMany({
       where: { isQuarantined: true, pendingRate: { not: null } },
-      select: { id: true, pendingRate: true },
+      select: { id: true, pendingRate: true, markup: true, providerCurrency: true },
     });
+
+    const usdToRub = await SettingsManager.getExchangeRateUSD();
 
     await db.$transaction(async (tx) => {
       for (const s of quarantined) {
         if (s.pendingRate === null) continue;
+
+        const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+        const newPricePer1000Cents = Math.round(
+          applyBeautifulRounding(s.pendingRate * s.markup * exchangeRate) * 100
+        );
+
         await tx.service.update({
           where: { id: s.id },
           data: {
             rate: s.pendingRate,
+            pricePer1000Cents: newPricePer1000Cents,
             isQuarantined: false,
             pendingRate: null,
             quarantineReason: null,
@@ -222,5 +245,69 @@ export async function approveAllQuarantined() {
     });
 
     return { success: true, count: quarantined.length };
+  });
+}
+
+/** Archive zombie service */
+export async function archiveZombieService(serviceId: string) {
+  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
+    const service = await db.service.findUnique({
+      where: { id: serviceId },
+      select: { id: true, name: true, isActive: true },
+    });
+
+    if (!service) return { success: false, error: "Service not found" };
+
+    const newName = service.name.startsWith('[ARCHIVED]') ? service.name : `[ARCHIVED] ${service.name}`;
+
+    await db.service.update({
+      where: { id: serviceId },
+      data: {
+        isActive: false,
+        name: newName,
+      },
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "SERVICE_ARCHIVE_ZOMBIE",
+      target: serviceId,
+      targetType: "SERVICE",
+      oldValue: { name: service.name, isActive: service.isActive },
+      newValue: { name: newName, isActive: false },
+    });
+
+    return { success: true };
+  });
+}
+
+/** Lift API block early */
+export async function liftApiBlock(serviceId: string) {
+  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
+    const service = await db.service.findUnique({
+      where: { id: serviceId },
+      select: { id: true }
+    });
+    
+    if (!service) return { success: false, error: 'Service not found' };
+
+    await db.service.update({
+      where: { id: serviceId },
+      data: {
+        cooldownUntil: null,
+        cooldownReason: null,
+      },
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "SERVICE_LIFT_API_BLOCK",
+      target: serviceId,
+      targetType: "SERVICE",
+    });
+
+    return { success: true };
   });
 }

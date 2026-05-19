@@ -6,7 +6,7 @@ import { adminCatalogService } from '@/services/admin/catalog.service';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { OrdersChart } from './orders-chart';
-import { Check, Clock, ChevronDown, Bell, Search, Settings, Home } from 'lucide-react';
+import { Check, Clock, ChevronDown, Bell, Search, Settings, Home, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/admin/hero-ui';
 import { AdminPageHeader } from '@/components/admin/page-header';
@@ -58,6 +58,8 @@ export default async function AdminDashboardPage() {
         title={`Доброе утро, ${user?.email?.split('@')[0] || 'Администратор'}`}
         description="Отслеживайте финансовые потоки, заказы и нагрузку платформы."
       />
+
+      <SystemHealthBanner />
 
       {revenueGross === 0 && oStats.total === 0 && (
          <div className="bg-sky-50 border border-sky-200 text-sky-800 rounded-2xl p-5 mb-6 flex items-start gap-4">
@@ -246,6 +248,59 @@ export default async function AdminDashboardPage() {
         </div> {/* END ПРАВАЯ КОЛОНКА */}
 
       </div>
+    </div>
+  );
+}
+
+async function SystemHealthBanner() {
+  const healthData = await db.service.groupBy({
+    by: ['isQuarantined', 'cooldownReason'],
+    _count: true,
+    where: {
+      OR: [
+        { isQuarantined: true },
+        { cooldownReason: 'ZOMBIE_AUTO_DISABLED' },
+        { cooldownUntil: { gt: new Date() }, cooldownReason: { not: 'ZOMBIE_AUTO_DISABLED' } },
+      ]
+    }
+  });
+
+  if (healthData.length === 0) return null;
+
+  let quarantineCount = 0;
+  let zombieCount = 0;
+  let apiBlockCount = 0;
+
+  for (const row of healthData) {
+    if (row.isQuarantined) {
+      quarantineCount += row._count;
+    } else if (row.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
+      zombieCount += row._count;
+    } else if (row.cooldownReason) {
+      apiBlockCount += row._count;
+    }
+  }
+
+  if (quarantineCount === 0 && zombieCount === 0 && apiBlockCount === 0) return null;
+
+  return (
+    <div className="bg-gradient-to-r from-red-500/10 via-rose-500/5 to-transparent border border-red-500/20 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex items-start gap-4">
+        <div className="p-2.5 bg-red-500/10 rounded-xl text-red-500 shrink-0">
+          <AlertTriangle className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="font-bold text-red-900 dark:text-red-400 text-base mb-1">Обнаружены аномалии в каталоге</h3>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-red-800/80 dark:text-red-300/80">
+            {quarantineCount > 0 && <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /> {quarantineCount} ценовых скачков</span>}
+            {zombieCount > 0 && <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500" /> {zombieCount} зомби-услуг</span>}
+            {apiBlockCount > 0 && <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-500" /> {apiBlockCount} блокировок API</span>}
+          </div>
+        </div>
+      </div>
+      <Link href="/admin/catalog/quarantine" className="shrink-0 bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-colors">
+        Перейти в Центр аномалий
+      </Link>
     </div>
   );
 }
