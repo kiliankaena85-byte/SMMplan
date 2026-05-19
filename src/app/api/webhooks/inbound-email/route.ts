@@ -234,10 +234,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized sender' }, { status: 403 });
     }
     
-    // Basic email reply stripping (removes quoted history)
-    textBody = textBody.split(/\r?\nOn .+ wrote:/i)[0]
-                       .split(/\r?\n> /)[0]
-                       .split('--- \r\n')[0]
+    // Comprehensive email reply stripping (removes quoted history for English and Russian clients)
+    textBody = textBody.split(/\r?\nOn .+ wrote:/i)[0]            // English generic
+                       .split(/\r?\n> /)[0]                      // Standard quote
+                       .split('--- \r\n')[0]                     // Standard dashes
+                       .split(/\r?\n--- Исходное сообщение ---/i)[0] // Mail.ru / Yandex
+                       .split(/\r?\n-------- Пересылаемое сообщение --------/i)[0] // Mail.ru forwarding
+                       .split(/\r?\n\d{2}\.\d{2}\.\d{4}.+от.+:/i)[0] // Yandex date format (e.g. 20.05.2026, 12:54 от...)
+                       .split(/\r?\n\d{4}-\d{2}-\d{2}.+<.+>:/i)[0] // Alternate Yandex date format
                        .trim();
 
     if (!textBody) {

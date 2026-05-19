@@ -105,8 +105,8 @@ class AdminOrderService {
       }
 
       let refundCents = 0;
-      if (order.status === 'AWAITING_PAYMENT' || order.status === 'PENDING') {
-         refundCents = Number(order.charge); // For PENDING / AWAITING
+      if (['AWAITING_PAYMENT', 'PENDING', 'PENDING_CHECK'].includes(order.status)) {
+         refundCents = Number(order.charge); // For PENDING / AWAITING / PENDING_CHECK
       }
 
       await tx.order.update({

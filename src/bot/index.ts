@@ -66,6 +66,71 @@ bot.catch(async (err: any, ctx: any) => {
   }
 });
 
+import { createHash } from 'crypto';
+
+// ── KYC & SYBIL PROTECTION ──
+bot.command('bind', async (ctx: any) => {
+  await ctx.reply(
+    'Для защиты вашего баланса SMMplan от фрода, пожалуйста, подтвердите ваш номер телефона.', 
+    {
+      reply_markup: {
+        keyboard: [
+          [{ text: '📱 Поделиться контактом', request_contact: true }]
+        ],
+        resize_keyboard: true,
+        one_time_keyboard: true
+      }
+    }
+  );
+});
+
+bot.on('contact', async (ctx: any) => {
+  const contact = ctx.message.contact;
+  const telegramId = String(ctx.from.id);
+
+  // SECURITY GUARD: Телеграм гарантирует совпадение ID только если юзер отправил свой контакт
+  if (contact.user_id !== ctx.from.id) {
+    return ctx.reply('❌ Ошибка безопасности: Вы попытались отправить чужой контакт.');
+  }
+
+  // Очистка от спецсимволов и хэширование SHA-256
+  const normalizedPhone = contact.phone_number.replace(/\D/g, '');
+  const phoneHash = createHash('sha256').update(normalizedPhone).digest('hex');
+
+  // SYBIL PROTECTION: Проверяем, не привязан ли этот номер к другому аккаунту
+  const existingUser = await db.user.findUnique({ where: { phoneHash } });
+  
+  if (existingUser && existingUser.telegramId !== telegramId) {
+    // В идеале здесь можно пометить аккаунт как SUSPICIOUS, 
+    // но для начала просто блокируем привязку.
+    await db.auditLog.create({
+      data: {
+        userId: existingUser.id,
+        action: 'SYBIL_ATTACK_BLOCKED',
+        details: `Попытка привязки номера телефона к другому Telegram аккаунту: ${telegramId}`
+      }
+    });
+    return ctx.reply('❌ Ошибка: Этот номер телефона уже привязан к другому аккаунту SMMplan.');
+  }
+
+  // Атомарное обновление KYC статуса
+  const updated = await db.user.updateMany({
+    where: { telegramId },
+    data: { 
+      phoneHash,
+      isKycVerified: true 
+    }
+  });
+
+  if (updated.count === 0) {
+    return ctx.reply('⚠️ Аккаунт не найден. Пожалуйста, запустите /start.');
+  }
+
+  await ctx.reply('✅ Аккаунт успешно верифицирован и защищен от фрода!', { 
+    reply_markup: { remove_keyboard: true } 
+  });
+});
+
 // ── COMMANDS ──
 bot.start(async (ctx: any) => {
   const tgId = String(ctx.from.id);

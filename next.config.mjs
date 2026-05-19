@@ -10,6 +10,9 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  
+  // OSAD-V2: Distributed Cache Sync for Redis (Resolves C4.1)
+  cacheHandler: process.env.NODE_ENV === 'production' ? process.cwd() + '/cache-handler.js' : undefined,
 
   // OSAD-V2: Security Headers (OWASP A05)
   async headers() {

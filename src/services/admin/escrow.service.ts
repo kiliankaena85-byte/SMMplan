@@ -54,16 +54,16 @@ export class EscrowService {
     // the trust budget check atomically using Serializable isolation.
     try {
       return await db.$transaction(async (tx) => {
-        const todayEntries = await tx.ledgerEntry.findMany({
+        const dailyAdjustments = await tx.ledgerEntry.aggregate({
+          _sum: { amount: true },
           where: {
             adminId: admin.id,
             createdAt: { gte: todayMSK },
             amount: { gt: 0 } 
           },
-          select: { amount: true },
         });
 
-        const totalVolumeToday = todayEntries.reduce((sum, entry) => sum + Number(entry.amount), 0);
+        const totalVolumeToday = Number(dailyAdjustments._sum.amount || 0);
 
         if (totalVolumeToday + amountCents > admin.supportLimitCents) {
           await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);

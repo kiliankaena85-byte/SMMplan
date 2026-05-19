@@ -43,25 +43,7 @@ class TicketService {
 
     if (!ticketToUpdate) throw new Error('Ticket not found');
 
-    if (sender === 'STAFF' && ticketToUpdate.user.telegramId) {
-      try {
-        const { supportBotService } = await import('@/services/support/support-bot.service');
-        
-        // Find the telegramMsgId of the replied message, if any
-        let replyToTgMsgId: string | undefined = undefined;
-        if (replyToId) {
-          const repliedMsg = await db.ticketMessage.findUnique({ where: { id: replyToId } });
-          if (repliedMsg?.telegramMsgId) replyToTgMsgId = repliedMsg.telegramMsgId;
-        }
-
-        const tgId = await supportBotService.sendSupportReply(ticketToUpdate.user.telegramId, text, replyToTgMsgId);
-        if (tgId) telegramMsgId = tgId;
-      } catch (e) {
-        console.error('[TicketService] Error sending to telegram:', e);
-      }
-    }
-
-    // Build attachments to create with legacy support fallback
+        // Build attachments to create with legacy support fallback
     const attachmentsToCreate: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }> = [];
     if (attachments && attachments.length > 0) {
       attachmentsToCreate.push(...attachments);
@@ -78,6 +60,30 @@ class TicketService {
 
     const legacyMediaUrl = mediaUrl || attachmentsToCreate[0]?.url || null;
     const legacyMediaType = mediaType || attachmentsToCreate[0]?.type || null;
+
+    if (sender === 'STAFF' && ticketToUpdate.user.telegramId) {
+      try {
+        const { supportBotService } = await import('@/services/support/support-bot.service');
+        
+        // Find the telegramMsgId of the replied message, if any
+        let replyToTgMsgId: string | undefined = undefined;
+        if (replyToId) {
+          const repliedMsg = await db.ticketMessage.findUnique({ where: { id: replyToId } });
+          if (repliedMsg?.telegramMsgId) replyToTgMsgId = repliedMsg.telegramMsgId;
+        }
+
+        const tgId = await supportBotService.sendSupportReply(
+          ticketToUpdate.user.telegramId, 
+          text, 
+          replyToTgMsgId,
+          legacyMediaUrl || undefined,
+          legacyMediaType || undefined
+        );
+        if (tgId) telegramMsgId = tgId;
+      } catch (e) {
+        console.error('[TicketService] Error sending to telegram:', e);
+      }
+    }
 
     const message = await db.ticketMessage.create({
       data: { 

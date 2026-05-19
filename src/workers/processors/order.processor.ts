@@ -103,13 +103,45 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     console.info(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
 
   } catch (error: any) {
+    // === AMBIGUOUS TIMEOUT PROTECTION (P0) ===
+    // If the error is a network timeout (not an explicit API rejection), the provider 
+    // MIGHT have accepted the order but failed to respond. A fail-fast refund here
+    // would result in a free delivery at our expense.
+    const errMsg = error.message.toLowerCase();
+    const isNetworkTimeout = errMsg.includes('timeout') || 
+                             errMsg.includes('etimedout') ||
+                             errMsg.includes('econnreset') ||
+                             errMsg.includes('socket hang up') ||
+                             errMsg.includes('eai_again');
+
+    if (isNetworkTimeout) {
+      console.warn(`[OrderProcessor] AMBIGUOUS TIMEOUT for Order ${order.id}. Moving to PENDING_CHECK.`);
+      
+      await db.order.update({
+        where: { id: order.id },
+        data: { 
+          status: 'PENDING_CHECK', 
+          error: `Сетевой таймаут при отправке: ${error.message}` 
+        }
+      });
+
+      // Send critical alert to Admin for manual verification
+      try {
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        sendAdminAlert(
+          `⚠️ [AMBIGUOUS TIMEOUT] Заказ #${order.numericId} (Услуга: ${order.service.name})\n` +
+          `Провайдер не ответил (таймаут). Заказ переведен в PENDING_CHECK.\n` +
+          `Требуется ручная проверка на стороне провайдера во избежание двойной поставки!`,
+          'CRITICAL'
+        );
+      } catch { /* ignore */ }
+
+      throw new UnrecoverableError(`Ambiguous Timeout: ${error.message}`);
+    }
+
     // === FAIL-FAST ARCHITECTURE ===
-    // Any provider error (network timeout, API rejection, bad credentials,
-    // insufficient provider funds) instantly cancels the order and refunds
-    // the client. Zero retries. Zero quarantine. Zero complexity.
-    //
-    // Operator-facing diagnostics are delivered via admin alert.
-    // Manual reroute is available in Admin UI if needed.
+    // Any explicit provider error (API rejection, bad credentials, insufficient funds)
+    // instantly cancels the order and refunds the client. Zero retries.
     console.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}:`, error.message);
 
     const { orderService } = await import('../../services/core/order.service');

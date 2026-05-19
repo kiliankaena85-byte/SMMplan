@@ -218,9 +218,25 @@ class AdminCatalogService {
         }
       } else {
         // LIVE SERVICE
+        const rawRate = parseFloat(liveExt.rate);
+        
+        if (isNaN(rawRate) || rawRate <= 0) {
+           if (!s.isQuarantined && s.isActive) {
+             await db.service.update({
+               where: { id: s.id },
+               data: {
+                 isQuarantined: true,
+                 quarantineReason: `Invalid Provider Rate: ${liveExt.rate}. Парсинг вернул NaN или <= 0.`,
+                 quarantinedAt: new Date()
+               }
+             });
+             priceAnomalies++;
+           }
+           continue;
+        }
+
         if (!s.isActive && s.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
           // Check Price Spike before resurrecting
-          const rawRate = parseFloat(liveExt.rate);
           const oldRate = s.rate;
           
           if (oldRate > 0 && rawRate > oldRate * (1 + QUARANTINE_THRESHOLD)) {
@@ -252,7 +268,7 @@ class AdminCatalogService {
         } else if (s.isActive && !s.isQuarantined) {
           // Active Service Price Drift Detection
           const oldRate = s.rate;
-          const newRate = parseFloat(liveExt.rate);
+          const newRate = rawRate;
 
           if (oldRate > 0 && newRate !== oldRate) {
             const driftPercent = (newRate - oldRate) / oldRate;
@@ -383,6 +399,11 @@ class AdminCatalogService {
 
       // Use the LIVE rate, not the cached one
       const rawRate = parseFloat(liveExt.rate);
+      
+      if (isNaN(rawRate) || rawRate <= 0) {
+        console.warn(`[Live-Check] Service ${shadowExt.service} has invalid rate: ${liveExt.rate}. Skipping import.`);
+        continue;
+      }
       
       // Handle Currency Conversion (Avoid double-conversion for RUB providers)
       const providerCurrency = providerDbRecord.balanceCurrency || 'USD';

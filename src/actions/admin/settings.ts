@@ -166,8 +166,15 @@ export async function updateGlobalSettings(formData: FormData) {
       ipAddress
     });
 
-
-    revalidatePath('/admin/settings');
+    // Invalidate the SettingsProvider cache so changes apply instantly (SMTP, Keys, Rates)
+    try {
+      const { revalidateTag } = await import('next/cache');
+      revalidateTag('settings');
+      revalidatePath('/admin/settings');
+    } catch (cacheErr) {
+      console.error('[SettingsAction] Warning: Failed to invalidate cache tag:', cacheErr);
+      // We don't throw here to avoid failing the action if Redis cache is temporarily down
+    }
     return true;
   });
 

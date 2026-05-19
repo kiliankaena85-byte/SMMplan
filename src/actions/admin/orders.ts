@@ -19,6 +19,7 @@ import { WalletOps } from '@/services/financial/wallet-ops';
 import { orderIdSchema } from '@/validators/admin.validators';
 import { ordersQueue } from '@/lib/queue-manager';
 import { SettingsManager } from '@/lib/settings';
+import { redis } from '@/lib/redis';
 
 // ── Types & Schemas ──
 
@@ -108,7 +109,7 @@ export async function setOrderStatusAction(
 
       let refundCents = 0;
       if (['CANCELED', 'ERROR'].includes(newStatus) && !TERMINAL_REFUNDED_STATUSES.includes(oldStatus)) {
-        if (oldStatus === 'PENDING' || oldStatus === 'AWAITING_PAYMENT') {
+        if (['PENDING', 'AWAITING_PAYMENT', 'PENDING_CHECK'].includes(oldStatus)) {
           refundCents = Number(order.charge);
         } else {
           refundCents = calculatePartialRefund(order);
@@ -233,7 +234,7 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
             
             if (!safeOrder || ['COMPLETED', 'CANCELED', 'ERROR'].includes(safeOrder.status)) return;
 
-            const refundCents = (safeOrder.status === 'PENDING' || safeOrder.status === 'AWAITING_PAYMENT')
+            const refundCents = (['PENDING', 'AWAITING_PAYMENT', 'PENDING_CHECK'].includes(safeOrder.status))
               ? Number(safeOrder.charge)
               : calculatePartialRefund(safeOrder);
 
@@ -286,7 +287,7 @@ export async function getFailoverPreview(orderId: string) {
       include: {
         service: {
           include: {
-            serviceRoutes: {
+            routes: {
               where: { isActive: true },
               include: { provider: true }
             }
@@ -302,13 +303,28 @@ export async function getFailoverPreview(orderId: string) {
     }
 
     const usdToRub = await SettingsManager.getExchangeRateUSD();
-    const availableRoutes = order.service.serviceRoutes.filter(
+    const availableRoutes = order.service.routes.filter(
       r => r.providerId !== order.providerId
     );
 
-    const routesWithPreview = availableRoutes.map(route => {
-      const exchangeRate = route.provider.currency === 'RUB' ? 1.0 : usdToRub;
-      const newCostCents = Math.round(route.provider.rate * exchangeRate * 100);
+    const routesWithPreview = await Promise.all(availableRoutes.map(async (route) => {
+      const exchangeRate = route.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
+      
+      // Fetch rate from Shadow Catalog in Redis
+      const cacheKey = `provider:${route.providerId}:shadow_catalog`;
+      const cachedStr = await redis.get(cacheKey);
+      let providerRate = 0.0;
+      if (cachedStr) {
+        try {
+          const services = JSON.parse(cachedStr);
+          const s = services.find((x: any) => String(x.service) === String(route.providerServiceId));
+          if (s) providerRate = parseFloat(s.rate) || 0.0;
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      const newCostCents = Math.round(providerRate * exchangeRate * 100);
       const marginCents = Number(order.charge) - newCostCents;
       const marginPercent = Number(order.charge) > 0 
         ? Math.round((marginCents / Number(order.charge)) * 100) 
@@ -322,12 +338,12 @@ export async function getFailoverPreview(orderId: string) {
         marginPercent,
         isMarginPositive: marginCents > 0
       };
-    });
+    }));
 
     return {
       success: true,
       clientPaidCents: Number(order.charge),
-      currentBalance: order.user.balance,
+      currentBalance: Number(order.user.balance),
       routes: routesWithPreview
     };
   });
@@ -363,12 +379,27 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
 
       if (!user) throw new Error('User not found');
       if (user.balance < order.charge) {
-        throw new Error(`Недостаточно средств: баланс ${(user.balance/100).toFixed(2)} ₽, требуется ${(Number(order.charge)/100).toFixed(2)} ₽`);
+        throw new Error(`Недостаточно средств: баланс ${(Number(user.balance)/100).toFixed(2)} ₽, требуется ${(Number(order.charge)/100).toFixed(2)} ₽`);
       }
 
       const usdToRub = await SettingsManager.getExchangeRateUSD();
-      const exchangeRate = newRoute.provider.currency === 'RUB' ? 1.0 : usdToRub;
-      const newProviderCostCents = Math.round(newRoute.provider.rate * exchangeRate * 100);
+      const exchangeRate = newRoute.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
+      
+      // Fetch rate from Shadow Catalog in Redis
+      const cacheKey = `provider:${newRoute.providerId}:shadow_catalog`;
+      const cachedStr = await redis.get(cacheKey);
+      let providerRate = 0.0;
+      if (cachedStr) {
+        try {
+          const services = JSON.parse(cachedStr);
+          const s = services.find((x: any) => String(x.service) === String(newRoute.providerServiceId));
+          if (s) providerRate = parseFloat(s.rate) || 0.0;
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      const newProviderCostCents = Math.round(providerRate * exchangeRate * 100);
 
       // Списание с баланса (перезапуск за счет пользователя, т.к. при ERROR/CANCELED был refund)
       await tx.user.update({
@@ -403,11 +434,10 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
       // Лог маршрутизации
       await tx.routingAuditLog.create({
         data: {
-          orderId: order.id,
           serviceId: order.serviceId,
-          event: 'MANUAL_OVERRIDE',
-          oldProviderId: order.providerId,
-          newProviderId: newRoute.providerId,
+          action: 'MANUAL_OVERRIDE',
+          fromProviderId: order.providerId,
+          toProviderId: newRoute.providerId,
           reason: `Admin ${admin.email} triggered manual failover`
         }
       });
@@ -416,10 +446,10 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
     });
 
     // После транзакции — отправка в BullMQ
-    await ordersQueue.add('process-order', { orderId }, {
-      jobId: `order-${orderId}-${Date.now()}`
-    });
+    const jobId = `dispatch-${orderId}`;
+    await ordersQueue.add('order-dispatch', { orderId }, { jobId });
 
+    // Запись аудита администратора
     await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,

@@ -45,7 +45,7 @@ export async function activatePromoCodeAction(code: string) {
 
         // Check if user already used this promo code (using DB-level idempotency key)
         const idempotencyKey = `promo-${cleanCode}-${session.userId}`;
-        const alreadyUsed = await tx.ledgerEntry.findUnique({
+        const alreadyUsed = await tx.ledgerEntry.findFirst({
           where: { idempotencyKey }
         });
 

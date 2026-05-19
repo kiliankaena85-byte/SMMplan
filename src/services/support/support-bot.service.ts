@@ -113,26 +113,43 @@ class SupportBotService {
   /**
    * OUTBOUND: Send reply from Admin panel to Telegram
    */
-  async sendSupportReply(telegramId: string, text: string, replyToTgMsgId?: string): Promise<string | null> {
+  async sendSupportReply(telegramId: string, text: string, replyToTgMsgId?: string, mediaUrl?: string, mediaType?: string): Promise<string | null> {
     try {
       const extra: any = { parse_mode: 'HTML' };
       if (replyToTgMsgId) {
         extra.reply_to_message_id = Number(replyToTgMsgId);
       }
       
-      // We prepend '👨‍💻 Саппорт:\n' to make it clear
-      const msg = await bot.telegram.sendMessage(telegramId, `👨‍💻 <b>Саппорт:</b>\n\n${text}`, extra);
+      const caption = `👨‍💻 <b>Саппорт:</b>\n\n${text}`;
+      let msg;
+
+      if (mediaUrl) {
+        // Construct the absolute path from the relative stored path
+        const absolutePath = path.join(process.cwd(), 'private', 'uploads', mediaUrl);
+        const source = fs.existsSync(absolutePath) ? { source: absolutePath } : mediaUrl;
+
+        if (mediaType === 'image') {
+          extra.caption = caption;
+          msg = await bot.telegram.sendPhoto(telegramId, source, extra);
+        } else if (mediaType === 'audio') {
+          extra.caption = caption;
+          msg = await bot.telegram.sendAudio(telegramId, source, extra);
+        } else {
+          // Document fallback
+          extra.caption = caption;
+          msg = await bot.telegram.sendDocument(telegramId, source, extra);
+        }
+      } else {
+        // Text only
+        msg = await bot.telegram.sendMessage(telegramId, caption, extra);
+      }
+
       return String(msg.message_id);
     } catch (e: any) {
       console.error('[SupportBot] Failed to send to telegram:', e.message);
       // If reply_to_message_id failed (message deleted), retry without reply
       if (e.message.includes('message to reply not found') && replyToTgMsgId) {
-        try {
-          const msg = await bot.telegram.sendMessage(telegramId, `👨‍💻 <b>Саппорт:</b>\n\n${text}`, { parse_mode: 'HTML' });
-          return String(msg.message_id);
-        } catch (innerE) {
-          console.error('[SupportBot] Failed retry send:', innerE);
-        }
+        return this.sendSupportReply(telegramId, text, undefined, mediaUrl, mediaType);
       }
       return null;
     }

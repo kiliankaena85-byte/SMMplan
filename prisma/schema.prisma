@@ -709,6 +709,7 @@ model SystemSetting {
 enum OrderStatus {
   AWAITING_PAYMENT
   PENDING
+  PENDING_CHECK
   PROVISIONING
   IN_PROGRESS
   COMPLETED

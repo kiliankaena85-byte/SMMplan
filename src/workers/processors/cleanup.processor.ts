@@ -398,7 +398,7 @@ export async function runInProgressTTLSweep(): Promise<void> {
           // Handle refund
           if (refundCents > 0) {
             const refundKey = `refund-ttl-${order.id}`;
-            const existingLedger = await tx.ledgerEntry.findUnique({
+            const existingLedger = await tx.ledgerEntry.findFirst({
               where: { idempotencyKey: refundKey }
             });
 

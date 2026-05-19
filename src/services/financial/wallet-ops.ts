@@ -48,7 +48,7 @@ export const WalletOps = {
     // while waiting for an external Redis lock is an anti-pattern that leads to connection pool exhaustion.
       // 1. Check Idempotency immediately
       if (idempotencyKey) {
-        const existing = await tx.ledgerEntry.findUnique({
+        const existing = await tx.ledgerEntry.findFirst({
           where: { idempotencyKey },
         });
         
@@ -168,7 +168,7 @@ export const WalletOps = {
 
     // Removed Redis Mutex to prevent DB connection pool exhaustion.
       if (idempotencyKey) {
-        const existing = await tx.ledgerEntry.findUnique({
+        const existing = await tx.ledgerEntry.findFirst({
           where: { idempotencyKey },
         });
         if (existing) {
@@ -221,7 +221,7 @@ export const WalletOps = {
 
     // Removed Redis Mutex to prevent DB connection pool exhaustion.
       if (idempotencyKey) {
-        const existing = await tx.ledgerEntry.findUnique({
+        const existing = await tx.ledgerEntry.findFirst({
           where: { idempotencyKey },
         });
         if (existing) {

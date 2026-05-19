@@ -10,6 +10,19 @@ export async function POST(req: NextRequest) {
     const { getClientIp } = await import('@/utils/ip');
     const ip = await getClientIp();
 
+    // --- SECURITY GUARD: Yookassa Official IP Range Validation ---
+    // P1: Сверка IP-адреса с официальными подсетями YooKassa
+    if (ip) {
+      const allowedPrefixes = ['185.75.120.', '185.75.121.', '185.75.122.', '185.75.123.', '185.75.124.', '185.75.125.', '185.75.126.', '185.75.127.', '37.110.12.', '37.110.13.', '37.110.14.', '37.110.15.', '37.110.16.', '37.110.17.', '37.110.18.', '37.110.19.'];
+      const isAllowedIp = allowedPrefixes.some(prefix => ip.startsWith(prefix)) || process.env.NODE_ENV !== 'production';
+      
+      if (!isAllowedIp) {
+        console.error(`[YooKassa Webhook] BLOCKED: IP spoofing attempt from ${ip}`);
+        await db.securityEvent.create({ data: { event: 'SPOOFED_IP_WEBHOOK', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
+        return NextResponse.json({ error: 'Unauthorized IP' }, { status: 403 });
+      }
+    }
+
     const webhookSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
     if (!webhookSecret) {
       console.error('[CRITICAL][ACTION REQUIRED] YOOKASSA_WEBHOOK_SECRET is not set. Webhook disabled.');
