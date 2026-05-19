@@ -50,7 +50,7 @@ const MAX_ATTEMPTS = 3; // Must match createQueue defaults
 
 async function handleDeadLetter(
   queueName: string,
-  job: { id?: string; data: unknown; attemptsMade: number; opts?: { attempts?: number } } | undefined,
+  job: { id?: string; name?: string; data: unknown; attemptsMade: number; opts?: { attempts?: number } } | undefined,
   err: Error
 ): Promise<void> {
   if (!job) return;
@@ -66,6 +66,11 @@ async function handleDeadLetter(
 
   // Only DLQ after all retries are exhausted OR if it's a fatal error
   if (job.attemptsMade >= maxAttempts || err.name === 'UnrecoverableError') {
+    if (job.attemptsMade >= maxAttempts) {
+      console.error(
+        `[WORKER][ACTION REQUIRED] Job ${job.id} (${job.name}) exhausted all ${job.attemptsMade} attempts. Last error: ${err.message}`
+      );
+    }
     try {
       await dlqQueue.add('dead-letter', {
         originalQueue: queueName,

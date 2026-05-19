@@ -41,10 +41,10 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
   return new Queue<PayloadType, any, string>(name, {
     connection: getRedisConnection(),
     defaultJobOptions: {
-      removeOnComplete: { age: 3600, count: 1000 },
-      removeOnFail: { age: 3600 * 24, count: 1000 },
+      removeOnComplete: { count: 50, age: 3600 },
+      removeOnFail: { count: 100, age: 3600 * 24 * 7 },
       attempts: 3,
-      backoff: { type: 'exponential', delay: 1000 },
+      backoff: { type: 'exponential', delay: 5000 },
       ...defaultOptions,
     }
   });
@@ -93,11 +93,13 @@ export interface ETAJobPayload {
 }
 
 // Instantiate queues using NextJS-safe singleton
-export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue');
+export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue', {
+  attempts: 5
+});
 const syncQueue = createQueue<SyncJobPayload>('syncQueue');
 export const catalogQueue = createQueue<CatalogMutationPayload>('catalogQueue', {
   attempts: 2,
-  backoff: { type: 'exponential', delay: 10000 }
+  backoff: { type: 'exponential', delay: 5000 }
 });
 
 // P2.1: Dead Letter Queue — removeOnFail: false to preserve failed jobs for inspection
