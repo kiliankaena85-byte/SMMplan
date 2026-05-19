@@ -1,39 +1,68 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { paymentService } from '@/services/financial/payment.service';
 import { SettingsManager } from '@/lib/settings';
 
-export async function POST(request: Request) {
+const MAX_BODY_SIZE = 1024 * 64; // 64KB
+
+export async function POST(request: NextRequest) {
   try {
+    const { getClientIp } = await import('@/utils/ip');
+    const ip = await getClientIp();
+
     const signature = request.headers.get('crypto-pay-api-signature');
     if (!signature) {
+      await db.securityEvent.create({ data: { event: 'MISSING_SIGNATURE', severity: 'CRITICAL', ip, details: { gateway: 'cryptobot' } } });
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
     const payload = await request.text();
-    const secrets = await SettingsManager.getPaymentSecrets();
+    if (payload.length > MAX_BODY_SIZE) {
+      console.warn('[Webhook] Oversized payload rejected');
+      await db.securityEvent.create({ data: { event: 'OVERSIZED_PAYLOAD', severity: 'WARNING', ip, details: { gateway: 'cryptobot', size: payload.length } } });
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
 
-    // SD-03 SECURITY FIX: Fail-closed — reject all requests if CryptoBot token is not configured.
-    // NEVER fall back to a hardcoded default ('test_token' was exploitable via HMAC forgery).
+    const secrets = await SettingsManager.getPaymentSecrets();
     const CRYPTO_BOT_TOKEN = secrets.cryptoBotToken;
     if (!CRYPTO_BOT_TOKEN) {
       console.error('[Webhook] FATAL: CryptoBot token is not configured in SystemSettings. Rejecting.');
       return NextResponse.json({ error: 'CryptoBot webhook not configured' }, { status: 503 });
     }
 
-    // Verify CryptoBot Signature
     const secret = crypto.createHash('sha256').update(CRYPTO_BOT_TOKEN).digest();
     const checkString = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
-    if (checkString !== signature) {
+    const HEX_REGEX = /^[0-9a-f]{64}$/i;
+    if (!HEX_REGEX.test(signature)) {
+      await db.securityEvent.create({ data: { event: 'INVALID_SIGNATURE_FORMAT', severity: 'CRITICAL', ip, details: { gateway: 'cryptobot', signature } } });
+      return NextResponse.json({ error: 'Invalid signature format' }, { status: 403 });
+    }
+
+    const expectedBuf = Buffer.from(checkString, 'hex');
+    const providedBuf = Buffer.from(signature, 'hex');
+
+    if (expectedBuf.length !== providedBuf.length || !crypto.timingSafeEqual(expectedBuf, providedBuf)) {
        console.error('[Webhook] Invalid CryptoBot signature');
+       await db.securityEvent.create({ data: { event: 'SIGNATURE_FAILED', severity: 'CRITICAL', ip, details: { gateway: 'cryptobot' } } });
        return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
     const data = JSON.parse(payload);
     
+    // Replay protection (30 minutes window)
+    const webhookCreatedAt = data.payload?.paid_at || data.payload?.created_at;
+    if (webhookCreatedAt) {
+      const webhookTime = new Date(webhookCreatedAt).getTime();
+      const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
+      if (webhookTime < thirtyMinutesAgo) {
+         await db.securityEvent.create({ data: { event: 'REPLAY_ATTEMPT', severity: 'CRITICAL', ip, details: { gateway: 'cryptobot', webhookTime, gatewayId: data.payload?.invoice_id } } });
+         return NextResponse.json({ error: 'Stale webhook rejected' }, { status: 400 });
+      }
+    }
+
     // We only care about successfully paid invoices
     if (data.update_type === 'invoice_paid') {
       const invoice = data.payload;

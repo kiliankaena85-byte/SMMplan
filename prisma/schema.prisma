@@ -768,3 +768,15 @@ model ContentItem {
   @@index([slug])
   @@index([categoryId])
 }
+
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  event     String   // SIGNATURE_FAILED | REPLAY_ATTEMPT | INVALID_FORMAT
+  severity  String   // WARNING | CRITICAL
+  ip        String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([event])
+  @@index([createdAt])
+}
