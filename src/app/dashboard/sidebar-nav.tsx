@@ -131,7 +131,7 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex pb-[env(safe-area-inset-bottom)]"
       aria-label="Нижняя навигация"
     >
       {MOBILE_NAV.map(({ href, icon: Icon, label }) => {

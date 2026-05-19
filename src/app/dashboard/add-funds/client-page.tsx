@@ -37,6 +37,7 @@ export default function AddFundsPage() {
       setError('Минимальная сумма — 100 ₽');
       return;
     }
+    if (isPending) return; // F5: double-submit guard
     setError(null);
     startTransition(async () => {
       try {
@@ -174,7 +175,7 @@ export default function AddFundsPage() {
             id="legal-consent"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            className="w-4 h-4 mt-0.5 rounded border-border text-primary focus:ring-primary/50"
+            className="min-w-[20px] min-h-[20px] mt-0.5 rounded border-border text-primary focus:ring-primary/50 cursor-pointer"
           />
           <label htmlFor="legal-consent" className="text-xs text-muted-foreground leading-relaxed">
             Я подтверждаю заказ и соглашаюсь с{' '}

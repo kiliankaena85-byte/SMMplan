@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 import { MobileOrderList } from '@/components/orders/MobileOrderList';
+import { ClientDate } from '@/components/ui/client-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -199,13 +200,7 @@ export default async function OrdersPage() {
                       )}
                     </td>
                     <td className="py-3 px-4 text-right text-xs text-muted-foreground whitespace-nowrap">
-                      {order.createdAt.toLocaleDateString('ru-RU', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      <ClientDate date={order.createdAt.toISOString()} format="datetime" />
                     </td>
                   </tr>
                 );

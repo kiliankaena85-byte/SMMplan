@@ -52,7 +52,7 @@ export default async function DashboardLayout({
       <MobileBottomNav />
 
       {/* ── Main content ── */}
-      <main className="flex-1 min-w-0 pt-14 pb-20 md:pt-0 md:pb-0 overflow-y-auto">
+      <main className="flex-1 min-w-0 pt-16 pb-24 md:pt-0 md:pb-0 overflow-y-auto">
         <div className="p-4 md:p-8 max-w-5xl mx-auto">
           {children}
         </div>
