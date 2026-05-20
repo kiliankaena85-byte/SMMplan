@@ -187,6 +187,14 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error("Недостаточно средств на балансе. Пожалуйста, пополните счет.");
     }
 
+    // Telegram Bound Anti-Fraud Check for YooKassa (deposit/checkout limit of $20 / ~1800 RUB / 180000 cents)
+    if (gateway === 'yookassa' && pricing.totalCents > 180000) {
+      if (!user.telegramId) {
+        throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
+      }
+    }
+
+
     const reqHeaders = await headers();
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";

@@ -97,6 +97,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   useEffect(() => {
     if (!url || url.length < 5) {
       setPlatform(null);
+      setManualPlatform(null);
       setSuggestedCategories([]);
       return;
     }
@@ -135,6 +136,21 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
 
     return () => clearTimeout(handler);
   }, [url, catalog]);
+
+  // 2.5 Auto-select network on manual platform override selection
+  useEffect(() => {
+    if (manualPlatform && manualPlatform !== IntelligencePlatform.OTHER) {
+      const activePlatformStr = manualPlatform.toLowerCase();
+      const matchedNet = catalog.find(n => n.slug.includes(activePlatformStr) || activePlatformStr.includes(n.slug));
+      if (matchedNet) {
+        setNetworkId(matchedNet.id);
+        const catsForNet = matchedNet.categories;
+        if (catsForNet.length > 0) {
+          setCategoryId(catsForNet[0].id);
+        }
+      }
+    }
+  }, [manualPlatform, catalog]);
 
   // Handle cascaded selections (Network -> Category) manually
   useEffect(() => {
@@ -339,9 +355,10 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       availableCategories = filteredCats;
     }
   }
+  const activePlatform = platform || manualPlatform;
   let displayCatalog = catalog;
-  if (platform && platform !== IntelligencePlatform.OTHER) {
-    const pStr = platform.toLowerCase();
+  if (activePlatform && activePlatform !== IntelligencePlatform.OTHER) {
+    const pStr = activePlatform.toLowerCase();
     const filteredNets = catalog.filter(n => n.slug.includes(pStr) || pStr.includes(n.slug));
     if (filteredNets.length > 0) displayCatalog = filteredNets;
   }
@@ -365,6 +382,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     
     // Data
     platform,
+    manualPlatform,
     setManualPlatform,
     catalog: displayCatalog,
     availableCategories,

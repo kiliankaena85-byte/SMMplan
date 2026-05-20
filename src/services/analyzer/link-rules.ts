@@ -25,24 +25,24 @@ export const LINK_RULES: LinkRule[] = [
   // ===================== TELEGRAM =====================
   {
       platform: IntelligencePlatform.TELEGRAM,
-      type: 'channel',
-      pattern: /t\.me\/(?:joinchat\/|\+)?([\w_-]+)$|web\.telegram\.org\/(?:k|a)\/#@([\w_-]+)/,
-      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM, CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.STORIES, CATEGORY_LABELS.STARS, CATEGORY_LABELS.AUTO_VIEWS, CATEGORY_LABELS.AUTO_REACTIONS, CATEGORY_LABELS.AUTO_REPOSTS],
-      context: 'global_search_optimization'
-  },
-  {
-      platform: IntelligencePlatform.TELEGRAM,
       type: 'post',
-      pattern: /t\.me\/[\w_-]+\/(?:s\/)?(\d+)/,
+      pattern: /t\.me\/[\w_-]+\/(?:s\/)?(\d+)(?:\/|\?|$)/,
       suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.REACTIONS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STARS],
       context: 'engagement'
   },
   {
       platform: IntelligencePlatform.TELEGRAM,
       type: 'bot',
-      pattern: /t\.me\/(?:[\w_-]+bot|[\w_-]+_bot)/,
+      pattern: /t\.me\/(?:[\w_-]+bot|[\w_-]+_bot)(?:\/|\?|$)/,
       suggestedCategories: [CATEGORY_LABELS.BOTS, CATEGORY_LABELS.REFERRALS, CATEGORY_LABELS.SUBSCRIBERS],
       context: 'automation'
+  },
+  {
+      platform: IntelligencePlatform.TELEGRAM,
+      type: 'channel',
+      pattern: /t\.me\/(?:joinchat\/|\+)?([\w_-]+)(?:\/|\?|$)|web\.telegram\.org\/(?:k|a)\/#@([\w_-]+)/,
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM, CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.STORIES, CATEGORY_LABELS.STARS, CATEGORY_LABELS.AUTO_VIEWS, CATEGORY_LABELS.AUTO_REACTIONS, CATEGORY_LABELS.AUTO_REPOSTS],
+      context: 'global_search_optimization'
   },
   // ===================== YOUTUBE =====================
   {

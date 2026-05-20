@@ -115,7 +115,12 @@ export default async function DashboardPage() {
           <div className="text-2xl font-black text-foreground tracking-tight font-mono tabular-nums">
             {(Number(user.totalSpent) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
           </div>
-          <span className="mt-auto text-xs font-semibold text-muted-foreground/60 p-2 flex items-center justify-center">за всё время</span>
+          <Link
+            href="/dashboard/orders"
+            className="mt-auto w-full h-11 bg-muted text-foreground hover:bg-muted/80 hover:scale-[1.02] active:scale-[0.98] rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all duration-200"
+          >
+            История <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         {/* Active orders */}

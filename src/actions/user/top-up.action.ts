@@ -17,11 +17,22 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
   const amountCents = Math.round(amountRub * 100);
   if (amountCents < 10000) throw new Error("Минимальная сумма пополнения - 100 руб");
 
+  // Fetch user for anti-fraud Telegram-binding check
+  const dbUser = await db.user.findUnique({ where: { id: session.userId } });
+  if (!dbUser) throw new Error("Пользователь не найден.");
+
+  if (gateway === 'yookassa' && amountCents > 180000) {
+    if (!dbUser.telegramId) {
+      throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
+    }
+  }
+
   const reqHeaders = await headers();
   const consentIp = await getClientIp();
   const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
   const secrets = await SettingsManager.getPaymentSecrets();
+
   if (gateway === 'cryptobot') {
     const token = secrets.cryptoBotToken;
     if (!token) throw new Error("Крипто-шлюз не настроен администратором.");

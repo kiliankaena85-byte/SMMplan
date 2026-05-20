@@ -4,6 +4,7 @@ import { useOrderEngine } from '@/hooks/useOrderEngine';
 import { ActionForm } from '@/components/admin/action-form';
 import { checkoutAction } from '@/actions/order/checkout';
 import { DripFeedSettings } from '@/components/orders/DripFeedSettings';
+import { PlatformSelectorFallback } from '@/components/orders/PlatformSelectorFallback';
 
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import {
@@ -51,7 +52,26 @@ export function SmartOrderForm() {
     totalPriceFormatted,
     validate,
     validationErrors,
+    manualPlatform,
   } = engine;
+
+  const availablePlatforms = engine.catalog.map(net => {
+    let platformEnum = IntelligencePlatform.OTHER;
+    const slugUpper = net.slug.toUpperCase();
+    if (slugUpper.includes('TELEGRAM')) platformEnum = IntelligencePlatform.TELEGRAM;
+    else if (slugUpper.includes('YOUTUBE')) platformEnum = IntelligencePlatform.YOUTUBE;
+    else if (slugUpper.includes('INSTAGRAM')) platformEnum = IntelligencePlatform.INSTAGRAM;
+    else if (slugUpper.includes('TIKTOK')) platformEnum = IntelligencePlatform.TIKTOK;
+    else if (slugUpper.includes('VK')) platformEnum = IntelligencePlatform.VK;
+    else if (slugUpper.includes('TWITCH')) platformEnum = IntelligencePlatform.TWITCH;
+    else if (slugUpper.includes('TWITTER') || slugUpper === 'X') platformEnum = IntelligencePlatform.TWITTER;
+    else if (slugUpper.includes('LIKEE')) platformEnum = IntelligencePlatform.LIKEE;
+    
+    return {
+      id: net.id,
+      name: platformEnum
+    };
+  }).filter(p => p.name !== IntelligencePlatform.OTHER);
   const { agreedToTerms, setAgreedToTerms } = engine;
 
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -260,6 +280,16 @@ export function SmartOrderForm() {
             <p className="text-sm text-destructive font-semibold mt-2 px-1 animate-in slide-in-from-top-1">
               {validationErrors.link}
             </p>
+          )}
+
+          {/* Platform selection manual fallback */}
+          {url.length >= 5 && !isLoading && !engine.platform && !manualPlatform && (
+            <div className="mt-4 animate-in fade-in duration-300">
+              <PlatformSelectorFallback
+                onSelect={engine.setManualPlatform}
+                availablePlatforms={availablePlatforms}
+              />
+            </div>
           )}
 
           {/* Service list */}
@@ -557,6 +587,7 @@ export function SmartOrderForm() {
                       Я подтверждаю заказ и соглашаюсь с{' '}
                       <Link
                         href="/legal/terms"
+                        onClick={e => e.stopPropagation()}
                         className="text-foreground underline hover:no-underline font-semibold"
                         target="_blank"
                       >

@@ -25,7 +25,8 @@ describe('Pricing Invariants & Property Tests', () => {
     userPersonalDiscount: number,
     serviceRate: number,
     promoType: string | null = null,
-    promoDiscount: number = 0
+    promoDiscount: number = 0,
+    serviceMarkup: number = 100
   ) => {
     // @ts-expect-error: override for testing
     db.user.findUnique.mockResolvedValue({
@@ -38,7 +39,7 @@ describe('Pricing Invariants & Property Tests', () => {
     db.service.findUnique.mockResolvedValue({
       id: 'test-service',
       rate: serviceRate,
-      markup: 100, // 100% markup
+      markup: serviceMarkup,
       minQty: 10,
       maxQty: 100000
     });
@@ -72,8 +73,8 @@ describe('Pricing Invariants & Property Tests', () => {
   it('Invariant 2: Final price never drops below Safety Floor', async () => {
     // Service Rate: $1.0 = 100 RUB = 10,000 cents per 1000 items
     // Qty: 1000 -> Provider Cost = 10,000 cents
-    // Promo Voucher: 999999 cents discount -> Should hit safety floor!
-    setupMocks(0, 0, 1.0, 'VOUCHER', 999999);
+    // Markup is very low (1.1) to trigger safety floor
+    setupMocks(0, 0, 1.0, 'PERCENTAGE', 30, 1.1);
 
     const result = await marketingService.calculatePrice('test-user', 'test-service', 1000, 'TESTPROMO');
     
@@ -83,12 +84,12 @@ describe('Pricing Invariants & Property Tests', () => {
   });
 
   it('Invariant 3: Discount percentage correctly recalculates if Safety Floor triggered', async () => {
-    setupMocks(0, 0, 1.0, 'VOUCHER', 999999); // Massive discount to trigger floor
+    // Markup is very low (1.1) to trigger safety floor
+    setupMocks(0, 0, 1.0, 'PERCENTAGE', 30, 1.1); // Massive discount to trigger floor
 
     const result = await marketingService.calculatePrice('test-user', 'test-service', 1000, 'TESTPROMO');
     
-    // originalTotalCents is cost (10,000) * markup (100) = 1,000,000 cents (wait, rate * markup * quantity?)
-    // cost = 1.0 * 100 * 100 = 10,000 cents for 1000 items. markup is 100 -> 1,000,000 cents.
+    // originalTotalCents is cost (10,000) * markup (1.1) = 11,000 cents.
     // safetyFloorCents = Math.ceil((10000 * 2) / 0.855) = 23392 cents.
     
     expect(result.totalCents).toBe(result.safetyFloorCents);

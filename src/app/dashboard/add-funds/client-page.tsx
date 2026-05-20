@@ -168,22 +168,39 @@ export default function AddFundsPage() {
           </p>
         )}
 
-        {/* Consent Checkbox */}
-        <div className="flex bg-muted/30 border border-border/50 rounded-xl p-3.5 gap-3">
+        {/* Consent Checkbox (Expanded Touch Target) */}
+        <label className="flex bg-muted/30 hover:bg-muted/50 border border-border/50 rounded-xl p-3.5 gap-3 cursor-pointer select-none transition-colors">
           <input
             type="checkbox"
             id="legal-consent"
             checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            className="min-w-[20px] min-h-[20px] mt-0.5 rounded border-border text-primary focus:ring-primary/50 cursor-pointer"
+            onChange={(e) => {
+              if (navigator.vibrate) navigator.vibrate(20);
+              setConsent(e.target.checked);
+            }}
+            className="w-5 h-5 shrink-0 mt-0.5 rounded border-border text-primary focus:ring-primary/50 cursor-pointer"
           />
-          <label htmlFor="legal-consent" className="text-xs text-muted-foreground leading-relaxed">
+          <span className="text-xs text-muted-foreground leading-relaxed">
             Я подтверждаю заказ и соглашаюсь с{' '}
-            <Link href="/legal/terms" target="_blank" className="text-primary hover:underline font-medium">Договором оферты</Link>{' '}
+            <Link
+              href="/legal/terms"
+              target="_blank"
+              onClick={e => e.stopPropagation()}
+              className="text-primary hover:underline font-semibold pointer-events-auto"
+            >
+              Договором оферты
+            </Link>{' '}
             и{' '}
-            <Link href="/legal/refund" target="_blank" className="text-primary hover:underline font-medium">Политикой возврата (Refund Policy)</Link>.
-          </label>
-        </div>
+            <Link
+              href="/legal/refund"
+              target="_blank"
+              onClick={e => e.stopPropagation()}
+              className="text-primary hover:underline font-semibold pointer-events-auto"
+            >
+              Политикой возврата (Refund Policy)
+            </Link>.
+          </span>
+        </label>
 
         {/* Submit */}
         <button
@@ -229,7 +246,7 @@ export default function AddFundsPage() {
           <button
             onClick={handlePromoSubmit}
             disabled={isPromoPending || !promoCode.trim()}
-            className="px-6 bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 font-semibold rounded-xl transition-all duration-200"
+            className="px-6 bg-zinc-800 text-zinc-100 hover:bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-50 font-bold rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
           >
             {isPromoPending ? '...' : 'Применить'}
           </button>

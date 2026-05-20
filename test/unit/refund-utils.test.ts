@@ -30,4 +30,8 @@ describe('calculatePartialRefund', () => {
   it('handles negative remains', () => {
     expect(calculatePartialRefund({ remains: -10, quantity: 1000, charge: 10000 })).toBe(0);
   });
+
+  it('clamps refund to charge when remains exceeds quantity (overflow safeguard)', () => {
+    expect(calculatePartialRefund({ remains: 1200, quantity: 1000, charge: 10000 })).toBe(10000);
+  });
 });

@@ -119,6 +119,7 @@ export async function GET(req: NextRequest) {
       'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no', // C1: Prevents Nginx/Cloudflare buffering
+      'Content-Encoding': 'none', // Prevents Cloudflare/Nginx compression buffering
     },
   });
 }

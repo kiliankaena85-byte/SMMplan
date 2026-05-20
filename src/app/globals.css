@@ -86,7 +86,7 @@
 
 /* --- THEME: EMERALD (Финансовая, Конверсионная) --- */
 .emerald-light, .emerald-dark, [data-theme="emerald-light"], [data-theme="emerald-dark"] {
-  --color-primary: #059669; /* emerald-600 */
+  --color-primary: #047857; /* emerald-700 */
   --color-primary-foreground: #ffffff;
   --color-secondary: #d1fae5; /* emerald-100 */
   --color-secondary-foreground: #047857; /* emerald-700 */
@@ -95,8 +95,8 @@
 }
 
 @keyframes hover-pulse-emerald {
-  0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
-  100% { box-shadow: 0 0 0 1em rgba(5, 150, 105, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.4); }
+  100% { box-shadow: 0 0 0 1em rgba(4, 120, 87, 0); }
 }
 
 /* --- THEME: VIOLET (Премиум, AI) --- */

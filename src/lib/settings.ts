@@ -177,7 +177,11 @@ export class SettingsProvider {
       update: { exchangeRateUSD: rate, exchangeRateUpdatedAt: new Date() },
       create: { id: "global", exchangeRateUSD: rate, exchangeRateUpdatedAt: new Date() }
     });
-    (revalidateTag as any)('settings');
+    try {
+      (revalidateTag as any)('settings');
+    } catch (cacheErr) {
+      console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
+    }
   }
 
   static async setTestMode(enable: boolean) {
@@ -188,7 +192,11 @@ export class SettingsProvider {
     });
     const { redis } = await import('./redis');
     await redis.set('settings:isTestMode', String(enable));
-    (revalidateTag as any)('settings');
+    try {
+      (revalidateTag as any)('settings');
+    } catch (cacheErr) {
+      console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
+    }
   }
 
   static async setMaintenanceMode(enable: boolean) {
@@ -199,7 +207,11 @@ export class SettingsProvider {
     });
     const { redis } = await import('./redis');
     await redis.set('settings:maintenanceMode', String(enable));
-    (revalidateTag as any)('settings');
+    try {
+      (revalidateTag as any)('settings');
+    } catch (cacheErr) {
+      console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
+    }
   }
 }
 
