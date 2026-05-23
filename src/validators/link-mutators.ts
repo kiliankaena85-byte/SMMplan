@@ -28,8 +28,22 @@ const cleanInstagramUrl = (url: string, targetType: string): string => {
   }
 };
 
-const cleanVkUrl = (url: string): string => {
+const cleanVkUrl = (url: string, targetType: string): string => {
   let cleaned = url.replace(/m\.vk\.com/, 'vk.com');
+  
+  if (targetType === 'CHANNEL') {
+    // If it's a post link (e.g. vk.com/wall-123456_789), convert to public group or user ID
+    const wallMatch = cleaned.match(/vk\.com\/wall(-?\d+)_\d+/i);
+    if (wallMatch) {
+      const id = wallMatch[1];
+      if (id.startsWith('-')) {
+        return `https://vk.com/public${id.substring(1)}`;
+      } else {
+        return `https://vk.com/id${id}`;
+      }
+    }
+  }
+
   // Extract photo ID from z=photo... if it's nested in a wall post
   const photoMatch = cleaned.match(/z=(photo-?\d+_\d+)/);
   if (photoMatch) {
@@ -49,44 +63,65 @@ const cleanVkUrl = (url: string): string => {
   }
 };
 
-const cleanTelegramUrl = (url: string): string => {
-  const cleaned = url.replace(/telegram\.me/, 't.me');
+const cleanTelegramUrl = (url: string, targetType: string): string => {
+  let cleaned = url.replace(/telegram\.me/, 't.me');
+  if (targetType === 'CHANNEL' || targetType === 'CHANNEL_POSTS') {
+    // If it's a post link (e.g. t.me/username/123), strip the post ID to make it a channel link
+    const postMatch = cleaned.match(/^(https?:\/\/(?:t\.me|telegram\.dog)\/)([\w-]+)\/\d+\/?(?:\?.*)?$/i);
+    if (postMatch && postMatch[2] !== 'c') {
+      return `${postMatch[1]}${postMatch[2]}`;
+    }
+  }
   try {
     const urlObj = new URL(cleaned);
-    // Remove ?single
-    if (urlObj.searchParams.has('single')) urlObj.searchParams.delete('single');
     return urlObj.toString();
   } catch {
     return cleaned;
   }
 };
 
-const cleanYoutubeUrl = (url: string): string => {
-  if (url.includes('youtu.be/')) {
-      const id = url.split('youtu.be/')[1]?.split('?')[0];
-      if (id) return `https://www.youtube.com/watch?v=${id}`;
+const cleanYoutubeUrl = (url: string, targetType: string): string => {
+  let cleaned = url;
+  if (cleaned.includes('youtu.be/')) {
+      const id = cleaned.split('youtu.be/')[1]?.split('?')[0];
+      if (id) cleaned = `https://www.youtube.com/watch?v=${id}`;
   }
-  if (url.includes('/shorts/')) {
-      const id = url.split('/shorts/')[1]?.split('?')[0];
-      if (id) return `https://www.youtube.com/watch?v=${id}`;
+  if (cleaned.includes('/shorts/')) {
+      const id = cleaned.split('/shorts/')[1]?.split('?')[0];
+      if (id) {
+        // If targetType is CHANNEL, and it has @username, convert to channel link
+        // e.g. https://www.youtube.com/@username/shorts/123 -> https://www.youtube.com/@username
+        const userMatch = cleaned.match(/youtube\.com\/(@[\w-]+)\/shorts\/\d+/i);
+        if (userMatch && targetType === 'CHANNEL') {
+          return `https://www.youtube.com/${userMatch[1]}`;
+        }
+        cleaned = `https://www.youtube.com/watch?v=${id}`;
+      }
   }
-  // Strip &t= and other unnecessary params if we just need the video
+  // If targetType is CHANNEL, and we have a video link like youtube.com/watch?v=...
+  // we can't extract channel name from video ID without API, so we just return it.
   try {
-      const urlObj = new URL(url);
+      const urlObj = new URL(cleaned);
       if (urlObj.hostname.includes('youtube.com') && urlObj.pathname === '/watch') {
           const v = urlObj.searchParams.get('v');
           if (v) return `https://www.youtube.com/watch?v=${v}`;
       }
   } catch { /* ignore */ }
-  return url;
+  return cleaned;
 };
 
-const cleanTikTokUrl = (url: string): string => {
-    // For TikTok, mobile share links (vm.tiktok.com) have tracking query params too.
+const cleanTikTokUrl = (url: string, targetType: string): string => {
     try {
         const urlObj = new URL(url);
         urlObj.search = '';
-        return urlObj.toString();
+        let cleaned = urlObj.toString();
+        if (targetType === 'CHANNEL') {
+          const videoMatch = cleaned.match(/tiktok\.com\/(@[\w.-]+)\/video\/\d+/i);
+          if (videoMatch) {
+            return `https://www.tiktok.com/${videoMatch[1]}`;
+          }
+        }
+        return cleaned;
     } catch {
         return url.split('?')[0];
     }
@@ -101,10 +136,10 @@ export const mutateLink = (url: string, platform: string, targetType: string): s
    
    switch(platform.toUpperCase()) {
        case 'INSTAGRAM': return cleanInstagramUrl(trimmed, targetType);
-       case 'VK': return cleanVkUrl(trimmed);
-       case 'TELEGRAM': return cleanTelegramUrl(trimmed);
-       case 'YOUTUBE': return cleanYoutubeUrl(trimmed);
-       case 'TIKTOK': return cleanTikTokUrl(trimmed);
+       case 'VK': return cleanVkUrl(trimmed, targetType);
+       case 'TELEGRAM': return cleanTelegramUrl(trimmed, targetType);
+       case 'YOUTUBE': return cleanYoutubeUrl(trimmed, targetType);
+       case 'TIKTOK': return cleanTikTokUrl(trimmed, targetType);
        default: return trimmed;
    }
 };
@@ -114,14 +149,14 @@ export const mutateLink = (url: string, platform: string, targetType: string): s
 export const getLinkValidator = (platform: string, targetType: string) => {
     switch (platform.toUpperCase()) {
         case 'TELEGRAM':
-            if (targetType === 'CHANNEL') {
-                 return z.string().regex(/^https?:\/\/(t\.me|telegram\.me)\/[a-zA-Z0-9_]+$/, "Укажите публичную ссылку на канал (например, https://t.me/durov)");
+            if (targetType === 'CHANNEL' || targetType === 'CHANNEL_POSTS') {
+                 return z.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(?:joinchat\/|\+)?[\w-]+\/?(?:\?.*)?$/i, "Укажите публичную ссылку на канал (например, https://t.me/durov)");
             }
             if (targetType === 'POST') {
                  // Disallow /c/ (private)
                  return z.string()
                     .refine(val => !val.includes('/c/'), "Невозможно заказать услугу в закрытый чат (ссылка содержит /c/). Сделайте канал публичным.")
-                    .and(z.string().regex(/^https?:\/\/(t\.me|telegram\.me)\/[a-zA-Z0-9_]+\/\d+$/, "Укажите ссылку на конкретный пост (например, https://t.me/durov/123)"));
+                    .and(z.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/[\w-]+\/\d+\/?(?:\?.*)?$/i, "Укажите ссылку на конкретный пост (например, https://t.me/durov/123)"));
             }
             break;
             
@@ -161,6 +196,51 @@ export const getLinkValidator = (platform: string, targetType: string) => {
                  return z.string().regex(/^https?:\/\/(www\.)?youtube\.com\/(@[a-zA-Z0-9_-]+|channel\/UC[a-zA-Z0-9_-]+|c\/[a-zA-Z0-9_-]+)$/, "Укажите ссылку на канал YouTube.");
             }
             break;
+
+        case 'OK':
+            if (targetType === 'POST') {
+                return z.string().regex(/^https?:\/\/(www\.)?ok\.ru\/(?:group|profile)\/\d+\/(?:topic|statuses)\/\d+/i, "Укажите ссылку на тему или статус в Одноклассниках.");
+            }
+            if (targetType === 'CHANNEL') {
+                return z.string().regex(/^https?:\/\/(www\.)?ok\.ru\/(?:group\/\d+|profile\/\d+|[a-zA-Z0-9_.-]+)$/i, "Укажите прямую ссылку на группу или профиль в Одноклассниках.");
+            }
+            break;
+
+        case 'RUTUBE':
+            if (targetType === 'POST') {
+                return z.string().regex(/^https?:\/\/(www\.)?rutube\.ru\/video\/[a-zA-Z0-9_-]+\/?/i, "Укажите ссылку на Rutube-видео.");
+            }
+            if (targetType === 'CHANNEL') {
+                return z.string().regex(/^https?:\/\/(www\.)?rutube\.ru\/(?:channel\/\d+|u\/[a-zA-Z0-9_-]+)/i, "Укажите ссылку на канал или профиль Rutube.");
+            }
+            break;
+
+        case 'DZEN':
+            if (targetType === 'POST') {
+                return z.string().regex(/^https?:\/\/(www\.)?dzen\.ru\/(?:a|b|video\/watch)\/[a-zA-Z0-9_-]+/i, "Укажите ссылку на статью, пост или видео Дзен.");
+            }
+            if (targetType === 'CHANNEL') {
+                return z.string().regex(/^https?:\/\/(www\.)?dzen\.ru\/(?:id\/[a-zA-Z0-9_-]+|[a-zA-Z0-9_.-]+)$/i, "Укажите прямую ссылку на Дзен-канал.");
+            }
+            break;
+
+        case 'DISCORD':
+            return z.string().regex(/^https?:\/\/(discord\.gg|discord\.com\/invite)\/[a-zA-Z0-9_-]+/i, "Укажите корректную ссылку-приглашение Discord (например, discord.gg/name)");
+
+        case 'KICK':
+            return z.string().regex(/^https?:\/\/(www\.)?kick\.com\/[a-zA-Z0-9_.-]+$/i, "Укажите правильную ссылку на Kick-канал.");
+
+        case 'SPOTIFY':
+            if (targetType === 'POST') {
+                 return z.string().regex(/^https?:\/\/open\.spotify\.com\/track\/[a-zA-Z0-9_-]+/i, "Укажите ссылку на трек Spotify.");
+            }
+            return z.string().regex(/^https?:\/\/open\.spotify\.com\/(playlist|album|artist)\/[a-zA-Z0-9_-]+/i, "Укажите ссылку на плейлист, альбом или артиста Spotify.");
+
+        case 'MAX':
+            if (targetType === 'CHANNEL') {
+                return z.string().regex(/^https?:\/\/(www\.)?max\.ru\/c\/(?:-?\d+(?:\/[a-zA-Z0-9_-]+)?|[a-zA-Z0-9_.-]+)/i, "Укажите ссылку на канал или чат мессенджера МАКС (например, max.ru/c/name).");
+            }
+            return z.string().regex(/^https?:\/\/(www\.)?max\.ru\/[a-zA-Z0-9_.-]+/i, "Укажите прямую ссылку на профиль или бота в мессенджере МАКС.");
     }
 
     // Default fallback validator if we don't have strict rules

@@ -107,10 +107,101 @@ describe('IntelligenceLinkAnalyzer', () => {
             expect(clubProfile.type).toBe('profile');
         });
 
+        it('recognizes VK comment links correctly', async () => {
+            const commentLink1 = await analyzer.analyze('https://vk.com/wall-215834377_14?reply=15');
+            expect(commentLink1.platform).toBe(IntelligencePlatform.VK);
+            expect(commentLink1.type).toBe('comment');
+            expect(commentLink1.id).toBe('-215834377_14');
+            expect(commentLink1.canonicalUrl).toBe('https://vk.com/wall-215834377_14?reply=15');
+
+            const commentLink2 = await analyzer.analyze('https://vk.com/wall-215834377_14?thread=12&reply=15');
+            expect(commentLink2.platform).toBe(IntelligencePlatform.VK);
+            expect(commentLink2.type).toBe('comment');
+            expect(commentLink2.id).toBe('-215834377_14');
+            expect(commentLink2.canonicalUrl).toBe('https://vk.com/wall-215834377_14?thread=12&reply=15');
+        });
+
+        it('recognizes Odnoklassniki (OK) links correctly', async () => {
+            const groupRes = await analyzer.analyze('https://ok.ru/group/532349890234');
+            expect(groupRes.platform).toBe(IntelligencePlatform.OK);
+            expect(groupRes.type).toBe('group');
+
+            const postRes = await analyzer.analyze('https://ok.ru/group/532349890234/topic/1560934823');
+            expect(postRes.platform).toBe(IntelligencePlatform.OK);
+            expect(postRes.type).toBe('post');
+            expect(postRes.id).toBe('1560934823');
+        });
+
+        it('recognizes Rutube and Dzen links correctly', async () => {
+            const rtRes = await analyzer.analyze('https://rutube.ru/video/7b94c3d18e874bc0a2f1ab89d38c7efc/');
+            expect(rtRes.platform).toBe(IntelligencePlatform.RUTUBE);
+            expect(rtRes.type).toBe('video');
+
+            const dzRes = await analyzer.analyze('https://dzen.ru/a/ZxY01_abcd-12');
+            expect(dzRes.platform).toBe(IntelligencePlatform.DZEN);
+            expect(dzRes.type).toBe('post');
+        });
+
+        it('recognizes Discord, Kick, Spotify and MAX messenger links correctly', async () => {
+            const dcRes = await analyzer.analyze('https://discord.gg/vexboost');
+            expect(dcRes.platform).toBe(IntelligencePlatform.DISCORD);
+            expect(dcRes.type).toBe('invite');
+
+            const spRes = await analyzer.analyze('https://open.spotify.com/track/4PTG3Z6ehGkBF3zI7YSp1e');
+            expect(spRes.platform).toBe(IntelligencePlatform.SPOTIFY);
+            expect(spRes.type).toBe('track');
+
+            const maxChannelRes = await analyzer.analyze('https://max.ru/c/-2048592/a8f0b1');
+            expect(maxChannelRes.platform).toBe(IntelligencePlatform.MAX);
+            expect(maxChannelRes.type).toBe('channel');
+            expect(maxChannelRes.id).toBe('-2048592/a8f0b1');
+
+            const maxProfileRes = await analyzer.analyze('https://max.ru/gosuslugi_bot');
+            expect(maxProfileRes.platform).toBe(IntelligencePlatform.MAX);
+            expect(maxProfileRes.type).toBe('profile');
+            expect(maxProfileRes.id).toBe('gosuslugi_bot');
+        });
+
         it('resolves generic http links to WEBSITE platform', async () => {
             const res = await analyzer.analyze('https://example.com/some/random/path');
             expect(res.platform).toBe(IntelligencePlatform.WEBSITE);
             expect(res.type).toBe('seo_traffic');
+        });
+
+        it('recognizes Telegram links with CamelCase, trailing slashes, and query params', async () => {
+            const res1 = await analyzer.analyze('https://t.me/smmMarket69');
+            expect(res1.platform).toBe(IntelligencePlatform.TELEGRAM);
+            expect(res1.type).toBe('channel');
+            expect(res1.id).toBe('smmMarket69');
+
+            const res2 = await analyzer.analyze('https://t.me/smmMarket69/');
+            expect(res2.platform).toBe(IntelligencePlatform.TELEGRAM);
+            expect(res2.type).toBe('channel');
+            expect(res2.id).toBe('smmMarket69');
+
+            const res3 = await analyzer.analyze('https://telegram.dog/smmMarket69');
+            expect(res3.platform).toBe(IntelligencePlatform.TELEGRAM);
+            expect(res3.type).toBe('channel');
+            expect(res3.id).toBe('smmMarket69');
+
+            const res4 = await analyzer.analyze('https://t.me/smmMarket69?start=123');
+            expect(res4.platform).toBe(IntelligencePlatform.TELEGRAM);
+            expect(res4.type).toBe('channel');
+            expect(res4.id).toBe('smmMarket69');
+            
+            const res5 = await analyzer.analyze('https://telegram.dog/smmMarket69_bot/');
+            expect(res5.platform).toBe(IntelligencePlatform.TELEGRAM);
+            expect(res5.type).toBe('bot');
+
+            const res6 = await analyzer.analyze('https://t.me/@smmMarket69');
+            expect(res6.platform).toBe(IntelligencePlatform.TELEGRAM);
+            expect(res6.type).toBe('channel');
+            expect(res6.id).toBe('smmMarket69');
+
+            const res7 = await analyzer.analyze('https://t.me/s/smmMarket69');
+            expect(res7.platform).toBe(IntelligencePlatform.TELEGRAM);
+            expect(res7.type).toBe('channel');
+            expect(res7.id).toBe('smmMarket69');
         });
     });
 });
