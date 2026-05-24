@@ -22,6 +22,15 @@ type OrderSearchParams = {
   cursor?: string;
   pageSize?: number;
   userId?: string;
+  clientEmail?: string;
+  orderId?: number;
+  externalId?: string;
+  serviceName?: string;
+  link?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minQuantity?: number;
+  maxQuantity?: number;
 };
 
 // ── Service ──
@@ -33,10 +42,25 @@ class AdminOrderService {
    * Always returns paginated results via cursor.
    */
   async searchOrders(params: OrderSearchParams): Promise<PaginatedResult<AdminOrderRow>> {
-    const { query, status, cursor, pageSize = 50, userId } = params;
+    const { 
+      query, 
+      status, 
+      cursor, 
+      pageSize = 50, 
+      userId,
+      clientEmail,
+      orderId,
+      externalId,
+      serviceName,
+      link,
+      minPrice,
+      maxPrice,
+      minQuantity,
+      maxQuantity
+    } = params;
 
     // Build dynamic WHERE clause
-    const where: Record<string, unknown> = {};
+    const where: Record<string, any> = {};
 
     if (userId && userId.trim()) {
       where.userId = userId.trim();
@@ -44,6 +68,66 @@ class AdminOrderService {
 
     if (status && status !== 'ALL') {
       where.status = status;
+    }
+
+    if (clientEmail && clientEmail.trim()) {
+      where.user = { email: { contains: clientEmail.trim(), mode: 'insensitive' } };
+    }
+
+    if (orderId !== undefined && !isNaN(orderId)) {
+      where.numericId = orderId;
+    }
+
+    if (externalId && externalId.trim()) {
+      where.externalId = { contains: externalId.trim(), mode: 'insensitive' };
+    }
+
+    if (serviceName && serviceName.trim()) {
+      const tokens = serviceName.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length > 0) {
+        where.AND = where.AND || [];
+        tokens.forEach(token => {
+          if (token.startsWith('-') && token.length > 1) {
+            where.AND.push({
+              service: {
+                name: { not: { contains: token.substring(1), mode: 'insensitive' } }
+              }
+            });
+          } else {
+            where.AND.push({
+              service: {
+                name: { contains: token, mode: 'insensitive' }
+              }
+            });
+          }
+        });
+      }
+    }
+
+    if (link && link.trim()) {
+      where.link = { contains: link.trim(), mode: 'insensitive' };
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      const chargeFilters: Record<string, number> = {};
+      if (minPrice !== undefined && !isNaN(minPrice)) {
+        chargeFilters.gte = Math.round(minPrice * 100);
+      }
+      if (maxPrice !== undefined && !isNaN(maxPrice)) {
+        chargeFilters.lte = Math.round(maxPrice * 100);
+      }
+      where.charge = chargeFilters;
+    }
+
+    if (minQuantity !== undefined || maxQuantity !== undefined) {
+      const qtyFilters: Record<string, number> = {};
+      if (minQuantity !== undefined && !isNaN(minQuantity)) {
+        qtyFilters.gte = minQuantity;
+      }
+      if (maxQuantity !== undefined && !isNaN(maxQuantity)) {
+        qtyFilters.lte = maxQuantity;
+      }
+      where.quantity = qtyFilters;
     }
 
     if (query && query.trim()) {

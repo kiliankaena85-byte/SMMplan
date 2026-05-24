@@ -4,6 +4,7 @@ import { Package, Download, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { OrderClient } from './components/order-client';
+import { OrdersFilterForm } from './components/orders-filter-form';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,15 @@ type Props = {
     cursor?: string;
     userId?: string;
     edit_order_id?: string;
+    clientEmail?: string;
+    orderId?: string;
+    externalId?: string;
+    serviceName?: string;
+    link?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    minQuantity?: string;
+    maxQuantity?: string;
   }>;
 };
 
@@ -54,6 +64,15 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     cursor,
     pageSize: 50,
     userId: userId || undefined,
+    clientEmail: params.clientEmail || undefined,
+    orderId: params.orderId ? parseInt(params.orderId, 10) : undefined,
+    externalId: params.externalId || undefined,
+    serviceName: params.serviceName || undefined,
+    link: params.link || undefined,
+    minPrice: params.minPrice ? parseFloat(params.minPrice) : undefined,
+    maxPrice: params.maxPrice ? parseFloat(params.maxPrice) : undefined,
+    minQuantity: params.minQuantity ? parseInt(params.minQuantity, 10) : undefined,
+    maxQuantity: params.maxQuantity ? parseInt(params.maxQuantity, 10) : undefined,
   });
 
   // Если передан edit_order_id, гарантируем, что этот заказ есть на первой странице (в начале списка)
@@ -88,6 +107,30 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
   const stats = await adminOrderService.getOrderStats();
 
+  // Helper to build the query string for pagination preserving all filters
+  const buildQueryString = (extraParams: Record<string, string> = {}) => {
+    const qParams = new URLSearchParams();
+    
+    // Add all active params from searchParams
+    Object.entries(params).forEach(([key, val]) => {
+      if (val && key !== 'cursor') {
+        qParams.set(key, String(val));
+      }
+    });
+
+    // Merge in extra params (like next cursor)
+    Object.entries(extraParams).forEach(([key, val]) => {
+      if (val) {
+        qParams.set(key, val);
+      } else {
+        qParams.delete(key);
+      }
+    });
+
+    const str = qParams.toString();
+    return str ? `?${str}` : '';
+  };
+
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
       <AdminPageHeader
@@ -96,7 +139,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         description={`Всего: ${stats.total} • В очереди: ${stats.pending} • В работе: ${stats.inProgress} • Ошибки: ${stats.error}`}
         action={(
           <a
-            href={`/api/admin/export?type=orders&status=${statusFilter}&q=${encodeURIComponent(query)}`}
+            href={`/api/admin/export${buildQueryString({ type: 'orders' })}`}
             className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-foreground bg-background border border-border shadow-sm rounded-lg hover:bg-muted/50 hover:text-primary transition-colors"
           >
             <Download className="w-4 h-4" /> Экспорт CSV
@@ -131,25 +174,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       {/* Search + Filters */}
       <Card>
         <CardContent className="pt-6">
-          <form className="flex flex-col md:flex-row gap-4">
-            <input
-              type="text"
-              name="q"
-              defaultValue={query}
-              placeholder="🔍 Поиск: email, чек, ID заказа, соцсеть, тариф, цена..."
-              className="flex-1 px-4 py-2 text-sm border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-            />
-            <select
-              name="status"
-              defaultValue={statusFilter}
-              className="px-4 py-2 text-sm border border-border rounded-md bg-background"
-            >
-              {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-            <button type="submit" className="px-6 py-2 text-sm font-semibold text-primary-foreground bg-primary shadow-sm rounded-md hover:bg-primary/90 transition-colors">Найти</button>
-          </form>
+          <OrdersFilterForm />
         </CardContent>
       </Card>
 
@@ -203,7 +228,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             <div className="flex justify-between items-center mt-6 pt-4 border-t border-border">
               {cursor ? (
                 <Link
-                  href={`/admin/orders?q=${encodeURIComponent(query)}&status=${statusFilter}`}
+                  href={`/admin/orders${buildQueryString({ cursor: '' })}`}
                   className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-md hover:bg-muted/50 transition-colors"
                 >
                   ← В начало
@@ -211,7 +236,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               ) : <div />}
               {hasMore && nextCursor && (
                 <Link
-                  href={`/admin/orders?q=${encodeURIComponent(query)}&status=${statusFilter}&cursor=${nextCursor}`}
+                  href={`/admin/orders${buildQueryString({ cursor: nextCursor })}`}
                   className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary transition-colors"
                 >
                   Следующая →
