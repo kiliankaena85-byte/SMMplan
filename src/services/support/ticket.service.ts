@@ -31,7 +31,8 @@ class TicketService {
     mediaType?: string, 
     replyToId?: string, 
     incomingTelegramMsgId?: string,
-    attachments?: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }>
+    attachments?: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }>,
+    orderId?: string
   ) {
     let telegramMsgId: string | undefined = incomingTelegramMsgId;
     
@@ -94,6 +95,7 @@ class TicketService {
         mediaType: legacyMediaType, 
         replyToId, 
         telegramMsgId,
+        orderId: orderId || null,
         attachments: attachmentsToCreate.length > 0 ? {
           create: attachmentsToCreate.map(att => ({
             url: att.url,
@@ -120,7 +122,7 @@ class TicketService {
       }
     });
 
-    // Notify user if STAFF replied and NO telegram ID exists (Fallback to Email)
+    // Notify user if STAFF replied via Email (Omnichannel notification)
     if (sender === 'STAFF' && message.ticket.user.email && !message.ticket.user.telegramId) {
       const isGuest = message.ticket.source === 'EMAIL';
       const actionText = isGuest 

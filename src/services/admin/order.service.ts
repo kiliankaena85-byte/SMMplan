@@ -21,6 +21,7 @@ type OrderSearchParams = {
   status?: string;
   cursor?: string;
   pageSize?: number;
+  userId?: string;
 };
 
 // ── Service ──
@@ -32,10 +33,14 @@ class AdminOrderService {
    * Always returns paginated results via cursor.
    */
   async searchOrders(params: OrderSearchParams): Promise<PaginatedResult<AdminOrderRow>> {
-    const { query, status, cursor, pageSize = 50 } = params;
+    const { query, status, cursor, pageSize = 50, userId } = params;
 
     // Build dynamic WHERE clause
     const where: Record<string, unknown> = {};
+
+    if (userId && userId.trim()) {
+      where.userId = userId.trim();
+    }
 
     if (status && status !== 'ALL') {
       where.status = status;
@@ -44,20 +49,35 @@ class AdminOrderService {
     if (query && query.trim()) {
       const q = query.trim();
       const numericId = parseInt(q, 10);
+      const cleanSubstring = q.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+
+      const textConditions: any[] = [
+        { externalId: { contains: q, mode: 'insensitive' } },
+        { link: { contains: cleanSubstring, mode: 'insensitive' } },
+        { user: { email: { contains: q, mode: 'insensitive' } } },
+        { paymentId: { contains: q, mode: 'insensitive' } },
+        { payment: { gatewayId: { contains: q, mode: 'insensitive' } } },
+        { payment: { receiptId: { contains: q, mode: 'insensitive' } } },
+        { service: { name: { contains: q, mode: 'insensitive' } } },
+        { service: { description: { contains: q, mode: 'insensitive' } } },
+        { service: { category: { name: { contains: q, mode: 'insensitive' } } } },
+        { service: { category: { network: { name: { contains: q, mode: 'insensitive' } } } } },
+      ];
+
+      const parsedPrice = parseFloat(q.replace(',', '.'));
+      if (!isNaN(parsedPrice)) {
+        const priceCents = Math.round(parsedPrice * 100);
+        textConditions.push({ charge: priceCents });
+      }
 
       if (!isNaN(numericId) && q === String(numericId)) {
-        // Pure number → search by numericId
-        where.numericId = numericId;
-      } else {
-        // Clean URL to handle protocol mismatches
-        const cleanSubstring = q.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
-        
-        // Universal text search
+        // Pure number → search by numericId OR receipt/payment/price IDs
         where.OR = [
-          { externalId: { contains: q, mode: 'insensitive' } },
-          { link: { contains: cleanSubstring, mode: 'insensitive' } },
-          { user: { email: { contains: q, mode: 'insensitive' } } },
+          { numericId: numericId },
+          ...textConditions
         ];
+      } else {
+        where.OR = textConditions;
       }
     }
 

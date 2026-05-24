@@ -29,19 +29,19 @@ export const ServiceCard = memo(function ServiceCard({
       className={`
         relative w-full p-4 md:p-6 rounded-3xl border text-left transition-all duration-300
         ${isSelected 
-          ? `bg-gradient-to-br ${brand.gradient} shadow-lg border-transparent text-primary-foreground md:-translate-y-1` 
-          : "bg-content1 border-border/50 md:hover:border-primary/30 active:bg-content2 md:hover:-translate-y-1"
+          ? `bg-gradient-to-br ${brand.gradient} border-transparent text-primary-foreground md:-translate-y-1 active:scale-[0.99]` 
+          : "bg-content1 border-border/50 md:hover:border-primary/40 active:bg-content2 md:hover:-translate-y-1 md:hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.08)] dark:md:hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.3)] active:scale-[0.99]"
         }
         min-h-[120px] touch-manipulation focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
       `}
-      style={isSelected ? { boxShadow: `0 10px 25px -5px ${brand.shadow}` } : undefined}
+      style={isSelected ? { boxShadow: `0 15px 35px -5px ${brand.shadow}` } : undefined}
     >
       <div className="font-semibold text-sm md:text-base pr-8 leading-tight line-clamp-3 break-words">
         {service.name}
       </div>
       <div className={`mt-3 text-lg font-bold tabular-nums flex items-baseline gap-1 ${isSelected ? "text-primary-foreground" : "text-foreground"}`}>
-        {service.pricePer1kRub}₽ 
-        <span className={`text-xs font-normal ${isSelected ? "opacity-90" : "text-muted-foreground"}`}>/ 1000 шт.</span>
+        {service.pricePerUnitRub}₽ 
+        <span className={`text-xs font-normal ${isSelected ? "opacity-90" : "text-muted-foreground"}`}>/ шт.</span>
       </div>
       
       {/* Badges */}

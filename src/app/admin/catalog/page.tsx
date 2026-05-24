@@ -1,4 +1,5 @@
 import { adminCatalogService } from '@/services/admin/catalog.service';
+import { adminProviderService } from '@/services/admin/provider.service';
 import { bulkUpdateMarkupAction } from '@/actions/admin/catalog';
 import { ShoppingCart, AlertTriangle } from 'lucide-react';
 import { SettingsProvider } from '@/lib/settings';
@@ -54,7 +55,8 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
     categories,
     quarantineCount,
     stats,
-    markupAnalytics
+    markupAnalytics,
+    providers
   ] = await Promise.all([
     adminCatalogService.listServices({
       search: search || undefined,
@@ -67,6 +69,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
     adminCatalogService.getQuarantineCount(),
     adminCatalogService.getCatalogStats(),
     adminCatalogService.getMarkupAnalytics(),
+    adminProviderService.listProviders(),
   ]);
 
   // Map to strict DTO — no raw Prisma objects on client
@@ -92,15 +95,20 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       isRefillEnabled: s.isRefillEnabled,
       isCancelEnabled: raw.isCancelEnabled ?? false,
       ordersCount: s._count?.orders ?? 0,
+      description: s.description ?? null,
+      targetType: raw.targetType ?? null,
+      customDataType: raw.customDataType ?? "NONE",
+      isMediaGroupAware: raw.isMediaGroupAware ?? false,
+      providerId: s.providerId ?? null,
     };
   });
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
+    <div className="flex flex-col lg:flex-row gap-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
       
       {/* LEFT PANE: Categories Sidebar */}
-      <aside className="w-full md:w-[260px] flex-shrink-0 space-y-4">
-        <Card className="shadow-sm border border-border sticky top-4">
+      <aside className="w-full lg:w-[260px] flex-shrink-0 space-y-4">
+        <Card className="shadow-sm border border-border lg:sticky lg:top-4 z-10 bg-card">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">Категории</h3>
             <div className="space-y-1 max-h-[70vh] overflow-y-auto scrollbar-hide">
@@ -241,7 +249,15 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
           </CardContent>
         </Card>
 
-        <CatalogTable services={services} usdToRub={usdToRub} canEdit={canEdit} canEditFinance={canEditFinance} canSeeRates={canSeeRates} />
+        <CatalogTable 
+          services={services} 
+          usdToRub={usdToRub} 
+          canEdit={canEdit} 
+          canEditFinance={canEditFinance} 
+          canSeeRates={canSeeRates} 
+          categories={categories}
+          providers={providers}
+        />
         
         {/* Pagination / Load More */}
         {hasMore && (

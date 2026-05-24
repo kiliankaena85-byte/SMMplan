@@ -3,6 +3,27 @@ import { providerService } from "../src/services/providers/provider.service";
 import { SmartAnalyzerLogic, CATEGORY_LABELS } from "../src/services/providers/smart-analyzer.logic";
 import { SettingsManager } from "../src/lib/settings";
 import { applyPostSyncRules } from "../src/services/providers/post-sync-rules";
+import { inferTargetTypeFromCategory } from "../src/utils/target-type";
+
+function sanitizeText(text: string | null | undefined): string {
+  if (!text) return "";
+  let sanitized = text;
+  
+  // Replace website domains with our own or remove them
+  sanitized = sanitized.replace(/https?:\/\/(www\.)?vexboost\.[a-z]+/gi, 'https://smmplan.pro');
+  sanitized = sanitized.replace(/vexboost\.[a-z]+/gi, 'smmplan.pro');
+  
+  // Replace brand names case-insensitively
+  sanitized = sanitized.replace(/vexboost/gi, 'Smmplan');
+  sanitized = sanitized.replace(/вексбуст/gi, 'Smmplan');
+  
+  // Clean up other potential SMM provider brands
+  sanitized = sanitized.replace(/hqsmm/gi, 'Smmplan');
+  sanitized = sanitized.replace(/cheapsmm/gi, 'Smmplan');
+  sanitized = sanitized.replace(/smm-panel/gi, 'Smmplan');
+  
+  return sanitized.trim();
+}
 
 async function main() {
   console.log("Starting Vexboost Sync Script...");
@@ -20,8 +41,10 @@ async function main() {
 
   const settings = await db.systemSettings.findUnique({ where: { id: "global" } });
   const quarantineThreshold = settings?.quarantineThreshold ?? 0.20;
+  const usdToRub = await SettingsManager.getExchangeRateUSD();
+  const isRubProvider = dbProvider.balanceCurrency === 'RUB';
 
-  console.log(`Provider: ${dbProvider.name}`);
+  console.log(`Provider: ${dbProvider.name} | Currency: ${dbProvider.balanceCurrency} | Cross-rate: ${usdToRub}`);
   const apiServices = await provider.getServices();
   console.log(`Fetched ${apiServices.length} services from Vexboost API.`);
 
@@ -34,6 +57,7 @@ async function main() {
   const catMap = new Map(existingCats.map(c => [`${c.network?.slug || "unknown"}__${c.name}`, c.id]));
 
   const existingServices = await db.service.findMany({
+    where: { providerId: dbProvider.id },
     select: { id: true, externalId: true, rate: true, isQuarantined: true },
   });
   const serviceMap = new Map(existingServices.map(s => [s.externalId, s]));
@@ -65,10 +89,15 @@ async function main() {
 
     const externalId = String(apiService.service);
     syncedExternalIds.add(externalId);
-    const newRate = parseFloat(apiService.rate) || 0;
+    let newRate = parseFloat(apiService.rate) || 0;
+    if (isRubProvider && usdToRub > 0) {
+      newRate = newRate / usdToRub;
+    }
     const minInt = parseInt(apiService.min, 10) || 10;
     const maxInt = parseInt(apiService.max, 10) || 100000;
     const existing = serviceMap.get(externalId);
+
+    const resolvedTargetType = analysis.targetType || inferTargetTypeFromCategory(catName) || 'POST';
 
     if (existing) {
       const oldRate = existing.rate;
@@ -82,6 +111,7 @@ async function main() {
         await db.service.update({
           where: { id: existing.id },
           data: {
+            name: sanitizeText(apiService.name),
             isQuarantined: true,
             pendingRate: newRate,
             quarantineReason: reason,
@@ -89,6 +119,8 @@ async function main() {
             minQty: minInt,
             maxQty: maxInt,
             lastSeenAt: new Date(),
+            targetType: resolvedTargetType,
+            description: sanitizeText(apiService.desc) || null,
           },
         });
         quarantinedServices++;
@@ -96,10 +128,13 @@ async function main() {
         await db.service.update({
           where: { id: existing.id },
           data: {
+            name: sanitizeText(apiService.name),
             rate: newRate,
             minQty: minInt,
             maxQty: maxInt,
             lastSeenAt: new Date(),
+            targetType: resolvedTargetType,
+            description: sanitizeText(apiService.desc) || null,
           },
         });
         updatedServices++;
@@ -107,7 +142,7 @@ async function main() {
     } else {
       await db.service.create({
         data: {
-          name: apiService.name,
+          name: sanitizeText(apiService.name),
           numericId: parseInt(externalId, 10),
           categoryId: categoryId,
           providerId: dbProvider.id,
@@ -119,6 +154,8 @@ async function main() {
           isActive: true,
           isQuarantined: false,
           lastSeenAt: new Date(),
+          targetType: resolvedTargetType,
+          description: sanitizeText(apiService.desc) || null,
         },
       });
       newServices++;

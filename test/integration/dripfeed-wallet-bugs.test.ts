@@ -38,14 +38,6 @@ describe('M5 & M2 Bugs Integration Test', () => {
   let category: any;
   
   beforeEach(async () => {
-    // Clear test data
-    await db.order.deleteMany();
-    await db.payment.deleteMany();
-    await db.user.deleteMany();
-    await db.service.deleteMany();
-    await db.category.deleteMany();
-    await db.network.deleteMany();
-
     // Setup User with small balance (1000 cents = 10 RUB)
     user = await db.user.create({
       data: {

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Card, Button, Modal, ModalHeader, ModalBody, ModalFooter, Checkbox, Chip, Table, Alert, Input, Switch } from '@heroui/react';
 import { previewHotSwap, executeHotSwap, addServiceRoute, toggleRouteStatus, changeRoutePriority, deleteServiceRoute } from '@/actions/admin/routing.actions';
 import { toast } from 'sonner';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 export function RoutingPanelClient({ service, routes, auditLogs, activeProviders }: any) {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,6 +20,9 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
 
   const [newProviderId, setNewProviderId] = useState("");
   const [newExternalId, setNewExternalId] = useState("");
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [routeIdToDelete, setRouteIdToDelete] = useState<string | null>(null);
 
   const handleOpenSwap = async (route: any) => {
     setSelectedRoute(route);
@@ -106,7 +110,15 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
   };
 
   const handleDelete = (routeId: string) => {
-    if (!window.confirm("Удалить маршрут?")) return;
+    setRouteIdToDelete(routeId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const executeDelete = () => {
+    if (!routeIdToDelete) return;
+    const routeId = routeIdToDelete;
+    setDeleteConfirmOpen(false);
+    setRouteIdToDelete(null);
     startTransition(async () => {
       try {
         await deleteServiceRoute(routeId);
@@ -332,6 +344,17 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
         </div>
       </Modal>
 
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={executeDelete}
+        title="Удаление маршрута"
+        isDanger={true}
+        confirmText="Удалить"
+        cancelText="Отмена"
+      >
+        Вы действительно хотите удалить этот маршрут? Данное действие невозможно отменить.
+      </ConfirmModal>
     </div>
   );
 }

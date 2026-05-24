@@ -15,7 +15,7 @@
   --color-popover-foreground: #0f172a;
 
   /* ── Primary (Friendly Sky Blue) ── */
-  --color-primary: #0284c7; /* sky-600 - deep, trusty blue */
+  --color-primary: #0369a1; /* sky-700 - deep, trusty blue for WCAG AA compliance */
   --color-primary-foreground: #ffffff;
 
   /* ── Secondary (Soft Interactive Background) ── */
@@ -34,12 +34,25 @@
   --color-destructive: #f43f5e;
   --color-destructive-foreground: #ffffff;
 
+  /* ── Success (emerald-500) ── */
+  --color-success: #10b981;
+  --color-success-foreground: #ffffff;
+
   /* ── Borders & Inputs ── */
   --color-border: #e2e8f0;
   --color-input: #ffffff;
 
   /* ── Focus Ring ── */
   --color-ring: #bae6fd; /* sky-200 */
+
+  /* ── Warm Theme Tokens (Zinc/Ivory, graphite, amber accents) ── */
+  --color-warm-bg: #FAF9F6;        /* Ivory warm background */
+  --color-warm-card: #FFFFFF;      /* Card background */
+  --color-warm-zinc: #F4F4F5;      /* Zinc background */
+  --color-warm-text: #27272A;      /* Graphite slate text */
+  --color-warm-accent: #D97706;    /* Amber accent */
+  --color-warm-accent-hover: #B45309; /* Darker amber for hover */
+  --color-warm-border: #E4E4E7;    /* Zinc border */
 
   /* ── Radius (Massive app-like curve) ── */
   --radius: 1.25rem; /* 20px default for soft app feel */
@@ -61,17 +74,42 @@
   
   @keyframes hover-pulse {
     0% {
-      box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.4); /* sky-600 */
+      box-shadow: 0 0 0 0 rgba(3, 105, 161, 0.4); /* sky-700 */
     }
     100% {
-      box-shadow: 0 0 0 1em rgba(2, 132, 199, 0); /* Transparent */
+      box-shadow: 0 0 0 1em rgba(3, 105, 161, 0); /* Transparent */
     }
   }
 }
+/* --- DARK THEMES VARIABLES OVERRIDE --- */
+.dark,
+.sky-dark,
+.emerald-dark,
+.violet-dark,
+[data-theme*="dark"] {
+  --color-background: #020617; /* slate-950 - premium deep soft dark */
+  --color-foreground: #f8fafc; /* slate-50 */
 
+  --color-card: #0f172a; /* slate-900 - soft elevation */
+  --color-card-foreground: #f8fafc;
 
+  --color-popover: #0f172a;
+  --color-popover-foreground: #f8fafc;
 
+  --color-muted: #1e293b; /* slate-800 */
+  --color-muted-foreground: #94a3b8; /* slate-400 */
 
+  --color-accent: #1e293b;
+  --color-accent-foreground: #f8fafc;
+
+  --color-border: #1e293b; /* slate-800 - crisp high-end border */
+  --color-input: #0f172a;
+
+  --color-ring: #1e293b;
+
+  --color-primary: #38bdf8; /* sky-400 - high contrast for WCAG AA in dark theme */
+  --color-primary-foreground: #020617; /* slate-950 */
+}
 
 @layer base {
   body {
@@ -82,10 +120,8 @@
   }
 }
 
-
-
-/* --- THEME: EMERALD (Финансовая, Конверсионная) --- */
-.emerald-light, .emerald-dark, [data-theme="emerald-light"], [data-theme="emerald-dark"] {
+/* --- THEME: EMERALD LIGHT --- */
+.emerald-light, [data-theme="emerald-light"] {
   --color-primary: #047857; /* emerald-700 */
   --color-primary-foreground: #ffffff;
   --color-secondary: #d1fae5; /* emerald-100 */
@@ -99,8 +135,23 @@
   100% { box-shadow: 0 0 0 1em rgba(4, 120, 87, 0); }
 }
 
-/* --- THEME: VIOLET (Премиум, AI) --- */
-.violet-light, .violet-dark, [data-theme="violet-light"], [data-theme="violet-dark"] {
+/* --- THEME: EMERALD DARK --- */
+.emerald-dark, [data-theme="emerald-dark"] {
+  --color-primary: #10b981; /* emerald-500 - desaturated green for WCAG AA */
+  --color-primary-foreground: #020617;
+  --color-secondary: #064e3b; /* emerald-950 */
+  --color-secondary-foreground: #34d399; /* emerald-400 */
+  --color-ring: #047857;
+  --animate-hover-pulse: hover-pulse-emerald-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes hover-pulse-emerald-dark {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  100% { box-shadow: 0 0 0 1em rgba(16, 185, 129, 0); }
+}
+
+/* --- THEME: VIOLET LIGHT --- */
+.violet-light, [data-theme="violet-light"] {
   --color-primary: #7c3aed; /* violet-600 */
   --color-primary-foreground: #ffffff;
   --color-secondary: #ede9fe; /* violet-100 */
@@ -114,6 +165,21 @@
   100% { box-shadow: 0 0 0 1em rgba(124, 58, 237, 0); }
 }
 
+/* --- THEME: VIOLET DARK --- */
+.violet-dark, [data-theme="violet-dark"] {
+  --color-primary: #a78bfa; /* violet-400 - desaturated violet for WCAG AA */
+  --color-primary-foreground: #020617;
+  --color-secondary: #2e1065; /* violet-950 */
+  --color-secondary-foreground: #c084fc; /* violet-400 */
+  --color-ring: #7c3aed;
+  --animate-hover-pulse: hover-pulse-violet-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes hover-pulse-violet-dark {
+  0% { box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.4); }
+  100% { box-shadow: 0 0 0 1em rgba(167, 139, 250, 0); }
+}
+
 /* Custom minimal scrollbar for B2B (Pillar 6) */
 @layer utilities {
   .scrollbar-hide {
@@ -125,14 +191,22 @@
   }
 }
 
-
-/* Fix Chrome Autofill breaking transparent inputs */
+/* Fix Chrome Autofill breaking transparent inputs in both themes dynamically */
 @layer base {
   input:-webkit-autofill,
   input:-webkit-autofill:hover, 
   input:-webkit-autofill:focus, 
   input:-webkit-autofill:active {
       transition: background-color 5000s ease-in-out 0s;
-      -webkit-text-fill-color: #0f172a !important;
-  }
+      -webkit-text-fill-color: var(--color-foreground) !important;
+}
+}
+
+/* --- Premium Stripe Grid Backdrop --- */
+.premium-grid-backdrop {
+  background-image: 
+    linear-gradient(to right, var(--color-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.15;
 }

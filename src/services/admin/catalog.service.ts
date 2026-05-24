@@ -60,7 +60,7 @@ class AdminCatalogService {
     categoryId?: string;
     pageSize?: number;
   }): Promise<PaginatedResult<CatalogRow>> {
-    const where: Record<string, unknown> = {};
+    const where: any = {};
 
     if (params.categoryId) {
       where.categoryId = params.categoryId;
@@ -68,13 +68,40 @@ class AdminCatalogService {
 
     if (params.search?.trim()) {
       const q = params.search.trim();
+      const lowerQ = q.toLowerCase();
       const numId = parseInt(q, 10);
+      const isPureNumber = !isNaN(numId) && q === String(numId);
+      const orConditions: any[] = [];
 
-      if (!isNaN(numId) && q === String(numId)) {
-        where.numericId = numId;
-      } else {
-        where.name = { contains: q, mode: 'insensitive' };
+      // Vector 1: Numeric ID Match
+      if (isPureNumber) {
+        orConditions.push({ numericId: numId });
       }
+
+      // Vector 2: Name Contains Match (Case-Insensitive)
+      orConditions.push({ name: { contains: q, mode: 'insensitive' } });
+
+      // Vector 3: External Provider Service ID Match
+      orConditions.push({ externalId: q });
+      if (isPureNumber) {
+        orConditions.push({ externalId: String(numId) });
+      }
+
+      // Vector 4: Active Provider Recognition (ID or Name match)
+      const providers = await db.provider.findMany({ select: { id: true, name: true } });
+      const matchedProvider = providers.find(p => p.id === q || p.name.toLowerCase() === lowerQ);
+      if (matchedProvider) {
+        orConditions.push({ providerId: matchedProvider.id });
+      }
+
+      // Vector 5: Social Network Recognition (slug contains query)
+      const networks = await db.network.findMany({ select: { id: true, slug: true } });
+      const matchedNetwork = networks.find(n => n.slug === lowerQ || lowerQ.includes(n.slug));
+      if (matchedNetwork) {
+        orConditions.push({ category: { networkId: matchedNetwork.id } });
+      }
+
+      where.OR = orConditions;
     }
 
     return paginatedQuery<CatalogRow>(db.service, {
@@ -591,18 +618,52 @@ class AdminCatalogService {
    */
   async syncDenormalizedPrices(usdToRub: number) {
     const allServices = await db.service.findMany({
-      select: { id: true, rate: true, markup: true }
+      select: { id: true, name: true, rate: true, markup: true, isActive: true }
     });
 
     console.info(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
 
-    for (let i = 0; i < allServices.length; i += 100) {
-      const batch = allServices.slice(i, i + 100);
-      const updates = batch.map(s => db.service.update({
-        where: { id: s.id },
-        data: { pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * s.markup * usdToRub) * 100) }
-      }));
-      await db.$transaction(updates);
+    const updatesBatch: any[] = [];
+    for (const s of allServices) {
+      const pricePer1kRubRounded = applyBeautifulRounding(s.rate * s.markup * usdToRub);
+      const pricePerUnitRub = pricePer1kRubRounded / 1000;
+      const purchaseCostPerUnitRub = (s.rate * usdToRub) / 1000;
+
+      if (pricePerUnitRub < purchaseCostPerUnitRub) {
+        // Loss prevention breach! Deactivate service
+        updatesBatch.push(
+          db.service.update({
+            where: { id: s.id },
+            data: { isActive: false }
+          })
+        );
+
+        const alertMsg = `🚨 [Loss Prevention] Услуга ${s.id} автоматически отключена из-за колебаний курса ЦБ! Розничная цена ${pricePerUnitRub.toFixed(4)} ₽/шт меньше себестоимости закупки ${purchaseCostPerUnitRub.toFixed(4)} ₽/шт.`;
+        console.error(alertMsg);
+
+        await db.routingAuditLog.create({
+          data: {
+            serviceId: s.id,
+            action: 'LOSS_PREVENTION_BLOCK',
+            reason: `Exchange rate fluctuation: Retail price ${pricePerUnitRub.toFixed(4)} < Cost ${purchaseCostPerUnitRub.toFixed(4)}`
+          }
+        });
+
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        await sendAdminAlert(alertMsg, 'CRITICAL');
+      } else {
+        const newPriceCents = Math.round(pricePer1kRubRounded * 100);
+        updatesBatch.push(
+          db.service.update({
+            where: { id: s.id },
+            data: { pricePer1000Cents: newPriceCents }
+          })
+        );
+      }
+    }
+
+    for (let i = 0; i < updatesBatch.length; i += 100) {
+      await db.$transaction(updatesBatch.slice(i, i + 100));
     }
 
     console.info(`[AdminCatalogService] Price sync completed.`);

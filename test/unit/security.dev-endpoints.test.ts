@@ -87,7 +87,7 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
       });
 
       const response = await POST(req);
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(403);
       const body = await response.json();
       expect(body.error).toBe('Incorrect API key');
     });

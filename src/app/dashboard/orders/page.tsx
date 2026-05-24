@@ -6,6 +6,7 @@ import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 import { MobileOrderList } from '@/components/orders/MobileOrderList';
 import { ClientDate } from '@/components/ui/client-date';
+import { OrderFilters } from '@/components/orders/OrderFilters';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,46 +32,117 @@ const STATUS_COLOR: Record<string, string> = {
   CANCELED:        'text-muted-foreground bg-muted border-border',
 };
 
-export default async function OrdersPage() {
+interface OrdersPageProps {
+  searchParams: Promise<{
+    page?: string;
+    status?: string;
+    search?: string;
+    network?: string;
+  }>;
+}
+
+export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const session = await verifySession();
   if (!session) redirect('/login');
+
+  const params = await searchParams;
+  const currentPage = parseInt(params.page || '1', 10);
+  const limit = 15; // 15 records per page matches SaaS data density standards
+  const skip = (currentPage - 1) * limit;
+
+  const search = params.search || '';
+  const status = params.status || '';
+  const network = params.network || '';
 
   const user = await db.user.findUnique({
     where: { id: session.userId },
     select: { balance: true }
   });
 
-  const orders = await db.order.findMany({
-    where: { userId: session.userId },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-    select: {
-      id: true,
-      numericId: true,
-      status: true,
-      charge: true,
-      quantity: true,
-      remains: true,
-      link: true,
-      error: true,
-      createdAt: true,
-      service: { 
-        select: { 
-          name: true,
-          category: {
-            select: {
-              name: true,
-              network: {
-                select: {
-                  name: true
+  if (!user) redirect('/login');
+
+  // Build the DB where filter dynamically
+  const where: any = {
+    userId: session.userId,
+  };
+
+  if (status && status !== 'ALL') {
+    where.status = status;
+  }
+
+  if (network && network !== 'ALL') {
+    where.service = {
+      category: {
+        network: {
+          slug: network
+        }
+      }
+    };
+  }
+
+  if (search) {
+    where.OR = [
+      ...(isNaN(Number(search)) ? [] : [{ numericId: parseInt(search, 10) }]),
+      {
+        service: {
+          name: {
+            contains: search,
+            mode: 'insensitive' as const
+          }
+        }
+      },
+      {
+        link: {
+          contains: search,
+          mode: 'insensitive' as const
+        }
+      }
+    ];
+  }
+
+  // Fetch paginated dataset concurrently
+  const [orders, totalCount, networks] = await Promise.all([
+    db.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        numericId: true,
+        status: true,
+        charge: true,
+        quantity: true,
+        remains: true,
+        link: true,
+        error: true,
+        createdAt: true,
+        service: { 
+          select: { 
+            name: true,
+            category: {
+              select: {
+                name: true,
+                network: {
+                  select: {
+                    name: true
+                  }
                 }
               }
             }
-          }
-        } 
+          } 
+        },
       },
-    },
-  });
+    }),
+    db.order.count({ where }),
+    db.network.findMany({
+      where: { isActive: true },
+      select: { slug: true, name: true },
+      orderBy: { sort: 'asc' }
+    })
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -78,7 +150,7 @@ export default async function OrdersPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Мои заказы</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            История всех заказов — последние 50
+            История всех заказов — всего найдено: {totalCount}
           </p>
         </div>
         <Link
@@ -88,6 +160,16 @@ export default async function OrdersPage() {
           + Новый заказ
         </Link>
       </div>
+
+      {/* ── CLIENT FILTERS PANEL ── */}
+      <OrderFilters
+        initialSearch={search}
+        initialStatus={status}
+        initialNetwork={network}
+        availableNetworks={networks}
+        currentPage={currentPage}
+        totalPages={totalPages}
+      />
 
       <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
         {/* Desktop table */}
@@ -118,7 +200,7 @@ export default async function OrdersPage() {
                       </Link>
                     </td>
                     <td className="py-3 px-4">
-                      <Link href={`/dashboard/orders/${order.id}`} className="block"  tabIndex={-1}>
+                      <Link href={`/dashboard/orders/${order.id}`} className="block" tabIndex={-1}>
                         <div className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5 flex items-center gap-1.5">
                           {order.service.category?.network?.name && (
                             <span className="text-primary">{order.service.category.network.name}</span>
@@ -215,7 +297,7 @@ export default async function OrdersPage() {
         {orders.length === 0 && (
           <div className="py-16 text-center">
             <div className="text-4xl mb-3">📭</div>
-            <p className="text-muted-foreground text-sm">Заказов пока нет</p>
+            <p className="text-muted-foreground text-sm">Заказов не найдено</p>
             <Link
               href="/dashboard/new-order"
               className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all duration-200"

@@ -16,13 +16,17 @@ vi.mock('@/lib/b2b-auth', () => ({
 
 describe('B2B API v2 Rate Limiter (QA-4)', () => {
   beforeEach(async () => {
+    // W3-4: The key is hashed before being rate-limited in API v2
+    const crypto = await import('crypto');
+    const hashedKey = crypto.createHash('sha256').update('test-rate-key').digest('hex');
+
     // Reset redis keys for ratelimit
     if (redis.status === 'ready') {
-      const keys = await redis.keys('ratelimit:custom:test-rate-key');
+      const keys = await redis.keys(`ratelimit:custom:${hashedKey}`);
       if (keys.length > 0) await redis.del(keys);
     }
     // Delete postgres records just in case it falls back
-    await db.rateLimit.deleteMany({ where: { ip: 'CUSTOM_KEY', endpoint: 'test-rate-key' } });
+    await db.rateLimit.deleteMany({ where: { ip: 'CUSTOM_KEY', endpoint: hashedKey } });
   });
 
   it('TC-SEC-018: Should block exactly after 50 requests', async () => {
@@ -37,8 +41,10 @@ describe('B2B API v2 Rate Limiter (QA-4)', () => {
       } as unknown as NextRequest;
     };
 
-    const requests = Array.from({ length: 60 }).map(() => POST(createReq()));
-    const responses = await Promise.all(requests);
+    const responses = [];
+    for (let i = 0; i < 60; i++) {
+      responses.push(await POST(createReq()));
+    }
 
     // Count allowed vs blocked
     const allowed = responses.filter(r => r.status === 200 || r.status === 400); // 400 is fine if verifyB2B fails, but here we expect 200

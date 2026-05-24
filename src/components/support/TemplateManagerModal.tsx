@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { upsertTemplate, deleteTemplate } from '@/actions/support/template';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
+
 
 export type Template = {
   id: string;
@@ -54,14 +56,23 @@ export default function TemplateManagerModal({
     });
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('Точно удалить шаблон?')) return;
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
+
+  const handleDeleteTrigger = (id: string) => {
+    setDeletingTemplateId(id);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingTemplateId) return;
+    const id = deletingTemplateId;
+    setDeletingTemplateId(null);
     startTransition(async () => {
       const fd = new FormData();
       fd.set('id', id);
       await deleteTemplate(fd);
     });
   };
+
 
   return (
     <div className="fixed inset-0 z-50 bg-foreground/60 flex items-center justify-center p-4 backdrop-blur-sm shadow-2xl">
@@ -137,7 +148,7 @@ export default function TemplateManagerModal({
                       className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[100px] resize-y bg-slate-50 leading-relaxed"
                     />
                     <div className="flex justify-between items-center mt-4">
-                      <Button intent="ghost" size="sm" onClick={() => handleDelete(tmpl.id)} className="text-destructive hover:text-rose-600 hover:bg-rose-50">
+                      <Button intent="ghost" size="sm" onClick={() => handleDeleteTrigger(tmpl.id)} className="text-destructive hover:text-rose-600 hover:bg-rose-50">
                         Удалить
                       </Button>
                       <div className="flex gap-2">
@@ -167,6 +178,18 @@ export default function TemplateManagerModal({
 
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deletingTemplateId !== null}
+        onClose={() => setDeletingTemplateId(null)}
+        onConfirm={handleConfirmDelete}
+        isDanger
+        title="Удалить шаблон"
+        confirmText="Удалить"
+      >
+        Вы действительно хотите удалить этот шаблон?
+      </ConfirmModal>
     </div>
   );
 }
+

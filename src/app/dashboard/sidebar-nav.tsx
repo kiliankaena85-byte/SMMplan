@@ -13,12 +13,16 @@ import {
   UserCircle,
   LogOut,
   ChevronRight,
+  Receipt,
 } from 'lucide-react';
+
+import { BalanceDisplay } from '@/components/dashboard/balance/BalanceDisplay';
 
 export const NAV = [
   { href: '/dashboard',              icon: LayoutDashboard, label: 'Главная'     },
   { href: '/dashboard/new-order',    icon: ShoppingCart,    label: 'Новый заказ' },
   { href: '/dashboard/orders',       icon: ListOrdered,     label: 'Мои заказы'  },
+  { href: '/dashboard/transactions', icon: Receipt,         label: 'Транзакции'  },
   { href: '/dashboard/add-funds',    icon: Wallet,          label: 'Пополнить'   },
   { href: '/dashboard/tickets',      icon: MessageSquare,   label: 'Поддержка'   },
   { href: '/dashboard/referrals',    icon: Users,           label: 'Рефералы'    },
@@ -55,19 +59,8 @@ export function SidebarNav({
         </Link>
       </div>
 
-      {/* Balance card */}
-      <div className="mx-3 mt-4 p-3 rounded-xl bg-primary/5 border border-primary/15">
-        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">
-          Баланс
-        </div>
-        <div className="text-lg font-bold text-foreground tabular-nums">{balanceRub}</div>
-        <Link
-          href="/dashboard/add-funds"
-          className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-lg py-1.5 hover:bg-primary/90 transition-all duration-200"
-        >
-          + Пополнить
-        </Link>
-      </div>
+      {/* Balance display client component */}
+      <BalanceDisplay initialBalance={balanceRub} variant="sidebar" />
 
       {/* Nav */}
       <nav className="flex-1 p-3 space-y-0.5 mt-2" aria-label="Меню личного кабинета">

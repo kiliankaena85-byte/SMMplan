@@ -57,7 +57,7 @@ export function LoginForm() {
 
   if (activeTab === 'magic' && magicState?.success) {
     return (
-      <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-6 text-center space-y-3">
+      <div className="rounded-2xl bg-success/10 border border-success/20 p-6 text-center space-y-3">
         <div className="flex justify-center">
           <CheckCircle2 className="w-10 h-10 text-success" />
         </div>
@@ -205,7 +205,7 @@ export function LoginForm() {
 
           {magicState?.error && (
             <div
-              className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5"
+              className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-2.5"
               role="alert"
             >
               {magicState.error}

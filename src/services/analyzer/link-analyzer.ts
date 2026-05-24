@@ -1,4 +1,5 @@
 import { IntelligencePlatform, LINK_RULES } from './link-rules';
+import { stripQueryParams } from '@/utils/link-normalizer';
 
 interface IntelligenceLinkMetadata {
     isLive?: boolean;
@@ -53,6 +54,9 @@ export class IntelligenceLinkAnalyzer {
             let cleanUrl = url.trim();
             cleanUrl = cleanUrl.split(' ')[0];
             cleanUrl = cleanUrl.split('%20')[0];
+            
+            // Clean up UTM parameters using our dedicated normalizer
+            cleanUrl = stripQueryParams(cleanUrl);
 
             // Only parse full URL if it has http scheme
             if (!cleanUrl.startsWith('http')) {
@@ -60,20 +64,9 @@ export class IntelligenceLinkAnalyzer {
             }
 
             const urlObj = new URL(cleanUrl);
-            const searchParams = urlObj.searchParams;
-            const blackList = ['utm_', 'igshid', 'feature', 'si', 'ref'];
-            
-            const keysToDelete: string[] = [];
-            searchParams.forEach((_, key) => {
-                if (blackList.some(p => key.startsWith(p))) {
-                    keysToDelete.push(key);
-                }
-            });
-            
-            keysToDelete.forEach(k => searchParams.delete(k));
-            return urlObj.toString();
+            return urlObj.toString().replace(/%40/g, '@');
         } catch (_e) {
-            return url.trim();
+            return url.trim().replace(/%40/g, '@');
         }
     }
 
@@ -99,16 +92,17 @@ export class IntelligenceLinkAnalyzer {
     }
 
     private match(url: string): IntelligenceAnalysisResult {
+        const decodedUrl = url.replace(/%40/g, '@');
         for (const rule of LINK_RULES) {
-            const match = url.match(rule.pattern);
+            const match = decodedUrl.match(rule.pattern);
             if (match) {
                 return {
                     platform: rule.platform,
                     type: rule.type,
                     id: match[1] || match[2] || match[3] || 'unknown',
-                    canonicalUrl: url,
+                    canonicalUrl: decodedUrl,
                     metadata: {
-                        isLive: url.includes('/live/') || url.includes('/reel/'),
+                        isLive: decodedUrl.includes('/live/') || decodedUrl.includes('/reel/'),
                         context: rule.context
                     },
                     suggestedCategories: rule.suggestedCategories,
@@ -117,7 +111,7 @@ export class IntelligenceLinkAnalyzer {
             }
         }
 
-        return this.getFallbackResult(url);
+        return this.getFallbackResult(decodedUrl);
     }
 
     private getFallbackResult(url: string): IntelligenceAnalysisResult {

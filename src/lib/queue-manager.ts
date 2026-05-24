@@ -50,7 +50,7 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
   });
 };
 
-export type CatalogMutationPayload = 
+export type CatalogMutationPayload = 
   | { type: 'SYNC_PRICES'; usdToRub: number }
   | { type: 'SYNC_PROVIDER_CATALOG'; providerId: string; admin: any }
   | { type: 'SYNC_ALL_CATALOGS'; admin: any }
@@ -92,6 +92,11 @@ export interface ETAJobPayload {
   timestamp: number;
 }
 
+export interface RefillJobPayload {
+  refillId: string;
+}
+
+
 // Instantiate queues using NextJS-safe singleton
 export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue', {
   attempts: 5
@@ -114,6 +119,18 @@ export const cleanupQueue = createQueue<CleanupJobPayload>('cleanup');
 
 export const telegramQueue = createQueue<TelegramJobPayload>('telegram-notifications');
 export const etaQueue = createQueue<ETAJobPayload>('eta-recalc');
+
+// P2.4: Payment Sync queue for webhook loss protection
+export const paymentSyncQueue = createQueue<SyncJobPayload>('paymentSyncQueue');
+
+export const refillQueue = createQueue<RefillJobPayload>('refillQueue', {
+  attempts: 3,
+  backoff: {
+    type: 'fixed',
+    delay: 15 * 60 * 1000 // 15 minutes
+  }
+});
+
 
 /**
  * Configure global cron sync job if not exists
@@ -198,13 +215,31 @@ export async function ensureOrphanSweepCron() {
   );
 }
 
+/**
+ * P2.4: Schedule payment synchronization cron every 15 minutes.
+ * Ensures pending YooKassa payments are polled and synchronized in case of webhook failure.
+ */
+export async function ensurePaymentSyncCron() {
+  await paymentSyncQueue.add(
+    'payment-sync-tick',
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '*/15 * * * *' // Every 15 minutes
+      },
+      jobId: 'payment-sync-singleton'
+    }
+  );
+}
+
 export const closeQueues = async () => {
     await ordersQueue.close();
+    await refillQueue.close();
     await catalogQueue.close();
     await dlqQueue.close();
     await cleanupQueue.close();
     await telegramQueue.close();
     await etaQueue.close();
+    await paymentSyncQueue.close();
     if (redisConnection) await redisConnection.quit();
 };
-

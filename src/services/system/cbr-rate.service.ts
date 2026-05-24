@@ -15,19 +15,44 @@ export class CBRRateService {
    */
   static async syncCBRExchangeRate(): Promise<{ nominalRate: number; systemRate: number; updated: boolean }> {
     try {
-      const response = await fetch(this.CBR_API_URL, {
-        next: { revalidate: 3600 } // Cache for 1 hour to avoid CBR spam
-      });
-      
-      if (!response.ok) {
-        throw new Error(`CBR API returned status ${response.status}`);
+      let usdRate: number | null = null;
+
+      // 1. Try to contact the official Central Bank of Russia (CBR) API (XML Daily)
+      try {
+        const response = await fetch("https://www.cbr.ru/scripts/XML_daily.asp", {
+          signal: AbortSignal.timeout(5000)
+        });
+        if (response.ok) {
+          const xmlText = await response.text();
+          // Extract USD Valute block: <Valute ID="R01235">
+          const usdMatch = xmlText.match(/<Valute[^>]*ID="R01235"[^>]*>([\s\S]*?)<\/Valute>/i);
+          if (usdMatch) {
+            const valueMatch = usdMatch[1].match(/<Value>([\d,.]+)<\/Value>/i);
+            if (valueMatch) {
+              usdRate = parseFloat(valueMatch[1].replace(",", "."));
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn("[CBRRateService] Official CBR XML API fetch failed, trying mirror:", err.message);
       }
 
-      const data = await response.json();
-      const usdRate = data?.Valute?.USD?.Value;
+      // 2. Fallback to the CBR daily JSON mirror
+      if (usdRate === null || isNaN(usdRate) || usdRate <= 0) {
+        const response = await fetch(this.CBR_API_URL, {
+          next: { revalidate: 3600 } // Cache for 1 hour to avoid CBR spam
+        });
+        
+        if (!response.ok) {
+          throw new Error(`CBR JSON API returned status ${response.status}`);
+        }
 
-      if (typeof usdRate !== 'number' || usdRate <= 0) {
-        throw new Error('Invalid USD rate format from CBR');
+        const data = await response.json();
+        usdRate = data?.Valute?.USD?.Value;
+      }
+
+      if (typeof usdRate !== 'number' || isNaN(usdRate) || usdRate <= 0) {
+        throw new Error('Invalid USD rate format from CBR APIs');
       }
 
       // [PB-003] Apply 3% spread to protect CFO margins during RUB volatility

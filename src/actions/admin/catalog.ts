@@ -22,15 +22,6 @@ async function updateMarkupAction(formData: FormData) {
       email: admin.email,
     });
 
-    auditAdmin({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: 'SERVICE_MARKUP_UPDATE',
-      target: serviceId,
-      targetType: 'SERVICE',
-      newValue: { markup },
-    });
-
     revalidatePath('/admin/catalog');
   });
 
@@ -48,14 +39,6 @@ async function toggleServiceAction(formData: FormData) {
     await adminCatalogService.toggleService(serviceId, isActive, {
       id: admin.id,
       email: admin.email,
-    });
-
-    auditAdmin({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: isActive ? 'SERVICE_ENABLE' : 'SERVICE_DISABLE',
-      target: serviceId,
-      targetType: 'SERVICE',
     });
 
     revalidatePath('/admin/catalog');

@@ -14,6 +14,10 @@ export function EmailModal({
   totalPriceFormatted,
   isSubmitting,
   handleCheckout,
+  promoCode,
+  setPromoCode,
+  pricingError,
+  isCalculating,
 }: {
   showEmailModal: boolean;
   setShowEmailModal: (show: boolean) => void;
@@ -23,6 +27,10 @@ export function EmailModal({
   totalPriceFormatted: string;
   isSubmitting: boolean;
   handleCheckout: () => void;
+  promoCode: string;
+  setPromoCode: (code: string) => void;
+  pricingError?: string | null;
+  isCalculating?: boolean;
 }) {
   if (!showEmailModal) return null;
 
@@ -63,7 +71,7 @@ export function EmailModal({
            </div>
         </div>
         
-        <div className="relative mb-6">
+        <div className="relative mb-4">
           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <input 
             type="email" 
@@ -71,7 +79,7 @@ export function EmailModal({
             onChange={e => setEmail(e.target.value)} 
             placeholder="you@example.com"
             autoFocus
-            className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-border bg-content1 text-[15px] font-semibold text-foreground placeholder-slate-400 focus:border-primary/50 focus:shadow-[0_8px_20px_-6px] focus:shadow-primary/15 outline-none transition-all"
+            className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-border bg-content1 text-[15px] font-semibold text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:shadow-[0_8px_20px_-6px] focus:shadow-primary/15 outline-none transition-all"
             onKeyDown={e => {
               if (e.key === 'Enter' && email.includes('@')) {
                 setShowEmailModal(false);
@@ -81,10 +89,34 @@ export function EmailModal({
           />
         </div>
 
+        {/* Promo Code Input */}
+        <div className="relative mb-6">
+          <div className="flex flex-col gap-1.5">
+            <input 
+              type="text" 
+              value={promoCode} 
+              onChange={e => setPromoCode(e.target.value.toUpperCase())} 
+              placeholder="ПРОМОКОД (ЕСЛИ ЕСТЬ)"
+              className="w-full h-12 px-5 rounded-2xl border-2 border-border bg-content1 text-[13px] font-mono tracking-wider uppercase text-foreground placeholder:text-muted-foreground/55 focus:border-primary/50 focus:shadow-[0_8px_20px_-6px] focus:shadow-primary/15 outline-none transition-all"
+            />
+            {pricingError === 'voucher' && (
+              <div className="text-[10px] font-bold text-warning bg-warning/5 border border-warning/15 rounded-xl px-2.5 py-1.5 mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                Это ваучер на баланс. Активируйте в личном кабинете.
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex items-center justify-between gap-4">
           <div className="text-right flex-1">
-            <p className="text-xs text-muted-foreground font-bold uppercase">Итого</p>
-            <p className="text-2xl font-black text-foreground tabular-nums">{totalPriceFormatted} ₽</p>
+            <p className="text-xs text-muted-foreground font-bold uppercase mb-0.5">Итого</p>
+            <div className="flex items-center justify-end gap-1.5 min-h-[32px]">
+              {isCalculating ? (
+                <Loader2 className="w-5 h-5 text-primary animate-spin" />
+              ) : (
+                <p className="text-2xl font-black text-foreground tabular-nums">{totalPriceFormatted} <span className="text-primary font-bold">₽</span></p>
+              )}
+            </div>
           </div>
           <Button
             onClick={() => {

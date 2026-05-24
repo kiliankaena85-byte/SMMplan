@@ -119,6 +119,15 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
+    if (idempotencyKey) {
+      const existing = await tx.ledgerEntry.findFirst({
+        where: { idempotencyKey },
+      });
+      if (existing) {
+        return { success: true, balance: null, cached: true, entry: existing };
+      }
+    }
+
     // Create-first pattern: atomic idempotency barrier
     try {
       const entry = await tx.ledgerEntry.create({

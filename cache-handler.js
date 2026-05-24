@@ -5,6 +5,36 @@ const client = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
   maxRetriesPerRequest: null,
 });
 
+// JSON serialization helpers to support Map and Set
+function replacer(key, value) {
+  if (value instanceof Map) {
+    return {
+      __type: 'Map',
+      value: Array.from(value.entries()),
+    };
+  }
+  if (value instanceof Set) {
+    return {
+      __type: 'Set',
+      value: Array.from(value.values()),
+    };
+  }
+  return value;
+}
+
+function reviver(key, value) {
+  if (value && value.__type === 'Map') {
+    return new Map(value.value);
+  }
+  if (value && value.__type === 'Set') {
+    return new Set(value.value);
+  }
+  if (value && value.type === 'Buffer' && Array.isArray(value.data)) {
+    return Buffer.from(value.data);
+  }
+  return value;
+}
+
 module.exports = class CacheHandler {
   constructor(options) {
     this.options = options;
@@ -15,7 +45,7 @@ module.exports = class CacheHandler {
     try {
       const data = await client.get(`next-cache:${key}`);
       if (data) {
-        return JSON.parse(data);
+        return JSON.parse(data, reviver);
       }
     } catch (e) {
       console.warn('Redis Cache GET Error:', e);
@@ -31,7 +61,7 @@ module.exports = class CacheHandler {
           value: data,
           lastModified: Date.now(),
           tags: ctx.tags,
-        }),
+        }, replacer),
         'EX',
         ctx.revalidate || 31536000 // default 1 year
       );

@@ -3,6 +3,8 @@
 import { useTransition, useState } from 'react';
 import { adminToggleTestMode, adminClearTestData } from '@/actions/admin/test-mode.actions';
 
+import { ConfirmModal } from '@/components/ui/confirm-modal';
+
 interface TestModePanelProps {
   initialIsTestMode: boolean;
 }
@@ -16,6 +18,7 @@ export function TestModePanel({ initialIsTestMode }: TestModePanelProps) {
   const [isPending, startTransition] = useTransition();
   const [clearPending, startClearTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function handleToggle() {
     const newValue = !isTestMode;
@@ -31,7 +34,11 @@ export function TestModePanel({ initialIsTestMode }: TestModePanelProps) {
   }
 
   function handleClearTestData() {
-    if (!confirm('Вы уверены? Все тестовые заказы будут БЕЗВОЗВРАТНО удалены.')) return;
+    setConfirmOpen(true);
+  }
+
+  function executeClearTestData() {
+    setConfirmOpen(false);
     startClearTransition(async () => {
       const result = await adminClearTestData();
       if ('success' in result && result.success) {
@@ -101,6 +108,18 @@ export function TestModePanel({ initialIsTestMode }: TestModePanelProps) {
           ✅ {message}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={executeClearTestData}
+        title="Очистить тестовые данные"
+        isDanger={true}
+        confirmText="Очистить"
+        cancelText="Отмена"
+      >
+        Вы уверены? Все тестовые заказы будут БЕЗВОЗВРАТНО удалены.
+      </ConfirmModal>
     </div>
   );
 }

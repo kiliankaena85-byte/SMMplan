@@ -64,7 +64,7 @@ const cleanVkUrl = (url: string, targetType: string): string => {
 };
 
 const cleanTelegramUrl = (url: string, targetType: string): string => {
-  let cleaned = url.replace(/telegram\.me/, 't.me');
+  const cleaned = url.replace(/telegram\.me/, 't.me');
   if (targetType === 'CHANNEL' || targetType === 'CHANNEL_POSTS') {
     // If it's a post link (e.g. t.me/username/123), strip the post ID to make it a channel link
     const postMatch = cleaned.match(/^(https?:\/\/(?:t\.me|telegram\.dog)\/)([\w-]+)\/\d+\/?(?:\?.*)?$/i);
@@ -114,7 +114,7 @@ const cleanTikTokUrl = (url: string, targetType: string): string => {
     try {
         const urlObj = new URL(url);
         urlObj.search = '';
-        let cleaned = urlObj.toString();
+        const cleaned = urlObj.toString();
         if (targetType === 'CHANNEL') {
           const videoMatch = cleaned.match(/tiktok\.com\/(@[\w.-]+)\/video\/\d+/i);
           if (videoMatch) {

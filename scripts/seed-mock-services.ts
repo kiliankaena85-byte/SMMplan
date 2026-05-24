@@ -27,7 +27,7 @@ const DATA = [
     ]
   },
   {
-    network: 'vk',
+    network: 'vkontakte',
     name: 'VKontakte',
     categories: [
       {

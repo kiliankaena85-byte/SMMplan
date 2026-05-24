@@ -18,7 +18,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
   return (
     <div className="w-full">
       <div className="rounded-2xl border border-border shadow-sm bg-card backdrop-blur-xl overflow-hidden p-0">
-        <Table className="table-fixed w-full">
+        <Table className="table-fixed w-full" aria-label="Список SMM-провайдеров">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[30%] bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Название / API</TableHead>

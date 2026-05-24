@@ -6,6 +6,10 @@ import { ChevronRight } from "lucide-react";
 export function CategorySidebar({ engine }: { engine: OrderEngine }) {
   const { availableCategories, categoryId, setCategoryId } = engine;
   
+  if (availableCategories.length === 0) {
+    return null;
+  }
+
   const sortedCategories = useMemo(() => {
     const PRIORITY = ['подписчик', 'участники', 'просмотр', 'охват', 'лайк', 'нравится', 'реакц', 'сердц', 'коммент', 'отзыв', 'репост', 'поделит', 'авто', 'статистик', 'звезд', 'premium'];
     return [...availableCategories].sort((a, b) => {

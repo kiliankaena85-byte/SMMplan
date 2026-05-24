@@ -48,7 +48,7 @@ module.exports = {
         "emerald-light": {
           extend: "light",
           colors: {
-            primary: { DEFAULT: "#059669", foreground: "#ffffff" },
+            primary: { DEFAULT: "#047857", foreground: "#ffffff" },
             secondary: { DEFAULT: "#d1fae5", foreground: "#047857" },
             danger: { DEFAULT: "#f43f5e", foreground: "#ffffff" }
           }
@@ -57,7 +57,7 @@ module.exports = {
           extend: "dark",
           colors: {
             background: "#020617", foreground: "#f8fafc", content1: "#0f172a", content2: "#1e293b", content3: "#334155", content4: "#475569",
-            primary: { DEFAULT: "#059669", foreground: "#ffffff" },
+            primary: { DEFAULT: "#10b981", foreground: "#020617" },
             secondary: { DEFAULT: "#1e293b", foreground: "#f8fafc" },
             danger: { DEFAULT: "#f43f5e", foreground: "#ffffff" }
           }
@@ -74,7 +74,7 @@ module.exports = {
           extend: "dark",
           colors: {
             background: "#020617", foreground: "#f8fafc", content1: "#0f172a", content2: "#1e293b", content3: "#334155", content4: "#475569",
-            primary: { DEFAULT: "#7c3aed", foreground: "#ffffff" },
+            primary: { DEFAULT: "#a78bfa", foreground: "#020617" },
             secondary: { DEFAULT: "#1e293b", foreground: "#f8fafc" },
             danger: { DEFAULT: "#f43f5e", foreground: "#ffffff" }
           }

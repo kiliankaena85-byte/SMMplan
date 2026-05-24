@@ -1,10 +1,12 @@
 import { accountingService } from '@/services/financial/accounting.service';
 import { escrowService } from '@/services/admin/escrow.service';
 import { getLedgerAction } from '@/actions/admin/finance/ledger';
+import { getPaymentsAction } from '@/actions/admin/finance/payments';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { FinanceClient } from './finance-client';
 import { QuarantineList } from './quarantine-list';
 import { FinanceSettingsForm } from './finance-settings-form';
+import { VatThresholdWidget } from './vat-threshold-widget';
 import { Wallet, TrendingUp, TrendingDown, DollarSign, PieChart, Calculator, AlertTriangle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -26,11 +28,12 @@ export default async function FinanceDashboard({ searchParams }: Props) {
   else if (period === 'week') { periodStart = new Date(Date.now() - 7*86400000); }
   else if (period === 'month') { periodStart = new Date(Date.now() - 30*86400000); }
 
-  const [metrics, settings, quarantineList, ledgerResult] = await Promise.all([
+  const [metrics, settings, quarantineList, ledgerResult, paymentsResult] = await Promise.all([
     accountingService.getMetrics(periodStart, periodStart ? new Date() : undefined),
     accountingService.getSettings(),
     escrowService.getQuarantineEntries(),
     getLedgerAction({ period, pageSize: 50 }),
+    getPaymentsAction({ period, pageSize: 50 }),
   ]);
 
   if ('error' in ledgerResult) {
@@ -45,7 +48,20 @@ export default async function FinanceDashboard({ searchParams }: Props) {
     );
   }
 
+  if ('error' in paymentsResult) {
+    return (
+      <div className="p-10 text-center bg-background rounded-3xl border border-border">
+        <div className="inline-flex p-4 bg-destructive/20 text-destructive rounded-2xl mb-4">
+          <AlertTriangle className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-black text-foreground">Ошибка загрузки данных</h1>
+        <p className="text-muted-foreground mt-2 font-medium">{paymentsResult.error}</p>
+      </div>
+    );
+  }
+
   const initialLedger = ledgerResult;
+  const initialPayments = paymentsResult;
 
   const KPI = [
     {
@@ -130,7 +146,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
               {[
                 { label: 'Комиссии шлюзов',               value: -metrics.gatewayFees,  color: 'text-destructive',  desc: 'ЮKassa (3.5%) и CryptoBot (1%)' },
                 { label: 'Валовая маржа',                 value: metrics.marginGross,   color: 'text-foreground', desc: 'После вычета COGS, возвратов и комиссий' },
-                { label: `Налоги (${settings.taxRate}%)`, value: -metrics.taxes,        color: 'text-destructive',  desc: 'Оценочный налог на прибыль' },
+                { label: `Налоги (${metrics.effectiveTaxRate.toFixed(1)}%)`, value: -metrics.taxes,        color: 'text-destructive',  desc: 'Оценочный налог на прибыль' },
                 { label: 'OPEX (Постоянные расходы)',     value: -metrics.opex,         color: 'text-destructive',  desc: 'Хостинг, софт, персонал' },
               ].map(r => (
                 <div key={r.label} className="flex justify-between items-start group">
@@ -155,16 +171,21 @@ export default async function FinanceDashboard({ searchParams }: Props) {
           </div>
         </div>
 
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
           <FinanceSettingsForm 
             initialTaxRate={settings.taxRate} 
             initialOpex={settings.opexMonthly} 
+          />
+          <VatThresholdWidget
+            annualRevenue={metrics.annualRevenue}
+            effectiveTaxRate={metrics.effectiveTaxRate}
+            isVatThresholdExceeded={metrics.isVatThresholdExceeded}
           />
         </div>
       </div>
 
       {/* ── Tabs: Ledger & Topup ── */}
-      <FinanceClient initialLedger={initialLedger} initialPeriod={period} />
+      <FinanceClient initialLedger={initialLedger} initialPayments={initialPayments} initialPeriod={period} />
     </div>
   );
 }

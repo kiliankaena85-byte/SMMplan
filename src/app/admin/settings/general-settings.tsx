@@ -78,6 +78,19 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
               />
               <p className="text-[11px] text-muted-foreground">0 = автоматическое обновление ЦБ РФ</p>
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Система налогообложения (УСН)</Label>
+              <select
+                name="usnScheme"
+                defaultValue={settings.usnScheme || 'INCOME_EXPENSES'}
+                className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-medium text-foreground"
+              >
+                <option value="INCOME">УСН «Доходы» (Налог на Выручку)</option>
+                <option value="INCOME_EXPENSES">УСН «Доходы минус Расходы» (Налог на Маржу)</option>
+              </select>
+              <p className="text-[11px] text-muted-foreground">Определяет базу расчета оценочного налога на финансовой панели</p>
+            </div>
             
             <div className="flex items-center gap-3 pt-6">
               <Checkbox 

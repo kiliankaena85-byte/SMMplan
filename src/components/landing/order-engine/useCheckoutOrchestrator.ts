@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { checkoutAction } from '@/actions/order/checkout';
 import { OrderEngine } from '@/hooks/useOrderEngine';
+import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
+import { inferTargetTypeFromCategory } from '@/utils/target-type';
+import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 
 interface CheckoutOrchestratorOptions {
   engine: OrderEngine;
@@ -68,7 +70,7 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
 
     // --- WAVE 4.2 CROSS-PLATFORM MISMATCH PROTECTION ---
     const activeNetwork = engine.catalog.find(n => n.id === engine.networkId);
-    if (engine.platform && activeNetwork) {
+    if (!engine.isLinkOverridden && engine.platform && activeNetwork) {
       const detectedPlatform = engine.platform.toLowerCase();
       const selectedPlatform = activeNetwork.slug.toLowerCase();
       
@@ -103,33 +105,66 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
       return;
     }
 
+    // --- HIGH-PRECISION LINK VALIDATION & MUTATION ---
+    const activePlatform = engine.platform || engine.manualPlatform;
     let finalUrl = rawUrl;
-    if (!/^https?:\/\//i.test(finalUrl) && finalUrl.includes('.')) {
-      finalUrl = 'https://' + finalUrl;
-    }
 
-    if (/^https?:\/\//i.test(finalUrl)) {
-      try {
-        const u = new URL(finalUrl);
-        if (!u.hostname.includes('.')) {
-          setLinkHasError(true);
-          toast.error("Указан некорректный домен.", { position: 'top-center' });
-          setShowLinkModal(true);
-          return;
-        }
-        if (u.pathname === '/' || u.pathname.length < 2) {
-          setLinkHasError(true);
-          toast.error("Укажите ссылку на конкретный профиль или пост, а не на главную страницу.", { position: 'top-center' });
-          setShowLinkModal(true);
-          return;
-        }
-      } catch (e) {
+    if (!engine.isLinkOverridden && selectedService && activePlatform && activePlatform !== IntelligencePlatform.OTHER) {
+      const activeCat = engine.catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
+      const targetType = selectedService.targetType === 'POST'
+        ? inferTargetTypeFromCategory(activeCat?.name)
+        : (selectedService.targetType || inferTargetTypeFromCategory(activeCat?.name));
+
+      const cleanUrl = mutateLink(finalUrl, activePlatform, targetType);
+      if (cleanUrl !== finalUrl) {
+        finalUrl = cleanUrl;
+        engine.setUrl(cleanUrl);
+      }
+
+      const validator = getLinkValidator(activePlatform, targetType);
+      const linkResult = validator.safeParse(finalUrl);
+      
+      if (!linkResult.success) {
         setLinkHasError(true);
-        toast.error("Неверный формат ссылки.", { position: 'top-center' });
+        toast.error(linkResult.error.errors[0].message, { position: 'top-center' });
+        setShowLinkModal(true);
+        return;
+      }
+    } else {
+      // Fallback basic url schema parsing (also runs for overridden links)
+      if (!/^https?:\/\//i.test(finalUrl) && finalUrl.includes('.')) {
+        finalUrl = 'https://' + finalUrl;
+        engine.setUrl(finalUrl);
+      }
+      if (/^https?:\/\//i.test(finalUrl)) {
+        try {
+          const u = new URL(finalUrl);
+          if (!u.hostname.includes('.')) {
+            setLinkHasError(true);
+            toast.error("Указан некорректный домен.", { position: 'top-center' });
+            setShowLinkModal(true);
+            return;
+          }
+          if (u.pathname === '/' || u.pathname.length < 2) {
+            setLinkHasError(true);
+            toast.error("Укажите ссылку на конкретный профиль или пост, а не на главную страницу.", { position: 'top-center' });
+            setShowLinkModal(true);
+            return;
+          }
+        } catch (e) {
+          setLinkHasError(true);
+          toast.error("Неверный формат ссылки.", { position: 'top-center' });
+          setShowLinkModal(true);
+          return;
+        }
+      } else {
+        setLinkHasError(true);
+        toast.error("Ссылка в обход валидации должна быть корректной (начинаться с http:// или https://)", { position: 'top-center' });
         setShowLinkModal(true);
         return;
       }
     }
+    // -------------------------------------------------
     if (quantity < (selectedService.minQty || 1)) {
       toast.error(`Минимальное количество для заказа: ${selectedService.minQty}`, { position: 'top-center' });
       return;
@@ -153,6 +188,7 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
     }
     
     setIsSubmitting(true);
+    const { checkoutAction } = await import('@/actions/order/checkout');
     const res = await checkoutAction({
       serviceId: selectedService.id,
       link: finalUrl,
@@ -160,7 +196,9 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
       email,
       customData: customData.trim() || undefined,
       promoCodeStr: promoCode.trim() || undefined,
-      gateway: 'yookassa' // Standard generic checkout via yookassa
+      gateway: 'yookassa',
+      mediaGroupUrl: engine.mediaGroupUrl?.trim() || undefined,
+      isLinkOverridden: engine.isLinkOverridden
     });
     
     setIsSubmitting(false);

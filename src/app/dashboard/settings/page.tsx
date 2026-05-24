@@ -7,6 +7,8 @@ import {
   CreditCard, TrendingUp, Settings, Star,
 } from 'lucide-react';
 import PasswordCard from '@/components/dashboard/settings/PasswordCard';
+import DeleteAccountCard from '@/components/dashboard/settings/DeleteAccountCard';
+import TelegramCard from '@/components/dashboard/settings/TelegramCard';
 import { formatBalance } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +31,7 @@ export default async function ClientSettingsPage() {
       createdAt: true,
       referralCode: true,
       referralBalance: true,
+      telegramId: true,
       _count: {
         select: {
           orders: true,
@@ -137,8 +140,14 @@ export default async function ClientSettingsPage() {
         </div>
       </div>
 
+      {/* Telegram Management */}
+      <TelegramCard telegramId={user.telegramId} />
+
       {/* Password Management */}
       <PasswordCard hasPassword={!!user.passwordHash} />
+
+      {/* Account Soft Deletion */}
+      <DeleteAccountCard hasPassword={!!user.passwordHash} />
 
       {/* Referral balance usage info */}
       {(user.referralBalance ?? 0) > 0 && (

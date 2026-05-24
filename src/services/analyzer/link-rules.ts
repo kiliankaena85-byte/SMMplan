@@ -297,7 +297,7 @@ export const LINK_RULES: LinkRule[] = [
   {
       platform: IntelligencePlatform.WEBSITE,
       type: 'seo_traffic',
-      pattern: /^https?:\/\/[^\/\s]+\.[a-z]{2,}/i,
+      pattern: /^https?:\/\/[^/\s]+\.[a-z]{2,}/i,
       suggestedCategories: [CATEGORY_LABELS.TRAFFIC],
       context: 'seo_authority'
   },

@@ -4,7 +4,13 @@ import { useState, useTransition } from 'react';
 import { generateApiKey, revokeApiKey } from '@/actions/auth/api-key';
 import { Copy, RefreshCw, Trash2, CheckCheck, ShieldAlert } from 'lucide-react';
 
-export default function ApiKeyManager({ hasKey }: { hasKey: boolean }) {
+export default function ApiKeyManager({ 
+  hasKey, 
+  onKeyGenerated 
+}: { 
+  hasKey: boolean; 
+  onKeyGenerated?: (key: string | null) => void;
+}) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -14,12 +20,16 @@ export default function ApiKeyManager({ hasKey }: { hasKey: boolean }) {
   const handleGenerate = () => {
     setError('');
     setNewKey(null);
+    if (onKeyGenerated) onKeyGenerated(null);
     startTransition(async () => {
       const res = await generateApiKey();
       if (!res.success) {
         setError(res.error || 'Ошибка при генерации ключа');
       } else {
         setNewKey(res.apiKey || null);
+        if (onKeyGenerated && res.apiKey) {
+          onKeyGenerated(res.apiKey);
+        }
       }
     });
   };
@@ -32,6 +42,7 @@ export default function ApiKeyManager({ hasKey }: { hasKey: boolean }) {
     }
     setConfirmRevoke(false);
     setError('');
+    if (onKeyGenerated) onKeyGenerated(null);
     startTransition(async () => {
       const res = await revokeApiKey();
       if (!res.success) {

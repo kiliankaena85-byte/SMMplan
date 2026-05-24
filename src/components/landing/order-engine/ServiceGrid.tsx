@@ -4,9 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Check, CheckCircle2, ChevronDown } from "lucide-react";
 import { getBrandColor } from "./BrandColors";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 
 export function ServiceGrid({ engine }: { engine: OrderEngine }) {
-  const { services, selectedService, setSelectedService, networkId, catalog } = engine;
+  const { services, selectedService, setSelectedService, networkId, catalog, isLoading } = engine;
   const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
 
   const selectedNetworkObj = useMemo(() => {
@@ -52,23 +53,36 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
           )}
           
           <div className="flex-1 flex flex-col pt-2 relative z-10">
-             <h4 className={`font-extrabold text-base transition-colors duration-300 leading-snug mb-4 min-h-[44px] break-words ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>
-               {srv.name}
+             <h4 className={`font-extrabold text-base transition-colors duration-300 leading-snug mb-4 min-h-[44px] break-words flex items-center flex-wrap gap-2 ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>
+               <span 
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   navigator.clipboard.writeText(srv.numericId.toString());
+                   toast.success(`ID услуги ${srv.numericId} скопирован в буфер обмена!`);
+                 }}
+                 className={`text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded cursor-pointer hover:scale-105 active:scale-95 transition-all select-all flex items-center gap-1 ${
+                   isSelected ? 'bg-primary-foreground/25 text-primary-foreground' : 'bg-muted text-muted-foreground border border-border/40'
+                 }`}
+                 title="Кликните, чтобы скопировать ID"
+               >
+                 ID {srv.numericId}
+               </span>
+               <span>{srv.name}</span>
              </h4>
              <div className="flex-1 mb-6 flex flex-col">
-               <p className={`text-sm font-medium leading-relaxed p-4 rounded-2xl border transition-all duration-300 ${
+                <p className={`text-sm font-medium leading-relaxed p-4 rounded-2xl border transition-all duration-300 ${
                   isSelected && !isQuarantined ? 'bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground/90 shadow-inner' 
                   : isQuarantined ? 'bg-danger/10 border-danger/20 text-danger' 
                   : 'bg-content2/50 border-border/50 text-muted-foreground'
                 }`}>
-                 <span className="line-clamp-6">
-                   {isQuarantined 
-                      ? `Услуга временно приостановлена. Пожалуйста, выберите аналогичную услугу из списка.` 
-                     : (srv.description || (srv.name.toLowerCase().includes('без гарант') 
-                     ? "Услуга без гарантии. В случае отписок восстановление не производится." 
-                     : "Стандартные условия сервиса. Скорость зависит от текущей нагрузки провайдера."))}
-                 </span>
-               </p>
+                  <span className="line-clamp-6 whitespace-pre-line">
+                    {isQuarantined 
+                       ? `Услуга временно приостановлена. Пожалуйста, выберите аналогичную услугу из списка.` 
+                      : (srv.description || (srv.name.toLowerCase().includes('без гарант') 
+                      ? "Услуга без гарантии. В случае отписок восстановление не производится." 
+                      : "Стандартные условия сервиса. Скорость зависит от текущей нагрузки провайдера."))}
+                  </span>
+                </p>
              </div>
              <p className={`text-xs font-bold flex items-center transition-colors duration-300 justify-between mt-auto px-1 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/80'}`}>
                <span>Запуск: <span className={isSelected ? 'text-primary-foreground' : 'text-foreground'}>{srv.speed}</span></span>
@@ -80,7 +94,7 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
             <div>
               <p className={`text-[10px] uppercase font-black tracking-wider mb-1.5 transition-colors duration-300 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>Цена за 1 шт.</p>
               <p className={`text-3xl font-black tabular-nums leading-none transition-colors duration-300 ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>
-                  {parseFloat(((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000).toFixed(4) : (srv.pricePer1kRub / 1000).toFixed(2))).toString()} ₽
+                  {srv.pricePerUnitRub} ₽
               </p>
             </div>
             <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
@@ -119,7 +133,7 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
           </div>
           <div className="mt-2 text-xs font-semibold text-muted-foreground flex items-center gap-3">
             <span className={selectedService?.id === srv.id ? 'text-primary' : ''}>
-              {((srv.pricePer1kRub / 1000) < 0.1 ? (srv.pricePer1kRub / 1000) : (srv.pricePer1kRub / 1000)).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽/шт
+              {srv.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽/шт
             </span>
             <span className="opacity-70">Мин: {srv.minQty}</span>
           </div>
@@ -134,6 +148,57 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
       </div>
     ));
   }, [services, selectedService, setSelectedService]);
+
+  if (isLoading) {
+    return (
+      <>
+        {/* Mobile Dropdown Skeleton */}
+        <div className="sm:hidden mb-4 animate-pulse">
+          <div className="w-full h-[88px] bg-content1 border-2 border-border/30 rounded-2xl flex items-center justify-between p-4">
+            <div className="flex flex-col gap-2 pr-4 flex-1">
+              <div className="h-3 w-20 bg-content2 rounded animate-pulse" />
+              <div className="h-5 w-3/4 bg-content2 rounded animate-pulse" />
+            </div>
+            <div className="w-8 h-8 rounded-full bg-content2 shrink-0 animate-pulse" />
+          </div>
+        </div>
+
+        {/* Desktop Grid Skeleton */}
+        <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div 
+              key={i} 
+              className="w-full flex flex-col p-6 border-2 border-border/30 rounded-3xl bg-content1 h-[320px] justify-between animate-pulse"
+            >
+              <div className="flex-1 flex flex-col pt-2 gap-4">
+                {/* Title skeleton */}
+                <div className="space-y-2">
+                  <div className="h-5 w-5/6 bg-content2 rounded-xl" />
+                  <div className="h-5 w-1/2 bg-content2 rounded-xl" />
+                </div>
+                {/* Description card skeleton */}
+                <div className="h-28 w-full bg-content2/50 border border-border/30 rounded-2xl" />
+                {/* Meta line skeleton */}
+                <div className="flex justify-between items-center px-1">
+                  <div className="h-3.5 w-1/3 bg-content2 rounded" />
+                  <div className="h-3.5 w-1/4 bg-content2 rounded" />
+                </div>
+              </div>
+              
+              {/* Footer price skeleton */}
+              <div className="mt-6 pt-5 border-t border-border/30 flex justify-between items-end px-1">
+                <div className="space-y-2">
+                  <div className="h-3 w-16 bg-content2 rounded" />
+                  <div className="h-8 w-24 bg-content2 rounded-xl" />
+                </div>
+                <div className="w-8 h-8 rounded-full bg-content2 shrink-0 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

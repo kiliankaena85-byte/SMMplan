@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { XCircle, CheckCircle, RotateCcw, X } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 import {
   cancelOrderAction,
   restartOrderAction,
@@ -58,11 +59,15 @@ function OrderDrawer({
   const [isFailoverModalOpen, setIsFailoverModalOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'cancel' | 'restart' | null>(null);
 
   React.useEffect(() => {
     setSelectedStatus(order?.status ?? '');
     setRemains(order?.remains ?? 0);
     setIsFailoverModalOpen(false);
+    setConfirmOpen(false);
+    setConfirmAction(null);
   }, [order]);
 
   if (!order) return null;
@@ -101,35 +106,43 @@ function OrderDrawer({
 
   function handleCancel() {
     if (!order) return;
-    if (!confirm(`Отменить заказ #${order.numericId}? При наличии остатка клиент получит возврат.`)) return;
-    const fd = new FormData();
-    fd.append('orderId', order.id);
-
-    startTransition(async () => {
-      try {
-        await cancelOrderAction(fd);
-        toast.success(`🚫 Заказ #${order.numericId} отменён`);
-        onClose();
-      } catch (e) {
-        toast.error((e as Error).message ?? 'Ошибка');
-      }
-    });
+    setConfirmAction('cancel');
+    setConfirmOpen(true);
   }
 
   function handleRestart() {
     if (!order) return;
-    if (!confirm(`Перезапустить заказ #${order.numericId}? Будет повторно списано ${(order.charge / 100).toFixed(2)} ₽`)) return;
+    setConfirmAction('restart');
+    setConfirmOpen(true);
+  }
+
+  function executeConfirm() {
+    if (!order || !confirmAction) return;
+    setConfirmOpen(false);
     const fd = new FormData();
     fd.append('orderId', order.id);
-    startTransition(async () => {
-      try {
-        await restartOrderAction(fd);
-        toast.success(`♻️ Заказ #${order.numericId} перезапущен`);
-        onClose();
-      } catch (e) {
-        toast.error((e as Error).message ?? 'Ошибка');
-      }
-    });
+
+    if (confirmAction === 'cancel') {
+      startTransition(async () => {
+        try {
+          await cancelOrderAction(fd);
+          toast.success(`🚫 Заказ #${order.numericId} отменён`);
+          onClose();
+        } catch (e) {
+          toast.error((e as Error).message ?? 'Ошибка');
+        }
+      });
+    } else if (confirmAction === 'restart') {
+      startTransition(async () => {
+        try {
+          await restartOrderAction(fd);
+          toast.success(`♻️ Заказ #${order.numericId} перезапущен`);
+          onClose();
+        } catch (e) {
+          toast.error((e as Error).message ?? 'Ошибка');
+        }
+      });
+    }
   }
 
   function handleFailoverClick() {
@@ -204,6 +217,8 @@ function OrderDrawer({
               { label: 'Количество', value: order.quantity.toLocaleString('ru-RU') },
               { label: 'Сумма', value: `${(order.charge / 100).toFixed(2)} ₽` },
               { label: 'Остаток', value: order.remains.toLocaleString('ru-RU') },
+              { label: 'Провайдер', value: order.providerName ?? '—' },
+              { label: 'ID у провайдера', value: order.externalId ? `#${order.externalId}` : '—' },
             ].map(({ label, value }) => (
               <div key={label} className="bg-muted/30 rounded-xl p-3">
                 <div className="text-xs text-muted-foreground mb-1">{label}</div>
@@ -227,10 +242,29 @@ function OrderDrawer({
             </a>
           </div>
 
-          {/* Error if present */}
+          {/* Timeline / Dates */}
+          <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+            <h4 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">Хронология заказа</h4>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-muted-foreground">Создан:</span>
+                <span className="font-mono font-medium text-foreground">
+                  {order.createdAt ? new Date(order.createdAt).toLocaleString('ru-RU') : '—'}
+                </span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-muted-foreground">Изменен:</span>
+                <span className="font-mono font-medium text-foreground">
+                  {order.updatedAt ? new Date(order.updatedAt as any).toLocaleString('ru-RU') : '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Error / Provider Comment */}
           {order.error && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3">
-              <div className="text-xs text-destructive font-medium mb-1">⚠️ Ошибка API</div>
+              <div className="text-xs text-destructive font-bold uppercase tracking-wider mb-1">⚠️ Ошибка / Ответ провайдера</div>
               <div className="text-xs text-rose-700 font-mono break-all">{order.error}</div>
             </div>
           )}
@@ -344,7 +378,7 @@ function OrderDrawer({
 
       {/* Failover Margin Preview Modal */}
       {isFailoverModalOpen && failoverPreview && (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-foreground/30 backdrop-blur-sm p-4">
           <div className="bg-background w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-border">
             <div className="px-6 py-4 border-b border-border bg-muted/30">
               <h3 className="font-bold text-lg flex items-center gap-2">
@@ -435,6 +469,20 @@ function OrderDrawer({
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={executeConfirm}
+        title={confirmAction === 'cancel' ? 'Отмена заказа' : 'Перезапуск заказа'}
+        isDanger={confirmAction === 'cancel'}
+        confirmText={confirmAction === 'cancel' ? 'Отменить заказ' : 'Перезапустить'}
+      >
+        {confirmAction === 'cancel' ? (
+          <>Вы действительно хотите отменить заказ <strong>#{order.numericId}</strong>? При наличии остатка клиент получит возврат.</>
+        ) : (
+          <>Вы действительно хотите перезапустить заказ <strong>#{order.numericId}</strong>? Будет повторно списано <strong>{(order.charge / 100).toFixed(2)} ₽</strong>.</>
+        )}
+      </ConfirmModal>
     </div>
   );
 }
@@ -452,6 +500,8 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
   );
 
   const [isPendingBulk, startBulkTransition] = useTransition();
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkSelectedRows, setBulkSelectedRows] = useState<{ original: unknown }[]>([]);
 
   // Memoize columns to pass canSeeRates
   const memoColumns = React.useMemo(() => columns(canSeeRates), [canSeeRates]);
@@ -463,8 +513,13 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
   }
 
   function handleBulkCancel(selectedRows: { original: unknown }[]) {
-    const ids = selectedRows.map(r => (r.original as OrderColumn).id);
-    if (!confirm(`Отменить ${ids.length} заказов? Возврат будет рассчитан автоматически.`)) return;
+    setBulkSelectedRows(selectedRows);
+    setBulkConfirmOpen(true);
+  }
+
+  function executeBulkCancel() {
+    setBulkConfirmOpen(false);
+    const ids = bulkSelectedRows.map(r => (r.original as OrderColumn).id);
     startBulkTransition(async () => {
       const r = await bulkCancelOrdersAction(ids);
       if (r.success) {
@@ -529,6 +584,17 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
 
       {/* Order detail drawer */}
       <OrderDrawer order={selectedOrder} onClose={closeDrawer} canSeeRates={canSeeRates} />
+
+      <ConfirmModal
+        isOpen={bulkConfirmOpen}
+        onClose={() => setBulkConfirmOpen(false)}
+        onConfirm={executeBulkCancel}
+        title="Пакетная отмена"
+        isDanger={true}
+        confirmText="Отменить заказы"
+      >
+        Вы действительно хотите отменить {bulkSelectedRows.length} выбранных заказов? Возврат будет рассчитан автоматически.
+      </ConfirmModal>
     </div>
   );
 }

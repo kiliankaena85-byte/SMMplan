@@ -38,6 +38,9 @@ export async function createSession(userId: string) {
     .setExpirationTime('7d')
     .sign(encodedKey);
     
+  // Clear explicit logout cookie if it exists
+  (await cookies()).delete('explicit_logout');
+
   (await cookies()).set('session_token', sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -48,6 +51,11 @@ export async function createSession(userId: string) {
 }
 
 export async function verifySession() {
+  const explicitLogout = (await cookies()).get('explicit_logout')?.value;
+  if (explicitLogout === 'true') {
+    return null;
+  }
+
   const sessionToken = (await cookies()).get('session_token')?.value;
 
   if (!sessionToken) {
@@ -55,11 +63,15 @@ export async function verifySession() {
     // Prevents accidental OWNER access on misconfigured staging/preview deployments.
     if (process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
       const bypassEmail = process.env.DEV_BYPASS_EMAIL;
-      console.log("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
+      if (process.env.NODE_ENV === 'development') {
+        console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
+      }
       const devUser = await db.user.findFirst({ 
         where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
       });
-      console.log("[verifySession] devUser found:", !!devUser);
+      if (process.env.NODE_ENV === 'development') {
+        console.info("[verifySession] devUser found:", !!devUser);
+      }
       if (devUser) return { userId: devUser.id };
     }
     return null;
@@ -71,8 +83,16 @@ export async function verifySession() {
     });
     
     const sessionId = payload.sessionId as string;
-    const session = await db.session.findUnique({ where: { id: sessionId } });
+    const session = await db.session.findUnique({
+      where: { id: sessionId },
+      include: { user: true }
+    });
     if (!session) return null;
+
+    const user = session.user;
+    if (!user || user.isDeleted === true || user.isActive === false) {
+      return null;
+    }
 
     // W3-1 SECURITY FIX: Enforce database-level session expiration
     if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
@@ -119,11 +139,15 @@ export async function verifySession() {
     // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.
     if (process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
       const bypassEmail = process.env.DEV_BYPASS_EMAIL;
-      console.log("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
+      if (process.env.NODE_ENV === 'development') {
+        console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
+      }
       const devUser = await db.user.findFirst({ 
         where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
       });
-      console.log("[verifySession] devUser found:", !!devUser);
+      if (process.env.NODE_ENV === 'development') {
+        console.info("[verifySession] devUser found:", !!devUser);
+      }
       if (devUser) return { userId: devUser.id };
     }
     return null;

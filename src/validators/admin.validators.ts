@@ -3,8 +3,8 @@ import { z } from 'zod';
 // Users / Finance
 export const updateBalanceSchema = z.object({
   userId: z.string().min(1),
-  amount: z.coerce.number().int(),
-  reason: z.string().min(1)
+  amount: z.coerce.number().int().min(-50000000, "Превышен лимит списания (500 тыс. руб)").max(50000000, "Превышен лимит начисления (500 тыс. руб)"),
+  reason: z.string().trim().min(3, "Причина должна быть не менее 3 символов").max(500, "Описание причины не должно превышать 500 символов")
 });
 
 export const userIdSchema = z.object({
@@ -35,38 +35,39 @@ export const bulkUpdateMarkupSchema = z.object({
 // Settings
 export const roleSchema = z.object({
   userId: z.string().min(1),
-  role: z.string().min(1),
+  role: z.enum(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'CLIENT', 'BANNED']),
 });
 
 export const globalSettingsSchema = z.object({
   maintenanceMode: z.any().transform((val) => val === 'true' || val === 'on'),
-  siteName: z.any().transform((v) => (typeof v === 'string' && v.trim() ? v : 'Smmplan')),
-  siteDescription: z.any().transform((v) => (typeof v === 'string' ? v : '')),
-  welcomeMessage: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  yookassaShopId: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  yookassaSecretKey: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  yookassaTestShopId: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  yookassaTestSecretKey: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  cryptoBotToken: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  exchangeRateUSD: z.coerce.number().min(50).max(300).optional(), // W4-1 FIX: Financial limits
-  emailProvider: z.any().transform((v) => (typeof v === 'string' && v ? v : 'SMTP')),
-  resendApiKey: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  smtpHost: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  smtpPort: z.coerce.number().int().optional().default(465),
-  smtpUser: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  smtpPassword: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  supportEmailDomain: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  inboundEmailWebhookSecret: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  contactSupportEmail: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  contactPrivacyEmail: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  contactTelegramBot: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  contactTelegramChannel: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  contactWhatsApp: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  contactVk: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  legalCompanyName: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  legalCompanyInn: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  legalCompanyOgrnip: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
-  legalCompanyAddress: z.any().transform((v) => (typeof v === 'string' && v ? v : null)),
+  siteName: z.string().trim().max(100).optional().default('Smmplan'),
+  siteDescription: z.string().trim().max(500).optional().default(''),
+  usnScheme: z.enum(['INCOME', 'INCOME_EXPENSES']).optional().default('INCOME_EXPENSES'),
+  welcomeMessage: z.string().trim().max(2000).nullable().optional(),
+  yookassaShopId: z.string().trim().max(150).nullable().optional(),
+  yookassaSecretKey: z.string().trim().max(300).nullable().optional(),
+  yookassaTestShopId: z.string().trim().max(150).nullable().optional(),
+  yookassaTestSecretKey: z.string().trim().max(300).nullable().optional(),
+  cryptoBotToken: z.string().trim().max(300).nullable().optional(),
+  exchangeRateUSD: z.coerce.number().min(50).max(300).optional(),
+  emailProvider: z.string().trim().max(100).optional().default('SMTP'),
+  resendApiKey: z.string().trim().max(300).nullable().optional(),
+  smtpHost: z.string().trim().max(250).nullable().optional(),
+  smtpPort: z.coerce.number().int().min(1).max(65535).optional().default(465),
+  smtpUser: z.string().trim().max(250).nullable().optional(),
+  smtpPassword: z.string().trim().max(300).nullable().optional(),
+  supportEmailDomain: z.string().trim().max(150).nullable().optional(),
+  inboundEmailWebhookSecret: z.string().trim().max(300).nullable().optional(),
+  contactSupportEmail: z.string().trim().max(150).nullable().optional(),
+  contactPrivacyEmail: z.string().trim().max(150).nullable().optional(),
+  contactTelegramBot: z.string().trim().max(150).nullable().optional(),
+  contactTelegramChannel: z.string().trim().max(150).nullable().optional(),
+  contactWhatsApp: z.string().trim().max(150).nullable().optional(),
+  contactVk: z.string().trim().max(150).nullable().optional(),
+  legalCompanyName: z.string().trim().max(250).nullable().optional(),
+  legalCompanyInn: z.string().trim().max(50).nullable().optional(),
+  legalCompanyOgrnip: z.string().trim().max(50).nullable().optional(),
+  legalCompanyAddress: z.string().trim().max(1000).nullable().optional(),
 });
 
 // Orders

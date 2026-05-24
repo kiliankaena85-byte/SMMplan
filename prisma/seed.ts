@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { hashPassword } from '../src/lib/auth/password';
 
 const prisma = new PrismaClient();
 
@@ -36,7 +37,7 @@ async function main() {
 
   // 3. Admin User
   const adminRawId = 'art@artmspektr.ru';
-  const adminUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: adminRawId },
     update: { role: 'OWNER' },
     create: {
@@ -46,6 +47,71 @@ async function main() {
     }
   });
   console.log(`Upserted Admin User (OWNER): ${adminRawId}`);
+
+  // Test Admin (Owner)
+  const testAdminEmail = 'admin@smmplan.test';
+  const testAdminHash = await hashPassword('AdminSecurePassword2026!');
+  await prisma.user.upsert({
+    where: { email: testAdminEmail },
+    update: {
+      passwordHash: testAdminHash,
+      role: 'OWNER',
+      balance: 200000_00, // 200,000 RUB
+    },
+    create: {
+      email: testAdminEmail,
+      passwordHash: testAdminHash,
+      role: 'OWNER',
+      balance: 200000_00,
+    }
+  });
+  console.log(`Upserted Test Admin: ${testAdminEmail}`);
+
+  // Test Client (User) - KYC verified with Telegram ID
+  const testClientEmail = 'client@smmplan.test';
+  const testClientHash = await hashPassword('ClientPassword2026!');
+  await prisma.user.upsert({
+    where: { email: testClientEmail },
+    update: {
+      passwordHash: testClientHash,
+      role: 'USER',
+      balance: 500000_00, // 500,000 RUB
+      telegramId: '999999999',
+      isKycVerified: true,
+    },
+    create: {
+      email: testClientEmail,
+      passwordHash: testClientHash,
+      role: 'USER',
+      balance: 500000_00,
+      telegramId: '999999999',
+      isKycVerified: true,
+    }
+  });
+  console.log(`Upserted Test Client: ${testClientEmail}`);
+
+  // Test Guest (User) - Anonymous limits check
+  const testGuestEmail = 'guest@smmplan.test';
+  const testGuestHash = await hashPassword('GuestPassword2026!');
+  await prisma.user.upsert({
+    where: { email: testGuestEmail },
+    update: {
+      passwordHash: testGuestHash,
+      role: 'USER',
+      balance: 100000_00, // 100,000 RUB
+      telegramId: null,
+      isKycVerified: false,
+    },
+    create: {
+      email: testGuestEmail,
+      passwordHash: testGuestHash,
+      role: 'USER',
+      balance: 100000_00,
+      telegramId: null,
+      isKycVerified: false,
+    }
+  });
+  console.log(`Upserted Test Guest: ${testGuestEmail}`);
 
   // 4. Sample Category and Service
   let network = await prisma.network.findFirst({ where: { slug: 'instagram' } });
@@ -142,6 +208,7 @@ async function main() {
   }
 
   console.log('Seeding Complete ✅');
+  console.info('⚡ Next.js Cache Notice: If you are deploying in production, run "npm run build" again or save settings in Admin Panel to purge stale catalog caches.');
 }
 
 main()

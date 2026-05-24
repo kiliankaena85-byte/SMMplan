@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { WalletOps } from '../financial/wallet-ops';
 import { auditAdmin } from '@/lib/admin-audit';
 import { sendAdminAlert } from '@/lib/notifications';
+import { getClientIp } from '@/utils/ip';
 
 interface AdminContext {
   id: string;
@@ -200,8 +201,10 @@ export class EscrowService {
   async resolveQuarantine(
     entryId: string,
     resolution: 'APPROVE' | 'REJECT',
-    owner: { id: string; email: string }
+    owner: { id: string; email: string },
+    ipAddress?: string
   ) {
+    const ip = ipAddress || (await getClientIp('unknown'));
     // Atomic check-and-update: only proceed if status is still QUARANTINE.
     // This prevents the race condition where two Owners click Approve simultaneously.
     await db.$transaction(async (tx) => {
@@ -236,12 +239,13 @@ export class EscrowService {
           action: `QUARANTINE_${resolution}`,
           target: entry.id,
           targetType: 'LEDGER',
-          oldValue: JSON.stringify({ status: 'QUARANTINE', userQuarantine: Number(user.quarantineBalance), userBalance: Number(user.balance) }),
+          oldValue: JSON.stringify({ status: 'QUARANTINE', userQuarantine: user.quarantineBalance.toString(), userBalance: user.balance.toString() }),
           newValue: JSON.stringify({
             status: resolution,
-            userQuarantine: Number(user.quarantineBalance) - Number(entry.amount),
-            userBalance: resolution === 'APPROVE' ? Number(user.balance) + Number(entry.amount) : Number(user.balance),
+            userQuarantine: (user.quarantineBalance - entry.amount).toString(),
+            userBalance: resolution === 'APPROVE' ? (user.balance + entry.amount).toString() : user.balance.toString(),
           }),
+          ipAddress: ip
         }
       });
     });

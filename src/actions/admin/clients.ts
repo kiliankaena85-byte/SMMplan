@@ -25,6 +25,14 @@ const discountSchema = z.object({
   userId: z.string().min(1),
   discount: z.number().min(0).max(MAX_DISCOUNT),
   endsAt: z.string().datetime().optional(), // ISO 8601
+}).refine((data) => {
+  if (data.endsAt) {
+    return new Date(data.endsAt).getTime() > Date.now();
+  }
+  return true;
+}, {
+  message: "Срок окончания скидки должен быть в будущем",
+  path: ["endsAt"]
 });
 
 const noteSchema = z.object({

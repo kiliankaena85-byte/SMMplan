@@ -7,10 +7,7 @@ vi.mock('@/lib/notifications', () => ({
   sendAdminAlert: vi.fn(),
 }));
 
-// Mock audit (fire-and-forget)
-vi.mock('@/lib/admin-audit', () => ({
-  auditAdmin: vi.fn(),
-}));
+
 
 import { sendAdminAlert } from '@/lib/notifications';
 

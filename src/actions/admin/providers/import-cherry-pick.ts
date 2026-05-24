@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -248,10 +247,28 @@ export async function fetchExternalServices(providerId?: string, forceRefresh = 
   });
 }
 
+const importServicesSchema = z.object({
+  externalIds: z.array(z.string().min(1)).min(1, "Выберите хотя бы одну услугу"),
+  categoryId: z.string().min(1, "Категория обязательна"),
+  defaultMarkup: z.coerce.number().min(1.0, "Наценка не может быть менее 1.0 (0%)").max(10.0, "Максимальная наценка - 10.0 (900%)"),
+  providerId: z.string().min(1, "ID провайдера обязателен"),
+});
+
 export async function importSelectedServices(externalIds: string[], categoryId: string, defaultMarkup: number, providerId: string) {
     return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
         try {
-            const res = await adminCatalogService.importServices(externalIds, categoryId, defaultMarkup, admin, providerId);
+            const parsed = importServicesSchema.safeParse({ externalIds, categoryId, defaultMarkup, providerId });
+            if (!parsed.success) {
+                return { success: false, error: 'Ошибка валидации: ' + parsed.error.errors.map(e => e.message).join(', ') };
+            }
+
+            const res = await adminCatalogService.importServices(
+                parsed.data.externalIds,
+                parsed.data.categoryId,
+                parsed.data.defaultMarkup,
+                admin,
+                parsed.data.providerId
+            );
             
             // SDLC Gate 4: Обязательная инвалидация кэша после мутации
             revalidatePath('/admin/providers/import');

@@ -144,6 +144,13 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     // instantly cancels the order and refunds the client. Zero retries.
     console.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}:`, error.message);
 
+    try {
+      const { QuarantineService } = await import('../../services/providers/quarantine.service');
+      await QuarantineService.evaluateTriggerA(order.serviceId, error.message);
+    } catch (quarantineErr: any) {
+      console.error(`[OrderProcessor] Quarantine evaluation failed:`, quarantineErr.message);
+    }
+
     const { orderService } = await import('../../services/core/order.service');
     await orderService.failOrderTerminalFast(order.id, error.message);
 

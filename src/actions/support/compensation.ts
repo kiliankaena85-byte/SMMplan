@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { getClientIp } from '@/utils/ip';
 
 const compensationSchema = z.object({
   ticketId: z.string().min(1),
@@ -49,6 +50,8 @@ export async function logManualCompensation(formData: FormData) {
   const idempotencyHash = crypto.createHash('md5').update(`${ticketId}-${costCents}-${note}-${topUpBalance}`).digest('hex');
   const idempotencyKey = `compensation-${ticket.id}-${idempotencyHash}`;
 
+  const ipAddress = await getClientIp('unknown');
+
   // Perform operations in a transaction
   await db.$transaction(async (tx) => {
     // 1. Deduct limit if not owner
@@ -65,7 +68,7 @@ export async function logManualCompensation(formData: FormData) {
     // 2. If top-up is requested, increment user balance
     if (topUpBalance) {
       await WalletOps.credit(tx, ticket.userId, costCents,
-        `Компенсация (На баланс): ${note}`,
+         `Компенсация (На баланс): ${note}`,
         { adminId: user.id, idempotencyKey }
       );
     } else {
@@ -92,7 +95,7 @@ export async function logManualCompensation(formData: FormData) {
         targetType: 'TICKET',
         oldValue: JSON.stringify({ supportLimitCents: user.supportLimitCents }),
         newValue: JSON.stringify({ supportLimitCents: isOwner ? user.supportLimitCents : user.supportLimitCents - costCents }),
-        ipAddress: 'internal'
+        ipAddress
       }
     });
 

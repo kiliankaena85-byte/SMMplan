@@ -134,7 +134,7 @@ export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
 const addRouteSchema = z.object({
   serviceId: z.string(),
   providerId: z.string(),
-  providerServiceId: z.string().regex(/^[a-zA-Z0-9_\-]{1,50}$/, "Неверный формат внешнего ID"),
+  providerServiceId: z.string().regex(/^[a-zA-Z0-9_-]{1,50}$/, "Неверный формат внешнего ID"),
 });
 
 export async function addServiceRoute(input: z.infer<typeof addRouteSchema>) {

@@ -14,7 +14,7 @@ export default function RootError({
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="text-center space-y-6 animate-in fade-in duration-500 max-w-sm">
         <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center">
             <AlertTriangle className="w-8 h-8 text-destructive" />
           </div>
         </div>

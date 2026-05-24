@@ -30,9 +30,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
+    command: 'npx dotenv -e .env.test -- npm run start',
+    url: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
+    reuseExistingServer: false,
     timeout: 120 * 1000,
     stdout: 'pipe',
     stderr: 'pipe',

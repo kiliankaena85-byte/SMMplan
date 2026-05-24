@@ -70,12 +70,15 @@ const checkoutSchema = z.object({
   interval: z.number().int().positive().optional(),
   customData: z.string().optional(),
   gateway: z.string().default('yookassa'),
-  idempotencyKey: z.string().optional()
+  idempotencyKey: z.string().optional(),
+  mediaGroupUrl: z.string().optional(),
+  isLinkOverridden: z.boolean().optional()
 });
 
 export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
-    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey } = data;
+    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden } = data;
+    const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
     
     // 0. Rate limit
     const isAllowed = await RateLimitService.check("checkoutCore", 15, 60);
@@ -147,26 +150,76 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     }
 
     // [OMNI-AUDIT 9.4] Phase P3: Robust Server-Side Validation & Mutation
-    const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
-    
+    let normalizedLink = link.trim();
     const platformSlug = service.category?.network?.slug?.toUpperCase() || '';
-    const targetType = service.targetType || 'POST';
 
-    // 1. Clean the link according to provider rules
-    const normalizedLink = mutateLink(link, platformSlug, targetType);
+    if (isLinkOverridden) {
+      // Basic URL verification: must have protocol, domain and no spaces
+      if (!/^https?:\/\//i.test(normalizedLink) && normalizedLink.includes('.')) {
+        normalizedLink = 'https://' + normalizedLink;
+      }
+      if (!/^https?:\/\//i.test(normalizedLink)) {
+        throw new Error("Ссылка в обход валидации должна быть корректным URL (начинаться с http:// или https://)");
+      }
+      try {
+        const u = new URL(normalizedLink);
+        if (!u.hostname.includes('.')) {
+          throw new Error("Указан некорректный домен ссылки.");
+        }
+      } catch (e: any) {
+        throw new Error("Неверный формат ссылки.", { cause: e });
+      }
+    } else {
+      const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
+      const { inferTargetTypeFromCategory } = await import('@/utils/target-type');
+      const targetType = service.targetType === 'POST'
+        ? inferTargetTypeFromCategory(service.category?.name)
+        : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
 
-    // 2. Validate the cleaned link
-    const validator = getLinkValidator(platformSlug, targetType);
-    const linkResult = validator.safeParse(normalizedLink);
-    
-    if (!linkResult.success) {
-      throw new Error(linkResult.error.errors[0].message);
+      // 1. Clean the link according to provider rules
+      normalizedLink = mutateLink(link, platformSlug, targetType);
+
+      // 2. Validate the cleaned link
+      const validator = getLinkValidator(platformSlug, targetType);
+      const linkResult = validator.safeParse(normalizedLink);
+      
+      if (!linkResult.success) {
+        throw new Error(linkResult.error.errors[0].message);
+      }
+    }
+
+    // Validate mediaGroupUrl if provided
+    let normalizedMediaGroupLink: string | undefined;
+    if (hasMediaGroup) {
+      const mgTrimmed = mediaGroupUrl!.trim();
+      if (isLinkOverridden) {
+        normalizedMediaGroupLink = mgTrimmed;
+        if (!/^https?:\/\//i.test(normalizedMediaGroupLink) && normalizedMediaGroupLink.includes('.')) {
+          normalizedMediaGroupLink = 'https://' + normalizedMediaGroupLink;
+        }
+      } else {
+        const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
+        const { inferTargetTypeFromCategory } = await import('@/utils/target-type');
+        const targetType = service.targetType === 'POST'
+          ? inferTargetTypeFromCategory(service.category?.name)
+          : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
+
+        normalizedMediaGroupLink = mutateLink(mgTrimmed, platformSlug, targetType);
+        const validator = getLinkValidator(platformSlug, targetType);
+        const mgLinkResult = validator.safeParse(normalizedMediaGroupLink);
+        if (!mgLinkResult.success) {
+          throw new Error(`Некорректная ссылка на последнее медиа: ${mgLinkResult.error.errors[0].message}`);
+        }
+      }
     }
 
     const isTestMode = await SettingsManager.isTestMode();
 
     // 3. Find or create user by email (SECURITY FIX: Track if new user to prevent IDOR auto-login)
     let user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (user && (user.isDeleted === true || user.isActive === false)) {
+      throw new Error("Ваш аккаунт заблокирован или удален");
+    }
     let isNewUser = false;
     if (!user) {
       user = await db.user.create({ data: { email: email.toLowerCase() } });
@@ -176,19 +229,26 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     // 4. Calculate price based on TOTAL quantity and actual User ID for Loyalty Tier eval
     const totalQuantity = (runs && runs > 0) ? quantity * runs : quantity;
     const pricing = await marketingService.calculatePrice(user.id, serviceId, totalQuantity, promoCodeStr);
+    
+    // Media Group: double the total for 2 orders
+    const mediaGroupMultiplier = hasMediaGroup ? 2 : 1;
+    const finalTotalCents = pricing.totalCents * mediaGroupMultiplier;
+    const finalProviderCostCents = pricing.providerCostCents * mediaGroupMultiplier;
 
-    // Enforce 10 RUB minimum for Acquiring (YooKassa / CryptoBot)
-    if (gateway !== 'balance' && pricing.totalCents < 1000) {
-      throw new Error("Минимальная сумма для оплаты картой или криптовалютой — 10 ₽. Увеличьте количество услуги или авторизуйтесь для оплаты с баланса.");
+    // Enforce 10 RUB minimum for Acquiring (YooKassa / CryptoBot) -> Auto-convert to 10 RUB top-up
+    let paymentAmount = finalTotalCents;
+    const isMicroOrder = gateway !== 'balance' && finalTotalCents < 1000;
+    if (isMicroOrder) {
+      paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
     // W5-1 SECURITY FIX: Explicitly check balance before transaction
-    if (gateway === 'balance' && user.balance < pricing.totalCents) {
+    if (gateway === 'balance' && user.balance < finalTotalCents) {
       throw new Error("Недостаточно средств на балансе. Пожалуйста, пополните счет.");
     }
 
     // Telegram Bound Anti-Fraud Check for YooKassa (deposit/checkout limit of $20 / ~1800 RUB / 180000 cents)
-    if (gateway === 'yookassa' && pricing.totalCents > 180000) {
+    if (gateway === 'yookassa' && finalTotalCents > 180000) {
       if (!user.telegramId) {
         throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
       }
@@ -199,9 +259,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
-    // 5. Create Order + Payment atomically
+    // 5. Create Order(s) + Payment atomically
     const result = await db.$transaction(async (tx) => {
-      // Create Order
+      // Create primary Order (first media / main link)
       const newOrder = await tx.order.create({
         data: {
           userId: user.id,
@@ -209,6 +269,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           providerId: service.providerId,
           providerServiceId: service.externalId,
           link: normalizedLink,
+          isLinkOverridden: isLinkOverridden || false,
           quantity: totalQuantity,
           email: email.toLowerCase(),
           status: 'AWAITING_PAYMENT',
@@ -223,16 +284,42 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         }
       });
 
+      // Create second Order for media group (last media) if applicable
+      let secondOrderId: string | undefined;
+      if (hasMediaGroup && normalizedMediaGroupLink) {
+        const secondOrder = await tx.order.create({
+          data: {
+            userId: user.id,
+            serviceId,
+            providerId: service.providerId,
+            providerServiceId: service.externalId,
+            link: normalizedMediaGroupLink,
+            isLinkOverridden: isLinkOverridden || false,
+            quantity: totalQuantity,
+            email: email.toLowerCase(),
+            status: 'AWAITING_PAYMENT',
+            charge: pricing.totalCents,
+            providerCost: pricing.providerCostCents,
+            runs,
+            interval,
+            isTest: isTestMode,
+            customData: `Медиагруппа: последнее медиа. Основной заказ: ${newOrder.numericId}`,
+            remains: totalQuantity
+          }
+        });
+        secondOrderId = secondOrder.id;
+      }
+
       // Consume Promo Code if used
       if (promoCodeStr) {
         await marketingService.consumePromoCode(tx, promoCodeStr);
       }
 
-      // Create linked Payment
+      // Create linked Payment (covers both orders if media group)
       const payment = await tx.payment.create({
         data: {
           userId: user.id,
-          amount: pricing.totalCents,
+          amount: paymentAmount,
           currency: 'RUB',
           status: 'PENDING',
           gateway,
@@ -241,13 +328,21 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         }
       });
 
-      // BUG-001 FIX: Правильная связь через Order.paymentId (не legacy Payment.orderId)
+      // Link payment to primary order
       await tx.order.update({
         where: { id: newOrder.id },
         data: { paymentId: payment.id }
       });
 
-      return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId };
+      // Link payment to second order if exists
+      if (secondOrderId) {
+        await tx.order.update({
+          where: { id: secondOrderId },
+          data: { paymentId: payment.id }
+        });
+      }
+
+      return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId, secondOrderId };
     });
 
     // 6. Generate payment URL (gateway-specific API calls)
@@ -269,7 +364,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         paymentId: result.paymentId,
         orderId: result.orderId,
         userId: user.id,
-        amountRub: pricing.totalCents / 100,
+        amountRub: paymentAmount / 100,
         email: email,
         successUrl,
         description: `Оплата заказа #${result.numericId} (SMMplan)`,
@@ -318,13 +413,13 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       await Promise.allSettled(rollbackPromises);
       
       if (gatewayErr instanceof WalletInsufficientFundsError) {
-        throw new Error('Недостаточно средств на балансе. Пожалуйста, пополните счет.');
+        throw new Error('Недостаточно средств на балансе. Пожалуйста, пополните счет.', { cause: gatewayErr });
       }
       if (gatewayErr instanceof WalletUserNotFoundError) {
-        throw new Error('Пользователь не найден. Пожалуйста, авторизуйтесь заново.');
+        throw new Error('Пользователь не найден. Пожалуйста, авторизуйтесь заново.', { cause: gatewayErr });
       }
       if (gatewayErr instanceof WalletInvalidAmountError) {
-        throw new Error('Некорректная сумма операции.');
+        throw new Error('Некорректная сумма операции.', { cause: gatewayErr });
       }
       throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
     }
@@ -342,6 +437,25 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         result.numericId.toString(),
         service.name
       ).catch(err => console.error('[H1] sendOrderPaidMail balance failed', err));
+    }
+
+    if (isLinkOverridden) {
+      try {
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        const alertPromise = sendAdminAlert(
+          `⚠️ [BYPASS-VALIDATION] Пользователь обошел валидацию ссылки!\n` +
+          `Заказ: #${result.numericId}\n` +
+          `Услуга: ${service.name} (ID: ${serviceId})\n` +
+          `Email: ${email}\n` +
+          `Ссылка: ${link}`,
+          'WARNING'
+        ) as any;
+        if (alertPromise && typeof alertPromise.catch === 'function') {
+          alertPromise.catch((err: any) => console.error('[Checkout] Failed to send bypass admin alert:', err));
+        }
+      } catch (err) {
+        console.error('[Checkout] Failed to import/send bypass admin alert:', err);
+      }
     }
 
     revalidatePath('/dashboard', 'layout');
@@ -403,6 +517,9 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     });
 
     if (!order) throw new Error("Заказ не найден");
+    if (order.user.isDeleted === true || order.user.isActive === false) {
+      throw new Error("Ваш аккаунт заблокирован или удален");
+    }
     if (order.status !== 'AWAITING_PAYMENT') throw new Error("Этот заказ больше не ожидает оплаты");
 
     // Защита от двойной оплаты: если предыдущий платеж был через YooKassa и имеет gatewayId

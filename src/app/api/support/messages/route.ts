@@ -65,12 +65,27 @@ export async function GET(req: NextRequest) {
     let messages;
     let nextCursor: string | null = null;
 
+    const includeClause = {
+      replyTo: true,
+      attachments: true,
+      order: {
+        select: {
+          id: true,
+          numericId: true,
+          status: true,
+          charge: true,
+          createdAt: true,
+          service: { select: { name: true } }
+        }
+      }
+    };
+
     if (after) {
       // Polling mode: get all new messages in chronological order
       messages = await db.ticketMessage.findMany({
         where: whereClause,
         orderBy: { createdAt: 'asc' },
-        include: { replyTo: true, attachments: true }
+        include: includeClause
       });
     } else {
       // Pagination mode: get messages in reverse chronological order
@@ -78,7 +93,7 @@ export async function GET(req: NextRequest) {
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: limit + 1,
-        include: { replyTo: true, attachments: true },
+        include: includeClause,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
       });
 
@@ -114,7 +129,15 @@ export async function GET(req: NextRequest) {
         name: att.name,
         size: att.size,
         createdAt: att.createdAt.toISOString()
-      }))
+      })),
+      order: m.order ? {
+        id: m.order.id,
+        numericId: m.order.numericId,
+        status: m.order.status,
+        charge: Number(m.order.charge),
+        createdAt: m.order.createdAt.toISOString(),
+        serviceName: m.order.service?.name || 'Услуга'
+      } : null
     }));
 
     return NextResponse.json({ 

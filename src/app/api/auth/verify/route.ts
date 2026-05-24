@@ -34,12 +34,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=AlreadyUsed", BASE_URL));
   }
 
+  const user = await db.user.findUnique({ where: { id: authToken.userId } });
+  if (!user || user.isDeleted || !user.isActive) {
+    return NextResponse.redirect(new URL("/login?error=AccountBlocked", BASE_URL));
+  }
+
   // Устанавливаем куку сессии
   await createSession(authToken.userId);
-
-  const user = await db.user.findUnique({ where: { id: authToken.userId } });
   
-  if (user && ["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role)) {
+  if (["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role)) {
     return NextResponse.redirect(new URL("/admin/dashboard", BASE_URL));
   }
 

@@ -96,14 +96,18 @@ export async function setOrderStatusAction(
   remains?: number
 ) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
+    const parsed = setStatusSchema.safeParse({ orderId, status, remains });
+    if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+    const { orderId: validatedOrderId, status: validatedStatus, remains: validatedRemains } = parsed.data;
+
     const result = await db.$transaction(async (tx) => {
       const order = await tx.order.findUniqueOrThrow({
-        where: { id: orderId },
+        where: { id: validatedOrderId },
         include: { user: { select: { id: true, balance: true } } },
       });
 
       const oldStatus = order.status;
-      const newStatus = status;
+      const newStatus = validatedStatus;
 
       const TERMINAL_REFUNDED_STATUSES = ['COMPLETED', 'CANCELED', 'ERROR'];
 
@@ -115,14 +119,14 @@ export async function setOrderStatusAction(
           refundCents = calculatePartialRefund(order);
         }
       } else if (newStatus === 'PARTIAL' && !TERMINAL_REFUNDED_STATUSES.includes(oldStatus)) {
-        const orderForRefund = { ...order, remains: remains ?? order.remains };
+        const orderForRefund = { ...order, remains: validatedRemains ?? order.remains };
         refundCents = calculatePartialRefund(orderForRefund);
       }
 
-      const newRemains = remains ?? order.remains;
+      const newRemains = validatedRemains ?? order.remains;
 
       await tx.order.update({
-        where: { id: orderId },
+        where: { id: validatedOrderId },
         data: {
           status: newStatus,
           remains: newRemains,
@@ -145,10 +149,10 @@ export async function setOrderStatusAction(
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_STATUS_OVERRIDE',
-      target: orderId,
+      target: validatedOrderId,
       targetType: 'ORDER',
       oldValue: { status: result.oldStatus },
-      newValue: { status: status, remains: remains, refund: result.refundCents },
+      newValue: { status: validatedStatus, remains: validatedRemains, refund: result.refundCents },
     });
 
     revalidatePath('/admin/orders');
@@ -443,7 +447,7 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
       });
 
       return { numericId: order.numericId, newProviderId: newRoute.providerId };
-    });
+    }, { isolationLevel: 'Serializable' });
 
     // После транзакции — отправка в BullMQ
     const jobId = `dispatch-${orderId}`;

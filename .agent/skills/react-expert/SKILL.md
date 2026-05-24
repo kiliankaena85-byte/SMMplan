@@ -1,6 +1,7 @@
 ---
 name: react-expert
-description: Use when researching React APIs or concepts for documentation. Use when you need authoritative usage examples, caveats, warnings, or errors for a React feature.
+version: 1.0.0
+description: Use when the user requests to analyze, research, or audit React API behaviors. This skill analyzes tests and source code to validate Flow and TypeScript signatures before writing documentation.
 ---
 
 # React Expert Research Skill
@@ -10,17 +11,17 @@ description: Use when researching React APIs or concepts for documentation. Use 
 This skill produces exhaustive documentation research on any React API or concept by searching authoritative sources (tests, source code, PRs, issues) rather than relying on LLM training knowledge.
 
 <CRITICAL>
-**Skepticism Mandate:** You must be skeptical of your own knowledge. Claude is often trained on outdated or incorrect React patterns. Treat source material as the sole authority. If findings contradict your prior understanding, explicitly flag this discrepancy.
+**Strict Source Authority Mandate:** Do NOT rely on your prior training knowledge about React APIs, as it may be outdated, incomplete, or incorrect. Treat the React source material and tests as the sole source of truth. If any findings contradict your initial assumptions or commonly described web patterns, you must explicitly document and highlight these discrepancies.
 
 **Red Flags - STOP if you catch yourself thinking:**
-- "I know this API does X" → Find source evidence first
-- "Common pattern is Y" → Verify in test files
-- Generating example code → Must have source file reference
+- "I know this API does X" → Verify by finding source evidence first.
+- "Common pattern is Y" → Confirm by checking actual React test files.
+- Generating example code → Ensure you have a direct source file reference.
 </CRITICAL>
 
 ## Invocation
 
-```
+```bash
 /react-expert useTransition
 /react-expert suspense boundaries
 /react-expert startTransition
@@ -80,7 +81,7 @@ Spawn these agents IN PARALLEL using the Task tool. Each agent receives the skep
 Use these exact prompts when spawning agents:
 
 #### test-explorer
-```
+````markdown
 You are researching React's <TOPIC>.
 
 CRITICAL: Do NOT rely on your prior knowledge about this API. Your training may contain outdated or incorrect patterns. Only report what you find in the source files.
@@ -96,16 +97,16 @@ Your task: Find test files in .claude/react that demonstrate <TOPIC> usage.
 3. Report findings with exact file paths and line numbers
 
 Format your output as:
-## Test File: <path>
-### Test: "<test description>"
+### Test File: <path>
+#### Test: "<test description>"
 ```javascript
 <exact code from test>
 ```
 **Behavior:** <what the test asserts>
-```
+````
 
 #### source-explorer
-```
+```markdown
 You are researching React's <TOPIC>.
 
 CRITICAL: Do NOT rely on your prior knowledge about this API. Only report what you find in the source files.
@@ -123,17 +124,17 @@ Your task: Find warnings, errors, and implementation details for <TOPIC>.
    - The source file and line number
 
 Format your output as:
-## Warnings & Errors
+### Warnings & Errors Output
 | Message | Trigger Condition | Source |
 |---------|------------------|--------|
 | "<exact message>" | <condition> | <file:line> |
 
-## Implementation Notes
+### Implementation Notes Output
 <key details from source code>
 ```
 
 #### git-historian
-```
+```markdown
 You are researching React's <TOPIC>.
 
 CRITICAL: Do NOT rely on your prior knowledge. Only report what you find in git history.
@@ -149,15 +150,15 @@ Your task: Find commit messages that explain <TOPIC> design decisions.
    - Deprecation notices
 
 Format your output as:
-## Key Commits
-### <short hash> - <subject>
+### Key Commits Output
+#### <short hash> - <subject>
 **Date:** <date>
 **Context:** <why this change was made>
 **Impact:** <what behavior changed>
 ```
 
 #### pr-researcher
-```
+```markdown
 You are researching React's <TOPIC>.
 
 CRITICAL: Do NOT rely on your prior knowledge. Only report what you find in PRs.
@@ -173,8 +174,8 @@ Your task: Find PRs that introduced or modified <TOPIC>.
    - Breaking changes
 
 Format your output as:
-## Key PRs
-### PR #<number>: <title>
+### Key PRs Output
+#### PR #<number>: <title>
 **URL:** <url>
 **Summary:** <what it introduced/changed>
 **Design Rationale:** <why this approach>
@@ -182,7 +183,7 @@ Format your output as:
 ```
 
 #### issue-hunter
-```
+```markdown
 You are researching React's <TOPIC>.
 
 CRITICAL: Do NOT rely on your prior knowledge. Only report what you find in issues.
@@ -197,8 +198,8 @@ Your task: Find issues that reveal common confusion about <TOPIC>.
    - Any gotchas revealed
 
 Format your output as:
-## Common Confusion
-### Issue #<number>: <title>
+### Common Confusion Output
+#### Issue #<number>: <title>
 **Repo:** <facebook/react or reactjs/react.dev>
 **Confusion:** <what they misunderstood>
 **Resolution:** <correct understanding>
@@ -206,7 +207,7 @@ Format your output as:
 ```
 
 #### types-inspector
-```
+````markdown
 You are researching React's <TOPIC>.
 
 CRITICAL: Do NOT rely on your prior knowledge. Only report what you find in type definitions.
@@ -218,21 +219,21 @@ Your task: Find and compare Flow and TypeScript type signatures for <TOPIC>.
 3. Compare and note any discrepancies
 
 Format your output as:
-## Flow Types (Source of Truth)
+### Flow Types Output
 **File:** <path>
 ```flow
 <exact type definition>
 ```
 
-## TypeScript Types
+### TypeScript Types Output
 **File:** <path>
 ```typescript
 <exact type definition>
 ```
 
-## Discrepancies
+### Discrepancies Output
 <any differences between Flow and TS definitions>
-```
+````
 
 ### Step 4: Synthesize Results
 
@@ -248,7 +249,7 @@ Replace spaces in topic with hyphens (e.g., "suspense boundaries" → "suspense-
 
 ## Output Document Template
 
-```markdown
+````markdown
 # React Research: <topic>
 
 > Generated by /react-expert on YYYY-MM-DD
@@ -312,7 +313,7 @@ Replace spaces in topic with hyphens (e.g., "suspense boundaries" → "suspense-
 
 ### Issues
 - Issue #<number>: <title> - <url>
-```
+````
 
 ## Common Mistakes to Avoid
 
@@ -321,6 +322,48 @@ Replace spaces in topic with hyphens (e.g., "suspense boundaries" → "suspense-
 3. **Skipping agents** - All 6 agents must run; each provides unique perspective
 4. **Summarizing without sources** - Every claim needs a file:line or PR/issue reference
 5. **Using web search** - No Stack Overflow, no blog posts, no social media
+
+## When to activate
+
+Activate this skill when:
+- The user requests deep research on a specific React API (e.g. `useTransition`, `Suspense`, `useDeferredValue`).
+- You need to write accurate documentation or guides about React features.
+- A React-related test is failing and you need to verify how React behaves under the hood.
+- You encounter a discrepancy between how a React API is documented and how it behaves.
+
+## Step-by-step execution protocol
+
+1. **Environment Setup**: Run the checkout commands to ensure `.claude/react` is cloned and active.
+2. **Launch Subagents**: Dispatch the 6 parallel explorer subagents with the exact specified prompts.
+3. **Monitor Status**: Periodically check the progress of each subagent until they successfully complete.
+4. **Synthesize Findings**: Gather the outputs, cross-reference them, and build the unified markdown document.
+5. **Quality Review**: Validate the final output against the "Common Mistakes to Avoid" checklist.
+6. **Save Artifact**: Write the final file under `.claude/research/<topic>.md` and present it to the user.
+
+## Scope boundaries
+
+### In Scope
+- Deep analysis of the official Facebook React repository (source code and tests).
+- Analyzing Flow types and TypeScript types definitions for React.
+- Searching GitHub issues, PRs, and commit history for design decisions.
+
+### Out of Scope
+- Searching generic web sources, Stack Overflow, Medium blogs, or Google.
+- Executing live production React apps or writing application-level mock setups.
+- Third-party React libraries (e.g. React Router, Redux, Zustand) unless they are built-in React APIs.
+
+## Error handling
+
+If an error or failure occurs during the execution:
+- **Git Clone fails**: Fall back to using standard fetch calls to GitHub API to inspect the required files, or ask the user to verify their internet connection.
+- **Subagent crashes**: Log the error details, respawn the failed subagent with a smaller topic scope, or manually perform the search on that specific area.
+- **Missing credentials for `gh` CLI**: Report the lack of token to the user and request manual authentication, or fall back to searching local React source directories only.
+
+## References
+
+- [Official React Repository](https://github.com/facebook/react)
+- [React Dev Documentation](https://react.dev)
+- [React Working Group Discussions](https://github.com/reactwg/react-18)
 
 ## Verification Checklist
 

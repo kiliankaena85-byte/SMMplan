@@ -24,6 +24,12 @@ export interface DecryptedEmailSettings {
  * Part of Wave 2 Refactoring: Eliminated redundant fetching and added caching.
  */
 export class SettingsProvider {
+  static isTestEnvironment(): boolean {
+    return process.env.NODE_ENV === 'test' || 
+           process.env.NEXT_PUBLIC_APP_ENV === 'test' || 
+           process.env.DATABASE_URL?.includes('smmplan_test') === true;
+  }
+
   /**
    * Fetches global settings with a 5-minute cache TTL.
    * Uses Next.js unstable_cache for high-performance retrieval in Server Components.
@@ -31,11 +37,12 @@ export class SettingsProvider {
   static getCached = unstable_cache(
     async () => {
       // In tests, we want the most fresh data to avoid race conditions between test cases
-      if (process.env.NODE_ENV === 'test') {
-        return await db.systemSettings.findUnique({ where: { id: "global" } }) || 
-               await db.systemSettings.create({ 
-                 data: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: "Smmplan", exchangeRateUSD: 95 } 
-               });
+      if (SettingsProvider.isTestEnvironment()) {
+        return await db.systemSettings.upsert({
+          where: { id: "global" },
+          update: {},
+          create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: "Smmplan", exchangeRateUSD: 95 }
+        });
       }
 
       return await db.systemSettings.upsert({
@@ -72,15 +79,33 @@ export class SettingsProvider {
     const settings = await db.systemSettings.findUnique({ where: { id: "global" } });
     if (settings) return settings;
     // Fallback to cached (which handles initialization if missing)
-    return this.getCached();
+    return this.get();
+  }
+
+  /**
+   * Safe wrapper around getCached that self-heals when Next.js incrementalCache is missing (CLI/workers)
+   */
+  static async get(): Promise<SystemSettings> {
+    try {
+      return await this.getCached();
+    } catch (err: any) {
+      if (err.message?.includes('incrementalCache') || err.message?.includes('Invariant')) {
+        return await db.systemSettings.upsert({
+          where: { id: "global" },
+          update: {},
+          create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: "Smmplan", exchangeRateUSD: 95 }
+        });
+      }
+      throw err;
+    }
   }
 
   /**
    * Securely decrypts and returns payment API keys.
    */
   static async getPaymentSecrets(): Promise<DecryptedPaymentSecrets> {
-    const settings = await this.getCached();
-    const useTestKeys = settings.isTestMode;
+    const settings = await this.get();
+    const useTestKeys = await this.isTestMode();
 
     // SECURITY: No fallback to prod keys in test mode.
     // If test keys are not configured, return null — downstream will throw a clear error.
@@ -102,7 +127,7 @@ export class SettingsProvider {
    * Securely decrypts and returns SMTP credentials.
    */
   static async getEmailSettings(): Promise<DecryptedEmailSettings> {
-    const settings = await this.getCached();
+    const settings = await this.get();
     
     const emailProvider = settings.emailProvider || 'SMTP';
     const resendKeyRaw = settings.resendApiKey;
@@ -110,10 +135,10 @@ export class SettingsProvider {
     return {
       emailProvider,
       resendApiKey: (resendKeyRaw && resendKeyRaw.trim() !== '') ? VaultService.decrypt(resendKeyRaw) : null,
-      smtpHost: settings.smtpHost,
-      smtpPort: settings.smtpPort || 465,
-      smtpUser: settings.smtpUser,
-      smtpPassword: settings.smtpPassword ? VaultService.decrypt(settings.smtpPassword) : null,
+      smtpHost: settings.smtpHost || process.env.SMTP_HOST || null,
+      smtpPort: settings.smtpPort || (process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 465),
+      smtpUser: settings.smtpUser || process.env.SMTP_USER || null,
+      smtpPassword: settings.smtpPassword ? VaultService.decrypt(settings.smtpPassword) : (process.env.SMTP_PASS || process.env.SMTP_PASSWORD || null),
       supportEmailDomain: settings.supportEmailDomain,
     };
   }
@@ -123,7 +148,7 @@ export class SettingsProvider {
    * This is server-only and NOT returned in any public setting endpoints.
    */
   static async getInboundEmailWebhookSecret(): Promise<string | null> {
-    const settings = await this.getCached();
+    const settings = await this.get();
     return settings.inboundEmailWebhookSecret ? VaultService.decrypt(settings.inboundEmailWebhookSecret) : null;
   }
 
@@ -131,7 +156,7 @@ export class SettingsProvider {
    * Returns the inbound support email domain.
    */
   static async getSupportEmailDomain(): Promise<string> {
-    const settings = await this.getCached();
+    const settings = await this.get();
     return settings.supportEmailDomain || process.env.SUPPORT_EMAIL_DOMAIN || "smmplan.pro";
   }
 
@@ -139,7 +164,7 @@ export class SettingsProvider {
    * Returns all dynamic contact and legal information, completely replacing the old KV store.
    */
   static async getContactAndLegalSettings() {
-    const settings = await this.getCached();
+    const settings = await this.get();
     return {
       SITE_NAME: settings.siteName || "Smmplan Lite",
       SITE_DESCRIPTION: settings.siteDescription || "",
@@ -161,13 +186,22 @@ export class SettingsProvider {
    * Wave 2: Replaces the deprecated USD_TO_RUB constant.
    */
   static async getExchangeRateUSD(): Promise<number> {
-    const settings = await this.getCached();
+    const settings = await this.get();
     return settings.exchangeRateUSD || 95.0; // Fail-safe default
   }
 
   static async isTestMode(): Promise<boolean> {
-    if (process.env.NODE_ENV === 'test') return true;
-    const settings = await this.getCached();
+    if (SettingsProvider.isTestEnvironment()) return true;
+    try {
+      const { redis } = await import('./redis');
+      const cachedVal = await redis.get('settings:isTestMode');
+      if (cachedVal !== null) {
+        return cachedVal === 'true';
+      }
+    } catch (err) {
+      console.error('[SettingsProvider] Redis is unavailable in isTestMode:', err);
+    }
+    const settings = await this.get();
     return settings.isTestMode;
   }
 

@@ -77,17 +77,21 @@ class MarketingService {
 
     // 1. Calculate base original price in Cents (Convert USD provider rate to RUB Cents)
     const providerCostPer1000Cents = service.rate * usdToRub * 100;
-    const providerCostCents = Math.round((providerCostPer1000Cents / 1000) * quantity);
+    const providerCostCents = quantity > 0
+      ? Math.max(1, Math.ceil((providerCostPer1000Cents / 1000) * quantity))
+      : Math.ceil((providerCostPer1000Cents / 1000) * quantity);
 
     // Apply the same Beautiful Rounding logic used in the Catalog to ensure price parity
     const rawRetailPer1000Rub = service.rate * service.markup * usdToRub;
     const beautifulRetailPer1000Rub = applyBeautifulRounding(rawRetailPer1000Rub);
-    const originalTotalCents = Math.round((beautifulRetailPer1000Rub * 100 / 1000) * quantity);
+    const originalTotalCents = quantity > 0
+      ? Math.max(1, Math.ceil((beautifulRetailPer1000Rub * 100 / 1000) * quantity))
+      : Math.ceil((beautifulRetailPer1000Rub * 100 / 1000) * quantity);
 
     // 2. Discover available discounts
     const volumeTier = user ? this.getVolumeTier(Number(user.totalSpent)) : { name: 'REGULAR', discountPercent: 0.0 };
     let promoDiscountPercent = 0.0;
-    let promoFixedDiscountCents = 0;
+    const promoFixedDiscountCents = 0;
     
     if (promoCodeStr) {
       const promo = await db.promoCode.findUnique({ where: { code: promoCodeStr } });

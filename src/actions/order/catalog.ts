@@ -12,6 +12,7 @@ export type PublicService = {
   categoryId: string;
   name: string;
   pricePer1kRub: number;
+  pricePerUnitRub: number;
   minQty: number;
   maxQty: number;
   description: string | null;
@@ -59,7 +60,21 @@ export async function getPublicCatalogAction() {
       { revalidate: 60, tags: ['catalog'] }
     );
 
-    const rawNetworks = await getCachedNetworks();
+    const rawNetworks = process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_APP_ENV === 'test'
+      ? await db.network.findMany({
+          where: {
+            isActive: true,
+            categories: { some: { services: { some: { isActive: true } } } }
+          },
+          include: {
+            categories: {
+              where: { services: { some: { isActive: true } } },
+              orderBy: { name: 'asc' }
+            }
+          },
+          orderBy: { sort: 'asc' }
+        })
+      : await getCachedNetworks();
 
     const catalog: PublicNetwork[] = rawNetworks.map(net => {
       let icon = "/brands/web.svg";
@@ -100,12 +115,18 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           take: 100
         });
       },
-      ['public-services-by-category'],
+      ['public-services-by-category', categoryId],
       { revalidate: 60, tags: ['catalog', 'services'] }
     );
 
     const [services, usdToRub] = await Promise.all([
-      getCachedServices(categoryId),
+      process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_APP_ENV === 'test'
+        ? db.service.findMany({
+            where: { categoryId: categoryId, isActive: true },
+            orderBy: { rate: 'asc' },
+            take: 100
+          })
+        : getCachedServices(categoryId),
       SettingsProvider.getExchangeRateUSD()
     ]);
 
@@ -129,6 +150,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           name: s.name,
           description: s.description,
           pricePer1kRub: applyBeautifulRounding(s.rate * s.markup * usdToRub),
+          pricePerUnitRub: applyBeautifulRounding(s.rate * s.markup * usdToRub) / 1000,
           minQty: s.minQty,
           maxQty: s.maxQty,
           speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',

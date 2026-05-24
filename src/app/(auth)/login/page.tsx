@@ -1,5 +1,8 @@
 import { LoginForm } from './login-form';
 import Link from 'next/link';
+import { verifySession } from '@/lib/session';
+import { db } from '@/lib/db';
+import { UserCheck, LogOut, ArrowRight } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +11,65 @@ export const metadata = {
   description: 'Войдите в личный кабинет Smmplan — управляйте заказами на продвижение.',
 };
 
-export default function LoginPage() {
+interface PageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams;
+  const error = resolvedParams?.error;
+
+  const session = await verifySession();
+  let activeEmail = '';
+  let activeRole = 'USER';
+  if (session?.userId) {
+    const user = await db.user.findUnique({
+      where: { id: session.userId },
+      select: { email: true, role: true }
+    });
+    activeEmail = user?.email || '';
+    activeRole = user?.role || 'USER';
+  }
+
+  if (activeEmail) {
+    const isStaff = ["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(activeRole);
+    const redirectLink = isStaff ? "/admin/dashboard" : "/dashboard";
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="w-full max-w-md bg-content1 border border-border/80 rounded-[2rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] text-center space-y-6 animate-in fade-in duration-300">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-sm">
+              <UserCheck className="w-8 h-8" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-foreground">Вы уже вошли</h1>
+            <p className="text-muted-foreground text-xs leading-relaxed font-semibold">
+              Вы авторизованы как: <span className="font-bold text-foreground block text-sm mt-1">{activeEmail}</span>
+            </p>
+          </div>
+          
+          <div className="space-y-3 pt-2">
+            <Link
+              href={redirectLink}
+              className="w-full flex items-center justify-center h-12 rounded-xl bg-primary text-primary-foreground font-black text-sm hover:scale-[1.01] active:scale-[0.99] hover:shadow-lg transition-all duration-200"
+            >
+              Продолжить как {activeEmail.split('@')[0]}
+            </Link>
+            
+            <a
+              href="/api/auth/logout"
+              className="w-full flex items-center justify-center h-12 rounded-xl bg-content2 hover:bg-content3 text-foreground font-bold text-sm transition-all duration-200 border border-border/50"
+            >
+              Войти под другим аккаунтом
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* ── Left: Branding panel ── */}
@@ -71,6 +132,16 @@ export default function LoginPage() {
               Войдите в личный кабинет по паролю или с помощью ссылки на почту.
             </p>
           </div>
+
+          {error && (
+            <div className="bg-destructive/15 border border-destructive/20 rounded-xl px-4 py-3 text-xs text-destructive text-center font-bold">
+              {error === 'AccountBlocked' && 'Ваш аккаунт заблокирован или удален.'}
+              {error === 'InvalidToken' && 'Неверный или поврежденный токен входа.'}
+              {error === 'ExpiredToken' && 'Срок действия ссылки входа истек.'}
+              {error === 'AlreadyUsed' && 'Эта ссылка входа уже была использована.'}
+              {!['AccountBlocked', 'InvalidToken', 'ExpiredToken', 'AlreadyUsed'].includes(error) && 'Произошла ошибка при входе. Попробуйте снова.'}
+            </div>
+          )}
 
           <LoginForm />
 

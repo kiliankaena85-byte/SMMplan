@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { getClientIp } from '@/utils/ip';
+import { auditAdmin } from '@/lib/admin-audit';
 
 const templateSchema = z.object({
   id: z.string().optional(),
@@ -21,7 +23,7 @@ export async function getTemplates() {
 }
 
 export async function upsertTemplate(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async () => {
+  return requireStaffPermission('support', 'edit', async (admin) => {
 
   const parsed = templateSchema.safeParse({
     id: formData.get('id') || undefined,
@@ -35,15 +37,41 @@ export async function upsertTemplate(formData: FormData) {
   }
 
   const data = parsed.data;
+  const ipAddress = await getClientIp('unknown');
 
   if (data.id) {
-    await db.supportTemplate.update({
+    const oldTemplate = await db.supportTemplate.findUnique({
+      where: { id: data.id }
+    });
+
+    const newTemplate = await db.supportTemplate.update({
       where: { id: data.id },
       data: { label: data.label, text: data.text, sort: data.sort }
     });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'SUPPORT_TEMPLATE_UPDATE',
+      target: data.id,
+      targetType: 'SETTINGS',
+      oldValue: oldTemplate,
+      newValue: newTemplate,
+      ipAddress
+    });
   } else {
-    await db.supportTemplate.create({
+    const newTemplate = await db.supportTemplate.create({
       data: { label: data.label, text: data.text, sort: data.sort }
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'SUPPORT_TEMPLATE_CREATE',
+      target: newTemplate.id,
+      targetType: 'SETTINGS',
+      newValue: newTemplate,
+      ipAddress
     });
   }
 
@@ -53,14 +81,29 @@ export async function upsertTemplate(formData: FormData) {
 }
 
 export async function deleteTemplate(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async () => {
+  return requireStaffPermission('support', 'edit', async (admin) => {
 
   const id = formData.get('id') as string;
   if (!id) throw new Error('No id provided');
 
+  const oldTemplate = await db.supportTemplate.findUnique({
+    where: { id }
+  });
+
     await db.supportTemplate.delete({
       where: { id }
     });
+
+  const ipAddress = await getClientIp('unknown');
+  auditAdmin({
+    adminId: admin.id,
+    adminEmail: admin.email,
+    action: 'SUPPORT_TEMPLATE_DELETE',
+    target: id,
+    targetType: 'SETTINGS',
+    oldValue: oldTemplate,
+    ipAddress
+  });
 
     revalidatePath('/admin/tickets');
     revalidatePath('/admin/tickets/[id]', 'page');

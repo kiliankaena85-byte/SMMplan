@@ -24,4 +24,9 @@ export interface CatalogServiceDTO {
   isRefillEnabled: boolean;
   isCancelEnabled: boolean;
   ordersCount: number;
+  description?: string | null;
+  targetType?: string | null;
+  customDataType?: string;
+  isMediaGroupAware?: boolean;
+  providerId?: string | null;
 }

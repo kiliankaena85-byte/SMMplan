@@ -96,7 +96,6 @@ export async function runCleanup(): Promise<void> {
     });
 
     if (zombies.length === 0) {
-      hasMore = false;
       break;
     }
 
@@ -338,7 +337,6 @@ export async function runInProgressTTLSweep(): Promise<void> {
     });
 
     if (stuckOrders.length === 0) {
-      hasMore = false;
       break;
     }
 

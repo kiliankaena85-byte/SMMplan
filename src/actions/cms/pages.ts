@@ -8,6 +8,9 @@ import sanitizeHtml from 'sanitize-html';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
 
+import { auditAdmin } from '@/lib/admin-audit';
+import { getClientIp } from '@/utils/ip';
+
 const pageSchema = z.object({
   id: z.string().optional(),
   slug: z.string().min(1),
@@ -21,34 +24,42 @@ export async function savePage(formData: FormData) {
     if (!parsed.success) return;
     const { id: pageId, slug, title, content: rawContent } = parsed.data;
 
-  // Sanitize HTML to prevent XSS (OWASP A01)
-  const content = sanitizeHtml(rawContent, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'figure', 'figcaption']),
-    allowedAttributes: {
-      ...sanitizeHtml.defaults.allowedAttributes,
-      'img': ['src', 'alt', 'width', 'height', 'loading'],
-      '*': ['class', 'style']
-    },
-    allowedSchemes: ['http', 'https', 'data'],
-  });
-
-  if (pageId) {
-    await db.page.update({
-      where: { id: pageId },
-      data: { slug, title, content }
+    // Sanitize HTML to prevent XSS (OWASP A01)
+    const content = sanitizeHtml(rawContent, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'figure', 'figcaption']),
+      allowedAttributes: {
+        ...sanitizeHtml.defaults.allowedAttributes,
+        'img': ['src', 'alt', 'width', 'height', 'loading'],
+        '*': ['class', 'style']
+      },
+      allowedSchemes: ['http', 'https', 'data'],
     });
-  } else {
-    await db.page.create({
-      data: { slug, title, content }
-    });
-  }
 
-    await db.auditLog.create({
-      data: {
-        userId: admin.id,
-        action: 'CMS_PAGE_SAVE',
-        details: `Saved page: ${title} (/${slug})`
-      }
+    let oldPage = null;
+    if (pageId) {
+      oldPage = await db.page.findUnique({
+        where: { id: pageId }
+      });
+      await db.page.update({
+        where: { id: pageId },
+        data: { slug, title, content }
+      });
+    } else {
+      await db.page.create({
+        data: { slug, title, content }
+      });
+    }
+
+    const ipAddress = await getClientIp('unknown');
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'CMS_PAGE_SAVE',
+      target: pageId || slug,
+      targetType: 'CMS_PAGE',
+      oldValue: oldPage,
+      newValue: { slug, title, content },
+      ipAddress
     });
 
     revalidatePath('/admin/pages');

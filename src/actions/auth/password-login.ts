@@ -41,12 +41,17 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
     // 3. Find User
     const user = await db.user.findUnique({
       where: { email: cleanEmail },
-      select: { id: true, passwordHash: true, role: true }
+      select: { id: true, passwordHash: true, role: true, isActive: true, isDeleted: true }
     });
 
     if (!user) {
       // Anti-Enumeration: return standard error so attackers don't know if email exists
       log.warn('Password login: User not found', { email: cleanEmail });
+      return { error: "Неверный email или пароль", success: false };
+    }
+
+    if (user.isDeleted || !user.isActive) {
+      log.warn('Password login attempted for blocked/deleted account', { email: cleanEmail });
       return { error: "Неверный email или пароль", success: false };
     }
 

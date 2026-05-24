@@ -49,6 +49,26 @@ export default async function AdminDashboardPage() {
 
   const netPosition = Number(revenueGross) - Number(totalLiability);
   const netPositionStr = (netPosition / 100).toLocaleString('ru-RU');
+
+  // Real database calculations for YooKassa 3% gross payment commissions
+  const yookassaGross = await db.payment.aggregate({
+    _sum: { amount: true },
+    where: {
+      gateway: 'yookassa',
+      status: 'SUCCEEDED'
+    }
+  }).then(res => Number(res._sum.amount || 0));
+  const checkoutCommission = Math.round(yookassaGross * 0.03);
+
+  // Cumulative sebiстоимость (providerCost) of successful orders
+  const cumulativeProviderCost = await db.order.aggregate({
+    _sum: { providerCost: true },
+    where: {
+      status: { in: ['COMPLETED', 'PARTIAL', 'IN_PROGRESS', 'PROVISIONING', 'CANCELING'] }
+    }
+  }).then(res => Number(res._sum.providerCost || 0));
+
+  const profitMargin = metrics.revenueNet > 0 ? (metrics.profitNet / metrics.revenueNet) * 100 : 0;
   
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-background min-h-full pb-10">
@@ -60,6 +80,108 @@ export default async function AdminDashboardPage() {
       />
 
       <SystemHealthBanner />
+
+      {/* ── High-density Premium Financial Analytics 5-Card Block ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-6">
+        
+        {/* Card 1: Выручка */}
+        <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-success/30 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-success opacity-80" />
+          <div className="flex justify-between items-start mb-3">
+            <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Поступило (Выручка)</span>
+            <span className="text-success text-xs font-bold bg-success/10 px-2 py-0.5 rounded-full">Gross</span>
+          </div>
+          <div className="text-2xl font-black text-foreground tabular-nums">
+            {((metrics.revenueGross) / 100).toLocaleString('ru-RU')} ₽
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 font-medium">Все успешные платежи в системе</p>
+        </div>
+
+        {/* Card 2: Комиссии */}
+        <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-amber-500/30 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 opacity-80" />
+          <div className="flex justify-between items-start mb-3">
+            <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Комиссии кассы</span>
+            <span className="text-amber-600 text-xs font-bold bg-amber-500/10 px-2 py-0.5 rounded-full">3% YooKassa</span>
+          </div>
+          <div className="text-2xl font-black text-foreground tabular-nums">
+            {(checkoutCommission / 100).toLocaleString('ru-RU')} ₽
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 font-medium">Комиссионные расходы эквайринга</p>
+        </div>
+
+        {/* Card 3: Закупки */}
+        <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-destructive/30 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-destructive opacity-80" />
+          <div className="flex justify-between items-start mb-3">
+            <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Закупки (Расход)</span>
+            <span className="text-destructive text-xs font-bold bg-destructive/10 px-2 py-0.5 rounded-full">COGS</span>
+          </div>
+          <div className="text-2xl font-black text-foreground tabular-nums">
+            {(cumulativeProviderCost / 100).toLocaleString('ru-RU')} ₽
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 font-medium">Себестоимость у провайдеров API</p>
+        </div>
+
+        {/* Card 4: Расчетный налог */}
+        <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/30 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-80" />
+          <div className="flex justify-between items-start mb-3">
+            <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Расчетный налог (УСН)</span>
+            <span className="text-primary text-xs font-bold bg-primary/10 px-2 py-0.5 rounded-full">
+              {metrics.usnScheme === 'INCOME' ? 'УСН Доходы' : 'УСН Доходы-Расход'}
+            </span>
+          </div>
+          <div className="text-2xl font-black text-foreground tabular-nums">
+            {(metrics.taxes / 100).toLocaleString('ru-RU')} ₽
+          </div>
+          <div className="mt-2 space-y-1">
+            <p className="text-[10px] font-semibold text-primary-foreground/90 bg-primary/95 p-1.5 rounded-lg border border-primary/20 shadow-sm leading-snug">
+              УСН платится ежеквартально до 28 числа. Годовая декларация до 25 апреля.
+            </p>
+          </div>
+        </div>
+
+        {/* Card 5: Чистая прибыль */}
+        <div className={`border rounded-2xl p-5 shadow-sm transition-all duration-200 hover:shadow-md relative overflow-hidden group ${
+          metrics.profitNet <= 0 
+            ? 'bg-destructive/10 text-destructive border-destructive/30' 
+            : profitMargin < 15 
+              ? 'bg-amber-500/10 text-amber-700 border-amber-500/30' 
+              : 'bg-success/10 text-success border-success/30'
+        }`}>
+          <div className={`absolute top-0 left-0 w-1 h-full opacity-80 ${
+            metrics.profitNet <= 0 
+              ? 'bg-destructive' 
+              : profitMargin < 15 
+                ? 'bg-amber-500' 
+                : 'bg-success'
+          }`} />
+          <div className="flex justify-between items-start mb-3">
+            <span className="text-[10px] font-black uppercase tracking-wider opacity-80">Чистая прибыль</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+              metrics.profitNet <= 0 
+                ? 'bg-destructive/20' 
+                : profitMargin < 15 
+                  ? 'bg-amber-500/20 text-amber-800' 
+                  : 'bg-success/20 text-success'
+            }`}>
+              {profitMargin.toFixed(1)}% маржа
+            </span>
+          </div>
+          <div className="text-2xl font-black tabular-nums">
+            {(metrics.profitNet / 100).toLocaleString('ru-RU')} ₽
+          </div>
+          <p className="text-[11px] opacity-80 mt-2 font-medium">
+            {metrics.profitNet <= 0 
+              ? 'Критический убыток! Расходы превышают доходы' 
+              : profitMargin < 15 
+                ? 'Низкая маржинальность (высокие расходы)' 
+                : 'Стабильная и высокая доходность'}
+          </p>
+        </div>
+
+      </div>
 
       {revenueGross === 0 && oStats.total === 0 && (
          <div className="bg-sky-50 border border-sky-200 text-sky-800 rounded-2xl p-5 mb-6 flex items-start gap-4">
@@ -298,7 +420,7 @@ async function SystemHealthBanner() {
           </div>
         </div>
       </div>
-      <Link href="/admin/catalog/quarantine" className="shrink-0 bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-colors">
+      <Link href="/admin/catalog/quarantine" className="shrink-0 bg-danger text-danger-foreground hover:bg-danger/90 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-colors">
         Перейти в Центр аномалий
       </Link>
     </div>

@@ -7,7 +7,7 @@ import { RateLimitService } from '@/services/core/rate-limit.service';
 
 export async function analyzeUrl(url: string) {
   try {
-    const isAllowed = await RateLimitService.check("analyzeUrl", 30, 60); // 30 requests per minute
+    const isAllowed = await RateLimitService.check("analyzeUrl", 30, 60, false); // 30 requests per minute (failOpen)
     if (!isAllowed) {
        return { success: false, error: "Too many URL analysis requests." };
     }

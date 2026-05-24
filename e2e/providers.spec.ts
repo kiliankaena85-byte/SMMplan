@@ -14,42 +14,52 @@ test.describe('Providers Integration Flow', () => {
     await expect(page.getByRole('heading', { name: 'Провайдеры API' })).toBeVisible();
     
     // Check for standard buttons
-    await expect(page.getByRole('button', { name: 'Подключить Панель' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '+ Подключить Панель' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Импорт Услуг' })).toBeVisible();
   });
 
   test('Admin can open provider creation form and validate fields', async ({ page }) => {
     await page.goto('/admin/providers');
     
-    // Click "Подключить Панель"
-    await page.getByRole('button', { name: 'Подключить Панель' }).click();
+    // Click "+ Подключить Панель"
+    await page.getByRole('link', { name: '+ Подключить Панель' }).click();
 
-    // Check modal opens
-    await expect(page.getByText('Добавить провайдера')).toBeVisible();
+    // Check page opens
+    await expect(page.getByRole('heading', { name: 'Новое подключение' })).toBeVisible();
 
     // Try saving empty form
-    await page.getByRole('button', { name: 'Сохранить провайдера' }).click();
+    await page.getByRole('button', { name: 'Создать провайдера' }).click();
 
-    // Expect HTML5 validation or Zod errors
-    // Currently, since name is required, the browser might block it, 
-    // or sonner toast will show error. Let's look for error toast.
-    await expect(page.locator('text=API Ключ обязателен')).toBeVisible({ timeout: 5000 });
+    // Expect validation errors
+    await expect(page.locator('text=API Ключ обязателен').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('Admin can test provider connection (fake URL)', async ({ page }) => {
+    const prisma = new PrismaClient();
+    let provider = await prisma.provider.findFirst({ where: { name: 'E2E Connection Test Provider' } });
+    if (!provider) {
+      provider = await prisma.provider.create({ 
+        data: { name: 'E2E Connection Test Provider', apiUrl: 'http://localhost:9999/api/v2', apiKey: 'fake_key_123', isActive: true } 
+      });
+    } else {
+      await prisma.provider.update({ where: { id: provider.id }, data: { apiUrl: 'http://localhost:9999/api/v2', apiKey: 'fake_key_123', isActive: true } });
+    }
+    await prisma.$disconnect();
+
     await page.goto('/admin/providers');
     
-    await page.getByRole('button', { name: 'Подключить Панель' }).click();
+    // Find the connection test provider in table and click "Настроить"
+    const row = page.locator('tr', { hasText: 'E2E Connection Test Provider' });
+    await row.getByRole('link', { name: 'Настроить' }).click();
 
-    await page.getByLabel('Название панели').fill('E2E Test Panel');
-    await page.getByLabel('API URL').fill('http://localhost:9999/api/v2');
-    await page.getByLabel('API Ключ').fill('fake_key_123');
+    // Expect to be on Edit page
+    await expect(page.getByRole('heading', { name: 'Новое подключение' })).not.toBeVisible();
 
     // Click test connection
-    await page.getByRole('button', { name: 'Тест соединения' }).click();
+    await page.getByRole('button', { name: 'Протестировать API соединение' }).click();
 
     // Should fail because localhost:9999 is not serving the API
-    await expect(page.getByText(/Ошибка:|Failed to fetch|Network error/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Ошибка:|Failed to fetch|Network error|Ошибка соединения/i).first()).toBeVisible({ timeout: 10000 });
   });
 
   test('Import Wizard loads successfully', async ({ page }) => {
@@ -57,17 +67,19 @@ test.describe('Providers Integration Flow', () => {
     let provider = await prisma.provider.findFirst({ where: { name: 'E2E Fake Provider' } });
     if (!provider) {
       provider = await prisma.provider.create({ 
-        data: { name: 'E2E Fake Provider', apiUrl: 'http://test.local', apiKey: 'test_key' } 
+        data: { name: 'E2E Fake Provider', apiUrl: 'http://test.local', apiKey: 'test_key', isActive: true } 
       });
+    } else if (!provider.isActive) {
+      await prisma.provider.update({ where: { id: provider.id }, data: { isActive: true } });
     }
 
     await page.goto('/admin/providers/import');
 
     // Expect the title
-    await expect(page.getByText('Мастер импорта услуг')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Импорт Услуг' })).toBeVisible();
 
     // Expect the provider to be in the selection list
-    await expect(page.getByText('E2E Fake Provider')).toBeVisible();
+    await expect(page.locator('select').first()).toContainText('E2E Fake Provider');
     
     await prisma.$disconnect();
   });

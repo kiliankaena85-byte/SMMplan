@@ -74,13 +74,13 @@ export async function activatePromoCodeAction(code: string) {
       }, { isolationLevel: 'Serializable' });
     } catch (error: any) {
       if (error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
-        throw new Error("Вы уже активировали этот промокод");
+        throw new Error("Вы уже активировали этот промокод", { cause: error });
       }
       if (error.code === 'P2034' && attempt < 2) {
         continue; // Retry on serialization failure
       }
       if (error.code === 'P2034') {
-        throw new Error("Транзакция в обработке, пожалуйста, попробуйте еще раз.");
+        throw new Error("Транзакция в обработке, пожалуйста, попробуйте еще раз.", { cause: error });
       }
       throw error;
     }

@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
-import { db } from './src/lib/db';
-import { activatePromoCodeAction } from './src/actions/user/promo';
+import { db } from '../../src/lib/db';
+import { activatePromoCodeAction } from '../../src/actions/user/promo';
 
-vi.mock('./src/lib/session', () => ({
+vi.mock('../../src/lib/session', () => ({
   verifySession: vi.fn()
 }));
 
 describe('Promo Code OCC and Idempotency Race', () => {
   it('should handle parallel activations of a voucher safely', async () => {
-    const { verifySession } = await import('./src/lib/session');
+    const { verifySession } = await import('../../src/lib/session');
     
     const userId = 'test_race_user_' + Date.now();
     
@@ -68,9 +68,5 @@ describe('Promo Code OCC and Idempotency Race', () => {
     expect(entries.length).toBe(1);
     expect(entries[0].amount).toBe(1000n);
 
-    // Cleanup
-    await db.ledgerEntry.deleteMany({ where: { userId } });
-    await db.promoCode.delete({ where: { id: promo.id } });
-    await db.user.delete({ where: { id: userId } });
   });
 });

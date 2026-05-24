@@ -8,12 +8,20 @@ import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
 
 const promoCodeSchema = z.object({
-  code: z.string().min(1).max(12),
+  code: z.string().min(1).max(12).toUpperCase().regex(/^[A-Z0-9_-]+$/, "Разрешены только буквы, цифры, дефис и подчеркивание"),
   type: z.enum(['DISCOUNT', 'VOUCHER']),
-  discountPercent: z.coerce.number().optional().default(0),
-  amount: z.coerce.number().int().optional().default(0),
-  maxUses: z.coerce.number().int().optional().default(1),
+  discountPercent: z.coerce.number().min(0, "Процент скидки не может быть отрицательным").max(90, "Максимальная скидка 90%").optional().default(0),
+  amount: z.coerce.number().int().min(0, "Сумма не может быть отрицательной").max(500000, "Максимальная сумма ваучера 500,000 копеек (5,000 ₽)").optional().default(0),
+  maxUses: z.coerce.number().int().min(1, "Максимальное количество использований должно быть не менее 1").max(1000000, "Превышен лимит использований (1 млн)").optional().default(1),
   expiresAt: z.string().optional().transform(v => v ? new Date(v) : null)
+}).refine((data) => {
+  if (data.expiresAt) {
+    return data.expiresAt.getTime() > Date.now();
+  }
+  return true;
+}, {
+  message: "Срок действия промокода должен быть в будущем",
+  path: ["expiresAt"]
 });
 
 export async function createPromoCode(formData: FormData) {
@@ -93,17 +101,31 @@ export async function deletePromoCode(id: string) {
   });
 }
 
+const referralPayoutSchema = z.object({
+  userId: z.string().min(1),
+  amount: z.coerce.number().int().min(100, "Минимальная сумма выплаты 100 копеек (1 ₽)").max(5000000, "Максимальная сумма выплаты 5,000,000 копеек (50,000 ₽)"),
+});
+
 export async function processReferralPayout(userId: string, amount: number) {
   return requireStaffPermission('marketing', 'edit', async (admin) => {
-    await adminMarketingService.processPayout(userId, admin.id, amount);
+    const parsed = referralPayoutSchema.safeParse({ userId, amount });
+    if (!parsed.success) {
+      return { 
+        success: false as const, 
+        error: 'Некорректная сумма выплаты: ' + parsed.error.errors.map(e => e.message).join(', ') 
+      };
+    }
+    const { userId: parsedUserId, amount: parsedAmount } = parsed.data;
+
+    await adminMarketingService.processPayout(parsedUserId, admin.id, parsedAmount);
     
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'REFERRAL_PAYOUT',
-      target: userId,
+      target: parsedUserId,
       targetType: 'USER',
-      newValue: { amountCents: amount },
+      newValue: { amountCents: parsedAmount },
     });
 
     revalidatePath('/admin/marketing');

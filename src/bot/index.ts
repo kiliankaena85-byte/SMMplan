@@ -116,6 +116,20 @@ bot.start(async (ctx: any) => {
             } else {
               await tx.user.update({ where: { id: tempUser.id }, data: { telegramId: null } });
             }
+
+            // Task 6: Audit Log for the Silent Smart Bind Merge
+            await tx.adminAuditLog.create({
+              data: {
+                adminId: 'telegram_bot',
+                adminEmail: 'telegram_bot@smmplan.bot',
+                action: 'TELEGRAM_SMART_BIND_MERGE',
+                target: webUserId,
+                targetType: 'USER',
+                oldValue: JSON.stringify({ tempUserId: tempUser.id, tempUserEmail: tempUser.email }),
+                newValue: JSON.stringify({ mergedIntoUserId: webUserId, telegramId: tgId }),
+                ipAddress: 'telegram-smart-bind'
+              }
+            });
           }
 
           // Bind to Web User

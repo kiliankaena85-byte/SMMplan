@@ -46,6 +46,10 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
     if (!shouldRedirectToAdmin) {
     let user = await db.user.findUnique({ where: { email: cleanEmail } });
+    if (user && (user.isDeleted || !user.isActive)) {
+      log.warn('Magic link requested for blocked/deleted account', { email: cleanEmail });
+      return { error: "Неверный email или пароль", success: false };
+    }
     if (!user) {
       // P1.3 Anti-Fraud: Strict IP limit for new registrations (Max 3 per 24 hours)
       const isIpAllowedForReg = await RateLimitService.check('auth:register:ip', 3, 86400);

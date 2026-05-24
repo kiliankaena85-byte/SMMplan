@@ -12,17 +12,21 @@
  */
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Table } from '@heroui/react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Trash2, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Trash2, AlertCircle, ShoppingCart, Pencil, Plus, Loader2 } from 'lucide-react';
 import type { CatalogServiceDTO } from '@/types/catalog.dto';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 import {
   batchToggleServicesAction,
   batchSetMarkupAction,
   updateServiceMarkupAction,
   toggleServiceActiveAction,
+  batchReassignServicesCategoryAction,
 } from '@/actions/admin/catalog/batch';
+import { createServiceAction, updateServiceAction } from '@/actions/admin/catalog/services';
 import { softDeleteServiceAction } from '@/actions/admin/catalog/soft-delete';
 import {
   TOTAL_MANDATORY_DEDUCTIONS,
@@ -30,11 +34,132 @@ import {
   applyBeautifulRounding,
 } from '@/lib/financial-constants';
 import { PriceHistoryButton } from './price-history-modal';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
 function calcRetailPrice(rate: number, markup: number, usdToRub: number) {
   return applyBeautifulRounding(rate * markup * usdToRub);
+}
+
+// ─── Sub-component: Reassign Category Modal ────────────────────────────────
+function ReassignCategoryModal({
+  selectedIds,
+  categories,
+  onSuccess,
+  isPending,
+  startTransition,
+}: {
+  selectedIds: string[];
+  categories: any[];
+  onSuccess: () => void;
+  isPending: boolean;
+  startTransition: (cb: () => void) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [targetCategoryId, setTargetCategoryId] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredCategories = categories.filter(c => 
+    c.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  function handleConfirm() {
+    if (!targetCategoryId) {
+      toast.error("Выберите целевую категорию");
+      return;
+    }
+    startTransition(async () => {
+      const res = await batchReassignServicesCategoryAction(selectedIds, targetCategoryId);
+      if (res.success) {
+        toast.success(`Успешно перенесено ${res.count} услуг`);
+        setOpen(false);
+        onSuccess();
+      } else {
+        toast.error(res.error || "Произошла ошибка при переносе");
+      }
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={
+        <button
+          type="button"
+          disabled={isPending}
+          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+        >
+          📁 Перенести в категорию
+        </button>
+      } />
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto w-full p-6 bg-card border border-border rounded-xl">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold text-foreground">Перенос услуг ({selectedIds.length} шт.)</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Выберите категорию, в которую будут перенесены выбранные услуги.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <input
+            type="text"
+            placeholder="Поиск категории..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+          />
+
+          <div className="space-y-1">
+            <span className="block text-xs font-semibold text-muted-foreground uppercase">Категория</span>
+            <Select value={targetCategoryId} onValueChange={(val) => setTargetCategoryId(val || '')}>
+              <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground cursor-pointer focus:ring-2 focus:ring-primary/20">
+                <SelectValue placeholder="-- Выберите категорию --">
+                  {(value: string) => filteredCategories.find(c => c.id === value)?.name ?? value}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="w-full">
+                {filteredCategories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.id} label={cat.name} className="cursor-pointer">
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DialogFooter className="flex justify-end gap-2 pt-2 border-t border-border/50">
+          <DialogClose render={<Button intent="outline" size="sm" type="button">Отмена</Button>} />
+          <Button
+            intent="primary"
+            size="sm"
+            onClick={handleConfirm}
+            disabled={isPending || !targetCategoryId}
+            className="cursor-pointer"
+          >
+            Подтвердить перенос
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // ─── Sub-component: Batch Action Bar ───────────────────────────────────────
@@ -43,11 +168,13 @@ function BatchActionBar({
   onClear,
   usdToRub,
   canEditFinance,
+  categories,
 }: {
   selectedIds: string[];
   onClear: () => void;
   usdToRub: number;
   canEditFinance: boolean;
+  categories: any[];
 }) {
   const [isPending, startTransition] = useTransition();
   const [markupPercentInput, setMarkupPercentInput] = useState('');
@@ -90,12 +217,21 @@ function BatchActionBar({
       <div className="flex-1 h-px bg-border" />
       <button
         onClick={handleEnable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-emerald-500/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-emerald-500/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
       >✅ Включить</button>
       <button
         onClick={handleDisable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/15 text-destructive border border-rose-500/30 hover:bg-destructive/25 transition-all duration-200 disabled:opacity-50"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/15 text-destructive border border-rose-500/30 hover:bg-destructive/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
       >🚫 Отключить</button>
+
+      <ReassignCategoryModal
+        selectedIds={selectedIds}
+        categories={categories}
+        onSuccess={onClear}
+        isPending={isPending}
+        startTransition={startTransition}
+      />
+
       {canEditFinance && (
         <div className="flex items-center gap-1 group relative">
           <span className="text-xs font-medium text-muted-foreground">+</span>
@@ -115,13 +251,13 @@ function BatchActionBar({
 
           <button
             onClick={handleSetMarkup} disabled={isPending}
-            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50"
+            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50 cursor-pointer"
           >Применить наценку</button>
         </div>
       )}
       <button
         onClick={onClear}
-        className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-all duration-200"
+        className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
       >✕ Сбросить</button>
     </div>
   );
@@ -282,9 +418,14 @@ function StatusToggle({ service }: { service: CatalogServiceDTO }) {
 // ─── Sub-component: Archive Button ──────────────────────────────────────────
 function ArchiveButton({ service }: { service: CatalogServiceDTO }) {
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function handleArchive() {
-    if (!confirm(`Архивировать «${service.name}»? Услуга будет скрыта для клиентов.`)) return;
+    setConfirmOpen(true);
+  }
+
+  function executeArchive() {
+    setConfirmOpen(false);
     startTransition(async () => {
       const r = await softDeleteServiceAction(service.id);
       if ('error' in r && r.error) toast.error(r.error);
@@ -293,14 +434,468 @@ function ArchiveButton({ service }: { service: CatalogServiceDTO }) {
   }
 
   return (
-    <button
-      onClick={handleArchive}
-      disabled={isPending}
-      aria-label={`Архивировать услугу ${service.name}`}
-      className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 disabled:opacity-40"
-    >
-      <Trash2 className="w-4 h-4" />
-    </button>
+    <>
+      <button
+        onClick={handleArchive}
+        disabled={isPending}
+        aria-label={`Архивировать услугу ${service.name}`}
+        className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 disabled:opacity-40"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={executeArchive}
+        title="Архивация услуги"
+        isDanger={true}
+        confirmText="Архивировать"
+        cancelText="Отмена"
+      >
+        Архивировать «{service.name}»? Услуга будет скрыта для клиентов.
+      </ConfirmModal>
+    </>
+  );
+}
+
+// ─── Sub-component: Service Form Dialog ──────────────────────────────────
+function ServiceFormDialog({
+  service,
+  categories,
+  providers,
+  isOpen,
+  onOpenChange,
+  title,
+  onSuccess,
+}: {
+  service?: CatalogServiceDTO;
+  categories: any[];
+  providers: any[];
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  onSuccess: () => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+
+  // Form states
+  const [name, setName] = useState(service?.name || "");
+  const [description, setDescription] = useState(service?.description || "");
+  const [categoryId, setCategoryId] = useState(service?.categoryId || categories[0]?.id || "");
+  const [providerId, setProviderId] = useState(service?.providerId || "none");
+  const [rate, setRate] = useState(service?.rate !== undefined ? String(service.rate) : "0.0");
+  const [markup, setMarkup] = useState(service?.markup !== undefined ? String(service.markup) : "3.0");
+  const [minQty, setMinQty] = useState(service?.minQty !== undefined ? String(service.minQty) : "10");
+  const [maxQty, setMaxQty] = useState(service?.maxQty !== undefined ? String(service.maxQty) : "100000");
+  const [externalId, setExternalId] = useState(service?.externalId || "");
+  const [targetType, setTargetType] = useState(service?.targetType || "none");
+  const [customDataType, setCustomDataType] = useState(service?.customDataType || "NONE");
+  
+  // Checkbox flags
+  const [isMediaGroupAware, setIsMediaGroupAware] = useState(service?.isMediaGroupAware ?? false);
+  const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(service?.isDripFeedEnabled ?? true);
+  const [isRefillEnabled, setIsRefillEnabled] = useState(service?.isRefillEnabled ?? false);
+  const [isCancelEnabled, setIsCancelEnabled] = useState(service?.isCancelEnabled ?? false);
+  const [isActive, setIsActive] = useState(service?.isActive ?? true);
+
+  const targetTypeItems = [
+    { id: "none", name: "Автоматически по категории" },
+    { id: "CHANNEL", name: "CHANNEL (Канал / Профиль)" },
+    { id: "POST", name: "POST (Пост / Публикация)" },
+    { id: "STORY", name: "STORY (История / Сториз)" },
+    { id: "CUSTOM", name: "CUSTOM (Кастомная ссылка)" }
+  ];
+
+  const customDataTypeItems = [
+    { id: "NONE", name: "NONE (Нет дополнительных полей)" },
+    { id: "TEXTAREA", name: "TEXTAREA (Многострочный текст)" },
+    { id: "NUMBER", name: "NUMBER (Числовое поле)" }
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      toast.error("Название услуги обязательно");
+      return;
+    }
+    if (!categoryId) {
+      toast.error("Категория обязательна");
+      return;
+    }
+
+    startTransition(async () => {
+      const payload = {
+        name: name.trim(),
+        description: description.trim() || null,
+        categoryId,
+        providerId: providerId === "none" ? null : providerId,
+        rate: parseFloat(rate) || 0,
+        markup: parseFloat(markup) || 3.0,
+        minQty: parseInt(minQty, 10) || 10,
+        maxQty: parseInt(maxQty, 10) || 100000,
+        externalId: externalId.trim() || null,
+        targetType: targetType === "none" ? null : targetType,
+        customDataType,
+        isMediaGroupAware,
+        isDripFeedEnabled,
+        isRefillEnabled,
+        isCancelEnabled,
+        isActive
+      };
+
+      const res = service?.id
+        ? await updateServiceAction(service.id, payload)
+        : await createServiceAction(payload);
+
+      if (res.success) {
+        toast.success(service?.id ? "Услуга успешно обновлена" : "Услуга успешно создана");
+        onOpenChange(false);
+        onSuccess();
+      } else {
+        toast.error(res.error || "Произошла ошибка при сохранении");
+      }
+    });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto w-full p-6 bg-card border border-border shadow-2xl rounded-xl animate-in duration-200">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-lg font-bold text-foreground">{title}</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Заполните все необходимые параметры услуги.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Section 1: Основные данные */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
+              Основная информация
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Название услуги</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Например: INSTAGRAM | Лайки (Быстрые)"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Категория</label>
+                <Select value={categoryId} onValueChange={(val) => setCategoryId(val || '')}>
+                  <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
+                    <SelectValue placeholder="-- Выберите категорию --">
+                      {(value: string) => categories.find(c => c.id === value)?.name ?? value}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="w-full">
+                    {categories.map(c => (
+                      <SelectItem key={c.id} value={c.id} label={c.name} className="cursor-pointer">
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-muted-foreground">Описание услуги</label>
+              <textarea
+                placeholder="Укажите подробности выполнения услуги для клиентов..."
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+              />
+            </div>
+          </div>
+
+          {/* Section 2: Провайдер */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
+              Связь с SMM-провайдером
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Провайдер</label>
+                <Select value={providerId} onValueChange={(val) => setProviderId(val || '')}>
+                  <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
+                    <SelectValue placeholder="Без провайдера (вручную)">
+                      {(value: string) => {
+                        if (!value || value === "none") return "Без провайдера (вручную)";
+                        return providers.find(p => p.id === value)?.name ?? value;
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="w-full">
+                    <SelectItem value="none" label="Без провайдера (вручную)" className="cursor-pointer text-muted-foreground">
+                      Без провайдера (вручную)
+                    </SelectItem>
+                    {providers.map(p => (
+                      <SelectItem key={p.id} value={p.id} label={p.name} className="cursor-pointer">
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Внешний ID (External ID)</label>
+                <input
+                  type="text"
+                  placeholder="Опционально (например: 1422)"
+                  value={externalId}
+                  onChange={e => setExternalId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Финансы и Количества */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
+              Параметры и Финансы
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Закупка ($ / 1k)</label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  required
+                  placeholder="0.00"
+                  value={rate}
+                  onChange={e => setRate(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Множитель наценки</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1.0"
+                  required
+                  placeholder="3.0"
+                  value={markup}
+                  onChange={e => setMarkup(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Мин. кол-во</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  placeholder="10"
+                  value={minQty}
+                  onChange={e => setMinQty(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Макс. кол-во</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  placeholder="100000"
+                  value={maxQty}
+                  onChange={e => setMaxQty(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Настройки ссылки */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
+              Ссылка и кастомные данные
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Тип ожидаемой ссылки</label>
+                <Select value={targetType} onValueChange={(val) => setTargetType(val || '')}>
+                  <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
+                    <SelectValue placeholder="Автоматически по категории">
+                      {(value: string) => {
+                        if (!value || value === "none") return "Автоматически по категории";
+                        return targetTypeItems.find(t => t.id === value)?.name ?? value;
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="w-full">
+                    {targetTypeItems.map(t => (
+                      <SelectItem key={t.id} value={t.id} label={t.name} className="cursor-pointer">
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Дополнительные поля</label>
+                <Select value={customDataType} onValueChange={(val) => setCustomDataType(val || '')}>
+                  <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
+                    <SelectValue placeholder="NONE (Нет дополнительных полей)">
+                      {(value: string) => {
+                        if (!value) return "NONE (Нет дополнительных полей)";
+                        return customDataTypeItems.find(c => c.id === value)?.name ?? value;
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="w-full">
+                    {customDataTypeItems.map(c => (
+                      <SelectItem key={c.id} value={c.id} label={c.name} className="cursor-pointer">
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: Флаги */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
+              Опции и Флаги
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                <Checkbox checked={isActive} onCheckedChange={(val) => setIsActive(!!val)} />
+                <span className="text-xs font-medium text-foreground select-none">Активна на сайте</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                <Checkbox checked={isMediaGroupAware} onCheckedChange={(val) => setIsMediaGroupAware(!!val)} />
+                <span className="text-xs font-medium text-foreground select-none">Медиагруппы (VK/TG)</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                <Checkbox checked={isDripFeedEnabled} onCheckedChange={(val) => setIsDripFeedEnabled(!!val)} />
+                <span className="text-xs font-medium text-foreground select-none">Поддержка Drip-Feed</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                <Checkbox checked={isRefillEnabled} onCheckedChange={(val) => setIsRefillEnabled(!!val)} />
+                <span className="text-xs font-medium text-foreground select-none">Возможен долив (Refill)</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                <Checkbox checked={isCancelEnabled} onCheckedChange={(val) => setIsCancelEnabled(!!val)} />
+                <span className="text-xs font-medium text-foreground select-none">Возможна отмена (Cancel)</span>
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-4 border-t border-border flex justify-end gap-2">
+            <DialogClose render={<Button intent="outline" size="sm" type="button">Отмена</Button>} />
+            <Button
+              type="submit"
+              intent="primary"
+              size="sm"
+              disabled={isPending}
+              className="flex items-center gap-1 bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 cursor-pointer"
+            >
+              {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Сохранить услугу
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function CreateServiceModal({
+  categories,
+  providers,
+  onSuccess,
+}: {
+  categories: any[];
+  providers: any[];
+  onSuccess: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        intent="primary"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 cursor-pointer"
+      >
+        <Plus className="w-4 h-4" />
+        Создать услугу
+      </Button>
+      {open && (
+        <ServiceFormDialog
+          categories={categories}
+          providers={providers}
+          isOpen={open}
+          onOpenChange={setOpen}
+          title="Создание новой услуги"
+          onSuccess={onSuccess}
+        />
+      )}
+    </>
+  );
+}
+
+export function EditServiceModal({
+  service,
+  categories,
+  providers,
+  onSuccess,
+}: {
+  service: CatalogServiceDTO;
+  categories: any[];
+  providers: any[];
+  onSuccess: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`Редактировать услугу ${service.name}`}
+        className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+      >
+        <Pencil className="w-4 h-4" />
+      </button>
+      {open && (
+        <ServiceFormDialog
+          service={service}
+          categories={categories}
+          providers={providers}
+          isOpen={open}
+          onOpenChange={setOpen}
+          title={`Редактирование услуги #${service.numericId}`}
+          onSuccess={onSuccess}
+        />
+      )}
+    </>
   );
 }
 
@@ -310,14 +905,19 @@ export function CatalogTable({
   usdToRub,
   canEdit = true,
   canEditFinance = true,
-  canSeeRates = true
+  canSeeRates = true,
+  categories = [],
+  providers = [],
 }: { 
   services: CatalogServiceDTO[], 
   usdToRub: number,
   canEdit?: boolean,
   canEditFinance?: boolean,
-  canSeeRates?: boolean
+  canSeeRates?: boolean,
+  categories?: any[],
+  providers?: any[],
 }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const allIds = services.map(s => s.id);
@@ -340,8 +940,17 @@ export function CatalogTable({
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center gap-4 py-1">
+        <div className="text-sm text-muted-foreground">
+          Показано услуг: <span className="font-semibold text-foreground">{services.length}</span>
+        </div>
+        {canEdit && (
+          <CreateServiceModal categories={categories} providers={providers} onSuccess={() => router.refresh()} />
+        )}
+      </div>
+
       {selected.size > 0 && canEdit && (
-        <BatchActionBar selectedIds={selectedIds} onClear={() => setSelected(new Set())} usdToRub={usdToRub} canEditFinance={canEditFinance} />
+        <BatchActionBar selectedIds={selectedIds} onClear={() => setSelected(new Set())} usdToRub={usdToRub} canEditFinance={canEditFinance} categories={categories} />
       )}
 
       <div className="rounded-xl border border-default-200 bg-card shadow-sm overflow-hidden">
@@ -458,7 +1067,12 @@ export function CatalogTable({
                       )}
                     </Table.Cell>
                     <Table.Cell key={`cell-actions-${s.id}`} className={canEdit ? "py-4 px-2" : "hidden"}>
-                      {canEdit ? <ArchiveButton service={s} /> : <span className="sr-only">Actions hidden</span>}
+                      {canEdit ? (
+                        <div className="flex items-center gap-1 justify-end">
+                          <EditServiceModal service={s} categories={categories} providers={providers} onSuccess={() => router.refresh()} />
+                          <ArchiveButton service={s} />
+                        </div>
+                      ) : <span className="sr-only">Actions hidden</span>}
                     </Table.Cell>
                   </Table.Row>
                 );

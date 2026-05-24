@@ -111,7 +111,7 @@ describe('Ticket Actions Rate Limiting', () => {
 
       expect(RateLimitService.checkCustomKey).toHaveBeenCalledWith('add_message_user:u1', 60, 60);
       expect(RateLimitService.check).toHaveBeenCalledWith('add_message_ip', 100, 60);
-      expect(ticketService.addMessage).toHaveBeenCalledWith('t1', 'USER', 'Test reply', undefined, undefined, undefined);
+      expect(ticketService.addMessage).toHaveBeenCalledWith('t1', 'USER', 'Test reply', undefined, undefined, undefined, undefined, undefined, undefined);
     });
   });
 });

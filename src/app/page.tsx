@@ -1,8 +1,10 @@
 import { getPublicCatalogAction } from "@/actions/order/catalog";
 import { SmartLinkLanding } from "@/components/landing/SmartLinkLanding";
 import { SettingsProvider } from "@/lib/settings";
+import { verifySession } from "@/lib/session";
+import { db } from "@/lib/db";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const settings = await SettingsProvider.getContactAndLegalSettings();
@@ -27,6 +29,19 @@ export default async function Home() {
   const siteName = settings.SITE_NAME || "Smmplan";
   const supportDomain = await SettingsProvider.getSupportEmailDomain();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`;
+
+  // Resolve user session and email
+  const session = await verifySession();
+  let userEmail: string | undefined = undefined;
+  if (session?.userId) {
+    const user = await db.user.findUnique({
+      where: { id: session.userId },
+      select: { email: true }
+    });
+    if (user) {
+      userEmail = user.email;
+    }
+  }
 
   return (
     <>
@@ -63,7 +78,7 @@ export default async function Home() {
       </section>
 
       {/* Interactive App */}
-      <SmartLinkLanding initialCatalog={catalog} contactSettings={settings} />
+      <SmartLinkLanding initialCatalog={catalog} initialEmail={userEmail} contactSettings={settings} />
     </>
   );
 }

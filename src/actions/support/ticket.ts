@@ -8,6 +8,8 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { getClientIp } from '@/utils/ip';
+import { auditAdmin } from '@/lib/admin-audit';
 
 // ... (rest of imports)
 
@@ -24,6 +26,60 @@ export async function generateSmartReplyAction(ticketId: string) {
 
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { sseBroadcaster } from '@/lib/sse-broadcaster';
+
+async function publishMessageSSE(ticketId: string, messageId: string) {
+  const fullMsg = await db.ticketMessage.findUnique({
+    where: { id: messageId },
+    include: {
+      replyTo: true,
+      attachments: true,
+      order: {
+        select: {
+          id: true,
+          numericId: true,
+          status: true,
+          charge: true,
+          createdAt: true,
+          service: { select: { name: true } }
+        }
+      }
+    }
+  });
+
+  if (fullMsg) {
+    sseBroadcaster.publish(ticketId, {
+      id: fullMsg.id,
+      sender: fullMsg.sender,
+      text: fullMsg.text,
+      mediaUrl: fullMsg.mediaUrl || (fullMsg.attachments[0]?.url ?? null),
+      mediaType: fullMsg.mediaType || (fullMsg.attachments[0]?.type ?? null),
+      createdAt: fullMsg.createdAt.toISOString(),
+      replyTo: fullMsg.replyTo ? {
+        id: fullMsg.replyTo.id,
+        text: fullMsg.replyTo.text,
+        sender: fullMsg.replyTo.sender
+      } : null,
+      attachments: fullMsg.attachments.map(att => ({
+        id: att.id,
+        url: att.url,
+        type: att.type,
+        mimeType: att.mimeType,
+        name: att.name,
+        size: att.size,
+        createdAt: att.createdAt.toISOString()
+      })),
+      order: fullMsg.order ? {
+        id: fullMsg.order.id,
+        numericId: fullMsg.order.numericId,
+        status: fullMsg.order.status,
+        charge: Number(fullMsg.order.charge),
+        createdAt: fullMsg.order.createdAt.toISOString(),
+        serviceName: fullMsg.order.service?.name || 'Услуга'
+      } : null,
+      type: 'new_message'
+    });
+  }
+}
 
 // === LIVE CHAT SERVER ACTION ===
 const liveChatMessageSchema = z.object({
@@ -70,16 +126,12 @@ export async function sendLiveChatMessage(formData: FormData) {
   }
 
   // Add message via unified omnichannel service
-  const savedMsg = await ticketService.addMessage(ticketId, 'USER', message);
+  const savedMsg = await ticketService.addMessage(ticketId, 'USER', message, undefined, undefined, undefined, undefined, undefined, orderId || undefined);
 
   // Broadcast to SSE listeners (real-time delivery to operator panel & client tabs)
-  sseBroadcaster.publish(ticketId, {
-    id: savedMsg.id,
-    sender: savedMsg.sender,
-    text: savedMsg.text,
-    createdAt: savedMsg.createdAt.toISOString(),
-    type: 'new_message'
-  });
+  if (savedMsg?.id) {
+    await publishMessageSSE(ticketId, savedMsg.id);
+  }
 
   revalidatePath(`/dashboard/tickets/${ticketId}`);
   return { success: true };
@@ -96,7 +148,8 @@ const ticketMessageSchema = z.object({
   message: z.string().optional(),
   mediaUrl: z.string().optional(),
   mediaType: z.string().optional(),
-  replyToId: z.string().optional()
+  replyToId: z.string().optional(),
+  orderId: z.string().optional()
 }).refine(data => data.message || data.mediaUrl, "Either message or mediaUrl must be provided");
 
 const adminReplySchema = z.object({
@@ -143,17 +196,36 @@ export async function addTicketMessage(formData: FormData) {
 
   const parsed = ticketMessageSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) throw new Error('Сообщение не может быть пустым');
-  const { ticketId, message, mediaUrl, mediaType, replyToId } = parsed.data;
+  const { ticketId, message, mediaUrl, mediaType, replyToId, orderId } = parsed.data;
 
   const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
   if (!ticket || ticket.userId !== session.userId) throw new Error('Forbidden');
 
-  await ticketService.addMessage(ticketId, 'USER', message || '', mediaUrl, mediaType, replyToId);
+  let verifiedOrderId: string | undefined = undefined;
+  if (orderId) {
+    // Security check: verify user owns the SMM order
+    const order = await db.order.findFirst({
+      where: { id: orderId, userId: session.userId }
+    });
+    if (order) {
+      verifiedOrderId = order.id;
+      // Also link at the ticket level for legacy compatibility and top-level headers
+      await db.ticket.update({
+        where: { id: ticketId },
+        data: { orderId: order.id }
+      });
+    }
+  }
+
+  const savedMsg = await ticketService.addMessage(ticketId, 'USER', message || '', mediaUrl, mediaType, replyToId, undefined, undefined, verifiedOrderId);
+  if (savedMsg?.id) {
+    await publishMessageSSE(ticketId, savedMsg.id);
+  }
   revalidatePath(`/dashboard/tickets/${ticketId}`);
 }
 
 export async function adminReplyTicket(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async () => {
+  return requireStaffPermission('support', 'edit', async (admin) => {
     const parsed = adminReplySchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Ошибка валидации сообщения');
     const { ticketId, message, isInternal, mediaUrl, mediaType, replyToId } = parsed.data;
@@ -162,15 +234,20 @@ export async function adminReplyTicket(formData: FormData) {
 
     const savedMsg = await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType, replyToId);
 
+    const ipAddress = await getClientIp('unknown');
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: isInternal ? 'TICKET_INTERNAL_NOTE_ADD' : 'TICKET_REPLY_SEND',
+      target: ticketId,
+      targetType: 'TICKET',
+      newValue: { message, mediaUrl, mediaType, replyToId },
+      ipAddress
+    });
+
     // Broadcast STAFF replies to SSE stream (NOT internal notes)
     if (sender === 'STAFF') {
-      sseBroadcaster.publish(ticketId, {
-        id: savedMsg.id,
-        sender: savedMsg.sender,
-        text: savedMsg.text,
-        createdAt: savedMsg.createdAt.toISOString(),
-        type: 'new_message'
-      });
+      await publishMessageSSE(ticketId, savedMsg.id);
     }
 
     revalidatePath(`/admin/tickets/${ticketId}`);
@@ -184,10 +261,15 @@ const changeStatusSchema = z.object({
 });
 
 export async function changeTicketStatus(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async () => {
+  return requireStaffPermission('support', 'edit', async (admin) => {
     const parsed = changeStatusSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Неверный статус');
     const { ticketId, status } = parsed.data;
+
+    const oldTicket = await db.ticket.findUnique({
+      where: { id: ticketId },
+      select: { status: true }
+    });
 
     await db.ticket.update({
       where: { id: ticketId },
@@ -195,6 +277,18 @@ export async function changeTicketStatus(formData: FormData) {
         status,
         ...(status === 'CLOSED' ? { resolvedAt: new Date() } : {})
       }
+    });
+
+    const ipAddress = await getClientIp('unknown');
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'TICKET_STATUS_CHANGE',
+      target: ticketId,
+      targetType: 'TICKET',
+      oldValue: oldTicket?.status,
+      newValue: status,
+      ipAddress
     });
 
     revalidatePath(`/admin/tickets/${ticketId}`);
@@ -224,6 +318,7 @@ export async function editTicketMessage(formData: FormData) {
       throw new Error('You cannot edit user messages');
     }
 
+    const ipAddress = await getClientIp('unknown');
     // Transaction for updating text and auditing
     await db.$transaction(async (tx) => {
       await tx.ticketMessage.update({
@@ -240,7 +335,7 @@ export async function editTicketMessage(formData: FormData) {
           targetType: 'TICKET_MESSAGE',
           oldValue: msg.text,
           newValue: newText.trim(),
-          ipAddress: 'internal'
+          ipAddress
         }
       });
     });
@@ -288,7 +383,10 @@ export async function requestTelegramBind(formData: FormData) {
 
       const messageText = `🎧 <b>Служба поддержки Smmplan</b>\n\nЧтобы мы могли найти ваши заказы и оформить возврат средств на баланс, пожалуйста, подтвердите владение заказом по ссылке: ${magicLink}`;
 
-      await ticketService.addMessage(ticketId, 'STAFF', messageText);
+      const savedMsg = await ticketService.addMessage(ticketId, 'STAFF', messageText);
+
+      await publishMessageSSE(ticketId, savedMsg.id);
+
       revalidatePath(`/admin/tickets/${ticketId}`);
     } catch (err) {
       console.error('[requestTelegramBind] Error:', err);
@@ -344,6 +442,7 @@ export async function adminManualTelegramBind(formData: FormData) {
         };
       }
 
+      const ipAddress = await getClientIp('unknown');
       await db.$transaction(async (tx) => {
         // 1. Move all relational data from tempUser to webUser
         await tx.ticket.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
@@ -372,7 +471,7 @@ export async function adminManualTelegramBind(formData: FormData) {
             targetType: 'USER',
             oldValue: tempUser.email,
             newValue: webUser.email,
-            ipAddress: 'internal'
+            ipAddress
           }
         });
       });

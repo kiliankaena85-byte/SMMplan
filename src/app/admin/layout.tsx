@@ -51,10 +51,10 @@ const ADMIN_NAVIGATION = [
 ];
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  OWNER:   { label: 'Владелец',  color: 'bg-primary/20 text-indigo-300 border-primary/30' },
-  ADMIN:   { label: 'Админ',     color: 'bg-sky-500/20 text-sky-400 border-sky-500/30' },
-  MANAGER: { label: 'Менеджер',  color: 'bg-success/20 text-emerald-400 border-emerald-500/30' },
-  SUPPORT: { label: 'Саппорт',   color: 'bg-muted/500/40 text-slate-300 border-slate-500/30' },
+  OWNER:   { label: 'Владелец',  color: 'bg-primary/20 text-indigo-700 dark:text-indigo-300 border-primary/30 font-bold' },
+  ADMIN:   { label: 'Админ',     color: 'bg-sky-500/20 text-sky-700 dark:text-sky-400 border-sky-500/30 font-bold' },
+  MANAGER: { label: 'Менеджер',  color: 'bg-success/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold' },
+  SUPPORT: { label: 'Саппорт',   color: 'bg-muted/40 text-slate-700 dark:text-slate-300 border-slate-500/30 font-bold' },
 };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

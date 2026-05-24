@@ -7,9 +7,12 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
 
+import { auditAdmin } from '@/lib/admin-audit';
+import { getClientIp } from '@/utils/ip';
+
 const financeSettingsSchema = z.object({
-  taxRate: z.coerce.number().optional().default(0),
-  opexMonthly: z.coerce.number().optional().default(0)
+  taxRate: z.coerce.number().min(0, "Налоговая ставка не может быть отрицательной").max(100, "Налоговая ставка не может превышать 100%").optional().default(6.0),
+  opexMonthly: z.coerce.number().min(0, "OPEX не может быть отрицательным").max(10000000, "Максимальный лимит OPEX - 10,000,000 ₽").optional().default(0)
 });
 
 export async function updateSystemSettings(formData: FormData) {
@@ -19,14 +22,22 @@ export async function updateSystemSettings(formData: FormData) {
     const { taxRate, opexMonthly: opexRubles } = parsed.data;
     const opexMonthly = Math.round(opexRubles * 100);
 
+    const oldSettings = await db.systemSettings.findUnique({
+      where: { id: 'global' }
+    });
+
     await accountingService.updateSettings(taxRate, opexMonthly);
   
-    await db.auditLog.create({
-      data: {
-        userId: admin.id,
-        action: 'UPDATE_FINANCE_SETTINGS',
-        details: `Updated taxRate to ${taxRate}%, opexMonthly to ${opexRubles} RUB`
-      }
+    const ipAddress = await getClientIp('unknown');
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'UPDATE_FINANCE_SETTINGS',
+      target: 'global',
+      targetType: 'SETTINGS',
+      oldValue: oldSettings,
+      newValue: { taxRate, opexMonthly },
+      ipAddress
     });
 
     revalidatePath('/admin/finance');

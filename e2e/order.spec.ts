@@ -6,7 +6,8 @@ test.describe('Order Lifecycle', () => {
   test.beforeAll(async () => {
     const prisma = new PrismaClient();
     
-    // Cleanup old test data
+    // Cleanup old test data (delete orders first to prevent foreign key violation)
+    await prisma.order.deleteMany({ where: { service: { name: { startsWith: 'E2E ' } } } });
     await prisma.service.deleteMany({ where: { name: { startsWith: 'E2E ' } } });
     await prisma.category.deleteMany({ where: { name: { startsWith: 'E2E ' } } });
 
@@ -49,7 +50,8 @@ test.describe('Order Lifecycle', () => {
           maxQty: 10000,
           isQuarantined: false,
           isActive: true,
-          externalId: '101'
+          externalId: '101',
+          targetType: 'CHANNEL'
         }
       });
     }
@@ -106,7 +108,7 @@ test.describe('Order Lifecycle', () => {
 
     // 6. Check "I agree to terms"
     const termsCheckbox = page.locator('input[type="checkbox"]');
-    await termsCheckbox.check();
+    await termsCheckbox.check({ force: true });
 
     // 7. Verify the submit button is enabled
     const submitBtn = page.getByRole('button', { name: /Создать заказ и перейти к оплате/i });

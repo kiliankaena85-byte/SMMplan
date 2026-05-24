@@ -1,7 +1,75 @@
-import { beforeAll, beforeEach, afterAll, vi } from 'vitest';
+import { beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 
-beforeAll(() => {
+// Mock admin audit module globally to prevent concurrent background DB writes from causing deadlocks during TRUNCATE.
+vi.mock('@/lib/admin-audit', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/lib/admin-audit')>();
+  const { db } = await import('@/lib/db');
+  
+  return {
+    ...original,
+    auditAdmin: (params: any) => {
+      // In testing, we turn fire-and-forget into a tracked promise that we can await before each TRUNCATE.
+      const promise = db.adminAuditLog.create({
+        data: {
+          adminId: params.adminId,
+          adminEmail: params.adminEmail,
+          action: params.action,
+          target: params.target,
+          targetType: params.targetType,
+          oldValue: original.safeSerialize(params.oldValue),
+          newValue: original.safeSerialize(params.newValue),
+          ipAddress: params.ipAddress ?? null,
+        },
+      }).catch((err) => {
+        console.error('[AdminAudit Mock] Failed to write log:', err);
+      });
+
+      const g = globalThis as any;
+      g.__pendingAuditPromises = g.__pendingAuditPromises || [];
+      g.__pendingAuditPromises.push(promise);
+    },
+    auditAdminAwaitable: async (params: any) => {
+      return db.adminAuditLog.create({
+        data: {
+          adminId: params.adminId,
+          adminEmail: params.adminEmail,
+          action: params.action,
+          target: params.target,
+          targetType: params.targetType,
+          oldValue: original.safeSerialize(params.oldValue),
+          newValue: original.safeSerialize(params.newValue),
+          ipAddress: params.ipAddress ?? null,
+        },
+      });
+    }
+  };
+});
+
+beforeAll(async () => {
+  // OMNI-AUDIT: Block accidental truncation of the development database
+  const dbUrl = process.env.DATABASE_URL || '';
+  if (!dbUrl.includes('test') && !dbUrl.includes('smmplan_test')) {
+    throw new Error(
+      `[FATAL] Accidental DB wipe protection triggered! ` +
+      `DATABASE_URL points to a non-test database: "${dbUrl}". ` +
+      `Vitest was about to truncate your entire development database. ` +
+      `Please run tests using "npm run test" or ensure "dotenv -e .env.test" is active.`
+    );
+  }
+
+  // Terminate other active connections to avoid lock-wait deadlocks with zombie connections
+  try {
+    await db.$executeRawUnsafe(`
+      SELECT pg_terminate_backend(pid) 
+      FROM pg_stat_activity 
+      WHERE datname = current_database() 
+        AND pid <> pg_backend_pid();
+    `);
+  } catch (err) {
+    // Ignore errors if the database is in a state where pg_stat_activity isn't queried or user lacks permission
+  }
+
   // Provide test encryption key so EncryptionService doesn't fail
   process.env.APP_ENCRYPTION_KEY = '0000000000000000000000000000000000000000000000000000000000000000';
   
@@ -41,8 +109,18 @@ async function resetTestDb() {
       }
 
       // Pre-create singleton settings to avoid P2002 race conditions in getCached
-      await db.systemSettings.create({
-        data: {
+      await db.systemSettings.upsert({
+        where: { id: "global" },
+        update: {
+          taxRate: 6.0,
+          opexMonthly: 0,
+          maintenanceMode: false,
+          isTestMode: false,
+          siteName: "Smmplan",
+          siteDescription: "",
+          exchangeRateUSD: 95.0
+        },
+        create: {
           id: "global",
           taxRate: 6.0,
           opexMonthly: 0,
@@ -71,6 +149,14 @@ async function resetTestDb() {
 
 beforeEach(async () => {
   await resetTestDb();
+});
+
+afterEach(async () => {
+  const promises = (globalThis as any).__pendingAuditPromises || [];
+  if (promises.length > 0) {
+    await Promise.all(promises);
+    (globalThis as any).__pendingAuditPromises = [];
+  }
 });
 
 afterAll(async () => {

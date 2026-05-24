@@ -85,10 +85,10 @@ describe('MarketingService', () => {
       expect(res.discountPercent).toBe(30.0); // Capped at MAX_TOTAL_DISCOUNT (30)
     });
 
-    it('applies VOUCHER promo correctly and falls back to safety floor if needed', async () => {
+    it('applies DISCOUNT promo correctly and falls back to safety floor if needed', async () => {
       vi.mocked(db.user.findUnique).mockResolvedValueOnce({ id: 'user1', totalSpent: 0, personalDiscount: 0 } as any);
       vi.mocked(db.service.findUnique).mockResolvedValueOnce({ id: 'srv1', minQty: 10, maxQty: 100, rate: 1.0, markup: 1.5 } as any);
-      vi.mocked(db.promoCode.findUnique).mockResolvedValueOnce({ id: 'pr1', code: 'PROMO', isActive: true, maxUses: 0, expiresAt: null, type: 'VOUCHER', amount: 9999999 } as any);
+      vi.mocked(db.promoCode.findUnique).mockResolvedValueOnce({ id: 'pr1', code: 'PROMO', isActive: true, maxUses: 0, expiresAt: null, type: 'DISCOUNT', discountPercent: 99.0 } as any);
 
       const res = await marketingService.calculatePrice('user1', 'srv1', 50, 'PROMO');
       
@@ -102,6 +102,15 @@ describe('MarketingService', () => {
        vi.mocked(db.promoCode.findUnique).mockResolvedValueOnce(null);
        const res = await marketingService.calculatePrice(null, 'srv1', 50, 'INVALID');
        expect(res.discountPercent).toBe(0);
+    });
+
+    it('enforces a safety floor of 1 cent for micro-priced service with low quantity', async () => {
+       vi.mocked(db.service.findUnique).mockResolvedValueOnce({ id: 'srv1', minQty: 1, maxQty: 100, rate: 0.0003, markup: 1.1 } as any);
+       const res = await marketingService.calculatePrice(null, 'srv1', 1);
+       
+       expect(res.originalTotalCents).toBe(1);
+       expect(res.providerCostCents).toBe(1);
+       expect(res.totalCents).toBe(3); // safety floor is 3 cents when providerCostCents is 1
     });
   });
 

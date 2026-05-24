@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Wallet, CreditCard, Bitcoin } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { retryCheckoutAction } from '@/actions/order/checkout';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +34,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
   async function handleRetry(gateway: string) {
     try {
       setIsProcessing(true);
+      const { retryCheckoutAction } = await import('@/actions/order/checkout');
       const res = await retryCheckoutAction({ orderId, gateway });
       
       if (res.success) {

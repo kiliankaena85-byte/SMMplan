@@ -259,7 +259,7 @@ describe('Security Tests (QA-4: Security & Penetration Tester)', () => {
       const amount = parseInt(intPart || '0', 10) * 100
         + parseInt((decPart || '00').padEnd(2, '0').slice(0, 2), 10);
 
-      expect().toBe();
+      expect(amount).toBe(10050);
       expect(Number.isInteger(amount)).toBe(true);
     });
 
@@ -269,7 +269,7 @@ describe('Security Tests (QA-4: Security & Penetration Tester)', () => {
       const amount = parseInt(intPart || '0', 10) * 100
         + parseInt((decPart || '00').padEnd(2, '0').slice(0, 2), 10);
 
-      expect().toBe();
+      expect(amount).toBe(9999);
     });
 
     it('TC-SEC-EXTRA: Amount "100" (no decimals) parses to 10000 cents', () => {
@@ -278,7 +278,7 @@ describe('Security Tests (QA-4: Security & Penetration Tester)', () => {
       const amount = parseInt(intPart || '0', 10) * 100
         + parseInt((decPart || '00').padEnd(2, '0').slice(0, 2), 10);
 
-      expect().toBe();
+      expect(amount).toBe(10000);
     });
 
     it('TC-SEC-EXTRA: Amount "0.01" (minimum) parses to 1 cent', () => {
@@ -287,7 +287,7 @@ describe('Security Tests (QA-4: Security & Penetration Tester)', () => {
       const amount = parseInt(intPart || '0', 10) * 100
         + parseInt((decPart || '00').padEnd(2, '0').slice(0, 2), 10);
 
-      expect().toBe();
+      expect(amount).toBe(1);
     });
   });
 });

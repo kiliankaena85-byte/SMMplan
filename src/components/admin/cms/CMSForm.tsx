@@ -121,10 +121,10 @@ export default function CMSForm({ initialData }: CMSFormProps) {
                   <SelectValue placeholder="Выберите тип" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PAGE">Статическая страница</SelectItem>
-                  <SelectItem value="ACADEMY_LESSON">Урок Академии</SelectItem>
-                  <SelectItem value="GLOSSARY_TERM">Термин Глоссария</SelectItem>
-                  <SelectItem value="NEWS_POST">Новость</SelectItem>
+                  <SelectItem value="PAGE" label="Статическая страница">Статическая страница</SelectItem>
+                  <SelectItem value="ACADEMY_LESSON" label="Урок Академии">Урок Академии</SelectItem>
+                  <SelectItem value="GLOSSARY_TERM" label="Термин Глоссария">Термин Глоссария</SelectItem>
+                  <SelectItem value="NEWS_POST" label="Новость">Новость</SelectItem>
                 </SelectContent>
               </Select>
             </div>

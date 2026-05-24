@@ -45,32 +45,36 @@ describe('Financial Core: Marketing Service', () => {
 
   it('Calculates base price correctly without discounts', async () => {
     // Quantity 1000. Base rate is $5.00. Converted to RUB: 5 * 95 = 475 RUB = 47500 Cents.
-    // Markup is 5.0. 47500 * 5.0 = 237500 Cents
+    // Markup is 5.0. Raw retail is 237500 Cents. Beautiful rounded retail is 240000 Cents.
+    console.log('[DEBUG] testServiceId created:', testServiceId);
+    const dbCheck = await db.service.findUnique({ where: { id: testServiceId } });
+    console.log('[DEBUG] DB check before call:', dbCheck);
+    
     const result = await marketingService.calculatePrice(null, testServiceId, 1000);
     
-    expect().toBe(); // 475.00 RUB
-    expect().toBe(); // 2375.00 RUB
-    expect().toBe(); 
+    expect(result.providerCostCents).toBe(47500); // 475.00 RUB
+    expect(result.originalTotalCents).toBe(240000); // 2400.00 RUB (beautiful retail)
+    expect(result.totalCents).toBe(240000); 
   });
 
   it('Applies standard 50% promo code correctly', async () => {
     const result = await marketingService.calculatePrice(null, testServiceId, 1000, 'SALE50');
     
-    expect().toBe();
-    expect().toBe();
-    // 50% discount capped at MAX_TOTAL_DISCOUNT (30%) = 166250
-    expect().toBe(); 
+    expect(result.originalTotalCents).toBe(240000);
+    expect(result.discountCents).toBe(72000);
+    // 50% discount capped at MAX_TOTAL_DISCOUNT (30%) = 168000
+    expect(result.totalCents).toBe(168000); 
     expect(result.discountPercent).toBe(30);
   });
 
   it('Calculates fractions correctly (e.g. quantity 50)', async () => {
     // 50 / 1000 = 0.05. 
     // cost = 47500 * 0.05 = 2375.
-    // sell = 237500 * 0.05 = 11875.
+    // beautiful sell = 240000 * 0.05 = 12000.
     const result = await marketingService.calculatePrice(null, testServiceId, 50);
     
-    expect().toBe();
-    expect().toBe();
-    expect().toBe();
+    expect(result.providerCostCents).toBe(2375);
+    expect(result.originalTotalCents).toBe(12000);
+    expect(result.totalCents).toBe(12000);
   });
 });

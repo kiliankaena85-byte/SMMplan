@@ -92,7 +92,10 @@ export const parseMassOrderText = async (text: string) => {
       // 2. Link Normalization and Validation
       try {
         const platformSlug = service.category?.network?.slug?.toUpperCase() || '';
-        const targetType = service.targetType || 'POST';
+        const { inferTargetTypeFromCategory } = await import('@/utils/target-type');
+        const targetType = service.targetType === 'POST'
+          ? inferTargetTypeFromCategory(service.category?.name)
+          : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
         const normalizedLink = mutateLink(order.link, platformSlug, targetType);
         const validator = getLinkValidator(platformSlug, targetType);
         const linkResult = validator.safeParse(normalizedLink);
@@ -263,8 +266,11 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       }
     }
 
-    if (gateway !== 'balance' && totalCents < 1000) {
-      throw new Error("Минимальная сумма для оплаты картой или криптовалютой — 10 ₽.");
+    // Enforce 10 RUB minimum for Acquiring (YooKassa / CryptoBot) -> Auto-convert to 10 RUB top-up
+    let paymentAmount = totalCents;
+    const isMicroOrder = gateway !== 'balance' && totalCents < 1000;
+    if (isMicroOrder) {
+      paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
     if (gateway === 'balance' && user.balance < totalCents) {
@@ -276,7 +282,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       const payment = await tx.payment.create({
         data: {
           userId: user.id,
-          amount: totalCents,
+          amount: paymentAmount,
           currency: 'RUB',
           status: 'PENDING',
           gateway,
@@ -310,7 +316,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       const gatewayResult = await gatewaySvc.createPayment({
         paymentId: result.paymentId,
         userId: user.id,
-        amountRub: totalCents / 100,
+        amountRub: paymentAmount / 100,
         email: user.email,
         successUrl,
         description: `Массовый заказ (Payment #${result.paymentId})`,
@@ -341,13 +347,13 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       });
       
       if (gatewayErr instanceof WalletInsufficientFundsError) {
-        throw new Error('Недостаточно средств на балансе. Пожалуйста, пополните счет.');
+        throw new Error('Недостаточно средств на балансе. Пожалуйста, пополните счет.', { cause: gatewayErr });
       }
       if (gatewayErr instanceof WalletUserNotFoundError) {
-        throw new Error('Пользователь не найден. Пожалуйста, авторизуйтесь заново.');
+        throw new Error('Пользователь не найден. Пожалуйста, авторизуйтесь заново.', { cause: gatewayErr });
       }
       if (gatewayErr instanceof WalletInvalidAmountError) {
-        throw new Error('Некорректная сумма операции.');
+        throw new Error('Некорректная сумма операции.', { cause: gatewayErr });
       }
       throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
     }

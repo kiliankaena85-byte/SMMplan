@@ -10,71 +10,96 @@ interface PlatformSelectorFallbackProps {
 }
 
 export function PlatformSelectorFallback({ onSelect, availablePlatforms }: PlatformSelectorFallbackProps) {
+  const fallbackList = availablePlatforms && availablePlatforms.length > 0
+    ? availablePlatforms
+    : [
+        { id: "fallback-telegram", name: IntelligencePlatform.TELEGRAM },
+        { id: "fallback-vk", name: IntelligencePlatform.VK },
+        { id: "fallback-instagram", name: IntelligencePlatform.INSTAGRAM },
+        { id: "fallback-youtube", name: IntelligencePlatform.YOUTUBE },
+        { id: "fallback-tiktok", name: IntelligencePlatform.TIKTOK },
+      ];
+
+  const getBrandHoverClasses = (platform: IntelligencePlatform) => {
+    switch (platform) {
+      case IntelligencePlatform.TELEGRAM:
+        return {
+          button: "hover:border-sky-500 hover:bg-sky-500/5",
+          text: "text-foreground group-hover:text-sky-600 dark:group-hover:text-sky-400",
+          icon: "group-hover:text-sky-600 dark:group-hover:text-sky-400"
+        };
+      case IntelligencePlatform.VK:
+        return {
+          button: "hover:border-blue-600 hover:bg-blue-600/5",
+          text: "text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400",
+          icon: "group-hover:text-blue-600 dark:group-hover:text-blue-400"
+        };
+      case IntelligencePlatform.INSTAGRAM:
+        return {
+          button: "hover:border-pink-500 hover:bg-pink-500/5",
+          text: "text-foreground group-hover:text-pink-600 dark:group-hover:text-pink-400",
+          icon: "group-hover:text-pink-600 dark:group-hover:text-pink-400"
+        };
+      case IntelligencePlatform.YOUTUBE:
+        return {
+          button: "hover:border-red-600 hover:bg-red-600/5",
+          text: "text-foreground group-hover:text-red-600 dark:group-hover:text-red-400",
+          icon: "group-hover:text-red-600 dark:group-hover:text-red-400"
+        };
+      case IntelligencePlatform.TIKTOK:
+        return {
+          button: "hover:border-zinc-800 hover:bg-zinc-800/5 dark:hover:border-zinc-300 dark:hover:bg-zinc-300/5",
+          text: "text-foreground group-hover:text-zinc-900 dark:group-hover:text-zinc-100",
+          icon: "group-hover:text-zinc-900 dark:group-hover:text-zinc-100"
+        };
+      default:
+        return {
+          button: "hover:border-warning/50 hover:bg-warning/5",
+          text: "text-foreground group-hover:text-warning",
+          icon: "group-hover:text-warning"
+        };
+    }
+  };
+
   return (
-    <>
-      {/* Desktop Inline Fallback (hidden on mobile) */}
-      <div className="hidden md:block bg-card border-2 border-amber-500/20 shadow-lg shadow-amber-500/5 rounded-2xl p-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <AlertCircle className="w-24 h-24 text-warning" />
+    <div className="w-full bg-content2/50 backdrop-blur-md border border-warning/30 shadow-xl rounded-3xl p-5 md:p-6 relative overflow-hidden transition-all duration-300">
+      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+        <AlertCircle className="w-24 h-24 text-warning" />
+      </div>
+
+      <div className="relative z-10 space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-base md:text-lg font-extrabold text-foreground flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-warning shrink-0" />
+            Не удалось определить платформу автоматически
+          </h3>
+          <p className="text-xs md:text-sm text-muted-foreground font-medium leading-relaxed">
+            Ссылка имеет нестандартный формат. Пожалуйста, выберите нужную платформу вручную для отображения тарифов.
+          </p>
         </div>
 
-        <div className="relative z-10 space-y-6">
-          <div>
-            <h3 className="text-lg font-black text-zinc-900 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-warning" />
-              Не удалось определить платформу автоматически
-            </h3>
-            <p className="text-sm text-zinc-500 font-medium mt-1">
-              Ссылка имеет нестандартный формат. Пожалуйста, выберите нужную платформу вручную, чтобы мы смогли показать подходящие услуги.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-4 gap-3">
-            {availablePlatforms.map((pt) => (
+        <div 
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5" 
+          data-testid="platform-fallback"
+        >
+          {fallbackList.map((pt) => {
+            const brandCls = getBrandHoverClasses(pt.name);
+            return (
               <button
                 key={pt.id}
                 onClick={() => onSelect(pt.name)}
-                className="flex flex-col items-center justify-center p-4 bg-zinc-50 border border-zinc-200 hover:border-amber-400 hover:bg-amber-50 rounded-xl transition-all group"
+                data-testid={`btn-${pt.name.toLowerCase()}`}
+                className={`flex items-center justify-between px-4 py-3 bg-content1 border border-border rounded-2xl transition-all duration-200 group active:scale-[0.98] text-left cursor-pointer ${brandCls.button}`}
               >
-                <span className="font-bold text-sm text-zinc-800 group-hover:text-amber-900">
+                <span className={`font-bold text-sm transition-colors ${brandCls.text}`}>
                   {pt.name}
                 </span>
-                <ChevronRight className="w-4 h-4 mt-2 text-zinc-300 group-hover:text-warning transition-colors" />
+                <ChevronRight className={`w-4 h-4 text-muted-foreground transition-all duration-200 group-hover:translate-x-0.5 ${brandCls.icon}`} />
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
-
-      {/* Mobile Bottom Sheet (Zero-Scroll Friendly, visible <= md) */}
-      <div className="md:hidden fixed inset-0 z-[100] bg-foreground/60 flex items-end">
-         <div className="bg-card w-full rounded-t-3xl p-6 pb-12 animate-in slide-in-from-bottom border-t border-amber-500/20 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
-            <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-6"></div>
-            
-            <h3 className="text-xl font-black text-zinc-900 flex items-center justify-center gap-2 mb-2">
-              <AlertCircle className="w-6 h-6 text-warning" />
-              Выберите соцсеть
-            </h3>
-            <p className="text-sm text-center text-zinc-500 font-medium mb-8">
-              Системе не удалось распознать платформу по ссылке.
-            </p>
-
-            <div className="grid grid-cols-2 gap-3" data-testid="platform-fallback">
-              {availablePlatforms.map((pt) => (
-                <button
-                  key={pt.id}
-                  onClick={() => onSelect(pt.name)}
-                  data-testid={`btn-${pt.name.toLowerCase()}`}
-                  className="flex flex-col items-center justify-center p-5 bg-card border border-zinc-200 active:border-amber-400 active:bg-amber-50 rounded-2xl shadow-sm transition-all"
-                >
-                  <span className="font-bold text-base text-zinc-800">
-                    {pt.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-         </div>
-      </div>
-    </>
+    </div>
   );
 }

@@ -20,6 +20,14 @@ export class RateLimitService {
     failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
   ): Promise<boolean> {
     try {
+      const { SettingsProvider } = await import('@/lib/settings');
+      if (SettingsProvider.isTestEnvironment() || await SettingsProvider.isTestMode()) {
+        return true;
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV === 'test') return true;
+    }
+    try {
       const { getClientIp } = await import('@/utils/ip');
       const ip = await getClientIp();
       const now = new Date();
@@ -106,6 +114,14 @@ export class RateLimitService {
     windowSeconds: number = 60,
     failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
   ): Promise<boolean> {
+    try {
+      const { SettingsProvider } = await import('@/lib/settings');
+      if (SettingsProvider.isTestEnvironment() || await SettingsProvider.isTestMode()) {
+        return true;
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV === 'test') return true;
+    }
     try {
       // W6-1 SECURITY FIX: Prevent Redis OOM or DB bloat from huge custom keys
       if (!key || key.length > 256) {

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { UsnScheme } from '@prisma/client';
 
 interface FinancialMetrics {
   revenueGross: number; // Изначально принесенные деньги
@@ -11,6 +12,10 @@ interface FinancialMetrics {
   opex: number;
   profitNet: number; // Margin - Taxes - OPEX
   marginPercentage: number;
+  annualRevenue: number; // Выручка за текущий календарный год
+  effectiveTaxRate: number; // Итоговая расчетная ставка налога (%)
+  isVatThresholdExceeded: boolean; // Превышен ли порог НДС 20 млн рублей
+  usnScheme: UsnScheme;
 }
 
 class AccountingService {
@@ -90,10 +95,35 @@ class AccountingService {
 
     // 4. Calculate Taxes and OPEX
     const settings = await db.systemSettings.findUnique({ where: { id: 'global' } });
-    const taxRate = settings?.taxRate || 6.0;
+    const baseTaxRate = settings?.taxRate ?? 6.0;
     const opex = settings?.opexMonthly || 0.0;
+    const usnScheme = settings?.usnScheme ?? 'INCOME_EXPENSES';
 
-    const taxes = Math.round((marginGross > 0 ? marginGross : 0) * (taxRate / 100));
+    // Calculate dynamic tax rate based on annual revenue of current calendar year
+    const currentYear = new Date().getFullYear();
+    const annualRevenue = await db.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'SUCCEEDED',
+        createdAt: {
+          gte: new Date(currentYear, 0, 1),
+          lte: new Date(currentYear, 11, 31, 23, 59, 59, 999)
+        }
+      }
+    }).then(res => Number(res._sum.amount || 0));
+
+    // Threshold is 20 million rubles (2,000,000,000 cents)
+    const isVatThresholdExceeded = annualRevenue >= 2000000000;
+    
+    // If threshold is exceeded, add special 5% VAT rate to base tax rate
+    const effectiveTaxRate = isVatThresholdExceeded ? baseTaxRate + 5.0 : baseTaxRate;
+
+    let taxes = 0;
+    if (usnScheme === 'INCOME') {
+      taxes = Math.round((revenueGross > 0 ? revenueGross : 0) * (effectiveTaxRate / 100));
+    } else {
+      taxes = Math.round((marginGross > 0 ? marginGross : 0) * (effectiveTaxRate / 100));
+    }
     const profitNet = marginGross - taxes - opex;
     const marginPercentage = revenueNet > 0 ? (marginGross / revenueNet) * 100 : 0;
 
@@ -107,25 +137,27 @@ class AccountingService {
       taxes,
       opex,
       profitNet,
-      marginPercentage
+      marginPercentage,
+      annualRevenue,
+      effectiveTaxRate,
+      isVatThresholdExceeded,
+      usnScheme
     };
   }
 
   async getSettings() {
-    let settings = await db.systemSettings.findUnique({ where: { id: 'global' } });
-    if (!settings) {
-      settings = await db.systemSettings.create({
-        data: { id: 'global', taxRate: 6.0, opexMonthly: 0.0 }
-      });
-    }
-    return settings;
-  }
-
-  async updateSettings(taxRate: number, opexMonthly: number) {
     return db.systemSettings.upsert({
       where: { id: 'global' },
-      update: { taxRate, opexMonthly },
-      create: { id: 'global', taxRate, opexMonthly }
+      update: {},
+      create: { id: 'global', taxRate: 6.0, opexMonthly: 0.0, usnScheme: 'INCOME_EXPENSES' }
+    });
+  }
+
+  async updateSettings(taxRate: number, opexMonthly: number, usnScheme?: UsnScheme) {
+    return db.systemSettings.upsert({
+      where: { id: 'global' },
+      update: { taxRate, opexMonthly, ...(usnScheme ? { usnScheme } : {}) },
+      create: { id: 'global', taxRate, opexMonthly, usnScheme: usnScheme || 'INCOME_EXPENSES' }
     });
   }
 }

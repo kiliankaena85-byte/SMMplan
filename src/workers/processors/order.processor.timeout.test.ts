@@ -9,7 +9,23 @@ vi.mock('../../lib/db', () => ({
     order: {
       findUnique: vi.fn(),
       update: vi.fn(),
-    }
+    },
+    $transaction: vi.fn(async (cb) => cb({
+      order: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'order_123', status: 'PENDING', charge: 0, user: { email: 'test@test.com' } }),
+        update: vi.fn(),
+      },
+      ledgerEntry: {
+        findFirst: vi.fn().mockResolvedValue(null)
+      },
+      commission: {
+        findMany: vi.fn().mockResolvedValue([]),
+        updateMany: vi.fn()
+      },
+      user: {
+        update: vi.fn()
+      }
+    }))
   }
 }));
 
@@ -66,6 +82,15 @@ describe('Worker Order Processor: Timeout & Failure Simulation', () => {
 
     // 4. Run processor and assert it throws the original error
     await expect(orderProcessor(mockJob)).rejects.toThrow('Provider Request Timeout');
+
+    // Assert order status is updated to PENDING_CHECK in database
+    expect(db.order.update).toHaveBeenCalledWith({
+      where: { id: 'order_123' },
+      data: {
+        status: 'PENDING_CHECK',
+        error: 'Сетевой таймаут при отправке: Provider Request Timeout: fetch failed'
+      }
+    });
 
     // 5. Assert Quarantine was NOT triggered
     const { QuarantineService } = await import('@/services/providers/quarantine.service');

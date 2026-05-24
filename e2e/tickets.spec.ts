@@ -161,19 +161,24 @@ test.describe('Telegram Support Binding Flows', () => {
     
     await requestAuthBtn.click();
     
-    // Check if it entered pending state (confirmed the click worked)
-    await expect(requestAuthBtn).toBeDisabled({ timeout: 5000 });
-    
     // Wait for the message to appear in the chat window
     await expect(page.getByText(/подтвердите владение заказом/i)).toBeVisible({ timeout: 20000 });
+    await page.waitForTimeout(3000); // Allow Next.js revalidation to fully finish and DOM to settle
 
     // Level 3: Manual Bind
     const manualEmailInput = page.getByPlaceholder('email@client.ru');
     await expect(manualEmailInput).toBeVisible();
+    await expect(manualEmailInput).toBeEnabled({ timeout: 10000 });
     await manualEmailInput.fill('e2e_target_web@test.local');
     
-    const manualSubmitBtn = page.getByRole('button', { name: 'OK' });
+    const manualSubmitBtn = page.locator('#manual-bind-submit');
+    await expect(manualSubmitBtn).toBeEnabled({ timeout: 10000 });
     await manualSubmitBtn.click();
+
+    // Wait for confirmation block to appear and click 'Слить'
+    const confirmBtn = page.locator('#manual-bind-confirm');
+    await expect(confirmBtn).toBeVisible({ timeout: 10000 });
+    await confirmBtn.click();
     
     // Wait for bind to complete in DB
     let deletedTempUser = null;

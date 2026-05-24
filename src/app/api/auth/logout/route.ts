@@ -26,8 +26,17 @@ export async function GET(request: Request) {
   await deleteSessionFromDB(token);
   
   cookieStore.delete('session_token');
-  const url = new URL('/', request.url);
-  return NextResponse.redirect(url);
+  cookieStore.set('explicit_logout', 'true', {
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+  });
+  const url = new URL('/login', request.url);
+  const response = NextResponse.redirect(url);
+  response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+  return response;
 }
 
 export async function POST(request: Request) {
@@ -36,6 +45,15 @@ export async function POST(request: Request) {
   await deleteSessionFromDB(token);
   
   cookieStore.delete('session_token');
-  const url = new URL('/', request.url);
-  return NextResponse.redirect(url);
+  cookieStore.set('explicit_logout', 'true', {
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+  });
+  const url = new URL('/login', request.url);
+  const response = NextResponse.redirect(url);
+  response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+  return response;
 }

@@ -29,7 +29,7 @@ interface CuratedService {
 
 // Platform → slug mapping
 const PLATFORM_SLUGS: Record<string, string> = {
-  'TELEGRAM': 'telegram', 'VK': 'vk', 'INSTAGRAM': 'instagram',
+  'TELEGRAM': 'telegram', 'VK': 'vkontakte', 'INSTAGRAM': 'instagram',
   'YOUTUBE': 'youtube', 'TIKTOK': 'tiktok', 'TWITTER': 'twitter',
   'TWITCH': 'twitch', 'KICK': 'kick', 'FACEBOOK': 'facebook',
   'OK': 'ok', 'RUTUBE': 'rutube', 'DISCORD': 'discord',
@@ -91,18 +91,24 @@ async function main() {
   const existingNetworks = await db.network.findMany();
   const networkMap = new Map<string, string>();
   for (const n of existingNetworks) {
-    networkMap.set(n.name, n.id);
+    networkMap.set(n.name.toUpperCase(), n.id);
+    networkMap.set(n.slug.toLowerCase(), n.id);
   }
   
   const neededPlatforms = new Set(curated.map(s => s.platform));
   for (const platform of neededPlatforms) {
-    if (!networkMap.has(platform)) {
-      const slug = PLATFORM_SLUGS[platform] || platform.toLowerCase();
+    const slug = PLATFORM_SLUGS[platform] || platform.toLowerCase();
+    const platformKey = platform.toUpperCase();
+    let networkId = networkMap.get(platformKey) || networkMap.get(slug);
+    
+    if (!networkId) {
       const sort = PLATFORM_SORT[platform] || 50;
       const network = await db.network.create({
         data: { name: platform, slug, sort, isActive: true }
       });
-      networkMap.set(platform, network.id);
+      networkId = network.id;
+      networkMap.set(platformKey, network.id);
+      networkMap.set(slug, network.id);
       console.log(`  ✅ Создана сеть: ${platform} (${slug})`);
     }
   }
@@ -115,9 +121,9 @@ async function main() {
   const existingCategories = await db.category.findMany({
     include: { network: true }
   });
-  const categoryMap = new Map<string, string>(); // "PLATFORM::CATEGORY" -> id
+  const categoryMap = new Map<string, string>(); // "NETWORK_ID::CATEGORY" -> id
   for (const c of existingCategories) {
-    const key = `${c.network?.name || 'UNKNOWN'}::${c.name}`;
+    const key = `${c.networkId}::${c.name}`;
     categoryMap.set(key, c.id);
   }
   
@@ -152,18 +158,22 @@ async function main() {
   };
   
   for (const key of neededCategories) {
-    if (!categoryMap.has(key)) {
-      const [platform, categoryName] = key.split('::');
-      const networkId = networkMap.get(platform);
-      if (!networkId) {
-        console.error(`  ❌ Сеть не найдена: ${platform}`);
-        continue;
-      }
+    const [platform, categoryName] = key.split('::');
+    const slug = PLATFORM_SLUGS[platform] || platform.toLowerCase();
+    const networkId = networkMap.get(platform.toUpperCase()) || networkMap.get(slug);
+    
+    if (!networkId) {
+      console.error(`  ❌ Сеть не найдена: ${platform}`);
+      continue;
+    }
+    
+    const mapKey = `${networkId}::${categoryName}`;
+    if (!categoryMap.has(mapKey)) {
       const sort = CATEGORY_SORT[categoryName] || 50;
       const cat = await db.category.create({
         data: { name: categoryName, networkId, sort }
       });
-      categoryMap.set(key, cat.id);
+      categoryMap.set(mapKey, cat.id);
       catCreated++;
     }
   }
@@ -181,12 +191,21 @@ async function main() {
   
   for (const cs of curated) {
     try {
-      const categoryKey = `${cs.platform}::${cs.category}`;
+      const slug = PLATFORM_SLUGS[cs.platform] || cs.platform.toLowerCase();
+      const networkId = networkMap.get(cs.platform.toUpperCase()) || networkMap.get(slug);
+      
+      if (!networkId) {
+        console.error(`  ❌ Сеть не найдена для услуги: ${cs.platform}`);
+        errors++;
+        continue;
+      }
+      
+      const categoryKey = `${networkId}::${cs.category}`;
       const categoryId = categoryMap.get(categoryKey);
       const providerId = providerMap.get(cs.providerName);
       
       if (!categoryId) {
-        console.error(`  ❌ Категория не найдена: ${categoryKey}`);
+        console.error(`  ❌ Категория не найдена: ${cs.category} для сети ${cs.platform}`);
         errors++;
         continue;
       }

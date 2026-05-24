@@ -20,12 +20,14 @@ vi.mock('@/lib/settings', () => ({
       yookassaSecretKey: 'secret-1',
       cryptoBotToken: 'token-1'
     }),
+    isTestMode: vi.fn().mockResolvedValue(false),
   },
   SettingsProvider: {
     getContactAndLegalSettings: vi.fn().mockResolvedValue({
       COMPANY_NAME: 'DynamicBrand',
     }),
     getSupportEmailDomain: vi.fn().mockResolvedValue('dynamicbrand.com'),
+    isTestMode: vi.fn().mockResolvedValue(false),
   }
 }));
 

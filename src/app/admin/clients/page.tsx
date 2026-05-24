@@ -183,6 +183,12 @@ export default async function AdminClientsPage({ searchParams }: Props) {
                   </CardContent>
                 </Card>
               </div>
+            ) : !selectedUserId ? (
+              <div className="py-12 flex flex-col items-center justify-center text-center p-6 text-muted-foreground gap-2 bg-background border border-border rounded-xl min-h-[300px]">
+                <Users className="w-8 h-8 opacity-25 text-primary" />
+                <h4 className="font-bold text-sm text-foreground">Профиль не выбран</h4>
+                <p className="text-xs max-w-[200px]">Выберите клиента из списка слева для просмотра деталей и управления балансом</p>
+              </div>
             ) : (
               <div className="py-12 flex flex-col items-center gap-4 justify-center h-full text-muted-foreground">
                 <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>

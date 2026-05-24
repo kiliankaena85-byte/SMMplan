@@ -42,7 +42,7 @@ async function getTransporter(): Promise<TransporterResult | null> {
   const transporter = nodemailer.createTransport({
     host: s.smtpHost,
     port: s.smtpPort || 465,
-    secure: true,
+    secure: s.smtpPort === 465,
     auth: {
       user: s.smtpUser,
       pass: s.smtpPassword,
@@ -93,6 +93,10 @@ export async function sendMagicLink(email: string, token: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const link = `${baseUrl}/api/auth/verify?token=${token}`;
 
+  if (process.env.NODE_ENV !== 'production') {
+    console.info(`\n[DEVELOPMENT] MAGIC LINK FOR ${email}: \n${link}\n`);
+  }
+
   const result = await getTransporter();
 
   if (!result) {
@@ -117,7 +121,15 @@ export async function sendMagicLink(email: string, token: string) {
     </div>
   `;
 
-  await dispatch(result, { companyName, to: email, subject: 'Ваша ссылка для входа', html: htmlContent });
+  try {
+    await dispatch(result, { companyName, to: email, subject: 'Ваша ссылка для входа', html: htmlContent });
+  } catch (err: any) {
+    if (process.env.NODE_ENV === 'production') {
+      throw err;
+    } else {
+      log.error('SMTP send failed in development (printed link above instead)', { error: err.message });
+    }
+  }
 }
 
 export async function sendMail(email: string, subject: string, htmlContent: string, replyTo?: string) {

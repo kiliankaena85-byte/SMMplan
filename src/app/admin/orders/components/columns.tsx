@@ -3,11 +3,12 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { useTransition } from 'react';
+import { useTransition, useState } from 'react';
 import { toast } from 'sonner';
 import { cancelOrderAction } from '@/actions/admin/orders';
 import { X, Edit2, Zap, Timer, Snail, Turtle } from 'lucide-react';
 import { formatEta } from '@/utils/format-eta';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 
 export type OrderColumn = {
@@ -21,6 +22,7 @@ export type OrderColumn = {
   charge: number;
   providerCost: number;
   createdAt: Date;
+  updatedAt: Date;
   isDripFeed: boolean;
   dripExternalIds: string[];
   runs: number | null;
@@ -91,9 +93,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 function RowActions({ order }: { order: OrderColumn }) {
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  function handleCancel() {
-    if (!confirm(`Отменить заказ #${order.numericId}? При наличии остатка клиент получит возврат.`)) return;
+  function executeCancel() {
+    setConfirmOpen(false);
     const fd = new FormData();
     fd.append('orderId', order.id);
 
@@ -117,13 +120,24 @@ function RowActions({ order }: { order: OrderColumn }) {
         <Edit2 className="w-3.5 h-3.5" />
       </Link>
       <button
-        onClick={handleCancel}
+        onClick={() => setConfirmOpen(true)}
         disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL'].includes(order.status)}
         className="inline-flex items-center justify-center p-1.5 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 transition-colors disabled:opacity-40"
         title="Отменить заказ"
       >
         <X className="w-3.5 h-3.5" />
       </button>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={executeCancel}
+        title="Отмена заказа"
+        isDanger={true}
+        confirmText="Отменить заказ"
+      >
+        Вы действительно хотите отменить заказ <strong>#{order.numericId}</strong>? При наличии остатка клиент получит возврат.
+      </ConfirmModal>
     </div>
   );
 }

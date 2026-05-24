@@ -9,7 +9,8 @@ vi.mock('@/lib/settings', () => ({
       COMPANY_NAME: 'TestBrand',
     }),
     getSupportEmailDomain: vi.fn().mockResolvedValue('testbrand.com'),
-    getSmtpSettings: vi.fn().mockResolvedValue({
+    getEmailSettings: vi.fn().mockResolvedValue({
+      emailProvider: 'SMTP',
       smtpHost: 'smtp.test.com',
       smtpPort: 465,
       smtpUser: 'no-reply@testbrand.com',

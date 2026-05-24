@@ -11,7 +11,7 @@ export function Reviews() {
     <section className="py-20 bg-content2 relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">
+          <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-normal">
             Отзывы наших клиентов
           </h2>
           <p className="mt-4 text-muted-foreground font-medium max-w-xl mx-auto">
@@ -25,7 +25,7 @@ export function Reviews() {
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
               <div className="flex gap-1 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className={`w-4 h-4 ${star <= r.stars ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
+                  <Star key={star} className={`w-4 h-4 ${star <= r.stars ? 'text-warning fill-warning' : 'text-border'}`} />
                 ))}
               </div>
               <p className="text-foreground font-medium mb-6 leading-relaxed relative z-10">

@@ -10,6 +10,8 @@ import { mutateLink, getLinkValidator } from "@/validators/link-mutators";
 import { formatCents } from "@/lib/utils";
 import { orderFormSchema } from "@/validators/order.validators";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
+import { inferTargetTypeFromCategory } from "@/utils/target-type";
+import { toast } from "sonner";
 
 export type OrderEngine = ReturnType<typeof useOrderEngine>;
 
@@ -30,8 +32,10 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [quantity, setQuantity] = useState(100);
   const [email, setEmail] = useState(initialEmail);
   const [customData, setCustomData] = useState("");
+  const [mediaGroupUrl, setMediaGroupUrl] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [isLinkOverridden, setIsLinkOverridden] = useState(false);
   
   // Drip-feed states
   const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
@@ -64,8 +68,30 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [isCalculating, setIsCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [urlMutatedTrigger, setUrlMutatedTrigger] = useState(false);
+
+
+  const handleSetUrl = useCallback((newUrl: string) => {
+    setUrl(newUrl);
+    setIsLinkOverridden(false);
+    if (!newUrl) {
+      setValidationErrors(prev => {
+        const { link, ...rest } = prev;
+        return rest;
+      });
+    }
+  }, []);
+
+  const handleSetManualPlatform = useCallback((p: IntelligencePlatform | null) => {
+    setManualPlatform(p);
+    if (p !== null) {
+      setSuggestedCategories([]);
+    }
+  }, []);
 
   const hasFetchedCatalog = useRef(false);
+  const lastPlatformRef = useRef<IntelligencePlatform | null>(null);
+  const lastManualPlatformRef = useRef<IntelligencePlatform | null>(null);
 
   // 1. Initial Catalog Load (if not provided)
   useEffect(() => {
@@ -115,18 +141,22 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
         
         // Auto-select network
         if (activePlatformStr) {
-          const matchedNet = catalog.find(n => n.slug.includes(activePlatformStr) || activePlatformStr.includes(n.slug));
+          const matchedNet = catalog.find(n => n.slug.toLowerCase().includes(activePlatformStr) || activePlatformStr.includes(n.slug.toLowerCase()));
           if (matchedNet) {
-             setNetworkId(matchedNet.id);
-             // Auto-select first category in that network if exist and match suggested filter
-             const catsForNet = matchedNet.categories;
-             let filteredCats = catsForNet;
-             if (res.data.suggestedCategories && res.data.suggestedCategories.length > 0) {
-                 const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, res.data.suggestedCategories));
-                 if (f.length > 0) filteredCats = f;
-             }
-             if (filteredCats.length > 0) {
-               setCategoryId(filteredCats[0].id);
+             // Only auto-select or override if the network has actually changed OR the user has not selected a service yet.
+             // This protects manual selections from background URL debounced refetches/resets.
+             if (matchedNet.id !== networkId || !selectedService) {
+                setNetworkId(matchedNet.id);
+                // Auto-select first category in that network if exist and match suggested filter
+                const catsForNet = matchedNet.categories;
+                let filteredCats = catsForNet;
+                if (res.data.suggestedCategories && res.data.suggestedCategories.length > 0) {
+                    const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, res.data.suggestedCategories));
+                    if (f.length > 0) filteredCats = f;
+                }
+                if (filteredCats.length > 0) {
+                   setCategoryId(filteredCats[0].id);
+                }
              }
           }
         }
@@ -137,33 +167,49 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     return () => clearTimeout(handler);
   }, [url, catalog]);
 
-  // 2.5 Auto-select network on manual platform override selection
+  // 2.5 Auto-select network on platform or manual platform changes/catalog loads
   useEffect(() => {
-    if (manualPlatform && manualPlatform !== IntelligencePlatform.OTHER) {
-      const activePlatformStr = manualPlatform.toLowerCase();
-      const matchedNet = catalog.find(n => n.slug.includes(activePlatformStr) || activePlatformStr.includes(n.slug));
+    const activePlatform = platform || manualPlatform;
+    const platformChanged = platform !== lastPlatformRef.current || manualPlatform !== lastManualPlatformRef.current;
+    const catalogJustLoaded = catalog.length > 0 && lastPlatformRef.current === null && lastManualPlatformRef.current === null;
+    
+    lastPlatformRef.current = platform;
+    lastManualPlatformRef.current = manualPlatform;
+
+    if ((platformChanged || catalogJustLoaded) && activePlatform && activePlatform !== IntelligencePlatform.OTHER && catalog.length > 0) {
+      const activePlatformStr = activePlatform.toLowerCase();
+      const matchedNet = catalog.find(n => n.slug.toLowerCase().includes(activePlatformStr) || activePlatformStr.includes(n.slug.toLowerCase()));
       if (matchedNet) {
         setNetworkId(matchedNet.id);
         const catsForNet = matchedNet.categories;
-        if (catsForNet.length > 0) {
-          setCategoryId(catsForNet[0].id);
+        let filteredCats = catsForNet;
+        if (suggestedCategories.length > 0) {
+          const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, suggestedCategories));
+          if (f.length > 0) filteredCats = f;
+        }
+        if (filteredCats.length > 0) {
+          if (!categoryId || !catsForNet.some(c => c.id === categoryId)) {
+            setCategoryId(filteredCats[0].id);
+          }
         }
       }
     }
-  }, [manualPlatform, catalog]);
+  }, [platform, manualPlatform, catalog, suggestedCategories, categoryId]);
 
   // Handle cascaded selections (Network -> Category) manually
   useEffect(() => {
-     if (networkId) {
+     if (networkId && catalog.length > 0) {
+        // Reset media group URL when switching networks
+        setMediaGroupUrl("");
         const net = catalog.find(n => n.id === networkId);
         if (net) {
-           let catsForNet = net.categories;
-           if (suggestedCategories.length > 0) {
-              const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, suggestedCategories));
-              if (f.length > 0) catsForNet = f;
-           }
-           if (catsForNet.length > 0 && !catsForNet.some(c => c.id === categoryId)) {
-              setCategoryId(catsForNet[0].id);
+           const catsForNet = net.categories;
+           const matchedCats = suggestedCategories.length > 0
+              ? catsForNet.filter(c => matchesSuggestedCategory(c.name, suggestedCategories))
+              : [];
+           const availableCats = matchedCats.length > 0 ? matchedCats : catsForNet;
+           if (availableCats.length > 0 && !availableCats.some(c => c.id === categoryId)) {
+              setCategoryId(availableCats[0].id);
            }
         }
      }
@@ -171,9 +217,11 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
 
   // 3. Load Services when Category changes
   useEffect(() => {
+    // Clear instantly to prevent loading latency & mismatched state
+    setServices([]);
+    setSelectedService(null);
+
     if (!categoryId) {
-      setServices([]);
-      setSelectedService(null);
       setDripFeedEnabled(false);
       setRuns(2);
       setDripInterval(5);
@@ -196,14 +244,9 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
 
       setServices(sortedSvcs);
       
-      // When category changes, auto-select the first HEALTHY service
-      if (sortedSvcs.length > 0) {
-        // Find the first service that is not in cooldown
-        const healthyService = sortedSvcs.find(s => !s.cooldownUntil || new Date(s.cooldownUntil) <= new Date());
-        setSelectedService(healthyService || sortedSvcs[0]);
-      } else {
-        setSelectedService(null);
-      }
+      // WAVE 5 UX: Completely disable automatic service pre-selection on category change.
+      // The user must explicitly read and click to choose a service card.
+      setSelectedService(null);
       setIsLoading(false);
     };
 
@@ -217,6 +260,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       setDripFeedEnabled(false);
       setRuns(2);
       setDripInterval(5);
+      setIsLinkOverridden(false);
     }
   }, [selectedService]);
 
@@ -295,12 +339,20 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     let currentUrl = url;
 
     // Advanced Link Validation & Mutation
-    if (selectedService && platform && platform !== IntelligencePlatform.OTHER) {
-       const targetType = selectedService.targetType || 'POST';
-       const cleanUrl = mutateLink(currentUrl, platform, targetType);
+    const currentNetwork = catalog.find(n => n.id === networkId);
+    const activePlatform = currentNetwork?.slug || platform || manualPlatform || '';
+    if (selectedService && activePlatform) {
+       const activeCat = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
+       const targetType = selectedService.targetType === 'POST'
+         ? inferTargetTypeFromCategory(activeCat?.name)
+         : (selectedService.targetType || inferTargetTypeFromCategory(activeCat?.name));
+       const cleanUrl = mutateLink(currentUrl, activePlatform, targetType);
        if (cleanUrl !== currentUrl) {
            currentUrl = cleanUrl;
            setUrl(cleanUrl);
+           toast.success('Ссылка автоматически скорректирована под выбранный тип услуги!');
+           setUrlMutatedTrigger(true);
+           setTimeout(() => setUrlMutatedTrigger(false), 2000);
        }
     }
 
@@ -321,9 +373,12 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     }
 
     // Override generic URL error with strict targetType error if applicable
-    if (selectedService && platform && platform !== IntelligencePlatform.OTHER) {
-       const targetType = selectedService.targetType || 'POST';
-       const validator = getLinkValidator(platform, targetType);
+    if (selectedService && activePlatform) {
+       const activeCat2 = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
+       const targetType = selectedService.targetType === 'POST'
+         ? inferTargetTypeFromCategory(activeCat2?.name)
+         : (selectedService.targetType || inferTargetTypeFromCategory(activeCat2?.name));
+       const validator = getLinkValidator(activePlatform, targetType);
        const linkResult = validator.safeParse(currentUrl);
        
        if (!linkResult.success) {
@@ -341,61 +396,65 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   }, [url, quantity, email, selectedService, customData, agreedToTerms, platform]);
 
   // Helper getters
+  const mediaGroupMultiplier = mediaGroupUrl.trim().length > 5 ? 2 : 1;
   const totalPriceFormatted = pricing 
-    ? formatCents(pricing.totalCents) 
+    ? formatCents(pricing.totalCents * mediaGroupMultiplier) 
     : formatCents(0); // REQUIRED BY PROTOCOL: Draw 0.00 RUB if empty
 
   const activeNetwork = catalog.find(n => n.id === networkId) || catalog[0] || null;
   let availableCategories = activeNetwork ? activeNetwork.categories : [];
   
   // Restore aggressive filtering to prevent users from ordering Post services (like Reactions) for a Profile link.
-  if (suggestedCategories.length > 0) {
+  // Apply suggestedCategories filter ONLY when the selected networkId matches the auto-detected platform to prevent empty panels when switching.
+  const activePlatform = manualPlatform || platform;
+  const isMatchingAutodetected = activeNetwork && activePlatform && activePlatform !== IntelligencePlatform.OTHER && activeNetwork.slug.toLowerCase().includes(activePlatform.toLowerCase());
+
+  if (isMatchingAutodetected && suggestedCategories.length > 0) {
     const filteredCats = availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories));
     if (filteredCats.length > 0) {
       availableCategories = filteredCats;
     }
   }
-  const activePlatform = platform || manualPlatform;
-  let displayCatalog = catalog;
-  if (activePlatform && activePlatform !== IntelligencePlatform.OTHER) {
-    const pStr = activePlatform.toLowerCase();
-    const filteredNets = catalog.filter(n => n.slug.includes(pStr) || pStr.includes(n.slug));
-    if (filteredNets.length > 0) displayCatalog = filteredNets;
-  }
+  
+  const displayCatalog = catalog;
 
   return {
     // State
-    url, setUrl,
+    url, setUrl: handleSetUrl,
     networkId, setNetworkId,
     categoryId, setCategoryId,
     selectedService, setSelectedService,
     quantity, setQuantity,
     email, setEmail,
     customData, setCustomData,
+    mediaGroupUrl, setMediaGroupUrl,
     promoCode, setPromoCode,
     agreedToTerms, setAgreedToTerms,
+    isLinkOverridden, setIsLinkOverridden,
     
     // Drip-feed
     dripFeedEnabled, setDripFeedEnabled,
     runs, setRuns,
     dripInterval, setDripInterval,
     
-    // Data
     platform,
     manualPlatform,
-    setManualPlatform,
+    setManualPlatform: handleSetManualPlatform,
     catalog: displayCatalog,
+    unfilteredCatalog: catalog,
     availableCategories,
     services,
     pricing,
     pricingError,
     totalPriceFormatted,
+    mediaGroupMultiplier,
     
     // Status
     isLoading,
     isCalculating,
     error,
     validationErrors,
+    urlMutatedTrigger,
     
     // Mass Mode
     isMassMode,

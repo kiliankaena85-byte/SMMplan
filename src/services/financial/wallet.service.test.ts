@@ -37,6 +37,7 @@ describe('WalletService', () => {
         const tx = {
           ledgerEntry: {
             findUnique: vi.fn().mockResolvedValueOnce(null),
+            findFirst: vi.fn().mockResolvedValueOnce(null),
             create: vi.fn().mockResolvedValueOnce({ id: 'entry1' })
           },
           user: {
@@ -58,6 +59,7 @@ describe('WalletService', () => {
         const tx = {
           ledgerEntry: {
             findUnique: vi.fn().mockResolvedValueOnce({ id: 'entry1', idempotencyKey: 'idemp_key1' }),
+            findFirst: vi.fn().mockResolvedValueOnce({ id: 'entry1', idempotencyKey: 'idemp_key1' }),
           }
         };
         return cb(tx);
@@ -72,7 +74,7 @@ describe('WalletService', () => {
     it('throws inside transaction if user not found', async () => {
       vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
         const tx = {
-          ledgerEntry: { findUnique: vi.fn().mockResolvedValueOnce(null) },
+          ledgerEntry: { findUnique: vi.fn().mockResolvedValueOnce(null), findFirst: vi.fn().mockResolvedValueOnce(null) },
           user: {
             updateMany: vi.fn().mockResolvedValueOnce({ count: 0 }),
             findUnique: vi.fn().mockResolvedValueOnce(null)
@@ -89,7 +91,7 @@ describe('WalletService', () => {
     it('throws inside transaction if insufficient funds', async () => {
       vi.mocked(db.$transaction).mockImplementationOnce(async (cb: any) => {
         const tx = {
-          ledgerEntry: { findUnique: vi.fn().mockResolvedValueOnce(null) },
+          ledgerEntry: { findUnique: vi.fn().mockResolvedValueOnce(null), findFirst: vi.fn().mockResolvedValueOnce(null) },
           user: {
             updateMany: vi.fn().mockResolvedValueOnce({ count: 0 }),
             findUnique: vi.fn().mockResolvedValueOnce({ id: 'user1', balance: 50 })
@@ -124,6 +126,7 @@ describe('WalletService', () => {
         const tx = {
           ledgerEntry: {
             findUnique: vi.fn().mockResolvedValueOnce(null),
+            findFirst: vi.fn().mockResolvedValueOnce(null),
             create: vi.fn().mockResolvedValueOnce({ id: 'entry2' })
           },
           user: {
@@ -144,6 +147,7 @@ describe('WalletService', () => {
         const tx = {
           ledgerEntry: {
             findUnique: vi.fn().mockResolvedValueOnce({ id: 'entry1', idempotencyKey: 'idemp_key2' }),
+            findFirst: vi.fn().mockResolvedValueOnce({ id: 'entry1', idempotencyKey: 'idemp_key2' }),
           }
         };
         return cb(tx);

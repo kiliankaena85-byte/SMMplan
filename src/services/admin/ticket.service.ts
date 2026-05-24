@@ -117,6 +117,16 @@ class AdminTicketService {
     const ticket = await db.ticket.findUnique({
       where: { id: ticketId },
       include: {
+        order: {
+          select: {
+            id: true,
+            numericId: true,
+            status: true,
+            charge: true,
+            createdAt: true,
+            service: { select: { name: true } },
+          }
+        },
         user: {
           select: {
             id: true,
@@ -152,7 +162,20 @@ class AdminTicketService {
         messages: { 
           orderBy: { createdAt: 'desc' },
           take: 51,
-          include: { replyTo: true, attachments: true }
+          include: { 
+            replyTo: true, 
+            attachments: true,
+            order: {
+              select: {
+                id: true,
+                numericId: true,
+                status: true,
+                charge: true,
+                createdAt: true,
+                service: { select: { name: true } },
+              }
+            }
+          }
         },
       },
     });
@@ -168,7 +191,20 @@ class AdminTicketService {
         messages: {
           orderBy: { createdAt: 'desc' }, // Get newest first
           take: 15, // Limit to 15 per ticket to prevent DOM OOM
-          include: { replyTo: true, attachments: true }
+          include: { 
+            replyTo: true, 
+            attachments: true,
+            order: {
+              select: {
+                id: true,
+                numericId: true,
+                status: true,
+                charge: true,
+                createdAt: true,
+                service: { select: { name: true } },
+              }
+            }
+          }
         }
       }
     });
@@ -192,6 +228,15 @@ class AdminTicketService {
       isDeleted: m.isDeleted,
       isEdited: m.isEdited,
       originalText: m.originalText,
+      orderId: m.orderId,
+      order: m.order ? {
+        id: m.order.id,
+        numericId: m.order.numericId,
+        status: m.order.status,
+        charge: Number(m.order.charge),
+        createdAt: m.order.createdAt.toISOString(),
+        serviceName: m.order.service?.name || 'Услуга'
+      } : null,
       replyTo: m.replyTo ? {
         id: m.replyTo.id,
         text: m.replyTo.text,
@@ -236,6 +281,15 @@ class AdminTicketService {
       subject: ticket.subject,
       status: ticket.status,
       source: ticket.source,
+      orderId: ticket.orderId,
+      order: ticket.order ? {
+        id: ticket.order.id,
+        numericId: ticket.order.numericId,
+        status: ticket.order.status,
+        charge: Number(ticket.order.charge),
+        createdAt: ticket.order.createdAt.toISOString(),
+        serviceName: ticket.order.service?.name || 'Услуга'
+      } : null,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
       nextCursor,

@@ -2,13 +2,28 @@ import { Worker } from 'bullmq';
 import { getRedisConnection } from '../lib/queue-manager';
 import { db } from '../lib/db';
 import { logger } from '../lib/logger';
-import { ensureSyncCron, ensureCleanupCron, ensureETACron, ensureCatalogSyncCron, ensureOrphanSweepCron, dlqQueue, cleanupQueue, telegramQueue, etaQueue } from '../lib/queue-manager';
+import { 
+  ensureSyncCron, 
+  ensureCleanupCron, 
+  ensureETACron, 
+  ensureCatalogSyncCron, 
+  ensureOrphanSweepCron, 
+  ensurePaymentSyncCron, 
+  dlqQueue, 
+  cleanupQueue, 
+  telegramQueue, 
+  etaQueue,
+  paymentSyncQueue,
+  refillQueue
+} from '../lib/queue-manager';
 import { sendAdminAlert, sendAdminAlertSync } from '../lib/notifications';
 import orderProcessor from './processors/order.processor';
 import syncProcessor from './processors/sync.processor';
 import { runCleanup, runOrphanSweep } from './processors/cleanup.processor';
 import { runETARecalculation } from './processors/eta.processor';
 import catalogProcessor from './processors/catalog.processor';
+import paymentSyncProcessor from './processors/payment-sync';
+import refillProcessor from './processors/refill.processor';
 import { orderService } from '../services/core/order.service';
 
 const log = logger.child({ component: 'WorkerManager' });
@@ -44,6 +59,8 @@ const telegramWorker = new Worker('telegram-notifications', async (job) => {
   }
 });
 const etaWorker = new Worker('eta-recalc', async () => { await runETARecalculation(); }, workerConfig);
+const paymentSyncWorker = new Worker('paymentSyncQueue', paymentSyncProcessor, workerConfig);
+const refillWorker = new Worker('refillQueue', refillProcessor, workerConfig);
 
 // ── P2.1: DLQ — Dead Letter Queue handler ────────────────────────────────────
 const MAX_ATTEMPTS = 3; // Must match createQueue defaults
@@ -89,6 +106,17 @@ async function handleDeadLetter(
         }
       }
 
+      if (queueName === 'refillQueue') {
+        const payload = job.data as any;
+        if (payload?.refillId) {
+          await db.refill.update({
+            where: { id: payload.refillId },
+            data: { status: 'ERROR' }
+          });
+          log.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
+        }
+      }
+
       await sendAdminAlert(
         `🪦 *Dead Letter Job*\n\nQueue: \`${queueName}\`\nJob ID: \`${job.id}\`\nAttempts: ${job.attemptsMade}/${maxAttempts}\n\nError: ${err.message}`,
         'CRITICAL'
@@ -106,6 +134,8 @@ syncWorker.on('failed', (job, err) => { handleDeadLetter('syncQueue', job, err);
 catalogWorker.on('failed', (job, err) => { handleDeadLetter('catalogQueue', job, err); });
 cleanupWorker.on('failed', (job, err) => { log.error('Cleanup job failed', { error: err.message }); });
 telegramWorker.on('failed', (job, err) => { log.error('Telegram notification failed', { error: err.message }); });
+paymentSyncWorker.on('failed', (job, err) => { handleDeadLetter('paymentSyncQueue', job, err); });
+refillWorker.on('failed', (job, err) => { handleDeadLetter('refillQueue', job, err); });
 
 // ── P0.3: Worker heartbeat (Redis key, renewed every 60s) ─────────────────────
 // health endpoint checks for this key; if missing → worker is down
@@ -129,8 +159,9 @@ ensureCleanupCron().catch(e => log.error('Failed to setup Cleanup Cron', { error
 ensureETACron().catch(e => log.error('Failed to setup ETA Cron', { error: (e as Error).message }));
 ensureCatalogSyncCron().catch(e => log.error('Failed to setup Catalog Sync Cron', { error: (e as Error).message }));
 ensureOrphanSweepCron().catch(e => log.error('Failed to setup Orphan Sweep Cron', { error: (e as Error).message }));
+ensurePaymentSyncCron().catch(e => log.error('Failed to setup Payment Sync Cron', { error: (e as Error).message }));
 
-log.info('All workers started', { queues: ['ordersQueue', 'syncQueue', 'catalogQueue', 'cleanup'] });
+log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue'] });
 
 // ── Graceful Shutdown (12-Factor App) ────────────────────────────────────────
 const shutdown = async () => {
@@ -139,11 +170,13 @@ const shutdown = async () => {
   await connection.del(HEARTBEAT_KEY); // Remove heartbeat on clean shutdown
   await Promise.all([
     orderWorker.close(),
+    refillWorker.close(),
     syncWorker.close(),
     catalogWorker.close(),
     cleanupWorker.close(),
     telegramWorker.close(),
     etaWorker.close(),
+    paymentSyncWorker.close(),
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();

@@ -315,6 +315,14 @@ export class PaymentService {
             }
 
         }
+
+        if (!payment.orderId && basketOrders.length === 0) {
+          // Direct top-up (Deposit) - Increment User Balance securely!
+          await WalletOps.credit(tx, payment.userId, Number(payment.amount),
+            `Пополнение баланса через yookassa`,
+            { idempotencyKey: `deposit-${paymentId}` }
+          );
+        }
       });
 
       revalidatePath('/dashboard', 'layout');

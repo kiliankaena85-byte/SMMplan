@@ -49,17 +49,36 @@ const PAYMENT_STATUS_MAP: Record<string, { label: string, color: string }> = {
 
 import { requestTelegramBind, adminManualTelegramBind } from '@/actions/support/ticket';
 
-export default function ClientProfileSidebar({ user, ticketId }: { user: ClientProfileData, ticketId: string }) {
+export default function ClientProfileSidebar({ 
+  user, 
+  ticketId,
+  supportLimitCents,
+  supportSpentTodayCents,
+  onClose,
+  isMobile
+}: { 
+  user: ClientProfileData; 
+  ticketId: string;
+  supportLimitCents?: number;
+  supportSpentTodayCents?: number;
+  onClose?: () => void;
+  isMobile?: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(true);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [emailVal, setEmailVal] = useState('');
 
   if (!isOpen) {
     return (
-      <div className="h-full flex items-center justify-center shrink-0 border-l border-border bg-card rounded-xl w-12 transition-all">
+      <div className="h-full flex items-center justify-center shrink-0 border-l border-warm-border bg-warm-card rounded-xl w-12 transition-all">
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            if (onClose) onClose();
+            else setIsOpen(true);
+          }}
           aria-label="Показать профиль клиента"
-          className="w-8 h-8 rounded-full bg-muted hover:bg-primary/10 text-muted-foreground hover:text-primary flex items-center justify-center transition-all duration-200"
+          className="min-w-[44px] min-h-[44px] rounded-full bg-warm-zinc hover:bg-warm-accent/10 text-warm-text hover:text-warm-accent flex items-center justify-center transition-all duration-200 cursor-pointer"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -68,21 +87,24 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
   }
 
   return (
-    <div className="w-[340px] shrink-0 h-full bg-card border border-border rounded-xl flex flex-col relative animate-in slide-in-from-right-8 duration-300">
+    <div className="w-[340px] shrink-0 h-full bg-warm-card border border-warm-border rounded-xl flex flex-col relative animate-in slide-in-from-right-8 duration-300">
       <button
-        onClick={() => setIsOpen(false)}
+        onClick={() => {
+          if (onClose) onClose();
+          else setIsOpen(false);
+        }}
         aria-label="Скрыть панель профиля"
-        className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground flex items-center justify-center transition-all duration-200"
+        className="absolute top-4 right-4 z-10 min-w-[44px] min-h-[44px] rounded-full bg-warm-zinc hover:bg-warm-border text-warm-text flex items-center justify-center transition-all duration-200 cursor-pointer"
       >
         <ChevronRight className="w-4 h-4" />
       </button>
 
       {/* Profile header */}
-      <div className="p-5 border-b border-border flex flex-col items-center text-center">
-        <div className="w-14 h-14 rounded-full bg-primary/10 border-2 border-primary/20 text-primary flex items-center justify-center mb-3 text-lg font-bold uppercase">
+      <div className="p-5 border-b border-warm-border flex flex-col items-center text-center">
+        <div className="w-14 h-14 rounded-full bg-warm-accent/10 border-2 border-warm-accent/20 text-warm-accent flex items-center justify-center mb-3 text-lg font-bold uppercase">
           {user.email.substring(0, 2)}
         </div>
-        <h3 className="font-bold text-foreground mb-1 truncate w-full px-2 text-sm" title={user.email}>
+        <h3 className="font-bold text-warm-text mb-1 truncate w-full px-2 text-sm" title={user.email}>
           {user.email}
         </h3>
         {user.email.startsWith('tg_') && (
@@ -106,29 +128,82 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
             </div>
             <div className="border-t border-amber-500/20 pt-2 text-left">
               <p className="mb-1 text-[9px] uppercase tracking-wider font-bold opacity-80">Или привязать вручную:</p>
-              <div className="flex gap-1 mt-1">
-                <input 
-                  type="email" 
-                  id="manual-bind-email"
-                  disabled={isPending}
-                  placeholder="email@client.ru" 
-                  className="flex-1 bg-card border border-amber-500/30 rounded px-2 py-1 outline-none text-slate-800" 
-                />
-                <button 
-                  disabled={isPending}
-                  onClick={() => startTransition(async () => {
-                    const email = (document.getElementById('manual-bind-email') as HTMLInputElement)?.value;
-                    if (!email) return;
-                    const fd = new FormData();
-                    fd.set('ticketId', ticketId);
-                    fd.set('targetEmail', email);
-                    await adminManualTelegramBind(fd);
-                  })}
-                  className="bg-warning hover:bg-amber-600 text-primary-foreground px-2 py-1 rounded font-bold transition-colors disabled:opacity-50"
-                >
-                  OK
-                </button>
-              </div>
+              {!previewData ? (
+                <div className="flex gap-1 mt-1">
+                  <input 
+                    type="email" 
+                    value={emailVal}
+                    onChange={(e) => setEmailVal(e.target.value)}
+                    disabled={isPending}
+                    placeholder="email@client.ru" 
+                    className="flex-1 bg-card border border-amber-500/30 rounded px-2 py-1 outline-none text-slate-800 text-[11px]" 
+                  />
+                  <button 
+                    id="manual-bind-submit"
+                    disabled={isPending}
+                    onClick={() => startTransition(async () => {
+                      if (!emailVal) {
+                        console.warn('[Sidebar] Email field is empty');
+                        return;
+                      }
+                      const fd = new FormData();
+                      fd.set('ticketId', ticketId);
+                      fd.set('targetEmail', emailVal);
+                      console.info('[Sidebar] Calling adminManualTelegramBind with email:', emailVal);
+                      // Safe type cast to resolve the requireStaffPermission wrapper union type
+                      const res = (await adminManualTelegramBind(fd)) as { preview?: boolean; data?: any; success?: boolean };
+                      console.info('[Sidebar] adminManualTelegramBind result Step 1:', JSON.stringify(res));
+                      if (res && res.preview) {
+                        setPreviewData(res.data);
+                      } else if (res && res.success) {
+                        setPreviewData(null);
+                        setEmailVal('');
+                      }
+                    })}
+                    className="bg-warning hover:bg-amber-600 text-primary-foreground px-2 py-1 rounded font-bold transition-colors disabled:opacity-50"
+                  >
+                    OK
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-1 bg-warning/20 border border-warning/40 rounded p-2 text-[10px]">
+                  <p className="font-bold text-amber-700 mb-1">Подтвердите слияние:</p>
+                  <ul className="list-disc pl-3 mb-2 text-slate-700 space-y-0.5">
+                    <li>Врем. заказов: <b>{previewData.tempUserOrders}</b></li>
+                    <li>Цель: <b>{previewData.targetEmail}</b></li>
+                    <li>Баланс цели: <b>{previewData.targetBalance} ₽</b></li>
+                  </ul>
+                  <div className="flex gap-1">
+                    <button
+                      disabled={isPending}
+                      onClick={() => setPreviewData(null)}
+                      className="flex-1 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold transition-colors text-center"
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      id="manual-bind-confirm"
+                      disabled={isPending}
+                      onClick={() => startTransition(async () => {
+                        const fd = new FormData();
+                        fd.set('ticketId', ticketId);
+                        fd.set('targetEmail', previewData.targetEmail);
+                        fd.set('confirm', 'true');
+                        console.info('[Sidebar] Confirming adminManualTelegramBind with email:', previewData.targetEmail);
+                        const res = await adminManualTelegramBind(fd);
+                        console.info('[Sidebar] adminManualTelegramBind result Step 2:', JSON.stringify(res));
+                        if (res && res.success) {
+                          setPreviewData(null);
+                          setEmailVal('');
+                        }
+                      })}
+                      className="flex-1 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition-colors text-center"
+                    >
+                      Слить
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -137,22 +212,38 @@ export default function ClientProfileSidebar({ user, ticketId }: { user: ClientP
         </p>
 
         <div className="flex w-full gap-2">
-          <div className="flex-1 bg-muted/40 rounded-xl p-3 border border-border">
+          <div className="flex-1 bg-warm-zinc/45 rounded-xl p-3 border border-warm-border">
             <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Баланс</div>
             <div className="font-bold text-emerald-600 text-sm">{formatBalance(user.balance)}</div>
           </div>
-          <div className="flex-1 bg-muted/40 rounded-xl p-3 border border-border">
+          <div className="flex-1 bg-warm-zinc/45 rounded-xl p-3 border border-warm-border">
             <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">LTV</div>
-            <div className="font-bold text-foreground text-sm">{formatBalance(user.totalSpent)}</div>
+            <div className="font-bold text-warm-text text-sm">{formatBalance(user.totalSpent)}</div>
           </div>
         </div>
+
+        {supportLimitCents !== undefined && (
+          <div className="w-full mt-3 p-3 bg-warm-accent/5 border border-warm-accent/10 rounded-xl space-y-2 text-left">
+            <div className="text-[10px] font-bold text-warm-accent uppercase tracking-wider">Лимиты поддержки</div>
+            <div className="flex justify-between text-xs leading-normal">
+              <span className="text-muted-foreground">Доступно лимита:</span>
+              <span className="font-bold text-warm-text">{(supportLimitCents / 100).toFixed(2)} ₽</span>
+            </div>
+            {supportSpentTodayCents !== undefined && (
+              <div className="flex justify-between text-xs leading-normal">
+                <span className="text-muted-foreground">Потрачено сегодня:</span>
+                <span className="font-bold text-warm-text">{(supportSpentTodayCents / 100).toFixed(2)} ₽</span>
+              </div>
+            )}
+          </div>
+        )}
 
         <Link
           href={`/admin/clients/${user.id}`}
           aria-label="Открыть полный профиль клиента"
-          className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border bg-background text-foreground hover:bg-muted transition-all duration-200"
+          className="mt-3 w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-warm-border bg-warm-card text-warm-text hover:bg-warm-zinc transition-all duration-200 cursor-pointer"
         >
-          <User className="w-3.5 h-3.5" /> В профиль клиента
+          <User className="w-3.5 h-3.5 text-warm-accent" /> В профиль клиента
         </Link>
       </div>
 

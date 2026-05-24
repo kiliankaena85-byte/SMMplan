@@ -8,6 +8,10 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
   const { networkId, setNetworkId, catalog } = engine;
   const [showAllNetworks, setShowAllNetworks] = useState(false);
 
+  if (catalog.length === 0) {
+    return null;
+  }
+
   const DEFAULT_TOP = useMemo(() => ['telegram', 'vk', 'instagram', 'youtube', 'tiktok', 'twitch'], []);
   const [topSlugs, setTopSlugs] = useState<string[]>(DEFAULT_TOP);
 
@@ -92,9 +96,17 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
                 }`} 
               />
               <span className={`z-10 tracking-tight whitespace-nowrap transition-colors duration-200 ${
-                isActive ? 'text-primary-foreground font-bold text-xs' : 'text-muted-foreground group-hover:text-foreground'
+                isActive ? 'text-primary-foreground font-bold text-xs' : 'text-muted-foreground group-hover:text-foreground text-[10px]'
               }`}>
-                {isActive ? net.name : net.slug.length <= 3 ? net.slug.toUpperCase() : net.slug.charAt(0).toUpperCase() + net.slug.slice(1, 4)}
+                {isActive 
+                  ? net.name 
+                  : net.slug.toLowerCase() === 'instagram' ? 'Insta'
+                  : net.slug.toLowerCase() === 'youtube' ? 'YouTube'
+                  : net.slug.toLowerCase() === 'tiktok' ? 'TikTok'
+                  : net.slug.toLowerCase() === 'telegram' ? 'Telegram'
+                  : net.slug.toLowerCase() === 'vk' ? 'VK'
+                  : net.slug.toLowerCase() === 'twitch' ? 'Twitch'
+                  : net.slug.length <= 3 ? net.slug.toUpperCase() : net.slug.charAt(0).toUpperCase() + net.slug.slice(1)}
               </span>
             </button>
           );

@@ -1,7 +1,12 @@
 import React, { useState } from "react";
-import { Zap, Info, HelpCircle } from "lucide-react";
+import { Zap, Info, HelpCircle, CheckCircle2, Unlock } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { VisualLinkGuideModal } from "./VisualLinkGuideModal";
+import { getLinkValidator } from "@/validators/link-mutators";
+import { inferTargetTypeFromCategory } from "@/utils/target-type";
+import { IntelligencePlatform } from "@/services/analyzer/link-rules";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface DynamicPayloadWarningsProps {
   engine: OrderEngine;
@@ -25,7 +30,7 @@ export function DynamicPayloadWarnings({ engine }: DynamicPayloadWarningsProps) 
   // --- WAVE 4.2 CROSS-PLATFORM MISMATCH PROTECTION ---
   let isMismatch = false;
   let activeNetworkName = "";
-  if (engine.platform && engine.networkId) {
+  if (!engine.isLinkOverridden && engine.platform && engine.networkId) {
     const activeNetwork = engine.catalog.find(n => n.id === engine.networkId);
     if (activeNetwork) {
       const detectedPlatform = engine.platform.toLowerCase();
@@ -36,17 +41,48 @@ export function DynamicPayloadWarnings({ engine }: DynamicPayloadWarningsProps) 
       }
     }
   }
-  // --- TELEGRAM MEDIA GROUP HINT (Views only) ---
+
+  // --- STRICT ZOD VALIDATION CHECK FOR DYNAMIC OVERRIDE ---
+  const activePlatform = engine.platform || engine.manualPlatform;
   const activeNetwork = engine.catalog.find(n => n.id === engine.networkId);
+  const selectedPlatformSlug = activeNetwork?.slug?.toUpperCase() || "";
+  
+  const validationPlatform = (activePlatform && activePlatform !== IntelligencePlatform.OTHER)
+    ? activePlatform
+    : selectedPlatformSlug;
+
+  let validationMessage: string | null = null;
+  
+  if (engine.url.trim().length > 3 && selectedService && validationPlatform) {
+    const activeCatForVal = engine.catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
+    const targetType = selectedService.targetType === 'POST'
+      ? inferTargetTypeFromCategory(activeCatForVal?.name)
+      : (selectedService.targetType || inferTargetTypeFromCategory(activeCatForVal?.name));
+    
+    try {
+      const validator = getLinkValidator(validationPlatform, targetType);
+      const linkResult = validator.safeParse(engine.url);
+      if (!linkResult.success) {
+        validationMessage = linkResult.error.errors[0].message;
+      }
+    } catch (e) {
+      // safe fallback
+    }
+  }
+  // --- TELEGRAM MEDIA GROUP HINT (Views only, excluding auto-views and future views) ---
   const activeCategory = activeNetwork?.categories.find(c => c.id === engine.categoryId);
   const isTelegramViews = activeNetwork?.slug?.toLowerCase() === 'telegram'
-    && activeCategory?.name?.toLowerCase().includes('просмотр');
+    && activeCategory?.name?.toLowerCase().includes('просмотр')
+    && !activeCategory?.name?.toLowerCase().includes('авто')
+    && !activeCategory?.name?.toLowerCase().includes('auto')
+    && !activeCategory?.name?.toLowerCase().includes('будущ')
+    && selectedService?.targetType !== 'CHANNEL';
 
   const urlLower = engine.url.toLowerCase();
   const isPrivateTelegramPost = urlLower.includes('t.me/c/') || urlLower.includes('telegram.me/c/');
   const isVkPhotoOrVideo = urlLower.includes('vk.com/photo') || urlLower.includes('vk.com/video') || urlLower.includes('vk.ru/photo') || urlLower.includes('vk.ru/video') || urlLower.includes('vkvideo.ru/');
 
-  if (!customFieldLabel && !isLiveStream && !isPrivateChannel && !isMismatch && !isTelegramViews && !isPrivateTelegramPost && !isVkPhotoOrVideo) return null;
+  if (!validationMessage && !engine.isLinkOverridden && !customFieldLabel && !isLiveStream && !isPrivateChannel && !isMismatch && !isTelegramViews && !isPrivateTelegramPost && !isVkPhotoOrVideo) return null;
 
   return (
     <div className="bg-background/50 p-6 md:px-8 flex flex-col gap-4">
@@ -158,7 +194,57 @@ export function DynamicPayloadWarnings({ engine }: DynamicPayloadWarningsProps) 
         </div>
       )}
       
-      <VisualLinkGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+      {validationMessage && (
+        <div className="w-full bg-warning/10 border border-warning/20 text-warning rounded-xl p-4 flex flex-col gap-3 shadow-sm">
+          <div className="flex items-start gap-3">
+            <Zap className="w-5 h-5 shrink-0 mt-0.5 text-warning animate-pulse" />
+            <div className="text-sm">
+              <p className="font-bold">Наш валидатор не распознал этот формат ссылки</p>
+              <p className="mt-1 opacity-90">
+                Авто-проверка: <span className="underline">{validationMessage}</span>. 
+                Если вы скопировали ссылку верно и уверены в ней на 100%, вы можете оформить заказ в обход проверки.
+              </p>
+            </div>
+          </div>
+          <div className="ml-8 flex items-center gap-2">
+            {engine.isLinkOverridden ? (
+              <div className="flex items-center gap-1.5 text-success font-semibold text-sm">
+                <CheckCircle2 className="w-4 h-4" />
+                Обход валидатора успешно активирован!
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                type="button"
+                onClick={() => {
+                  engine.setIsLinkOverridden(true);
+                  toast.success("Режим обхода активирован. Теперь вы можете продолжить оформление.");
+                }}
+                className="bg-warning/20 text-warning hover:bg-warning/30 border border-warning/30 font-bold rounded-lg text-xs py-1 px-3 h-8 active:scale-95 transition-all"
+              >
+                Я уверен, что ссылка верная
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {engine.isLinkOverridden && !validationMessage && (
+        <div className="w-full bg-success/10 border border-success/20 text-success rounded-xl p-4 flex items-start gap-3 shadow-sm">
+          <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-success" />
+          <div className="text-sm">
+            <p className="font-bold">✓ Обход проверки включен</p>
+            <p className="mt-1 opacity-95">Вы оформляете заказ в обход стандартного валидатора ссылок. Пожалуйста, убедитесь, что ссылка полностью рабочая.</p>
+          </div>
+        </div>
+      )}
+      
+      <VisualLinkGuideModal 
+        isOpen={isGuideOpen} 
+        onClose={() => setIsGuideOpen(false)} 
+        initialPlatform="telegram"
+        initialContentType="photo"
+      />
     </div>
   );
 }

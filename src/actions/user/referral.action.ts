@@ -14,10 +14,11 @@ export async function transferReferralBalanceAction() {
   await db.$transaction(async (tx) => {
     const user = await tx.user.findUnique({
       where: { id: session.userId },
-      select: { referralBalance: true, balance: true }
+      select: { referralBalance: true, balance: true, isActive: true, isDeleted: true }
     });
 
     if (!user) throw new Error("Учетная запись не найдена");
+    if (user.isDeleted === true || user.isActive === false) throw new Error("Ваш аккаунт заблокирован или удален");
     if (!user.referralBalance || user.referralBalance <= 0) {
       throw new Error("Нет средств для перевода");
     }

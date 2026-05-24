@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { SmartOrderForm } from '@/components/orders/SmartOrderForm';
 import { useOrderEngine } from '@/hooks/useOrderEngine';
 
@@ -112,14 +112,11 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     expect(setManualPlatformMock).toHaveBeenCalledWith('Telegram');
   });
 
-
   // ── TC-UX-008: Hides Category Panel when link is empty ──
   it('TC-UX-008: Order pane is hidden if no smartData and no manualPlatform exist', () => {
-    // Both smart data and manual platform are null
     vi.mocked(useOrderEngine).mockReturnValue(getMockState() as any);
     render(<SmartOrderForm />);
 
-    // Platform title shouldn't exist
     const categoryTitle = screen.queryByText(/Выберите услугу/i);
     expect(categoryTitle).toBeNull();
   });
@@ -127,7 +124,7 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
   // ── TC-UX-011: 152-FZ / GDPR Implicit Consent Compliance ──
   it('TC-UX-011: Renders implicit consent text instead of checkbox (152-FZ)', () => {
     const state = getMockState({
-      selectedService: { id: 'srv1', name: 'Test SRV', minQty: 100, maxQty: 1000, pricePer1kRub: 100 },
+      selectedService: { id: 'srv1', name: 'Test SRV', minQty: 100, maxQty: 1000, pricePer1kRub: 100, pricePerUnitRub: 0.1 },
     });
 
     vi.mocked(useOrderEngine).mockReturnValue(state as any);
@@ -142,7 +139,7 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     expect(checkbox).toBeDefined();
 
     // The submit button should be disabled by default because agreedToTerms is false in mock state
-    const submitBtn = screen.getByRole('button', { name: /Создать заказ и перейти к оплате/i }) as HTMLButtonElement;
+    const submitBtn = screen.getByRole('button', { name: /Оплатить заказ/i }) as HTMLButtonElement;
     expect(submitBtn.disabled).toBe(true);
   });
 });

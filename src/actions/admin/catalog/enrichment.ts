@@ -3,6 +3,8 @@
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getClientIp } from "@/utils/ip";
+import { auditAdmin } from "@/lib/admin-audit";
 
 export async function updateServiceDescription(serviceId: string, description: string) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
@@ -12,16 +14,17 @@ export async function updateServiceDescription(serviceId: string, description: s
         data: { description },
       });
 
+      const ipAddress = await getClientIp('unknown');
+
       // Log the action
-      await db.adminAuditLog.create({
-        data: {
-          adminId: admin.id,
-          adminEmail: admin.email,
-          action: "UPDATE_SERVICE_DESCRIPTION",
-          target: serviceId,
-          targetType: "SERVICE",
-          newValue: JSON.stringify({ description }),
-        },
+      auditAdmin({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "UPDATE_SERVICE_DESCRIPTION",
+        target: serviceId,
+        targetType: "SERVICE",
+        newValue: { description },
+        ipAddress
       });
 
       revalidatePath("/admin/catalog/enrichment");

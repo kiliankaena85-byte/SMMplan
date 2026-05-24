@@ -19,7 +19,7 @@ export function ReferrersTable({ referrers }: { referrers: ReferrerType[] }) {
           <Table.Content aria-label="Топ рефоводов">
             <Table.Header>
               <Table.Column isRowHeader>КЛИЕНТ</Table.Column>
-              <Table.Column className="text-right">PENDING</Table.Column>
+              <Table.Column className="text-right">БАЛАНС / ДОСТУПНО К ВЫПЛАТЕ</Table.Column>
               <Table.Column className="text-right">РЕФЕРАЛЫ</Table.Column>
               <Table.Column className="text-right">ДЕЙСТВИЕ</Table.Column>
             </Table.Header>

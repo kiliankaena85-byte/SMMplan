@@ -18,8 +18,8 @@ export function OrderProgressBar({ status, quantity, remains }: OrderProgressBar
   let percent = Math.round((delivered / safeQuantity) * 100);
   percent = Math.min(100, Math.max(0, percent));
 
-  let label = '';
-  let barColor = 'bg-primary';
+  let label: string;
+  let barColor: string;
   let isIndeterminate = false;
 
   switch (status) {

@@ -46,7 +46,7 @@ If the user needs a refund, explain that support can issue compensations up to 5
      const apiKey = process.env.GEMINI_API_KEY;
      if (!apiKey) return "AI API Key missing";
 
-     const model = 'gemini-3-flash-preview';
+     const model = 'gemini-3.5-flash';
      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
      
      // W1-3 SECURITY FIX: Structured messages — system instruction separate from user data.

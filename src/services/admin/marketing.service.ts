@@ -130,7 +130,7 @@ export const adminMarketingService = {
           action: 'REFERRAL_PAYOUT',
           target: userId,
           targetType: 'USER',
-          newValue: JSON.stringify({ amount: amountToPayCents, newBalance: updatedUser.balance }),
+          newValue: JSON.stringify({ amount: amountToPayCents, newBalance: updatedUser.balance.toString() }),
         },
       });
 

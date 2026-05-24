@@ -47,42 +47,47 @@ export class UnifiedPaymentService {
 
       // 2. Generate Payment Link
       if (gateway === 'yookassa') {
-        const secrets = await SettingsManager.getPaymentSecrets();
-        const shopId = secrets.yookassaShopId;
-        const secretKey = secrets.yookassaSecretKey;
+        if (await SettingsManager.isTestMode()) {
+          paymentUrl = `/api/dev/mock-payment?paymentId=${payment.id}`;
+          remoteGatewayId = `mock_${payment.id}`;
+        } else {
+          const secrets = await SettingsManager.getPaymentSecrets();
+          const shopId = secrets.yookassaShopId;
+          const secretKey = secrets.yookassaSecretKey;
 
-        if (!shopId || !secretKey) {
-            console.error('[UnifiedPayment] YooKassa not configured');
-            return { success: false, error: 'Payment gateway unconfigured' };
+          if (!shopId || !secretKey) {
+              console.error('[UnifiedPayment] YooKassa not configured');
+              return { success: false, error: 'Payment gateway unconfigured' };
+          }
+
+          const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+          const payload = {
+            amount: { value: amountRub.toFixed(2), currency: 'RUB' },
+            capture: true,
+            confirmation: { type: 'redirect', return_url: successUrl },
+            description,
+            metadata: { paymentId: payment.id, userId, ...metadata }
+          };
+
+          const resp = await fetch('https://api.yookassa.ru/v3/payments', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': authHeader,
+              'Idempotence-Key': payment.id
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!resp.ok) {
+            console.error('[UnifiedPayment] YooKassa error:', await resp.text());
+            return { success: false, error: 'YooKassa gateway error' };
+          }
+
+          const data = await resp.json();
+          paymentUrl = data.confirmation.confirmation_url;
+          remoteGatewayId = data.id;
         }
-
-        const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-        const payload = {
-          amount: { value: amountRub.toFixed(2), currency: 'RUB' },
-          capture: true,
-          confirmation: { type: 'redirect', return_url: successUrl },
-          description,
-          metadata: { paymentId: payment.id, userId, ...metadata }
-        };
-
-        const resp = await fetch('https://api.yookassa.ru/v3/payments', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-            'Idempotence-Key': payment.id
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!resp.ok) {
-          console.error('[UnifiedPayment] YooKassa error:', await resp.text());
-          return { success: false, error: 'YooKassa gateway error' };
-        }
-
-        const data = await resp.json();
-        paymentUrl = data.confirmation.confirmation_url;
-        remoteGatewayId = data.id;
 
       } else if (gateway === 'cryptobot') {
         const secrets = await SettingsManager.getPaymentSecrets();

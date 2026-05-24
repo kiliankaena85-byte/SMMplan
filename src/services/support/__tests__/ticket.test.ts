@@ -123,7 +123,9 @@ describe('TicketService', () => {
       expect(supportBotService.sendSupportReply).toHaveBeenCalledWith(
         '999', 
         'Quoted reply', 
-        'tg_old_999' // Proves threading is mapped to Telegram!
+        'tg_old_999',
+        undefined,
+        undefined
       );
     });
   });

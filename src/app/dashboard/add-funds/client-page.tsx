@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef, useEffect } from 'react';
 import { createTopUpPaymentAction } from '@/actions/user/top-up.action';
 import { activatePromoCodeAction } from '@/actions/user/promo';
-import { CreditCard, Banknote, Wallet, Gift, CheckCircle2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { CreditCard, Banknote, Wallet, Gift, CheckCircle2, CheckSquare, Square } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-const PRESETS = [300, 500, 1000, 2000, 5000, 10000];
+const PRESETS = [10, 50, 100, 300, 500, 1000];
 
 const METHODS = [
   { id: 'yookassa', label: 'Банковская карта', icon: CreditCard, note: 'Visa / MC / МИР / СБП' },
@@ -16,11 +16,24 @@ const METHODS = [
 
 export default function AddFundsPage() {
   const router = useRouter();
-  const [amount, setAmount]     = useState<number>(1000);
+  const searchParams = useSearchParams();
+  const isSuccess = searchParams.get('success') === '1';
+  const [amount, setAmount]     = useState<number>(50);
   const [method, setMethod]     = useState<'yookassa' | 'cryptobot'>('yookassa');
   const [error,  setError]      = useState<string | null>(null);
   const [consent, setConsent]   = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Автофокус при загрузке страницы работает только на десктопных экранах (>= 1024px)
+    // чтобы избежать автоматического вызова экранной клавиатуры на телефонах,
+    // которая перекрывает методы оплаты, и нежелательного масштабирования (зума) в iOS Safari
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      inputRef.current?.focus();
+    }
+  }, []);
 
   const [promoCode, setPromoCode] = useState('');
   const [promoError, setPromoError] = useState<string | null>(null);
@@ -33,8 +46,8 @@ export default function AddFundsPage() {
   }
 
   function handleSubmit() {
-    if (amount < 100) {
-      setError('Минимальная сумма — 100 ₽');
+    if (amount < 10) {
+      setError('Минимальная сумма — 10 ₽');
       return;
     }
     if (isPending) return; // F5: double-submit guard
@@ -71,6 +84,16 @@ export default function AddFundsPage() {
 
   return (
     <div className="max-w-lg space-y-6 animate-in fade-in duration-500">
+      {isSuccess && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+          <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-sm">Баланс успешно пополнен!</h3>
+            <p className="text-xs opacity-90 mt-0.5">Средства мгновенно зачислены на ваш счёт. Спасибо за доверие!</p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-foreground">Пополнение баланса</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -113,11 +136,12 @@ export default function AddFundsPage() {
           {/* Custom amount */}
           <div className="relative">
             <input
+              ref={inputRef}
               type="number"
               id="top-up-amount"
               value={amount}
               onChange={e => setAmount(Number(e.target.value))}
-              min={100}
+              min={10}
               max={500000}
               placeholder="Другая сумма"
               aria-label="Введите сумму пополнения"
@@ -169,7 +193,7 @@ export default function AddFundsPage() {
         )}
 
         {/* Consent Checkbox (Expanded Touch Target) */}
-        <label className="flex bg-muted/30 hover:bg-muted/50 border border-border/50 rounded-xl p-3.5 gap-3 cursor-pointer select-none transition-colors">
+        <label className="flex items-start bg-muted/30 hover:bg-muted/50 border border-border/50 rounded-xl p-3 gap-2.5 cursor-pointer select-none transition-all duration-200 active:scale-[0.99]">
           <input
             type="checkbox"
             id="legal-consent"
@@ -178,10 +202,17 @@ export default function AddFundsPage() {
               if (navigator.vibrate) navigator.vibrate(20);
               setConsent(e.target.checked);
             }}
-            className="w-5 h-5 shrink-0 mt-0.5 rounded border-border text-primary focus:ring-primary/50 cursor-pointer"
+            className="sr-only"
           />
+          <div className="text-primary shrink-0 mt-0.5 transition-transform duration-200">
+            {consent ? (
+              <CheckSquare className="w-4.5 h-4.5 text-primary" />
+            ) : (
+              <Square className="w-4.5 h-4.5 text-muted-foreground/45 transition-colors" />
+            )}
+          </div>
           <span className="text-xs text-muted-foreground leading-relaxed">
-            Я подтверждаю заказ и соглашаюсь с{' '}
+            Я подтверждаю платёж и соглашаюсь с{' '}
             <Link
               href="/legal/terms"
               target="_blank"
@@ -206,7 +237,7 @@ export default function AddFundsPage() {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isPending || amount < 100 || !consent}
+          disabled={isPending || amount < 10 || !consent}
           aria-label={`Перейти к оплате ${amount} рублей`}
           className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50
             font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-sm text-base
@@ -219,7 +250,7 @@ export default function AddFundsPage() {
 
         <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
           <Wallet className="w-3 h-3" />
-          Минимум 100 ₽ · Безопасная оплата через ЮKassa · Мгновенное зачисление
+          Минимум 10 ₽ · Безопасная оплата через ЮKassa · Мгновенное зачисление
         </p>
       </div>
 
@@ -235,18 +266,18 @@ export default function AddFundsPage() {
           </div>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             value={promoCode}
             onChange={e => setPromoCode(e.target.value.toUpperCase())}
             placeholder="PROMOCODE"
-            className="flex-1 border border-border rounded-xl px-4 py-3 text-sm font-mono uppercase text-foreground bg-background outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+            className="w-full sm:flex-1 border border-border rounded-xl px-4 py-3 text-sm font-mono uppercase text-foreground bg-background outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
           />
           <button
             onClick={handlePromoSubmit}
             disabled={isPromoPending || !promoCode.trim()}
-            className="px-6 bg-zinc-800 text-zinc-100 hover:bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:opacity-50 font-bold rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
+            className="w-full sm:w-auto px-6 py-3 bg-foreground text-background hover:opacity-90 disabled:opacity-50 font-bold rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none shrink-0"
           >
             {isPromoPending ? '...' : 'Применить'}
           </button>

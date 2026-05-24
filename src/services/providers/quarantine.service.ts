@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { sendAdminAlert } from '@/lib/notifications';
+import { applyBeautifulRounding } from '@/lib/financial-constants';
 
 export class QuarantineService {
     /**
@@ -182,6 +183,27 @@ export class QuarantineService {
         } catch (error) {
             console.error('[QuarantineService] Failed to restore expired quarantines:', error);
         }
+    }
+
+    /**
+     * Trigger D: Elastic Price Spike Quarantine
+     * If the new provider cost in USD has jumped by more than 20% compared to the existing saved cost,
+     * automatically quarantine the service.
+     */
+    static shouldQuarantine(oldRate: number, newRate: number): boolean {
+        if (oldRate <= 0) return false;
+        return newRate > oldRate * 1.20;
+    }
+
+    /**
+     * Loss Prevention: check if the calculated retail cost pricePerUnitRub is less than the purchase cost in rubles.
+     */
+    static isLossBreach(newRate: number, markup: number, usdToRub: number): boolean {
+        const pricePer1kRub = newRate * markup * usdToRub;
+        const pricePer1kRubRounded = applyBeautifulRounding(pricePer1kRub);
+        const pricePerUnitRub = pricePer1kRubRounded / 1000;
+        const purchaseCostPerUnitRub = (newRate * usdToRub) / 1000;
+        return pricePerUnitRub < purchaseCostPerUnitRub;
     }
 }
 

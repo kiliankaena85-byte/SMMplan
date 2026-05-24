@@ -31,10 +31,72 @@ const CANONICAL_MAP: Record<string, string[]> = {
   'Другое':          ['Друго', 'Other', 'Разн', 'Сигнал', 'Апвоут'],
   'Звезды':          ['Звезд', 'Star'],
   // Подкатегории для авто-услуг
-  'Автопросмотры':   ['Автопросмотр', 'Auto View', 'Future View'],
+  'Автопросмотры':   ['Автопросмотр', 'Auto View', 'Future View', 'Массовые просмотры', 'Массовый просмотр', 'Просмотры массовых'],
   'Авторепосты':     ['Авторепост', 'Auto Share', 'Auto Repost'],
   'Автореакции':     ['Автореакци', 'Auto React'],
 };
+
+/**
+ * Checks if a category name represents an automated subscription/recurring service.
+ */
+function isAutoService(name: string): boolean {
+  const n = name.toLowerCase();
+  
+  // Russian prefixes/words
+  if (
+    n.includes('автопросмотр') ||
+    n.includes('автолайк') ||
+    n.includes('автореакци') ||
+    n.includes('авторепост') ||
+    n.includes('автокоммент') ||
+    n.includes('автоактивно') ||
+    n.includes('автопрослуш') ||
+    n.includes('автоопрос') ||
+    n.includes('автоголос')
+  ) {
+    return true;
+  }
+  
+  // English combinations
+  if (
+    n.includes('auto view') ||
+    n.includes('auto-view') ||
+    n.includes('auto like') ||
+    n.includes('auto-like') ||
+    n.includes('auto react') ||
+    n.includes('auto-react') ||
+    n.includes('auto share') ||
+    n.includes('auto-share') ||
+    n.includes('auto repost') ||
+    n.includes('auto-repost') ||
+    n.includes('auto comment') ||
+    n.includes('auto-comment') ||
+    n.includes('future view') ||
+    n.includes('future-view') ||
+    n.includes('future like') ||
+    n.includes('future-like') ||
+    n.includes('future react') ||
+    n.includes('future-react') ||
+    n.includes('future share') ||
+    n.includes('future-share') ||
+    n.includes('future repost') ||
+    n.includes('future-repost') ||
+    n.includes('future comment') ||
+    n.includes('future-comment')
+  ) {
+    return true;
+  }
+
+  // Russian future/subscription patterns
+  if (
+    (n.includes('будущие') || n.includes('подписка на') || n.includes('автоподписка')) &&
+    (n.includes('просмотр') || n.includes('лайк') || n.includes('реакци') || n.includes('репост') || n.includes('коммент') || n.includes('охват'))
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * Matches a database category string like '👨‍👩‍👧‍👦 Подписчики / Участники'
@@ -46,11 +108,20 @@ export function matchesSuggestedCategory(
 ): boolean {
   if (suggestedCategories.length === 0) return true; // no filter = show all
   
+  const dbIsAuto = isAutoService(dbCategoryName);
+  
   const dbNameNormalized = dbCategoryName.toLowerCase()
     .replace(/[^\p{L}\p{N}\s/]/gu, '') // Strip emoji
     .trim();
   
   for (const suggested of suggestedCategories) {
+    const suggestedIsAuto = isAutoService(suggested);
+    
+    // Mismatch guard: prevent regular targets (like single posts) matching automated monitoring categories
+    if (dbIsAuto !== suggestedIsAuto) {
+      continue;
+    }
+
     const suggestedNormalized = suggested.toLowerCase()
       .replace(/[^\p{L}\p{N}\s/]/gu, '')
       .trim();

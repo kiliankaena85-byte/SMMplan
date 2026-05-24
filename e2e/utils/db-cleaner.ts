@@ -67,18 +67,25 @@ async function globalTeardown() {
       });
 
       // 3.6 Delete ledger entries for these users
-      await prisma.ledgerEntry.deleteMany({
-        where: { userId: { in: testUserIds } }
-      });
+      try {
+        await prisma.ledgerEntry.deleteMany({
+          where: { userId: { in: testUserIds } }
+        });
+      } catch (e) {
+        console.warn('[Teardown] LedgerEntry deletion skipped (ledger is immutable):', (e as Error).message);
+      }
 
       // 4. Delete test users
-      // Because we use referential integrity, maybe delete other relations if any (like payments/orders already deleted above)
-      const deletedUsersCount = await prisma.user.deleteMany({
-        where: {
-          id: { in: testUserIds }
-        }
-      });
-      console.log(`[Teardown] Deleted ${deletedUsersCount.count} test users.`);
+      try {
+        const deletedUsersCount = await prisma.user.deleteMany({
+          where: {
+            id: { in: testUserIds }
+          }
+        });
+        console.log(`[Teardown] Deleted ${deletedUsersCount.count} test users.`);
+      } catch (e) {
+        console.warn('[Teardown] User deletion skipped (possibly referenced by immutable ledger):', (e as Error).message);
+      }
     }
 
   } catch (err) {

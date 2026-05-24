@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { WalletOps } from "@/services/financial/wallet-ops";
 
 export async function GET(req: NextRequest) {
   try {
@@ -51,20 +52,32 @@ export async function GET(req: NextRequest) {
           data: { status: 'PENDING' } 
         });
 
-        // Ledger entry INSIDE transaction with idempotency key
-        await tx.ledgerEntry.create({
-          data: {
-            userId: payment.userId,
-            amount: payment.amount,
-            reason: `Оплата заказа ${payment.orderId} (Тестовый платеж)`,
-            status: 'APPROVED',
-            idempotencyKey: `mock-payment-${paymentId}`
-          }
-        });
+        if (!payment.orderId) {
+          // Direct top-up (Deposit) - Increment User Balance securely!
+          await WalletOps.credit(tx, payment.userId, Number(payment.amount),
+            `Пополнение баланса через YooKassa (Тестовый платеж)`,
+            { idempotencyKey: `mock-payment-${paymentId}` }
+          );
+        } else {
+          // Ledger entry INSIDE transaction with idempotency key
+          await tx.ledgerEntry.create({
+            data: {
+              userId: payment.userId,
+              amount: payment.amount,
+              reason: `Оплата заказа ${payment.orderId} (Тестовый платеж)`,
+              status: 'APPROVED',
+              idempotencyKey: `mock-payment-${paymentId}`
+            }
+          });
+        }
       }
     });
 
-    return NextResponse.redirect(new URL("/success", req.url));
+    if (payment.orderId) {
+      return NextResponse.redirect(new URL(`/success?orderId=${payment.orderId}`, req.url));
+    } else {
+      return NextResponse.redirect(new URL(`/dashboard/add-funds?success=1`, req.url));
+    }
   } catch (error: any) {
     console.error("[MockPayment] Error:", error);
     return new NextResponse(`Mock Payment Error: ${error.message}`, { status: 500 });

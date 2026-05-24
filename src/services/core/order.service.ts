@@ -18,6 +18,7 @@ type CreateOrderInput = {
   email?: string;
   isTestMode?: boolean;
   customData?: string;
+  isLinkOverridden?: boolean;
 };
 
 class OrderService {
@@ -78,6 +79,7 @@ class OrderService {
             providerId: resolvedProviderId,
             providerServiceId: resolvedExternalId,
             link: input.link,
+            isLinkOverridden: input.isLinkOverridden || false,
             quantity: input.quantity,
             status: 'PENDING',
             charge: input.charge,

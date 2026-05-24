@@ -103,9 +103,9 @@ export function DataTable<TData, TValue>({
         </DropdownMenu>
       </div>
       <div className="rounded-xl border border-border overflow-hidden bg-card shadow-sm">
-        <Table aria-label="Data Table" className="h-full w-full">
+        <Table className="h-full w-full">
           <Table.ScrollContainer>
-            <Table.Content className="w-full">
+            <Table.Content aria-label="Data Table" className="w-full">
               <Table.Header className="bg-muted/30">
                 {table.getFlatHeaders().map((header, index) => (
                   <Table.Column isRowHeader={index === 0} key={header.id} className="py-3 px-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -124,7 +124,7 @@ export function DataTable<TData, TValue>({
                     <Table.Row
                       key={row.id}
                       data-state={row.getIsSelected() && 'selected'}
-                      className="hover:bg-muted/30 border-b border-border last:border-0 transition-colors"
+                      className="hover:bg-muted/30 even:bg-muted/10 transition-colors"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <Table.Cell key={cell.id} className="py-3 px-4 text-sm text-foreground">

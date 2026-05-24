@@ -31,5 +31,8 @@ export default defineConfig({
       include: ['src/services/core/**', 'src/services/financial/**', 'src/actions/order/**']
     },
     fileParallelism: false,
+    sequence: {
+      concurrent: false
+    }
   }
 });

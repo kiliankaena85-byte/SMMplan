@@ -186,3 +186,49 @@ export async function toggleServiceActiveAction(
     return { success: true as const };
   });
 }
+
+/** Bulk reassign services to a target category */
+export async function batchReassignServicesCategoryAction(
+  serviceIds: string[],
+  targetCategoryId: string
+) {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
+    const ids = batchIdsSchema.safeParse(serviceIds);
+    if (!ids.success) {
+      return { success: false as const, error: 'Invalid service IDs' };
+    }
+
+    if (!targetCategoryId || typeof targetCategoryId !== 'string') {
+      return { success: false as const, error: 'Invalid target category ID' };
+    }
+
+    // Verify target category exists
+    const targetCategory = await db.category.findUnique({
+      where: { id: targetCategoryId },
+    });
+    if (!targetCategory) {
+      return { success: false as const, error: 'Target category not found' };
+    }
+
+    // Update all matching services inside db query
+    const updateResult = await db.service.updateMany({
+      where: { id: { in: ids.data } },
+      data: { categoryId: targetCategoryId },
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'BATCH_SERVICE_REASSIGN',
+      target: ids.data.join(','),
+      targetType: 'SERVICE',
+      newValue: { count: updateResult.count, targetCategoryId },
+    });
+
+    revalidatePath('/admin/catalog');
+    (revalidateTag as any)('catalog');
+    (revalidateTag as any)('services');
+    return { success: true as const, count: updateResult.count };
+  });
+}
+

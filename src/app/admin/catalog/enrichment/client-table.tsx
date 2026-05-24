@@ -239,11 +239,10 @@ export function EnrichmentClientTable({ initialData }: { initialData: ServiceCol
 
       {/* Table */}
       <Table 
-        aria-label="Таблица обогащения каталога"
         className="p-0 border shadow-none bg-background rounded-xl overflow-hidden"
       >
         <Table.ScrollContainer>
-          <Table.Content>
+          <Table.Content aria-label="Таблица обогащения каталога">
             <Table.Header>
               {table.getFlatHeaders().map((header, index) => (
                 <Table.Column 

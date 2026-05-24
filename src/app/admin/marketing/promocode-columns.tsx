@@ -1,14 +1,102 @@
 'use client';
 
+import * as React from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { PromoCode } from '@prisma/client';
 import { Trash2 } from 'lucide-react';
 import { togglePromoCode, deletePromoCode } from '@/actions/admin/marketing';
-import { useTransition } from 'react';
+import { useTransition, useState } from 'react';
 import { toast } from 'sonner';
+import { Switch, Modal, ModalHeader, ModalBody, ModalFooter } from '@heroui/react';
+
+// Isolated Status Toggle Client Component
+function PromoCodeStatusToggle({ promo }: { promo: PromoCode }) {
+  const [isPending, startTransition] = useTransition();
+
+  const handleToggle = () => {
+    startTransition(async () => {
+      const res = await togglePromoCode(promo.id, !promo.isActive);
+      if (res.success) {
+        toast.success(`Промокод ${!promo.isActive ? 'активирован' : 'деактивирован'}`);
+      } else {
+        toast.error(res.error);
+      }
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <Switch 
+        isSelected={promo.isActive} 
+        onChange={handleToggle}
+        isDisabled={isPending}
+        size="sm"
+        aria-label={`Toggle status for ${promo.code}`}
+      />
+      <span className={`text-[11px] font-bold uppercase tracking-widest ${promo.isActive ? 'text-success' : 'text-muted-foreground'}`}>
+        {promo.isActive ? 'Active' : 'Off'}
+      </span>
+    </div>
+  );
+}
+
+// Isolated Delete Promo Code Client Component
+function DeletePromoButton({ promo }: { promo: PromoCode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      const res = await deletePromoCode(promo.id);
+      if (res.success) {
+        toast.success('Промокод успешно удален');
+        setIsOpen(false);
+      } else {
+        toast.error(res.error);
+      }
+    });
+  };
+
+  return (
+    <>
+      <Button
+        size="icon"
+        intent="ghost"
+        onClick={() => setIsOpen(true)}
+        disabled={isPending}
+        className="hover:bg-destructive/10 text-destructive hover:text-destructive touch-target-expand"
+        title="Удалить промокод"
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+
+      <Modal isOpen={isOpen} onOpenChange={setIsOpen}>
+        <div className="bg-background rounded-large shadow-large border border-divider">
+          <div className="p-6">
+            <ModalHeader className="font-bold text-foreground">Удаление промокода</ModalHeader>
+            <ModalBody className="text-sm text-muted-foreground">
+              Вы уверены, что хотите безвозвратно удалить промокод <strong>{promo.code}</strong>?
+            </ModalBody>
+            <ModalFooter>
+              <Button intent="outline" onClick={() => setIsOpen(false)} className="min-h-[44px]">
+                Отмена
+              </Button>
+              <Button 
+                onClick={handleDelete}
+                disabled={isPending}
+                className="bg-danger text-danger-foreground hover:bg-danger/90 min-h-[44px]"
+              >
+                {isPending ? 'Удаление...' : 'Удалить'}
+              </Button>
+            </ModalFooter>
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+}
 
 export const columns: ColumnDef<PromoCode>[] = [
   {
@@ -68,67 +156,14 @@ export const columns: ColumnDef<PromoCode>[] = [
   {
     accessorKey: 'isActive',
     header: 'Статус',
-    cell: ({ row }) => {
-      const [isPending, startTransition] = useTransition();
-      const p = row.original;
-
-      const handleToggle = () => {
-        startTransition(async () => {
-          const res = await togglePromoCode(p.id, !p.isActive);
-          if (res.success) {
-            toast.success(`Промокод ${!p.isActive ? 'активирован' : 'деактивирован'}`);
-          } else {
-            toast.error(res.error);
-          }
-        });
-      };
-
-      return (
-        <div className="flex items-center gap-2">
-          <Checkbox 
-            checked={p.isActive} 
-            onCheckedChange={handleToggle}
-            disabled={isPending}
-          />
-          <span className={`text-[11px] font-bold uppercase tracking-widest ${p.isActive ? 'text-success' : 'text-muted-foreground'}`}>
-            {p.isActive ? 'Active' : 'Off'}
-          </span>
-        </div>
-      );
-    },
+    cell: ({ row }) => <PromoCodeStatusToggle promo={row.original} />,
   },
   {
     id: 'actions',
-    cell: ({ row }) => {
-      const [isPending, startTransition] = useTransition();
-      const p = row.original;
-
-      const handleDelete = () => {
-        if (!confirm(`Удалить промокод ${p.code}?`)) return;
-        
-        startTransition(async () => {
-          const res = await deletePromoCode(p.id);
-          if (res.success) {
-            toast.success('Промокод удален');
-          } else {
-            toast.error(res.error);
-          }
-        });
-      };
-
-      return (
-        <div className="flex justify-end">
-          <Button
-            size="icon"
-            intent="ghost"
-            onClick={handleDelete}
-            disabled={isPending}
-            className="hover:bg-destructive/10 text-destructive hover:text-destructive"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <div className="flex justify-end">
+        <DeletePromoButton promo={row.original} />
+      </div>
+    ),
   },
 ];

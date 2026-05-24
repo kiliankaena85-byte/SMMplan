@@ -91,7 +91,7 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
           </div>
 
             <div className="rounded-md border border-border">
-              <Table>
+              <Table aria-label="Список активных членов команды саппорта">
                 <TableHeader>
                   <TableRow>
                     <TableHead>EMAIL</TableHead>
@@ -167,7 +167,7 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
           </form>
 
           <div className="rounded-md border border-border">
-            <Table>
+            <Table aria-label="Список клиентов для изменения ролей">
               <TableHeader>
                 <TableRow>
                   <TableHead>КЛИЕНТ</TableHead>

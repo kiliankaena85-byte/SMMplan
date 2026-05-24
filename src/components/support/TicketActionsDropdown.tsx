@@ -38,10 +38,10 @@ export default function TicketActionsDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger 
           disabled={isPending}
-          className="h-9 px-3 inline-flex items-center justify-center gap-2 shadow-sm rounded-xl border border-slate-200 bg-card hover:border-indigo-200 hover:bg-indigo-50 text-sm font-medium transition-colors outline-none disabled:opacity-50 disabled:pointer-events-none"
+          className="min-h-[44px] min-w-[44px] lg:min-w-[120px] px-3 inline-flex items-center justify-center gap-2 shadow-sm rounded-xl border border-warm-border bg-warm-card hover:bg-warm-zinc text-sm font-medium transition-colors outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-warm-text"
         >
-          <span className="hidden lg:inline font-medium text-slate-600">Действия</span>
-          <MoreVertical className="w-4 h-4 text-slate-400" />
+          <span className="hidden lg:inline font-medium text-warm-text">Действия</span>
+          <MoreVertical className="w-4 h-4 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl border-slate-100 shadow-xl p-1">
           <DropdownMenuGroup>

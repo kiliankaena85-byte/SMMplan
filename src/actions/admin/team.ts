@@ -8,7 +8,7 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 
 const limitSchema = z.object({
   userId: z.string().min(1),
-  limit: z.coerce.number().int(),
+  limit: z.coerce.number().int().min(0, "Лимит не может быть отрицательным").max(10000000, "Превышен максимальный лимит доверия (100 тыс. рублей)"),
 });
 
 export async function updateSupportLimit(formData: FormData) {

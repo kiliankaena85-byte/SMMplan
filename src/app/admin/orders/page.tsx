@@ -26,6 +26,8 @@ type Props = {
     q?: string;
     status?: string;
     cursor?: string;
+    userId?: string;
+    edit_order_id?: string;
   }>;
 };
 
@@ -43,13 +45,46 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const query = params.q || '';
   const statusFilter = params.status || 'ALL';
   const cursor = params.cursor || undefined;
+  const userId = params.userId || '';
+  const editOrderId = params.edit_order_id || '';
 
   const { items: orders, nextCursor, hasMore } = await adminOrderService.searchOrders({
     query: query || undefined,
     status: statusFilter,
     cursor,
     pageSize: 50,
+    userId: userId || undefined,
   });
+
+  // Если передан edit_order_id, гарантируем, что этот заказ есть на первой странице (в начале списка)
+  if (editOrderId) {
+    const hasEditOrder = orders.some(o => o.id === editOrderId);
+    if (!hasEditOrder) {
+      const extraOrder = await db.order.findUnique({
+        where: { id: editOrderId },
+        include: {
+          user: { select: { id: true, email: true } },
+          provider: { select: { name: true } },
+          service: { 
+            select: { 
+              id: true, 
+              name: true, 
+              numericId: true,
+              etaP50Seconds: true,
+              etaP90Seconds: true,
+              etaSampleCount: true,
+              etaSpeedClass: true,
+              etaUpdatedAt: true,
+              category: { select: { name: true, network: { select: { name: true } } } }
+            } 
+          },
+        }
+      });
+      if (extraOrder) {
+        orders.unshift(extraOrder as any);
+      }
+    }
+  }
 
   const stats = await adminOrderService.getOrderStats();
 
@@ -101,7 +136,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               type="text"
               name="q"
               defaultValue={query}
-              placeholder="🔍 Поиск: email, ссылка, ID заказа..."
+              placeholder="🔍 Поиск: email, чек, ID заказа, соцсеть, тариф, цена..."
               className="flex-1 px-4 py-2 text-sm border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
             <select
@@ -139,6 +174,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               charge: Number(o.charge),
               providerCost: Number(o.providerCost ?? 0),
               createdAt: o.createdAt,
+              updatedAt: o.updatedAt,
               isDripFeed: o.isDripFeed,
               dripExternalIds: o.dripExternalIds,
               runs: o.runs ?? null,

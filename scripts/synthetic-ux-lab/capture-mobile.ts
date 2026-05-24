@@ -85,7 +85,7 @@ async function capture() {
     console.log(`\n✅ Успешно захвачено!`);
     console.log(`📸 Скриншот: ${screenshotPath}`);
     console.log(`🌳 Семантика: ${semanticPath}`);
-    console.log(`\nТеперь эти два файла можно передавать в Gemini 3.1 Pro (или gemini-3-flash) для проведения gsd-usability-test.`);
+    console.log(`\nТеперь эти два файла можно передавать в Gemini 3.5 Flash для проведения gsd-usability-test.`);
 
   } catch (error) {
     console.error('❌ Ошибка при захвате:', error);

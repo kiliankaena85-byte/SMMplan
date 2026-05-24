@@ -320,4 +320,16 @@ export class UniversalProvider implements BaseProvider {
     if (res.error) throw new Error(res.error);
     return res as ProviderMultiStatusResponse;
   }
+
+  async refill(orderId: string | number): Promise<{ refill?: string | number; error?: string }> {
+    const res = await this.request<any>({ action: 'refill', order: orderId });
+    if (res.error) return { error: res.error };
+    return res as { refill?: string | number; error?: string };
+  }
+
+  async getRefillStatus(refillId: string | number): Promise<{ status?: string; error?: string }> {
+    const res = await this.request<any>({ action: 'refill_status', refill: refillId });
+    if (res.error) return { error: res.error };
+    return res as { status?: string; error?: string };
+  }
 }

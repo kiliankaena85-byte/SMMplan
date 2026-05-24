@@ -12,13 +12,15 @@ export const metadata: Metadata = {
 export default async function Page() {
   const session = await verifySession();
   let userEmail = "";
+  let userBalanceCents = 0;
   if (session?.userId) {
     const user = await db.user.findUnique({
       where: { id: session.userId },
-      select: { email: true }
+      select: { email: true, balance: true }
     });
     userEmail = user?.email || "";
+    userBalanceCents = user?.balance ? Number(user.balance) : 0;
   }
 
-  return <ClientPage userEmail={userEmail} />;
+  return <ClientPage userEmail={userEmail} userBalanceCents={userBalanceCents} />;
 }

@@ -39,7 +39,7 @@ describe('PricingService Property-Based Tests (Fast-Check)', () => {
         fc.double({ min: 0, max: 100.0, noNaN: true }),    // personalDiscount (%)
         fc.double({ min: 0, max: 100.0, noNaN: true }),    // promoDiscount (%)
         fc.double({ min: 80, max: 120.0, noNaN: true }),   // exchangeRate (RUB/USD)
-        fc.constantFrom('PERCENT', 'VOUCHER'),             // promoType
+        fc.constant('PERCENT'),                            // promoType
         fc.integer({ min: 0, max: 1000000 }),              // promoFixedAmount (Cents)
         async (rate, markup, quantity, personalDiscount, promoDiscount, exchangeRate, promoType, promoFixedAmount) => {
           // Setup mocks

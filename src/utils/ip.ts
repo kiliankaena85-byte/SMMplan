@@ -12,10 +12,14 @@ import { headers } from 'next/headers';
  * при прямом обращении к серверу в обход CDN.
  */
 export async function getClientIp(fallback: string = '127.0.0.1'): Promise<string> {
-  const reqHeaders = await headers();
-  return (
-    reqHeaders.get('x-real-ip') ||
-    reqHeaders.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    fallback
-  );
+  try {
+    const reqHeaders = await headers();
+    return (
+      reqHeaders.get('x-real-ip') ||
+      reqHeaders.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      fallback
+    );
+  } catch {
+    return fallback;
+  }
 }

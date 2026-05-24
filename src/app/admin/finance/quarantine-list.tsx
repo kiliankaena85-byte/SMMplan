@@ -7,6 +7,7 @@ import { approveQuarantineAction, rejectQuarantineAction } from '@/actions/admin
 import { AlertTriangle, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTransition } from 'react';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface QuarantineEntry {
   id: string;
@@ -24,10 +25,18 @@ interface QuarantineListProps {
 
 export function QuarantineList({ entries }: QuarantineListProps) {
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [activeEntry, setActiveEntry] = React.useState<{ id: string; action: 'approve' | 'reject' } | null>(null);
 
   const handleAction = (id: string, action: 'approve' | 'reject') => {
-    const msg = action === 'approve' ? 'Одобрить транзакцию?' : 'Отклонить транзакцию?';
-    if (!confirm(msg)) return;
+    setActiveEntry({ id, action });
+    setConfirmOpen(true);
+  };
+
+  const executeAction = () => {
+    if (!activeEntry) return;
+    const { id, action } = activeEntry;
+    setConfirmOpen(false);
 
     startTransition(async () => {
       const fd = new FormData();
@@ -100,6 +109,16 @@ export function QuarantineList({ entries }: QuarantineListProps) {
           </div>
         ))}
       </div>
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={executeAction}
+        title={activeEntry?.action === 'approve' ? 'Одобрение транзакции' : 'Отклонение транзакции'}
+        isDanger={activeEntry?.action === 'reject'}
+        confirmText={activeEntry?.action === 'approve' ? 'Одобрить' : 'Отклонить'}
+      >
+        Вы действительно хотите {activeEntry?.action === 'approve' ? 'одобрить' : 'отклонить'} эту транзакцию в карантине Escrow?
+      </ConfirmModal>
     </div>
   );
 }

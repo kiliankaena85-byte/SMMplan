@@ -39,10 +39,16 @@ export class LoyaltyService {
     // Cycle protection: Check if the referrer was referred by the current user (Cyclic loop attack)
     const referrer = await tx.user.findUnique({
       where: { id: user.referredById },
-      select: { referredById: true }
+      select: { referredById: true, isActive: true, isDeleted: true }
     });
 
-    if (referrer && referrer.referredById === referredUserId) {
+    if (!referrer) return;
+
+    if (referrer.isDeleted || !referrer.isActive) {
+      return;
+    }
+
+    if (referrer.referredById === referredUserId) {
         console.warn(`[SECURITY] Cyclic referral detected between ${referredUserId} and ${user.referredById}. Commission rejected.`);
         return;
     }

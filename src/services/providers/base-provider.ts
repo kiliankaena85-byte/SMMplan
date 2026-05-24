@@ -52,4 +52,6 @@ export interface BaseProvider {
   createOrder(params: OrderCreationParams): Promise<ProviderOrderResponseDto>;
   getOrderStatus(orderId: string | number): Promise<ProviderOrderStatusDto>;
   getMultiOrderStatus(orderIds: (string | number)[]): Promise<ProviderMultiStatusResponse>;
+  refill(orderId: string | number): Promise<{ refill?: string | number; error?: string }>;
+  getRefillStatus(refillId: string | number): Promise<{ status?: string; error?: string }>;
 }

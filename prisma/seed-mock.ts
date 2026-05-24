@@ -3,8 +3,26 @@ import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
+/** Infer targetType from category name for seeding. Must stay in sync with src/utils/target-type.ts */
+/** Infer targetType from category name for seeding. Must stay in sync with src/utils/target-type.ts */
+function inferTargetTypeForSeed(categoryName: string): string {
+  const lower = categoryName.toLowerCase();
+  if (['подписчик', 'участник', 'subscriber', 'follower', 'буст', 'boost', 'груп', 'group', 'друз', 'friend', 'автопросмотр', 'массовые просмотры', 'auto view'].some(k => lower.includes(k))) return 'CHANNEL';
+  if (['стори', 'story', 'stories', 'истори'].some(k => lower.includes(k))) return 'STORY';
+  if (['звёзд', 'звезд', 'star'].some(k => lower.includes(k))) return 'CUSTOM';
+  return 'POST';
+}
+
 async function main() {
   console.log('Seeding massive mock data for Enterprise UX testing...');
+
+  console.log('Clearing old mock records...');
+  await prisma.order.deleteMany({});
+  await prisma.payment.deleteMany({});
+  await prisma.ticket.deleteMany({});
+  await prisma.service.deleteMany({});
+  await prisma.category.deleteMany({});
+  await prisma.network.deleteMany({});
 
   // 1. Providers
   const providerNames = ['Vexboost', 'HQ-SMM', 'SMM-Panel-Pro', 'Cheap-SMM'];
@@ -25,49 +43,62 @@ async function main() {
   // 2. Networks & Categories
   const networks = ['Instagram', 'Telegram', 'VKontakte', 'YouTube', 'TikTok'];
   for (let i = 0; i < networks.length; i++) {
-    const nw = await prisma.network.upsert({
-      where: { slug: networks[i].toLowerCase() },
-      update: {},
-      create: { name: networks[i], slug: networks[i].toLowerCase(), sort: i }
+    const name = networks[i];
+    const slug = name.toLowerCase();
+    
+    const nw = await prisma.network.create({
+      data: { name, slug, sort: i }
     });
+    console.log(`Created Network: ${name}`);
 
-    const categoryNames = ['Лайки', 'Подписчики', 'Просмотры', 'Комментарии'];
+    let categoryNames = ['Лайки', 'Подписчики', 'Просмотры', 'Комментарии'];
+    if (name === 'Telegram') {
+      categoryNames = [...categoryNames, 'Реакции', 'Бусты (Telegram Levels)', 'Звезды (Telegram Stars)', 'Автопросмотры'];
+    }
+
     for (let j = 0; j < categoryNames.length; j++) {
-      let cat = await prisma.category.findFirst({
-        where: { name: categoryNames[j], networkId: nw.id }
+      const catName = categoryNames[j];
+      const cat = await prisma.category.create({
+        data: { name: catName, networkId: nw.id, sort: j }
       });
-      if (!cat) {
-        cat = await prisma.category.create({
-          data: { name: categoryNames[j], networkId: nw.id, sort: j }
-        });
-      }
+      console.log(`Created Category: "${cat.name}" in Network "${name}"`);
     }
   }
 
   const categories = await prisma.category.findMany();
 
-  // 3. Services
-  for (let i = 0; i < 20; i++) {
-    const cat = categories[i % categories.length];
-    const prv = providers[i % providers.length];
-    
-    let srv = await prisma.service.findFirst({
-      where: { externalId: `srv_${i}` }
-    });
-    if (!srv) {
-      srv = await prisma.service.create({
-        data: {
-          name: `[${prv.name}] ${cat.name} — Super Fast ⚡`,
-          categoryId: cat.id,
-          providerId: prv.id,
-          rate: 10 + i * 5, 
-          markup: 50 + i * 10,
-          minQty: 10,
-          maxQty: 50000,
-          externalId: `srv_${i}`,
-          isActive: true
-        }
+  // 3. Services (generate 3 tiers for every category)
+  let serviceCounter = 0;
+  for (const cat of categories) {
+    const tiers = ['Эконом', 'Стандарт', 'Премиум'];
+    for (let t = 0; t < tiers.length; t++) {
+      const prv = providers[serviceCounter % providers.length];
+      const baseRate = 0.05 + (t * 0.1) + (serviceCounter % 3) * 0.02; // $0.05 to $0.35 USD
+      const markupMultiplier = 1.6;
+      const pricePer1000Cents = Math.round(baseRate * markupMultiplier * 90 * 100);
+
+      const externalId = `srv_${cat.id}_${t}`;
+      let srv = await prisma.service.findFirst({
+        where: { externalId }
       });
+      if (!srv) {
+        srv = await prisma.service.create({
+          data: {
+            name: `${cat.name} • ${tiers[t]}`,
+            categoryId: cat.id,
+            providerId: prv.id,
+            rate: baseRate,
+            markup: markupMultiplier,
+            pricePer1000Cents: pricePer1000Cents,
+            minQty: 10,
+            maxQty: 100000,
+            externalId,
+            isActive: true,
+            targetType: inferTargetTypeForSeed(cat.name)
+          }
+        });
+      }
+      serviceCounter++;
     }
   }
   const services = await prisma.service.findMany();
@@ -114,8 +145,8 @@ async function main() {
         externalId: `ord_ext_${crypto.randomUUID().substring(0, 8)}`,
         link: `https://social.com/p/${crypto.randomUUID().substring(0, 8)}`,
         quantity: qty,
-        charge: Math.floor(qty * s.markup / 1000 * 100), // cents
-        providerCost: Math.floor(qty * s.rate / 1000 * 100), // cents
+        charge: Math.floor((qty * s.pricePer1000Cents) / 1000), // cents
+        providerCost: Math.floor((qty * (s.rate * 90 * 100)) / 1000), // cents
         remains: status === 'PARTIAL' ? Math.floor(qty / 2) : (status === 'CANCELED' ? qty : 0),
         status: status as any,
         error: status === 'ERROR' ? errorMsgs[Math.floor(Math.random() * errorMsgs.length)] : null,
@@ -131,7 +162,7 @@ async function main() {
 
   // 6. Support Tickets
   console.log('Generating Tickets...');
-  const ticketStatuses = ['OPEN', 'ANSWERED', 'CLOSED'];
+  const ticketStatuses = ['OPEN', 'PENDING', 'CLOSED'];
   for (let i = 0; i < 30; i++) {
     const u = users[Math.floor(Math.random() * users.length)];
     await prisma.ticket.create({

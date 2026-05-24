@@ -65,41 +65,50 @@ describe('Red Team: BullMQ Retry & Partial Failure Safety', () => {
     vi.clearAllMocks();
   });
 
-  it('should gracefully handle 3x 500 Provider errors then succeed on 4th attempt without double charge', async () => {
+  it('should trigger Fail-Fast on explicit provider error (500) and terminate immediately', async () => {
     const { db } = await import('../../src/lib/db');
+    const { orderService } = await import('../../src/services/core/order.service');
+    
+    // Mock failOrderTerminalFast
+    vi.spyOn(orderService, 'failOrderTerminalFast').mockResolvedValue({} as any);
+
     const order = mockOrder();
     vi.mocked(db.order.findUnique).mockResolvedValue(order);
-    mocks.mockOrderDbUpdate.mockResolvedValue({ ...order, status: 'IN_PROGRESS' });
 
-    // Attempt 0: Network Error
     mocks.mockCreateOrder.mockRejectedValueOnce(new Error('Provider HTTP Error 500'));
-    await expect(orderProcessor(fakeJob({ orderId: 'ord-red-1' }, 0, 4))).rejects.toThrow('Provider HTTP Error 500');
 
-    // Attempt 1: Network Error
-    mocks.mockCreateOrder.mockRejectedValueOnce(new Error('Provider HTTP Error 502'));
-    await expect(orderProcessor(fakeJob({ orderId: 'ord-red-1' }, 1, 4))).rejects.toThrow('Provider HTTP Error 502');
+    await expect(orderProcessor(fakeJob({ orderId: 'ord-red-1' }))).rejects.toThrow('Fail-Fast: Provider HTTP Error 500');
 
-    // Attempt 2: Timeout
-    mocks.mockCreateOrder.mockRejectedValueOnce(new Error('Provider Request Timeout'));
-    await expect(orderProcessor(fakeJob({ orderId: 'ord-red-1' }, 2, 4))).rejects.toThrow('Provider Request Timeout');
+    // Verify CreateOrder was called exactly once
+    expect(mocks.mockCreateOrder).toHaveBeenCalledTimes(1);
 
-    // Attempt 3: Success!
-    mocks.mockCreateOrder.mockResolvedValueOnce({ order: 'ext-999' });
-    await orderProcessor(fakeJob({ orderId: 'ord-red-1' }, 3, 4));
+    // Verify failOrderTerminalFast was called to cancel the order immediately
+    expect(orderService.failOrderTerminalFast).toHaveBeenCalledWith('ord-red-1', 'Provider HTTP Error 500');
+  });
 
-    // Verify
-    expect(mocks.mockCreateOrder).toHaveBeenCalledTimes(4); // Fired 4 times
+  it('should trigger Ambiguous Timeout Protection on connection timeout', async () => {
+    const { db } = await import('../../src/lib/db');
     
-    // DB Update should only happen once on success
-    expect(mocks.mockOrderDbUpdate).toHaveBeenCalledTimes(1);
+    const order = mockOrder();
+    vi.mocked(db.order.findUnique).mockResolvedValue(order);
+
+    mocks.mockCreateOrder.mockRejectedValueOnce(new Error('connect ETIMEDOUT'));
+
+    await expect(orderProcessor(fakeJob({ orderId: 'ord-red-1' }))).rejects.toThrow('Ambiguous Timeout: connect ETIMEDOUT');
+
+    // Verify CreateOrder was called exactly once
+    expect(mocks.mockCreateOrder).toHaveBeenCalledTimes(1);
+
+    // Verify DB update sets status to PENDING_CHECK
     expect(mocks.mockOrderDbUpdate).toHaveBeenCalledWith({
       where: { id: 'ord-red-1' },
       data: expect.objectContaining({
-        externalId: 'ext-999',
-        status: 'IN_PROGRESS'
+        status: 'PENDING_CHECK',
+        error: expect.stringContaining('connect ETIMEDOUT')
       })
     });
   });
+
 
   it('should detect Partial Failure (Worker crash mid-transaction) using provider-side deduplication', async () => {
     const { db } = await import('../../src/lib/db');

@@ -70,7 +70,7 @@ export async function banUserAction(formData: FormData) {
       email: admin.email,
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'BAN_USER',
@@ -98,7 +98,7 @@ export async function unbanUserAction(formData: FormData) {
       email: admin.email,
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'UNBAN_USER',
@@ -159,13 +159,16 @@ export async function loginAsAction(formData: FormData) {
       path: '/',
     });
 
-    auditAdmin({
+    const ipAddress = await getClientIp('unknown');
+
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'LOGIN_AS_USER',
       target: userId,
       targetType: 'USER',
       newValue: { targetEmail: targetUser.email, sessionExpires: expiresAt.toISOString(), impersonatedBy: admin.id },
+      ipAddress
     });
 
     revalidatePath('/dashboard/new-order');
@@ -182,10 +185,12 @@ export async function approveQuarantineAction(formData: FormData) {
       return { success: false as const, error: 'Только Владелец и Админ могут одобрять карантин' };
     }
 
+    const ipAddress = await getClientIp('unknown');
+
     await escrowService.resolveQuarantine(entryId, 'APPROVE', {
       id: admin.id,
       email: admin.email
-    });
+    }, ipAddress);
 
     revalidatePath('/admin/finance');
     return { success: true as const };
@@ -201,10 +206,12 @@ export async function rejectQuarantineAction(formData: FormData) {
       return { success: false as const, error: 'Только Владелец и Админ могут отклонять карантин' };
     }
 
+    const ipAddress = await getClientIp('unknown');
+
     await escrowService.resolveQuarantine(entryId, 'REJECT', {
       id: admin.id,
       email: admin.email
-    });
+    }, ipAddress);
 
     revalidatePath('/admin/finance');
     return { success: true as const };

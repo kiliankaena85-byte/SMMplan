@@ -85,6 +85,8 @@ class SettingsService {
     welcomeMessage?: string;
     yookassaShopId?: string;
     yookassaSecretKey?: string;
+    yookassaTestShopId?: string;
+    yookassaTestSecretKey?: string;
     cryptoBotToken?: string;
     exchangeRateUSD?: number;
     smtpHost?: string | null;

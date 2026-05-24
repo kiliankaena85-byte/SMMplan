@@ -38,7 +38,7 @@ export async function adminSyncProviderCatalog() {
         // Note: For Smmplan Lite we fetch all services that have an externalId
         const ourServices = await db.service.findMany({
           where: { externalId: { not: null } },
-          select: { id: true, externalId: true, rate: true, markup: true, isActive: true, isQuarantined: true },
+          select: { id: true, externalId: true, rate: true, markup: true, isActive: true, isQuarantined: true, pricePer1000Cents: true },
         });
 
         let updatedCount = 0;
@@ -70,13 +70,79 @@ export async function adminSyncProviderCatalog() {
             continue;
           }
 
-          // 💰 Auto-Pricing Engine: Price comparison
+          if (myService.isQuarantined) {
+            // Skip sync if already quarantined to avoid bypassing admin review state
+            unchangedCount++;
+            continue;
+          }
+
           const newRate = parseFloat(external.rate) || 0;
           const oldRate = myService.rate;
 
-          if (newRate !== oldRate) {
-            // Recalculate retail price in RUB based on current CBR rate and preserved markup
-            const retailRub = applyBeautifulRounding(newRate * myService.markup * usdToRub);
+          // Check for Elastic Quarantine: >20% price jump in USD
+          if (oldRate > 0 && newRate > oldRate * 1.20) {
+            updatesBatch.push(
+              db.service.update({
+                where: { id: myService.id },
+                data: {
+                  isQuarantined: true,
+                  quarantineReason: "Ценовой скачок у провайдера",
+                  isActive: false,
+                  pendingRate: newRate,
+                  quarantinedAt: new Date()
+                }
+              })
+            );
+            
+            const alertMsg = `🚨 [Elastic Quarantine] Услуга ${myService.id} ушла в карантин из-за ценового скачка >20% ($${oldRate} -> $${newRate}).`;
+            console.warn(alertMsg);
+            const { sendAdminAlert } = await import('@/lib/notifications');
+            await sendAdminAlert(alertMsg, 'WARNING');
+            
+            disabledCount++;
+            continue;
+          }
+
+          // Calculate retail price and single unit price
+          const pricePer1kRub = newRate * myService.markup * usdToRub;
+          const pricePer1kRubRounded = applyBeautifulRounding(pricePer1kRub);
+          const pricePerUnitRub = pricePer1kRubRounded / 1000;
+          const purchaseCostPerUnitRub = (newRate * usdToRub) / 1000;
+
+          // Check for Loss Prevention: retail price per unit < purchase cost per unit
+          if (pricePerUnitRub < purchaseCostPerUnitRub) {
+            updatesBatch.push(
+              db.service.update({
+                where: { id: myService.id },
+                data: {
+                  isActive: false,
+                  lastSeenAt: new Date()
+                }
+              })
+            );
+
+            const alertMsg = `🚨 [Loss Prevention] Услуга ${myService.id} автоматически отключена! Розничная цена ${pricePerUnitRub.toFixed(4)} ₽/шт меньше себестоимости закупки ${purchaseCostPerUnitRub.toFixed(4)} ₽/шт.`;
+            console.error(alertMsg);
+
+            await db.routingAuditLog.create({
+              data: {
+                serviceId: myService.id,
+                action: 'LOSS_PREVENTION_BLOCK',
+                reason: `Retail price ${pricePerUnitRub.toFixed(4)} < Cost ${purchaseCostPerUnitRub.toFixed(4)}`
+              }
+            });
+
+            const { sendAdminAlert } = await import('@/lib/notifications');
+            await sendAdminAlert(alertMsg, 'CRITICAL');
+
+            disabledCount++;
+            continue;
+          }
+
+          // Normal sync: Price update
+          const newPriceCents = Math.round(pricePer1kRubRounded * 100);
+
+          if (newRate !== oldRate || newPriceCents !== myService.pricePer1000Cents) {
             const minInt = parseInt(external.min, 10) || 10;
             const maxInt = parseInt(external.max, 10) || 100000;
 
@@ -85,11 +151,11 @@ export async function adminSyncProviderCatalog() {
                 where: { id: myService.id },
                 data: {
                   rate: newRate,
-                  pricePer1000Cents: Math.round(retailRub * 100),
+                  pricePer1000Cents: newPriceCents,
                   minQty: minInt,
                   maxQty: maxInt,
                   lastSeenAt: new Date(),
-                  isActive: true, // Reactivate if it was previously quarantined due to other reasons
+                  isActive: true,
                   isQuarantined: false,
                   quarantineReason: null
                 }
