@@ -87,63 +87,62 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
     router.push(pathname);
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* 3-Field Primary Search Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
-        {/* Email клиента */}
-        <div className="relative col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-2 space-y-1">
-          <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Email клиента</label>
-          <input
-            type="text"
-            name="clientEmail"
-            defaultValue={currentClientEmail}
-            placeholder="📧 Email (например: client@example.com)"
-            className="w-full px-4 h-11 text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
-          />
-        </div>
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 3-Field Primary Search Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-3 items-end">
+          {/* Email клиента */}
+          <div className="relative col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-2 space-y-1">
+            <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Email клиента</label>
+            <input
+              type="text"
+              name="clientEmail"
+              defaultValue={currentClientEmail}
+              placeholder="📧 Email (например: client@example.com)"
+              className="w-full px-4 h-11 text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
+            />
+          </div>
+  
+          {/* Соцсеть */}
+          <div className="col-span-1 space-y-1">
+            <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Социальная сеть</label>
+            <select
+              name="networkSlug"
+              defaultValue={currentNetworkSlug}
+              onChange={handleSelectChange}
+              aria-label="Фильтр по соцсети"
+              className="w-full px-3 h-11 text-sm border border-border rounded-xl bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
+            >
+              <option value="ALL">🌐 Все соцсети</option>
+              {networks.map(n => (
+                <option key={n.id} value={n.slug}>
+                  {n.name}
+                </option>
+              ))}
+            </select>
+          </div>
+  
+          {/* Ключевое слово */}
+          <div className="relative col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-2 space-y-1">
+            <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Ключевое слово в услуге</label>
+            <input
+              type="text"
+              name="serviceName"
+              defaultValue={currentServiceName}
+              placeholder="🔍 Поиск (пример: подписчики -bot)"
+              className="w-full px-4 h-11 text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
+            />
+          </div>
 
-        {/* Соцсеть */}
-        <div className="col-span-1 space-y-1">
-          <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Социальная сеть</label>
-          <select
-            name="networkSlug"
-            defaultValue={currentNetworkSlug}
-            onChange={handleSelectChange}
-            aria-label="Фильтр по соцсети"
-            className="w-full px-3 h-11 text-sm border border-border rounded-xl bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
-          >
-            <option value="ALL">🌐 Все соцсети</option>
-            {networks.map(n => (
-              <option key={n.id} value={n.slug}>
-                {n.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Ключевое слово */}
-        <div className="relative col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-2 space-y-1">
-          <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Ключевое слово в услуге</label>
-          <input
-            type="text"
-            name="serviceName"
-            defaultValue={currentServiceName}
-            placeholder="🔍 Поиск (пример: подписчики -bot)"
-            className="w-full px-4 h-11 text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
-          />
-        </div>
-
-        {/* Actions & Status Group */}
-        <div className="col-span-1 space-y-1 w-full">
-          <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Параметры</label>
-          <div className="flex gap-2 items-center w-full justify-stretch">
+          {/* Статус заказа */}
+          <div className="col-span-1 space-y-1">
+            <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Статус заказа</label>
             <select
               name="status"
               defaultValue={currentStatus}
               onChange={handleSelectChange}
               aria-label="Фильтр по статусу заказа"
-              className="flex-1 min-w-0 px-2 h-11 text-xs border border-border rounded-xl bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
+              className="w-full px-3 h-11 text-sm border border-border rounded-xl bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
             >
               {STATUS_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -151,30 +150,36 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
                 </option>
               ))}
             </select>
-
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              aria-label="Показать дополнительные фильтры"
-              className={`flex items-center justify-center gap-1.5 px-3 h-11 text-xs font-semibold border rounded-xl transition-all duration-200 cursor-pointer
-                ${showAdvanced 
-                  ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/15' 
-                  : 'bg-background text-foreground border-border hover:bg-muted/50'
-                }`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-
-            <button
-              type="submit"
-              className="px-4 h-11 text-xs font-bold text-primary-foreground bg-primary hover:opacity-90 active:opacity-95 shadow-sm rounded-xl transition-all duration-200 cursor-pointer"
-            >
-              Найти
-            </button>
+          </div>
+  
+          {/* Actions Group */}
+          <div className="col-span-1 lg:col-span-2 space-y-1 w-full">
+            <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Параметры</label>
+            <div className="flex gap-2 items-center w-full justify-stretch">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                aria-label="Показать дополнительные фильтры"
+                className={`flex items-center justify-center gap-1.5 px-4 h-11 text-xs font-semibold border rounded-xl transition-all duration-200 cursor-pointer flex-1
+                  ${showAdvanced 
+                    ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/15' 
+                    : 'bg-background text-foreground border-border hover:bg-muted/50'
+                  }`}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                Фильтры
+                {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+  
+              <button
+                type="submit"
+                className="px-6 h-11 text-xs font-bold text-primary-foreground bg-primary hover:opacity-90 active:opacity-95 shadow-sm rounded-xl transition-all duration-200 cursor-pointer flex-1"
+              >
+                Найти
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Advanced Filters Panel (Framer Motion Drawer) */}
       <AnimatePresence initial={false}>
