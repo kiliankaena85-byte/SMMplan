@@ -274,6 +274,7 @@ model Order {
   refills        Refill[]
   tickets        Ticket[]
   ticketMessages TicketMessage[]
+  smartCampaign  SmartCampaign?
 
   idempotencyKey String? @unique // Wave 1: Token to prevent double order creation
 
@@ -309,6 +310,7 @@ model Payment {
   orderId String? @unique // Legacy pointer, no longer used as the active Prisma relation
 
   orders Order[]
+  smartCampaigns SmartCampaign[]
 
   amount    BigInt // amount in Cents (BigInt: supports balances up to 90 trillion RUB)
   currency  String  @default("RUB")
@@ -842,8 +844,14 @@ model SmartCampaign {
   tasks     SmartTask[]
   snapshots SmartSnapshot[]
 
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  orderId   String?  @unique
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
   @@index([userId])
   @@index([serviceId])
+  @@index([paymentId])
 }
 
 model SmartTask {

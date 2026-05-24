@@ -72,13 +72,24 @@ const checkoutSchema = z.object({
   gateway: z.string().default('yookassa'),
   idempotencyKey: z.string().optional(),
   mediaGroupUrl: z.string().optional(),
-  isLinkOverridden: z.boolean().optional()
+  isLinkOverridden: z.boolean().optional(),
+  isSmartDrip: z.boolean().optional(),
+  smartDripDays: z.number().int().min(1).max(30).optional()
 });
 
 export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
-    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden } = data;
+    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays } = data;
     const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
+
+    if (isSmartDrip) {
+      if (runs || interval) {
+        throw new Error("Нельзя одновременно использовать обычный Drip-feed и Умный Dripfeed");
+      }
+      if (!smartDripDays || smartDripDays < 1 || smartDripDays > 30) {
+        throw new Error("Необходимо указать количество дней (1-30) для Умного Dripfeed");
+      }
+    }
     
     // 0. Rate limit
     const isAllowed = await RateLimitService.check("checkoutCore", 15, 60);
@@ -232,8 +243,18 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     
     // Media Group: double the total for 2 orders
     const mediaGroupMultiplier = hasMediaGroup ? 2 : 1;
-    const finalTotalCents = pricing.totalCents * mediaGroupMultiplier;
+    let finalTotalCents = pricing.totalCents * mediaGroupMultiplier;
     const finalProviderCostCents = pricing.providerCostCents * mediaGroupMultiplier;
+
+    let smartConfig = null;
+    if (isSmartDrip) {
+      smartConfig = await db.serviceSmartConfig.findUnique({ where: { serviceId } });
+      if (!smartConfig || !smartConfig.isEnabled) {
+        throw new Error("Эта услуга не поддерживает Умный Dripfeed");
+      }
+      // Apply surcharge multiplier
+      finalTotalCents = Math.round(finalTotalCents * (1 + smartConfig.markup));
+    }
 
     // Enforce 10 RUB minimum for Acquiring (YooKassa / CryptoBot) -> Auto-convert to 10 RUB top-up
     let paymentAmount = finalTotalCents;
@@ -273,7 +294,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           quantity: totalQuantity,
           email: email.toLowerCase(),
           status: 'AWAITING_PAYMENT',
-          charge: pricing.totalCents,
+          charge: isSmartDrip && smartConfig ? Math.round(pricing.totalCents * (1 + smartConfig.markup)) : pricing.totalCents,
           providerCost: pricing.providerCostCents,
           runs,
           interval,
@@ -298,7 +319,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             quantity: totalQuantity,
             email: email.toLowerCase(),
             status: 'AWAITING_PAYMENT',
-            charge: pricing.totalCents,
+            charge: isSmartDrip && smartConfig ? Math.round(pricing.totalCents * (1 + smartConfig.markup)) : pricing.totalCents,
             providerCost: pricing.providerCostCents,
             runs,
             interval,
@@ -339,6 +360,20 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         await tx.order.update({
           where: { id: secondOrderId },
           data: { paymentId: payment.id }
+        });
+      }
+
+      if (isSmartDrip && smartConfig) {
+        const { SmartDripService } = await import('@/services/dripfeed/smart-drip.service');
+        await SmartDripService.createCampaign(tx, {
+          userId: user.id,
+          serviceId,
+          link: normalizedLink,
+          quantity: totalQuantity,
+          days: smartDripDays!,
+          paymentId: payment.id,
+          orderId: newOrder.id,
+          isTestMode
         });
       }
 

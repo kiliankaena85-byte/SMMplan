@@ -9,6 +9,14 @@ import { logger } from '../../lib/logger';
 
 const log = logger.child({ component: 'SyncProcessor' });
 export default async function syncProcessor(job: Job<SyncJobPayload>) {
+  if (job.name === 'dripfeed-tick') {
+    log.info('Starting Smart Dripfeed Tick processing...');
+    const { runSmartDripfeedTick } = await import('./dripfeed.processor');
+    await runSmartDripfeedTick();
+    log.info('Finished Smart Dripfeed Tick processing.');
+    return;
+  }
+
   log.info('Beginning massive status sync...');
 
   // 1. Get all active providers

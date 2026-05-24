@@ -5,6 +5,10 @@ const client = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
   maxRetriesPerRequest: null,
 });
 
+client.on('error', (err) => {
+  console.warn('Redis Connection Error in CacheHandler:', err.message);
+});
+
 // JSON serialization helpers to support Map and Set
 function replacer(key, value) {
   if (value instanceof Map) {

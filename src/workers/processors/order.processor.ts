@@ -10,11 +10,35 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   
   const order = await db.order.findUnique({
     where: { id: orderId },
-    include: { service: { include: { provider: true } } }
+    include: {
+      service: { include: { provider: true } },
+      smartCampaign: true
+    }
   });
 
-  if (!order || !order.service.provider) {
-    console.warn(`[OrderProcessor] Order ${orderId} not found or missing provider.`);
+  if (!order) {
+    console.warn(`[OrderProcessor] Order ${orderId} not found.`);
+    return;
+  }
+
+  // Intercept and activate SmartCampaign if this is a parent order
+  if (order.smartCampaign) {
+    console.info(`[OrderProcessor] Intercepted SmartDrip parent order ${orderId}. Activating SmartCampaign.`);
+    await db.$transaction([
+      db.order.update({
+        where: { id: order.id },
+        data: { status: 'IN_PROGRESS' }
+      }),
+      db.smartCampaign.update({
+        where: { id: order.smartCampaign.id },
+        data: { status: 'RUNNING' }
+      })
+    ]);
+    return;
+  }
+
+  if (!order.service.provider) {
+    console.warn(`[OrderProcessor] Order ${orderId} missing provider.`);
     return;
   }
 

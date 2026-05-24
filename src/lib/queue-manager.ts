@@ -215,10 +215,6 @@ export async function ensureOrphanSweepCron() {
   );
 }
 
-/**
- * P2.4: Schedule payment synchronization cron every 15 minutes.
- * Ensures pending YooKassa payments are polled and synchronized in case of webhook failure.
- */
 export async function ensurePaymentSyncCron() {
   await paymentSyncQueue.add(
     'payment-sync-tick',
@@ -228,6 +224,22 @@ export async function ensurePaymentSyncCron() {
         pattern: '*/15 * * * *' // Every 15 minutes
       },
       jobId: 'payment-sync-singleton'
+    }
+  );
+}
+
+/**
+ * Smart Dripfeed: Schedule repeating tick job every 1 minute
+ */
+export async function ensureDripfeedCron() {
+  await syncQueue.add(
+    'dripfeed-tick',
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '* * * * *' // Every 1 minute
+      },
+      jobId: 'dripfeed-singleton'
     }
   );
 }

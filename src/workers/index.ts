@@ -9,6 +9,7 @@ import {
   ensureCatalogSyncCron, 
   ensureOrphanSweepCron, 
   ensurePaymentSyncCron, 
+  ensureDripfeedCron,
   dlqQueue, 
   cleanupQueue, 
   telegramQueue, 
@@ -160,6 +161,7 @@ ensureETACron().catch(e => log.error('Failed to setup ETA Cron', { error: (e as 
 ensureCatalogSyncCron().catch(e => log.error('Failed to setup Catalog Sync Cron', { error: (e as Error).message }));
 ensureOrphanSweepCron().catch(e => log.error('Failed to setup Orphan Sweep Cron', { error: (e as Error).message }));
 ensurePaymentSyncCron().catch(e => log.error('Failed to setup Payment Sync Cron', { error: (e as Error).message }));
+ensureDripfeedCron().catch(e => log.error('Failed to setup Dripfeed Cron', { error: (e as Error).message }));
 
 log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue'] });
 

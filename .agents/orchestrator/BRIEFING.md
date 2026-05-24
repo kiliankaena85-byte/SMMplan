@@ -51,11 +51,12 @@ Orchestrate and coordinate the implementation of Smmplan Stage 4 Hardening (UX e
 | Milestone 3 Finance Worker | teamwork_preview_worker | Implement USN tax scheme, database schema adjustments, and dashboard analytics | completed | 9371640d-7d9f-490c-96ba-e64f442c003a |
 | Milestone 4 Verifier Worker | teamwork_preview_worker | Implement BalanceVerifier and check-balances CLI utility | completed | 295e8a72-ae7d-4f58-97b1-254caef18e49 |
 | Milestone 5 QA and Build Verifier | teamwork_preview_worker | Run typecheck, build, and verify visual-qa and E2E visual tests | failed | 00b26a33-e27f-471b-853e-860454263377 |
-| Milestone 5 QA and Build Verifier Gen 2 | teamwork_preview_worker | Terminate conflicting process, compile, and run E2E visual tests | in-progress | 4671b494-4393-43b9-9648-7db715013337 |
+| Milestone 5 QA and Build Verifier Gen 2 | teamwork_preview_worker | Terminate conflicting process, compile, and run E2E visual tests | failed | 4671b494-4393-43b9-9648-7db715013337 |
+| Milestone 5 QA and Build Verifier Gen 3 | teamwork_preview_worker | Terminate conflicting process, compile, and run E2E visual tests | in-progress | 12477e87-eaf1-4b83-a91c-c8e77e7be568 |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 7 / 16
+- Spawn count: 8 / 16
 - Pending subagents: none
 - Predecessor: none
 - Successor: not yet spawned

@@ -5,16 +5,17 @@ const prisma = new PrismaClient();
 
 test.describe('Visual Regression QA for Admin Panel', () => {
   test.beforeAll(async () => {
-    // Ждем 3 секунды, чтобы дать серверу Next.js завершить начальные запросы готовности (ping от Playwright)
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Ждем 5 секунд, чтобы дать серверу Next.js завершить начальные запросы готовности (ping от Playwright)
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Сеем необходимые тестовые данные перед визуальными тестами
     const email = 'e2e-tester@test.com';
     
     let retries = 5;
     while (retries > 0) {
+      const localPrisma = new PrismaClient();
       try {
-        const user = await prisma.user.upsert({
+        const user = await localPrisma.user.upsert({
           where: { email },
           update: {
             role: 'OWNER',
@@ -31,53 +32,53 @@ test.describe('Visual Regression QA for Admin Panel', () => {
         });
 
         // Clean up only the specific user's orders and tickets to ensure clean state
-        await prisma.order.deleteMany({
+        await localPrisma.order.deleteMany({
           where: {
             user: { email }
           }
         });
-        await prisma.ticket.deleteMany({
+        await localPrisma.ticket.deleteMany({
           where: {
             user: { email }
           }
         });
 
         // Идемпотентный поиск или создание Сети
-        let network = await prisma.network.findFirst({
+        let network = await localPrisma.network.findFirst({
           where: { slug: 'telegram' }
         });
         if (!network) {
-          network = await prisma.network.create({
+          network = await localPrisma.network.create({
             data: { name: 'Telegram', slug: 'telegram', isActive: true }
           });
         }
 
         // Идемпотентный поиск или создание Категории
-        let category = await prisma.category.findFirst({
+        let category = await localPrisma.category.findFirst({
           where: { name: 'Подписчики Telegram', networkId: network.id }
         });
         if (!category) {
-          category = await prisma.category.create({
+          category = await localPrisma.category.create({
             data: { name: 'Подписчики Telegram', sort: 1, networkId: network.id }
           });
         }
 
         // Идемпотентный поиск или создание Провайдера
-        let provider = await prisma.provider.findFirst({
+        let provider = await localPrisma.provider.findFirst({
           where: { name: 'E2E Test Provider' }
         });
         if (!provider) {
-          provider = await prisma.provider.create({
+          provider = await localPrisma.provider.create({
             data: { name: 'E2E Test Provider', apiUrl: 'http://test.local', apiKey: 'test_key' }
           });
         }
 
         // Идемпотентный поиск или создание Услуги
-        let service = await prisma.service.findFirst({
+        let service = await localPrisma.service.findFirst({
           where: { name: 'Telegram Подписчики (Эконом)', categoryId: category.id }
         });
         if (!service) {
-          service = await prisma.service.create({
+          service = await localPrisma.service.create({
             data: {
               name: 'Telegram Подписчики (Эконом)',
               categoryId: category.id,
@@ -90,7 +91,7 @@ test.describe('Visual Regression QA for Admin Panel', () => {
             }
           });
         } else {
-          await prisma.service.update({
+          await localPrisma.service.update({
             where: { id: service.id },
             data: {
               rate: 1.5,
@@ -103,11 +104,11 @@ test.describe('Visual Regression QA for Admin Panel', () => {
         }
 
         // Идемпотентный поиск или создание Карантинной Услуги
-        let quarantinedService = await prisma.service.findFirst({
+        let quarantinedService = await localPrisma.service.findFirst({
           where: { name: 'E2E Quarantined Service', categoryId: category.id }
         });
         if (!quarantinedService) {
-          await prisma.service.create({
+          await localPrisma.service.create({
             data: {
               name: 'E2E Quarantined Service',
               categoryId: category.id,
@@ -121,7 +122,7 @@ test.describe('Visual Regression QA for Admin Panel', () => {
             }
           });
         } else {
-          await prisma.service.update({
+          await localPrisma.service.update({
             where: { id: quarantinedService.id },
             data: {
               rate: 10.0,
@@ -134,9 +135,9 @@ test.describe('Visual Regression QA for Admin Panel', () => {
           });
         }
 
-        let order = await prisma.order.findFirst({ where: { userId: user.id } });
+        let order = await localPrisma.order.findFirst({ where: { userId: user.id } });
         if (!order) {
-          await prisma.order.create({
+          await localPrisma.order.create({
             data: {
               userId: user.id,
               serviceId: service.id,
@@ -150,9 +151,9 @@ test.describe('Visual Regression QA for Admin Panel', () => {
           });
         }
 
-        let ticket = await prisma.ticket.findFirst({ where: { userId: user.id } });
+        let ticket = await localPrisma.ticket.findFirst({ where: { userId: user.id } });
         if (!ticket) {
-          await prisma.ticket.create({
+          await localPrisma.ticket.create({
             data: {
               userId: user.id,
               subject: 'Visual QA Test Ticket',
@@ -167,12 +168,16 @@ test.describe('Visual Regression QA for Admin Panel', () => {
           });
         }
         
+        await localPrisma.$disconnect();
         break; // Success, break retry loop!
       } catch (err) {
         retries--;
-        console.warn(`⚠️ [Playwright Seed Retry] seeding failed, retrying... (${retries} retries remaining). Error:`, err.message);
+        console.warn(`⚠️ [Playwright Seed Retry] seeding failed, retrying... (${retries} retries remaining). Error:`, (err as any).message);
+        try {
+          await localPrisma.$disconnect();
+        } catch (_) {}
         if (retries === 0) throw err;
-        await new Promise(resolve => setTimeout(resolve, 1500)); // wait 1.5s before retry
+        await new Promise(resolve => setTimeout(resolve, 2000)); // wait 2s before retry
       }
     }
   });
