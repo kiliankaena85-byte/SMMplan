@@ -26,6 +26,7 @@ type OrderSearchParams = {
   orderId?: number;
   externalId?: string;
   serviceName?: string;
+  networkSlug?: string;
   link?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -52,6 +53,7 @@ class AdminOrderService {
       orderId,
       externalId,
       serviceName,
+      networkSlug,
       link,
       minPrice,
       maxPrice,
@@ -102,6 +104,19 @@ class AdminOrderService {
           }
         });
       }
+    }
+
+    if (networkSlug && networkSlug !== 'ALL') {
+      where.AND = where.AND || [];
+      where.AND.push({
+        service: {
+          category: {
+            network: {
+              slug: networkSlug
+            }
+          }
+        }
+      });
     }
 
     if (link && link.trim()) {

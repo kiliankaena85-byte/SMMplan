@@ -33,6 +33,7 @@ type Props = {
     orderId?: string;
     externalId?: string;
     serviceName?: string;
+    networkSlug?: string;
     link?: string;
     minPrice?: string;
     maxPrice?: string;
@@ -57,6 +58,12 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const cursor = params.cursor || undefined;
   const userId = params.userId || '';
   const editOrderId = params.edit_order_id || '';
+  const networkSlug = params.networkSlug || '';
+
+  const networks = await db.network.findMany({
+    select: { id: true, name: true, slug: true },
+    orderBy: { slug: 'asc' }
+  });
 
   const { items: orders, nextCursor, hasMore } = await adminOrderService.searchOrders({
     query: query || undefined,
@@ -68,6 +75,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     orderId: params.orderId ? parseInt(params.orderId, 10) : undefined,
     externalId: params.externalId || undefined,
     serviceName: params.serviceName || undefined,
+    networkSlug: networkSlug || undefined,
     link: params.link || undefined,
     minPrice: params.minPrice ? parseFloat(params.minPrice) : undefined,
     maxPrice: params.maxPrice ? parseFloat(params.maxPrice) : undefined,
@@ -174,7 +182,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       {/* Search + Filters */}
       <Card>
         <CardContent className="pt-6">
-          <OrdersFilterForm />
+          <OrdersFilterForm networks={networks} />
         </CardContent>
       </Card>
 

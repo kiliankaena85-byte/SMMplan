@@ -17,7 +17,13 @@ const STATUS_OPTIONS = [
   { value: 'AWAITING_PAYMENT',  label: 'Ожидает оплату' },
 ] as const;
 
-export function OrdersFilterForm() {
+interface NetworkOption {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -29,6 +35,7 @@ export function OrdersFilterForm() {
   const currentOrderId = searchParams.get('orderId') || '';
   const currentExternalId = searchParams.get('externalId') || '';
   const currentServiceName = searchParams.get('serviceName') || '';
+  const currentNetworkSlug = searchParams.get('networkSlug') || 'ALL';
   const currentLink = searchParams.get('link') || '';
   const currentMinPrice = searchParams.get('minPrice') || '';
   const currentMaxPrice = searchParams.get('maxPrice') || '';
@@ -37,10 +44,9 @@ export function OrdersFilterForm() {
 
   // Check if any advanced filters are currently active in URL to auto-expand
   const hasActiveAdvancedFilters = !!(
-    currentClientEmail ||
+    currentQ ||
     currentOrderId ||
     currentExternalId ||
-    currentServiceName ||
     currentLink ||
     currentMinPrice ||
     currentMaxPrice ||
@@ -72,6 +78,10 @@ export function OrdersFilterForm() {
     router.push(`${pathname}?${params.toString()}`);
   };
 
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.currentTarget.form?.requestSubmit();
+  };
+
   const handleReset = () => {
     // Navigate to base pathname to fully clear all search filters
     router.push(pathname);
@@ -79,55 +89,90 @@ export function OrdersFilterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Main Search Row */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch">
-        <div className="relative flex-1">
-          <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted-foreground">
-            <Search className="w-4 h-4" />
-          </span>
+      {/* 3-Field Primary Search Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+        {/* Email клиента */}
+        <div className="relative col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-2 space-y-1">
+          <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Email клиента</label>
           <input
             type="text"
-            name="q"
-            defaultValue={currentQ}
-            placeholder="Поиск: email, чек, ID заказа, соцсеть, тариф, цена..."
-            className="w-full pl-9 pr-4 h-11 text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
+            name="clientEmail"
+            defaultValue={currentClientEmail}
+            placeholder="📧 Email (например: client@example.com)"
+            className="w-full px-4 h-11 text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
           />
         </div>
 
-        <div className="flex gap-2 min-w-max">
+        {/* Соцсеть */}
+        <div className="col-span-1 space-y-1">
+          <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Социальная сеть</label>
           <select
-            name="status"
-            defaultValue={currentStatus}
-            aria-label="Фильтр по статусу заказа"
-            className="px-4 h-11 text-sm border border-border rounded-xl bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
+            name="networkSlug"
+            defaultValue={currentNetworkSlug}
+            onChange={handleSelectChange}
+            aria-label="Фильтр по соцсети"
+            className="w-full px-3 h-11 text-sm border border-border rounded-xl bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
           >
-            {STATUS_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
+            <option value="ALL">🌐 Все соцсети</option>
+            {networks.map(n => (
+              <option key={n.id} value={n.slug}>
+                {n.name}
               </option>
             ))}
           </select>
+        </div>
 
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`flex items-center gap-1.5 px-4 h-11 text-xs font-semibold border rounded-xl transition-all duration-200 cursor-pointer
-              ${showAdvanced 
-                ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/15' 
-                : 'bg-background text-foreground border-border hover:bg-muted/50'
-              }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Фильтры
-            {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
+        {/* Ключевое слово */}
+        <div className="relative col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-2 space-y-1">
+          <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Ключевое слово в услуге</label>
+          <input
+            type="text"
+            name="serviceName"
+            defaultValue={currentServiceName}
+            placeholder="🔍 Поиск (пример: подписчики -bot)"
+            className="w-full px-4 h-11 text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
+          />
+        </div>
 
-          <button
-            type="submit"
-            className="px-6 h-11 text-xs font-bold text-primary-foreground bg-primary hover:opacity-90 active:opacity-95 shadow-sm rounded-xl transition-all duration-200 cursor-pointer"
-          >
-            Найти
-          </button>
+        {/* Actions & Status Group */}
+        <div className="col-span-1 space-y-1 w-full">
+          <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[9px] pl-1">Параметры</label>
+          <div className="flex gap-2 items-center w-full justify-stretch">
+            <select
+              name="status"
+              defaultValue={currentStatus}
+              onChange={handleSelectChange}
+              aria-label="Фильтр по статусу заказа"
+              className="flex-1 min-w-0 px-2 h-11 text-xs border border-border rounded-xl bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
+            >
+              {STATUS_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              aria-label="Показать дополнительные фильтры"
+              className={`flex items-center justify-center gap-1.5 px-3 h-11 text-xs font-semibold border rounded-xl transition-all duration-200 cursor-pointer
+                ${showAdvanced 
+                  ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/15' 
+                  : 'bg-background text-foreground border-border hover:bg-muted/50'
+                }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+
+            <button
+              type="submit"
+              className="px-4 h-11 text-xs font-bold text-primary-foreground bg-primary hover:opacity-90 active:opacity-95 shadow-sm rounded-xl transition-all duration-200 cursor-pointer"
+            >
+              Найти
+            </button>
+          </div>
         </div>
       </div>
 
@@ -143,14 +188,14 @@ export function OrdersFilterForm() {
           >
             <div className="pt-2 pb-1 border-t border-border/50 mt-2 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-xs">
-                {/* Client Email */}
+                {/* General Omnibus Search Query */}
                 <div className="space-y-1">
-                  <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Email клиента</label>
+                  <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Код оплаты / Чек</label>
                   <input
-                    type="email"
-                    name="clientEmail"
-                    defaultValue={currentClientEmail}
-                    placeholder="client@example.com"
+                    type="text"
+                    name="q"
+                    defaultValue={currentQ}
+                    placeholder="ID платежа, чек кассы..."
                     className="w-full px-3 h-10 bg-background border border-border rounded-lg focus:border-primary outline-none text-foreground transition-all duration-200"
                   />
                 </div>
@@ -179,15 +224,15 @@ export function OrdersFilterForm() {
                   />
                 </div>
 
-                {/* Service Name */}
+                {/* Target URL */}
                 <div className="space-y-1">
-                  <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Название услуги</label>
+                  <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Ссылка заказа</label>
                   <input
                     type="text"
-                    name="serviceName"
-                    defaultValue={currentServiceName}
-                    placeholder="Пример: Telegram -bot (поиск и исключение)"
-                    className="w-full px-3 h-10 bg-background border border-border rounded-lg focus:border-primary outline-none text-foreground transition-all duration-200"
+                    name="link"
+                    defaultValue={currentLink}
+                    placeholder="https://t.me/your_channel"
+                    className="w-full px-3 h-10 bg-background border border-border rounded-lg focus:border-primary outline-none text-foreground transition-all duration-200 font-mono"
                   />
                 </div>
 
@@ -235,18 +280,6 @@ export function OrdersFilterForm() {
                       className="flex-1 px-3 h-10 bg-background border border-border rounded-lg focus:border-primary outline-none text-foreground transition-all duration-200 font-mono"
                     />
                   </div>
-                </div>
-
-                {/* Target URL */}
-                <div className="space-y-1 sm:col-span-2 md:col-span-3 lg:col-span-4">
-                  <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Ссылка заказа</label>
-                  <input
-                    type="text"
-                    name="link"
-                    defaultValue={currentLink}
-                    placeholder="https://t.me/your_channel"
-                    className="w-full px-3 h-10 bg-background border border-border rounded-lg focus:border-primary outline-none text-foreground transition-all duration-200 font-mono"
-                  />
                 </div>
               </div>
 
