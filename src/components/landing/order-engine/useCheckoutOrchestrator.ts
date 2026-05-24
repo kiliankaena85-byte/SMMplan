@@ -198,7 +198,9 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
       promoCodeStr: promoCode.trim() || undefined,
       gateway: 'yookassa',
       mediaGroupUrl: engine.mediaGroupUrl?.trim() || undefined,
-      isLinkOverridden: engine.isLinkOverridden
+      isLinkOverridden: engine.isLinkOverridden,
+      isSmartDrip: engine.isSmartDrip,
+      smartDripDays: engine.isSmartDrip ? engine.smartDripDays : undefined
     });
     
     setIsSubmitting(false);

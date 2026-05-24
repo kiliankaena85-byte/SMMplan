@@ -44,6 +44,9 @@ export interface OrderCreationParams {
   username?: string;
   runs?: number;
   interval?: number;
+  ref?: string;
+  custom_id?: string;
+  [key: string]: any;
 }
 
 export interface BaseProvider {

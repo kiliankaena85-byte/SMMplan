@@ -202,7 +202,7 @@ test.describe('Visual Regression QA for Admin Panel', () => {
   });
 
   const setupPageAndCapture = async (page: any, path: string) => {
-    await page.goto(path, { waitUntil: 'networkidle' });
+    await page.goto(path, { waitUntil: 'load' });
     await page.waitForTimeout(3000); // Даем время для гидратации и отрисовки диаграмм
     
     // Дополнительная инъекция CSS для скрытия динамического числового или SVG контента

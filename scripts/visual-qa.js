@@ -212,7 +212,7 @@ async function main() {
     console.log(`📸 Загрузка: ${targetUrl}...`);
 
     try {
-      await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 30000 });
+      await page.goto(targetUrl, { waitUntil: 'load', timeout: 30000 });
       
       // Ждём дополнительное время для стабильного рендеринга таблиц и контента
       await page.waitForTimeout(3000);

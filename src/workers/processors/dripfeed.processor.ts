@@ -90,6 +90,13 @@ export async function runSmartDripfeedTick() {
               data: { status: SmartTaskStatus.COMPLETED },
             }),
           ]);
+          
+          // Запуск тихого сканирования качества подписчиков (неблокирующий вызов)
+          const { scanSubscriberQuality } = await import('./quality-detector.processor');
+          void scanSubscriberQuality(campaign.id, exec.qtySent, campaign.link).catch((err) =>
+            console.error('[Dripfeed] Failed to run silent quality scanner:', err)
+          );
+
           await checkAndCompleteCampaign(campaign.id);
         } else if (['CANCELED', 'PARTIAL', 'FAILED'].includes(providerStatus)) {
           await prisma.$transaction([
@@ -170,6 +177,13 @@ export async function runSmartDripfeedTick() {
           data: { status: SmartTaskStatus.COMPLETED },
         });
         console.info(`[Dripfeed Worker] Тестовая задача ${task.id} имитирована успешно.`);
+
+        // Запуск тихого сканирования качества подписчиков (неблокирующий вызов)
+        const { scanSubscriberQuality } = await import('./quality-detector.processor');
+        void scanSubscriberQuality(campaign.id, task.quantity, campaign.link).catch((err) =>
+          console.error('[Dripfeed] Failed to run silent quality scanner:', err)
+        );
+
         await checkAndCompleteCampaign(campaign.id);
         continue;
       }

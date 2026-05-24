@@ -52,6 +52,8 @@ export function OrderSummaryCard({
     dripFeedEnabled, setDripFeedEnabled,
     runs, setRuns,
     dripInterval, setDripInterval,
+    isSmartDrip, setIsSmartDrip,
+    smartDripDays, setSmartDripDays,
     isCalculating,
     totalPriceFormatted,
     validate,
@@ -402,12 +404,70 @@ export function OrderSummaryCard({
           {/* Drip feed */}
           <DripFeedSettings
             enabled={dripFeedEnabled}
-            setEnabled={setDripFeedEnabled}
+            setEnabled={(val) => {
+              setDripFeedEnabled(val);
+              if (val) {
+                setIsSmartDrip(false);
+              }
+            }}
             runs={runs}
             setRuns={setRuns}
             interval={dripInterval}
             setInterval={setDripInterval}
           />
+
+          {/* Smart Drip feed */}
+          {selectedService?.smartConfig?.isEnabled && (
+            <div className="p-4 bg-primary/5 border border-primary/25 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-black text-foreground flex items-center gap-1.5 select-none">
+                    🤖 Растянуть доставку (Smart Drip)
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block select-none">
+                    Случайными порциями по плавному графику (+{Math.round(selectedService.smartConfig.markup * 100)}% к цене)
+                  </span>
+                </div>
+                <input 
+                  type="checkbox"
+                  checked={isSmartDrip}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsSmartDrip(checked);
+                    if (checked) {
+                      setDripFeedEnabled(false); // Reset normal dripfeed
+                    }
+                  }}
+                  className="w-4 h-4 accent-primary rounded cursor-pointer shrink-0"
+                />
+              </div>
+
+              {isSmartDrip && (
+                <div className="space-y-2 pt-1 animate-in fade-in duration-200">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-wider select-none">
+                    <span>Период распределения:</span>
+                    <span className="text-primary font-bold">{smartDripDays} дней</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {[3, 7, 14, 30].map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setSmartDripDays(d)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                          smartDripDays === d 
+                            ? 'border-primary bg-primary/10 text-primary shadow-xs' 
+                            : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                        }`}
+                      >
+                        {d === 7 ? `${d}д (Реком.)` : `${d}д`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Price */}
           <div className="border-t border-border pt-5 flex items-center justify-between">

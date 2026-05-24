@@ -25,14 +25,13 @@ describe('SettingsProvider (Dynamic Branding)', () => {
 
   it('should throw if DB is inaccessible', async () => {
     // Simulate DB failure
-    (db.systemSettings.findUnique as any).mockRejectedValue(new Error('DB Error'));
+    (db.systemSettings.upsert as any).mockRejectedValue(new Error('DB Error'));
 
     await expect(SettingsProvider.getContactAndLegalSettings()).rejects.toThrow('DB Error');
   });
 
   it('should return default values from create if DB is empty but accessible', async () => {
-    (db.systemSettings.findUnique as any).mockResolvedValue(null);
-    (db.systemSettings.create as any).mockResolvedValue({
+    (db.systemSettings.upsert as any).mockResolvedValue({
       siteName: 'Smmplan Lite',
       contactSupportEmail: 'support@smmplan.pro',
       legalCompanyName: 'Smmplan Lite'
@@ -45,7 +44,7 @@ describe('SettingsProvider (Dynamic Branding)', () => {
   });
 
   it('should map custom DB fields correctly to constants', async () => {
-    (db.systemSettings.findUnique as any).mockResolvedValue({
+    (db.systemSettings.upsert as any).mockResolvedValue({
       siteName: 'Custom Brand',
       contactSupportEmail: 'hello@custombrand.com',
       contactPrivacyEmail: 'privacy@custombrand.com',

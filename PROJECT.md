@@ -16,9 +16,9 @@ This project hardens the Smmplan B2B administration panel and client-support flo
 |---|---|---|---|---|
 | 1 | R1: Ergonomic UX & Warm Theme | Support panel ergonomic layout, soft Zinc/Ivory theme, 1.6 line-height, >=44px touch targets, hidden/collapsible profile sidebar on desktop, bottom drawer on mobile, auto-copy and provider bridge. | None | DONE |
 | 2 | R2: CBR Pricing & Quarantine | CBR USD/RUB exchange API sync, safety floor retail pricing, Elastic Quarantine for >20% spikes, Loss Prevention auto-block, and sync execution checks. | None | DONE |
-| 3 | R3: Financial Dashboard Analytics | dashboard metrics (Revenue, YooKassa fees, Provider cost COGS), dynamic USN tax selection (Income vs. Income minus Expenses), and clear net profit indicators (green/yellow/red). | M1, M2 | IN_PROGRESS |
-| 4 | R4: Balance Verification Ledger | Double-check Ledger verifier utility `src/utils/balance-verifier.ts` (`npm run check-balances`) to compare user.balance with ledger entries sum, auto-block fraud, and write alerts. | None | PLANNED |
-| 5 | R5: Visual QA Script & E2E Tests | `scripts/visual-qa.js` utilizing Playwright with `--compare` using pixelmatch, native visual regression test spec, and 100% build checks. | M1, M3 | PLANNED |
+| 3 | R3: Financial Dashboard Analytics | dashboard metrics (Revenue, YooKassa fees, Provider cost COGS), dynamic USN tax selection (Income vs. Income minus Expenses), and clear net profit indicators (green/yellow/red). | M1, M2 | DONE |
+| 4 | R4: Balance Verification Ledger | Double-check Ledger verifier utility `src/utils/balance-verifier.ts` (`npm run check-balances`) to compare user.balance with ledger entries sum, auto-block fraud, and write alerts. | None | DONE |
+| 5 | R5: Visual QA Script & E2E Tests | `scripts/visual-qa.js` utilizing Playwright with `--compare` using pixelmatch, native visual regression test spec, and 100% build checks. | M1, M3 | DONE |
 
 ## Interface Contracts
 - **Ergonomic Palette**: Theme colors must be derived exclusively from the `@theme` variable definitions in `src/app/globals.css` (Zinc / Ivory backgrounds, graphite/slate slate text, amber highlight elements). Hardcoded tailwind colors (like `bg-slate-950` or `text-emerald-600`) are forbidden.

@@ -36,6 +36,7 @@ const ADMIN_NAVIGATION = [
     items: [
       { href: '/admin/catalog',           icon: 'ShoppingCart',  label: 'Услуги',        section: 'catalog' },
       { href: '/admin/catalog/quarantine',icon: 'AlertTriangle', label: 'Карантин',      section: 'quarantine' },
+      { href: '/admin/smart',             icon: 'Cpu',           label: 'Умный Dripfeed', section: 'catalog' },
       { href: '/admin/providers', icon: 'Link',          label: 'Провайдеры', section: 'providers' },
       { href: '/admin/pages',     icon: 'FileText',      label: 'Страницы',   section: 'pages' },
     ]

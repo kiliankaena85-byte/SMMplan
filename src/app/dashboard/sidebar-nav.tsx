@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronRight,
   Receipt,
+  Cpu,
 } from 'lucide-react';
 
 import { BalanceDisplay } from '@/components/dashboard/balance/BalanceDisplay';
@@ -22,6 +23,7 @@ export const NAV = [
   { href: '/dashboard',              icon: LayoutDashboard, label: 'Главная'     },
   { href: '/dashboard/new-order',    icon: ShoppingCart,    label: 'Новый заказ' },
   { href: '/dashboard/orders',       icon: ListOrdered,     label: 'Мои заказы'  },
+  { href: '/dashboard/smart-drip',   icon: Cpu,             label: 'Умный Dripfeed' },
   { href: '/dashboard/transactions', icon: Receipt,         label: 'Транзакции'  },
   { href: '/dashboard/add-funds',    icon: Wallet,          label: 'Пополнить'   },
   { href: '/dashboard/tickets',      icon: MessageSquare,   label: 'Поддержка'   },

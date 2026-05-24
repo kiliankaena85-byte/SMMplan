@@ -21,6 +21,13 @@ export type PublicService = {
   targetType?: string | null;
   features?: any;
   cooldownUntil?: string | null;
+  smartConfig?: {
+    isEnabled: boolean;
+    isTestMode: boolean;
+    minChunk: number;
+    maxChunk: number;
+    markup: number;
+  } | null;
 };
 
 export type PublicCategory = {
@@ -111,6 +118,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
       async (catId: string) => {
         return await db.service.findMany({
           where: { categoryId: catId, isActive: true },
+          include: { smartConfig: true },
           orderBy: { rate: 'asc' },
           take: 100
         });
@@ -123,6 +131,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
       process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_APP_ENV === 'test'
         ? db.service.findMany({
             where: { categoryId: categoryId, isActive: true },
+            include: { smartConfig: true },
             orderBy: { rate: 'asc' },
             take: 100
           })
@@ -157,7 +166,14 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           badge,
           targetType: s.targetType,
           features: s.features,
-          cooldownUntil: s.cooldownUntil ? s.cooldownUntil.toISOString() : null
+          cooldownUntil: s.cooldownUntil ? s.cooldownUntil.toISOString() : null,
+          smartConfig: s.smartConfig ? {
+            isEnabled: s.smartConfig.isEnabled,
+            isTestMode: s.smartConfig.isTestMode,
+            minChunk: s.smartConfig.minChunk,
+            maxChunk: s.smartConfig.maxChunk,
+            markup: s.smartConfig.markup
+          } : null
        };
     });
   } catch (error) {

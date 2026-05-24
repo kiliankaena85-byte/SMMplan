@@ -42,6 +42,10 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [runs, setRuns] = useState(2);
   const [dripInterval, setDripInterval] = useState(5);
 
+  // Smart Drip states
+  const [isSmartDrip, setIsSmartDrip] = useState(false);
+  const [smartDripDays, setSmartDripDays] = useState(7);
+
   // Data states
   const [catalog, setCatalog] = useState<PublicNetwork[]>(initialCatalog);
   const [services, setServices] = useState<PublicService[]>([]);
@@ -260,6 +264,8 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       setDripFeedEnabled(false);
       setRuns(2);
       setDripInterval(5);
+      setIsSmartDrip(false);
+      setSmartDripDays(7);
       setIsLinkOverridden(false);
     }
   }, [selectedService]);
@@ -397,8 +403,14 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
 
   // Helper getters
   const mediaGroupMultiplier = mediaGroupUrl.trim().length > 5 ? 2 : 1;
-  const totalPriceFormatted = pricing 
-    ? formatCents(pricing.totalCents * mediaGroupMultiplier) 
+  
+  let finalCents = pricing ? pricing.totalCents * mediaGroupMultiplier : 0;
+  if (pricing && isSmartDrip && selectedService?.smartConfig?.isEnabled) {
+    finalCents = Math.round(finalCents * (1 + selectedService.smartConfig.markup));
+  }
+  
+  const totalPriceFormatted = finalCents > 0 
+    ? formatCents(finalCents) 
     : formatCents(0); // REQUIRED BY PROTOCOL: Draw 0.00 RUB if empty
 
   const activeNetwork = catalog.find(n => n.id === networkId) || catalog[0] || null;
@@ -436,6 +448,10 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     dripFeedEnabled, setDripFeedEnabled,
     runs, setRuns,
     dripInterval, setDripInterval,
+
+    // Smart Drip
+    isSmartDrip, setIsSmartDrip,
+    smartDripDays, setSmartDripDays,
     
     platform,
     manualPlatform,
