@@ -33,7 +33,6 @@ model User {
   isActive        Boolean @default(true)
   isDeleted       Boolean @default(false)
 
-
   // Operator notes (internal, never visible to client)
   adminNote          String? // Free-form operator note
   adminNoteUpdatedAt DateTime? // When the note was last updated
@@ -42,14 +41,15 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  authTokens AuthToken[]
-  sessions   Session[]
-  orders     Order[]
-  payments   Payment[]
-  tickets    Ticket[]
-  auditLogs  AuditLog[]
-  ledgerLogs LedgerEntry[] @relation("UserLedger")
-  invoices   Invoice[]
+  authTokens     AuthToken[]
+  sessions       Session[]
+  orders         Order[]
+  payments       Payment[]
+  tickets        Ticket[]
+  auditLogs      AuditLog[]
+  ledgerLogs     LedgerEntry[]   @relation("UserLedger")
+  invoices       Invoice[]
+  smartCampaigns SmartCampaign[]
 
   // B2B & Accounting Fields
   companyName  String?
@@ -97,7 +97,7 @@ model Session {
   expiresAt      DateTime
   userAgent      String?
   ipAddress      String?
-  impersonatedBy String?  // SD-07: Admin ID who initiated Login-As (null = real session)
+  impersonatedBy String? // SD-07: Admin ID who initiated Login-As (null = real session)
   createdAt      DateTime @default(now())
 
   @@index([userId])
@@ -196,8 +196,10 @@ model Service {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  orders Order[]
-  routes ServiceRoute[]
+  orders         Order[]
+  routes         ServiceRoute[]
+  smartCampaigns SmartCampaign[]
+  smartConfig    ServiceSmartConfig?
 
   @@index([categoryId])
   @@index([providerId])
@@ -223,31 +225,32 @@ model Provider {
   lastSuccessAt DateTime? // Last successful API response
   avgResponseMs Int       @default(0) // Rolling average response time in ms
 
-  services     Service[]
-  Order        Order[]
-  ServiceRoute ServiceRoute[]
+  services        Service[]
+  Order           Order[]
+  ServiceRoute    ServiceRoute[]
+  smartExecutions SmartExecution[]
 }
 
 model Order {
-  id                String    @id @default(cuid())
-  numericId         Int       @unique @default(autoincrement())
+  id                String      @id @default(cuid())
+  numericId         Int         @unique @default(autoincrement())
   userId            String
   serviceId         String
   providerId        String? // Snapshots the provider used AT THE TIME of checkout
-  provider          Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  provider          Provider?   @relation(fields: [providerId], references: [id], onDelete: SetNull)
   providerServiceId String? // Snapshots the provider's external service ID AT THE TIME of checkout
   externalId        String? // ID from provider (like VexBoost)
-  dripExternalIds   String[]  @default([]) // History of run IDs for Drip-Feed
+  dripExternalIds   String[]    @default([]) // History of run IDs for Drip-Feed
   link              String
-  isLinkOverridden  Boolean   @default(false)
+  isLinkOverridden  Boolean     @default(false)
   quantity          Int
   status            OrderStatus @default(AWAITING_PAYMENT)
-  remains           Int       @default(0) // Outstanding amount to deliver
+  remains           Int         @default(0) // Outstanding amount to deliver
   charge            BigInt // price paid by user in Cents
   providerCost      BigInt // exact cost from provider in Cents
   error             String? // Error message from provider API
-  retryCount        Int       @default(0) // Safe API Backoff mechanism
-  isTest            Boolean   @default(false) // Isolation flag for mock environment
+  retryCount        Int         @default(0) // Safe API Backoff mechanism
+  isTest            Boolean     @default(false) // Isolation flag for mock environment
   email             String? // Contact email for guest / notification
   customData        String? // Additional payload (comments, answer #, keywords)
 
@@ -264,12 +267,12 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  paymentId String?
-  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  refills   Refill[]
-  tickets   Ticket[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  service        Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  paymentId      String?
+  payment        Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  refills        Refill[]
+  tickets        Ticket[]
   ticketMessages TicketMessage[]
 
   idempotencyKey String? @unique // Wave 1: Token to prevent double order creation
@@ -355,14 +358,14 @@ enum UsnScheme {
 }
 
 model SystemSettings {
-  id              String  @id @default("global")
-  isTestMode      Boolean @default(false)
-  taxRate         Float   @default(6.0) // % tax rate
+  id              String    @id @default("global")
+  isTestMode      Boolean   @default(false)
+  taxRate         Float     @default(6.0) // % tax rate
   usnScheme       UsnScheme @default(INCOME_EXPENSES)
-  opexMonthly     Int     @default(0) // Fixed operational expenses sum in Cents
-  maintenanceMode Boolean @default(false)
-  siteName        String  @default("Smmplan")
-  siteDescription String  @default("")
+  opexMonthly     Int       @default(0) // Fixed operational expenses sum in Cents
+  maintenanceMode Boolean   @default(false)
+  siteName        String    @default("Smmplan")
+  siteDescription String    @default("")
 
   // Telegram Bot Settings
   welcomeMessage String? @default("Добро пожаловать в Smmplan! Ваш персональный кабинет готов к работе.")
@@ -437,9 +440,9 @@ enum MessageSender {
 }
 
 model Ticket {
-  id      String @id @default(cuid())
+  id      String       @id @default(cuid())
   userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject String
   status  TicketStatus @default(OPEN)
   source  TicketSource @default(WEB)
@@ -463,9 +466,9 @@ model Ticket {
 }
 
 model TicketMessage {
-  id        String  @id @default(cuid())
+  id        String        @id @default(cuid())
   ticketId  String
-  ticket    Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticket    Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   sender    MessageSender
   text      String
   mediaUrl  String? // @deprecated - relative path to uploaded file (legacy)
@@ -482,8 +485,8 @@ model TicketMessage {
 
   attachments MessageAttachment[]
 
-  orderId   String?
-  order     Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -497,14 +500,14 @@ model MessageAttachment {
   id        String        @id @default(cuid())
   messageId String
   message   TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  
-  url       String        // relative path to uploaded file (slugified)
-  type      String        // "image" | "audio" | "video" | "document"
-  mimeType  String        // exact MIME type
-  name      String        // original file name
-  size      Int?          // file size in bytes
-  
-  createdAt DateTime      @default(now())
+
+  url      String // relative path to uploaded file (slugified)
+  type     String // "image" | "audio" | "video" | "document"
+  mimeType String // exact MIME type
+  name     String // original file name
+  size     Int? // file size in bytes
+
+  createdAt DateTime @default(now())
 
   @@index([messageId])
 }
@@ -578,17 +581,17 @@ model AdminAuditLog {
 }
 
 model LedgerEntry {
-  id             String   @id @default(cuid())
-  userId         String // Client whose balance was affected
-  user           User     @relation("UserLedger", fields: [userId], references: [id], onDelete: Restrict)
-  adminId        String? // Support agent who initiated, null if SYSTEM/auto
-  amount         BigInt // Amount in Cents (positive = credit, negative = debit)
-  reason         String // Mandatory justification text
-  status         String   @default("APPROVED") // APPROVED, QUARANTINE, REJECTED
+  id              String   @id @default(cuid())
+  userId          String // Client whose balance was affected
+  user            User     @relation("UserLedger", fields: [userId], references: [id], onDelete: Restrict)
+  adminId         String? // Support agent who initiated, null if SYSTEM/auto
+  amount          BigInt // Amount in Cents (positive = credit, negative = debit)
+  reason          String // Mandatory justification text
+  status          String   @default("APPROVED") // APPROVED, QUARANTINE, REJECTED
   idempotencyKey  String?
   transactionType String   @default("PAYMENT") // PAYMENT | REFUND | REROUTE | COMPENSATION
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([idempotencyKey, transactionType])
   @@index([userId])
@@ -797,12 +800,114 @@ model ContentItem {
 
 model SecurityEvent {
   id        String   @id @default(cuid())
-  event     String   // SIGNATURE_FAILED | REPLAY_ATTEMPT | INVALID_FORMAT
-  severity  String   // WARNING | CRITICAL
+  event     String // SIGNATURE_FAILED | REPLAY_ATTEMPT | INVALID_FORMAT
+  severity  String // WARNING | CRITICAL
   ip        String?
   details   Json?
   createdAt DateTime @default(now())
 
   @@index([event])
   @@index([createdAt])
+}
+
+enum SmartCampaignStatus {
+  PLANNED
+  RUNNING
+  PAUSED
+  COMPLETED
+  ERROR
+}
+
+enum SmartTaskStatus {
+  PLANNED
+  SENT
+  COMPLETED
+  ERROR
+}
+
+model SmartCampaign {
+  id            String              @id @default(cuid())
+  userId        String
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service             @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  status        SmartCampaignStatus @default(PLANNED)
+  link          String
+  totalQuantity Int
+  totalDays     Int
+  isTestMode    Boolean             @default(false)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  tasks     SmartTask[]
+  snapshots SmartSnapshot[]
+
+  @@index([userId])
+  @@index([serviceId])
+}
+
+model SmartTask {
+  id         String          @id @default(cuid())
+  campaignId String
+  campaign   SmartCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  quantity   Int
+  runAt      DateTime
+  status     SmartTaskStatus @default(PLANNED)
+  error      String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  executions SmartExecution[]
+
+  @@index([campaignId])
+  @@index([runAt, status])
+}
+
+model SmartExecution {
+  id              String    @id @default(cuid())
+  taskId          String
+  task            SmartTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  providerId      String?
+  provider        Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  externalOrderId String?
+  qtySent         Int
+  qtyDelivered    Int       @default(0)
+  status          String    @default("PENDING")
+  error           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([taskId])
+}
+
+model ServiceSmartConfig {
+  id                String   @id @default(cuid())
+  serviceId         String   @unique
+  service           Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  isEnabled         Boolean  @default(false)
+  isTestMode        Boolean  @default(false)
+  minChunk          Int      @default(50)
+  maxChunk          Int      @default(200)
+  markup            Float    @default(0.15)
+  providersPriority String[] @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model SmartSnapshot {
+  id         String        @id @default(cuid())
+  campaignId String
+  campaign   SmartCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  channelUrl String
+  members    String[]
+  createdAt  DateTime      @default(now())
+}
+
+model SmartDetectedUser {
+  id         String   @id @default(cuid())
+  campaignId String
+  telegramId String
+  score      Int      @default(0)
+  reasons    String[]
+  createdAt  DateTime @default(now())
 }
