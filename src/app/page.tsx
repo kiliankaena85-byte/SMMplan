@@ -78,7 +78,9 @@ export default async function Home() {
       </section>
 
       {/* Interactive App */}
-      <SmartLinkLanding initialCatalog={catalog} initialEmail={userEmail} contactSettings={settings} />
+      <main id="main-content" tabIndex={-1} className="outline-none">
+        <SmartLinkLanding initialCatalog={catalog} initialEmail={userEmail} contactSettings={settings} />
+      </main>
     </>
   );
 }

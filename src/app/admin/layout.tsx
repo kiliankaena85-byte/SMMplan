@@ -39,6 +39,7 @@ const ADMIN_NAVIGATION = [
       { href: '/admin/smart',             icon: 'Cpu',           label: 'Умный Dripfeed', section: 'catalog' },
       { href: '/admin/providers', icon: 'Link',          label: 'Провайдеры', section: 'providers' },
       { href: '/admin/pages',     icon: 'FileText',      label: 'Страницы',   section: 'pages' },
+      { href: '/admin/knowledge', icon: 'BookOpen',      label: 'Блог & Статьи', section: 'pages' },
     ]
   },
   {
@@ -103,9 +104,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const isTestMode = await SettingsManager.isTestMode();
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-muted/50 flex flex-col md:flex-row relative selection:bg-sky-100 selection:text-sky-900">
+    <div className="h-screen w-full overflow-hidden bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground">
       {/* Soft Ambient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-50/40 via-slate-50/80 to-blue-50/30 pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-background pointer-events-none z-0" />
 
       <AdminSidebar 
         userEmail={user.email}
@@ -127,20 +128,23 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <div className="flex-1 max-h-screen overflow-hidden p-2 md:p-4 z-10 relative flex flex-col">
         {/* Global Test Mode Warning Banner */}
         {isTestMode && (
-          <div className="mb-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-primary-foreground px-4 py-2.5 flex items-center justify-between shadow-lg shadow-amber-200/50 animate-pulse-slow">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🧪</span>
-              <div>
-                <span className="font-bold text-sm">ТЕСТОВЫЙ РЕЖИМ АКТИВЕН</span>
-                <span className="text-amber-100 text-xs ml-2">Заказы не отправляются провайдерам. Ghost Proxy перехватывает трафик.</span>
+          <div className="mb-2 rounded-xl bg-muted border border-border text-foreground px-4 py-2.5 flex items-center justify-between shadow-sm relative overflow-hidden">
+            <div className="flex items-center gap-3 relative z-10">
+              <div className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+              </div>
+              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                <span className="font-extrabold text-xs uppercase tracking-wider text-primary">Тестовый режим активен</span>
+                <span className="text-muted-foreground text-xs">Заказы не отправляются провайдерам. Ghost Proxy перехватывает трафик.</span>
               </div>
             </div>
-            <Link href="/admin/settings?tab=system" className="text-xs font-bold bg-background/20 hover:bg-background/30 px-3 py-1 rounded-lg transition-colors">
-              Выключить →
+            <Link href="/admin/settings?tab=system" className="text-xs font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-3 py-1.5 rounded-lg transition-all duration-200 relative z-10">
+              Настройки →
             </Link>
           </div>
         )}
-        <main className="flex-1 w-full rounded-2xl bg-background/95 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border/50 overflow-x-hidden overflow-y-auto scrollbar-hide relative transition-all duration-300">
+        <main id="main-content" tabIndex={-1} className="flex-1 w-full overflow-x-hidden overflow-y-auto scrollbar-hide relative transition-all duration-300 bg-background outline-none">
           <div className="min-h-full w-full p-4 md:p-8 lg:p-10">
             {children}
           </div>

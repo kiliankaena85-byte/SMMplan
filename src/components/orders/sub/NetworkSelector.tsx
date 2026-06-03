@@ -18,7 +18,7 @@ export function NetworkSelector({
   unfilteredCatalog = [],
   onSelect
 }: NetworkSelectorProps) {
-  const availablePlatforms = (unfilteredCatalog || []).map(net => {
+  let availablePlatforms = (unfilteredCatalog || []).map(net => {
     let platformEnum = IntelligencePlatform.OTHER;
     const slugUpper = net.slug.toUpperCase();
     if (slugUpper.includes('TELEGRAM')) platformEnum = IntelligencePlatform.TELEGRAM;
@@ -36,6 +36,16 @@ export function NetworkSelector({
       labelName: net.name
     };
   }).filter(p => p.name !== IntelligencePlatform.OTHER);
+
+  // --- PLATFORM RESTRICTION FILTER ---
+  const activePlatform = platform || manualPlatform;
+  if (activePlatform && activePlatform !== IntelligencePlatform.OTHER) {
+    const matched = availablePlatforms.find(p => p.name === activePlatform);
+    if (matched) {
+      availablePlatforms = [matched];
+    }
+  }
+  // -----------------------------------
 
   if (availablePlatforms.length === 0) return null;
 
@@ -79,7 +89,7 @@ export function NetworkSelector({
                 if (navigator.vibrate) navigator.vibrate(20);
                 onSelect(p.id, p.name);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 ${
+              className={`h-[44px] px-4 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                 isSelected ? activeClass : `bg-zinc-100 text-zinc-600 ${hoverClass}`
               }`}
             >

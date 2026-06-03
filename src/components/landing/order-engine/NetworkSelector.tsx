@@ -5,8 +5,10 @@ import { GripHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function NetworkSelector({ engine }: { engine: OrderEngine }) {
-  const { networkId, setNetworkId, catalog } = engine;
+  const { networkId, setNetworkId, catalog, platform, manualPlatform } = engine;
   const [showAllNetworks, setShowAllNetworks] = useState(false);
+
+  const activePlatform = platform || manualPlatform;
 
   if (catalog.length === 0) {
     return null;
@@ -56,7 +58,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
   };
 
   const { topNetworks, otherNetworks } = useMemo(() => {
-    const top = catalog.filter(n => topSlugs.includes(n.slug.toLowerCase()));
+    let top = catalog.filter(n => topSlugs.includes(n.slug.toLowerCase()));
     top.sort((a,b) => topSlugs.indexOf(a.slug.toLowerCase()) - topSlugs.indexOf(b.slug.toLowerCase()));
     
     // Если выбранная сеть не входит в ТОП-6, добавляем её в конец верхнего ряда
@@ -65,9 +67,24 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
       top.push(selectedNet);
     }
 
-    const other = catalog.filter(n => !top.some(t => t.id === n.id));
+    let other = catalog.filter(n => !top.some(t => t.id === n.id));
+
+    // --- PLATFORM RESTRICTION FILTER ---
+    if (activePlatform && activePlatform !== 'OTHER') {
+      const activePlatformStr = activePlatform.toLowerCase();
+      const matched = catalog.find(n => 
+        n.slug.toLowerCase().includes(activePlatformStr) || 
+        activePlatformStr.includes(n.slug.toLowerCase())
+      );
+      if (matched) {
+        top = [matched];
+        other = [];
+      }
+    }
+    // -----------------------------------
+
     return { topNetworks: top, otherNetworks: other };
-  }, [catalog, topSlugs, networkId]);
+  }, [catalog, topSlugs, networkId, activePlatform]);
 
   return (
     <div className="hidden md:flex bg-content2 border-b border-border/50 p-4 shrink-0 flex-col gap-4">
@@ -80,7 +97,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
               key={net.id}
               onClick={(e) => { e.preventDefault(); handleNetworkSelect(net); }}
               title={net.name}
-              className={`group relative flex flex-col items-center justify-center gap-1 font-bold text-[11px] origin-center shrink-0 transition-all duration-300 ${
+              className={`group relative flex flex-col items-center justify-center gap-1 font-bold text-[11px] origin-center shrink-0 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                 isActive 
                   ? 'bg-primary text-primary-foreground shadow-[0_8px_24px_-6px] shadow-primary/50 rounded-2xl h-16 md:h-[72px] px-4 md:px-5 scale-[1.02]'
                   : 'bg-content1 border border-border/50 text-muted-foreground hover:bg-content2 hover:shadow-md hover:text-foreground rounded-2xl w-16 h-16 md:w-[72px] md:h-[72px] shadow-sm'
@@ -117,7 +134,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
           <button
             onClick={(e) => { e.preventDefault(); setShowAllNetworks(!showAllNetworks); }}
             title={showAllNetworks ? 'Скрыть' : `Ещё ${otherNetworks.length} платформ`}
-            className={`flex items-center justify-center gap-2 h-12 md:h-14 rounded-full font-bold text-sm transition-all duration-300 shrink-0 ${
+            className={`flex items-center justify-center gap-2 h-12 md:h-14 rounded-full font-bold text-sm transition-all duration-300 shrink-0 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
               showAllNetworks 
                 ? 'bg-primary/10 text-primary shadow-inner px-5' 
                 : 'bg-content1 border border-border/50 text-muted-foreground hover:bg-content2 hover:shadow-md hover:text-foreground w-12 md:w-14 shadow-sm'
@@ -147,7 +164,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
                     key={net.id}
                     onClick={(e) => { e.preventDefault(); handleNetworkSelect(net); }}
                     title={net.name}
-                    className={`group flex flex-col items-center justify-center gap-2 py-3 rounded-2xl transition-all duration-300 ${
+                    className={`group flex flex-col items-center justify-center gap-2 py-3 rounded-2xl transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                       isActive 
                         ? 'bg-primary/10 text-primary shadow-inner ring-1 ring-primary/30 scale-105'
                         : 'bg-content1 border border-border/50 hover:bg-content2 hover:shadow-md hover:-translate-y-0.5'

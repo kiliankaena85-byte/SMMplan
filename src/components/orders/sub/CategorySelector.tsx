@@ -28,7 +28,7 @@ export function CategorySelector({
             role="tab"
             aria-selected={categoryId === cat.id}
             onClick={() => setCategoryId(cat.id)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
+            className={`h-11 px-4 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
               categoryId === cat.id
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
