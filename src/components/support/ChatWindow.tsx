@@ -800,13 +800,13 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
             >
               {showSeparator && (
                 <div className="flex items-center justify-center my-6 opacity-50">
-                  <div className="h-px bg-slate-400 flex-1 max-w-[50px] mx-4"></div>
-                  <span className="text-xs font-semibold uppercase text-slate-500 tracking-widest">--- Диалог завершен ---</span>
-                  <div className="h-px bg-slate-400 flex-1 max-w-[50px] mx-4"></div>
+                  <div className="h-px bg-divider flex-1 max-w-[50px] mx-4"></div>
+                  <span className="text-xs font-semibold uppercase text-muted-foreground tracking-widest">--- Диалог завершен ---</span>
+                  <div className="h-px bg-divider flex-1 max-w-[50px] mx-4"></div>
                 </div>
               )}
               {msg.isHistorical && (index === 0 || messages[index - 1].historicalTicketId !== msg.historicalTicketId) && (
-                <div className="text-center text-[10px] uppercase font-bold text-slate-600 my-4 bg-slate-100 rounded-full px-3 py-1 w-max mx-auto border border-slate-200">
+                <div className="text-center text-[10px] uppercase font-bold text-muted-foreground my-4 bg-default-100 rounded-full px-3 py-1 w-max mx-auto border border-default-200">
                   История: {msg.historicalSubject || 'Предыдущий тикет'}
                 </div>
               )}
@@ -825,7 +825,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     msg.sender === 'USER'
                       ? 'bg-card text-foreground rounded-tl-[12px] rounded-tr-[12px] rounded-br-[12px] rounded-bl-none'
                       : msg.sender === 'INTERNAL'
-                        ? 'bg-amber-500/10 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200 rounded-tl-[12px] rounded-tr-[12px] rounded-bl-[12px] rounded-br-none'
+                        ? 'bg-warning/10 text-warning-text rounded-tl-[12px] rounded-tr-[12px] rounded-bl-[12px] rounded-br-none'
                         : 'bg-secondary text-secondary-foreground rounded-tl-[12px] rounded-tr-[12px] rounded-bl-[12px] rounded-br-none'
                   } ${msg.id.startsWith('temp-') ? 'opacity-60 saturate-50 animate-pulse' : ''}`}
                   style={{
@@ -856,7 +856,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                             width="6" 
                             height="16" 
                             viewBox="0 0 6 16" 
-                            className="text-amber-500/10 dark:text-amber-950/40"
+                            className="text-warning/10"
                           >
                             <path 
                               d="M0 16 L6 16 C4 15 1.5 10 0 0 Z" 
@@ -885,7 +885,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <div className={`absolute ${msg.sender === 'USER' ? '-right-20' : '-left-20'} top-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex gap-1 transition-opacity z-10`}>
                       <button 
                         onClick={() => setReplyingTo(msg)}
-                        className="p-2 text-slate-400 hover:text-primary rounded-full bg-card shadow-sm border border-slate-100"
+                        className="p-2 text-muted-foreground hover:text-primary rounded-full bg-card shadow-sm border border-default-200"
                         title="Ответить"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
@@ -893,13 +893,13 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                       
                       {editTicketMessage && msg.sender !== 'USER' && (
                         isExpired ? (
-                          <div className="p-2 text-slate-300 rounded-full bg-card shadow-sm border border-slate-100 cursor-not-allowed" title="Заблокировано Telegram API (>48ч)">
+                          <div className="p-2 text-muted-foreground/50 rounded-full bg-card shadow-sm border border-default-200 cursor-not-allowed" title="Заблокировано Telegram API (>48ч)">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                           </div>
                         ) : (
                           <button 
                             onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }}
-                            className="p-2 text-slate-400 hover:text-amber-600 rounded-full bg-card shadow-sm border border-slate-100"
+                            className="p-2 text-muted-foreground hover:text-warning-text rounded-full bg-card shadow-sm border border-default-200"
                             title="Редактировать"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
@@ -921,14 +921,14 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                   {!msg.isDeleted && msg.order && (
                     <div className={`mb-3 rounded-xl p-3 flex flex-col gap-2 max-w-sm border-0 shadow-xs transition-all duration-200 ${
                       msg.sender === 'USER'
-                        ? 'bg-slate-100 dark:bg-black/25 text-[#0f172a] dark:text-[#f5f6f7]'
+                        ? 'bg-default-100 text-foreground'
                         : msg.sender === 'INTERNAL'
-                          ? 'bg-amber-500/10 text-warning-900'
-                          : 'bg-sky-600/10 dark:bg-black/25 text-[#0f172a] dark:text-[#f5f6f7]'
+                          ? 'bg-warning/10 text-warning-text'
+                          : 'bg-info/10 text-foreground'
                     }`}>
                       <div className="flex items-start gap-2.5 min-w-0">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0 ${
-                          msg.sender === 'USER' ? 'bg-indigo-500/10 text-indigo-600' : msg.sender === 'INTERNAL' ? 'bg-amber-500/20 text-amber-700' : 'bg-white/20 text-white'
+                          msg.sender === 'USER' ? 'bg-primary/10 text-primary' : msg.sender === 'INTERNAL' ? 'bg-warning/25 text-warning-text' : 'bg-secondary-foreground/10 text-secondary-foreground'
                         }`}>
                           📦
                         </div>
@@ -938,11 +938,11 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                               Заказ #{msg.order.numericId}
                             </span>
                             <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                              msg.order.status === 'COMPLETED' ? 'bg-success/15 text-emerald-800 dark:text-success' :
-                              msg.order.status === 'IN_PROGRESS' ? 'bg-primary/15 text-blue-800 dark:text-primary' :
-                              msg.order.status === 'PENDING' ? 'bg-amber-500/15 text-amber-800 dark:text-amber-600' :
-                              msg.order.status === 'AWAITING_PAYMENT' ? 'bg-warning-500/15 text-orange-800 dark:text-warning-600' :
-                              'bg-default-200/50 text-default-600'
+                              msg.order.status === 'COMPLETED' ? 'bg-success/15 text-success-text' :
+                              msg.order.status === 'IN_PROGRESS' ? 'bg-primary/15 text-primary' :
+                              msg.order.status === 'PENDING' ? 'bg-warning/15 text-warning-text' :
+                              msg.order.status === 'AWAITING_PAYMENT' ? 'bg-warning/15 text-warning-text' :
+                              'bg-default-200/50 text-muted-foreground'
                             }`}>
                               {msg.order.status === 'COMPLETED' ? 'Выполнен' :
                                msg.order.status === 'IN_PROGRESS' ? 'Выполняется' :
@@ -969,8 +969,8 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                               msg.sender === 'USER' 
                                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                                 : msg.sender === 'INTERNAL'
-                                  ? 'bg-amber-600 text-white hover:bg-amber-500'
-                                  : 'bg-card text-foreground dark:text-[#f5f6f7] hover:bg-card/90'
+                                  ? 'bg-warning text-warning-foreground hover:bg-warning/90'
+                                  : 'bg-card text-foreground hover:bg-card/90'
                             }`}
                           >
                             Перейти к заказу ➔
@@ -982,8 +982,8 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                               msg.sender === 'USER' 
                                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                                 : msg.sender === 'INTERNAL'
-                                  ? 'bg-amber-600 text-white hover:bg-amber-500'
-                                  : 'bg-card text-foreground dark:text-[#f5f6f7] hover:bg-card/90'
+                                  ? 'bg-warning text-warning-foreground hover:bg-warning/90'
+                                  : 'bg-card text-foreground hover:bg-card/90'
                             }`}
                           >
                             Перейти к заказу ➔
@@ -994,7 +994,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                             className={`text-[11px] font-black px-3 h-11 rounded-xl transition-all duration-200 flex items-center justify-center gap-0.5 shadow-xs hover:scale-[1.02] active:scale-[0.98] border-0 ${
                               msg.sender === 'USER' 
                                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                : 'bg-card text-foreground dark:text-[#f5f6f7] hover:bg-card/90'
+                                : 'bg-card text-foreground hover:bg-card/90'
                             }`}
                           >
                             Перейти к заказу ➔
@@ -1213,9 +1213,9 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute bottom-full left-3 mb-2 w-[calc(100%-1.5rem)] md:w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-[90] overflow-hidden py-1.5"
+                className="absolute bottom-full left-3 mb-2 w-[calc(100%-1.5rem)] md:w-80 bg-card border border-border rounded-xl shadow-xl z-[90] overflow-hidden py-1.5"
               >
-                <div className="px-3 py-1 border-b border-slate-100 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                <div className="px-3 py-1 border-b border-divider text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
                   Быстрые шаблоны
                 </div>
                 <div className="max-h-48 overflow-y-auto">
@@ -1225,14 +1225,14 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                       type="button"
                       onClick={() => handleSelectTemplate(t)}
                       className={`w-full text-left px-3 py-2 flex flex-col transition-colors ${
-                        idx === activeTemplateIndex ? 'bg-indigo-50 text-indigo-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
+                        idx === activeTemplateIndex ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-default-50 text-foreground'
                       }`}
                     >
                       <div className="flex justify-between items-center w-full">
                         <span className="text-xs font-bold">{t.label}</span>
-                        {t.shortcut && <span className="text-[9px] font-mono bg-slate-100 text-slate-500 px-1 py-0.5 rounded">/{t.shortcut}</span>}
+                        {t.shortcut && <span className="text-[9px] font-mono bg-default-100 text-muted-foreground px-1 py-0.5 rounded">/{t.shortcut}</span>}
                       </div>
-                      <span className="text-[10px] text-slate-400 truncate w-full mt-0.5">{t.text}</span>
+                      <span className="text-[10px] text-muted-foreground truncate w-full mt-0.5">{t.text}</span>
                     </button>
                   ))}
                 </div>
@@ -1254,8 +1254,8 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     }}
                     className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all ${
                       showLightningPopover
-                        ? 'bg-amber-50 border-amber-300 text-amber-700 shadow-sm'
-                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        ? 'bg-warning/10 border-warning/30 text-warning-text shadow-sm'
+                        : 'bg-default-50 border-default-200 text-muted-foreground hover:bg-default-100'
                     }`}
                     title="Быстрые шаблоны ответов"
                     aria-label="Быстрые шаблоны ответов"
@@ -1270,9 +1270,9 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-full left-0 mb-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden py-2 backdrop-blur-md"
+                        className="absolute bottom-full left-0 mb-2 w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden py-2 backdrop-blur-md"
                       >
-                        <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        <div className="px-3 py-1.5 border-b border-divider text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
                           <span>Быстрые ответы</span>
                           <button
                             type="button"
@@ -1280,15 +1280,15 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                               setShowLightningPopover(false);
                               setShowCreateTemplateModal(true);
                             }}
-                            className="text-primary hover:text-primary-focus flex items-center gap-0.5 hover:underline"
+                            className="text-primary hover:text-primary/80 flex items-center gap-0.5 hover:underline"
                           >
                             <Plus className="w-3 h-3" />
                             <span>Создать</span>
                           </button>
                         </div>
-                        <div className="max-h-60 overflow-y-auto divide-y divide-slate-50">
+                        <div className="max-h-60 overflow-y-auto divide-y divide-default-50">
                           {templatesList.length === 0 ? (
-                            <div className="p-4 text-center text-xs text-slate-400">
+                            <div className="p-4 text-center text-xs text-muted-foreground">
                               Шаблоны отсутствуют. Кликните "Создать" выше.
                             </div>
                           ) : (
@@ -1297,17 +1297,17 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                                 key={t.id}
                                 type="button"
                                 onClick={() => handleSelectTemplate(t)}
-                                className="w-full text-left px-3 py-2 hover:bg-slate-50 flex flex-col gap-0.5 transition-colors"
+                                className="w-full text-left px-3 py-2 hover:bg-default-50 flex flex-col gap-0.5 transition-colors"
                               >
                                 <div className="flex items-center justify-between">
-                                  <span className="font-bold text-xs text-slate-700">{t.label}</span>
+                                  <span className="font-bold text-xs text-foreground">{t.label}</span>
                                   {t.shortcut && (
-                                    <span className="text-[9px] font-bold bg-slate-100 text-slate-500 px-1 py-0.5 rounded">
+                                    <span className="text-[9px] font-bold bg-default-100 text-muted-foreground px-1 py-0.5 rounded">
                                       /{t.shortcut}
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-slate-400 truncate">{t.text}</div>
+                                <div className="text-[10px] text-muted-foreground truncate">{t.text}</div>
                               </button>
                             ))
                           )}
@@ -1322,7 +1322,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                   type="button"
                   onClick={handleAiReply}
                   disabled={isAiPending}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-all rounded-lg disabled:opacity-50"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-all rounded-lg disabled:opacity-50"
                   title="Автоматический ответ ИИ"
                 >
                   {isAiPending ? (
@@ -1335,12 +1335,12 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
               </div>
 
               {/* Compact Checkbox for Hidden Note */}
-              <label className="flex items-center gap-1.5 text-xs text-amber-600 font-semibold cursor-pointer bg-amber-50/50 hover:bg-amber-50 px-2 py-1 rounded-lg border border-amber-100 transition-colors">
+              <label className="flex items-center gap-1.5 text-xs text-warning-text font-semibold cursor-pointer bg-warning/5 hover:bg-warning/15 px-2 py-1 rounded-lg border border-warning/20 transition-colors">
                 <input
                   type="checkbox"
                   checked={isInternal}
                   onChange={(e) => setIsInternal(e.target.checked)}
-                  className="rounded border-amber-300 text-amber-600 focus:ring-amber-500 w-3.5 h-3.5" 
+                  className="rounded border-warning/35 text-warning focus:ring-warning w-3.5 h-3.5" 
                 />
                 <span>🔒 Заметка</span>
               </label>
@@ -1477,7 +1477,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
               <button 
                  type="button"
                  onClick={() => fileInputRef.current?.click()}
-                 className="p-2.5 bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors flex items-center justify-center shrink-0 w-11 h-11 rounded-xl"
+                 className="p-2.5 bg-default-50 border border-border text-muted-foreground hover:bg-default-100 hover:text-foreground transition-colors flex items-center justify-center shrink-0 w-11 h-11 rounded-xl"
                  title="Прикрепить файл (скриншот или PDF чек)"
                  aria-label="Прикрепить файл (скриншот или PDF чек)"
               >
@@ -1491,8 +1491,8 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                      onClick={() => setShowOrdersDropdown(!showOrdersDropdown)}
                      className={`p-2.5 border text-sm transition-all flex items-center justify-center gap-1 w-11 h-11 rounded-xl ${
                        showOrdersDropdown 
-                         ? 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-inner' 
-                         : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                         ? 'bg-primary/10 border-primary/30 text-primary shadow-inner' 
+                         : 'bg-default-50 border-border text-muted-foreground hover:bg-default-100 hover:text-foreground'
                      }`}
                      title="Прикрепить заказ"
                      aria-label="Прикрепить заказ"
@@ -1506,9 +1506,9 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-12 left-0 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden py-2"
+                        className="absolute bottom-12 left-0 w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden py-2"
                       >
-                        <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <div className="px-3 py-1.5 border-b border-divider text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                           Выберите заказ для привязки:
                         </div>
                         <div className="max-h-60 overflow-y-auto">
@@ -1520,15 +1520,15 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                                 setSelectedOrder(order);
                                 setShowOrdersDropdown(false);
                               }}
-                              className="w-full text-left px-3 py-2 hover:bg-slate-50 flex flex-col gap-0.5 border-b border-slate-50 last:border-0 transition-colors"
+                              className="w-full text-left px-3 py-2 hover:bg-default-50 flex flex-col gap-0.5 border-b border-divider last:border-0 transition-colors"
                             >
                               <div className="flex items-center justify-between">
-                                <span className="font-bold text-xs text-slate-700">Заказ #{order.numericId}</span>
+                                <span className="font-bold text-xs text-foreground">Заказ #{order.numericId}</span>
                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                                  order.status === 'COMPLETED' ? 'bg-success/10 text-emerald-800 dark:text-success' :
-                                  order.status === 'PROCESSING' || order.status === 'IN_PROGRESS' ? 'bg-primary/10 text-blue-800 dark:text-primary' :
-                                  order.status === 'PENDING' ? 'bg-amber-100 text-amber-800 dark:text-amber-400' :
-                                  'bg-slate-200 text-slate-600'
+                                  order.status === 'COMPLETED' ? 'bg-success/10 text-success-text' :
+                                  order.status === 'PROCESSING' || order.status === 'IN_PROGRESS' ? 'bg-primary/10 text-primary' :
+                                  order.status === 'PENDING' ? 'bg-warning/10 text-warning-text' :
+                                  'bg-default-200 text-muted-foreground'
                                 }`}>
                                   {order.status === 'COMPLETED' ? 'Выполнен' :
                                    order.status === 'PROCESSING' ? 'В работе' :
@@ -1536,10 +1536,10 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                                    order.status === 'PENDING' ? 'В очереди' : order.status}
                                 </span>
                               </div>
-                              <div className="text-[11px] text-slate-500 truncate">{order.serviceName}</div>
-                              <div className="text-[10px] text-slate-400 flex justify-between mt-0.5">
+                              <div className="text-[11px] text-muted-foreground truncate">{order.serviceName}</div>
+                              <div className="text-[10px] text-muted-foreground flex justify-between mt-0.5">
                                 <span>{new Date(order.createdAt).toLocaleDateString('ru-RU')}</span>
-                                <span className="font-semibold text-slate-700">{order.charge} ₽</span>
+                                <span className="font-semibold text-foreground">{order.charge} ₽</span>
                               </div>
                             </button>
                           ))}
@@ -1551,10 +1551,10 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
               )}
               
               <div 
-                className="flex-1 relative flex items-center border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent min-h-[44px] max-h-[160px] bg-slate-50"
+                className="flex-1 relative flex items-center border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent min-h-[44px] max-h-[160px] bg-default-50"
               >
                 {file && (
-                  <div className="absolute left-2 pl-1.5 pr-2 py-1 bg-indigo-50 text-indigo-700 text-[11px] font-medium rounded-md border border-indigo-200 flex items-center gap-1 z-10 max-w-[150px]">
+                  <div className="absolute left-2 pl-1.5 pr-2 py-1 bg-primary/10 text-primary text-[11px] font-medium rounded-md border border-primary/20 flex items-center gap-1 z-10 max-w-[150px]">
                      <span className="truncate">{file.name}</span>
                      <button type="button" onClick={() => setFile(null)} className="opacity-60 hover:opacity-100 font-bold ml-1" aria-label="Удалить прикрепленный файл">✕</button>
                   </div>
@@ -1586,22 +1586,22 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
       {/* Create Template Modal */}
       <AnimatePresence>
         {showCreateTemplateModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-slate-200 w-full max-w-md shadow-2xl overflow-hidden"
+              className="bg-card rounded-2xl border border-border w-full max-w-md shadow-2xl overflow-hidden"
             >
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                <h3 className="font-bold text-sm text-slate-800 flex items-center gap-1.5">
+              <div className="px-5 py-4 border-b border-divider flex items-center justify-between bg-default-50">
+                <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5">
                   <Plus className="w-4 h-4 text-primary" />
                   <span>Создать умный шаблон</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => setShowCreateTemplateModal(false)}
-                  className="p-1 hover:bg-slate-200 text-slate-400 hover:text-slate-700 rounded-lg transition-colors"
+                  className="p-1 hover:bg-default-200 text-muted-foreground hover:text-foreground rounded-lg transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1609,38 +1609,38 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
 
               <form onSubmit={handleCreateTemplateSubmit} className="p-5 flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Название шаблона (Label)</label>
+                  <label className="text-xs font-bold text-muted-foreground">Название шаблона (Label)</label>
                   <input
                     type="text"
                     required
                     value={newTemplateLabel}
                     onChange={(e) => setNewTemplateLabel(e.target.value)}
                     placeholder="Например: Задержка выполнения"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-slate-50"
+                    className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-default-50 text-foreground"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Шорткат (вызов по /шорткат)</label>
+                  <label className="text-xs font-bold text-muted-foreground">Шорткат (вызов по /шорткат)</label>
                   <div className="relative flex items-center">
-                    <span className="absolute left-3 text-xs font-bold text-slate-400">/</span>
+                    <span className="absolute left-3 text-xs font-bold text-muted-foreground">/</span>
                     <input
                       type="text"
                       required
                       value={newTemplateShortcut}
                       onChange={(e) => setNewTemplateShortcut(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
                       placeholder="delay"
-                      className="w-full pl-6 pr-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-slate-50"
+                      className="w-full pl-6 pr-3 py-2 border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-default-50 text-foreground"
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Категория</label>
+                  <label className="text-xs font-bold text-muted-foreground">Категория</label>
                   <select
                     value={newTemplateCategory}
                     onChange={(e) => setNewTemplateCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-slate-50"
+                    className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-default-50 text-foreground"
                   >
                     <option value="GENERAL">Общие</option>
                     <option value="ORDER">Заказы</option>
@@ -1649,14 +1649,14 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Текст шаблона</label>
+                  <label className="text-xs font-bold text-muted-foreground">Текст шаблона</label>
                   <textarea
                     required
                     rows={4}
                     value={newTemplateText}
                     onChange={(e) => setNewTemplateText(e.target.value)}
                     placeholder="Используйте переменные: {user_name}, {order_id}, {service_name}, {order_status}, {current_date}"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-slate-50 resize-none"
+                    className="w-full px-3 py-2 border border-border rounded-xl text-xs focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-default-50 text-foreground resize-none"
                   />
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {['{user_name}', '{order_id}', '{service_name}', '{order_status}', '{current_date}'].map(tag => (
@@ -1664,7 +1664,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                         key={tag}
                         type="button"
                         onClick={() => setNewTemplateText(prev => prev + tag)}
-                        className="text-[9px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded transition-colors"
+                        className="text-[9px] font-mono font-bold bg-default-100 hover:bg-default-200 text-muted-foreground px-1.5 py-0.5 rounded transition-colors"
                       >
                         {tag}
                       </button>
@@ -1676,7 +1676,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                   <button
                     type="button"
                     onClick={() => setShowCreateTemplateModal(false)}
-                    className="px-3 py-2 text-xs font-semibold border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors"
+                    className="px-3 py-2 text-xs font-semibold border border-border hover:bg-default-50 rounded-xl transition-colors text-foreground"
                   >
                     Отмена
                   </button>
