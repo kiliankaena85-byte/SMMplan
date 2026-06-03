@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Wallet, CreditCard, Bitcoin } from 'lucide-react';
+import { Loader2, Wallet, CreditCard, Bitcoin, Coins } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import {
@@ -64,8 +64,8 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
         render={
           trigger || (
             <Button 
-              size="sm" 
-              className="w-full sm:w-auto px-4 py-1.5 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-primary-foreground transition-colors flex items-center gap-2 shadow-sm h-8"
+              size="default" 
+              className="w-full sm:w-auto px-4 rounded-xl text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-primary-foreground transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               <Wallet className="w-3 h-3" /> Оплатить / Проверить
             </Button>
@@ -123,6 +123,21 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
               <div className="flex flex-col items-start">
                 <span className="font-semibold text-foreground">Банковская карта / СБП</span>
                 <span className="text-xs text-muted-foreground mt-0.5">YooKassa</span>
+              </div>
+              {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
+            </Button>
+
+            <Button
+              intent="outline"
+              size="lg"
+              className="w-full justify-start h-14 border-border/60 hover:border-primary/50 hover:bg-primary/5"
+              disabled={isProcessing}
+              onClick={() => handleRetry('robokassa')}
+            >
+              <Coins className="w-5 h-5 mr-3 text-indigo-500" />
+              <div className="flex flex-col items-start">
+                <span className="font-semibold text-foreground">Робокасса</span>
+                <span className="text-xs text-muted-foreground mt-0.5">Карты РФ/СНГ, СБП, Электронные кошельки</span>
               </div>
               {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
             </Button>

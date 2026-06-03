@@ -10,7 +10,8 @@ import Link from 'next/link';
 const PRESETS = [10, 50, 100, 300, 500, 1000];
 
 const METHODS = [
-  { id: 'yookassa', label: 'Банковская карта', icon: CreditCard, note: 'Visa / MC / МИР / СБП' },
+  { id: 'yookassa', label: 'Банковская карта', icon: CreditCard, note: 'Visa / MC / МИР / СБП (ЮKassa)' },
+  { id: 'robokassa', label: 'Робокасса', icon: CreditCard, note: 'Карты РФ/СНГ, СБП, Электронные деньги' },
   { id: 'cryptobot',  label: 'Криптовалюта (CryptoBot)', icon: Wallet, note: 'USDT, TON, BTC, ETH' },
 ] as const;
 
@@ -19,7 +20,7 @@ export default function AddFundsPage() {
   const searchParams = useSearchParams();
   const isSuccess = searchParams.get('success') === '1';
   const [amount, setAmount]     = useState<number>(50);
-  const [method, setMethod]     = useState<'yookassa' | 'cryptobot'>('yookassa');
+  const [method, setMethod]     = useState<'yookassa' | 'cryptobot' | 'robokassa'>('yookassa');
   const [error,  setError]      = useState<string | null>(null);
   const [consent, setConsent]   = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -114,7 +115,8 @@ export default function AddFundsPage() {
                 key={val}
                 type="button"
                 onClick={() => handlePreset(val)}
-                className={`relative py-2.5 rounded-xl text-sm font-semibold border transition-all duration-200
+                className={`relative h-11 rounded-xl text-sm font-semibold border transition-all duration-200
+                  flex items-center justify-center
                   focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none ${
                   amount === val
                     ? 'bg-primary text-primary-foreground border-primary shadow-sm'
@@ -163,7 +165,10 @@ export default function AddFundsPage() {
               <button
                 key={id}
                 type="button"
-                onClick={() => setMethod(id)}
+                onClick={() => {
+                  if (navigator.vibrate) navigator.vibrate(20);
+                  setMethod(id);
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-200 ${
                   method === id
                     ? 'border-primary bg-primary/5 text-foreground'
@@ -250,7 +255,7 @@ export default function AddFundsPage() {
 
         <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
           <Wallet className="w-3 h-3" />
-          Минимум 10 ₽ · Безопасная оплата через ЮKassa · Мгновенное зачисление
+          Минимум 10 ₽ · Безопасная оплата через {method === 'yookassa' ? 'ЮKassa' : method === 'robokassa' ? 'Робокассу' : 'CryptoBot'} · Мгновенное зачисление
         </p>
       </div>
 

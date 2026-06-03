@@ -152,7 +152,7 @@ export function OrderFilters({
             <button
               onClick={() => handleApplyFilters({ page: currentPage - 1 })}
               disabled={currentPage <= 1}
-              className="h-8 w-8 flex items-center justify-center rounded-lg border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="h-11 w-11 flex items-center justify-center rounded-xl border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
               title="Предыдущая страница"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -163,7 +163,7 @@ export function OrderFilters({
               // Show window around current page to prevent massive numbers
               if (totalPages > 6 && Math.abs(p - currentPage) > 2 && p !== 1 && p !== totalPages) {
                 if (p === 2 || p === totalPages - 1) {
-                  return <span key={`dots-${p}`} className="h-8 w-8 flex items-center justify-center text-xs text-muted-foreground font-bold select-none">...</span>;
+                  return <span key={`dots-${p}`} className="h-11 w-11 flex items-center justify-center text-xs text-muted-foreground font-bold select-none">...</span>;
                 }
                 return null;
               }
@@ -172,7 +172,7 @@ export function OrderFilters({
                 <button
                   key={`page-${p}`}
                   onClick={() => handleApplyFilters({ page: p })}
-                  className={`h-8 w-8 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+                  className={`h-11 w-11 rounded-xl text-xs font-bold transition-all active:scale-95 ${
                     currentPage === p
                       ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
                       : 'border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -186,7 +186,7 @@ export function OrderFilters({
             <button
               onClick={() => handleApplyFilters({ page: currentPage + 1 })}
               disabled={currentPage >= totalPages}
-              className="h-8 w-8 flex items-center justify-center rounded-lg border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="h-11 w-11 flex items-center justify-center rounded-xl border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
               title="Следующая страница"
             >
               <ChevronRight className="w-4 h-4" />

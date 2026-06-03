@@ -75,10 +75,10 @@ export function CancelOrderButton({ orderId, createdAt, status }: CancelOrderBut
     <>
       <Button 
         intent={status === 'AWAITING_PAYMENT' ? 'outline' : 'destructive'} 
-        size="sm" 
+        size="default" 
         onClick={handleCancelClick}
         disabled={isCanceling}
-        className="mt-2 text-xs h-8 px-2 w-full font-semibold shadow-sm sm:w-auto"
+        className="mt-2 text-xs px-4 w-full font-semibold shadow-sm sm:w-auto"
       >
         {isCanceling ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : <XCircle className="w-3 h-3 mr-1.5" />}
         Отменить{timeString}

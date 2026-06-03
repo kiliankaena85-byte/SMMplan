@@ -155,7 +155,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         </div>
         <Link
           href="/dashboard/new-order"
-          className="px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 shadow-sm"
+          className="h-11 px-4 flex items-center text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 shadow-sm"
         >
           + Новый заказ
         </Link>
@@ -300,7 +300,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             <p className="text-muted-foreground text-sm">Заказов не найдено</p>
             <Link
               href="/dashboard/new-order"
-              className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all duration-200"
+              className="mt-4 h-11 px-5 inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all duration-200"
             >
               + Создать заказ
             </Link>

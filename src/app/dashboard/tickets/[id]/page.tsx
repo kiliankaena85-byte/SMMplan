@@ -26,6 +26,11 @@ export default async function ClientTicketChatPage({
       status: true,
       userId: true,
       orderId: true,
+      user: {
+        select: {
+          email: true,
+        },
+      },
       order: {
         select: {
           id: true,
@@ -220,7 +225,7 @@ export default async function ClientTicketChatPage({
       <div className="flex items-center gap-3 shrink-0">
         <Link
           href="/dashboard/tickets"
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200"
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200 min-h-[44px]"
           aria-label="Назад к списку тикетов"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -240,7 +245,7 @@ export default async function ClientTicketChatPage({
         <div className="flex items-center gap-2 shrink-0">
           <a
             href="/api/support/telegram"
-            className="inline-flex items-center gap-2 text-xs font-semibold bg-[#24A1DE] hover:bg-[#208ebe] text-white px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200 active:scale-95 touch-manipulation min-h-[38px]"
+            className="inline-flex items-center gap-2 text-xs font-semibold bg-[#24A1DE] hover:bg-[#208ebe] text-white px-4 h-11 rounded-xl shadow-sm transition-all duration-200 active:scale-95 touch-manipulation min-h-[44px]"
             aria-label="Перейти в Telegram-бот"
           >
             <svg 
@@ -280,7 +285,7 @@ export default async function ClientTicketChatPage({
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
                   ticket.order.status === 'COMPLETED' ? 'bg-success/10 text-success' :
                   ticket.order.status === 'IN_PROGRESS' ? 'bg-primary/10 text-primary' :
-                  ticket.order.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
+                  ticket.order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
                   'bg-default-200 text-default-600'
                 }`}>
                   {ticket.order.status === 'COMPLETED' ? 'Выполнен' :
@@ -308,6 +313,7 @@ export default async function ClientTicketChatPage({
           initialNextCursor={nextCursor}
           isClosed={isClosed}
           initialOrders={formattedOrders}
+          clientEmail={ticket.user.email}
         />
       </div>
     </div>

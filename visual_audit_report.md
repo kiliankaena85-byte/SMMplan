@@ -1,6 +1,6 @@
 # Visual Audit Report — SMMplan
 Date: 2026-06-03
-Status: AUDIT COMPLETE / PENDING FIXES (P0-A RESOLVED)
+Status: AUDIT COMPLETE / PENDING FIXES (P0-A, P0-B RESOLVED)
 Scope: Light mode only
 
 ## 1. Executive Summary
@@ -169,9 +169,9 @@ Defects are classified below based on Probability (P) and Impact (I) rules:
 *   `[P3×I2] High | /support: Hardcoded/banned color palette shades and inline HEX colors used in chat elements | src/components/support/ChatWindow.tsx`
 *   `[P3×I2] High | /dashboard/tickets/[id]: Hardcoded brand blue HEX (#24A1DE) and inline colors in Telegram redirect buttons | src/app/dashboard/tickets/[id]/page.tsx`
 *   `[P3×I2] High | /dashboard/orders: Color contrast failures for status badges in light theme | src/app/dashboard/orders/page.tsx`
-*   `[P3×I2] High | /dashboard/add-funds: Touch target under 44px for wallet amount preset buttons | src/app/dashboard/add-funds/client-page.tsx`
-*   `[P3×I2] High | /dashboard/orders: Touch targets under 44px for pagination controls and filter search | src/components/orders/OrderFilters.tsx`
-*   `[P3×I2] High | /support: Touch targets under 44px for chat controls, attach trigger, and suggested article buttons | src/components/support/ChatWindow.tsx`
+*   `[FIXED] [P3×I2] High | /dashboard/add-funds: Touch target under 44px for wallet amount preset buttons | src/app/dashboard/add-funds/client-page.tsx`
+*   `[FIXED] [P3×I2] High | /dashboard/orders: Touch targets under 44px for pagination controls and filter search | src/components/orders/OrderFilters.tsx`
+*   `[FIXED] [P3×I2] High | /support: Touch targets under 44px for chat controls, attach trigger, and suggested article buttons | src/components/support/ChatWindow.tsx`
 *   `[P2×I2] Medium | /: Custom Telegram brand color used inline directly for links | src/components/landing/order-engine/PlatformLinkGuideDrawer.tsx`
 *   `[P2×I2] Medium | /dashboard/add-funds: Color contrast failure for promo code success message | src/app/dashboard/add-funds/client-page.tsx`
 *   `[P2×I2] Medium | /dashboard/orders: Muted text in table column headers fails contrast ratio | src/app/dashboard/orders/page.tsx`
@@ -304,10 +304,11 @@ A prioritized remediation plan is structured below to resolve the identified vis
 
 ### Phase P0 (Critical/High) — Immediate Focus
 1.  **[FIXED] Fix Stale Routing Processes**: Audit PM2/Docker configurations to ensure Next.js dev server watch threads are properly restarted when dynamic App Router configurations change. (No invalid /auth/login links exist in the active codebase; verified /login is fully operational and returns 200 OK).
-2.  **Increase Touch Target Sizes**:
-    *   Update `OrderFilters.tsx` pagination buttons from `h-8 w-8` to `h-11 w-11` (44px).
-    *   Change `CancelOrderButton.tsx` and `RetryPaymentModal.tsx` button layouts to have a minimum clickable height of `h-11` (44px) on mobile viewports.
-    *   Modify `ChatWindow.tsx` reply/edit triggers and suggestion dismiss buttons to comply with the 44px target standard.
+2.  **[FIXED] Increase Touch Target Sizes**:
+    *   Updated `OrderFilters.tsx` pagination buttons from `h-8 w-8` to `h-11 w-11` (44px).
+    *   Changed `CancelOrderButton.tsx` and `RetryPaymentModal.tsx` button layouts to default height of `h-11` (44px) on mobile viewports.
+    *   Modified `ChatWindow.tsx` reply/edit triggers, attachments, and suggestion dismiss buttons to comply with the 44px target standard.
+    *   Increased preset buttons in `add-funds/client-page.tsx` and header elements in `tickets/[id]/page.tsx` to at least 44px.
 3.  **Correct Badge Contrast Ratios**:
     *   Redefine Light Mode status badge colors. Instead of using highly saturated primary/success text directly on 10% opacity backgrounds, use darkened semantic HSL tokens (e.g., `text-success` mapped to a darker emerald-700 variant for text, and emerald-100 for background).
     *   Update table column header text color from `text-muted-foreground` to a darker shade to satisfy the 4.5:1 contrast requirement.
