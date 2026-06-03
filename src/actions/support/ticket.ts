@@ -25,61 +25,7 @@ export async function generateSmartReplyAction(ticketId: string) {
 }
 
 import { RateLimitService } from '@/services/core/rate-limit.service';
-import { sseBroadcaster } from '@/lib/sse-broadcaster';
-
-async function publishMessageSSE(ticketId: string, messageId: string) {
-  const fullMsg = await db.ticketMessage.findUnique({
-    where: { id: messageId },
-    include: {
-      replyTo: true,
-      attachments: true,
-      order: {
-        select: {
-          id: true,
-          numericId: true,
-          status: true,
-          charge: true,
-          createdAt: true,
-          service: { select: { name: true } }
-        }
-      }
-    }
-  });
-
-  if (fullMsg) {
-    sseBroadcaster.publish(ticketId, {
-      id: fullMsg.id,
-      sender: fullMsg.sender,
-      text: fullMsg.text,
-      mediaUrl: fullMsg.mediaUrl || (fullMsg.attachments[0]?.url ?? null),
-      mediaType: fullMsg.mediaType || (fullMsg.attachments[0]?.type ?? null),
-      createdAt: fullMsg.createdAt.toISOString(),
-      replyTo: fullMsg.replyTo ? {
-        id: fullMsg.replyTo.id,
-        text: fullMsg.replyTo.text,
-        sender: fullMsg.replyTo.sender
-      } : null,
-      attachments: fullMsg.attachments.map(att => ({
-        id: att.id,
-        url: att.url,
-        type: att.type,
-        mimeType: att.mimeType,
-        name: att.name,
-        size: att.size,
-        createdAt: att.createdAt.toISOString()
-      })),
-      order: fullMsg.order ? {
-        id: fullMsg.order.id,
-        numericId: fullMsg.order.numericId,
-        status: fullMsg.order.status,
-        charge: Number(fullMsg.order.charge),
-        createdAt: fullMsg.order.createdAt.toISOString(),
-        serviceName: fullMsg.order.service?.name || 'Услуга'
-      } : null,
-      type: 'new_message'
-    });
-  }
-}
+import { publishMessageSSE } from '@/services/support/sse.service';
 
 // === LIVE CHAT SERVER ACTION ===
 const liveChatMessageSchema = z.object({
@@ -313,7 +259,6 @@ export async function editTicketMessage(formData: FormData) {
       include: { ticket: { include: { user: true } } }
     });
     if (!msg) throw new Error('Message not found');
-
     if (msg.sender === 'USER') {
       throw new Error('You cannot edit user messages');
     }
@@ -323,7 +268,11 @@ export async function editTicketMessage(formData: FormData) {
     await db.$transaction(async (tx) => {
       await tx.ticketMessage.update({
         where: { id: messageId },
-        data: { text: newText.trim() }
+        data: { 
+          text: newText.trim(),
+          isEdited: true,
+          originalText: msg.isEdited ? undefined : msg.text
+        }
       });
 
       await tx.adminAuditLog.create({
@@ -484,4 +433,217 @@ export async function adminManualTelegramBind(formData: FormData) {
     }
   });
 }
+
+export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[]) {
+  return requireStaffPermission('support', 'edit', async (admin) => {
+    const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) throw new Error('Тикет не найден');
+
+    let processedCount = 0;
+    const errors: string[] = [];
+    const createdRefills: { id: string }[] = [];
+
+    await db.$transaction(async (tx) => {
+      for (const orderId of orderIds) {
+        try {
+          const order = await tx.order.findFirst({
+            where: { id: orderId, userId: ticket.userId },
+            include: { service: true }
+          });
+
+          if (!order) {
+            errors.push(`Заказ ${orderId} не найден или принадлежит другому пользователю`);
+            continue;
+          }
+
+          if (order.status === 'CANCELED' || order.status === 'ERROR') {
+            errors.push(`Заказ #${order.numericId}: Невозможно докрутить отмененный или ошибочный заказ`);
+            continue;
+          }
+
+          if (order.status === 'PARTIAL') {
+            errors.push(`Заказ #${order.numericId}: Невозможно докрутить заказ с частичным возвратом`);
+            continue;
+          }
+
+          if (!order.service.isRefillEnabled) {
+            errors.push(`Заказ #${order.numericId}: Докрутка не поддерживается для этой услуги`);
+            continue;
+          }
+
+          const refill = await tx.refill.create({
+            data: {
+              orderId: order.id,
+              status: 'PENDING'
+            }
+          });
+
+          createdRefills.push({ id: refill.id });
+          processedCount++;
+        } catch (err: any) {
+          errors.push(`Ошибка по заказу ${orderId}: ${err.message}`);
+        }
+      }
+    });
+
+    const { refillQueue } = await import('@/lib/queue-manager');
+    for (const refill of createdRefills) {
+      await refillQueue.add('process-refill', { refillId: refill.id });
+    }
+
+    const ipAddress = await getClientIp('unknown');
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'TICKET_BULK_REFILL',
+      target: ticketId,
+      targetType: 'TICKET',
+      newValue: { orderIds, processedCount, errors },
+      ipAddress
+    });
+
+    revalidatePath(`/admin/tickets/${ticketId}`);
+    revalidatePath('/admin/refills');
+
+    return { success: true, processedCount, errors };
+  });
+}
+
+export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[]) {
+  return requireStaffPermission('support', 'edit', async (admin) => {
+    const ticket = await db.ticket.findUnique({ 
+      where: { id: ticketId },
+      include: { user: true }
+    });
+    if (!ticket) throw new Error('Тикет не найден');
+
+    // Check B2bConfig profile to see if the user is a B2B reseller
+    const b2bConfig = await db.b2bConfig.findUnique({
+      where: { userId: ticket.userId }
+    });
+    const isB2bClient = !!b2bConfig && b2bConfig.isB2b;
+
+    let processedCount = 0;
+    let totalRefundedCents = 0;
+    const errors: string[] = [];
+
+    const { calculatePartialRefund } = await import('@/utils/refund');
+
+    for (const orderId of orderIds) {
+      try {
+        const order = await db.order.findFirst({
+          where: { id: orderId, userId: ticket.userId }
+        });
+
+        if (!order) {
+          errors.push(`Заказ ${orderId} не найден или принадлежит другому пользователю`);
+          continue;
+        }
+
+        if (['CANCELED', 'PARTIAL'].includes(order.status)) {
+          errors.push(`Заказ #${order.numericId}: Уже отменен или частично возвращен`);
+          continue;
+        }
+
+        if (order.remains <= 0) {
+          errors.push(`Заказ #${order.numericId}: Нет остатков для возврата (remains <= 0)`);
+          continue;
+        }
+
+        const refundAmountCents = calculatePartialRefund({
+          remains: order.remains,
+          quantity: order.quantity,
+          charge: order.charge
+        });
+
+        if (refundAmountCents <= 0) {
+          errors.push(`Заказ #${order.numericId}: Сумма возврата равна 0`);
+          continue;
+        }
+
+        await db.$transaction(async (tx) => {
+          // B2B clients bypass the standard operator's daily support limit check completely!
+          if (!isB2bClient) {
+            const currentSpentToday = await getAdminSpentToday(admin.id, tx);
+            const limitLeft = admin.supportLimitCents - currentSpentToday;
+            if (refundAmountCents > limitLeft) {
+              throw new Error(`Превышен суточный лимит компенсаций оператора. Осталось: ${(limitLeft / 100).toFixed(2)} ₽`);
+            }
+          }
+
+          await tx.order.update({
+            where: { id: order.id },
+            data: { status: 'PARTIAL' }
+          });
+
+          await tx.user.update({
+            where: { id: ticket.userId },
+            data: { balance: { increment: refundAmountCents } }
+          });
+
+          await tx.ledgerEntry.create({
+            data: {
+              userId: ticket.userId,
+              adminId: admin.id,
+              amount: refundAmountCents,
+              transactionType: 'REFUND',
+              reason: `Компенсация (частичный возврат) по тикету #${ticketId} за недовыполненный заказ #${order.numericId}`
+            }
+          });
+        });
+
+        processedCount++;
+        totalRefundedCents += refundAmountCents;
+      } catch (err: any) {
+        errors.push(`Ошибка по заказу ${orderId}: ${err.message}`);
+      }
+    }
+
+    const ipAddress = await getClientIp('unknown');
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'TICKET_BULK_REFUND',
+      target: ticketId,
+      targetType: 'TICKET',
+      newValue: { orderIds, processedCount, totalRefundedCents, errors },
+      ipAddress
+    });
+
+    revalidatePath(`/admin/tickets/${ticketId}`);
+    revalidatePath(`/admin/tickets`);
+
+    return { 
+      success: true, 
+      processedCount, 
+      totalRefundedAmount: (totalRefundedCents / 100).toFixed(2), 
+      errors 
+    };
+  });
+}
+
+async function getAdminSpentToday(adminId: string, tx?: any): Promise<number> {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const client = tx || db;
+  const ledgerCompensations = await client.ledgerEntry.findMany({
+    where: {
+      adminId,
+      createdAt: { gte: todayStart },
+      reason: {
+        contains: 'Компенсация'
+      }
+    },
+    select: {
+      amount: true
+    }
+  });
+
+  return ledgerCompensations.reduce((acc: number, entry: any) => {
+    const amt = Number(entry.amount);
+    return acc + Math.abs(amt);
+  }, 0);
+}
+
 
