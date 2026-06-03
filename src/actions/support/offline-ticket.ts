@@ -6,16 +6,20 @@ import { RateLimitService } from '@/services/core/rate-limit.service';
 import { getClientIp } from '@/utils/ip';
 
 const offlineTicketSchema = z.object({
-  serviceId: z.string().optional().nullable(),
-  error: z.string().min(1, "Текст ошибки обязателен"),
-  gateway: z.string().min(1, "Платежный шлюз обязателен"),
-  quantity: z.any().optional().nullable(),
-  email: z.string().email("Введите корректный email адрес"),
-  name: z.string().optional().nullable(),
-  url: z.string().optional().nullable(),
-  message: z.string().optional().nullable(),
-  paymentId: z.string().optional().nullable(),
-  orderId: z.string().optional().nullable()
+  serviceId: z.string().max(255).optional().nullable(),
+  error: z.string().min(1, "Текст ошибки обязателен").max(2000, "Текст ошибки слишком длинный"),
+  gateway: z.string().min(1, "Платежный шлюз обязателен").max(255, "Название шлюза слишком длинное"),
+  quantity: z.union([z.string(), z.number()]).refine((val) => {
+    if (val === null || val === undefined || val === '') return true;
+    const num = Number(val);
+    return !isNaN(num) && Number.isInteger(num) && num > 0 && num <= 1000000;
+  }, "Количество должно быть целым положительным числом не более 1 000 000").optional().nullable(),
+  email: z.string().email("Введите корректный email адрес").max(255, "Email должен быть не длиннее 255 символов"),
+  name: z.string().max(255, "Имя должно быть не длиннее 255 символов").optional().nullable(),
+  url: z.string().max(500, "Ссылка должна быть не длиннее 500 символов").optional().nullable(),
+  message: z.string().max(2000, "Сообщение должно быть не длиннее 2000 символов").optional().nullable(),
+  paymentId: z.string().max(255).optional().nullable(),
+  orderId: z.string().max(255).optional().nullable()
 });
 
 export type OfflineTicketInput = z.infer<typeof offlineTicketSchema>;

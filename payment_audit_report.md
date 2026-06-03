@@ -181,7 +181,7 @@ The codebase is undergoing sequential patching to resolve the audited vulnerabil
 | 4 | Missing Relational Database Linkage | `src/actions/support/offline-ticket.ts` | ✅ **Fixed** | Updated Zod schema, server actions, client-side hooks, and redirect URLs to propagate `paymentId` and `orderId` to the `Ticket` table, plus automated recent-order fallback linkage on the server. |
 | 5 | No Sync Check Fallback for Robokassa/CryptoBot | `/api/order-status/route.ts` | **DEFERRED** | Add CryptoBot/Robokassa checks in polling endpoint and sync worker. |
 | 6 | Impersonation on OAuth/Telegram Users | `src/actions/support/guest.ts` | ✅ **Fixed** | Replaced `existingUser?.passwordHash` check with complex registration verification checking both `passwordHash` and `telegramId` in `guest.ts` and `offline-ticket.ts`. |
-| 7 | Weak Input Validation in Guest Forms | `src/actions/support/offline-ticket.ts` | **DEFERRED** | Add strict types to schema variables and `.max()` string constraints. |
+| 7 | Weak Input Validation in Guest Forms | `src/actions/support/offline-ticket.ts` | ✅ **Fixed** | Replaced `z.any()` with `z.union([z.string(), z.number()])` positive integer validation and added strict `.max()` limits on all inputs in `offlineTicketSchema`. |
 | 8 | Non-Timing-Safe Webhook Comparison | `src/api/webhooks/robokassa/route.ts` | **DEFERRED** | Implement `crypto.timingSafeEqual` comparison for signatures. |
 | 9 | Default targetType Fallback on Import | `src/services/admin/catalog.service.ts` | **DEFERRED** | Query categories dynamically and call `inferTargetTypeFromCategory`. |
 | 10| Empty Dead Routing Directory Bloat | `src/app/knowledge/slug` | **DEFERRED** | Delete the empty, redundant folder. |
