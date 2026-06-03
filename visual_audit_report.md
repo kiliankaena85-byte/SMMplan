@@ -164,19 +164,19 @@ Defects are classified below based on Probability (P) and Impact (I) rules:
 
 *   `[FIXED] [P3×I3] Critical | /login: 404 routing error because the request pointed to stale route /auth/login | src/app/(auth)/login/page.tsx`
 *   `[P3×I3] Critical | /support/payment-error: 404 routing error on payment-error route due to stale dev server watching thread | src/app/support/payment-error/page.tsx`
-*   `[P3×I2] High | /success: Hardcoded/banned inline Tailwind colors used for status elements | src/app/success/SuccessContent.tsx`
-*   `[P3×I2] High | /admin/settings: Hardcoded/banned colors used in payment integrations configuration card | src/app/admin/settings/integrations-settings.tsx`
-*   `[P3×I2] High | /support: Hardcoded/banned color palette shades and inline HEX colors used in chat elements | src/components/support/ChatWindow.tsx`
-*   `[P3×I2] High | /dashboard/tickets/[id]: Hardcoded brand blue HEX (#24A1DE) and inline colors in Telegram redirect buttons | src/app/dashboard/tickets/[id]/page.tsx`
+*   `[FIXED] [P3×I2] High | /success: Hardcoded/banned inline Tailwind colors used for status elements | src/app/success/SuccessContent.tsx`
+*   `[FIXED] [P3×I2] High | /admin/settings: Hardcoded/banned colors used in payment integrations configuration card | src/app/admin/settings/integrations-settings.tsx`
+*   `[FIXED] [P3×I2] High | /support: Hardcoded/banned color palette shades and inline HEX colors used in chat elements | src/components/support/ChatWindow.tsx`
+*   `[FIXED] [P3×I2] High | /dashboard/tickets/[id]: Hardcoded brand blue HEX (#24A1DE) and inline colors in Telegram redirect buttons | src/app/dashboard/tickets/[id]/page.tsx`
 *   `[FIXED] [P3×I2] High | /dashboard/orders: Color contrast failures for status badges in light theme | src/app/dashboard/orders/page.tsx`
 *   `[FIXED] [P3×I2] High | /dashboard/add-funds: Touch target under 44px for wallet amount preset buttons | src/app/dashboard/add-funds/client-page.tsx`
 *   `[FIXED] [P3×I2] High | /dashboard/orders: Touch targets under 44px for pagination controls and filter search | src/components/orders/OrderFilters.tsx`
 *   `[FIXED] [P3×I2] High | /support: Touch targets under 44px for chat controls, attach trigger, and suggested article buttons | src/components/support/ChatWindow.tsx`
-*   `[P2×I2] Medium | /: Custom Telegram brand color used inline directly for links | src/components/landing/order-engine/PlatformLinkGuideDrawer.tsx`
+*   `[FIXED] [P2×I2] Medium | /: Custom Telegram brand color used inline directly for links | src/components/landing/order-engine/PlatformLinkGuideDrawer.tsx`
 *   `[FIXED] [P2×I2] Medium | /dashboard/add-funds: Color contrast failure for promo code success message | src/app/dashboard/add-funds/client-page.tsx`
 *   `[P2×I2] Medium | /dashboard/orders: Muted text in table column headers fails contrast ratio | src/app/dashboard/orders/page.tsx`
 *   `[FIXED] [P2×I2] Medium | /support: Background separator elements have contrast of 2.3:1 | src/components/support/ChatWindow.tsx`
-*   `[P2×I1] Low | /: Hover transition effects use hardcoded color rose-600 | src/components/landing/SmartLinkLanding.tsx`
+*   `[FIXED] [P2×I1] Low | /: Hover transition effects use hardcoded color rose-600 | src/components/landing/SmartLinkLanding.tsx`
 *   `[P3×I1] Low | /dashboard/tickets/[id]: Breadcrumbs hover states and back link size | src/app/dashboard/tickets/[id]/page.tsx`
 
 ---

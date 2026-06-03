@@ -33,10 +33,24 @@
   /* ── Destructive (rose-500) ── */
   --color-destructive: #f43f5e;
   --color-destructive-foreground: #ffffff;
+  --color-destructive-text: #b91c1c;
 
   /* ── Success (emerald-500) ── */
   --color-success: #10b981;
   --color-success-foreground: #ffffff;
+  --color-success-text: #065f46;
+
+  /* ── Warning (amber-500) ── */
+  --color-warning: #f59e0b;
+  --color-warning-foreground: #ffffff;
+  --color-warning-text: #92400e;
+
+  /* ── Info (indigo-500) ── */
+  --color-info: #6366f1;
+  --color-info-foreground: #ffffff;
+
+  /* ── Brand Colors ── */
+  --color-brand-telegram: #3390EC;
 
   /* ── Borders & Inputs ── */
   --color-border: #e2e8f0;
@@ -87,28 +101,34 @@
 .emerald-dark,
 .violet-dark,
 [data-theme*="dark"] {
-  --color-background: #020617; /* slate-950 - premium deep soft dark */
+  --color-background: #0f172a; /* Soft, premium slate-900 instead of pitch-black */
   --color-foreground: #f8fafc; /* slate-50 */
 
-  --color-card: #0f172a; /* slate-900 - soft elevation */
+  --color-card: #1e293b; /* slate-800 for soft, recognizable elevation */
   --color-card-foreground: #f8fafc;
 
-  --color-popover: #0f172a;
+  --color-popover: #1e293b;
   --color-popover-foreground: #f8fafc;
 
-  --color-muted: #1e293b; /* slate-800 */
+  --color-muted: #243042; /* Soft intermediate slate */
   --color-muted-foreground: #94a3b8; /* slate-400 */
 
-  --color-accent: #1e293b;
+  --color-accent: #243042;
   --color-accent-foreground: #f8fafc;
 
-  --color-border: #1e293b; /* slate-800 - crisp high-end border */
-  --color-input: #0f172a;
+  --color-border: #243042; /* Soft visible border */
+  --color-input: #1b2330;
 
-  --color-ring: #1e293b;
+  --color-ring: #243042;
 
-  --color-primary: #38bdf8; /* sky-400 - high contrast for WCAG AA in dark theme */
-  --color-primary-foreground: #020617; /* slate-950 */
+  --color-primary: #38bdf8; /* sky-400 */
+  --color-primary-foreground: #0f172a;
+
+  --color-warning: #f59e0b;
+  --color-warning-text: #fbbf24;
+  --color-success-text: #34d399;
+  --color-destructive-text: #fca5a5;
+  --color-info: #818cf8; /* indigo-400 */
 }
 
 @layer base {
@@ -180,6 +200,55 @@
   100% { box-shadow: 0 0 0 1em rgba(167, 139, 250, 0); }
 }
 
+/* --- THEME: WARM IVORY LIGHT --- */
+.warm-light, [data-theme="warm-light"] {
+  --color-background: #FAF9F6;
+  --color-foreground: #27272A;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #27272A;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #27272A;
+  --color-muted: #F4F4F5;
+  --color-muted-foreground: #71717A;
+  --color-border: #E4E4E7;
+  --color-primary: #D97706;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #FEF3C7;
+  --color-secondary-foreground: #B45309;
+  --color-ring: #FDE68A;
+  --animate-hover-pulse: hover-pulse-warm 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes hover-pulse-warm {
+  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
+  100% { box-shadow: 0 0 0 1em rgba(217, 119, 6, 0); }
+}
+
+/* --- THEME: WARM IVORY DARK --- */
+.warm-dark, [data-theme="warm-dark"] {
+  --color-background: #09090B;
+  --color-foreground: #FAF9F6;
+  --color-card: #18181B;
+  --color-card-foreground: #FAF9F6;
+  --color-popover: #18181B;
+  --color-popover-foreground: #FAF9F6;
+  --color-muted: #27272A;
+  --color-muted-foreground: #A1A1AA;
+  --color-border: #27272A;
+  --color-primary: #F59E0B;
+  --color-primary-foreground: #09090B;
+  --color-secondary: #78350F;
+  --color-secondary-foreground: #FBBF24;
+  --color-ring: #D97706;
+  --animate-hover-pulse: hover-pulse-warm-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes hover-pulse-warm-dark {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  100% { box-shadow: 0 0 0 1em rgba(245, 158, 11, 0); }
+}
+
+
 /* Custom minimal scrollbar for B2B (Pillar 6) */
 @layer utilities {
   .scrollbar-hide {
@@ -210,3 +279,80 @@
   background-size: 40px 40px;
   opacity: 0.15;
 }
+
+/* --- THEME: TELEGRAM LIGHT --- */
+.telegram-light, [data-theme="telegram-light"] {
+  --color-background: #E7EBF0;
+  --color-foreground: #000000;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #000000;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #000000;
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #707579;
+  --color-border: #DCDCDC;
+  --color-primary: #3390EC;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #E1F3D4;
+  --color-secondary-foreground: #000000;
+  --color-ring: #BADEFC;
+  --radius: 0.625rem;
+}
+
+/* --- THEME: TELEGRAM DARK --- */
+.telegram-dark, [data-theme="telegram-dark"] {
+  --color-background: #0E1621;
+  --color-foreground: #F5F6F7;
+  --color-card: #182533;
+  --color-card-foreground: #F5F6F7;
+  --color-popover: #182533;
+  --color-popover-foreground: #F5F6F7;
+  --color-muted: #101921;
+  --color-muted-foreground: #7F8C99;
+  --color-border: #101921;
+  --color-primary: #5288C1;
+  --color-primary-foreground: #F5F6F7;
+  --color-secondary: #2B5278;
+  --color-secondary-foreground: #F5F6F7;
+  --color-ring: #2B5278;
+  --radius: 0.625rem;
+}
+
+/* --- Locked Layout Height for Desktop Support Page (Telegram Desktop lock layout style) --- */
+@media (min-width: 1024px) {
+  main:has(.tickets-workspace) {
+    overflow: hidden !important;
+  }
+  main:has(.tickets-workspace) > div {
+    padding: 0 !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+}
+
+
+
+/* --- Custom Telegram Chat Wallpaper Background --- */
+.telegram-chat-bg {
+  position: relative;
+  background-color: var(--color-background);
+}
+.telegram-light .telegram-chat-bg,
+[data-theme="telegram-light"] .telegram-chat-bg,
+.light .telegram-chat-bg,
+[data-theme="light"] .telegram-chat-bg {
+  background-color: #84bbf0 !important; /* Premium sky blue Telegram theme background */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%234ba0ec' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' opacity='0.4'%3E%3Cpath d='M15 15 L28 10 L23 23 L20 18 Z M20 18 L23 10' /%3E%3Cpath d='M80 20 C78 18, 74 18, 72 20 C70 22, 70 26, 72 28 L80 36 L88 28 C90 26, 90 22, 88 20 C86 18, 82 18, 80 20 Z' /%3E%3Cpath d='M25 75 H37 C39 75, 41 77, 41 79 V87 C41 89, 39 91, 37 91 H31 L25 95 V91 C23 91, 21 89, 21 87 V79 C21 77, 23 75, 25 75 Z' /%3E%3Cpath d='M95 70 L97 74 L102 75 L98 78 L99 83 L95 81 L91 83 L92 78 L88 75 L93 74 Z' /%3E%3Cpath d='M56 50 H64 V56 H56 Z M58 50 V47 C58 45, 62 45, 62 47 V50' /%3E%3Ccircle cx='60' cy='100' r='8' /%3E%3Cpath d='M57 99 V98 M63 99 V98 M57 102 C58 104, 62 104, 63 102' /%3E%3Ccircle cx='15' cy='50' r='4' /%3E%3Cpath d='M15 44 V46 M15 54 V56 M9 50 H11 M19 50 H21' /%3E%3C/g%3E%3C/svg%3E") !important;
+  background-size: 120px 120px !important;
+}
+.telegram-dark .telegram-chat-bg,
+[data-theme="telegram-dark"] .telegram-chat-bg,
+.dark .telegram-chat-bg,
+[data-theme="dark"] .telegram-chat-bg {
+  background-color: #0e1621 !important; /* Premium dark Telegram slate-blue */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%235288c1' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' opacity='0.18'%3E%3Cpath d='M15 15 L28 10 L23 23 L20 18 Z M20 18 L23 10' /%3E%3Cpath d='M80 20 C78 18, 74 18, 72 20 C70 22, 70 26, 72 28 L80 36 L88 28 C90 26, 90 22, 88 20 C86 18, 82 18, 80 20 Z' /%3E%3Cpath d='M25 75 H37 C39 75, 41 77, 41 79 V87 C41 89, 39 91, 37 91 H31 L25 95 V91 C23 91, 21 89, 21 87 V79 C21 77, 23 75, 25 75 Z' /%3E%3Cpath d='M95 70 L97 74 L102 75 L98 78 L99 83 L95 81 L91 83 L92 78 L88 75 L93 74 Z' /%3E%3Cpath d='M56 50 H64 V56 H56 Z M58 50 V47 C58 45, 62 45, 62 47 V50' /%3E%3Ccircle cx='60' cy='100' r='8' /%3E%3Cpath d='M57 99 V98 M63 99 V98 M57 102 C58 104, 62 104, 63 102' /%3E%3Ccircle cx='15' cy='50' r='4' /%3E%3Cpath d='M15 44 V46 M15 54 V56 M9 50 H11 M19 50 H21' /%3E%3C/g%3E%3C/svg%3E") !important;
+  background-size: 120px 120px !important;
+}
+

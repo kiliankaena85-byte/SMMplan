@@ -40,7 +40,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
     <div className="space-y-6">
       {/* Telegram */}
       <Card className="rounded-2xl border-border shadow-sm bg-primary/5 backdrop-blur-xl">
-        <div className="p-8 space-y-6">
+        <div className="p-5 sm:p-8 space-y-6">
           <div className="flex items-center gap-2 mb-2">
             <span className="p-1 px-2.5 bg-primary/20 text-primary rounded-md text-[10px] font-bold">TG</span>
             <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Telegram Бот</h3>
@@ -67,7 +67,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
 
       {/* Payments */}
       <Card className="rounded-2xl border-border shadow-sm bg-card backdrop-blur-xl">
-        <div className="p-8 space-y-8">
+        <div className="p-5 sm:p-8 space-y-8">
           <div className="flex items-center gap-2 mb-2">
             <span className="p-1 px-2.5 bg-success/20 text-success rounded-md text-[10px] font-bold">PAY</span>
             <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Платёжные шлюзы</h3>
@@ -80,7 +80,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* TEST KEYS */}
-                <div className={`space-y-4 p-5 rounded-xl border-2 transition-all ${settings.isTestMode ? 'border-amber-500/50 bg-warning/5 shadow-sm' : 'border-border bg-muted/30 opacity-60'}`}>
+                <div className={`space-y-4 p-5 rounded-xl border-2 transition-all ${settings.isTestMode ? 'border-warning/50 bg-warning/5 shadow-sm' : 'border-border bg-muted/30 opacity-60'}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] font-black uppercase tracking-widest text-warning bg-warning/20 px-2 py-0.5 rounded">Тестовые</span>
@@ -108,7 +108,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                 </div>
 
                 {/* PRODUCTION KEYS */}
-                <div className={`space-y-4 p-5 rounded-xl border-2 transition-all ${!settings.isTestMode ? 'border-emerald-500/50 bg-success/5 shadow-sm' : 'border-border bg-muted/30 opacity-60'}`}>
+                <div className={`space-y-4 p-5 rounded-xl border-2 transition-all ${!settings.isTestMode ? 'border-success/50 bg-success/5 shadow-sm' : 'border-border bg-muted/30 opacity-60'}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] font-black uppercase tracking-widest text-success bg-success/20 px-2 py-0.5 rounded">Боевые</span>
@@ -155,6 +155,29 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               </div>
             </div>
 
+            {/* Robokassa */}
+            <div className="space-y-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Robokassa (Fiat)</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Идентификатор магазина (Merchant Login)</Label>
+                  <Input
+                    name="robokassaLogin"
+                    defaultValue={settings.robokassaLogin || ''}
+                    placeholder="Идентификатор магазина"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пароль 2 (для Webhook / ResultURL)</Label>
+                  <Input
+                    name="robokassaPassword"
+                    type="password"
+                    placeholder={settings.robokassaPassword ? '••••••••••••••••' : 'Не настроено'}
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="pt-4 border-t border-border flex justify-end">
               <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md">
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -167,9 +190,9 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
 
       {/* Email & SMTP */}
       <Card className="rounded-2xl border-border shadow-sm bg-card backdrop-blur-xl">
-        <div className="p-8 space-y-8">
+        <div className="p-5 sm:p-8 space-y-8">
           <div className="flex items-center gap-2 mb-2">
-            <span className="p-1 px-2.5 bg-blue-500/20 text-blue-500 rounded-md text-[10px] font-bold">MAIL</span>
+            <span className="p-1 px-2.5 bg-info/20 text-info rounded-md text-[10px] font-bold">MAIL</span>
             <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Почта (SMTP & Inbound)</h3>
           </div>
 

@@ -245,7 +245,7 @@ export default async function ClientTicketChatPage({
         <div className="flex items-center gap-2 shrink-0">
           <a
             href="/api/support/telegram"
-            className="inline-flex items-center gap-2 text-xs font-semibold bg-[#24A1DE] hover:bg-[#208ebe] text-white px-4 h-11 rounded-xl shadow-sm transition-all duration-200 active:scale-95 touch-manipulation min-h-[44px]"
+            className="inline-flex items-center gap-2 text-xs font-semibold bg-brand-telegram hover:opacity-90 text-primary-foreground px-4 h-11 rounded-xl shadow-sm transition-all duration-200 active:scale-95 touch-manipulation min-h-[44px]"
             aria-label="Перейти в Telegram-бот"
           >
             <svg 

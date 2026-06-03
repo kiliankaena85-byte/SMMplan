@@ -12,7 +12,6 @@ import { WhyUs } from "./WhyUs";
 import { FAQ } from "./FAQ";
 import { Reviews } from "./Reviews";
 import { LinkModal } from "./order-engine/LinkModal";
-import { EmailModal } from "./order-engine/EmailModal";
 import { StickyCheckoutBar } from "./order-engine/StickyCheckoutBar";
 import { NetworkSelector } from "./order-engine/NetworkSelector";
 import { CategorySidebar } from "./order-engine/CategorySidebar";
@@ -22,6 +21,8 @@ import { useCheckoutOrchestrator } from "./order-engine/useCheckoutOrchestrator"
 import { HeroInput } from "./order-engine/HeroInput";
 import { DynamicPayloadWarnings } from "./order-engine/DynamicPayloadWarnings";
 import { MegaFooter } from "./MegaFooter";
+import { PlatformLinkGuideDrawer } from "./order-engine/PlatformLinkGuideDrawer";
+import { PaymentGatewaySelectionModal } from "./order-engine/PaymentGatewaySelectionModal";
 import { IconBox } from "@tabler/icons-react";
 import { MassOrderPreview } from "./order-engine/MassOrderPreview";
 import { MassConfirmEmailModal } from "./order-engine/MassConfirmEmailModal";
@@ -70,15 +71,25 @@ export function SmartLinkLanding({
     isMassCalculating,
   } = engine;
 
+  const desktopEmailInputRef = React.useRef<HTMLInputElement>(null);
+  const mobileEmailInputRef = React.useRef<HTMLInputElement>(null);
+  const [isGuideOpen, setIsGuideOpen] = React.useState(false);
+
   const {
     isSubmitting,
-    showEmailModal, setShowEmailModal,
     showLinkModal, setShowLinkModal,
     linkHasError, setLinkHasError,
     showMassConfirmModal, setShowMassConfirmModal,
     handleMassCheckoutConfirm,
-    handleCheckout
-  } = useCheckoutOrchestrator({ engine });
+    handleCheckout,
+    emailHasError,
+    showPaymentModal, setShowPaymentModal,
+    confirmAndPay
+  } = useCheckoutOrchestrator({ 
+    engine, 
+    desktopEmailInputRef, 
+    mobileEmailInputRef 
+  });
 
   const availablePlatforms = unfilteredCatalog.map(net => {
     let platformEnum = IntelligencePlatform.OTHER;
@@ -141,7 +152,7 @@ export function SmartLinkLanding({
               </Link>
               <a
                 href="/api/auth/logout"
-                className="flex items-center justify-center p-2.5 rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-rose-600 transition-colors border border-default-200"
+                className="flex items-center justify-center p-2.5 rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-destructive transition-colors border border-default-200"
                 title="Выйти из аккаунта"
               >
                 <LogOut className="w-4 h-4" />
@@ -211,6 +222,7 @@ export function SmartLinkLanding({
               handleCheckout={handleCheckout} 
               linkHasError={linkHasError} 
               setLinkHasError={setLinkHasError} 
+              onOpenGuide={() => setIsGuideOpen(true)}
             />
           </div>
 
@@ -251,7 +263,14 @@ export function SmartLinkLanding({
              ) : (
                <div className="w-full flex flex-col will-change-transform">
                  {/* SECTION 1.0: MOBILE WIZARD (< MD) — 2-step master */}
-                  <MobileWizard engine={engine} handleCheckout={handleCheckout} isSubmitting={isSubmitting} />
+                    <MobileWizard 
+                      engine={engine} 
+                      handleCheckout={handleCheckout} 
+                      isSubmitting={isSubmitting} 
+                      emailInputRef={mobileEmailInputRef}
+                      emailHasError={emailHasError}
+                      onOpenGuide={() => setIsGuideOpen(true)}
+                    />
 
                  {/* SECTION 1: NETWORKS (Top Tabs Premium) - Hidden on Mobile */}
                  <NetworkSelector engine={engine} />
@@ -338,11 +357,16 @@ export function SmartLinkLanding({
           quantity={quantity}
           setQuantity={setQuantity}
           pricing={pricing}
-          agreedToTerms={agreedToTerms}
-          setAgreedToTerms={setAgreedToTerms}
+          email={email}
+          setEmail={setEmail}
+          promoCode={engine.promoCode}
+          setPromoCode={engine.setPromoCode}
+          isCalculating={engine.isCalculating}
           isSubmitting={isSubmitting}
           handleCheckout={handleCheckout}
           onClearSelection={() => setSelectedService(null)}
+          emailInputRef={desktopEmailInputRef}
+          emailHasError={emailHasError}
         />
       )}
 
@@ -355,22 +379,6 @@ export function SmartLinkLanding({
         handleCheckout={handleCheckout}
       />
 
-      {/* ══════════ EMAIL MODAL (Progressive Disclosure) ══════════ */}
-      <EmailModal
-        showEmailModal={showEmailModal}
-        setShowEmailModal={setShowEmailModal}
-        email={email}
-        setEmail={setEmail}
-        url={url}
-        totalPriceFormatted={totalPriceFormatted}
-        isSubmitting={isSubmitting}
-        handleCheckout={handleCheckout}
-        promoCode={engine.promoCode}
-        setPromoCode={engine.setPromoCode}
-        pricingError={engine.pricingError}
-        isCalculating={engine.isCalculating}
-      />
-
       {/* ══════════ MASS ORDER CONFIRM MODAL ══════════ */}
       <MassConfirmEmailModal
         showMassConfirmModal={showMassConfirmModal}
@@ -381,6 +389,18 @@ export function SmartLinkLanding({
         isSubmitting={isSubmitting}
         handleMassCheckoutConfirm={handleMassCheckoutConfirm}
         validCount={massCalculation ? massCalculation.validCount : 0}
+      />
+      <PlatformLinkGuideDrawer
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        initialPlatform={engine.catalog.find(n => n.id === engine.networkId)?.slug || "telegram"}
+      />
+      <PaymentGatewaySelectionModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        totalPriceFormatted={pricing ? (pricing.totalCents / 100).toFixed(2) : "0.00"}
+        isSubmitting={isSubmitting}
+        onSelectGateway={confirmAndPay}
       />
     </div>
   );
