@@ -86,7 +86,7 @@ export default function AddFundsPage() {
   return (
     <div className="max-w-lg space-y-6 animate-in fade-in duration-500">
       {isSuccess && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-400 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
           <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
           <div>
             <h3 className="font-bold text-sm">Баланс успешно пополнен!</h3>
@@ -292,7 +292,7 @@ export default function AddFundsPage() {
           <p className="text-xs text-rose-600 font-semibold">{promoError}</p>
         )}
         {promoSuccess && (
-          <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
+          <p className="text-xs text-emerald-800 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
             <CheckCircle2 className="w-3 h-3" />
             {promoSuccess}
           </p>

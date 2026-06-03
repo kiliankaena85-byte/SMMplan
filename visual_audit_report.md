@@ -1,6 +1,6 @@
 # Visual Audit Report — SMMplan
 Date: 2026-06-03
-Status: AUDIT COMPLETE / PENDING FIXES (P0-A, P0-B RESOLVED)
+Status: AUDIT COMPLETE / PENDING P1/P2 FIXES (P0 RESOLVED)
 Scope: Light mode only
 
 ## 1. Executive Summary
@@ -168,14 +168,14 @@ Defects are classified below based on Probability (P) and Impact (I) rules:
 *   `[P3×I2] High | /admin/settings: Hardcoded/banned colors used in payment integrations configuration card | src/app/admin/settings/integrations-settings.tsx`
 *   `[P3×I2] High | /support: Hardcoded/banned color palette shades and inline HEX colors used in chat elements | src/components/support/ChatWindow.tsx`
 *   `[P3×I2] High | /dashboard/tickets/[id]: Hardcoded brand blue HEX (#24A1DE) and inline colors in Telegram redirect buttons | src/app/dashboard/tickets/[id]/page.tsx`
-*   `[P3×I2] High | /dashboard/orders: Color contrast failures for status badges in light theme | src/app/dashboard/orders/page.tsx`
+*   `[FIXED] [P3×I2] High | /dashboard/orders: Color contrast failures for status badges in light theme | src/app/dashboard/orders/page.tsx`
 *   `[FIXED] [P3×I2] High | /dashboard/add-funds: Touch target under 44px for wallet amount preset buttons | src/app/dashboard/add-funds/client-page.tsx`
 *   `[FIXED] [P3×I2] High | /dashboard/orders: Touch targets under 44px for pagination controls and filter search | src/components/orders/OrderFilters.tsx`
 *   `[FIXED] [P3×I2] High | /support: Touch targets under 44px for chat controls, attach trigger, and suggested article buttons | src/components/support/ChatWindow.tsx`
 *   `[P2×I2] Medium | /: Custom Telegram brand color used inline directly for links | src/components/landing/order-engine/PlatformLinkGuideDrawer.tsx`
-*   `[P2×I2] Medium | /dashboard/add-funds: Color contrast failure for promo code success message | src/app/dashboard/add-funds/client-page.tsx`
+*   `[FIXED] [P2×I2] Medium | /dashboard/add-funds: Color contrast failure for promo code success message | src/app/dashboard/add-funds/client-page.tsx`
 *   `[P2×I2] Medium | /dashboard/orders: Muted text in table column headers fails contrast ratio | src/app/dashboard/orders/page.tsx`
-*   `[P2×I2] Medium | /support: Background separator elements have contrast of 2.3:1 | src/components/support/ChatWindow.tsx`
+*   `[FIXED] [P2×I2] Medium | /support: Background separator elements have contrast of 2.3:1 | src/components/support/ChatWindow.tsx`
 *   `[P2×I1] Low | /: Hover transition effects use hardcoded color rose-600 | src/components/landing/SmartLinkLanding.tsx`
 *   `[P3×I1] Low | /dashboard/tickets/[id]: Breadcrumbs hover states and back link size | src/app/dashboard/tickets/[id]/page.tsx`
 
@@ -309,9 +309,11 @@ A prioritized remediation plan is structured below to resolve the identified vis
     *   Changed `CancelOrderButton.tsx` and `RetryPaymentModal.tsx` button layouts to default height of `h-11` (44px) on mobile viewports.
     *   Modified `ChatWindow.tsx` reply/edit triggers, attachments, and suggestion dismiss buttons to comply with the 44px target standard.
     *   Increased preset buttons in `add-funds/client-page.tsx` and header elements in `tickets/[id]/page.tsx` to at least 44px.
-3.  **Correct Badge Contrast Ratios**:
-    *   Redefine Light Mode status badge colors. Instead of using highly saturated primary/success text directly on 10% opacity backgrounds, use darkened semantic HSL tokens (e.g., `text-success` mapped to a darker emerald-700 variant for text, and emerald-100 for background).
-    *   Update table column header text color from `text-muted-foreground` to a darker shade to satisfy the 4.5:1 contrast requirement.
+3.  **[FIXED] Correct Badge Contrast Ratios**:
+    *   Redefined Light Mode status badge colors. Instead of using highly saturated primary/success text directly on 10% opacity backgrounds, used darkened semantic HSL tokens (e.g., `text-success` mapped to a darker emerald-800 variant for text on Light Theme, while keeping default success for dark theme).
+    *   Updated status colors for all badges (Completed, In Progress, Pending, Provisioning, Error, Partial) across `orders/page.tsx` and `tickets/[id]/page.tsx`.
+    *   Enhanced promo code success messages text contrast to `text-emerald-800` in `add-funds/client-page.tsx`.
+    *   Darkened chat separator history text to `text-slate-600` in `ChatWindow.tsx` to exceed 4.5:1 contrast.
 
 ### Phase P1 (Medium) — Design System Compliance
 1.  **Replace Banned Inline Colors**:

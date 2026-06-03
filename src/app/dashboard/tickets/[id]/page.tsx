@@ -260,9 +260,9 @@ export default async function ClientTicketChatPage({
           <span
             className={`shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border uppercase ${
               ticket.status === 'OPEN'
-                ? 'text-rose-700 bg-rose-50 border-rose-200'
+                ? 'text-rose-800 dark:text-rose-400 bg-rose-50 border-rose-200'
                 : ticket.status === 'PENDING'
-                ? 'text-amber-700 bg-amber-50 border-amber-200'
+                ? 'text-amber-800 dark:text-amber-400 bg-amber-50 border-amber-200'
                 : 'text-muted-foreground bg-muted border-border'
             }`}
           >
@@ -283,9 +283,9 @@ export default async function ClientTicketChatPage({
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm text-foreground">Привязанный заказ #{ticket.order.numericId}</span>
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                  ticket.order.status === 'COMPLETED' ? 'bg-success/10 text-success' :
-                  ticket.order.status === 'IN_PROGRESS' ? 'bg-primary/10 text-primary' :
-                  ticket.order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                  ticket.order.status === 'COMPLETED' ? 'bg-success/10 text-emerald-800 dark:text-success' :
+                  ticket.order.status === 'IN_PROGRESS' ? 'bg-primary/10 text-blue-800 dark:text-primary' :
+                  ticket.order.status === 'PENDING' ? 'bg-amber-100 text-amber-800 dark:text-amber-400' :
                   'bg-default-200 text-default-600'
                 }`}>
                   {ticket.order.status === 'COMPLETED' ? 'Выполнен' :

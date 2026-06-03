@@ -806,7 +806,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                 </div>
               )}
               {msg.isHistorical && (index === 0 || messages[index - 1].historicalTicketId !== msg.historicalTicketId) && (
-                <div className="text-center text-[10px] uppercase font-bold text-slate-400 my-4 bg-slate-100 rounded-full px-3 py-1 w-max mx-auto border border-slate-200">
+                <div className="text-center text-[10px] uppercase font-bold text-slate-600 my-4 bg-slate-100 rounded-full px-3 py-1 w-max mx-auto border border-slate-200">
                   История: {msg.historicalSubject || 'Предыдущий тикет'}
                 </div>
               )}
