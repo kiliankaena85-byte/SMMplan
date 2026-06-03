@@ -138,7 +138,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [services, setServices] = useState<PublicService[]>([]);
   const [platform, setPlatform] = useState<IntelligencePlatform | null>(null);
   const [manualPlatform, setManualPlatform] = useState<IntelligencePlatform | null>(null);
-  const [pricing, setPricing] = useState<PricingResult | null>(null);
+  const [promoPricing, setPromoPricing] = useState<PricingResult | null>(null);
   const [pricingError, setPricingError] = useState<'voucher' | null>(null);
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   
@@ -375,40 +375,44 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     }
   }, [selectedService]);
 
-  // 5. Calculate Price (Debounced for promo codes, instant for standard orders)
-  useEffect(() => {
-    if (!selectedService || quantity < 1) {
-      setPricing(null);
-      return;
+  // 5. Calculate Price (Synchronous useMemo for standard, state-based for promo codes)
+  const pricing = useMemo(() => {
+    if (!selectedService || quantity < 1) return null;
+
+    if (promoCode && promoCode.trim().length > 0) {
+      return promoPricing;
     }
 
-    // 5.1 Instant client-side calculation if there's no promo code
-    if (!promoCode || promoCode.trim().length === 0) {
-      const totalQty = dripFeedEnabled && runs ? quantity * runs : quantity;
-      const originalTotalCents = Math.max(1, Math.round(selectedService.pricePerUnitRub * 100 * totalQty));
-      
-      let totalCents = originalTotalCents;
-      if (isSmartDrip && selectedService.smartConfig?.isEnabled) {
-        totalCents = Math.round(totalCents * (1 + selectedService.smartConfig.markup));
-      }
+    const totalQty = dripFeedEnabled && runs ? quantity * runs : quantity;
+    const originalTotalCents = Math.max(1, Math.round(selectedService.pricePerUnitRub * 100 * totalQty));
 
-      setPricing({
-        totalCents,
-        originalTotalCents,
-        discountCents: 0,
-        discountPercent: 0,
-        providerCostCents: 0,
-        safetyFloorCents: 0,
-        tier: 'REGULAR'
-      });
+    let totalCents = originalTotalCents;
+    if (isSmartDrip && selectedService.smartConfig?.isEnabled) {
+      totalCents = Math.round(totalCents * (1 + selectedService.smartConfig.markup));
+    }
+
+    return {
+      totalCents,
+      originalTotalCents,
+      discountCents: 0,
+      discountPercent: 0,
+      providerCostCents: 0,
+      safetyFloorCents: 0,
+      tier: 'REGULAR'
+    };
+  }, [selectedService, quantity, promoCode, promoPricing, dripFeedEnabled, runs, isSmartDrip]);
+
+  // 5.2 Server-side calculation only if a promo code needs validation
+  useEffect(() => {
+    if (!selectedService || quantity < 1 || !promoCode || promoCode.trim().length === 0) {
+      setPromoPricing(null);
       setPricingError(null);
       setIsCalculating(false);
       return;
     }
 
-    // 5.2 Server-side calculation only if a promo code needs validation
+    setIsCalculating(true);
     const handler = setTimeout(async () => {
-      setIsCalculating(true);
       const res = await calculatePriceAction(
         selectedService.id, 
         quantity, 
@@ -416,20 +420,20 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
         dripFeedEnabled ? runs : undefined
       );
       if (res.success && res.data) {
-        setPricing(res.data);
+        setPromoPricing(res.data);
         setPricingError(null);
       } else if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
-        setPricing(null);
+        setPromoPricing(null);
         setPricingError('voucher');
       } else {
-        setPricing(null);
+        setPromoPricing(null);
         setPricingError(null);
       }
       setIsCalculating(false);
     }, 150);
 
     return () => clearTimeout(handler);
-  }, [selectedService, quantity, promoCode, dripFeedEnabled, runs, isSmartDrip]);
+  }, [selectedService, quantity, promoCode, dripFeedEnabled, runs]);
 
   // 5.5 Calculate Mass Order Price (Debounced)
   useEffect(() => {

@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link2, Edit3, ChevronRight, Loader2, CheckSquare, Square, X } from "lucide-react";
+import { Link2, Edit3, ChevronRight, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 
 function formatPricePerUnit(price: number): string {
   if (price === 0) return '0.00';
-  let formatted = '';
+  let formatted: string;
   if (price < 0.01) {
     formatted = price.toFixed(6);
   } else if (price < 0.1) {
@@ -33,11 +33,16 @@ export function StickyCheckoutBar({
   quantity,
   setQuantity,
   pricing,
-  agreedToTerms,
-  setAgreedToTerms,
+  email,
+  setEmail,
+  promoCode,
+  setPromoCode,
+  isCalculating,
   isSubmitting,
   handleCheckout,
   onClearSelection,
+  emailInputRef,
+  emailHasError,
 }: {
   selectedService: any;
   url: string;
@@ -45,14 +50,26 @@ export function StickyCheckoutBar({
   quantity: number;
   setQuantity: (q: number) => void;
   pricing: any;
-  agreedToTerms: boolean;
-  setAgreedToTerms: (v: boolean) => void;
+  email: string;
+  setEmail: (v: string) => void;
+  promoCode: string;
+  setPromoCode: (v: string) => void;
+  isCalculating: boolean;
   isSubmitting: boolean;
   handleCheckout: () => void;
   onClearSelection: () => void;
+  emailInputRef?: React.RefObject<HTMLInputElement | null>;
+  emailHasError?: boolean;
 }) {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [showPromo, setShowPromo] = useState(promoCode.length > 0);
+
+  useEffect(() => {
+    if (promoCode.length > 0) {
+      setShowPromo(true);
+    }
+  }, [promoCode]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -82,6 +99,11 @@ export function StickyCheckoutBar({
 
   if (!selectedService) return null;
 
+  const hasDiscount = pricing && pricing.discountCents > 0;
+  const pricePerUnit = hasDiscount && quantity > 0
+    ? (pricing.totalCents / 100) / quantity
+    : selectedService.pricePerUnitRub;
+
   return (
     <motion.div
       initial={{ y: 150, opacity: 0, x: '-50%' }}
@@ -90,13 +112,11 @@ export function StickyCheckoutBar({
       transition={{ type: 'spring', damping: 30, stiffness: 400 }}
       className="fixed bottom-6 left-1/2 w-full max-w-5xl z-[200] hidden md:block px-4"
     >
-      <div className="bg-slate-900/95 backdrop-blur-2xl rounded-3xl shadow-[0_-15px_50px_-10px_rgba(0,0,0,0.6),0_0_30px_rgba(0,0,0,0.3)] p-3 pr-4 relative">
-        {/* Верхняя градиентная линия-акцент */}
-        <div className="absolute top-0 inset-x-[1px] h-[3px] bg-gradient-to-r from-primary/20 via-primary/95 to-primary/20 rounded-t-3xl pointer-events-none" />
-        
+      <div className="bg-background border-2 border-primary shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] rounded-3xl p-4 pr-5 relative">
         <button
+          type="button"
           onClick={onClearSelection}
-          className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-full flex items-center justify-center border border-white/10 shadow-lg transition-all z-10"
+          className="absolute -top-3 -right-3 w-8 h-8 bg-default-100 hover:bg-default-200 text-foreground hover:text-destructive rounded-full flex items-center justify-center border-2 border-primary shadow-lg transition-all z-10"
           title="Сбросить выбор"
         >
           <X className="w-4 h-4" />
@@ -104,19 +124,20 @@ export function StickyCheckoutBar({
         <div className="flex items-center justify-between gap-6">
           
           {/* Left: Selected service name */}
-          <div className="flex-1 min-w-0 max-w-[320px] pl-6 py-2">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Выбрано</p>
-            <p className="text-sm font-bold text-white truncate leading-tight">{selectedService.name}</p>
-            <div className="flex items-center gap-2 mt-2 opacity-80 hover:opacity-100 transition-opacity">
-              <div className="w-5 h-5 rounded-md bg-slate-850 bg-slate-800 border border-white/5 flex items-center justify-center shrink-0">
+          <div className="flex-1 min-w-0 max-w-[240px] pl-4 py-2">
+            <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Выбранный тариф:</p>
+            <p className="text-sm font-extrabold text-foreground line-clamp-2 break-words leading-tight">{selectedService.name}</p>
+            <div className="flex items-center gap-2 mt-2 opacity-95 hover:opacity-100 transition-opacity">
+              <div className="w-5 h-5 rounded-md bg-default-100 border border-default-300 flex items-center justify-center shrink-0">
                 <Link2 className="w-3 h-3 text-primary" />
               </div>
-              <p className="text-[12px] font-medium text-slate-300 truncate max-w-[180px]">
+              <p className="text-[12px] font-bold text-foreground truncate max-w-[140px]">
                 {url || "Ссылка не указана"}
               </p>
               <button 
+                type="button"
                 onClick={() => setShowLinkModal(true)}
-                className="ml-1 p-1 hover:bg-slate-800 rounded-md transition-colors text-slate-400 hover:text-white group"
+                className="ml-1 p-1 hover:bg-default-200 rounded-md transition-colors text-muted-foreground hover:text-foreground group"
                 title="Изменить ссылку"
               >
                 <Edit3 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
@@ -127,83 +148,127 @@ export function StickyCheckoutBar({
           {/* Center: Live Calculator & Legal Consent */}
           <div className="flex flex-col items-center justify-center gap-1">
             <div className="flex items-center gap-3">
+              {/* Quantity */}
               <div className="relative">
                 <input 
                   type="number" 
                   value={quantity} 
                   min={selectedService.minQty || 10}
                   max={selectedService.maxQty}
-                  onFocus={(e) => e.target.select()}
-                  onChange={e => {
+                  onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.select()}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     let val = Number(e.target.value);
                     if (selectedService?.maxQty && val > selectedService.maxQty) val = selectedService.maxQty;
                     setQuantity(val);
                   }} 
-                  className="w-28 h-12 px-4 rounded-xl border border-white/10 bg-slate-800 text-lg font-black tabular-nums text-white text-center focus:bg-slate-950 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
+                  className="w-24 h-12 px-2 rounded-xl border-2 border-default-400 bg-background text-base font-black tabular-nums text-foreground text-center focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
                 />
-                <span className="absolute -top-2 left-3 text-[9px] font-bold text-slate-400 bg-slate-900 px-1.5 rounded-sm uppercase">Кол-во</span>
+                <span className="absolute -top-2 left-3 text-[9px] font-black text-foreground bg-background px-1.5 rounded-md uppercase tracking-wider border border-default-300">Кол-во</span>
               </div>
+
+              {/* Email */}
+              <div className="relative">
+                <input 
+                  type="email" 
+                  ref={emailInputRef}
+                  value={email} 
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} 
+                  placeholder="you@example.com"
+                  className={`w-48 h-12 px-3 rounded-xl border-2 bg-background text-xs font-black text-foreground focus:border-primary outline-none transition-all shadow-sm ${
+                    emailHasError
+                      ? 'border-destructive focus:border-destructive ring-2 ring-destructive/20'
+                      : 'border-default-400 focus:border-primary'
+                  }`}
+                />
+                <span className={`absolute -top-2 left-3 text-[9px] font-black bg-background px-1.5 rounded-md uppercase tracking-wider border transition-colors ${
+                  emailHasError 
+                    ? 'text-destructive border-destructive font-black' 
+                    : 'text-foreground border-default-300'
+                }`}>
+                  {emailHasError ? 'Неверный Email' : 'Email для чека'}
+                </span>
+              </div>
+
+              {/* Promo Code Toggle or Input */}
+              {!showPromo ? (
+                <button
+                  type="button"
+                  onClick={() => setShowPromo(true)}
+                  className="h-12 px-3 border-2 border-dashed border-default-400 hover:border-primary/80 bg-background hover:bg-primary/5 text-[9px] font-black uppercase text-muted-foreground hover:text-primary rounded-xl flex items-center justify-center gap-1 transition-all duration-200 active:scale-95 shadow-sm shrink-0 cursor-pointer"
+                >
+                  <span>% Промокод</span>
+                </button>
+              ) : (
+                <div className="relative animate-in slide-in-from-right-3 fade-in duration-200 shrink-0">
+                  <input 
+                    type="text" 
+                    value={promoCode} 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPromoCode(e.target.value.toUpperCase())} 
+                    placeholder="ПРОМОКОД"
+                    className="w-28 h-12 px-2 pr-7 rounded-xl border-2 border-default-400 bg-background text-[10px] font-mono font-black tracking-widest uppercase text-foreground text-center focus:border-primary outline-none transition-all shadow-sm"
+                  />
+                  <span className="absolute -top-2 left-3 text-[9px] font-black text-foreground bg-background px-1.5 rounded-md uppercase tracking-wider border border-default-300">Промокод</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPromoCode("");
+                      setShowPromo(false);
+                    }}
+                    className="absolute top-1/2 -translate-y-1/2 right-2 w-4 h-4 rounded-full bg-default-100 hover:bg-default-200 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-all"
+                    title="Скрыть"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              )}
               
-              <span className="text-slate-400 font-bold text-lg">×</span>
+              <span className="text-muted-foreground font-bold text-base">×</span>
               
-              <span className="text-sm font-bold text-slate-300 tabular-nums whitespace-nowrap">
-                {pricing && quantity > 0
-                  ? formatPricePerUnit((pricing.totalCents / 100) / quantity)
-                  : formatPricePerUnit(selectedService.pricePerUnitRub)} ₽
+              <span className="text-xs font-extrabold text-foreground tabular-nums whitespace-nowrap">
+                {formatPricePerUnit(pricePerUnit)} ₽<span className="text-[10px] text-muted-foreground font-normal ml-0.5">/шт</span>
               </span>
-              
-              <span className="text-slate-400 font-bold text-lg">=</span>
-              
-              <div className="bg-slate-800 px-5 h-12 rounded-xl border border-white/10 flex items-center justify-center min-w-[120px] shadow-inner">
-                <p className="text-xl font-black text-white tabular-nums tracking-tight">
-                  {pricing ? (pricing.totalCents / 100).toFixed(2) : '0.00'} <span className="text-primary ml-0.5">₽</span>
-                </p>
+
+              <span className="text-muted-foreground font-bold text-base">=</span>
+              <div className="bg-primary/5 px-4 h-12 rounded-xl border-2 border-primary/30 flex items-center justify-center min-w-[100px] shadow-sm animate-in fade-in zoom-in-95 duration-200">
+                {isCalculating ? (
+                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                ) : (
+                  <p className="text-lg font-black text-primary tabular-nums tracking-tight">
+                    {pricing ? (pricing.totalCents / 100).toFixed(2) : '0.00'}{' '}
+                    <span className="text-primary ml-0.5">₽</span>
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Centered Legal Checkbox */}
-            <label 
-              className="flex items-center justify-center gap-2.5 cursor-pointer select-none transition-all duration-200 hover:bg-slate-800/80 active:scale-[0.99] p-3 bg-slate-800/50 border border-white/10 rounded-2xl mt-1 w-full max-w-[340px]"
-            >
-              <input 
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="sr-only"
-              />
-              <div className="text-primary shrink-0 transition-transform duration-200 hover:scale-105">
-                {agreedToTerms 
-                  ? <CheckSquare className="w-5 h-5 text-primary" /> 
-                  : <Square className="w-5 h-5 text-slate-500 group-hover:text-slate-400 transition-colors" />
-                }
-              </div>
-              <span className="text-[11px] text-slate-300 font-semibold whitespace-nowrap">
-                Я принимаю условия{' '}
-                <Link 
-                  href={ROUTES.LEGAL.TERMS} 
-                  target="_blank"
-                  onClick={(e) => e.stopPropagation()} 
-                  className="underline hover:text-white transition-colors text-slate-200"
-                >
-                  Оферты
-                </Link>{' '}
-                и{' '}
-                <Link 
-                  href={ROUTES.LEGAL.PRIVACY} 
-                  target="_blank"
-                  onClick={(e) => e.stopPropagation()} 
-                  className="underline hover:text-white transition-colors text-slate-200"
-                >
-                  Политики
-                </Link>
-              </span>
-            </label>
+            {/* Fabricated metrics removed to protect platform integrity */}
+
+            {/* Passive Legal Notice (BUG-03: no checkbox friction) */}
+            <p className="text-[10px] text-foreground/80 font-extrabold text-center mt-1 max-w-[340px] leading-relaxed">
+              Нажимая «Оплатить», вы соглашаетесь с{' '}
+              <Link 
+                href={ROUTES.LEGAL.TERMS} 
+                target="_blank"
+                className="underline text-primary hover:text-primary-600 transition-colors font-bold"
+              >
+                Офертой
+              </Link>{' '}
+              и{' '}
+              <Link 
+                href={ROUTES.LEGAL.PRIVACY} 
+                target="_blank"
+                className="underline text-primary hover:text-primary-600 transition-colors font-bold"
+              >
+                Политикой
+              </Link>
+            </p>
           </div>
 
           {/* Right: Checkout */}
           <div className="flex items-center gap-5">
             <div className="flex flex-col items-center justify-center gap-1">
               <Button 
+                type="button"
                 onClick={handleCheckout}
                 disabled={isSubmitting}
                 className={`h-12 sm:h-14 w-full sm:w-auto px-8 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 group ${
@@ -214,11 +279,11 @@ export function StickyCheckoutBar({
                   <>Оплатить <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" /></>
                 )}
               </Button>
-              <div className="flex flex-col items-center gap-1 mt-1 opacity-80">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+              <div className="flex flex-col items-center gap-1 mt-1 opacity-95">
+                <span className="text-[9px] font-black text-foreground uppercase tracking-widest">
                   Безопасная оплата
                 </span>
-                <span className="text-[9px] font-medium text-slate-300 uppercase tracking-wider flex items-center gap-1.5 font-sans">
+                <span className="text-[9px] font-extrabold text-primary uppercase tracking-wider flex items-center gap-1.5 font-sans mt-0.5">
                   СБП • МИР • Visa • Cryptobot
                 </span>
               </div>
