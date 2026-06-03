@@ -182,9 +182,9 @@ The codebase is undergoing sequential patching to resolve the audited vulnerabil
 | 5 | No Sync Check Fallback for Robokassa/CryptoBot | `/api/order-status/route.ts` | **DEFERRED** | Add CryptoBot/Robokassa checks in polling endpoint and sync worker. |
 | 6 | Impersonation on OAuth/Telegram Users | `src/actions/support/guest.ts` | ✅ **Fixed** | Replaced `existingUser?.passwordHash` check with complex registration verification checking both `passwordHash` and `telegramId` in `guest.ts` and `offline-ticket.ts`. |
 | 7 | Weak Input Validation in Guest Forms | `src/actions/support/offline-ticket.ts` | ✅ **Fixed** | Replaced `z.any()` with `z.union([z.string(), z.number()])` positive integer validation and added strict `.max()` limits on all inputs in `offlineTicketSchema`. |
-| 8 | Non-Timing-Safe Webhook Comparison | `src/api/webhooks/robokassa/route.ts` | **DEFERRED** | Implement `crypto.timingSafeEqual` comparison for signatures. |
-| 9 | Default targetType Fallback on Import | `src/services/admin/catalog.service.ts` | **DEFERRED** | Query categories dynamically and call `inferTargetTypeFromCategory`. |
-| 10| Empty Dead Routing Directory Bloat | `src/app/knowledge/slug` | **DEFERRED** | Delete the empty, redundant folder. |
+| 8 | Non-Timing-Safe Webhook Comparison | `src/app/api/webhooks/robokassa/route.ts` | ✅ **Fixed** | Implemented timing-safe webhook comparison by using `Buffer.from` and `crypto.timingSafeEqual` with length checks. |
+| 9 | Default targetType Fallback on Import | `src/services/admin/catalog.service.ts` | ✅ **Fixed** | Verified that catalog import uses dynamic `inferTargetTypeFromCategory(...)` category-name inference instead of static 'POST'. |
+| 10| Empty Dead Routing Directory Bloat | `src/app/knowledge/slug` | ✅ **Fixed** | Deleted the redundant and empty routing folder. |
 | 11| Missing Label Linkages (WCAG AA) | `GuestSupportOptions.tsx` | **DEFERRED** | Add unique IDs to form inputs and bind `<label htmlFor="...">` attributes. |
 | 12| TypeScript Compiler Errors | Global codebase | **DEFERRED** | Fix typical graph formatters, chart parameters, and wizard properties. |
 
@@ -199,3 +199,6 @@ The codebase is undergoing sequential patching to resolve the audited vulnerabil
 > **[SCOPE NOTE]**: In Patch #4, the scope was extended to include `src/components/support/GuestSupportOptions.tsx` because it was logically necessary to read `paymentId` and `orderId` from the URL parameters via `useSearchParams` and forward them to the server action to populate the relational database fields.
 > 
 > **[DEFERRED: requires test coverage and business rule sign-off]**: The 15-minute automatic payment/order fallback linking logic in `createOfflineTicketAction` is new business logic. It requires formal test coverage and business sign-off before production release to prevent potential false-positive linkages if multiple failed orders exist for the same email address in a short time frame.
+
+> [!NOTE]
+> **[TECHNICAL DEBT NOTE]**: In `offlineTicketSchema`, `quantity` is validated using `z.union([z.string(), z.number()]).refine(...)` to maintain type compatibility with client components and test suites. A recommended future refactoring is to homogenize the parameter types using `z.coerce.number().int().positive().max(1000000).optional()` once client forms are updated to strictly pass numeric types instead of string inputs.
