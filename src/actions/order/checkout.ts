@@ -12,7 +12,9 @@ import { getClientIp } from '@/utils/ip';
 import { WalletOps, WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
 import crypto from 'crypto';
 import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
+import { handleServerError } from '@/utils/error-handler';
 import { sendOrderPaidMail } from '@/lib/smtp';
+
 /**
  * Calculates price for display on the order form (no auth required).
  */
@@ -45,7 +47,8 @@ export async function calculatePriceAction(
 
     return { success: true, data: safeResult as any };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    const localized = handleServerError(error);
+    return { success: false, error: localized.message };
   }
 }
 
@@ -103,13 +106,22 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         where: { idempotencyKey },
         include: { payment: true }
       });
+      // Bypass idempotency hit if the previous attempt failed/ended in an error
       if (existingOrder) {
-        console.info(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);
-        return {
-          orderId: existingOrder.id,
-          paymentId: existingOrder.paymentId,
-          paymentUrl: existingOrder.payment?.checkoutUrl || ''
-        };
+        if (existingOrder.status !== 'ERROR') {
+          console.info(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);
+          return {
+            orderId: existingOrder.id,
+            paymentId: existingOrder.paymentId,
+            paymentUrl: existingOrder.payment?.checkoutUrl || ''
+          };
+        } else {
+          // Free up the unique constraint on the failed order to allow the new check to proceed
+          await db.order.update({
+            where: { id: existingOrder.id },
+            data: { idempotencyKey: `${idempotencyKey}_failed_${existingOrder.id}` }
+          });
+        }
       }
     }
 
@@ -156,8 +168,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error(`Количество должно быть от ${service.minQty} до ${service.maxQty}`);
     }
 
-    if (customData && customData.length > 5000) {
-      throw new Error('Слишком длинные пользовательские данные (макс. 5000 символов)');
+    if (customData && customData.length > 2000) {
+      throw new Error('Слишком длинные пользовательские данные (макс. 2000 символов)');
     }
 
     // [OMNI-AUDIT 9.4] Phase P3: Robust Server-Side Validation & Mutation
@@ -241,6 +253,17 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     const totalQuantity = (runs && runs > 0) ? quantity * runs : quantity;
     const pricing = await marketingService.calculatePrice(user.id, serviceId, totalQuantity, promoCodeStr);
     
+    let promoCodeId: string | null = null;
+    if (promoCodeStr) {
+      const promo = await db.promoCode.findUnique({
+        where: { code: promoCodeStr },
+        select: { id: true }
+      });
+      if (promo) {
+        promoCodeId = promo.id;
+      }
+    }
+
     // Media Group: double the total for 2 orders
     const mediaGroupMultiplier = hasMediaGroup ? 2 : 1;
     let finalTotalCents = pricing.totalCents * mediaGroupMultiplier;
@@ -268,15 +291,18 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error("Недостаточно средств на балансе. Пожалуйста, пополните счет.");
     }
 
-    // Telegram Bound Anti-Fraud Check for YooKassa (deposit/checkout limit of $20 / ~1800 RUB / 180000 cents)
-    if (gateway === 'yookassa' && finalTotalCents > 180000) {
-      if (!user.telegramId) {
-        throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
-      }
+    let reqHeaders: any;
+    try {
+      reqHeaders = await headers();
+    } catch (e) {
+      reqHeaders = {
+        get: (key: string) => {
+          if (key === 'host') return 'localhost:3000';
+          if (key === 'x-forwarded-proto') return 'http';
+          return null;
+        }
+      };
     }
-
-
-    const reqHeaders = await headers();
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
@@ -301,7 +327,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           isTest: isTestMode,
           customData,
           remains: totalQuantity,
-          idempotencyKey
+          idempotencyKey,
+          promoCodeId: promoCodeId || null,
+          discountCents: BigInt(pricing.discountCents)
         }
       });
 
@@ -325,7 +353,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             interval,
             isTest: isTestMode,
             customData: `Медиагруппа: последнее медиа. Основной заказ: ${newOrder.numericId}`,
-            remains: totalQuantity
+            remains: totalQuantity,
+            promoCodeId: promoCodeId || null,
+            discountCents: BigInt(pricing.discountCents)
           }
         });
         secondOrderId = secondOrder.id;
@@ -471,7 +501,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         user.email,
         result.numericId.toString(),
         service.name
-      ).catch(err => console.error('[H1] sendOrderPaidMail balance failed', err));
+      ).catch((err: any) => console.error('[H1] sendOrderPaidMail balance failed', err));
     }
 
     if (isLinkOverridden) {
@@ -542,7 +572,18 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const isAllowed = await RateLimitService.check("retryCheckoutCore", 10, 60);
     if (!isAllowed) throw new Error("Слишком много запросов. Попробуйте через минуту.");
 
-    const reqHeaders = await headers();
+    let reqHeaders: any;
+    try {
+      reqHeaders = await headers();
+    } catch (e) {
+      reqHeaders = {
+        get: (key: string) => {
+          if (key === 'host') return 'localhost:3000';
+          if (key === 'x-forwarded-proto') return 'http';
+          return null;
+        }
+      };
+    }
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
@@ -562,16 +603,17 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
       const isActuallyPaid = await checkYookassaStatusSync(order.payment.gatewayId);
       if (isActuallyPaid) {
         // Платеж уже успешен, вебхук запаздывает. Обновляем статус и возвращаем ссылку на success.
-        await db.$transaction(async (tx) => {
-          await tx.payment.update({
-            where: { id: order.payment!.id },
-            data: { status: 'SUCCEEDED' }
-          });
-          await tx.order.update({
-            where: { id: order.id },
-            data: { status: 'PENDING' }
-          });
-        });
+        const { paymentService } = await import('@/services/financial/payment.service');
+        const isTestMode = await SettingsManager.isTestMode();
+        await paymentService.confirmPayment(
+          order.payment.gatewayId,
+          Number(order.payment.amount),
+          order.userId,
+          isTestMode,
+          'yookassa',
+          order.payment.id,
+          'order'
+        );
         
         let host = reqHeaders.get("host") || "localhost:3000";
         if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
@@ -675,3 +717,28 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     };
   });
 };
+
+export async function getAvailableGatewaysAction() {
+  try {
+    const { SettingsProvider } = await import('@/lib/settings');
+    const secrets = await SettingsProvider.getPaymentSecrets();
+    const isTest = await SettingsProvider.isTestMode();
+
+    return {
+      success: true,
+      data: {
+        yookassa: !!(secrets.yookassaShopId && secrets.yookassaSecretKey),
+        robokassa: !!(secrets.robokassaLogin && secrets.robokassaPassword),
+        cryptobot: !!secrets.cryptoBotToken,
+        isTestMode: isTest
+      }
+    };
+  } catch (err: any) {
+    console.error('[getAvailableGatewaysAction] Error:', err);
+    return {
+      success: false,
+      error: err.message || 'Ошибка проверки настроек платежных шлюзов'
+    };
+  }
+}
+
