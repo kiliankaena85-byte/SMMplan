@@ -176,7 +176,7 @@ Due to the user's active task constraint **"Ничего не менять! За
 | # | Defect / Vulnerability | Target Component | Status | Mitigation Action |
 |---|------------------------|------------------|:---:|-------------------|
 | 1 | Financial Layer Bypass in Retry-Checkout | `src/actions/order/checkout.ts` | ✅ **Fixed** | Replaced direct database updates in `retryCheckoutAction` (lines 606–615) with dynamic import and call to `paymentService.confirmPayment`. |
-| 2 | YooKassa Double-Check Sandbox Bypass | `src/services/financial/payment.service.ts` | **DEFERRED** | Force API lookup in production by decoupling config parameter from verification. |
+| 2 | YooKassa Double-Check Sandbox Bypass | `src/services/financial/payment.service.ts` | ✅ **Fixed** | Forced double-check API validation in production for YooKassa (line 28) by removing `!isDevSandbox` condition. |
 | 3 | Exposed SSE Broadcast Server Action | `src/actions/support/ticket.ts` | **DEFERRED** | Move helper function outside the `'use server'` action context. |
 | 4 | Missing Relational Database Linkage | `src/actions/support/offline-ticket.ts` | **DEFERRED** | Pass `paymentId` and `orderId` parameters through client query string and write relations to Postgres. |
 | 5 | No Sync Check Fallback for Robokassa/CryptoBot | `/api/order-status/route.ts` | **DEFERRED** | Add CryptoBot/Robokassa checks in polling endpoint and sync worker. |

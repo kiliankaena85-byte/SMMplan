@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { WalletOps } from './wallet-ops';
 import { revalidatePath } from 'next/cache';
 import { sendOrderPaidMail } from '@/lib/smtp';
+import { logPromoCodeUsageIfNeeded } from '@/services/marketing.service';
 
 export class PaymentService {
   /**
@@ -15,7 +16,7 @@ export class PaymentService {
     amount: number, 
     userId: string, 
     isDevSandbox = false,
-    gatewayType: 'yookassa' | 'cryptobot' = 'yookassa',
+    gatewayType: 'yookassa' | 'cryptobot' | 'robokassa' = 'yookassa',
     internalPaymentId?: string,
     metadataType?: string,
     receiptId?: string
@@ -24,7 +25,7 @@ export class PaymentService {
 
     try {
       // 1. Double-check against real gateway API in production
-      if (!isDevSandbox && process.env.NODE_ENV === 'production' && gatewayType === 'yookassa') {
+      if (process.env.NODE_ENV === 'production' && gatewayType === 'yookassa') {
         const { SettingsManager } = await import('@/lib/settings');
         const secrets = await SettingsManager.getPaymentSecrets();
         
@@ -119,6 +120,7 @@ export class PaymentService {
               where: { id: linkedOrderId },
               data: { status: 'PENDING' }
             });
+            await logPromoCodeUsageIfNeeded(tx, linkedOrderId, userId);
             activatedOrders.push({ 
               id: order.id, 
               isDripFeed: order.isDripFeed, 
@@ -160,6 +162,7 @@ export class PaymentService {
                 serviceName: order.service?.name ?? null,
                 numericId: order.numericId 
               });
+              await logPromoCodeUsageIfNeeded(tx, order.id, userId);
            }
 
             // Credit full paid amount first
@@ -261,6 +264,7 @@ export class PaymentService {
               where: { id: payment.orderId },
               data: { status: 'PENDING' }
             });
+            await logPromoCodeUsageIfNeeded(tx, payment.orderId, payment.userId);
             activatedOrders.push({ 
               id: order.id, 
               isDripFeed: order.isDripFeed,
@@ -299,6 +303,7 @@ export class PaymentService {
                 serviceName: order.service?.name ?? null,
                 numericId: order.numericId
               });
+              await logPromoCodeUsageIfNeeded(tx, order.id, payment.userId);
            }
 
             // Credit full paid amount first

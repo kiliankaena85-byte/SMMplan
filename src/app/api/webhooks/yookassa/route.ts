@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Missing userId or gatewayId in metadata' }, { status: 400 });
       }
 
-      // Safe confirmation using Double-Check Logic
+      // Safe confirmation using Double-Check Logic (forces double-check in prod regardless of isTestMode)
       const success = await paymentService.confirmPayment(
         gatewayId, amount, userId, isTestMode, 'yookassa', internalPaymentId, metadataType, receiptId
       );
