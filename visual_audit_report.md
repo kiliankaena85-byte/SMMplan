@@ -324,9 +324,9 @@ A prioritized remediation plan is structured below to resolve the identified vis
     *   Add page-specific custom metadata (title and description) to `/dashboard/orders` and `/dashboard/add-funds`.
 
 ### Phase P2 (Low) — Spacing & Keyboard Nav Enhancements
-1.  **Standardize Component Heights**: Align input boxes, dropdown selects, and action buttons to a uniform height (e.g., 44px) to ensure clean baseline alignments.
-2.  **Keyboard Focus Outlines**: Ensure that all interactive elements, including custom preset selections, have a clear focus state using the standard ring token (`focus:ring-2 focus:ring-ring`).
-3.  **Add Skip Link**: Insert a visually hidden skip-to-content anchor tag at the top of the `RootLayout` structure for screen-reader compatibility.
+1.  **[FIXED] Standardize Component Heights**: Aligned input boxes, dropdown selects, and action buttons to a uniform height (e.g., 44px/48px) to ensure clean baseline alignments and easy touch target interactions.
+2.  **[FIXED] Keyboard Focus Outlines**: Added `focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none` focus rings on selector tabs and expand buttons.
+3.  **[FIXED] Add Skip Link**: Inserted a visually hidden skip-to-content anchor tag at the top of the `RootLayout` structure targeting main landmarks for screen-reader compatibility.
 
 ---
 
