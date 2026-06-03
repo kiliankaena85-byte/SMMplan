@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { OrderEngine } from '@/hooks/useOrderEngine';
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
@@ -7,14 +7,28 @@ import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 
 interface CheckoutOrchestratorOptions {
   engine: OrderEngine;
+  desktopEmailInputRef?: React.RefObject<HTMLInputElement | null>;
+  mobileEmailInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions) {
+export function useCheckoutOrchestrator({ 
+  engine, 
+  desktopEmailInputRef, 
+  mobileEmailInputRef 
+}: CheckoutOrchestratorOptions) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkHasError, setLinkHasError] = useState(false);
   const [showMassConfirmModal, setShowMassConfirmModal] = useState(false);
+  const [emailHasError, setEmailHasError] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingCheckoutParams, setPendingCheckoutParams] = useState<any>(null);
+
+  useEffect(() => {
+    if (engine.email && engine.email.includes('@')) {
+      setEmailHasError(false);
+    }
+  }, [engine.email]);
 
   const handleMassCheckoutConfirm = async (confirmedEmail: string) => {
     const { url } = engine;
@@ -30,13 +44,17 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
         if (res.data?.paymentUrl) {
           window.location.href = res.data.paymentUrl;
         } else {
-          toast.error('Не удалось получить ссылку на оплату. Обратитесь в поддержку.', { position: 'top-center' });
+          const errorMessage = 'Не удалось получить ссылку на оплату. Обратитесь в поддержку.';
+          const paymentId = res.data?.paymentId || '';
+          window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=yookassa&email=${encodeURIComponent(confirmedEmail)}&url=${encodeURIComponent(url)}&paymentId=${paymentId}&orderId=`;
         }
       } else {
-        toast.error(res.error || 'Ошибка создания заказа. Попробуйте еще раз.', { position: 'top-center' });
+        const errorMessage = res.error || 'Ошибка создания заказа. Попробуйте еще раз.';
+        window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=yookassa&email=${encodeURIComponent(confirmedEmail)}&url=${encodeURIComponent(url)}&paymentId=&orderId=`;
       }
     } catch (e: any) {
-      toast.error(e.message || 'Ошибка платежного шлюза.', { position: 'top-center' });
+      const errorMessage = e.message || 'Ошибка платежного шлюза.';
+      window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=yookassa&email=${encodeURIComponent(confirmedEmail)}&url=${encodeURIComponent(url)}&paymentId=&orderId=`;
     } finally {
       setIsSubmitting(false);
       setShowMassConfirmModal(false);
@@ -51,10 +69,6 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
         toast.error("Нет валидных заказов для оформления. Пожалуйста, исправьте ошибки.", { position: 'top-center' });
         return;
       }
-      if (!agreedToTerms) {
-        toast.error("Пожалуйста, ознакомьтесь и согласитесь с условиями Оферты.", { position: 'top-center' });
-        return;
-      }
       setShowMassConfirmModal(true);
       return;
     }
@@ -67,6 +81,18 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
       toast.error("Эта услуга временно недоступна для заказа (находится на проверке качества). Пожалуйста, выберите другую.", { position: 'top-center' });
       return;
     }
+
+    if (!isMassMode) {
+      if (engine.isCalculating) {
+        toast.error("Идет расчет стоимости заказа. Пожалуйста, подождите...", { position: 'top-center' });
+        return;
+      }
+      if (!engine.pricing) {
+        toast.error("Не удалось рассчитать стоимость заказа. Пожалуйста, проверьте количество или попробуйте позже.", { position: 'top-center' });
+        return;
+      }
+    }
+
 
     // --- WAVE 4.2 CROSS-PLATFORM MISMATCH PROTECTION ---
     const activeNetwork = engine.catalog.find(n => n.id === engine.networkId);
@@ -169,10 +195,13 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
       toast.error(`Минимальное количество для заказа: ${selectedService.minQty}`, { position: 'top-center' });
       return;
     }
-    const reqCustomData = selectedService.name.toLowerCase().includes('опрос') || 
-                          selectedService.name.toLowerCase().includes('свои') || 
-                          selectedService.name.toLowerCase().includes('свой текст') || 
-                          selectedService.name.toLowerCase().includes('ключево');
+    const nameLower = selectedService.name.toLowerCase();
+    const customDataType = selectedService.customDataType;
+    const reqCustomData = (customDataType && customDataType !== 'NONE') ||
+                          (nameLower.includes('опрос') && !nameLower.includes('просмотр')) || 
+                          nameLower.includes('свои') || 
+                          nameLower.includes('свой текст') || 
+                          nameLower.includes('ключево');
     if (reqCustomData && (!customData || customData.trim().length === 0)) {
       toast.error("Укажите необходимые данные для этой услуги (текст комментариев, ответы и т.д.)", { position: 'top-center' });
       return;
@@ -183,53 +212,83 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
     }
 
     if (!email || !email.includes('@')) {
-      setShowEmailModal(true);
+      setEmailHasError(true);
+      toast.error("Пожалуйста, укажите корректную электронную почту (email) для получения чека.", { position: 'top-center' });
+      if (typeof window !== 'undefined') {
+        if (window.innerWidth >= 768) {
+          desktopEmailInputRef?.current?.focus();
+        } else {
+          mobileEmailInputRef?.current?.focus();
+        }
+      }
       return;
     }
     
-    setIsSubmitting(true);
-    const { checkoutAction } = await import('@/actions/order/checkout');
-    const res = await checkoutAction({
+    setPendingCheckoutParams({
       serviceId: selectedService.id,
       link: finalUrl,
       quantity,
       email,
       customData: customData.trim() || undefined,
       promoCodeStr: promoCode.trim() || undefined,
-      gateway: 'yookassa',
       mediaGroupUrl: engine.mediaGroupUrl?.trim() || undefined,
       isLinkOverridden: engine.isLinkOverridden,
       isSmartDrip: engine.isSmartDrip,
       smartDripDays: engine.isSmartDrip ? engine.smartDripDays : undefined
     });
-    
-    setIsSubmitting(false);
-    if (res.success && res.data?.paymentUrl) {
-      window.location.href = res.data.paymentUrl;
-    } else if (!res.success) {
-      if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
-        toast.error(
-          'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
-          {
-            position: 'top-center',
-            duration: 6000,
-            action: {
-              label: 'Мой баланс',
-              onClick: () => window.location.href = '/dashboard/add-funds'
+    setShowPaymentModal(true);
+  };
+
+  const confirmAndPay = async (gateway: string) => {
+    if (!pendingCheckoutParams) return;
+    setIsSubmitting(true);
+    try {
+      const { checkoutAction } = await import('@/actions/order/checkout');
+      const res = await checkoutAction({
+        ...pendingCheckoutParams,
+        gateway
+      });
+      setIsSubmitting(false);
+      setShowPaymentModal(false);
+      if (res.success && res.data?.paymentUrl) {
+        window.location.href = res.data.paymentUrl;
+      } else if (!res.success) {
+        if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
+          toast.error(
+            'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
+            {
+              position: 'top-center',
+              duration: 6000,
+              action: {
+                label: 'Мой баланс',
+                onClick: () => window.location.href = '/dashboard/add-funds'
+              }
             }
-          }
-        );
-      } else {
-        const errorMessage = res.error || "Ошибка создания заказа. Попробуйте снова.";
-        toast.error(errorMessage, { position: 'top-center' });
+          );
+        } else {
+          const errorMessage = res.error || "Ошибка создания заказа. Попробуйте снова.";
+          const serviceId = pendingCheckoutParams.serviceId || '';
+          const email = pendingCheckoutParams.email || '';
+          const quantity = pendingCheckoutParams.quantity || '';
+          const url = pendingCheckoutParams.link || '';
+          const paymentId = '';
+          const orderId = '';
+          window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${serviceId}&gateway=${gateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(url)}&paymentId=${paymentId}&orderId=${orderId}`;
+        }
       }
+    } catch (e: any) {
+      setIsSubmitting(false);
+      const errorMessage = e.message || "Ошибка платежного шлюза.";
+      const serviceId = pendingCheckoutParams.serviceId || '';
+      const email = pendingCheckoutParams.email || '';
+      const quantity = pendingCheckoutParams.quantity || '';
+      const url = pendingCheckoutParams.link || '';
+      window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${serviceId}&gateway=${gateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(url)}&paymentId=&orderId=`;
     }
   };
 
   return {
     isSubmitting,
-    showEmailModal,
-    setShowEmailModal,
     showLinkModal,
     setShowLinkModal,
     linkHasError,
@@ -237,6 +296,10 @@ export function useCheckoutOrchestrator({ engine }: CheckoutOrchestratorOptions)
     showMassConfirmModal,
     setShowMassConfirmModal,
     handleMassCheckoutConfirm,
-    handleCheckout
+    handleCheckout,
+    emailHasError,
+    showPaymentModal,
+    setShowPaymentModal,
+    confirmAndPay
   };
 }

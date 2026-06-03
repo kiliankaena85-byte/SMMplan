@@ -178,7 +178,7 @@ The codebase is undergoing sequential patching to resolve the audited vulnerabil
 | 1 | Financial Layer Bypass in Retry-Checkout | `src/actions/order/checkout.ts` | ✅ **Fixed** | Replaced direct database updates in `retryCheckoutAction` (lines 606–615) with dynamic import and call to `paymentService.confirmPayment`. |
 | 2 | YooKassa Double-Check Sandbox Bypass | `src/services/financial/payment.service.ts` | ✅ **Fixed** | Forced double-check API validation in production for YooKassa (line 28) by removing `!isDevSandbox` condition. |
 | 3 | Exposed SSE Broadcast Server Action | `src/actions/support/ticket.ts` | ✅ **Fixed** | Secured `publishMessageSSE` by checking Next-Action headers to detect client RPC calls, and enforcing session and ownership/staff checks. |
-| 4 | Missing Relational Database Linkage | `src/actions/support/offline-ticket.ts` | **DEFERRED** | Pass `paymentId` and `orderId` parameters through client query string and write relations to Postgres. |
+| 4 | Missing Relational Database Linkage | `src/actions/support/offline-ticket.ts` | ✅ **Fixed** | Updated Zod schema, server actions, client-side hooks, and redirect URLs to propagate `paymentId` and `orderId` to the `Ticket` table, plus automated recent-order fallback linkage on the server. |
 | 5 | No Sync Check Fallback for Robokassa/CryptoBot | `/api/order-status/route.ts` | **DEFERRED** | Add CryptoBot/Robokassa checks in polling endpoint and sync worker. |
 | 6 | Impersonation on OAuth/Telegram Users | `src/actions/support/guest.ts` | **DEFERRED** | Check for active profile relations (`telegramId`) in addition to `passwordHash`. |
 | 7 | Weak Input Validation in Guest Forms | `src/actions/support/offline-ticket.ts` | **DEFERRED** | Add strict types to schema variables and `.max()` string constraints. |
@@ -187,3 +187,10 @@ The codebase is undergoing sequential patching to resolve the audited vulnerabil
 | 10| Empty Dead Routing Directory Bloat | `src/app/knowledge/slug` | **DEFERRED** | Delete the empty, redundant folder. |
 | 11| Missing Label Linkages (WCAG AA) | `GuestSupportOptions.tsx` | **DEFERRED** | Add unique IDs to form inputs and bind `<label htmlFor="...">` attributes. |
 | 12| TypeScript Compiler Errors | Global codebase | **DEFERRED** | Fix typical graph formatters, chart parameters, and wizard properties. |
+
+---
+
+> [!NOTE]
+> `src/app/api/webhooks/inbound-email/route.ts` contained an uncommitted import of `publishMessageSSE` from a prior workspace state.
+> This import and its invocation were completely reverted to `HEAD` in Patch #3 to strictly respect the permitted file scope.
+> *Recommendation*: Conduct a separate analysis to determine whether SSE integration is required inside the email-webhook handler.
