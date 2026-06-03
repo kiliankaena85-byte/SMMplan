@@ -61,10 +61,15 @@ export async function createOfflineTicketAction(input: OfflineTicketInput) {
     // 3. Squatting Guard & Shadow User Creation
     const existingUser = await db.user.findUnique({
       where: { email: lowerEmail },
-      select: { id: true, passwordHash: true }
+      select: { id: true, passwordHash: true, telegramId: true }
     });
     
-    if (existingUser?.passwordHash) {
+    const isRegistered = !!existingUser && (
+      existingUser.passwordHash !== null ||
+      existingUser.telegramId !== null
+    );
+
+    if (isRegistered) {
       return {
         success: false,
         error: "Этот email привязан к зарегистрированному аккаунту. Пожалуйста, войдите в свой профиль, чтобы создать обращение."

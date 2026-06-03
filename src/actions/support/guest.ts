@@ -13,53 +13,59 @@ const guestTicketSchema = z.object({
 
 export async function createGuestTicketAction(formData: FormData) {
   try {
-    // 1. Rate Limit: Prevent spamming guest forms
-    // ARCHITECTURE: Uses canonical getClientIp() — single source of truth for IP
-    const realIp = await getClientIp('unknown');
-    
-    // W6-3: IP-based global limit (max 10 requests per hour per IP)
-    const isIpAllowed = await RateLimitService.check(`guest_ip:${realIp}`, 10, 3600);
-    if (!isIpAllowed) {
-      return { success: false, error: "Слишком много обращений с вашего IP. Попробуйте позже." };
-    }
-
-    const emailInput = formData.get('email');
-    const isAllowed = await RateLimitService.check(`guest_ticket:${emailInput}`, 5, 3600);
-    if (!isAllowed) {
-      return { success: false, error: "Слишком много обращений. Попробуйте позже." };
-    }
-
+    // 1. Zod input validation first
     const parsed = guestTicketSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) {
       return { success: false, error: parsed.error.errors[0].message };
     }
     const { name, email, message } = parsed.data;
+    const lowerEmail = email.toLowerCase().trim();
 
-    // W1-2 SECURITY FIX: Prevent Account Squatting
-    // If a real user with this email exists (has passwordHash), reject guest ticket creation.
-    // Attacker could use guest form to create tickets on behalf of other users.
+    // 2. Prevent Account Squatting / Identity Fraud
+    // If a real user with this email exists (has passwordHash or telegramId), reject guest ticket creation.
     const existingUser = await db.user.findUnique({
-      where: { email: parsed.data.email.toLowerCase() },
-      select: { id: true, passwordHash: true }
+      where: { email: lowerEmail },
+      select: { id: true, passwordHash: true, telegramId: true }
     });
-    if (existingUser?.passwordHash) {
+    
+    const isRegistered = !!existingUser && (
+      existingUser.passwordHash !== null ||
+      existingUser.telegramId !== null
+    );
+
+    if (isRegistered) {
       return { 
         success: false, 
         error: 'Аккаунт с этим email уже существует. Пожалуйста, войдите в систему для создания обращения.' 
       };
     }
 
-    // 2. Find or create Shadow User
+    // 3. Multi-Layer Anti-Spam Rate Limiting via RateLimitService
+    const realIp = await getClientIp('unknown');
+    
+    // IP-based global limit (max 10 requests per hour per IP)
+    const isIpAllowed = await RateLimitService.check(`guest_ip:${realIp}`, 10, 3600);
+    if (!isIpAllowed) {
+      return { success: false, error: "Слишком много обращений с вашего IP. Попробуйте позже." };
+    }
+
+    // Email-based limit (max 5 requests per hour per Email)
+    const isAllowed = await RateLimitService.check(`guest_ticket:${lowerEmail}`, 5, 3600);
+    if (!isAllowed) {
+      return { success: false, error: "Слишком много обращений. Попробуйте позже." };
+    }
+
+    // 4. Find or create Shadow User
     const user = await db.user.upsert({
-      where: { email: email.toLowerCase() },
+      where: { email: lowerEmail },
       update: {},
       create: { 
-        email: email.toLowerCase(),
+        email: lowerEmail,
         adminNote: "Создан автоматически через гостевую форму поддержки"
       }
     });
 
-    // 3. Create Ticket with Source = EMAIL
+    // 5. Create Ticket with Source = EMAIL
     const ticket = await db.ticket.create({
       data: {
         userId: user.id,
@@ -69,7 +75,7 @@ export async function createGuestTicketAction(formData: FormData) {
       }
     });
 
-    // 4. Add the initial message
+    // 6. Add the initial message
     await db.ticketMessage.create({
       data: {
         ticketId: ticket.id,

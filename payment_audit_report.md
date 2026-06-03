@@ -180,7 +180,7 @@ The codebase is undergoing sequential patching to resolve the audited vulnerabil
 | 3 | Exposed SSE Broadcast Server Action | `src/actions/support/ticket.ts` | ✅ **Fixed** | Secured `publishMessageSSE` by checking Next-Action headers to detect client RPC calls, and enforcing session and ownership/staff checks. |
 | 4 | Missing Relational Database Linkage | `src/actions/support/offline-ticket.ts` | ✅ **Fixed** | Updated Zod schema, server actions, client-side hooks, and redirect URLs to propagate `paymentId` and `orderId` to the `Ticket` table, plus automated recent-order fallback linkage on the server. |
 | 5 | No Sync Check Fallback for Robokassa/CryptoBot | `/api/order-status/route.ts` | **DEFERRED** | Add CryptoBot/Robokassa checks in polling endpoint and sync worker. |
-| 6 | Impersonation on OAuth/Telegram Users | `src/actions/support/guest.ts` | **DEFERRED** | Check for active profile relations (`telegramId`) in addition to `passwordHash`. |
+| 6 | Impersonation on OAuth/Telegram Users | `src/actions/support/guest.ts` | ✅ **Fixed** | Replaced `existingUser?.passwordHash` check with complex registration verification checking both `passwordHash` and `telegramId` in `guest.ts` and `offline-ticket.ts`. |
 | 7 | Weak Input Validation in Guest Forms | `src/actions/support/offline-ticket.ts` | **DEFERRED** | Add strict types to schema variables and `.max()` string constraints. |
 | 8 | Non-Timing-Safe Webhook Comparison | `src/api/webhooks/robokassa/route.ts` | **DEFERRED** | Implement `crypto.timingSafeEqual` comparison for signatures. |
 | 9 | Default targetType Fallback on Import | `src/services/admin/catalog.service.ts` | **DEFERRED** | Query categories dynamically and call `inferTargetTypeFromCategory`. |
@@ -194,3 +194,8 @@ The codebase is undergoing sequential patching to resolve the audited vulnerabil
 > `src/app/api/webhooks/inbound-email/route.ts` contained an uncommitted import of `publishMessageSSE` from a prior workspace state.
 > This import and its invocation were completely reverted to `HEAD` in Patch #3 to strictly respect the permitted file scope.
 > *Recommendation*: Conduct a separate analysis to determine whether SSE integration is required inside the email-webhook handler.
+
+> [!NOTE]
+> **[SCOPE NOTE]**: In Patch #4, the scope was extended to include `src/components/support/GuestSupportOptions.tsx` because it was logically necessary to read `paymentId` and `orderId` from the URL parameters via `useSearchParams` and forward them to the server action to populate the relational database fields.
+> 
+> **[DEFERRED: requires test coverage and business rule sign-off]**: The 15-minute automatic payment/order fallback linking logic in `createOfflineTicketAction` is new business logic. It requires formal test coverage and business sign-off before production release to prevent potential false-positive linkages if multiple failed orders exist for the same email address in a short time frame.
