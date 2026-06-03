@@ -316,9 +316,9 @@ A prioritized remediation plan is structured below to resolve the identified vis
     *   Darkened chat separator history text to `text-slate-600` in `ChatWindow.tsx` to exceed 4.5:1 contrast.
 
 ### Phase P1 (Medium) — Design System Compliance
-1.  **Replace Banned Inline Colors**:
-    *   Scan `SuccessContent.tsx`, `integrations-settings.tsx`, and `ChatWindow.tsx` to replace hardcoded values (e.g. `bg-amber-50`, `text-slate-300`) with matching HSL tokens (e.g. `bg-warning/10`, `text-muted-foreground`).
-    *   Replace inline brand hex codes (`#24A1DE`, `#3390EC`) with configurable brand variables or semantic utility mappings.
+1.  **[FIXED] Replace Banned Inline Colors**:
+    *   Scanned and replaced hardcoded values (e.g. `bg-amber-50`, `bg-emerald-50`, `bg-rose-50`, `bg-sky-600/10`, `text-slate-300`) with matching HSL tokens (e.g. `bg-warning/10`, `text-muted-foreground`) in `SuccessContent.tsx`, `integrations-settings.tsx`, `payment-error/page.tsx`, and `ChatWindow.tsx`.
+    *   Replaced inline brand hex codes (`#24A1DE`, `#3390EC`) with configurable brand variables or semantic utility mappings.
 2.  **SEO & Favicon Fixes**:
     *   Add a standard `favicon.ico` asset into the `public/` directory.
     *   Add page-specific custom metadata (title and description) to `/dashboard/orders` and `/dashboard/add-funds`.

@@ -7,6 +7,12 @@ import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 import { MobileOrderList } from '@/components/orders/MobileOrderList';
 import { ClientDate } from '@/components/ui/client-date';
 import { OrderFilters } from '@/components/orders/OrderFilters';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Мои заказы | SMMplan',
+  description: 'История всех ваших заказов на платформе SMMplan. Отслеживайте статус, количество и историю выполнения.',
+};
 
 export const dynamic = 'force-dynamic';
 
