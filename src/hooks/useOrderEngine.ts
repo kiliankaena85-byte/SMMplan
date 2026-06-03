@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { analyzeUrl } from "@/actions/order/analyze-url";
 import { getServicesByCategoryAction, PublicNetwork, PublicCategory, PublicService, getPublicCatalogAction } from "@/actions/order/catalog";
 import { calculatePriceAction } from "@/actions/order/checkout";
@@ -15,16 +15,71 @@ import { toast } from "sonner";
 
 export type OrderEngine = ReturnType<typeof useOrderEngine>;
 
+function getCategoryDemandScore(name: string): number {
+  const n = name.toLowerCase();
+  
+  if ((n.includes('подписчик') || n.includes('участник') || n.includes('follow') || n.includes('member')) && !n.includes('premium') && !n.includes('премиум') && !n.includes('бот')) {
+    return 10;
+  }
+  if (n.includes('просмотр') || n.includes('охват') || n.includes('view') || n.includes('watch') || n.includes('stat') || n.includes('стат')) {
+    return 20;
+  }
+  if (n.includes('лайк') || n.includes('like') || n.includes('нравится') || n.includes('heart')) {
+    return 30;
+  }
+  if (n.includes('реакц') || n.includes('reaction') || n.includes('emoji') || n.includes('эмоци')) {
+    return 40;
+  }
+  if (n.includes('premium') || n.includes('премиум')) {
+    return 95;
+  }
+  if (n.includes('буст') || n.includes('boost') || n.includes('level')) {
+    return 60;
+  }
+  if (n.includes('коммент') || n.includes('comment') || n.includes('отзыв') || n.includes('review')) {
+    return 70;
+  }
+  if (n.includes('репост') || n.includes('repost') || n.includes('share') || n.includes('поделит')) {
+    return 80;
+  }
+  if (n.includes('звезд') || n.includes('star') || n.includes('coin')) {
+    return 90;
+  }
+  if (n.includes('бот') || n.includes('bot') || n.includes('инвайт') || n.includes('invite') || n.includes('referral') || n.includes('рефер')) {
+    return 100;
+  }
+  return 999;
+}
+
+function sortCategories(categories: any[]) {
+  return [...categories].sort((a, b) => {
+    const scoreA = getCategoryDemandScore(a.name);
+    const scoreB = getCategoryDemandScore(b.name);
+    
+    if (scoreA !== scoreB) {
+      return scoreA - scoreB;
+    }
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmail: string = "") {
-  // Determine initial defaults synchronously
-  const defaultNet = initialCatalog.length > 0 
-    ? (initialCatalog.find(n => n.slug === 'telegram') || initialCatalog[0]) 
+  const sortedInitialCatalog: PublicNetwork[] = useMemo(() => {
+    return initialCatalog.map(net => ({
+      ...net,
+      categories: sortCategories(net.categories)
+    }));
+  }, [initialCatalog]);
+
+  // Smart defaults: preselect Telegram + Подписчики so user can browse immediately.
+  // User chooses their own path: link-first OR browse-first — we don't restrict.
+  const defaultNet = sortedInitialCatalog.length > 0 
+    ? (sortedInitialCatalog.find((n: PublicNetwork) => n.slug === 'telegram') || sortedInitialCatalog[0]) 
     : null;
   const defaultCat = defaultNet && defaultNet.categories.length > 0 
-    ? (defaultNet.categories.find(c => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0]) 
+    ? (defaultNet.categories.find((c: PublicCategory) => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0]) 
     : null;
 
-  // Input states
   const [url, setUrl] = useState("");
   const [networkId, setNetworkId] = useState(defaultNet?.id || "");
   const [categoryId, setCategoryId] = useState(defaultCat?.id || "");
@@ -34,8 +89,40 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [customData, setCustomData] = useState("");
   const [mediaGroupUrl, setMediaGroupUrl] = useState("");
   const [promoCode, setPromoCode] = useState("");
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  // BUG-03: Default to true — per ст. 438 ГК РФ, payment = acceptance of public offer.
+  // The text "Нажимая «Оплатить», вы соглашаетесь..." is shown inline instead.
+  const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [isLinkOverridden, setIsLinkOverridden] = useState(false);
+
+  // BUG-10: Restore session state on mount (url, networkId, categoryId only — no email/promo per PCI DSS)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('smmplan_draft');
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft.url && typeof draft.url === 'string' && draft.url !== 'https://' && draft.url !== 'http://') {
+          setUrl(draft.url);
+        }
+        if (draft.networkId && sortedInitialCatalog.some((n: PublicNetwork) => n.id === draft.networkId)) {
+          setNetworkId(draft.networkId);
+        }
+        if (draft.categoryId) setCategoryId(draft.categoryId);
+        if (draft.quantity && typeof draft.quantity === 'number' && draft.quantity > 0) {
+          setQuantity(draft.quantity);
+        }
+      }
+    } catch { /* sessionStorage unavailable (SSR/incognito) */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // BUG-10: Save draft progress to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('smmplan_draft', JSON.stringify({
+        url, networkId, categoryId, quantity
+      }));
+    } catch { /* sessionStorage unavailable */ }
+  }, [url, networkId, categoryId, quantity]);
   
   // Drip-feed states
   const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
@@ -47,7 +134,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [smartDripDays, setSmartDripDays] = useState(7);
 
   // Data states
-  const [catalog, setCatalog] = useState<PublicNetwork[]>(initialCatalog);
+  const [catalog, setCatalog] = useState<PublicNetwork[]>(sortedInitialCatalog);
   const [services, setServices] = useState<PublicService[]>([]);
   const [platform, setPlatform] = useState<IntelligencePlatform | null>(null);
   const [manualPlatform, setManualPlatform] = useState<IntelligencePlatform | null>(null);
@@ -97,19 +184,32 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const lastPlatformRef = useRef<IntelligencePlatform | null>(null);
   const lastManualPlatformRef = useRef<IntelligencePlatform | null>(null);
 
+  // Keep refs of selectedService and networkId to prevent re-triggering URL analysis on manual selection
+  const selectedServiceRef = useRef<PublicService | null>(null);
+  const networkIdRef = useRef(networkId);
+  
+  useEffect(() => {
+    selectedServiceRef.current = selectedService;
+    networkIdRef.current = networkId;
+  }, [selectedService, networkId]);
+
   // 1. Initial Catalog Load (if not provided)
   useEffect(() => {
     if (catalog.length === 0 && !hasFetchedCatalog.current) {
       hasFetchedCatalog.current = true;
       getPublicCatalogAction().then(res => {
         if (res.success && res.data) {
-          setCatalog(res.data);
+          const sortedData = res.data.map(net => ({
+            ...net,
+            categories: sortCategories(net.categories)
+          }));
+          setCatalog(sortedData);
           // Set defaults if they are still empty
-          setNetworkId(current => {
-            if (!current && res.data.length > 0) {
-              const defNet = res.data.find(n => n.slug === 'telegram') || res.data[0];
+          setNetworkId((current: string) => {
+            if (!current && sortedData.length > 0) {
+              const defNet = sortedData.find((n: PublicNetwork) => n.slug === 'telegram') || sortedData[0];
               if (defNet) {
-                const defCat = defNet.categories.find(c => c.name.toLowerCase().includes('подписчики')) || defNet.categories[0];
+                const defCat = defNet.categories.find((c: PublicCategory) => c.name.toLowerCase().includes('подписчики')) || defNet.categories[0];
                 if (defCat) {
                   setCategoryId(defCat.id);
                 }
@@ -129,11 +229,13 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       setPlatform(null);
       setManualPlatform(null);
       setSuggestedCategories([]);
+      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
+
     const handler = setTimeout(async () => {
-      setIsLoading(true);
       setError(null);
       const res = await analyzeUrl(url.trim());
       if (res.success && res.data) {
@@ -149,7 +251,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
           if (matchedNet) {
              // Only auto-select or override if the network has actually changed OR the user has not selected a service yet.
              // This protects manual selections from background URL debounced refetches/resets.
-             if (matchedNet.id !== networkId || !selectedService) {
+             if (matchedNet.id !== networkIdRef.current || !selectedServiceRef.current) {
                 setNetworkId(matchedNet.id);
                 // Auto-select first category in that network if exist and match suggested filter
                 const catsForNet = matchedNet.categories;
@@ -166,9 +268,12 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
         }
       }
       setIsLoading(false);
-    }, 600);
+    }, 350);
 
     return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // selectedService and networkId intentionally omitted — tracked via refs
+    // to prevent URL re-analysis on manual service/network selection
   }, [url, catalog]);
 
   // 2.5 Auto-select network on platform or manual platform changes/catalog loads
@@ -270,13 +375,38 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     }
   }, [selectedService]);
 
-  // 5. Calculate Price (Debounced)
+  // 5. Calculate Price (Debounced for promo codes, instant for standard orders)
   useEffect(() => {
     if (!selectedService || quantity < 1) {
       setPricing(null);
       return;
     }
 
+    // 5.1 Instant client-side calculation if there's no promo code
+    if (!promoCode || promoCode.trim().length === 0) {
+      const totalQty = dripFeedEnabled && runs ? quantity * runs : quantity;
+      const originalTotalCents = Math.max(1, Math.round(selectedService.pricePerUnitRub * 100 * totalQty));
+      
+      let totalCents = originalTotalCents;
+      if (isSmartDrip && selectedService.smartConfig?.isEnabled) {
+        totalCents = Math.round(totalCents * (1 + selectedService.smartConfig.markup));
+      }
+
+      setPricing({
+        totalCents,
+        originalTotalCents,
+        discountCents: 0,
+        discountPercent: 0,
+        providerCostCents: 0,
+        safetyFloorCents: 0,
+        tier: 'REGULAR'
+      });
+      setPricingError(null);
+      setIsCalculating(false);
+      return;
+    }
+
+    // 5.2 Server-side calculation only if a promo code needs validation
     const handler = setTimeout(async () => {
       setIsCalculating(true);
       const res = await calculatePriceAction(
@@ -296,10 +426,10 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
         setPricingError(null);
       }
       setIsCalculating(false);
-    }, 300);
+    }, 150);
 
     return () => clearTimeout(handler);
-  }, [selectedService, quantity, promoCode]);
+  }, [selectedService, quantity, promoCode, dripFeedEnabled, runs, isSmartDrip]);
 
   // 5.5 Calculate Mass Order Price (Debounced)
   useEffect(() => {
@@ -335,19 +465,19 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       } finally {
         setIsMassCalculating(false);
       }
-    }, 500);
+    }, 250);
 
     return () => clearTimeout(handler);
   }, [url, isMassMode]);
 
   // Form Validation
-  const validate = useCallback(() => {
+  const validate = useCallback((shouldMutate = false) => {
     let currentUrl = url;
 
     // Advanced Link Validation & Mutation
     const currentNetwork = catalog.find(n => n.id === networkId);
     const activePlatform = currentNetwork?.slug || platform || manualPlatform || '';
-    if (selectedService && activePlatform) {
+    if (shouldMutate && selectedService && activePlatform) {
        const activeCat = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
        const targetType = selectedService.targetType === 'POST'
          ? inferTargetTypeFromCategory(activeCat?.name)
@@ -374,12 +504,18 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     const errors: Record<string, string> = {};
     if (!result.success) {
       result.error.errors.forEach(err => {
-        if (err.path[0]) errors[err.path[0].toString()] = err.message;
+        if (err.path[0]) {
+          const fieldName = err.path[0].toString();
+          // Filter initial blank errors to prevent visual noise on mount
+          if (fieldName === 'link' && !currentUrl) return;
+          if (fieldName === 'email' && !email) return;
+          errors[fieldName] = err.message;
+        }
       });
     }
 
     // Override generic URL error with strict targetType error if applicable
-    if (selectedService && activePlatform) {
+    if (selectedService && activePlatform && currentUrl) {
        const activeCat2 = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
        const targetType = selectedService.targetType === 'POST'
          ? inferTargetTypeFromCategory(activeCat2?.name)
@@ -399,7 +535,12 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     
     setValidationErrors({});
     return true;
-  }, [url, quantity, email, selectedService, customData, agreedToTerms, platform]);
+  }, [url, quantity, email, selectedService, customData, agreedToTerms, platform, networkId, categoryId, catalog, manualPlatform]);
+
+  // Real-time validation reaction
+  useEffect(() => {
+    validate(false); // Only run layout checking on typing, do NOT mutate URL
+  }, [url, selectedService, email, quantity, customData, agreedToTerms, networkId, categoryId, validate]);
 
   // Helper getters
   const mediaGroupMultiplier = mediaGroupUrl.trim().length > 5 ? 2 : 1;

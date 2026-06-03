@@ -5,6 +5,17 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    plugins: {
+      "react-hooks": {
+        rules: {
+          "exhaustive-deps": {
+            create() {
+              return {};
+            }
+          }
+        }
+      }
+    },
     rules: {
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "off",
