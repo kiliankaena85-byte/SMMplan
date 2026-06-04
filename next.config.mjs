@@ -5,14 +5,17 @@ const nextConfig = {
 
   typescript: { ignoreBuildErrors: true },
 
+  transpilePackages: ["@base-ui/react"],
+
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
     },
   },
+  allowedDevOrigins: ["public-walls-play.loca.lt", "*.loca.lt"],
   
   // OSAD-V2: Distributed Cache Sync for Redis (Resolves C4.1)
-  cacheHandler: process.env.NODE_ENV === 'production' ? process.cwd() + '/cache-handler.js' : undefined,
+  cacheHandler: (process.env.NODE_ENV === 'production' && !process.env.DISABLE_REDIS_CACHE) ? process.cwd() + '/cache-handler.js' : undefined,
 
   // OSAD-V2: Security Headers (OWASP A05)
   async headers() {
