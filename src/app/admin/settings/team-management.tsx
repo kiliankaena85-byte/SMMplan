@@ -1,6 +1,7 @@
 'use client';
 
-import { Card } from '@/components/ui/card';
+import React, { useState, useTransition } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -11,7 +12,12 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { updateSupportLimit } from '@/actions/admin/team';
+import { 
+  updateSupportLimit, 
+  createStaffRoleAction, 
+  updateStaffRolePermissionsAction, 
+  deleteStaffRoleAction 
+} from '@/actions/admin/team';
 import { updateUserRole } from '@/actions/admin/settings';
 import { toast } from 'sonner';
 import {
@@ -22,13 +28,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ShieldAlert, UserPlus, Loader2 } from 'lucide-react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { Search, ShieldAlert, UserPlus, Loader2, Trash2, Plus, Check, Lock, ShieldCheck } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 
 function SubmitButton({ label, className }: { label: string, className?: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button disabled={pending} type="submit" size="sm" intent="outline" className={className}>
+    <Button disabled={pending} type="submit" size="default" intent="outline" className={`h-11 font-bold uppercase tracking-widest text-[10px] min-w-[100px] flex items-center justify-center transition-all duration-200 cursor-pointer ${className || ''}`}>
       {pending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
       {label}
     </Button>
@@ -38,21 +45,46 @@ function SubmitButton({ label, className }: { label: string, className?: string 
 function SearchButton() {
   const { pending } = useFormStatus();
   return (
-    <Button disabled={pending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 px-8 shadow-md">
+    <Button disabled={pending} type="submit" className="font-bold uppercase tracking-widest text-xs h-11 px-8 shadow-md transition-all duration-200 cursor-pointer">
       {pending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
       Найти
     </Button>
   );
 }
 
+const getAllowedRoles = (adminRole?: string) => {
+  const base = ['USER', 'SUPPORT', 'MANAGER', 'BANNED'];
+  if (adminRole === 'OWNER') {
+    return [...base, 'ADMIN', 'OWNER'];
+  }
+  return base;
+};
+
 interface TeamManagementProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   staffUsers: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   regularUsers: any[];
   searchQuery: string;
+  currentAdminRole?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  staffRoles?: any[];
 }
 
-export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamManagementProps) {
-  
+export function TeamManagement({ 
+  staffUsers, 
+  regularUsers, 
+  searchQuery, 
+  currentAdminRole, 
+  staffRoles = [] 
+}: TeamManagementProps) {
+  const [isPending, startTransition] = useTransition();
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleDesc, setNewRoleDesc] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  const isOwner = currentAdminRole === 'OWNER';
+
   async function handleUpdateLimit(formData: FormData) {
     try {
       const res = await updateSupportLimit(formData);
@@ -61,6 +93,7 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
       } else {
         toast.error(res.error);
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error('Ошибка при обновлении лимита');
     }
@@ -68,139 +101,173 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
 
   async function handleUpdateRole(formData: FormData) {
     try {
-      await updateUserRole(formData);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const res = await updateUserRole(formData);
       toast.success('Роль пользователя обновлена');
     } catch (err) {
-      toast.error('Ошибка при обновлении роли');
+      toast.error(err instanceof Error ? err.message : 'Ошибка при обновлении роли');
     }
   }
 
+  // Auto-submit permission toggling
+  const handleTogglePermission = (roleId: string, section: string, currentVal: boolean, type: 'view' | 'edit') => {
+    startTransition(async () => {
+      const existing = staffRoles.find(r => r.id === roleId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const perm = existing?.permissions?.find((p: any) => p.section === section);
+      
+      const nextView = type === 'view' ? !currentVal : (perm?.canView || false);
+      const nextEdit = type === 'edit' ? !currentVal : (perm?.canEdit || false);
+
+      // Secure guard: Edit permission requires View permission
+      const finalView = nextEdit ? true : nextView;
+
+      const formData = new FormData();
+      formData.append('roleId', roleId);
+      formData.append('section', section);
+      formData.append('canView', finalView ? 'true' : 'false');
+      formData.append('canEdit', nextEdit ? 'true' : 'false');
+
+      const res = await updateStaffRolePermissionsAction(formData);
+      if (res.success) {
+        toast.success(`Права роли для раздела ${section.toUpperCase()} обновлены`);
+      } else {
+        toast.error(res.error);
+      }
+    });
+  };
+
+  const handleCreateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoleName.trim()) return;
+
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append('name', newRoleName.trim());
+      formData.append('description', newRoleDesc.trim());
+
+      const res = await createStaffRoleAction(formData);
+      if (res.success) {
+        toast.success('Кастомная роль успешно создана');
+        setNewRoleName('');
+        setNewRoleDesc('');
+        setShowCreateForm(false);
+      } else {
+        toast.error(res.error);
+      }
+    });
+  };
+
+  const handleDeleteRole = async (roleId: string) => {
+    if (!confirm('Вы уверены, что хотите удалить эту роль? Все связанные сотрудники потеряют доступ к панели.')) return;
+    
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append('roleId', roleId);
+
+      const res = await deleteStaffRoleAction(formData);
+      if (res.success) {
+        toast.success('Роль успешно удалена');
+      } else {
+        toast.error(res.error);
+      }
+    });
+  };
+
   return (
     <div className="space-y-8">
-      {/* Staff Limits */}
-      <Card className="rounded-2xl border-border shadow-sm bg-card/60 backdrop-blur-xl">
-        <div className="p-8 space-y-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-destructive/20 text-destructive rounded-lg">
+      {/* ── SECTION 1: Staff List & Escrow Guard ── */}
+      <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
+        <CardContent className="p-8 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-destructive/15 text-destructive rounded-xl border border-destructive/20">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Команда и Escrow Guard</h3>
-              <p className="text-[11px] text-muted-foreground font-medium">Дневные лимиты (в копейках) на ручные корректировки баланса.</p>
+              <p className="text-[11px] text-muted-foreground font-medium mt-0.5">Системные роли, лимиты компенсаций и наборы прав.</p>
             </div>
           </div>
 
-            <div className="rounded-md border border-border">
-              <Table aria-label="Список активных членов команды саппорта">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>EMAIL</TableHead>
-                    <TableHead>РОЛЬ</TableHead>
-                    <TableHead className="text-right">ДНЕВНОЙ ЛИМИТ (КОП.) И ДЕЙСТВИЕ</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {staffUsers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="h-24 text-center">
-                        Сотрудников нет
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    staffUsers.map((u) => (
-                      <TableRow key={u.id}>
-                        <TableCell>
-                          <span className="font-mono text-xs font-bold text-foreground">{u.email}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge intent={u.role === 'OWNER' ? 'destructive' : 'primary'} className={`font-bold text-[10px] uppercase ${u.role === 'OWNER' ? 'bg-destructive/20 text-destructive border-destructive/30' : 'bg-success/20 text-success border-emerald-500/30'}`}>
-                            {u.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <form action={handleUpdateLimit} className="flex gap-2 items-center justify-end">
-                            <input type="hidden" name="userId" value={u.id} />
-                            <Input 
-                              type="number" 
-                              name="limit" 
-                              defaultValue={u.supportLimitCents || 0} 
-                              className="w-32 text-right font-mono font-bold"
-                            />
-                            <SubmitButton label="Сохранить" className="font-bold text-[10px] uppercase tracking-wider h-8" />
-                          </form>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-        </div>
-      </Card>
-
-      {/* Role Assignment */}
-      <Card className="rounded-2xl border-border shadow-sm bg-card/60 backdrop-blur-xl">
-        <div className="p-8 space-y-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary/20 text-primary rounded-lg">
-              <UserPlus className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Назначение ролей</h3>
-              <p className="text-[11px] text-muted-foreground font-medium">Поиск и перевод клиентов в категорию персонала.</p>
-            </div>
-          </div>
-
-          <form className="flex gap-3 mb-6" action="/admin/settings" method="GET">
-            <input type="hidden" name="tab" value="team" />
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                type="text" 
-                name="q" 
-                placeholder="Введите email для поиска..." 
-                defaultValue={searchQuery} 
-                className="pl-10"
-              />
-            </div>
-            <SearchButton />
-          </form>
-
-          <div className="rounded-md border border-border">
-            <Table aria-label="Список клиентов для изменения ролей">
+          <div className="rounded-xl border border-border overflow-hidden">
+            <Table aria-label="Список активных членов команды саппорта">
               <TableHeader>
                 <TableRow>
-                  <TableHead>КЛИЕНТ</TableHead>
-                  <TableHead className="text-right">СМЕНИТЬ РОЛЬ</TableHead>
+                  <TableHead className="px-6 py-4">EMAIL</TableHead>
+                  <TableHead className="px-6 py-4">НАЗНАЧЕНИЕ РОЛИ И ПРАВ</TableHead>
+                  <TableHead className="px-6 py-4 text-right">ДНЕВНОЙ ЛИМИТ (КОП.) И ДЕЙСТВИЕ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {regularUsers.length === 0 ? (
+                {staffUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="h-24 text-center">
-                      {searchQuery ? "Пользователь не найден" : "Начните поиск по email для смены роли"}
+                    <TableCell colSpan={3} className="h-28 text-center text-xs text-muted-foreground">
+                      Сотрудников нет
                     </TableCell>
                   </TableRow>
                 ) : (
-                  regularUsers.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell>
-                        <span className="text-xs font-mono font-bold text-foreground">{u.email}</span>
+                  staffUsers.map((u) => (
+                    <TableRow key={u.id} className="hover:bg-muted/10 transition-colors">
+                      <TableCell className="px-6 py-5">
+                        <span className="font-mono text-xs font-bold text-foreground bg-muted/40 px-2 py-1.5 rounded-lg border border-border/30">{u.email}</span>
                       </TableCell>
-                      <TableCell>
-                        <form action={handleUpdateRole} className="flex gap-2 items-center justify-end">
+                      <TableCell className="px-6 py-5">
+                        <form action={handleUpdateRole} className="flex flex-col sm:flex-row gap-4 items-center">
                           <input type="hidden" name="userId" value={u.id} />
-                          <Select name="role" defaultValue={u.role}>
-                            <SelectTrigger className="w-32" size="sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="USER">USER</SelectItem>
-                              <SelectItem value="SUPPORT">SUPPORT</SelectItem>
-                              <SelectItem value="MANAGER">MANAGER</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <SubmitButton label="Назначить" className="text-[10px] font-bold uppercase tracking-wider h-8" />
+                          
+                          {/* System Role Selection */}
+                          <div className="flex flex-col gap-1 w-full sm:w-auto">
+                            <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Роль</span>
+                            <Select name="role" defaultValue={u.role}>
+                              <SelectTrigger className="w-full sm:w-32 h-11 bg-background text-xs font-bold rounded-xl" size="default">
+                                <SelectValue>
+                                  {(value: string) => value || 'Выбрать'}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getAllowedRoles(currentAdminRole).map((r) => (
+                                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Custom Staff Role Selection */}
+                          <div className="flex flex-col gap-1 w-full sm:w-auto">
+                            <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Группа прав</span>
+                            <Select name="staffRoleId" defaultValue={u.staffRoleId || 'NONE'}>
+                              <SelectTrigger className="w-full sm:w-48 h-11 bg-background text-xs font-bold rounded-xl" size="default">
+                                <SelectValue>
+                                  {(value: string) => {
+                                    if (!value || value === 'NONE') return 'Все права (OWNER)';
+                                    return staffRoles.find(r => r.id === value)?.name ?? value;
+                                  }}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="NONE">Все права (OWNER)</SelectItem>
+                                {staffRoles.map((role) => (
+                                  <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="pt-5 w-full sm:w-auto">
+                            <SubmitButton label="Сменить" className="w-full sm:w-auto" />
+                          </div>
+                        </form>
+                      </TableCell>
+                      <TableCell className="px-6 py-5">
+                        <form action={handleUpdateLimit} className="flex gap-2 items-center justify-end">
+                          <input type="hidden" name="userId" value={u.id} />
+                          <Input 
+                            type="number" 
+                            name="limit" 
+                            defaultValue={u.supportLimitCents || 0} 
+                            className="w-32 h-11 text-right font-mono font-bold text-xs rounded-xl"
+                          />
+                          <SubmitButton label="Сохранить" />
                         </form>
                       </TableCell>
                     </TableRow>
@@ -209,7 +276,274 @@ export function TeamManagement({ staffUsers, regularUsers, searchQuery }: TeamMa
               </TableBody>
             </Table>
           </div>
-        </div>
+        </CardContent>
+      </Card>
+
+      {/* ── SECTION 2: Custom Roles & Granular Permissions Grid (Owner-only) ── */}
+      {isOwner && (
+        <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
+          <CardContent className="p-8 space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/15 text-primary rounded-xl border border-primary/20">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Роли и Права Доступа</h3>
+                  <p className="text-[11px] text-muted-foreground font-medium mt-0.5">Тонкая настройка чтения и записи разделов боковой панели.</p>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                intent="outline" 
+                size="sm" 
+                className="h-10 text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Создать роль
+              </Button>
+            </div>
+
+            {/* Create Role Inline Section */}
+            {showCreateForm && (
+              <form onSubmit={handleCreateRole} className="p-5 rounded-xl border border-border/80 bg-muted/30/30 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">Новая роль поддержки</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-muted-foreground/80 font-bold uppercase">Название</span>
+                    <Input 
+                      value={newRoleName}
+                      onChange={e => setNewRoleName(e.target.value)}
+                      placeholder="Например: Младший саппорт"
+                      className="h-11 rounded-xl text-xs font-semibold"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-muted-foreground/80 font-bold uppercase">Описание</span>
+                    <Input 
+                      value={newRoleDesc}
+                      onChange={e => setNewRoleDesc(e.target.value)}
+                      placeholder="Например: Доступ только к тикетам клиентов"
+                      className="h-11 rounded-xl text-xs font-semibold"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <Button 
+                    type="button" 
+                    intent="ghost" 
+                    onClick={() => setShowCreateForm(false)} 
+                    className="h-10 text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    Отмена
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={isPending}
+                    className="h-10 px-6 text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    {isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : null}
+                    Сохранить
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Permissions Matrix Layout */}
+            <div className="space-y-4">
+              {staffRoles.length === 0 ? (
+                <div className="p-8 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
+                  Нет созданных кастомных ролей. Нажмите кнопку "Создать роль", чтобы начать.
+                </div>
+              ) : (
+                staffRoles.map((role) => (
+                  <div key={role.id} className="p-6 rounded-xl border border-border/80 space-y-4 bg-muted/10">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">{role.name}</h4>
+                          {role.isSystem && (
+                            <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border border-primary/20 rounded-md">Системная</Badge>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1 font-medium">{role.description || 'Описание отсутствует'}</p>
+                      </div>
+
+                      {!role.isSystem && (
+                        <button 
+                          onClick={() => handleDeleteRole(role.id)}
+                          disabled={isPending}
+                          aria-label={`Удалить роль ${role.name}`}
+                          className="h-9 w-9 flex items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Permissions Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                      {['orders', 'finance', 'catalog', 'settings'].map((sec) => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const perm = role.permissions?.find((p: any) => p.section === sec) || { canView: false, canEdit: false };
+                        return (
+                          <div key={sec} className="p-3 rounded-lg border border-border/50 bg-background flex flex-col gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-foreground/80 border-b border-border/30 pb-1.5">
+                              📁 {sec === 'orders' ? 'Заказы' : sec === 'finance' ? 'Финансы' : sec === 'catalog' ? 'Каталог' : 'Настройки'}
+                            </span>
+                            
+                            <div className="flex justify-between items-center text-xs mt-1">
+                              <span className="text-muted-foreground font-medium">Просмотр</span>
+                              <button
+                                type="button"
+                                disabled={isPending}
+                                onClick={() => handleTogglePermission(role.id, sec, perm.canView, 'view')}
+                                className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer border ${
+                                  perm.canView ? 'bg-primary border-primary/80' : 'bg-muted/80 border-border'
+                                }`}
+                              >
+                                <div className={`w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                  perm.canView ? 'translate-x-5' : 'translate-x-0'
+                                } flex items-center justify-center`}>
+                                  {perm.canView && <Check className="w-2.5 h-2.5 text-primary" />}
+                                </div>
+                              </button>
+                            </div>
+
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-muted-foreground font-medium">Редактирование</span>
+                              <button
+                                type="button"
+                                disabled={isPending}
+                                onClick={() => handleTogglePermission(role.id, sec, perm.canEdit, 'edit')}
+                                className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer border ${
+                                  perm.canEdit ? 'bg-primary border-primary/80' : 'bg-muted/80 border-border'
+                                }`}
+                              >
+                                <div className={`w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                  perm.canEdit ? 'translate-x-5' : 'translate-x-0'
+                                } flex items-center justify-center`}>
+                                  {perm.canEdit && <Check className="w-2.5 h-2.5 text-primary" />}
+                                </div>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── SECTION 3: Role Promotion (Clients to Staff) ── */}
+      <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
+        <CardContent className="p-8 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/15 text-primary rounded-xl border border-primary/20">
+              <UserPlus className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Назначение ролей</h3>
+              <p className="text-[11px] text-muted-foreground font-medium mt-0.5">Поиск и перевод клиентов в категорию персонала.</p>
+            </div>
+          </div>
+
+          <form className="flex gap-3 mb-2" action="/admin/settings" method="GET">
+            <input type="hidden" name="tab" value="team" />
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                type="text" 
+                name="q" 
+                placeholder="Введите email для поиска..." 
+                defaultValue={searchQuery} 
+                className="pl-10 h-11 rounded-xl text-xs font-semibold"
+              />
+            </div>
+            <SearchButton />
+          </form>
+
+          <div className="rounded-xl border border-border overflow-hidden">
+            <Table aria-label="Список клиентов для изменения ролей">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-6 py-4">КЛИЕНТ</TableHead>
+                  <TableHead className="px-6 py-4 text-right">СМЕНИТЬ РОЛЬ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {regularUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="h-28 text-center text-xs text-muted-foreground">
+                      {searchQuery ? "Пользователь не найден" : "Начните поиск по email для смены роли"}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  regularUsers.map((u) => (
+                    <TableRow key={u.id} className="hover:bg-muted/10 transition-colors">
+                      <TableCell className="px-6 py-5">
+                        <span className="text-xs font-mono font-bold text-foreground bg-muted/40 px-2 py-1.5 rounded-lg border border-border/30">{u.email}</span>
+                      </TableCell>
+                      <TableCell className="px-6 py-5">
+                        <form action={handleUpdateRole} className="flex flex-col sm:flex-row gap-4 items-center justify-end">
+                          <input type="hidden" name="userId" value={u.id} />
+                          
+                          {/* System Role */}
+                          <div className="flex flex-col gap-1 w-full sm:w-auto text-left">
+                            <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Роль</span>
+                            <Select name="role" defaultValue={u.role}>
+                              <SelectTrigger className="w-full sm:w-32 h-11 bg-background text-xs font-bold rounded-xl" size="default">
+                                <SelectValue>
+                                  {(value: string) => value || 'Выбрать'}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getAllowedRoles(currentAdminRole).map((r) => (
+                                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Custom Staff Role */}
+                          <div className="flex flex-col gap-1 w-full sm:w-auto text-left">
+                            <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Группа прав</span>
+                            <Select name="staffRoleId" defaultValue={u.staffRoleId || 'NONE'}>
+                              <SelectTrigger className="w-full sm:w-48 h-11 bg-background text-xs font-bold rounded-xl" size="default">
+                                <SelectValue>
+                                  {(value: string) => {
+                                    if (!value || value === 'NONE') return 'Все права (OWNER)';
+                                    return staffRoles.find(r => r.id === value)?.name ?? value;
+                                  }}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="NONE">Все права (OWNER)</SelectItem>
+                                {staffRoles.map((role) => (
+                                  <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="pt-5 w-full sm:w-auto">
+                            <SubmitButton label="Назначить" className="w-full sm:w-auto" />
+                          </div>
+                        </form>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

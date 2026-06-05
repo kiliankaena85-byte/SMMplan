@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
@@ -18,7 +19,11 @@ export type PublicService = {
   description: string | null;
   speed: string;
   badge: string;
+  isDripFeedEnabled: boolean;
   targetType?: string | null;
+  customDataType?: string | null;
+  customDataLabel?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   features?: any;
   cooldownUntil?: string | null;
   smartConfig?: {
@@ -27,7 +32,12 @@ export type PublicService = {
     minChunk: number;
     maxChunk: number;
     markup: number;
+    useInviteBuffer?: boolean;
+    autoCompensate?: boolean;
+    checkIntervalMins?: number;
   } | null;
+  requireWarning?: boolean;
+  warningMessage?: string | null;
 };
 
 export type PublicCategory = {
@@ -35,6 +45,8 @@ export type PublicCategory = {
   name: string;
   slug: string;
   networkId: string | null;
+  requireWarning?: boolean;
+  warningMessage?: string | null;
 };
 
 export type PublicNetwork = {
@@ -100,12 +112,15 @@ export async function getPublicCatalogAction() {
           id: cat.id,
           name: cat.name,
           slug: cat.slug,
-          networkId: cat.networkId
+          networkId: cat.networkId,
+          requireWarning: cat.requireWarning,
+          warningMessage: cat.warningMessage
         }))
       };
     });
 
     return { success: true, data: catalog };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Failed to fetch public catalog:", error);
     return { success: false, error: "Failed to load catalog" };
@@ -158,13 +173,16 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           categoryId: s.categoryId,
           name: s.name,
           description: s.description,
-          pricePer1kRub: applyBeautifulRounding(s.rate * s.markup * usdToRub),
-          pricePerUnitRub: applyBeautifulRounding(s.rate * s.markup * usdToRub) / 1000,
+          pricePer1kRub: applyBeautifulRounding(s.rate * s.markup * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub)),
+          pricePerUnitRub: applyBeautifulRounding(s.rate * s.markup * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub)) / 1000,
           minQty: s.minQty,
           maxQty: s.maxQty,
           speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',
           badge,
+          isDripFeedEnabled: s.isDripFeedEnabled,
           targetType: s.targetType,
+          customDataType: s.customDataType,
+          customDataLabel: s.customDataLabel,
           features: s.features,
           cooldownUntil: s.cooldownUntil ? s.cooldownUntil.toISOString() : null,
           smartConfig: s.smartConfig ? {
@@ -172,8 +190,13 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
             isTestMode: s.smartConfig.isTestMode,
             minChunk: s.smartConfig.minChunk,
             maxChunk: s.smartConfig.maxChunk,
-            markup: s.smartConfig.markup
-          } : null
+            markup: s.smartConfig.markup,
+            useInviteBuffer: s.smartConfig.useInviteBuffer,
+            autoCompensate: s.smartConfig.autoCompensate,
+            checkIntervalMins: s.smartConfig.checkIntervalMins
+          } : null,
+          requireWarning: s.requireWarning,
+          warningMessage: s.warningMessage
        };
     });
   } catch (error) {

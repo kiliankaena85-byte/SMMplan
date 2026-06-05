@@ -54,6 +54,7 @@ class MarketingService {
     serviceId: string,
     quantity: number,
     promoCodeStr?: string | null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     preloadedContext?: { user?: any | null, service?: any | null }
   ): Promise<PricingResult> {
     let user = null;
@@ -74,15 +75,16 @@ class MarketingService {
     }
 
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const serviceExchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
 
     // 1. Calculate base original price in Cents (Convert USD provider rate to RUB Cents)
-    const providerCostPer1000Cents = service.rate * usdToRub * 100;
+    const providerCostPer1000Cents = service.rate * serviceExchangeRate * 100;
     const providerCostCents = quantity > 0
       ? Math.max(1, Math.ceil((providerCostPer1000Cents / 1000) * quantity))
       : Math.ceil((providerCostPer1000Cents / 1000) * quantity);
 
     // Apply the same Beautiful Rounding logic used in the Catalog to ensure price parity
-    const rawRetailPer1000Rub = service.rate * service.markup * usdToRub;
+    const rawRetailPer1000Rub = service.rate * service.markup * serviceExchangeRate;
     const beautifulRetailPer1000Rub = applyBeautifulRounding(rawRetailPer1000Rub);
     const originalTotalCents = quantity > 0
       ? Math.max(1, Math.ceil((beautifulRetailPer1000Rub * 100 / 1000) * quantity))
@@ -183,6 +185,7 @@ class MarketingService {
    * Evaluates volume discount for an array of services and formats them for B2B API Standards.
    * Protects pricing from dropping below the safety floor.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getB2BFormattedServices(user: any, services: any[]) {
     const volumeTier = this.getVolumeTier(user.totalSpent);
     let maxDiscountPercent = Math.max(user.personalDiscount || 0, volumeTier.discountPercent);
@@ -195,15 +198,16 @@ class MarketingService {
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
     return services.map(s => {
+      const sExchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
       // 1. Calculate original rate in normal currency format (RUB, not cents)
-      const originalRatePer1000 = s.rate * s.markup * usdToRub;
+      const originalRatePer1000 = s.rate * s.markup * sExchangeRate;
       
       // 2. Apply highest applicable discount
       const discountVal = (originalRatePer1000 * maxDiscountPercent) / 100;
       let finalRatePer1000 = originalRatePer1000 - discountVal;
 
       // 3. Safety Floor: never below cost × 2.34 (covers taxes + gateway + 100% margin) in RUB
-      const safetyFloor = (s.rate * usdToRub * (1 + 1.0)) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
+      const safetyFloor = (s.rate * sExchangeRate * (1 + 1.0)) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
       if (finalRatePer1000 < safetyFloor) {
         finalRatePer1000 = safetyFloor;
       }
@@ -228,3 +232,53 @@ class MarketingService {
 
 
 export const marketingService = new MarketingService();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function logPromoCodeUsageIfNeeded(tx: any, orderId: string, userId: string) {
+  const order = await tx.order.findUnique({
+    where: { id: orderId },
+    select: {
+      promoCodeId: true,
+      discountCents: true,
+      charge: true,
+      providerCost: true,
+    },
+  });
+
+  if (!order || !order.promoCodeId) {
+    return;
+  }
+
+  // Check if PromoCodeUsage already exists for this orderId to prevent duplicate logging
+  const existingUsage = await tx.promoCodeUsage.findUnique({
+    where: { orderId },
+  });
+
+  if (existingUsage) {
+    return;
+  }
+
+  // Query the PromoCode model for isSuspicious
+  const promo = await tx.promoCode.findUnique({
+    where: { id: order.promoCodeId },
+    select: {
+      isSuspicious: true,
+    },
+  });
+
+  const isSuspicious = promo?.isSuspicious ?? false;
+
+  // Create a PromoCodeUsage record under the transaction tx
+  await tx.promoCodeUsage.create({
+    data: {
+      promoCodeId: order.promoCodeId,
+      userId,
+      orderId,
+      discountCents: order.discountCents,
+      revenueCents: order.charge,
+      profitCents: order.charge - order.providerCost,
+      isSuspicious,
+    },
+  });
+}
+

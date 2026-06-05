@@ -17,6 +17,7 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
   const desktopGridContent = useMemo(() => {
     return services.map((srv) => {
       const isSelected = selectedService?.id === srv.id;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const brand = getBrandColor(selectedNetworkObj?.slug);
       const isQuarantined = srv.cooldownUntil && new Date(srv.cooldownUntil) > new Date();
 

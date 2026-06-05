@@ -106,6 +106,7 @@ async function main() {
       const network = await db.network.create({
         data: { name: platform, slug, sort, isActive: true }
       });
+      // eslint-disable-next-line no-useless-assignment
       networkId = network.id;
       networkMap.set(platformKey, network.id);
       networkMap.set(slug, network.id);

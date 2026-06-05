@@ -25,6 +25,7 @@ export default async function QuarantinePage() {
     }),
   ]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapToDto = (s: any) => ({
     id: s.id,
     name: s.name,

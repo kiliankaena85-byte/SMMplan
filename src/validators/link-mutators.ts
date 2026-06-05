@@ -130,6 +130,7 @@ const cleanTikTokUrl = (url: string, targetType: string): string => {
 // --- 🚀 MAIN MUTATOR PIPELINE ---
 export const mutateLink = (url: string, platform: string, targetType: string): string => {
    let trimmed = url.trim();
+   if (!trimmed) return '';
    if (!trimmed.startsWith('http')) {
        trimmed = 'https://' + trimmed;
    }

@@ -81,6 +81,7 @@ export const columns: ColumnDef<TicketColumn>[] = [
     cell: ({ row }) => {
       const config = STATUS_MAP[row.original.status] || { intent: 'default', label: row.original.status, extraClasses: '' };
       return (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         <Badge intent={config.intent as any} className={`font-bold text-[10px] uppercase tracking-wider ${config.extraClasses}`}>
           {config.label}
         </Badge>

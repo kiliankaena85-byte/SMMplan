@@ -25,7 +25,7 @@ export default async function CategoriesAdminPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Управление Категориями</h1>
           <p className="text-muted-foreground text-sm">Группировка и сортировка услуг в каталоге.</p>
         </div>
-        <Link href="/admin/catalog" className="text-sm font-medium text-primary hover:text-indigo-900 border border-border py-2 px-4 rounded-md">
+        <Link href="/admin/catalog" className="text-sm font-medium text-primary hover:text-primary/80 border border-border py-2 px-4 rounded-xl transition-colors">
           ← Вернуться в Каталог
         </Link>
       </div>

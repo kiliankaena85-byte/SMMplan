@@ -45,6 +45,7 @@ export function QuarantineList({ entries }: QuarantineListProps) {
       try {
         await (action === 'approve' ? approveQuarantineAction(fd) : rejectQuarantineAction(fd));
         toast.success(action === 'approve' ? 'Транзакция одобрена' : 'Транзакция отклонена');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         toast.error('Ошибка выполнения операции');
       }

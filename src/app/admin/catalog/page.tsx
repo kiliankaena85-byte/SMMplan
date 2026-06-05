@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { CatalogTable } from '@/components/admin/catalog-table-v2';
+import { CatalogSidebar } from '@/components/admin/CatalogSidebar';
 import {
   TOTAL_MANDATORY_DEDUCTIONS,
   SAFETY_FLOOR_MARKUP,
@@ -74,6 +75,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
 
   // Map to strict DTO — no raw Prisma objects on client
   const services: CatalogServiceDTO[] = rawServices.map(s => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const raw = s as any;
     return {
       id: s.id,
@@ -98,44 +100,25 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       description: s.description ?? null,
       targetType: raw.targetType ?? null,
       customDataType: raw.customDataType ?? "NONE",
+      customDataLabel: raw.customDataLabel ?? null,
       isMediaGroupAware: raw.isMediaGroupAware ?? false,
       providerId: s.providerId ?? null,
+      requireWarning: raw.requireWarning ?? false,
+      warningMessage: raw.warningMessage ?? null,
     };
   });
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
       
-      {/* LEFT PANE: Categories Sidebar */}
-      <aside className="w-full lg:w-[260px] flex-shrink-0 space-y-4">
-        <Card className="shadow-sm border border-border lg:sticky lg:top-4 z-10 bg-card">
-          <CardContent className="p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wider">Категории</h3>
-            <div className="space-y-1 max-h-[70vh] overflow-y-auto scrollbar-hide">
-              <Link
-                href="/admin/catalog"
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  !categoryId ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                <span>Все услуги</span>
-                <span className="opacity-70">{stats.totalServices}</span>
-              </Link>
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/admin/catalog?category=${cat.id}`}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                    categoryId === cat.id ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  <span className="truncate mr-2">{cat.name}</span>
-                  <span className="opacity-70 flex-shrink-0">{cat.serviceCount}</span>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* LEFT PANE: Categories Sidebar - Sticky as a unit with lg:self-start to prevent overlap */}
+      <aside className="w-full lg:w-[260px] flex-shrink-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
+        <CatalogSidebar 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          categories={categories as any} 
+          categoryId={categoryId} 
+          totalServices={stats.totalServices} 
+        />
         
         {/* Quick Stats Sidebar */}
         <Card className="shadow-sm border border-border">

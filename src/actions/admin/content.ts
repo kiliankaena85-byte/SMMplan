@@ -22,11 +22,13 @@ const contentSchema = z.object({
 });
 
 export async function createContent(formData: FormData) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const admin = await enforcePageRole(["ADMIN", "OWNER"]);
 
   const data = {
     title: formData.get("title") as string,
     slug: formData.get("slug") as string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     type: formData.get("type") as any,
     categoryId: formData.get("categoryId") as string || null,
   };
@@ -46,6 +48,7 @@ export async function createContent(formData: FormData) {
 
     revalidateTag("cms-list", {});
     return { success: true, item };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     if (error.code === "P2002") {
       return { success: false, error: "Статья с таким URL (slug) уже существует." };
@@ -95,6 +98,7 @@ export async function updateContent(id: string, updateData: Partial<z.infer<type
     revalidateTag("cms-list", {});
 
     return { success: true, item };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return { success: false, error: "Ошибка при обновлении статьи" };
   }
@@ -151,23 +155,8 @@ export async function unpublishContent(id: string) {
     revalidateTag("cms-list", {});
 
     return { success: true, item: updated };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return { success: false, error: "Ошибка при снятии с публикации" };
-  }
-}
-
-export async function deleteContent(id: string) {
-  await enforcePageRole(["ADMIN", "OWNER"]);
-
-  try {
-    const item = await prisma.contentItem.delete({
-      where: { id },
-    });
-    
-    revalidateTag(`article-${item.slug}`, {});
-    revalidateTag("cms-list", {});
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: "Ошибка при удалении статьи" };
   }
 }

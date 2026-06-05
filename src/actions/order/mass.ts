@@ -108,6 +108,7 @@ export const parseMassOrderText = async (text: string) => {
           order.providerId = service.providerId;
           order.providerServiceId = service.externalId;
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         errors.push({ line: i + 1, text: `${order.numericId} | ${order.link} | ${order.quantity}`, error: e.message || 'Ошибка валидации ссылки' });
       }
@@ -150,6 +151,7 @@ export const massOrderCalculateAction = async (input: { text: string }) => {
          );
          totalCents += pricing.totalCents;
          validOrders.push({ ...order, priceRub: pricing.totalCents / 100 });
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
        } catch (e: any) {
          errors.push({ line: -1, text: order.link, error: e.message });
        }
@@ -166,6 +168,7 @@ export const massOrderCalculateAction = async (input: { text: string }) => {
 };
 
 export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSchema>) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createSafeAction(massOrderSchema as any, input, async (data: any) => {
     const { text, email, gateway, idempotencyKey } = data;
     
@@ -175,6 +178,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
 
     const session = await verifySession();
     let userId = session?.userId;
+    let isNewUser = false;
 
     if (!userId && gateway === 'balance') {
       throw new Error("Оплата с баланса доступна только авторизованным пользователям");
@@ -182,21 +186,30 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
 
     if (!userId) {
        if (!email) throw new Error("Email обязателен для гостей");
-       let user = await db.user.findUnique({ where: { email } });
+       const lowerEmail = email.toLowerCase();
+       let user = await db.user.findUnique({ where: { email: lowerEmail } });
+       if (user && (user.isDeleted === true || user.isActive === false)) {
+         throw new Error("Ваш аккаунт заблокирован или удален");
+       }
        if (!user) {
          user = await db.user.create({
-           data: { email, role: 'USER' }
+           data: { email: lowerEmail, role: 'USER' }
          });
+         isNewUser = true;
        }
        userId = user.id;
     }
     
     const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
 
+    if (session?.userId && user.id !== session.userId) {
+      throw new Error("Несоответствие сессии пользователя");
+    }
+
     // 0.5 Idempotency check
     if (idempotencyKey) {
       const existingOrder = await db.order.findFirst({
-        where: { idempotencyKey, userId: user.id },
+        where: { idempotencyKey: `${idempotencyKey}_order_0`, userId: user.id },
         include: { payment: true }
       });
       if (existingOrder && existingOrder.payment) {
@@ -216,6 +229,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     if (orders.length === 0) throw new Error("Нет валидных строк для заказа");
 
     let totalCents = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const orderCreationData: any[] = [];
     
     // W2-3: Generate unique keys for each order in the batch, rather than re-using the checkout request's idempotency key
@@ -227,13 +241,18 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     const services = await db.service.findMany({ where: { id: { in: serviceIds } } });
     const serviceMap = new Map(services.map(s => [s.id, s]));
 
-    for (const order of orders) {
+    for (let idx = 0; idx < orders.length; idx++) {
+       const order = orders[idx];
+       const service = serviceMap.get(order.serviceId);
+       if (!service || !service.isActive || service.isQuarantined) {
+         throw new Error(`Услуга ID ${order.numericId} не найдена, неактивна или находится в карантине`);
+       }
        const pricing = await marketingService.calculatePrice(
          user.id, 
          order.serviceId, 
          order.quantity, 
          null, 
-         { user, service: serviceMap.get(order.serviceId) }
+         { user, service }
        );
        totalCents += pricing.totalCents;
        orderCreationData.push({
@@ -251,8 +270,8 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
          remains: order.quantity,
          consentIp,
          consentUserAgent,
-         idempotencyKey: crypto.randomUUID(), // W2-3 FIX
-         isTest: isTestMode // W4-5 FIX
+         idempotencyKey: idempotencyKey ? `${idempotencyKey}_order_${idx}` : crypto.randomUUID(),
+         isTest: isTestMode
        });
     }
     
@@ -335,6 +354,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
           }
         });
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (gatewayErr: any) {
       console.error('[MassCheckout] Gateway failed', gatewayErr);
       await db.payment.update({
@@ -358,7 +378,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
     }
 
-    if (!session) {
+    if (!session && isNewUser) {
       await createSession(user.id);
     }
 

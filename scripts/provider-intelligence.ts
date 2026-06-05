@@ -42,6 +42,7 @@ const RUB_TO_USD = 1 / 83;
 function normalize(name: string): string {
   return name
     .toLowerCase()
+    // eslint-disable-next-line no-useless-escape, no-misleading-character-class
     .replace(/[\[\](){}⚡🔥♻️🌟⭐💎🇷🇺🇺🇸🇹🇷🇮🇳🇨🇳🇮🇹🇺🇿🇪🇺🇮🇩🇹🇭🇸🇦🚫🤖📱📢📌📊📦🎵🎭❤️👁👨‍👩‍👧‍👦👥🤝💬🔗🚀⭐🔴🤬]/gu, '')
     .replace(/\s+/g, ' ')
     .replace(/[^a-zа-яё0-9 /]/g, '')

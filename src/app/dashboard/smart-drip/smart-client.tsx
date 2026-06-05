@@ -21,7 +21,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-interface TaskDTO {
+export interface TaskDTO {
   id: string;
   quantity: number;
   runAt: Date;
@@ -31,7 +31,7 @@ interface TaskDTO {
   execStatus: string | null;
 }
 
-interface CampaignDTO {
+export interface CampaignDTO {
   id: string;
   serviceName: string;
   networkSlug: string;
@@ -72,6 +72,7 @@ export function SmartDripDashboardClient({ initialCampaigns }: SmartDripDashboar
         } else {
           toast.error('Не удалось изменить статус кампании');
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message || 'Ошибка выполнения действия');
       }

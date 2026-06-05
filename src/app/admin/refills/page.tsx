@@ -29,6 +29,7 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
     where.status = statusFilter;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [refills, stats] = await Promise.all([
     db.refill.findMany({
       where,
@@ -112,7 +113,7 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           <div className="w-full">
-            <RefillsTable refills={refills as any} />
+            <RefillsTable refills={refills} />
           </div>
         </CardContent>
       </Card>

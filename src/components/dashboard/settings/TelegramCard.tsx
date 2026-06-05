@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Link from 'next/link';
 import { Send, CheckCircle2, AlertCircle } from 'lucide-react';
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { handleServerError } from '@/utils/error-handler';
 
 type ServerActionResponse<T> =
   | { success: true; data: T }
@@ -11,6 +12,7 @@ type ServerActionResponse<T> =
  */
 export async function createSafeAction<TInput, TOutput>(
   schema: z.Schema<TInput> | null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   input: any,
   handler: (validatedInput: TInput) => Promise<TOutput>
 ): Promise<ServerActionResponse<TOutput>> {
@@ -32,6 +34,7 @@ export async function createSafeAction<TInput, TOutput>(
 
     const data = await handler(parsedInput);
     return { success: true, data };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     // 1. Log the full detailed error securely on the server
     console.error('[SAFE_ACTION_ERROR]', {
@@ -40,19 +43,8 @@ export async function createSafeAction<TInput, TOutput>(
       stack: error.stack,
     });
 
-    // 2. Do not leak details like "PrismaClientKnownRequestError"
-    if (error.code && error.clientVersion) {
-      // It's definitely a Prisma Error
-      return { success: false, error: 'Внутренняя ошибка базы данных. Попробуйте позже.' };
-    }
-
-    // 3. Known business-logic errors (e.g. throw new Error("..."))
-    // In Smmplan, usually we throw simple string errors for business logic.
-    // If it looks like a generic system error, obscure it.
-    if (error.name === 'Error' && !error.message.includes('Prisma')) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: false, error: 'Непредвиденная проблема сервера.' };
+    // 2. Standardize and localize the error for the client (Task 1.2)
+    const localized = handleServerError(error);
+    return { success: false, error: localized.message };
   }
 }

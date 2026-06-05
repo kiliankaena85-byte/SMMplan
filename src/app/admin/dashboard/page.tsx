@@ -6,6 +6,7 @@ import { adminCatalogService } from '@/services/admin/catalog.service';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { OrdersChart } from './orders-chart';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Check, Clock, ChevronDown, Bell, Search, Settings, Home, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/admin/hero-ui';

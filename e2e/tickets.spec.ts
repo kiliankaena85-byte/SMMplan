@@ -133,6 +133,7 @@ test.describe('Telegram Support Binding Flows', () => {
     
     let webUser = await prisma.user.findUnique({ where: { email: 'e2e_target_web@test.local' } });
     if (!webUser) {
+      // eslint-disable-next-line no-useless-assignment
       webUser = await prisma.user.create({
         data: {
           email: 'e2e_target_web@test.local',

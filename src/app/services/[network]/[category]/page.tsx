@@ -7,6 +7,25 @@ import { FAQSection } from "@/components/seo/FAQSection";
 
 export const revalidate = 3600;
 
+function formatPricePerUnit(price: number): string {
+  if (price === 0) return "0.00";
+  let formatted: string;
+  if (price < 0.01) {
+    formatted = price.toFixed(6);
+  } else if (price < 0.1) {
+    formatted = price.toFixed(4);
+  } else {
+    formatted = price.toFixed(2);
+  }
+  
+  if (formatted.includes(".")) {
+    while (formatted.endsWith("0") && formatted.split(".")[1].length > 2) {
+      formatted = formatted.slice(0, -1);
+    }
+  }
+  return formatted;
+}
+
 export async function generateStaticParams() {
   const catalogResult = await getPublicCatalogAction();
   if (!catalogResult.success || !catalogResult.data) return [];
@@ -51,7 +70,7 @@ export default async function CategoryServicesPage({ params }: { params: Promise
   if (!currentNetwork || !currentCategory) notFound();
 
   const services = await getServicesByCategoryAction(currentCategory.id);
-  const minPrice = services.length > 0 ? Math.min(...services.map(s => s.pricePer1kRub / 1000)) : 0;
+  const minPrice = services.length > 0 ? Math.min(...services.map(s => s.pricePerUnitRub)) : 0;
 
   const breadcrumbData = {
     "@context": "https://schema.org",
@@ -172,7 +191,7 @@ export default async function CategoryServicesPage({ params }: { params: Promise
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex flex-col items-end whitespace-nowrap">
-                      <span className="font-black text-foreground text-base">{(service.pricePer1kRub / 1000).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
+                      <span className="font-black text-foreground text-base">{formatPricePerUnit(service.pricePerUnitRub)} ₽</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">

@@ -2,10 +2,12 @@ import { Job, UnrecoverableError } from 'bullmq';
 import { db } from '../../lib/db';
 import { OrderJobPayload } from '../queues';
 import { providerService } from '../../services/providers/provider.service';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { WalletService } from '../../services/financial/wallet.service';
 import { SettingsManager } from '../../lib/settings';
 
 export default async function orderProcessor(job: Job<OrderJobPayload>) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { orderId, isDripFeedChild } = job.data;
   
   const order = await db.order.findUnique({
@@ -82,6 +84,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     
     // API Parameter Mapping for V2 APIs
     const serviceName = order.service.name.toLowerCase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: any = {
       service: order.providerServiceId || order.service.externalId || '',
       link: order.link,
@@ -96,7 +99,8 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     }
 
     if (order.customData) {
-      if (serviceName.includes('опрос') || serviceName.includes('голосование') || serviceName.includes('poll')) {
+      const cType = order.service.customDataType;
+      if (cType === 'NUMBER' || (serviceName.includes('опрос') && !serviceName.includes('просмотр')) || serviceName.includes('голосование') || serviceName.includes('poll')) {
         payload.answers_number = order.customData;
       } else {
         payload.comments = order.customData;
@@ -126,6 +130,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
 
     console.info(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     // === AMBIGUOUS TIMEOUT PROTECTION (P0) ===
     // If the error is a network timeout (not an explicit API rejection), the provider 
@@ -171,6 +176,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     try {
       const { QuarantineService } = await import('../../services/providers/quarantine.service');
       await QuarantineService.evaluateTriggerA(order.serviceId, error.message);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (quarantineErr: any) {
       console.error(`[OrderProcessor] Quarantine evaluation failed:`, quarantineErr.message);
     }

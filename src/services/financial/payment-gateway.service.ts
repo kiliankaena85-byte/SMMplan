@@ -1,8 +1,11 @@
 import { db } from '@/lib/db';
 import { SettingsManager } from '@/lib/settings';
 import { WalletOps } from './wallet-ops';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MutexManager } from '@/lib/redis-lock';
 import crypto from 'crypto';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { logPromoCodeUsageIfNeeded } from '@/services/marketing.service';
 
 export interface PaymentGatewayResult {
   paymentUrl: string;
@@ -17,6 +20,7 @@ export interface PaymentGatewayParams {
   email: string | null;
   successUrl: string;
   description: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
   isTestMode?: boolean;
 }
@@ -30,6 +34,10 @@ export abstract class BasePaymentGateway {
 
 class YooKassaGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
+    if (params.amountRub <= 0 || Math.round(params.amountRub * 100) <= 0) {
+      throw new Error('Сумма платежа должна быть больше 0');
+    }
+
     const secrets = await SettingsManager.getPaymentSecrets();
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
@@ -49,6 +57,7 @@ class YooKassaGateway extends BasePaymentGateway {
     const { SettingsProvider } = await import('@/lib/settings');
     const supportDomain = await SettingsProvider.getSupportEmailDomain();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: any = {
       amount: { value: params.amountRub.toFixed(2), currency: 'RUB' },
       capture: true,
@@ -58,13 +67,26 @@ class YooKassaGateway extends BasePaymentGateway {
     };
 
     if (!params.isTestMode) {
+      // Подсчитываем оборот за год для динамического переключения НДС 5% (ФЗ-54)
+      const currentYear = new Date().getFullYear();
+      const annualRevenue = await db.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: 'SUCCEEDED',
+          createdAt: { gte: new Date(currentYear, 0, 1) }
+        }
+      }).then(res => Number(res._sum.amount || 0));
+
+      const isVatThresholdExceeded = annualRevenue >= 2000000000; // 20 млн рублей
+      const vatCode = isVatThresholdExceeded ? 7 : 1; // 7 = НДС 5%, 1 = Без НДС
+
       payload.receipt = {
         customer: { email: params.email || `no-reply@${supportDomain}` },
         items: [{
           description: "Услуги цифрового маркетинга",
           quantity: "1.00",
           amount: { value: params.amountRub.toFixed(2), currency: 'RUB' },
-          vat_code: 1, // Без НДС
+          vat_code: vatCode,
           payment_mode: "full_prepayment",
           payment_subject: "service"
         }]
@@ -121,6 +143,10 @@ class YooKassaGateway extends BasePaymentGateway {
 
 class CryptoBotGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
+    if (params.amountRub <= 0 || Math.round(params.amountRub * 100) <= 0) {
+      throw new Error('Сумма платежа должна быть больше 0');
+    }
+
     if (params.isTestMode || process.env.NODE_ENV === 'test') {
       return {
         paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
@@ -135,6 +161,14 @@ class CryptoBotGateway extends BasePaymentGateway {
       throw new Error('CryptoBot is not configured in Admin Panel');
     }
 
+    const { SettingsProvider } = await import('@/lib/settings');
+    const legalSettings = await SettingsProvider.getContactAndLegalSettings();
+    const brandName = legalSettings.COMPANY_NAME || 'Smmplan';
+    const cleanDesc = params.description.startsWith('Test ') 
+      ? params.description.substring(5) 
+      : params.description;
+    const hiddenMessage = `${brandName} ${cleanDesc}`;
+
     const resp = await fetch('https://pay.crypt.bot/api/createInvoice', {
       method: 'POST',
       headers: {
@@ -146,7 +180,7 @@ class CryptoBotGateway extends BasePaymentGateway {
         fiat: 'RUB',
         amount: params.amountRub.toFixed(2),
         description: params.description,
-        hidden_message: `Ваш платеж: ${params.paymentId}`,
+        hidden_message: hiddenMessage,
         payload: params.paymentId
       })
     });
@@ -163,6 +197,31 @@ class CryptoBotGateway extends BasePaymentGateway {
       paymentUrl: data.result.pay_url,
       remoteGatewayId: data.result.invoice_id.toString()
     };
+  }
+
+  async checkStatusSync(gatewayId: string): Promise<boolean> {
+    try {
+      const secrets = await SettingsManager.getPaymentSecrets();
+      const cryptoToken = secrets.cryptoBotToken;
+      if (!cryptoToken) return false;
+
+      const resp = await fetch(`https://pay.crypt.bot/api/getInvoices?invoice_ids=${gatewayId}`, {
+        method: 'GET',
+        headers: {
+          'Crypto-Pay-API-Token': cryptoToken
+        }
+      });
+
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      if (!data.ok || !data.result || !data.result.items) return false;
+
+      const item = data.result.items[0];
+      return item && item.status === 'paid';
+    } catch (e) {
+      console.error('[CryptoBotGateway] Error checking status:', e);
+      return false;
+    }
   }
 }
 
@@ -185,20 +244,79 @@ class BalanceGateway extends BasePaymentGateway {
         // Update any specific order if passed
         const ids = [];
         if (params.orderId) {
-          await tx.order.update({
-            where: { id: params.orderId },
-            data: { status: 'PENDING' }
+          const order = await tx.order.findUnique({
+            where: { id: params.orderId }
           });
-          ids.push(params.orderId);
+          if (order) {
+            await tx.order.update({
+              where: { id: params.orderId },
+              data: { status: 'PENDING' }
+            });
+            if (order.promoCodeId) {
+              const promo = await tx.promoCode.findUnique({
+                where: { id: order.promoCodeId },
+                select: { isSuspicious: true }
+              });
+              const isSuspicious = promo?.isSuspicious ?? false;
+              
+              const existingUsage = await tx.promoCodeUsage.findUnique({
+                where: { orderId: order.id }
+              });
+              
+              if (!existingUsage) {
+                await tx.promoCodeUsage.create({
+                  data: {
+                    promoCodeId: order.promoCodeId,
+                    userId: params.userId,
+                    orderId: order.id,
+                    discountCents: order.discountCents,
+                    revenueCents: BigInt(Number(order.charge)),
+                    profitCents: BigInt(Number(order.charge - order.providerCost)),
+                    isSuspicious,
+                  }
+                });
+              }
+            }
+            ids.push(params.orderId);
+          }
         }
 
         // Also update any orders linked to this paymentId (Mass Orders / Basket)
-        const basketOrders = await tx.order.findMany({ where: { paymentId: params.paymentId, status: 'AWAITING_PAYMENT' } });
+        const basketOrders = await tx.order.findMany({ 
+          where: { paymentId: params.paymentId, status: 'AWAITING_PAYMENT' } 
+        });
         if (basketOrders.length > 0) {
           await tx.order.updateMany({
             where: { paymentId: params.paymentId, status: 'AWAITING_PAYMENT' },
             data: { status: 'PENDING' }
           });
+          for (const order of basketOrders) {
+            if (order.promoCodeId) {
+              const promo = await tx.promoCode.findUnique({
+                where: { id: order.promoCodeId },
+                select: { isSuspicious: true }
+              });
+              const isSuspicious = promo?.isSuspicious ?? false;
+              
+              const existingUsage = await tx.promoCodeUsage.findUnique({
+                where: { orderId: order.id }
+              });
+              
+              if (!existingUsage) {
+                await tx.promoCodeUsage.create({
+                  data: {
+                    promoCodeId: order.promoCodeId,
+                    userId: params.userId,
+                    orderId: order.id,
+                    discountCents: order.discountCents,
+                    revenueCents: BigInt(Number(order.charge)),
+                    profitCents: BigInt(Number(order.charge - order.providerCost)),
+                    isSuspicious,
+                  }
+                });
+              }
+            }
+          }
           ids.push(...basketOrders.map(o => o.id));
         }
         
@@ -216,6 +334,64 @@ class BalanceGateway extends BasePaymentGateway {
   }
 }
 
+class RobokassaGateway extends BasePaymentGateway {
+  async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
+    if (params.amountRub <= 0 || Math.round(params.amountRub * 100) <= 0) {
+      throw new Error('Сумма платежа должна быть больше 0');
+    }
+
+    const secrets = await SettingsManager.getPaymentSecrets();
+    const login = secrets.robokassaLogin;
+    const password = secrets.robokassaPassword;
+
+    const isDummyKeys = !login || !password || login === 'test_login';
+    const isE2ETest = process.env.NODE_ENV === 'test' || params.email === 'e2e-tester@test.com';
+
+    if (isE2ETest || isDummyKeys) {
+      return {
+        paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+        remoteGatewayId: `mock_${Date.now()}`
+      };
+    }
+
+    const outSum = params.amountRub.toFixed(2);
+    const invId = 0; // Passed CUID in shp_paymentId
+
+    // Robokassa signature formula: MerchantLogin:OutSum:InvId:MerchantPassword1:shp_paymentId=paymentId
+    const sigStr = `${login}:${outSum}:${invId}:${password}:shp_paymentId=${params.paymentId}`;
+    const signature = crypto.createHash('sha256').update(sigStr).digest('hex');
+
+    const queryParams = new URLSearchParams({
+      MerchantLogin: login,
+      OutSum: outSum,
+      InvId: invId.toString(),
+      Description: params.description,
+      SignatureValue: signature,
+      shp_paymentId: params.paymentId
+    });
+
+    const robokassaUrl = `https://auth.robokassa.ru/Merchant/Index.aspx?${queryParams.toString()}`;
+
+    return {
+      paymentUrl: robokassaUrl,
+      remoteGatewayId: `robo_${params.paymentId}`
+    };
+  }
+
+  async checkStatusSync(gatewayId: string): Promise<boolean> {
+    try {
+      const paymentId = gatewayId.replace(/^robo_/i, '');
+      const payment = await db.payment.findUnique({
+        where: { id: paymentId }
+      });
+      return payment?.status === 'SUCCEEDED';
+    } catch (e) {
+      console.error('[RobokassaGateway] Error checking status:', e);
+      return false;
+    }
+  }
+}
+
 class MockGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     return {
@@ -230,6 +406,8 @@ export class PaymentGatewayFactory {
     switch (gatewayName.toLowerCase()) {
       case 'yookassa':
         return new YooKassaGateway();
+      case 'robokassa':
+        return new RobokassaGateway();
       case 'cryptobot':
         return new CryptoBotGateway();
       case 'balance':

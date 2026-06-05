@@ -4,10 +4,14 @@ import React from 'react';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 
 interface NetworkSelectorProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   platform: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   manualPlatform: any;
   networkId: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   unfilteredCatalog: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSelect: (id: string, name: any) => void;
 }
 

@@ -27,6 +27,7 @@ interface GuestSupportOptionsProps {
 
 export function GuestSupportOptions({ 
   telegramBotUsername, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   supportEmail,
   defaultEmail,
   defaultMessage,
@@ -43,6 +44,7 @@ export function GuestSupportOptions({
   const orderId = searchParams.get('orderId');
 
   const [state, action, isPending] = useActionState(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async (prevState: any, formData: FormData) => {
       if (isPaymentError) {
         return await createOfflineTicketAction({
@@ -131,8 +133,9 @@ export function GuestSupportOptions({
 
         <form action={action} className="space-y-5">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ваше Имя</label>
+            <label htmlFor="support-guest-name" className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ваше Имя</label>
             <Input
+              id="support-guest-name"
               name="name"
               placeholder="Иван Иванов"
               required
@@ -141,8 +144,9 @@ export function GuestSupportOptions({
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ваш Email</label>
+            <label htmlFor="support-guest-email" className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ваш Email</label>
             <Input
+              id="support-guest-email"
               name="email"
               type="email"
               placeholder="example@mail.com"
@@ -152,8 +156,9 @@ export function GuestSupportOptions({
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ваш вопрос</label>
+            <label htmlFor="support-guest-message" className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ваш вопрос</label>
             <Textarea
+              id="support-guest-message"
               name="message"
               placeholder="Опишите вашу проблему максимально подробно..."
               required
@@ -177,6 +182,17 @@ export function GuestSupportOptions({
           >
             {isPending ? 'Отправка...' : 'Отправить сообщение'}
           </Button>
+          <p className="text-[10px] text-muted-foreground text-center px-4 mt-3">
+            Отправляя форму, вы соглашаетесь с{' '}
+            <Link href="/legal/privacy" className="text-primary hover:underline">
+              Политикой конфиденциальности
+            </Link>{' '}
+            и{' '}
+            <Link href="/legal/terms" className="text-primary hover:underline">
+              Пользовательским соглашением
+            </Link>
+            .
+          </p>
         </form>
       </Card>
     </div>

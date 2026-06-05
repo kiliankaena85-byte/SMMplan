@@ -84,6 +84,7 @@ export default async function refillProcessor(job: Job<RefillJobPayload>) {
     });
 
     console.info(`[RefillProcessor] Successfully dispatched refill ${refill.id} for order ${order.id} | External ID: ${extId}`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error(`[RefillProcessor] Failed to process refill ${refill.id}:`, error.message);
     

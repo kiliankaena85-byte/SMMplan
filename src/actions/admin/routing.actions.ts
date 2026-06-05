@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { revalidatePath } from 'next/cache';
+import { SettingsProvider } from '@/lib/settings';
+import { redis } from '@/lib/redis';
+import { applyBeautifulRounding } from '@/lib/financial-constants';
 
 const swapSchema = z.object({
   serviceId: z.string(),
@@ -12,7 +15,9 @@ const swapSchema = z.object({
   understandRisk: z.boolean().refine(val => val === true, "Вы должны подтвердить понимание рисков")
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getServiceRoutes(serviceId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return requireStaffPermission('services', 'view', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
@@ -32,6 +37,7 @@ async function getServiceRoutes(serviceId: string) {
 }
 
 export async function previewHotSwap(serviceId: string, newRouteId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return requireStaffPermission('services', 'edit', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
@@ -239,6 +245,7 @@ export async function toggleRouteStatus(routeId: string) {
 }
 
 export async function changeRoutePriority(routeId: string, direction: 'up' | 'down') {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return requireStaffPermission('services', 'edit', async (admin) => {
     let serviceId = '';
     await db.$transaction(async (tx) => {
@@ -312,6 +319,139 @@ export async function deleteServiceRoute(routeId: string) {
 
     revalidatePath(`/admin/services/${serviceId}/routing`);
     return { success: true };
+  });
+}
+
+export async function getProviderComparisonData(serviceId: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return requireStaffPermission('services', 'view', async (admin) => {
+    const service = await db.service.findUnique({
+      where: { id: serviceId },
+      include: { category: true, provider: true }
+    });
+    if (!service) throw new Error("Услуга не найдена");
+
+    const routes = await db.serviceRoute.findMany({
+      where: { serviceId },
+      include: { provider: true },
+      orderBy: { priority: 'asc' }
+    });
+
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const comparisonData = await Promise.all(routes.map(async (route) => {
+      // 1. Fetch SLA and ETA from orders in the last 7 days
+      const routeOrders = await db.order.findMany({
+        where: {
+          serviceId,
+          providerId: route.providerId,
+          createdAt: { gte: last7Days }
+        }
+      });
+
+      const terminalOrders = routeOrders.filter(o => ['COMPLETED', 'PARTIAL', 'CANCELED', 'ERROR'].includes(o.status));
+      const totalTerminal = terminalOrders.length;
+      const successful = routeOrders.filter(o => ['COMPLETED', 'PARTIAL'].includes(o.status)).length;
+      const sla = totalTerminal > 0 ? (successful / totalTerminal) * 100 : 100.0;
+
+      const completedOrders = routeOrders.filter(o => o.status === 'COMPLETED');
+      let avgEtaSeconds = 0;
+      if (completedOrders.length > 0) {
+        const totalDuration = completedOrders.reduce((sum, o) => {
+          const duration = (o.updatedAt.getTime() - o.createdAt.getTime()) / 1000;
+          return sum + duration;
+        }, 0);
+        avgEtaSeconds = Math.round(totalDuration / completedOrders.length);
+      }
+
+      // 2. Fetch real-time provider rate and limits from Redis shadow catalog
+      const cacheKey = `provider:${route.providerId}:catalog`;
+      const cachedStr = await redis.get(cacheKey);
+      let providerRate: number | null = null;
+      let providerMinQty: number | null = null;
+      let providerMaxQty: number | null = null;
+
+      if (cachedStr) {
+        try {
+          const services = JSON.parse(cachedStr);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const s = services.find((x: any) => String(x.service) === String(route.providerServiceId));
+          if (s) {
+            providerRate = parseFloat(s.rate) || 0.0;
+            providerMinQty = parseInt(s.min) || 0;
+            providerMaxQty = parseInt(s.max) || 0;
+          }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (err) {
+          // ignore parsing error
+        }
+      }
+
+      // 3. Fallback to DB properties if primary route and cache is missing/cold
+      if (providerRate === null && route.isPrimary) {
+        providerRate = service.rate;
+        providerMinQty = service.minQty;
+        providerMaxQty = service.maxQty;
+      }
+
+      // 4. Per-unit calculations
+      let procurementRatePer1kUsd: number | null = null;
+      let procurementRatePer1kRub: number | null = null;
+      let procurementCostPerUnitUsd: number | null = null;
+      let procurementCostPerUnitRub: number | null = null;
+      let marginPerUnitRub: number | null = null;
+      let markupPercent: number | null = null;
+
+      if (providerRate !== null) {
+        const currency = route.provider.balanceCurrency || 'USD';
+        if (currency === 'RUB') {
+          procurementRatePer1kRub = providerRate;
+          procurementRatePer1kUsd = providerRate / usdToRub;
+        } else {
+          procurementRatePer1kUsd = providerRate;
+          procurementRatePer1kRub = providerRate * usdToRub;
+        }
+
+        procurementCostPerUnitUsd = procurementRatePer1kUsd / 1000;
+        procurementCostPerUnitRub = procurementRatePer1kRub / 1000;
+
+        const retailPricePerUnitRub = applyBeautifulRounding(service.rate * service.markup * usdToRub) / 1000;
+        marginPerUnitRub = retailPricePerUnitRub - procurementCostPerUnitRub;
+        markupPercent = procurementCostPerUnitRub > 0 ? (marginPerUnitRub / procurementCostPerUnitRub) * 100 : 0;
+      }
+
+      // 5. Detect limit incompatibility
+      let limitsMismatch = false;
+      if (providerMinQty !== null && providerMaxQty !== null) {
+        limitsMismatch = providerMinQty > service.minQty || providerMaxQty < service.maxQty;
+      }
+
+      return {
+        routeId: route.id,
+        providerId: route.providerId,
+        providerName: route.provider.name,
+        providerServiceId: route.providerServiceId,
+        isPrimary: route.isPrimary,
+        isActive: route.isActive,
+        sla,
+        avgEtaSeconds,
+        providerMinQty,
+        providerMaxQty,
+        procurementRatePer1kUsd,
+        procurementRatePer1kRub,
+        procurementCostPerUnitUsd,
+        procurementCostPerUnitRub,
+        marginPerUnitRub,
+        markupPercent,
+        limitsMismatch
+      };
+    }));
+
+    return {
+      success: true as const,
+      data: comparisonData
+    };
   });
 }
 

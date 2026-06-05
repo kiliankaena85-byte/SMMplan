@@ -14,6 +14,7 @@ const deleteSchema = z.object({
   password: z.string().optional(),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function deleteAccountAction(prevState: any, formData: FormData) {
   const session = await verifySession();
   if (!session?.userId) {
@@ -115,6 +116,7 @@ export async function deleteAccountAction(prevState: any, formData: FormData) {
 
     log.info('Account successfully soft-deleted', { userId, email: user.email });
     return { success: true, error: null };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     log.error('Account deletion failed', { error: error.message });
     return { success: false, error: 'Ошибка сервера при удалении аккаунта. Попробуйте позже.' };

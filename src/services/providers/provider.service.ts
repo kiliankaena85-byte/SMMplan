@@ -21,6 +21,7 @@ export class ProviderService {
     // Decrypt the API Key before passing it to the provider
     const decryptedKey = VaultService.decrypt(config.apiKey);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, config.metadata as any);
   }
 
@@ -40,10 +41,12 @@ export class ProviderService {
         throw new Error('MOCK_PROVIDER_KEY is not set. Configure it in .env to use test mode.');
       }
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, mockKey, config.metadata as any);
     }
     // Production path: decrypt and use real provider
     const decryptedKey = VaultService.decrypt(config.apiKey);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, config.metadata as any);
   }
 

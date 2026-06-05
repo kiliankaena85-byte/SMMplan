@@ -43,6 +43,22 @@ interface OrderClientProps {
   canSeeRates?: boolean;
 }
 
+interface FailoverRoute {
+  routeId: string;
+  providerName: string;
+  newCostCents: number;
+  marginCents: number;
+  marginPercent: number;
+  isMarginPositive: boolean;
+}
+
+interface FailoverPreviewData {
+  success: boolean;
+  clientPaidCents: number;
+  currentBalance: number;
+  routes: FailoverRoute[];
+}
+
 // ── Sub: Order Drawer ───────────────────────────────────────────────────────
 function OrderDrawer({
   order,
@@ -55,12 +71,16 @@ function OrderDrawer({
 }) {
   const [selectedStatus, setSelectedStatus] = useState(order?.status ?? '');
   const [remains, setRemains] = useState(order?.remains ?? 0);
-  const [failoverPreview, setFailoverPreview] = useState<any>(null);
+  const [failoverPreview, setFailoverPreview] = useState<FailoverPreviewData | null>(null);
   const [isFailoverModalOpen, setIsFailoverModalOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'cancel' | 'restart' | null>(null);
+
+  const activeRoute = selectedRouteId
+    ? failoverPreview?.routes.find(r => r.routeId === selectedRouteId)
+    : null;
 
   React.useEffect(() => {
     setSelectedStatus(order?.status ?? '');
@@ -255,7 +275,7 @@ function OrderDrawer({
               <div className="flex flex-col gap-0.5">
                 <span className="text-muted-foreground">Изменен:</span>
                 <span className="font-mono font-medium text-foreground">
-                  {order.updatedAt ? new Date(order.updatedAt as any).toLocaleString('ru-RU') : '—'}
+                  {order.updatedAt ? new Date(order.updatedAt).toLocaleString('ru-RU') : '—'}
                 </span>
               </div>
             </div>
@@ -396,7 +416,7 @@ function OrderDrawer({
                     onChange={e => setSelectedRouteId(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background outline-none focus:border-primary"
                   >
-                    {failoverPreview.routes.map((r: any) => (
+                    {failoverPreview.routes.map((r) => (
                       <option key={r.routeId} value={r.routeId}>
                         {r.providerName} (Закупка: {(r.newCostCents / 100).toFixed(2)} ₽)
                       </option>
@@ -405,7 +425,7 @@ function OrderDrawer({
                 )}
               </div>
 
-              {selectedRouteId && failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId) && (
+              {activeRoute && (
                 <div className="bg-muted/30 p-4 rounded-xl border border-border space-y-2 text-sm">
                   <div className="font-bold mb-2">📊 Анализ маржи:</div>
                   <div className="flex justify-between">
@@ -420,15 +440,15 @@ function OrderDrawer({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Резервный провайдер:</span>
-                    <span>{(failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).newCostCents / 100).toFixed(2)} ₽</span>
+                    <span>{(activeRoute.newCostCents / 100).toFixed(2)} ₽</span>
                   </div>
                   <div className="h-px bg-border my-2" />
                   <div className="flex justify-between font-bold">
                     <span>Новая маржа:</span>
-                    <span className={failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).isMarginPositive ? 'text-success' : 'text-destructive'}>
-                      {(failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).marginCents / 100).toFixed(2)} ₽ 
-                      ({failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).marginPercent}%) 
-                      {failoverPreview.routes.find((r: any) => r.routeId === selectedRouteId).isMarginPositive ? ' ✅' : ' 🔴'}
+                    <span className={activeRoute.isMarginPositive ? 'text-success' : 'text-destructive'}>
+                      {(activeRoute.marginCents / 100).toFixed(2)} ₽ 
+                      ({activeRoute.marginPercent}%) 
+                      {activeRoute.isMarginPositive ? ' ✅' : ' 🔴'}
                     </span>
                   </div>
                 </div>
@@ -541,6 +561,7 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
         searchKey="user_email"
         searchPlaceholder="Фильтр по email на этой странице..."
         hideClientPagination={true}
+        initialColumnVisibility={{ select: false, eta: false }}
         renderToolbar={(table) => {
           const selectedRows = table.getFilteredSelectedRowModel().rows;
           if (selectedRows.length === 0) return null;

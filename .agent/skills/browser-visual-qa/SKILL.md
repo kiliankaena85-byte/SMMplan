@@ -38,13 +38,16 @@ agent.check([
 - [ ] Изображения загрузились (no broken images)
 - [ ] Mobile layout не сломан
 - [ ] Dark mode работает корректно
+- [ ] Отсутствуют избыточные пустые зоны на мобильных экранах (отступы py-24, pb-40 адаптированы)
+- [ ] Тарифная сетка переведена в 1-колоночный стек на мобильных, отсутствуют сжатые карточки
 
 ## Step-by-step execution protocol
 
 1. **Launch browser**: Запустить Browser Agent, открыть страницу
 2. **Capture screenshots**: Сделать скриншоты на desktop (1440px, 1024px) и mobile (375px)
-3. **Compare with spec**: Сравнить с дизайн-макетом или specification
-4. **Run checks**: Проверить типографику, spacing, цвета, иерархию
+3. **Check responsive layout**: Убедиться в отсутствии пустых областей более 80px на mobile и проверить читаемость текстов в тарифах.
+4. **Compare with spec**: Сравнить с дизайн-макетом или specification
+5. **Run checks**: Проверить типографику, spacing, цвета, иерархию
 5. **Identify issues**: Зафиксировать все визуальные проблемы
 6. **Classify severity**: Классифицировать: Critical / Major / Minor
 7. **Generate report**: Сформировать отчёт со скриншотами и рекомендациями

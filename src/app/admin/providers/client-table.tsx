@@ -21,18 +21,18 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
         <Table className="table-fixed w-full" aria-label="Список SMM-провайдеров">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[30%] bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Название / API</TableHead>
-              <TableHead className="w-[10%] bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Услуги</TableHead>
-              <TableHead className="w-[15%] bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Баланс (Sync)</TableHead>
-              <TableHead className="w-[10%] bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">SLA</TableHead>
-              <TableHead className="w-[10%] bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Статус</TableHead>
-              <TableHead className="w-[25%] bg-muted/50 py-4 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">Действия</TableHead>
+              <TableHead className="w-[30%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Название / API</TableHead>
+              <TableHead className="w-[10%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Услуги</TableHead>
+              <TableHead className="w-[15%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Баланс (Sync)</TableHead>
+              <TableHead className="w-[10%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">SLA</TableHead>
+              <TableHead className="w-[10%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Статус</TableHead>
+              <TableHead className="w-[25%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">Действия</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {providers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={6} className="py-12 px-6">
                   <div className="py-12 text-center">
                     <p className="text-muted-foreground font-medium mb-3">
                       Нет добавленных провайдеров.
@@ -53,7 +53,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                   className="hover:bg-muted/50 transition-all duration-200 group"
                 >
                   {/* Name / URL */}
-                  <TableCell className="py-4 px-4">
+                  <TableCell className="py-5 px-6">
                     <div className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200">
                       {provider.name}
                     </div>
@@ -66,7 +66,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                   </TableCell>
 
                   {/* Service count */}
-                  <TableCell className="py-4 px-4">
+                  <TableCell className="py-5 px-6">
                     <div className="font-bold text-foreground tabular-nums">
                       {provider.serviceCount.toLocaleString('ru-RU')}
                     </div>
@@ -76,7 +76,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                   </TableCell>
 
                   {/* Balance */}
-                  <TableCell className="py-4 px-4">
+                  <TableCell className="py-5 px-6">
                     {provider.isActive ? (
                       <ProviderBalanceCell providerId={provider.id} />
                     ) : (
@@ -87,12 +87,12 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                   </TableCell>
 
                   {/* SLA */}
-                  <TableCell className="py-4 px-4">
+                  <TableCell className="py-5 px-6">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] font-bold text-muted-foreground/70">Ping:</span>
                         <span className={`text-xs font-mono font-bold ${provider.avgResponseMs > 2000 ? 'text-destructive' : provider.avgResponseMs > 500 ? 'text-warning' : 'text-success'}`}>
-                          {provider.avgResponseMs}ms
+                           {provider.avgResponseMs}ms
                         </span>
                       </div>
                       {provider.errorCount5m > 0 && (
@@ -109,7 +109,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                   </TableCell>
 
                   {/* Status */}
-                  <TableCell className="py-4 px-4">
+                  <TableCell className="py-5 px-6">
                     <Badge
                       intent={!provider.isActive ? "secondary" : provider.errorCount5m > 0 ? "destructive" : "primary"}
                       className={`font-bold text-[10px] uppercase tracking-widest ${
@@ -129,7 +129,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell className="py-4 px-4 text-right">
+                  <TableCell className="py-5 px-6 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <SyncProviderButton providerId={provider.id} />
                       <Link

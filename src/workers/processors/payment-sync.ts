@@ -7,6 +7,7 @@ import { logger } from '../../lib/logger';
 
 const log = logger.child({ component: 'PaymentSyncProcessor' });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
   log.info('Starting pending payments synchronization...');
 
@@ -103,6 +104,7 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
         });
         log.info(`Successfully marked payment ${payment.id} as CANCELED.`);
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       log.error(`Exception while syncing payment ${payment.id}: ${err.message}`, { cause: err });
     }

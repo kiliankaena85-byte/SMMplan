@@ -25,6 +25,7 @@ const TAX_VAT_USN_SPECIAL_RATE = 0.05;
 // ═══════════════════════════════════════════════════════
 
 /** YooKassa — карты РФ (safe-константа, верхняя граница 2.8–3.5%) */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ACQUIRING_YOOKASSA_CARDS = 0.035;
 
 /** Safe-константа для расчётов: максимальная комиссия шлюза */
@@ -42,6 +43,7 @@ const ACQUIRING_SAFE_MAX = 0.035;
 export const SAFETY_FLOOR_MARKUP = 1.0;
 
 /** Максимальный множитель наценки (x151 = 15000%) */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const MAX_MARKUP_MULTIPLIER = 151.0;
 
 /** L-07: Максимальная суммарная скидка (Loyalty + Promo) в процентах.
@@ -53,6 +55,7 @@ export const MAX_TOTAL_DISCOUNT = 30;
 // ═══════════════════════════════════════════════════════
 
 /** Буфер на банковский спред при конвертации USD → RUB */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CURRENCY_SPREAD_BUFFER = 0.03;
 
 // ═══════════════════════════════════════════════════════
@@ -61,6 +64,7 @@ const CURRENCY_SPREAD_BUFFER = 0.03;
 
 /** Anti-Jitter: порог минимального изменения цены при синхронизации.
  *  Изменения < 5% от текущей цены игнорируются для стабильности витрины. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SYNC_JITTER_THRESHOLD = 0.05;
 
 /** Anomaly Detector: изменение rate > 20% считается аномалией и генерирует алерт */

@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
         if (sigBuffer.length === secretBuffer.length) {
           isDirectMatch = crypto.timingSafeEqual(sigBuffer, secretBuffer);
         }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // Safe ignore
       }
@@ -165,6 +166,7 @@ export async function POST(req: NextRequest) {
         if (sigBuffer.length === computedBuffer.length) {
           isHmacMatch = crypto.timingSafeEqual(sigBuffer, computedBuffer);
         }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // Safe fallback if matching fails
       }
@@ -178,6 +180,7 @@ export async function POST(req: NextRequest) {
           const toAddress = tempBody.To || tempBody.to || '';
           const match = toAddress.match(/support\+(.+)@/i);
           if (match) extractedTicketId = match[1];
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           // ignore parsing error
         }

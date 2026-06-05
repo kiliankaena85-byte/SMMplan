@@ -2,6 +2,7 @@ import { Job } from 'bullmq';
 import { db } from '../../lib/db';
 import { SyncJobPayload } from '../queues';
 import { providerService } from '../../services/providers/provider.service';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { WalletService } from '../../services/financial/wallet.service';
 import { RefundPolicyService } from '../../services/financial/refund-policy.service';
 import { sendOrderCompletedMail } from '../../lib/smtp';
@@ -69,6 +70,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
         const syncStartTime = Date.now();
         const statuses = await Promise.race([
           provider.getMultiOrderStatus(allExtIds),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           new Promise<any>((_, reject) => setTimeout(() => reject(new Error('PROVIDER_TIMEOUT')), 15000))
         ]);
         const elapsedMs = Date.now() - syncStartTime;
@@ -171,6 +173,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
         }
         }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       log.error(`Exception while pinging Provider ${providerDef.id}`, { cause: e });
 
@@ -183,6 +186,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
             errorCount5m: { increment: 1 }
           }
         });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (slaErr: any) {
         log.error(`Failed to update SLA error metrics for ${providerDef.id}`, { cause: slaErr });
       }
@@ -194,6 +198,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     const { QuarantineService } = await import('@/services/providers/quarantine.service');
     await QuarantineService.restoreExpiredQuarantines();
     await QuarantineService.evaluateTriggerC(); // Check for stuck orders globally
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     log.error('Failed to execute Quarantine Service tasks', { cause: e });
   }
@@ -218,6 +223,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
         await orderService.failOrderTerminal(orphan.id, 'Авто-отмена: заказ завис в очереди на отправку (Timeout > 15m)');
       }
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     log.error('Failed to execute Orphan Sweeper', { cause: e });
   }

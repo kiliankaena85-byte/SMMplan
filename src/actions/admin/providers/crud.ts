@@ -57,6 +57,7 @@ export async function createProvider(rawData: {
   apiKey: string;
   isActive: boolean;
   balanceCurrency: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapping?: any;
 }) {
   return requireStaffPermission('providers', 'edit', async (admin) => {
@@ -100,6 +101,7 @@ export async function updateProvider(rawId: string, rawData: {
   apiKey?: string; // If empty, we don't update
   isActive: boolean;
   balanceCurrency: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapping?: any;
 }) {
   return requireStaffPermission('providers', 'edit', async (admin) => {
@@ -111,6 +113,7 @@ export async function updateProvider(rawId: string, rawData: {
     });
     const data = updateSchema.parse(rawData);
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {
       name: data.name,
       apiUrl: data.apiUrl,
@@ -143,29 +146,6 @@ export async function updateProvider(rawId: string, rawData: {
   });
 }
 
-export async function deleteProvider(rawId: string) {
-    return requireStaffPermission('providers', 'edit', async (admin) => {
-      const id = idSchema.parse(rawId);
-      // Check if it has related services
-      const count = await db.service.count({ where: { providerId: id } });
-      if (count > 0) {
-         return { success: false, error: `Cannot delete provider. It is used by ${count} services. Reassign them first.` };
-      }
-
-      await db.provider.delete({ where: { id } });
-
-      auditAdmin({
-          adminId: admin.id,
-          adminEmail: admin.email,
-          action: "PROVIDER_DELETE",
-          target: id,
-          targetType: "PROVIDER",
-      });
-
-      return { success: true, error: undefined };
-    });
-}
-
 export async function checkProviderConnection(rawId: string) {
     return requireStaffPermission('providers', 'view', async () => {
         try {
@@ -190,6 +170,7 @@ export async function checkProviderConnection(rawId: string) {
                 balance: balanceData.balance, 
                 currency: balanceData.currency 
             };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             return { success: false, error: e.message || "Connection failed" };
         }
@@ -262,6 +243,7 @@ export async function getGlobalProviderLiquidity() {
                 errorCount,
                 burnRate24h: burnRate24hRub
             };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             return { success: false, error: e.message || "Failed to calculate global liquidity" };
         }
@@ -284,12 +266,14 @@ export async function syncProviderCatalogAction(rawId: string) {
                 success: true,
                 stats
             };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             return { success: false, error: e.message || "Синхронизация не удалась" };
         }
     });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMethod: 'GET'|'POST', contentType: 'form'|'json', authConfig: any, providerId?: string) {
     return requireStaffPermission('providers', 'edit', async () => {
         try {
@@ -320,7 +304,9 @@ export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMe
                 }
             };
             
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const instance = await providerService.getProviderInstance(mockProvider as any);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const servicesResponse = await (instance as any).request({ action: 'services' }, 0);
             
             let servicesKeys: string[] = [];
@@ -338,6 +324,7 @@ export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMe
                 }
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const balanceResponse = await (instance as any).request({ action: 'balance' }, 0);
             let balanceKeys: string[] = [];
             if (typeof balanceResponse === 'object' && balanceResponse !== null) {
@@ -351,6 +338,7 @@ export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMe
                     balance: { keys: balanceKeys }
                 }
             };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             return { success: false, error: e.message || "Failed to infer schema" };
         }

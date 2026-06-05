@@ -20,6 +20,7 @@ interface FinancialMetrics {
 
 class AccountingService {
   async getMetrics(startDate?: Date, endDate?: Date): Promise<FinancialMetrics> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const whereClause: any = {};
     if (startDate && endDate) {
       whereClause.createdAt = { gte: startDate, lte: endDate };
@@ -118,12 +119,9 @@ class AccountingService {
     // If threshold is exceeded, add special 5% VAT rate to base tax rate
     const effectiveTaxRate = isVatThresholdExceeded ? baseTaxRate + 5.0 : baseTaxRate;
 
-    let taxes = 0;
-    if (usnScheme === 'INCOME') {
-      taxes = Math.round((revenueGross > 0 ? revenueGross : 0) * (effectiveTaxRate / 100));
-    } else {
-      taxes = Math.round((marginGross > 0 ? marginGross : 0) * (effectiveTaxRate / 100));
-    }
+    const taxes = usnScheme === 'INCOME'
+      ? Math.round((revenueGross > 0 ? revenueGross : 0) * (effectiveTaxRate / 100))
+      : Math.round((marginGross > 0 ? marginGross : 0) * (effectiveTaxRate / 100));
     const profitNet = marginGross - taxes - opex;
     const marginPercentage = revenueNet > 0 ? (marginGross / revenueNet) * 100 : 0;
 

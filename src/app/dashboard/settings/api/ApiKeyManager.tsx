@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { generateApiKey, revokeApiKey } from '@/actions/auth/api-key';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Copy, RefreshCw, Trash2, CheckCheck, ShieldAlert } from 'lucide-react';
 
 export default function ApiKeyManager({ 

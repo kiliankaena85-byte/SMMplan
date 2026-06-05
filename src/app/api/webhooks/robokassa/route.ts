@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
         invId = body.get('InvId') || invId;
         signatureValue = body.get('SignatureValue') || signatureValue;
         shp_paymentId = body.get('shp_paymentId') || shp_paymentId;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // Ignore parsing exceptions
       }
@@ -125,6 +126,7 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json({ error: 'Confirm failed' }, { status: 400 });
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[Robokassa Webhook] Error:', error.message);
     return NextResponse.json({ error: 'Webhook execution failed' }, { status: 500 });

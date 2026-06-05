@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json({ error: 'Incorrect action' }, { status: 400 });
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[API v2 Error]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
 // ACTION HANDLERS
 // ----------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleServices(user: any, formData: FormData) {
   const offset = formData.get('offset')?.toString() || '0';
   const skip = parseInt(offset, 10);
@@ -129,6 +131,7 @@ const addSchema = z.object({
   interval: z.coerce.number().int().positive().optional()
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleAdd(user: any, formData: FormData) {
   const payload = Object.fromEntries(formData.entries());
   const parsed = addSchema.safeParse(payload);
@@ -171,6 +174,7 @@ async function handleAdd(user: any, formData: FormData) {
 
     const createdOrder = await db.order.findUnique({ where: { id: result.orderId }, select: { numericId: true }});
     return NextResponse.json({ order: createdOrder?.numericId });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     if (err instanceof Error && err.message === 'INSUFFICIENT_FUNDS') {
       return NextResponse.json({ error: 'Not enough funds on balance' }, { status: 400 });
@@ -219,6 +223,7 @@ async function handleStatus(user: User, formData: FormData) {
       }
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resultMap: Record<string, any> = {};
     for (const id of ids) {
       resultMap[id.toString()] = { error: 'Incorrect order ID' };
@@ -258,12 +263,14 @@ async function handleCancel(user: User, formData: FormData) {
   return NextResponse.json({ error: 'Cancellation via API is not supported. Contact support.' }, { status: 400 });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleRefill(user: User, formData: FormData) {
   // Reseller Safety: Automated Refill is completely disabled.
   // We do not pass refills to upstream automatically to prevent silent failures and provider conflicts.
   return NextResponse.json({ error: 'Refill is only available manually via support ticket for reseller platforms.' }, { status: 400 });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleRefillStatus(user: any, formData: FormData) {
   const refillStr = formData.get('refill')?.toString();
   if (!refillStr) {
@@ -275,6 +282,7 @@ async function handleRefillStatus(user: any, formData: FormData) {
         where: { numericId: { in: ids }, order: { userId: user.id } }
       });
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resultMap: any[] = [];
       for (const refill of refills) {
         resultMap.push({

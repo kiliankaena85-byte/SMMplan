@@ -68,6 +68,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   if (!user) redirect('/login');
 
   // Build the DB where filter dynamically
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
     userId: session.userId,
   };

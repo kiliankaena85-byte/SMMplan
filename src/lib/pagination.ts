@@ -31,6 +31,7 @@ type PaginationInput = {
  * ```
  */
 export async function paginatedQuery<T extends { id: string }>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   model: any,
   options: PaginationInput & {
     where?: Record<string, unknown>;

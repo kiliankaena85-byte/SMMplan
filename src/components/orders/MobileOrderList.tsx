@@ -30,10 +30,13 @@ const STATUS_COLOR: Record<string, string> = {
   CANCELED:        'text-muted-foreground bg-muted border-border',
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function MobileOrderList({ orders, user }: { orders: any[], user: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const onOpen = () => setIsOpen(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const onOpenChange = (open: boolean) => setIsOpen(open);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   const listRef = useRef<HTMLDivElement>(null);
@@ -44,6 +47,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
     overscan: 5,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleOrderClick = (order: any) => {
     setSelectedOrder(order);
     onOpen();
@@ -162,7 +166,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
         onOpenChange={setIsOpen} 
       >
         <DrawerContent placement="bottom" className="max-h-[90dvh] rounded-t-3xl pb-[env(safe-area-inset-bottom)] motion-reduce:transition-none motion-reduce:transform-none">
-          {(onClose) => (
+          {() => (
             <>
               {/* Touch action none on handle for swipe down */}
               <div className="w-full flex justify-center pt-3 pb-1 touch-none">

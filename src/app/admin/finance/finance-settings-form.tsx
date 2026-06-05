@@ -20,6 +20,7 @@ export function FinanceSettingsForm({ initialTaxRate, initialOpex }: FinanceSett
       await updateSystemSettings(formData);
       // Assuming it returns some success indicator or we just toast on success
       toast.success('Параметры учёта сохранены');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error('Ошибка сохранения параметров');
     }

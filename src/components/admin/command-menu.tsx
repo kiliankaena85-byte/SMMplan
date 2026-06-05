@@ -53,12 +53,12 @@ export function CommandMenu() {
     <>
       <Button
         intent="outline"
-        className="relative h-9 w-full justify-start rounded-[0.5rem] bg-primary text-sm text-muted-foreground sm:pr-12 hover:bg-primary/90 hover:text-primary-foreground border-slate-700 flex mb-4"
+        className="relative h-9 w-full justify-start rounded-[var(--radius,10px)] bg-muted/60 text-sm text-muted-foreground sm:pr-12 hover:bg-muted/80 hover:text-foreground border-border/80 flex mb-4"
         onClick={() => setOpen(true)}
       >
         <Search className="mr-2 h-4 w-4" />
         <span className="inline-flex">Поиск...</span>
-        <kbd className="pointer-events-none absolute right-1.5 top-2 hidden h-5 select-none items-center gap-1 rounded border border-slate-700 bg-slate-800 px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex text-muted-foreground">
+        <kbd className="pointer-events-none absolute right-1.5 top-2 hidden h-5 select-none items-center gap-1 rounded border border-border/80 bg-card px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex text-muted-foreground">
           <span className="text-xs">⌘</span>K
         </kbd>
       </Button>

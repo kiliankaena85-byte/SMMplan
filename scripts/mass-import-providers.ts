@@ -109,6 +109,11 @@ async function main() {
     const categorized = new Map<string, any[]>();
 
     for (const raw of allServices) {
+        const rawRate = parseFloat(raw.rate);
+        if (isNaN(rawRate) || rawRate <= 0) {
+            continue;
+        }
+
         const desc = raw.desc || raw.description || '';
         const analyzed = SmartAnalyzerLogic.detectSync(raw.name, desc, raw.category || '');
         if (analyzed.platform === 'OTHER' || analyzed.category === 'OTHER') continue;
@@ -209,7 +214,7 @@ async function main() {
         // Вставляем услуги в базу
         for (const item of selectedServices) {
             const rawRate = parseFloat(item.raw.rate);
-            const priceInCents = Math.round(rawRate * globalMarkup * exchangeRate * 10); // rate is per 1000
+            const priceInCents = Math.round(rawRate * globalMarkup * exchangeRate * 100); // rate is per 1000
             
             if (priceInCents > 2000000000 || isNaN(priceInCents)) {
                 console.log(`Anomaly skipped: ${item.raw.name} (${priceInCents} cents)`);

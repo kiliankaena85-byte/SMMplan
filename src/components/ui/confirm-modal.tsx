@@ -1,8 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { Modal, ModalHeader, ModalBody, ModalFooter } from '@heroui/react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose
+} from '@/components/ui/dialog';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -25,22 +32,34 @@ export function ConfirmModal({
   cancelText = "Отмена",
   isDanger = false
 }: ConfirmModalProps) {
+  if (!isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose}>
-      <div className="bg-background rounded-large shadow-large border border-divider">
-        <div className="p-6">
-          <ModalHeader className="font-bold text-foreground">{title}</ModalHeader>
-          <ModalBody className="text-muted-foreground text-sm">{children}</ModalBody>
-          <ModalFooter className="flex justify-end gap-2 pt-4">
-            <Button intent="outline" onClick={onClose} className="min-h-[44px]">
-              {cancelText}
-            </Button>
-            <Button intent={isDanger ? "destructive" : "primary"} onClick={onConfirm} className="min-h-[44px]">
-              {confirmText}
-            </Button>
-          </ModalFooter>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md rounded-2xl border border-border bg-background shadow-2xl p-6">
+        <DialogHeader className="pb-3 border-b border-border/50">
+          <DialogTitle className="text-foreground font-black text-base">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="py-4 text-muted-foreground text-xs leading-relaxed font-medium">
+          {children}
         </div>
-      </div>
-    </Modal>
+
+        <DialogFooter className="mt-4 pt-4 border-t border-border/50">
+          <DialogClose render={<Button intent="outline" className="text-xs h-9 font-semibold" onClick={onClose} />}>
+            {cancelText}
+          </DialogClose>
+          <Button 
+            intent={isDanger ? "destructive" : "primary"} 
+            onClick={onConfirm} 
+            className="text-xs h-9 font-semibold"
+          >
+            {confirmText}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

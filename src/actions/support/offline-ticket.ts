@@ -106,11 +106,31 @@ export async function createOfflineTicketAction(input: OfflineTicketInput) {
     let finalPaymentId = paymentId || null;
     let finalOrderId = orderId || null;
 
+    if (finalPaymentId) {
+      const p = await db.payment.findUnique({
+        where: { id: finalPaymentId },
+        select: { userId: true }
+      });
+      if (!p || p.userId !== finalUserId) {
+        finalPaymentId = null;
+      }
+    }
+
+    if (finalOrderId) {
+      const o = await db.order.findUnique({
+        where: { id: finalOrderId },
+        select: { userId: true }
+      });
+      if (!o || o.userId !== finalUserId) {
+        finalOrderId = null;
+      }
+    }
+
     if (!finalOrderId || !finalPaymentId) {
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
       const recentOrder = await db.order.findFirst({
         where: {
-          email: lowerEmail,
+          userId: finalUserId,
           createdAt: { gte: fifteenMinutesAgo }
         },
         orderBy: { createdAt: 'desc' },
@@ -166,6 +186,7 @@ export async function createOfflineTicketAction(input: OfflineTicketInput) {
       ticketId: result.ticketId 
     };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[createOfflineTicketAction] Unexpected core failure:', error);
     return { 

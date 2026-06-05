@@ -9,30 +9,36 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 export { Card, CardHeader, CardContent } from "@/components/ui/card";
 export { Button } from "@/components/ui/button";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 const TableColumn = ({ children, className, isRowHeader }: any) => (
-  <TableHead className={className}>{children}</TableHead>
+  <TableHead className={cn("text-warm-text/80 font-bold border-b border-warm-border/60 bg-warm-zinc/20 py-4 px-6", className)}>{children}</TableHead>
 );
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableHeaderComponent = ({ children }: any) => (
   <TableHeader>
-    <TableRow>{children}</TableRow>
+    <TableRow className="hover:bg-transparent border-b border-warm-border/60">{children}</TableRow>
   </TableHeader>
 );
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableCellComponent = ({ children, className }: any) => (
-  <TableCell className={className}>{children}</TableCell>
+  <TableCell className={cn("text-warm-text/90 border-b border-warm-border/30 align-middle py-5 px-6", className)}>{children}</TableCell>
 );
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableRowComponent = ({ children, className }: any) => (
-  <TableRow className={className}>{children}</TableRow>
+  <TableRow className={cn("hover:bg-warm-zinc/40 even:bg-warm-zinc/15 border-b border-warm-border/30 transition-all duration-150", className)}>{children}</TableRow>
 );
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableBodyComponent = ({ children, emptyContent, renderEmptyState }: any) => {
   const content = React.Children.toArray(children).filter(Boolean);
   if (content.length === 0) {
     return (
       <TableBody>
         <TableRow>
-          <TableCell colSpan={100} className="text-center py-12 text-muted-foreground font-medium">
+          <TableCell colSpan={100} className="text-center py-12 text-warm-text/60 font-medium">
             {renderEmptyState ? renderEmptyState() : emptyContent || "Нет данных"}
           </TableCell>
         </TableRow>
@@ -42,11 +48,13 @@ const TableBodyComponent = ({ children, emptyContent, renderEmptyState }: any) =
   return <TableBody>{children}</TableBody>;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableScrollContainer = ({ children }: any) => (
-  <div className="rounded-md border border-border shadow-sm bg-card overflow-hidden">
+  <div className="rounded-xl border border-warm-border/60 shadow-[0_8px_30px_rgba(39,39,42,0.02)] bg-warm-card overflow-hidden">
     {children}
   </div>
 );
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableContent = ({ children, "aria-label": ariaLabel, className }: any) => (
   <ShadcnTable aria-label={ariaLabel} className={className}>
     {children}
@@ -54,6 +62,7 @@ const TableContent = ({ children, "aria-label": ariaLabel, className }: any) => 
 );
 
 export const Table = Object.assign(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ({ children, "aria-label": ariaLabel, className }: any) => {
     let hasWrapperChild = false;
     React.Children.forEach(children, (child) => {

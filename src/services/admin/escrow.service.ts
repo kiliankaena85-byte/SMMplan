@@ -44,12 +44,51 @@ export class EscrowService {
     const isOwnerOrAdmin = admin.role === 'OWNER' || admin.role === 'ADMIN';
 
     // 2. Owners and Admins bypass all Escrow trust limits
-    if (isOwnerOrAdmin || amountCents < 0) {
+    if (isOwnerOrAdmin) {
       await this.executeApprovedAdjustment(targetUserId, amountCents, reason, admin);
       return { status: 'APPROVED' as const };
     }
 
     const todayMSK = getMSKMidnightUTC();
+
+    // 3. Отрицательные корректировки (списание баланса)
+    if (amountCents < 0) {
+      const absAmount = Math.abs(amountCents);
+      const LARGE_DEDUCTION_THRESHOLD = 1000000; // 10,000 RUB в копейках
+
+      if (absAmount > LARGE_DEDUCTION_THRESHOLD) {
+        try {
+          return await db.$transaction(async (tx) => {
+            const largeDeductionsToday = await tx.ledgerEntry.count({
+              where: {
+                adminId: admin.id,
+                createdAt: { gte: todayMSK },
+                amount: { lte: -LARGE_DEDUCTION_THRESHOLD } // Отрицательные суммы <= -1000000
+              }
+            });
+
+            if (largeDeductionsToday >= 3) {
+              const alertMsg = `🚨 [Escrow Guard] Сотрудник ${admin.email} пытался провести более 3 крупных списаний за день. Операция списания на ${(absAmount/100).toFixed(2)} ₽ заблокирована.`;
+              sendAdminAlert(alertMsg, 'CRITICAL');
+              throw new Error("Превышен дневной лимит крупных списаний. Операция заблокирована.");
+            }
+
+            // Отправляем крупное списание в Карантин (требует аппрува Владельца)
+            await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+            return { status: 'QUARANTINE' as const };
+          }, { isolationLevel: 'Serializable' });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+          if (error.code === 'P2034') throw new Error("Транзакция отклонена: Баланс пользователя изменяется в данный момент.", { cause: error });
+          throw error;
+        }
+      }
+
+      // Небольшие списания (до 10,000 руб) одобряются автоматически
+      await this.executeApprovedAdjustment(targetUserId, amountCents, reason, admin);
+      return { status: 'APPROVED' as const };
+    }
+
 
     // 3. To prevent state-bypass (race conditions), we must evaluate and execute 
     // the trust budget check atomically using Serializable isolation.
@@ -74,6 +113,7 @@ export class EscrowService {
         await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
         return { status: 'APPROVED' as const };
       }, { isolationLevel: 'Serializable' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error.code === 'P2034') {
         throw new Error("Транзакция отклонена: Баланс пользователя изменяется в данный момент. Повторите попытку.", { cause: error });
@@ -94,6 +134,7 @@ export class EscrowService {
   }
 
   private async executeApprovedAdjustmentTx(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tx: any,
     targetUserId: string,
     amountCents: number,
@@ -123,6 +164,7 @@ export class EscrowService {
   }
 
   private async executeQuarantineAdjustmentTx(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tx: any,
     targetUserId: string,
     amountCents: number,
@@ -226,10 +268,13 @@ export class EscrowService {
       });
 
       if (resolution === 'APPROVE') {
-        await tx.user.update({
-          where: { id: entry.userId },
-          data: { balance: { increment: entry.amount } },
-        });
+        await WalletOps.credit(
+          tx,
+          entry.userId,
+          Number(entry.amount),
+          `Разблокировка средств из карантина: ${entry.reason}`,
+          { idempotencyKey: `approve_quarantine_${entryId}`, adminId: owner.id }
+        );
       }
 
       await tx.adminAuditLog.create({

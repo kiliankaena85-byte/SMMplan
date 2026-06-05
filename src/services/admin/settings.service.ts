@@ -29,18 +29,32 @@ class SettingsService {
         role: true,
         balance: true,
         supportLimitCents: true,
+        staffRoleId: true,
+        staffRole: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
         createdAt: true,
         _count: { select: { orders: true, tickets: true } }
       }
     });
   }
 
-  async updateUserRole(userId: string, role: string) {
-    const validRoles = ['USER', 'SUPPORT', 'MANAGER', 'ADMIN'];
+  async updateUserRole(userId: string, role: string, staffRoleId?: string | null) {
+    const validRoles = ['USER', 'SUPPORT', 'MANAGER', 'ADMIN', 'OWNER', 'BANNED'];
     if (!validRoles.includes(role)) throw new Error(`Invalid role: ${role}`);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dataToUpdate: any = { role };
+    if (staffRoleId !== undefined) {
+      dataToUpdate.staffRoleId = staffRoleId;
+    }
+    
     return db.user.update({
       where: { id: userId },
-      data: { role }
+      data: dataToUpdate
     });
   }
 

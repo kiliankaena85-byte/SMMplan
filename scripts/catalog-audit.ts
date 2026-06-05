@@ -39,6 +39,7 @@ addSection('🔍 PASS 1: Обнаружение дубликатов');
 function normalize(name: string): string {
   return name
     .toLowerCase()
+    // eslint-disable-next-line no-useless-escape, no-misleading-character-class
     .replace(/[\[\](){}⚡🔥♻️🌟⭐💎🇷🇺🇺🇸🇹🇷🇮🇳🇨🇳🇮🇹🇺🇿🇪🇺🇮🇩🇹🇭🇸🇦]/g, '')
     .replace(/\s+/g, ' ')
     .replace(/[^a-zа-яё0-9 ]/g, '')

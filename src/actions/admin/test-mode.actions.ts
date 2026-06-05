@@ -58,6 +58,7 @@ export async function adminClearTestData() {
         success: true, 
         message: `Cleared ${resultOrders.count} test orders and associated data.` 
       };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error("Failed to clear test data:", e);
       return { success: false, error: "Failed to perform Nucleus Clear." };

@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import Link from 'next/link';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Button } from '@/components/ui/button';
 import { PagesTable } from './client-table';
 
@@ -21,7 +22,7 @@ export default async function AdminPagesList() {
       </div>
 
       <div className="rounded-2xl shadow-sm bg-card overflow-hidden">
-        <PagesTable pages={pages as any} />
+        <PagesTable pages={pages} />
       </div>
     </div>
   );

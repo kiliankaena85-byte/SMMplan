@@ -3,10 +3,11 @@
 import { useOrderEngine } from "@/hooks/useOrderEngine";
 import { PublicNetwork } from "@/actions/order/catalog";
 import { motion } from "framer-motion";
-import { Zap, LogIn, LogOut } from "lucide-react";
+import { Zap, LogIn, LogOut, Menu } from "lucide-react";
 import React from "react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/routes";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { TrustBar } from "./TrustBar";
 import { WhyUs } from "./WhyUs";
 import { FAQ } from "./FAQ";
@@ -28,7 +29,9 @@ import { MassOrderPreview } from "./order-engine/MassOrderPreview";
 import { MassConfirmEmailModal } from "./order-engine/MassConfirmEmailModal";
 import { PlatformSelectorFallback } from "@/components/orders/PlatformSelectorFallback";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { SocialIcon } from "@/components/ui/SocialIcon";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 export function SmartLinkLanding({
   initialCatalog,
@@ -51,23 +54,32 @@ export function SmartLinkLanding({
   const engine = useOrderEngine(initialCatalog, initialEmail);
   const {
     url, setUrl,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     networkId, setNetworkId,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     categoryId, setCategoryId,
     selectedService, setSelectedService,
     quantity, setQuantity,
     email, setEmail,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     customData, setCustomData,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     agreedToTerms, setAgreedToTerms,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     catalog,
     unfilteredCatalog,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     availableCategories,
     services,
     isLoading,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isCalculating,
     pricing,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     totalPriceFormatted,
     isMassMode,
     massCalculation,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isMassCalculating,
   } = engine;
 
@@ -123,7 +135,7 @@ export function SmartLinkLanding({
             <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-[0_2px_10px] shadow-primary/10">
               <Zap className="w-4 h-4 text-primary fill-current" />
             </div>
-            <span className="text-xl font-extrabold tracking-normal text-foreground hidden sm:block">{companyName}</span>
+            <span className="text-base sm:text-xl font-extrabold tracking-normal text-foreground">{companyName}</span>
           </Link>
 
           <nav className="hidden md:flex gap-8 text-sm font-bold text-muted-foreground">
@@ -137,41 +149,83 @@ export function SmartLinkLanding({
               Поддержка <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             </a>
             <Link href={ROUTES.FAQ} className="hover:text-primary transition-colors">FAQ</Link>
+            <Link href="/knowledge" className="hover:text-primary transition-colors">База знаний</Link>
           </nav>
 
-          {initialEmail ? (
-            <div className="flex items-center gap-3">
-              <span className="hidden lg:inline text-xs text-muted-foreground font-semibold">
-                Вы вошли как: <span className="text-foreground font-bold">{initialEmail}</span>
-              </span>
+          <div className="flex items-center gap-3">
+            {initialEmail ? (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="hidden lg:inline text-xs text-muted-foreground font-semibold">
+                  Вы вошли как: <span className="text-foreground font-bold">{initialEmail}</span>
+                </span>
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-primary text-primary-foreground text-xs sm:text-sm font-bold shadow-[0_2px_15px] shadow-primary/20 hover:opacity-90 transition-all duration-300"
+                >
+                  <span>Личный кабинет</span>
+                </Link>
+                <a
+                  href="/api/auth/logout"
+                  className="flex items-center justify-center p-2 sm:p-2.5 rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-destructive transition-colors border border-default-200"
+                  title="Выйти из аккаунта"
+                >
+                  <LogOut className="w-4 h-4" />
+                </a>
+              </div>
+            ) : (
               <Link
-                href="/dashboard"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-[0_2px_15px] shadow-primary/20 hover:opacity-90 transition-all duration-300"
+                href={ROUTES.AUTH.LOGIN}
+                className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-default-100 text-foreground text-xs sm:text-sm font-bold border border-default-200 hover:bg-default-200 transition-all duration-300"
               >
-                <span>Личный кабинет</span>
+                <LogIn className="w-4 h-4 text-muted-foreground" />
+                <span>Войти</span>
               </Link>
-              <a
-                href="/api/auth/logout"
-                className="flex items-center justify-center p-2.5 rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-destructive transition-colors border border-default-200"
-                title="Выйти из аккаунта"
-              >
-                <LogOut className="w-4 h-4" />
-              </a>
+            )}
+
+            {/* Mobile Dropdown Trigger */}
+            <div className="md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Открыть меню навигации"
+                  className="flex items-center justify-center p-2.5 rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-foreground border border-default-200 cursor-pointer active:scale-95 transition-all min-h-[44px] min-w-[44px] outline-none"
+                >
+                  <Menu className="w-4.5 h-4.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 mt-2 rounded-2xl border-border bg-content1 shadow-xl p-1.5 z-[250]">
+                  <DropdownMenuItem className="p-0">
+                    <Link href={ROUTES.HOME} className="flex items-center w-full px-3.5 py-2.5 text-xs font-bold rounded-xl hover:bg-default-100 transition-colors cursor-pointer text-foreground">
+                      Услуги
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="p-0">
+                    <a 
+                      href="/api/support/telegram" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="flex items-center w-full px-3.5 py-2.5 text-xs font-bold rounded-xl hover:bg-default-100 transition-colors cursor-pointer text-foreground"
+                    >
+                      Поддержка 💬
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="p-0">
+                    <Link href={ROUTES.FAQ} className="flex items-center w-full px-3.5 py-2.5 text-xs font-bold rounded-xl hover:bg-default-100 transition-colors cursor-pointer text-foreground">
+                      FAQ
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="p-0">
+                    <Link href="/knowledge" className="flex items-center w-full px-3.5 py-2.5 text-xs font-bold rounded-xl hover:bg-default-100 transition-colors cursor-pointer text-foreground">
+                      База знаний
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          ) : (
-            <Link
-              href={ROUTES.AUTH.LOGIN}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-default-100 text-foreground text-sm font-bold border border-default-200 hover:bg-default-200 transition-all duration-300"
-            >
-              <LogIn className="w-4 h-4 text-muted-foreground" />
-              <span className="hidden sm:inline">Войти</span>
-            </Link>
-          )}
+          </div>
         </div>
       </header>
 
       {/* ── Секция 2: Hero Блок (App Style) ── */}
-      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 py-12 md:py-20 pb-40 flex flex-col items-center relative z-10">
+      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 py-8 md:py-20 pb-16 md:pb-40 flex flex-col items-center relative z-10">
 
         {/* --- Variant B: Fintech Grid Backdrop --- */}
         <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden premium-grid-backdrop" />
@@ -187,6 +241,9 @@ export function SmartLinkLanding({
           }}
           className="text-center space-y-5 mb-10 max-w-3xl relative z-10 w-full mt-4"
         >
+          <div className="mb-4">
+            <ThemeSwitcher />
+          </div>
           <h1 className="text-4xl sm:text-6xl font-extrabold tracking-normal text-foreground leading-[1.05] drop-shadow-sm">
             Ускоряем ваши <span className="text-primary">соцсети</span>
           </h1>
@@ -245,13 +302,10 @@ export function SmartLinkLanding({
                    <IconBox className="w-8 h-8 text-primary/60" />
                  </div>
                  <div className="text-center space-y-2">
-                   <p className="text-lg font-extrabold text-foreground">Каталог услуг пуст</p>
+                   <p className="text-lg font-extrabold text-foreground">Каталог временно недоступен</p>
                    <p className="text-sm text-muted-foreground max-w-md leading-relaxed mx-auto">
-                     В настоящий момент база данных не содержит активных услуг. Пожалуйста, запустите команду наполнения базы данных моковыми данными:
+                     В настоящий момент мы обновляем список услуг и проводим техническое обслуживание. Пожалуйста, зайдите немного позже или обратитесь в поддержку.
                    </p>
-                   <code className="block bg-content3 text-primary px-4 py-2 rounded-xl text-xs font-mono font-bold select-all max-w-xs mx-auto border border-border">
-                     npm run db:seed-mock
-                   </code>
                  </div>
                </div>
              ) : isMassMode ? (
@@ -367,6 +421,7 @@ export function SmartLinkLanding({
           onClearSelection={() => setSelectedService(null)}
           emailInputRef={desktopEmailInputRef}
           emailHasError={emailHasError}
+          engine={engine}
         />
       )}
 

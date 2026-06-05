@@ -10,7 +10,7 @@
 
 import { db } from "@/lib/db";
 import { providerService } from "@/services/providers/provider.service";
-import { applyBeautifulRounding } from "@/lib/financial-constants";
+import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from "@/lib/financial-constants";
 import { SettingsManager } from "@/lib/settings";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin } from "@/lib/admin-audit";
@@ -38,12 +38,13 @@ export async function adminSyncProviderCatalog() {
         // Note: For Smmplan Lite we fetch all services that have an externalId
         const ourServices = await db.service.findMany({
           where: { externalId: { not: null } },
-          select: { id: true, externalId: true, rate: true, markup: true, isActive: true, isQuarantined: true, pricePer1000Cents: true },
+          select: { id: true, externalId: true, rate: true, markup: true, isActive: true, isQuarantined: true, pricePer1000Cents: true, providerCurrency: true },
         });
 
         let updatedCount = 0;
         let disabledCount = 0;
         let unchangedCount = 0;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updatesBatch: any[] = [];
 
         // 3. Surgical Iteration (O(M) where M is ~100-500, not 5000)
@@ -77,47 +78,117 @@ export async function adminSyncProviderCatalog() {
           }
 
           const newRate = parseFloat(external.rate) || 0;
-          const oldRate = myService.rate;
+          const providerCurrency = pDbRecord.balanceCurrency || 'USD';
+          let oldRate = myService.rate;
 
-          // Check for Elastic Quarantine: >20% price jump in USD
-          if (oldRate > 0 && newRate > oldRate * 1.20) {
+          let providerCurrencyChanged = false;
+          // Self-heal mismatch between service providerCurrency and current provider balanceCurrency on the fly
+          if (myService.providerCurrency !== providerCurrency) {
+            const conversionFactor = (myService.providerCurrency === 'USD' && providerCurrency === 'RUB')
+              ? usdToRub
+              : (myService.providerCurrency === 'RUB' && providerCurrency === 'USD')
+              ? (1.0 / usdToRub)
+              : 1.0;
+            oldRate = oldRate * conversionFactor;
+            providerCurrencyChanged = true;
+          }
+
+          const serviceExchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
+          const newCostCents = newRate * serviceExchangeRate * 100;
+          const actualMarkup = newCostCents > 0 ? (myService.pricePer1000Cents / newCostCents) : myService.markup;
+
+          // Check for Margin Floor breach -> Quarantine (align with catalog.service.ts)
+          if (oldRate > 0 && newRate !== oldRate && actualMarkup < SAFETY_FLOOR_MARKUP) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const updateData: any = {
+              isQuarantined: true,
+              quarantineReason: `Margin Floor Breach: Наценка упала до ${actualMarkup.toFixed(2)}x (Min: ${SAFETY_FLOOR_MARKUP}x)`,
+              isActive: false,
+              pendingRate: newRate,
+              quarantinedAt: new Date()
+            };
+            if (providerCurrencyChanged) {
+              updateData.providerCurrency = providerCurrency;
+            }
             updatesBatch.push(
               db.service.update({
                 where: { id: myService.id },
-                data: {
-                  isQuarantined: true,
-                  quarantineReason: "Ценовой скачок у провайдера",
-                  isActive: false,
-                  pendingRate: newRate,
-                  quarantinedAt: new Date()
-                }
+                data: updateData
               })
             );
-            
-            const alertMsg = `🚨 [Elastic Quarantine] Услуга ${myService.id} ушла в карантин из-за ценового скачка >20% ($${oldRate} -> $${newRate}).`;
+
+            const alertMsg = `🚨 [Margin Floor Breach] Услуга ${myService.id} ушла в карантин из-за падения наценки до ${actualMarkup.toFixed(2)}x (Min: ${SAFETY_FLOOR_MARKUP}x).`;
             console.warn(alertMsg);
             const { sendAdminAlert } = await import('@/lib/notifications');
             await sendAdminAlert(alertMsg, 'WARNING');
-            
+
             disabledCount++;
             continue;
           }
 
-          // Calculate retail price and single unit price
-          const pricePer1kRub = newRate * myService.markup * usdToRub;
+          let markupChanged = false;
+
+          // Check for Elastic Quarantine or Price Absorption
+          if (oldRate > 0 && newRate > oldRate) {
+            const increaseRatio = newRate / oldRate;
+
+            if (increaseRatio > 1.10) { // Скачок > 10%
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const updateData: any = {
+                isQuarantined: true,
+                quarantineReason: "Ценовой скачок у провайдера (>10%)",
+                isActive: false,
+                pendingRate: newRate,
+                quarantinedAt: new Date()
+              };
+              if (providerCurrencyChanged) {
+                updateData.providerCurrency = providerCurrency;
+              }
+              updatesBatch.push(
+                db.service.update({
+                  where: { id: myService.id },
+                  data: updateData
+                })
+              );
+              
+              const currencySymbol = providerCurrency === 'RUB' ? '₽' : '$';
+              const alertMsg = `🚨 [Elastic Quarantine] Услуга ${myService.id} ушла в карантин из-за ценового скачка >10% (${currencySymbol}${oldRate.toFixed(4)} -> ${currencySymbol}${newRate.toFixed(4)}).`;
+              console.warn(alertMsg);
+              const { sendAdminAlert } = await import('@/lib/notifications');
+              await sendAdminAlert(alertMsg, 'WARNING');
+              
+              disabledCount++;
+              continue;
+            } else {
+              // Рост <= 10%. Берем процент на себя (абсорбируем), снижая markup
+              const serviceExchangeRateLocal = providerCurrency === 'RUB' ? 1.0 : usdToRub;
+              const newCostCentsLocal = newRate * serviceExchangeRateLocal * 100;
+              if (newCostCentsLocal > 0) {
+                myService.markup = myService.pricePer1000Cents / newCostCentsLocal;
+                markupChanged = true;
+              }
+            }
+          }
+
+          const pricePer1kRub = newRate * myService.markup * serviceExchangeRate;
           const pricePer1kRubRounded = applyBeautifulRounding(pricePer1kRub);
           const pricePerUnitRub = pricePer1kRubRounded / 1000;
-          const purchaseCostPerUnitRub = (newRate * usdToRub) / 1000;
+          const purchaseCostPerUnitRub = (newRate * serviceExchangeRate) / 1000;
 
           // Check for Loss Prevention: retail price per unit < purchase cost per unit
           if (pricePerUnitRub < purchaseCostPerUnitRub) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const updateData: any = {
+              isActive: false,
+              lastSeenAt: new Date()
+            };
+            if (providerCurrencyChanged) {
+              updateData.providerCurrency = providerCurrency;
+            }
             updatesBatch.push(
               db.service.update({
                 where: { id: myService.id },
-                data: {
-                  isActive: false,
-                  lastSeenAt: new Date()
-                }
+                data: updateData
               })
             );
 
@@ -142,23 +213,32 @@ export async function adminSyncProviderCatalog() {
           // Normal sync: Price update
           const newPriceCents = Math.round(pricePer1kRubRounded * 100);
 
-          if (newRate !== oldRate || newPriceCents !== myService.pricePer1000Cents) {
+          if (newRate !== oldRate || newPriceCents !== myService.pricePer1000Cents || providerCurrencyChanged || markupChanged) {
             const minInt = parseInt(external.min, 10) || 10;
             const maxInt = parseInt(external.max, 10) || 100000;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const updateData: any = {
+              rate: newRate,
+              pricePer1000Cents: newPriceCents,
+              minQty: minInt,
+              maxQty: maxInt,
+              lastSeenAt: new Date(),
+              isActive: true,
+              isQuarantined: false,
+              quarantineReason: null
+            };
+            if (markupChanged) {
+              updateData.markup = myService.markup;
+            }
+            if (providerCurrencyChanged) {
+              updateData.providerCurrency = providerCurrency;
+            }
 
             updatesBatch.push(
               db.service.update({
                 where: { id: myService.id },
-                data: {
-                  rate: newRate,
-                  pricePer1000Cents: newPriceCents,
-                  minQty: minInt,
-                  maxQty: maxInt,
-                  lastSeenAt: new Date(),
-                  isActive: true,
-                  isQuarantined: false,
-                  quarantineReason: null
-                }
+                data: updateData
               })
             );
             updatedCount++;
@@ -219,7 +299,7 @@ export async function approveQuarantinedService(serviceId: string) {
     const usdToRub = await SettingsManager.getExchangeRateUSD();
     const exchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
     const newPricePer1000Cents = Math.round(
-      applyBeautifulRounding(service.pendingRate * service.markup * exchangeRate) * 100
+      applyBeautifulRounding(service.pendingRate * Math.max(service.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
     );
 
     await db.service.update({
@@ -284,7 +364,7 @@ export async function approveAllQuarantined() {
 
         const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
         const newPricePer1000Cents = Math.round(
-          applyBeautifulRounding(s.pendingRate * s.markup * exchangeRate) * 100
+          applyBeautifulRounding(s.pendingRate * Math.max(s.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
         );
 
         await tx.service.update({

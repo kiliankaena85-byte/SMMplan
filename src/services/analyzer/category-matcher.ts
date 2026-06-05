@@ -137,6 +137,7 @@ export function matchesSuggestedCategory(
     try {
       const regex = new RegExp(`(^|[\\s/,-])${dbNameNormalized}([\\s/,-]|$)`, 'i');
       if (regex.test(suggestedNormalized)) return true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch(e) {
       // Fallback if dbNameNormalized has regex characters
       if (suggestedNormalized === dbNameNormalized) return true;
@@ -152,6 +153,7 @@ export function matchesSuggestedCategory(
             if (dbNameNormalized.includes(syn.toLowerCase())) return true;
           }
         }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         if (suggestedNormalized.includes(key.toLowerCase())) {
           for (const syn of synonyms) {

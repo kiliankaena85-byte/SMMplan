@@ -4,7 +4,7 @@
  * Standards: OWASP ASVS §13.1.5 (Rate Limiting), OWASP A04
  * @vitest-environment node
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from '@/app/api/v2/route';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
@@ -15,7 +15,12 @@ vi.mock('@/lib/b2b-auth', () => ({
 }));
 
 describe('B2B API v2 Rate Limiter (QA-4)', () => {
+  let origEnv: string | undefined;
+
   beforeEach(async () => {
+    origEnv = process.env.ENABLE_RATE_LIMIT_TEST;
+    process.env.ENABLE_RATE_LIMIT_TEST = 'true';
+
     // W3-4: The key is hashed before being rate-limited in API v2
     const crypto = await import('crypto');
     const hashedKey = crypto.createHash('sha256').update('test-rate-key').digest('hex');
@@ -27,6 +32,14 @@ describe('B2B API v2 Rate Limiter (QA-4)', () => {
     }
     // Delete postgres records just in case it falls back
     await db.rateLimit.deleteMany({ where: { ip: 'CUSTOM_KEY', endpoint: hashedKey } });
+  });
+
+  afterEach(() => {
+    if (origEnv !== undefined) {
+      process.env.ENABLE_RATE_LIMIT_TEST = origEnv;
+    } else {
+      delete process.env.ENABLE_RATE_LIMIT_TEST;
+    }
   });
 
   it('TC-SEC-018: Should block exactly after 50 requests', async () => {

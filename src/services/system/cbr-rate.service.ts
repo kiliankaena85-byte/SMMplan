@@ -33,6 +33,7 @@ export class CBRRateService {
             }
           }
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         console.warn("[CBRRateService] Official CBR XML API fetch failed, trying mirror:", err.message);
       }
@@ -62,6 +63,7 @@ export class CBRRateService {
       await SettingsManager.setExchangeRateUSD(systemRate);
 
       return { nominalRate: usdRate, systemRate, updated: true };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("[CBRRateService] CBR sync failed:", error.message);
       // Fallback to existing settings on failure

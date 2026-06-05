@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { SlidersHorizontal, ChevronDown, ChevronUp, Trash2, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

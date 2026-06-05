@@ -5,24 +5,34 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    plugins: {
-      "react-hooks": {
-        rules: {
-          "exhaustive-deps": {
-            create() {
-              return {};
-            }
-          }
-        }
-      }
-    },
     rules: {
-      "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "error",
+      "@typescript-eslint/no-explicit-any": "error",
       "no-unused-vars": "off",
-      "no-undef": "off",
-      "no-case-declarations": "off",
-      "no-empty": "off"
+      "no-undef": "off"
+    }
+  },
+  {
+    files: [
+      "test/**/*.ts",
+      "test/**/*.tsx",
+      "e2e/**/*.ts",
+      "scripts/**/*.ts",
+      "scripts/**/*.js",
+      "scripts/**/*.mjs",
+      "prisma/**/*.ts",
+      "*.ts",
+      "*.mjs",
+      "src/**/__tests__/**/*.ts",
+      "src/**/__tests__/**/*.tsx",
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx",
+      "src/**/*.spec.ts",
+      "src/**/*.spec.tsx"
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off"
     }
   },
   {
@@ -31,7 +41,10 @@ export default tseslint.config(
       "node_modules/**",
       "dist/**",
       "out/**",
-      "build/**"
+      "build/**",
+      "scratch/**",
+      ".agents/**",
+      ".agent/**"
     ]
   }
 );

@@ -1,14 +1,16 @@
-## 2026-05-24T14:17:50Z
+## 2026-06-05T07:59:23+03:00
 
-You are the Project Orchestrator (teamwork_preview_orchestrator).
-Your task is to implement the requirements described in ORIGINAL_REQUEST.md.
-Specifically, they include:
-R1. Ergonomic UX of support panel (Zinc/ivory theme, optimal line-height, minimum touch target 44px, etc.)
-R2. Auto-pricing with Elastic Quarantine & Loss Prevention using CBR USD/RUB exchange rates.
-R3. Financial dashboard block with metrics (Revenue, YooKassa fees 3%, providerCost Expense, USN tax calculation with dynamic choice, and net profit with green/yellow/red indicators).
-R4. Balance Verification ledger utility (npm run check-balances / src/utils/balance-verifier.ts) that scans transaction chains, checks user.balance, blocks fraud, and writes alerts.
-R5. Visual QA script scripts/visual-qa.js using Playwright to take screenshots of the 7 tabs and compare with baseline using pixelmatch (with --compare option).
-
-Please strictly follow the Smmplan Lite AI Developer Contract (AGENTS.md) and all rules of Ralph Loop v3.
-Make sure you write detailed progress to .agents/orchestrator/progress.md regularly!
-Start by checking current codebase, planning, and executing the requirements sequentially.
+You are the Project Orchestrator. Your mission is to coordinate the QA audit, codebase cleanup, and production DB migration for Smmplan Lite.
+Your working directory is d:\SMM_plan_2\.agents\orchestrator.
+Please refer to d:\SMM_plan_2\ORIGINAL_REQUEST.md for the verbatim user requirements.
+You must follow all guidelines in d:\SMM_plan_2\AGENTS.md, including the Zero-Defect Execution Protocol (triple-agent strategy), Double-Pass Planning, and Pre-mortem analysis.
+Specifically, you should:
+1. Formulate an implementation plan in plan.md.
+2. Delegate/perform tasks to:
+   - Perform code cleanup (eslint, Knip dead code, old JS utils).
+   - Prepare local DB (sanitize, set domains to https://smmplan.pro).
+   - Migrate sanitized DB to smmplan.pro server (including Docker/Redis cleanup on server, database replacement, and app/worker container restart).
+   - Fix test failures and SMTP leaks/mocking.
+3. Write updates to d:\SMM_plan_2\.agents\orchestrator\progress.md.
+4. Run final linting, Vitest tests, and build check.
+5. Report completion to me when all acceptance criteria are met.

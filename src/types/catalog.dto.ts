@@ -27,6 +27,9 @@ export interface CatalogServiceDTO {
   description?: string | null;
   targetType?: string | null;
   customDataType?: string;
+  customDataLabel?: string | null;
   isMediaGroupAware?: boolean;
   providerId?: string | null;
+  requireWarning?: boolean;
+  warningMessage?: string | null;
 }

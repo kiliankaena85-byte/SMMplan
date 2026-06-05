@@ -12,9 +12,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_CLASSES: Record<string, string> = {
-  APPROVED:   'bg-success/20 text-emerald-700 border-emerald-200',
-  QUARANTINE: 'bg-warning/20 text-amber-700 border-amber-200',
-  REJECTED:     'bg-destructive/20 text-rose-700 border-destructive/30',
+  APPROVED:   'bg-success/15 text-success border-success/20',
+  QUARANTINE: 'bg-warning/15 text-warning border-warning/20',
+  REJECTED:     'bg-destructive/15 text-destructive border-destructive/20',
 };
 
 function fmt(cents: number, showSign = false): string {
@@ -29,7 +29,7 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
     cell: ({ row }) => (
       <Link
         href={`/admin/clients?q=${encodeURIComponent(row.original.userEmail)}`}
-        className="text-sky-600 hover:text-sky-800 hover:underline font-mono text-xs font-semibold"
+        className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold transition-colors"
       >
         {row.original.userEmail}
       </Link>
@@ -39,7 +39,7 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
     accessorKey: 'reason',
     header: 'Причина',
     cell: ({ row }) => (
-      <span className="text-xs text-muted-foreground line-clamp-1 max-w-[300px]" title={row.original.reason}>
+      <span className="text-xs text-muted-foreground line-clamp-1 max-w-xs" title={row.original.reason}>
         {row.original.reason}
       </span>
     ),
@@ -64,7 +64,7 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
       const status = row.original.status;
       return (
         <Badge
-          className={`uppercase font-bold tracking-wider text-[10px] ${STATUS_CLASSES[status] || 'bg-muted text-muted-foreground border-border'}`}
+          className={`uppercase font-bold tracking-wider text-xs ${STATUS_CLASSES[status] || 'bg-muted text-muted-foreground border-border'}`}
         >
           {STATUS_LABELS[status] || status}
         </Badge>

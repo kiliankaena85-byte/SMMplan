@@ -6,9 +6,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import crypto from 'crypto';
 
-if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
-const secretKey = process.env.JWT_SECRET;
-const encodedKey = new TextEncoder().encode(secretKey);
+import { getEncodedKey } from '@/lib/session';
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -19,7 +17,7 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get('session_token')?.value;
     if (!token) return new NextResponse('Unauthorized', { status: 401 });
 
-    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] });
+    const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     const userId = payload.userId as string;
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) return new NextResponse('Unauthorized', { status: 401 });

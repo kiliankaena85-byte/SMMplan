@@ -6,6 +6,8 @@ import { Link2, Edit3, ChevronRight, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
+import { OrderEngine } from "@/hooks/useOrderEngine";
+import { DripFeedConfigurator } from "./DripFeedConfigurator";
 
 function formatPricePerUnit(price: number): string {
   if (price === 0) return '0.00';
@@ -43,12 +45,15 @@ export function StickyCheckoutBar({
   onClearSelection,
   emailInputRef,
   emailHasError,
+  engine,
 }: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedService: any;
   url: string;
   setShowLinkModal: (show: boolean) => void;
   quantity: number;
   setQuantity: (q: number) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pricing: any;
   email: string;
   setEmail: (v: string) => void;
@@ -60,6 +65,7 @@ export function StickyCheckoutBar({
   onClearSelection: () => void;
   emailInputRef?: React.RefObject<HTMLInputElement | null>;
   emailHasError?: boolean;
+  engine?: OrderEngine;
 }) {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -146,7 +152,12 @@ export function StickyCheckoutBar({
           </div>
 
           {/* Center: Live Calculator & Legal Consent */}
-          <div className="flex flex-col items-center justify-center gap-1">
+          <div className="flex flex-col items-center justify-center gap-1 relative">
+            {engine && (
+              <div className="w-full absolute bottom-full mb-4 left-0">
+                <DripFeedConfigurator engine={engine} />
+              </div>
+            )}
             <div className="flex items-center gap-3">
               {/* Quantity */}
               <div className="relative">

@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   // Защищаем роут. Только админ может включить Draft Mode.
   try {
     await enforcePageRole(["ADMIN", "OWNER"]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return new Response("Unauthorized", { status: 401 });
   }

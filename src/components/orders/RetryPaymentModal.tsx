@@ -28,6 +28,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
   const [isProcessing, setIsProcessing] = useState(false);
 
   const amountRub = charge / 100;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const balanceRub = balance / 100;
   const canPayFromBalance = balance >= charge;
 
@@ -51,6 +52,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
       } else {
         toast.error(res.error || 'Платёжная система временно недоступна. Попробуйте позже или выберите другой способ оплаты.');
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
     } catch (e: any) {
       toast.error('Проблема с интернет-соединением. Проверьте связь и попробуйте снова.');
     } finally {
@@ -65,7 +67,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
           trigger || (
             <Button 
               size="default" 
-              className="w-full sm:w-auto px-4 rounded-xl text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-primary-foreground transition-colors flex items-center justify-center gap-2 shadow-sm"
+              className="w-full sm:w-auto h-11 px-4 rounded-xl text-sm font-semibold bg-warning hover:bg-warning/90 text-primary-foreground transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               <Wallet className="w-3 h-3" /> Оплатить / Проверить
             </Button>
@@ -77,7 +79,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
           <DialogTitle>Завершение оплаты</DialogTitle>
           <DialogDescription>
             Заказ ожидает оплаты. Выберите удобный способ, чтобы запустить его в работу.
-            <br/><span className="text-emerald-600/90 dark:text-emerald-400 mt-2 block">💡 Если вы уже оплатили, просто выберите тот же способ — система проверит статус платежа и запустит заказ без повторного списания.</span>
+            <br/><span className="text-success-text mt-2 block">💡 Если вы уже оплатили, просто выберите тот же способ — система проверит статус платежа и запустит заказ без повторного списания.</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -119,7 +121,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
               disabled={isProcessing}
               onClick={() => handleRetry('yookassa')}
             >
-              <CreditCard className="w-5 h-5 mr-3 text-blue-500" />
+              <CreditCard className="w-5 h-5 mr-3 text-primary" />
               <div className="flex flex-col items-start">
                 <span className="font-semibold text-foreground">Банковская карта / СБП</span>
                 <span className="text-xs text-muted-foreground mt-0.5">YooKassa</span>
@@ -134,7 +136,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
               disabled={isProcessing}
               onClick={() => handleRetry('robokassa')}
             >
-              <Coins className="w-5 h-5 mr-3 text-indigo-500" />
+              <Coins className="w-5 h-5 mr-3 text-info" />
               <div className="flex flex-col items-start">
                 <span className="font-semibold text-foreground">Робокасса</span>
                 <span className="text-xs text-muted-foreground mt-0.5">Карты РФ/СНГ, СБП, Электронные кошельки</span>
@@ -149,7 +151,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
               disabled={isProcessing}
               onClick={() => handleRetry('cryptobot')}
             >
-              <Bitcoin className="w-5 h-5 mr-3 text-orange-500" />
+              <Bitcoin className="w-5 h-5 mr-3 text-warning-text" />
               <div className="flex flex-col items-start">
                 <span className="font-semibold text-foreground">Криптовалюта</span>
                 <span className="text-xs text-muted-foreground mt-0.5">CryptoBot (USDT, TON, BTC)</span>

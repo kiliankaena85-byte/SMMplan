@@ -91,7 +91,7 @@ export async function getServiceConfigs() {
     const services = await db.service.findMany({
       orderBy: { name: 'asc' },
       include: {
-        category: { select: { name: true, network: { select: { name: true } } } },
+        category: { select: { name: true, network: { select: { name: true, slug: true } } } },
         smartConfig: true,
       },
     });
@@ -108,6 +108,9 @@ export async function updateServiceConfig(
     minChunk: number;
     maxChunk: number;
     markup: number;
+    useInviteBuffer?: boolean;
+    autoCompensate?: boolean;
+    checkIntervalMins?: number;
   }
 ) {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
@@ -131,6 +134,9 @@ export async function updateServiceConfig(
         minChunk: data.minChunk,
         maxChunk: data.maxChunk,
         markup: data.markup,
+        useInviteBuffer: data.useInviteBuffer ?? false,
+        autoCompensate: data.autoCompensate ?? true,
+        checkIntervalMins: data.checkIntervalMins ?? 120,
       },
       create: {
         serviceId,
@@ -139,6 +145,9 @@ export async function updateServiceConfig(
         minChunk: data.minChunk,
         maxChunk: data.maxChunk,
         markup: data.markup,
+        useInviteBuffer: data.useInviteBuffer ?? false,
+        autoCompensate: data.autoCompensate ?? true,
+        checkIntervalMins: data.checkIntervalMins ?? 120,
       },
     });
 
@@ -184,5 +193,64 @@ export async function toggleSmartGlobalStatus(disabled: boolean) {
 
     revalidatePath('/admin/smart');
     return { success: true, disabled };
+  });
+}
+
+export async function bulkUpdateServiceConfigs(
+  serviceIds: string[],
+  data: {
+    isEnabled: boolean;
+    isTestMode?: boolean;
+    minChunk?: number;
+    maxChunk?: number;
+    markup?: number;
+  }
+) {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
+    if (!serviceIds || serviceIds.length === 0) {
+      throw new Error('Не переданы ID услуг');
+    }
+
+    const results = [];
+    for (const serviceId of serviceIds) {
+      const oldConfig = await db.serviceSmartConfig.findUnique({
+        where: { serviceId },
+      });
+
+      const updatedConfig = await db.serviceSmartConfig.upsert({
+        where: { serviceId },
+        update: {
+          isEnabled: data.isEnabled,
+          isTestMode: data.isTestMode !== undefined ? data.isTestMode : (oldConfig?.isTestMode ?? false),
+          minChunk: data.minChunk !== undefined ? data.minChunk : (oldConfig?.minChunk ?? 50),
+          maxChunk: data.maxChunk !== undefined ? data.maxChunk : (oldConfig?.maxChunk ?? 200),
+          markup: data.markup !== undefined ? data.markup : (oldConfig?.markup ?? 0.15),
+        },
+        create: {
+          serviceId,
+          isEnabled: data.isEnabled,
+          isTestMode: data.isTestMode !== undefined ? data.isTestMode : false,
+          minChunk: data.minChunk !== undefined ? data.minChunk : 50,
+          maxChunk: data.maxChunk !== undefined ? data.maxChunk : 200,
+          markup: data.markup !== undefined ? data.markup : 0.15,
+        },
+      });
+      results.push(updatedConfig);
+    }
+
+    const ipAddress = await getClientIp();
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'SERVICE_SMART_CONFIG_BULK_UPDATE',
+      target: `bulk:${serviceIds.length}`,
+      targetType: 'CATALOG',
+      oldValue: { count: serviceIds.length },
+      newValue: { isEnabled: data.isEnabled, isTestMode: data.isTestMode },
+      ipAddress,
+    });
+
+    revalidatePath('/admin/smart');
+    return { success: true, count: results.length };
   });
 }

@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { getClientIp } from "@/utils/ip";
 import { RateLimitService } from "@/services/core/rate-limit.service";
 
-export async function createTopUpPaymentAction(amountRub: number, gateway: 'yookassa' | 'cryptobot' = 'yookassa') {
+export async function createTopUpPaymentAction(amountRub: number, gateway: 'yookassa' | 'cryptobot' | 'robokassa' = 'yookassa') {
   const session = await verifySession();
   if (!session) throw new Error("Unauthorized");
   
@@ -17,12 +17,12 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
   const amountCents = Math.round(amountRub * 100);
   if (amountCents < 1000) throw new Error("Минимальная сумма пополнения — 10 ₽");
 
-  // Fetch user for anti-fraud Telegram-binding check
+  // Fetch user
   const dbUser = await db.user.findUnique({ where: { id: session.userId } });
   if (!dbUser) throw new Error("Пользователь не найден.");
   if (dbUser.isDeleted === true || dbUser.isActive === false) throw new Error("Ваш аккаунт заблокирован или удален");
 
-  if (gateway === 'yookassa' && amountCents > 180000) {
+  if ((gateway === 'yookassa' || gateway === 'robokassa') && amountCents > 180000) {
     if (!dbUser.telegramId) {
       throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
     }
@@ -89,6 +89,61 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
     return { success: true, paymentUrl: data.result.bot_invoice_url || data.result.pay_url };
   }
 
+  if (gateway === 'robokassa') {
+    const login = secrets.robokassaLogin;
+    const password = secrets.robokassaPassword;
+    if (!login || !password) throw new Error("Шлюз Робокасса не настроен администратором.");
+
+    const payment = await db.payment.create({
+      data: {
+        userId: session.userId,
+        amount: amountCents,
+        currency: "RUB",
+        status: "PENDING",
+        gateway: "robokassa",
+        consentIp,
+        consentUserAgent
+      }
+    });
+
+    const isDummyKeys = !login || !password || login === 'test_login';
+    const isE2ETest = dbUser.email === 'e2e-tester@test.com';
+
+    if (isE2ETest || isDummyKeys) {
+      const mockGatewayId = `mock_${payment.id}`;
+      await db.payment.update({
+        where: { id: payment.id },
+        data: { gatewayId: mockGatewayId }
+      });
+      return { success: true, paymentUrl: `/api/dev/mock-payment?paymentId=${payment.id}` };
+    }
+
+    const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+    const gatewaySvc = PaymentGatewayFactory.getGateway('robokassa');
+    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/add-funds?success=1`;
+    const gatewayResult = await gatewaySvc.createPayment({
+      paymentId: payment.id,
+      userId: session.userId,
+      amountRub,
+      email: dbUser.email,
+      successUrl,
+      description: `Пополнение баланса (Счёт: ${payment.id})`,
+      isTestMode: false
+    });
+
+    if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
+      await db.payment.update({
+        where: { id: payment.id },
+        data: { 
+          gatewayId: gatewayResult.remoteGatewayId || undefined,
+          checkoutUrl: gatewayResult.paymentUrl || undefined
+        }
+      });
+    }
+
+    return { success: true, paymentUrl: gatewayResult.paymentUrl };
+  }
+
   // --- YooKassa logic ---
   const shopId = secrets.yookassaShopId;
   const secretKey = secrets.yookassaSecretKey;
@@ -108,9 +163,8 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
 
   const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test';
   const isE2ETest = dbUser.email === 'e2e-tester@test.com';
-  const isTestMode = await SettingsManager.isTestMode();
 
-  if (isE2ETest || isDummyKeys || isTestMode) {
+  if (isE2ETest || isDummyKeys) {
     const mockGatewayId = `mock_${payment.id}`;
     await db.payment.update({
       where: { id: payment.id },

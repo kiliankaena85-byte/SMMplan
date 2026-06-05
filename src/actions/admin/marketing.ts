@@ -13,7 +13,13 @@ const promoCodeSchema = z.object({
   discountPercent: z.coerce.number().min(0, "Процент скидки не может быть отрицательным").max(90, "Максимальная скидка 90%").optional().default(0),
   amount: z.coerce.number().int().min(0, "Сумма не может быть отрицательной").max(500000, "Максимальная сумма ваучера 500,000 копеек (5,000 ₽)").optional().default(0),
   maxUses: z.coerce.number().int().min(1, "Максимальное количество использований должно быть не менее 1").max(1000000, "Превышен лимит использований (1 млн)").optional().default(1),
-  expiresAt: z.string().optional().transform(v => v ? new Date(v) : null)
+  expiresAt: z.string().optional().transform(v => v ? new Date(v) : null),
+  description: z.string().optional(),
+  utmSource: z.string().optional(),
+  utmMedium: z.string().optional(),
+  utmCampaign: z.string().optional(),
+  budget: z.coerce.number().optional().default(0),
+  isSuspicious: z.coerce.boolean().optional().default(false)
 }).refine((data) => {
   if (data.expiresAt) {
     return data.expiresAt.getTime() > Date.now();
@@ -27,6 +33,16 @@ const promoCodeSchema = z.object({
 export async function createPromoCode(formData: FormData) {
   return requireStaffPermission('marketing', 'edit', async (admin) => {
     const payload = Object.fromEntries(formData.entries());
+    
+    // Convert isSuspicious checkbox/select value safely if passed
+    if (payload.isSuspicious === 'true') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payload.isSuspicious = true as any;
+    } else if (payload.isSuspicious === 'false') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payload.isSuspicious = false as any;
+    }
+
     const parsed = promoCodeSchema.safeParse(payload);
     
     if (!parsed.success) {
@@ -36,7 +52,22 @@ export async function createPromoCode(formData: FormData) {
       };
     }
 
-    const { code, type, discountPercent, amount, maxUses, expiresAt } = parsed.data;
+    const { 
+      code, 
+      type, 
+      discountPercent, 
+      amount, 
+      maxUses, 
+      expiresAt,
+      description,
+      utmSource,
+      utmMedium,
+      utmCampaign,
+      budget,
+      isSuspicious
+    } = parsed.data;
+
+    const budgetCents = Math.round(budget * 100);
 
     await adminMarketingService.createPromoCode({
       code,
@@ -45,6 +76,12 @@ export async function createPromoCode(formData: FormData) {
       amount,
       maxUses,
       expiresAt,
+      description,
+      utmSource,
+      utmMedium,
+      utmCampaign,
+      budgetCents,
+      isSuspicious
     });
 
     auditAdmin({
@@ -53,7 +90,19 @@ export async function createPromoCode(formData: FormData) {
       action: 'PROMOCODE_CREATE',
       target: code.toUpperCase(),
       targetType: 'SETTINGS', // Promo codes are system settings
-      newValue: { type, discountPercent, amount, maxUses, expiresAt }
+      newValue: { 
+        type, 
+        discountPercent, 
+        amount, 
+        maxUses, 
+        expiresAt,
+        description,
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        budgetCents,
+        isSuspicious
+      }
     });
 
     revalidatePath('/admin/marketing');

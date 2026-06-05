@@ -21,6 +21,7 @@ async function main() {
 
   for (const s of services) {
     const costRub = s.rate * usdToRub; // Cost per 1000 in RUB
+    // eslint-disable-next-line no-useless-assignment
     let newMarkup = 1.6; // Default fallback
 
     // --- 4-TIER DYNAMIC SEGMENTED PRICING MODEL ---

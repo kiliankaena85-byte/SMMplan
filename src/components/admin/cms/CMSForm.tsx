@@ -17,6 +17,7 @@ type ContentItemData = {
   title: string;
   slug: string;
   type: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   contentJson: any;
   excerpt: string | null;
   isPublished: boolean;
@@ -46,6 +47,7 @@ export default function CMSForm({ initialData }: CMSFormProps) {
       if (isEditing) {
         // Просто сохраняем JSON в базу без тяжелой HTML-генерации
         const res = await updateContent(initialData.id, {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           title, slug, type: type as any, excerpt, contentJson
         });
         if (!res.success) setError(res.error || "Ошибка сохранения черновика");
@@ -75,6 +77,7 @@ export default function CMSForm({ initialData }: CMSFormProps) {
 
       // Сначала сохраняем последние изменения черновика
       await updateContent(initialData.id, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         title, slug, type: type as any, excerpt, contentJson
       });
 

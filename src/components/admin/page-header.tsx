@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 interface AdminPageHeaderProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   icon?: any;
   title: string;
   description?: React.ReactNode;

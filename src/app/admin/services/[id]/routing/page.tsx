@@ -2,6 +2,7 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { RoutingPanelClient } from '@/components/admin/routing/RoutingPanelClient';
+import { getProviderComparisonData } from '@/actions/admin/routing.actions';
 
 export default async function ServiceRoutingPage({ params }: { params: Promise<{ id: string }> }) {
   await requireStaffPermission('services', 'view', async () => {});
@@ -53,6 +54,9 @@ export default async function ServiceRoutingPage({ params }: { params: Promise<{
     select: { id: true, name: true }
   });
 
+  const comparisonRes = await getProviderComparisonData(id);
+  const comparisonData = comparisonRes.success ? comparisonRes.data : [];
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div>
@@ -68,6 +72,7 @@ export default async function ServiceRoutingPage({ params }: { params: Promise<{
         routes={routes} 
         auditLogs={auditLogs} 
         activeProviders={activeProviders}
+        comparisonData={comparisonData}
       />
     </div>
   );

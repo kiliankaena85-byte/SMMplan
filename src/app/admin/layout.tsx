@@ -96,6 +96,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     }).filter(item => {
       if (user.role === 'OWNER') return true;
       if (!user.staffRole) return false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return user.staffRole.permissions.some((p: any) => p.section === item.section && p.canView);
     })
   })).filter(group => group.items.length > 0);

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STATUS_LABELS: Record<string, string> = {
   ALL: 'Все',
   AWAITING_PAYMENT: 'Ожидает оплату',
@@ -108,6 +109,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         }
       });
       if (extraOrder) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         orders.unshift(extraOrder as any);
       }
     }

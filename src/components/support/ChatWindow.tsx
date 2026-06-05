@@ -4,6 +4,7 @@ import { generateSmartReplyAction } from '@/actions/support/ticket';
 import { getArticles } from '@/actions/knowledge';
 import { Sparkles, Loader2, MessageSquare, Plus, Send, Zap, X } from 'lucide-react';
 import { upsertTemplate, incrementTemplateUsage } from '@/actions/support/template';
+import { TemplateCommandPalette } from '@/components/support/TemplateCommandPalette';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ClientDate } from '@/components/ui/client-date';
@@ -53,11 +54,15 @@ interface ChatWindowProps {
   initialTemplates?: { id: string, label: string, text: string }[];
   // TODO: Bring back strict typing (e.g. Promise<void | ActionResponse>) once H5 (MessageAttachment) is stabilized.
   // Using Promise<any> as a temporary compromise to support direct Server Actions passing without wrappers.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSendMessage: (formData: FormData) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editTicketMessage?: (formData: FormData) => Promise<any>;
   initialNextCursor?: string | null;
   isClosed?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialOrders?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSelectOrder?: (order: any) => void;
   clientEmail?: string;
 }
@@ -107,7 +112,10 @@ const ImageZoomModal = ({ url, onClose }: { url: string; onClose: () => void }) 
   );
 };
 
-export default function ChatWindow({ ticketId, initialMessages, isStaff = false, initialTemplates = [], onSendMessage, editTicketMessage, initialNextCursor = null, isClosed = false, initialOrders = [], onSelectOrder, clientEmail }: ChatWindowProps) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const EMPTY_TEMPLATES: any[] = [];
+
+export default function ChatWindow({ ticketId, initialMessages, isStaff = false, initialTemplates = EMPTY_TEMPLATES, onSendMessage, editTicketMessage, initialNextCursor = null, isClosed = false, initialOrders = [], onSelectOrder, clientEmail }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const messageKeysRef = useRef<Record<string, string>>({});
   const { theme } = useTheme();
@@ -117,9 +125,11 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   }, []);
   const isDark = mounted ? (theme?.includes('dark') || theme === 'dark') : true;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const cardBg = isDark
     ? figmaStyles.colors.miniAppCardBackground.dark
     : figmaStyles.colors.miniAppCardBackground.light;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const inputBg = isDark
     ? figmaStyles.colors.miniAppInputBackground.dark
     : figmaStyles.colors.miniAppInputBackground.light;
@@ -128,13 +138,13 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   // Deterministic gradient picker for avatars based on string hash
   const getAvatarGradient = (str: string) => {
     const gradients = [
-      'from-red-500 to-orange-500',
-      'from-green-500 to-emerald-500',
-      'from-blue-500 to-sky-500',
-      'from-purple-500 to-indigo-500',
-      'from-pink-500 to-rose-500',
-      'from-teal-500 to-cyan-500',
-      'from-yellow-500 to-amber-500',
+      'from-destructive to-warning',
+      'from-success to-info',
+      'from-primary to-info',
+      'from-info to-primary',
+      'from-destructive to-primary',
+      'from-info to-success',
+      'from-warning to-primary',
     ];
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -166,6 +176,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [showOrdersDropdown, setShowOrdersDropdown] = useState(false);
   const [isAiPending, startAiTransition] = useTransition();
@@ -175,6 +186,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   // Smart reply templates and compact input states
   const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false);
   const [activeTemplateIndex, setActiveTemplateIndex] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
   const [showLightningPopover, setShowLightningPopover] = useState(false);
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
@@ -183,11 +195,13 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   const [newTemplateCategory, setNewTemplateCategory] = useState('GENERAL');
   const [newTemplateText, setNewTemplateText] = useState('');
   const [creatingTemplate, setCreatingTemplate] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [templatesList, setTemplatesList] = useState<any[]>(initialTemplates);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // NLP suggested articles states (Phase 999.12 Scope)
   const [suggestedArticle, setSuggestedArticle] = useState<{ title: string; slug: string } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [operatorSuggestedArticles, setOperatorSuggestedArticles] = useState<any[]>([]);
 
   // Client-side NLP keyword-triggered article auto-suggest effect
@@ -257,7 +271,13 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
   }, [isStaff, messages]);
 
   useEffect(() => {
-    setTemplatesList(initialTemplates);
+    setTemplatesList(prev => {
+      if (prev.length === initialTemplates.length &&
+          prev.every((t, i) => t.id === initialTemplates[i]?.id && t.text === initialTemplates[i]?.text && t.label === initialTemplates[i]?.label)) {
+        return prev;
+      }
+      return initialTemplates;
+    });
   }, [initialTemplates]);
 
   const parseSmartTemplate = (templateText: string) => {
@@ -359,6 +379,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
       }
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       handleSubmit(e as any);
     }
   };
@@ -396,6 +417,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
       setNewTemplateLabel('');
       setNewTemplateShortcut('');
       setNewTemplateText('');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error('Ошибка создания шаблона: ' + err.message);
     } finally {
@@ -665,6 +687,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
           setSending(false);
           return;
         }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         toast.error('Ошибка загрузки файла');
         setMessages(prev => prev.filter(m => m.id !== tempId));
@@ -752,13 +775,13 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
     >
       {/* Drag & Drop Overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-[100] bg-indigo-500/10 backdrop-blur-sm border-2 border-dashed border-indigo-400 rounded-lg flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-[100] bg-info/10 backdrop-blur-sm border-2 border-dashed border-info/40 rounded-lg flex items-center justify-center pointer-events-none">
           <div className="bg-card/90 px-8 py-6 rounded-2xl shadow-xl flex flex-col items-center">
-            <div className="w-16 h-16 bg-indigo-100 text-primary rounded-full flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-info/20 text-primary rounded-full flex items-center justify-center mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
             </div>
-            <p className="text-xl font-bold text-slate-800">Перетащите файл сюда</p>
-            <p className="text-sm text-slate-500 mt-1">Изображение или PDF (до 5 МБ)</p>
+            <p className="text-xl font-bold text-foreground">Перетащите файл сюда</p>
+            <p className="text-sm text-muted-foreground mt-1">Изображение или PDF (до 5 МБ)</p>
           </div>
         </div>
       )}
@@ -771,7 +794,8 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
               type="button"
               onClick={handleLoadOlder}
               disabled={loadingOlder}
-              className="px-4 py-2 text-xs font-bold text-primary bg-primary/10 border border-primary/20 hover:bg-primary/25 rounded-xl transition-all duration-200 flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+              aria-label="Загрузить предыдущие сообщения"
+              className="px-4 h-11 text-xs font-bold text-primary bg-primary/10 border border-primary/20 hover:bg-primary/25 rounded-xl transition-all duration-200 flex items-center gap-1.5 shadow-sm disabled:opacity-50"
             >
               {loadingOlder ? (
                 <>
@@ -885,22 +909,24 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <div className={`absolute ${msg.sender === 'USER' ? '-right-20' : '-left-20'} top-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex gap-1 transition-opacity z-10`}>
                       <button 
                         onClick={() => setReplyingTo(msg)}
-                        className="p-2 text-muted-foreground hover:text-primary rounded-full bg-card shadow-sm border border-default-200"
+                        className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-primary rounded-full bg-card shadow-sm border border-default-200 cursor-pointer"
                         title="Ответить"
+                        aria-label="Ответить"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
                       </button>
                       
                       {editTicketMessage && msg.sender !== 'USER' && (
                         isExpired ? (
-                          <div className="p-2 text-muted-foreground/50 rounded-full bg-card shadow-sm border border-default-200 cursor-not-allowed" title="Заблокировано Telegram API (>48ч)">
+                          <div className="w-11 h-11 flex items-center justify-center text-muted-foreground/50 rounded-full bg-card shadow-sm border border-default-200 cursor-not-allowed" title="Заблокировано Telegram API (>48ч)">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                           </div>
                         ) : (
                           <button 
                             onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }}
-                            className="p-2 text-muted-foreground hover:text-warning-text rounded-full bg-card shadow-sm border border-default-200"
+                            className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-warning-text rounded-full bg-card shadow-sm border border-default-200 cursor-pointer"
                             title="Редактировать"
+                            aria-label="Редактировать"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                           </button>
@@ -969,7 +995,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                               msg.sender === 'USER' 
                                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                                 : msg.sender === 'INTERNAL'
-                                  ? 'bg-warning text-warning-foreground hover:bg-warning/90'
+                                  ? 'bg-warning-text text-white hover:bg-warning-text/90'
                                   : 'bg-card text-foreground hover:bg-card/90'
                             }`}
                           >
@@ -982,7 +1008,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                               msg.sender === 'USER' 
                                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                                 : msg.sender === 'INTERNAL'
-                                  ? 'bg-warning text-warning-foreground hover:bg-warning/90'
+                                  ? 'bg-warning-text text-white hover:bg-warning-text/90'
                                   : 'bg-card text-foreground hover:bg-card/90'
                             }`}
                           >
@@ -1145,8 +1171,8 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <div className="mt-2 animate-in fade-in zoom-in-95 duration-200">
                       <textarea value={editingText} onChange={e => setEditingText(e.target.value)} className="w-full text-sm text-slate-900 bg-card border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]" autoFocus />
                       <div className="flex gap-2 justify-end mt-2">
-                         <button onClick={() => setEditingMessageId(null)} className="text-[11px] font-bold uppercase bg-card/50 text-slate-700 px-3 py-1.5 rounded border border-slate-300 hover:bg-card">Отмена</button>
-                         <button onClick={() => handleEditSubmit(msg.id)} className="text-[11px] font-bold uppercase bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary shadow-sm border border-indigo-700">Сохранить</button>
+                         <button type="button" onClick={() => setEditingMessageId(null)} className="text-[11px] font-bold uppercase bg-card/50 text-slate-700 px-4 h-11 rounded-xl border border-slate-300 hover:bg-card flex items-center justify-center cursor-pointer">Отмена</button>
+                         <button type="button" onClick={() => handleEditSubmit(msg.id)} className="text-[11px] font-bold uppercase bg-primary text-primary-foreground px-4 h-11 rounded-xl hover:bg-primary shadow-sm border border-indigo-700 flex items-center justify-center cursor-pointer">Сохранить</button>
                       </div>
                     </div>
                   ) : (
@@ -1252,7 +1278,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                       setShowLightningPopover(!showLightningPopover);
                       setShowOrdersDropdown(false);
                     }}
-                    className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all ${
+                    className={`flex items-center gap-1 px-2.5 h-11 text-xs font-semibold rounded-lg border transition-all ${
                       showLightningPopover
                         ? 'bg-warning/10 border-warning/30 text-warning-text shadow-sm'
                         : 'bg-default-50 border-default-200 text-muted-foreground hover:bg-default-100'
@@ -1264,57 +1290,16 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <span>Шаблоны</span>
                   </button>
 
-                  <AnimatePresence>
-                    {showLightningPopover && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-full left-0 mb-2 w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden py-2 backdrop-blur-md"
-                      >
-                        <div className="px-3 py-1.5 border-b border-divider text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
-                          <span>Быстрые ответы</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowLightningPopover(false);
-                              setShowCreateTemplateModal(true);
-                            }}
-                            className="text-primary hover:text-primary/80 flex items-center gap-0.5 hover:underline"
-                          >
-                            <Plus className="w-3 h-3" />
-                            <span>Создать</span>
-                          </button>
-                        </div>
-                        <div className="max-h-60 overflow-y-auto divide-y divide-default-50">
-                          {templatesList.length === 0 ? (
-                            <div className="p-4 text-center text-xs text-muted-foreground">
-                              Шаблоны отсутствуют. Кликните "Создать" выше.
-                            </div>
-                          ) : (
-                            templatesList.map(t => (
-                              <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => handleSelectTemplate(t)}
-                                className="w-full text-left px-3 py-2 hover:bg-default-50 flex flex-col gap-0.5 transition-colors"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold text-xs text-foreground">{t.label}</span>
-                                  {t.shortcut && (
-                                    <span className="text-[9px] font-bold bg-default-100 text-muted-foreground px-1 py-0.5 rounded">
-                                      /{t.shortcut}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-[10px] text-muted-foreground truncate">{t.text}</div>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <TemplateCommandPalette
+                    templates={templatesList}
+                    isOpen={showLightningPopover}
+                    onSelect={handleSelectTemplate}
+                    onClose={() => setShowLightningPopover(false)}
+                    onCreateNew={() => {
+                      setShowLightningPopover(false);
+                      setShowCreateTemplateModal(true);
+                    }}
+                  />
                 </div>
 
                 {/* AI Smart Reply Button */}
@@ -1322,8 +1307,9 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                   type="button"
                   onClick={handleAiReply}
                   disabled={isAiPending}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-all rounded-lg disabled:opacity-50"
+                  className="flex items-center justify-center gap-1 px-3 h-11 text-xs font-semibold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-all rounded-xl disabled:opacity-50 cursor-pointer"
                   title="Автоматический ответ ИИ"
+                  aria-label="Автоматический ответ ИИ"
                 >
                   {isAiPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1335,12 +1321,16 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
               </div>
 
               {/* Compact Checkbox for Hidden Note */}
-              <label className="flex items-center gap-1.5 text-xs text-warning-text font-semibold cursor-pointer bg-warning/5 hover:bg-warning/15 px-2 py-1 rounded-lg border border-warning/20 transition-colors">
+              <label 
+                aria-label="Внутренняя скрытая заметка"
+                className="flex items-center gap-2 text-xs text-warning-text font-semibold cursor-pointer bg-warning/5 hover:bg-warning/15 px-3 h-11 rounded-xl border border-warning/20 transition-colors shrink-0"
+              >
                 <input
                   type="checkbox"
                   checked={isInternal}
                   onChange={(e) => setIsInternal(e.target.checked)}
-                  className="rounded border-warning/35 text-warning focus:ring-warning w-3.5 h-3.5" 
+                  className="rounded border-warning/35 text-warning focus:ring-warning w-4 h-4 cursor-pointer" 
+                  aria-label="Включить скрытую заметку"
                 />
                 <span>🔒 Заметка</span>
               </label>
@@ -1361,7 +1351,7 @@ export default function ChatWindow({ ticketId, initialMessages, isStaff = false,
                     <div className="text-[10px] font-bold text-primary-700 uppercase tracking-wider">Ответ для {replyingTo.sender}</div>
                     <div className="text-xs text-foreground/80 line-clamp-1">{replyingTo.text || 'Медиа сообщение'}</div>
                   </div>
-                  <button type="button" onClick={() => setReplyingTo(null)} className="p-1 text-primary-400 hover:text-primary-700 font-bold ml-2 transition-colors">✕</button>
+                  <button type="button" onClick={() => setReplyingTo(null)} className="w-11 h-11 flex items-center justify-center text-primary-400 hover:text-primary-700 font-bold ml-2 transition-colors cursor-pointer" aria-label="Отменить ответ">✕</button>
                 </motion.div>
               )}
               {selectedOrder && (

@@ -230,12 +230,14 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     cell: ({ row }) => {
       const email = row.original.user.email;
       return (
-        <Link
-          href={`/admin/clients?q=${encodeURIComponent(email)}`}
-          className="text-sky-600 hover:text-sky-800 hover:underline text-xs"
-        >
-          {email}
-        </Link>
+        <div className="max-w-[120px] break-all whitespace-normal leading-snug">
+          <Link
+            href={`/admin/clients?q=${encodeURIComponent(email)}`}
+            className="text-sky-600 hover:text-sky-800 hover:underline text-xs font-medium"
+          >
+            {email}
+          </Link>
+        </div>
       );
     },
   },
@@ -245,34 +247,32 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     cell: ({ row }) => {
       const order = row.original;
       return (
-        <div className="flex flex-col text-[13px] leading-relaxed text-foreground py-1 min-w-[300px] max-w-[400px]">
-          <div className="flex gap-2">
-            <span className="text-muted-foreground w-[80px] shrink-0">Категория:</span>
-            <span className="font-medium text-foreground truncate" title={order.service.category.network?.name || '—'}>{order.service.category.network?.name || '—'}</span>
+        <div className="flex flex-col text-[12px] leading-snug text-foreground py-0.5 max-w-[280px] whitespace-normal break-words">
+          <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">
+            {order.service.category.network?.name || '—'} · {order.service.category.name}
           </div>
-          <div className="flex gap-2">
-            <span className="text-muted-foreground w-[80px] shrink-0">Активность:</span>
-            <span className="font-medium text-foreground truncate" title={order.service.category.name}>{order.service.category.name}</span>
+          <div className="font-semibold text-foreground text-xs leading-tight mb-1" title={order.service.name}>
+            {order.service.name}
           </div>
-          <div className="flex gap-2">
-            <span className="text-muted-foreground w-[80px] shrink-0">Сервис:</span>
-            <span className="font-medium text-foreground truncate" title={order.service.name}>{order.service.name}</span>
+          
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            Кол-во: <span className="font-bold text-foreground tabular-nums">{(order.quantity).toLocaleString('ru-RU')}</span>
+            {order.remains > 0 && (
+              <> · Остаток: <span className="font-bold text-amber-600 tabular-nums">{(order.remains).toLocaleString('ru-RU')}</span></>
+            )}
           </div>
-          <div className="flex gap-2 mt-1">
-            <span className="text-muted-foreground w-[80px] shrink-0">Ссылка:</span>
-            <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 hover:underline break-all" onClick={e => e.stopPropagation()}>
+
+          <div className="text-[11px] text-muted-foreground mt-1 flex items-start gap-1">
+            <span className="shrink-0 font-medium">Ссылка:</span>
+            <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline break-all leading-normal" onClick={e => e.stopPropagation()}>
               {order.link}
             </a>
           </div>
-          <div className="flex gap-2 mt-0.5">
-            <span className="text-muted-foreground w-[80px] shrink-0">Кол-во:</span>
-            <span className="font-medium tabular-nums text-foreground">{(order.quantity).toLocaleString('ru-RU')}</span>
-          </div>
           
-          <details className="mt-1.5 group">
-            <summary className="text-sky-600 hover:text-sky-800 cursor-pointer text-xs select-none list-none inline-flex items-center transition-colors font-medium">
-              <span className="group-open:hidden">Показать логи и детали</span>
-              <span className="hidden group-open:inline">Скрыть логи</span>
+          <details className="mt-1 group">
+            <summary className="text-sky-600 hover:text-sky-800 cursor-pointer text-[11px] select-none list-none inline-flex items-center transition-colors font-medium">
+              <span className="group-open:hidden">Показать детали</span>
+              <span className="hidden group-open:inline">Скрыть детали</span>
             </summary>
             <div className="mt-1.5 pt-1.5 border-t border-border/50 text-xs text-foreground space-y-1">
               <div className="flex justify-between">

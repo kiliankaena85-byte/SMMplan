@@ -64,6 +64,7 @@ export default function DeleteAccountCard({ hasPassword }: DeleteAccountCardProp
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         toast.error('Произошла ошибка при отправке запроса');
       }

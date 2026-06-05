@@ -44,6 +44,20 @@ vi.mock('@/services/financial/refund-policy.service', () => ({
   },
 }));
 
+vi.mock('@/services/providers/quarantine.service', () => ({
+  QuarantineService: {
+    evaluateTriggerB: vi.fn().mockResolvedValue(undefined),
+    restoreExpiredQuarantines: vi.fn().mockResolvedValue(undefined),
+    evaluateTriggerC: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('@/services/core/order.service', () => ({
+  orderService: {
+    failOrderTerminal: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 import syncProcessor from '@/workers/processors/sync.processor';
 
 function createFakeJob() {

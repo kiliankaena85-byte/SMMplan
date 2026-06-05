@@ -9,10 +9,12 @@ test.describe('Users Management Flow', () => {
     const testEmail = 'balance-tester-e2e@test.com';
     let testUser = await prisma.user.findUnique({ where: { email: testEmail } });
     if (!testUser) {
+      // eslint-disable-next-line no-useless-assignment
       testUser = await prisma.user.create({
         data: { email: testEmail, balance: 0, role: 'USER' }
       });
     } else {
+      // eslint-disable-next-line no-useless-assignment
       testUser = await prisma.user.update({
         where: { email: testEmail },
         data: { balance: 0 }

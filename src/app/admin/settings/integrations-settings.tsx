@@ -12,15 +12,18 @@ import { useActionState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 interface IntegrationsSettingsProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   settings: any;
 }
 
 export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
   const [state, formAction, isPending] = useActionState(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async (prevState: any, formData: FormData) => {
       try {
         await updateGlobalSettings(formData);
         return { success: true };
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         return { success: false, error: 'Ошибка при обновлении интеграций' };
       }

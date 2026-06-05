@@ -18,14 +18,18 @@ export interface AnalyzedService {
     requirements?: string;
     geo?: string;
     warranty?: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metrics?: any; // Will be properly typed as ProcurementMetrics
     cleanName?: string;
     customDataType?: 'NONE' | 'TEXTAREA' | 'NUMBER';
     isMediaGroupAware?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CATEGORIES = ['SUBSCRIBERS', 'GROUPS', 'LIKES', 'VIEWS', 'COMMENTS', 'REACTIONS', 'REPOSTS', 'AUTO_VIEWS', 'AUTO_LIKES', 'AUTO_REACTIONS', 'AUTO_REPOSTS', 'AUTO_COMMENTS', 'BOOSTS', 'POLLS', 'STORIES', 'BOTS', 'REFERRALS', 'FRIENDS', 'PLAYS', 'TRAFFIC', 'DISLIKES', 'STARS', 'SAVES', 'COMPLAINTS', 'STREAMS', 'PREMIUM', 'RECOVER', 'OTHER'];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TARGET_TYPES = ['CHANNEL', 'POST', 'PROFILE', 'VIDEO', 'VK_VIDEO', 'VK_CLIP', 'VK_PLAY', 'CHANNEL_POSTS', 'STORY', 'COMMENTS', 'POLL', 'PHOTO', 'MARKET', 'PLAYLIST', 'ALBUM', 'EXTERNAL', 'CUSTOM'];
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -104,6 +108,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
     OTHER: 'Другое / Разное',
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TARGET_TYPE_LABELS: Record<string, string> = {
     CHANNEL: 'Канал/Группа',
     POST: 'Пост/Публикация',
@@ -369,7 +374,7 @@ export const SmartAnalyzerLogic = class {
             }
             else if (nameNode.includes('просмотр') || nameNode.includes('view')) category = 'VIEWS';
         } else if (effectivePlatform === 'YOUTUBE') {
-            if (fullContent.includes('час') || fullContent.includes('hour')) category = 'VIEWS';
+            if ((fullContent.includes('час') && !fullContent.includes('участник')) || fullContent.includes('hour')) category = 'VIEWS';
             if (fullContent.includes('short')) category = 'VIEWS';
             if (nameNode.includes('лайк') || nameNode.includes('like')) category = 'LIKES';
         } else if (effectivePlatform === 'DZEN') {
@@ -427,7 +432,9 @@ export const SmartAnalyzerLogic = class {
         }
 
         // 4. Descriptions & Requirements
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const isFast = fullContent.includes('fast') || fullContent.includes('быстр');
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const isHQ = fullContent.includes('hq') || fullContent.includes('high quality');
         
         const desc = (sanitizedDescription && sanitizedDescription.length > 20) 
@@ -448,7 +455,14 @@ export const SmartAnalyzerLogic = class {
         let customDataType: 'NONE' | 'TEXTAREA' | 'NUMBER' = 'NONE';
         if (category === 'POLLS' || fullContent.includes('номер ответ') || fullContent.includes('за вариант')) {
             customDataType = 'NUMBER';
-        } else if (fullContent.includes('свой текст') || fullContent.includes('кастомн') || fullContent.includes('по списку') || fullContent.includes('custom')) {
+        } else if (
+            fullContent.includes('свой текст') || 
+            fullContent.includes('свои комментари') || 
+            fullContent.includes('кастомные комментари') || 
+            (fullContent.includes('кастомн') && fullContent.includes('коммент')) || 
+            (fullContent.includes('по списку') && (fullContent.includes('коммент') || fullContent.includes('текст'))) || 
+            (fullContent.includes('custom') && (fullContent.includes('comment') || fullContent.includes('text') || fullContent.includes('msg') || fullContent.includes('reply')))
+        ) {
             customDataType = 'TEXTAREA';
         }
 
@@ -487,6 +501,7 @@ export const SmartAnalyzerLogic = class {
         return {
             platform: platformEnum,
             platformSlug,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             category: category as any,
             targetType,
             isPrivate,

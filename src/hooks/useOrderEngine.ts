@@ -51,6 +51,7 @@ function getCategoryDemandScore(name: string): number {
   return 999;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sortCategories(categories: any[]) {
   return [...categories].sort((a, b) => {
     const scoreA = getCategoryDemandScore(a.name);
@@ -93,6 +94,8 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   // The text "Нажимая «Оплатить», вы соглашаетесь..." is shown inline instead.
   const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [isLinkOverridden, setIsLinkOverridden] = useState(false);
+  const [isWarningConfirmed, setIsWarningConfirmed] = useState(false);
+  const [warningHasError, setWarningHasError] = useState(false);
 
   // BUG-10: Restore session state on mount (url, networkId, categoryId only — no email/promo per PCI DSS)
   useEffect(() => {
@@ -112,7 +115,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
         }
       }
     } catch { /* sessionStorage unavailable (SSR/incognito) */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   // BUG-10: Save draft progress to sessionStorage
@@ -148,6 +151,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     totalCents: number;
     validCount: number;
     errors: { line: number; text: string; error: string }[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     validOrders: any[];
   } | null>(null);
   const [isMassCalculating, setIsMassCalculating] = useState(false);
@@ -165,8 +169,11 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const handleSetUrl = useCallback((newUrl: string) => {
     setUrl(newUrl);
     setIsLinkOverridden(false);
+    setIsWarningConfirmed(false);
+    setWarningHasError(false);
     if (!newUrl) {
       setValidationErrors(prev => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { link, ...rest } = prev;
         return rest;
       });
@@ -271,7 +278,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     }, 350);
 
     return () => clearTimeout(handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     // selectedService and networkId intentionally omitted — tracked via refs
     // to prevent URL re-analysis on manual service/network selection
   }, [url, catalog]);
@@ -372,6 +379,8 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       setIsSmartDrip(false);
       setSmartDripDays(7);
       setIsLinkOverridden(false);
+      setIsWarningConfirmed(false);
+      setWarningHasError(false);
     }
   }, [selectedService]);
 
@@ -383,7 +392,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       return promoPricing;
     }
 
-    const totalQty = dripFeedEnabled && runs ? quantity * runs : quantity;
+    const totalQty = quantity;
     const originalTotalCents = Math.max(1, Math.round(selectedService.pricePerUnitRub * 100 * totalQty));
 
     let totalCents = originalTotalCents;
@@ -458,6 +467,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
             validOrders: []
           });
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         setMassCalculation({
           totalRub: 0,
@@ -532,6 +542,20 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
        }
     }
 
+    if (selectedService) {
+      if (dripFeedEnabled && runs > 0) {
+        const chunk = Math.floor(quantity / runs);
+        if (chunk < selectedService.minQty) {
+          errors['dripfeed'] = `Для ${runs} запусков общее количество должно быть минимум ${selectedService.minQty * runs} шт.`;
+        }
+      } else if (isSmartDrip && smartDripDays > 0) {
+        const chunk = Math.floor(quantity / smartDripDays);
+        if (chunk < selectedService.minQty) {
+          errors['dripfeed'] = `Для Умного Drip на ${smartDripDays} дней общее количество должно быть минимум ${selectedService.minQty * smartDripDays} шт.`;
+        }
+      }
+    }
+
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       return false;
@@ -588,6 +612,8 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     promoCode, setPromoCode,
     agreedToTerms, setAgreedToTerms,
     isLinkOverridden, setIsLinkOverridden,
+    isWarningConfirmed, setIsWarningConfirmed,
+    warningHasError, setWarningHasError,
     
     // Drip-feed
     dripFeedEnabled, setDripFeedEnabled,

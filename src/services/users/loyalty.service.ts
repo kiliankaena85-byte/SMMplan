@@ -5,6 +5,7 @@ export class LoyaltyService {
    * Retrieves the current referral percentage for a user.
    * Can evaluate Tiered logic based on LTV or Pioneer badges.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   static async getReferralPercent(userId: string, projectId?: string): Promise<number> {
     const user = await db.user.findUnique({
       where: { id: userId },
@@ -28,6 +29,7 @@ export class LoyaltyService {
    * Awards a commission to the referrer when a referred user makes a deposit.
    * Safe to run inside an existing PostgreSQL transaction.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async awardCommission(tx: any, referredUserId: string, depositAmountCents: number, orderId: string): Promise<void> {
     const user = await tx.user.findUnique({
       where: { id: referredUserId },
@@ -88,6 +90,7 @@ export class LoyaltyService {
    * Confirms a pending commission when an order completes.
    * Moves it from PENDING to CONFIRMED.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async confirmCommission(tx: any, orderId: string): Promise<void> {
     const commissions = await tx.commission.findMany({
       where: { orderId, status: 'PENDING' }
@@ -114,6 +117,7 @@ export class LoyaltyService {
    * Reverses a pending commission if the order fails.
    * Moves it from PENDING to REVERSED and decrements referralBalance.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async reverseCommission(tx: any, orderId: string): Promise<void> {
     const commissions = await tx.commission.findMany({
       where: { orderId, status: 'PENDING' }

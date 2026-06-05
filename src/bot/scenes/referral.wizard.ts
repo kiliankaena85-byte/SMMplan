@@ -24,6 +24,7 @@ export const referralWizard = new Scenes.WizardScene(
   REFERRAL_WIZARD,
 
   // ШАГ 1: Показать статистику и ссылку
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     const tgId = ctx.from.id;
     const user = await resolveUser(tgId);
@@ -66,9 +67,11 @@ export const referralWizard = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
   async (_ctx: any) => { return; }
 );
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 referralWizard.use(async (ctx: any, next: any) => {
   if (ctx.callbackQuery?.data === 'close_ref') {
     await ctx.answerCbQuery();

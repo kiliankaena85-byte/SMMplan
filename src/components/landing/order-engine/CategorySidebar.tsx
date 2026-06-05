@@ -3,23 +3,53 @@ import { OrderEngine } from "@/hooks/useOrderEngine";
 import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
 import { ChevronRight } from "lucide-react";
 
+function getCategoryDemandScore(name: string): number {
+  const n = name.toLowerCase();
+  
+  if ((n.includes('подписчик') || n.includes('участник') || n.includes('follow') || n.includes('member')) && !n.includes('premium') && !n.includes('премиум') && !n.includes('бот')) {
+    return 10;
+  }
+  if (n.includes('просмотр') || n.includes('охват') || n.includes('view') || n.includes('watch') || n.includes('stat') || n.includes('стат')) {
+    return 20;
+  }
+  if (n.includes('лайк') || n.includes('like') || n.includes('нравится') || n.includes('heart')) {
+    return 30;
+  }
+  if (n.includes('реакц') || n.includes('reaction') || n.includes('emoji') || n.includes('эмоци')) {
+    return 40;
+  }
+  if (n.includes('premium') || n.includes('премиум')) {
+    return 95;
+  }
+  if (n.includes('буст') || n.includes('boost') || n.includes('level')) {
+    return 60;
+  }
+  if (n.includes('коммент') || n.includes('comment') || n.includes('отзыв') || n.includes('review')) {
+    return 70;
+  }
+  if (n.includes('репост') || n.includes('repost') || n.includes('share') || n.includes('поделит')) {
+    return 80;
+  }
+  if (n.includes('звезд') || n.includes('star') || n.includes('coin')) {
+    return 90;
+  }
+  if (n.includes('бот') || n.includes('bot') || n.includes('инвайт') || n.includes('invite') || n.includes('referral') || n.includes('рефер')) {
+    return 100;
+  }
+  return 999;
+}
+
 export function CategorySidebar({ engine }: { engine: OrderEngine }) {
   const { availableCategories, categoryId, setCategoryId } = engine;
   
   if (availableCategories.length === 0) {
     return null;
   }
-
+ 
   const sortedCategories = useMemo(() => {
-    const PRIORITY = ['подписчик', 'участники', 'просмотр', 'охват', 'лайк', 'нравится', 'реакц', 'сердц', 'коммент', 'отзыв', 'репост', 'поделит', 'авто', 'статистик', 'звезд', 'premium'];
     return [...availableCategories].sort((a, b) => {
-      const aName = a.name.toLowerCase();
-      const bName = b.name.toLowerCase();
-      const aIdx = PRIORITY.findIndex(p => aName.includes(p));
-      const bIdx = PRIORITY.findIndex(p => bName.includes(p));
-      
-      const scoreA = aIdx === -1 ? 999 : aIdx;
-      const scoreB = bIdx === -1 ? 999 : bIdx;
+      const scoreA = getCategoryDemandScore(a.name);
+      const scoreB = getCategoryDemandScore(b.name);
       
       if (scoreA !== scoreB) {
         return scoreA - scoreB;

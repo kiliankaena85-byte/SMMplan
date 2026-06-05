@@ -29,6 +29,7 @@ async function main() {
         }
 
         // 3. Убираем лишние точки, пробелы или запятые в самом начале строки
+        // eslint-disable-next-line no-useless-escape
         newDesc = newDesc.replace(/^[\s\.\,]+/, '');
 
         // 4. Очищаем HTML сущности (на всякий случай)

@@ -4,12 +4,12 @@ import { Table } from '@/components/admin/hero-ui';
 import Link from 'next/link';
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING:     'bg-warning/20 text-amber-700',
-  IN_PROGRESS: 'bg-blue-100 text-blue-700',
-  COMPLETED:   'bg-success/20 text-emerald-700',
-  ERROR:       'bg-destructive/20 text-rose-700',
+  PENDING:     'bg-warning/15 text-warning',
+  IN_PROGRESS: 'bg-primary/10 text-primary',
+  COMPLETED:   'bg-success/15 text-success',
+  ERROR:       'bg-destructive/15 text-destructive',
   CANCELED:    'bg-muted text-muted-foreground',
-  PARTIAL:     'bg-warning/20 text-amber-700',
+  PARTIAL:     'bg-warning/15 text-warning',
 };
 
 type OrderType = {
@@ -17,7 +17,7 @@ type OrderType = {
   numericId: number;
   status: string;
   quantity: number;
-  charge: any;
+  charge: bigint;
   createdAt: Date;
   service: { name: string };
 };
@@ -54,7 +54,7 @@ export function ClientOrdersTable({ orders }: { orders: OrderType[] }) {
                     </Link>
                   </Table.Cell>
                   <Table.Cell>
-                    <span className="text-xs text-foreground truncate max-w-[200px] block">{o.service.name}</span>
+                    <span className="text-xs text-foreground truncate max-w-48 block">{o.service.name}</span>
                   </Table.Cell>
                   <Table.Cell className="text-right">
                     <span className="text-xs tabular-nums text-muted-foreground">{o.quantity.toLocaleString('ru-RU')}</span>
@@ -63,7 +63,7 @@ export function ClientOrdersTable({ orders }: { orders: OrderType[] }) {
                     <span className="text-xs font-semibold tabular-nums text-foreground">{(Number(o.charge) / 100).toFixed(2)} ₽</span>
                   </Table.Cell>
                   <Table.Cell>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status] ?? 'bg-muted text-muted-foreground'}`}>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[o.status] ?? 'bg-muted text-muted-foreground'}`}>
                       {o.status}
                     </span>
                   </Table.Cell>

@@ -22,16 +22,20 @@ const serviceSchema = z.object({
   externalId: z.string().optional().nullable(),
   targetType: z.string().optional().nullable(),
   customDataType: z.string().default("NONE"),
+  customDataLabel: z.string().max(100, "Название подсказки не должно превышать 100 символов").optional().nullable(),
   isMediaGroupAware: z.coerce.boolean().default(false),
   isDripFeedEnabled: z.coerce.boolean().default(true),
   isRefillEnabled: z.coerce.boolean().default(false),
   isCancelEnabled: z.coerce.boolean().default(false),
-  isActive: z.coerce.boolean().default(true)
+  isActive: z.coerce.boolean().default(true),
+  requireWarning: z.coerce.boolean().default(false),
+  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable()
 });
 
 /**
  * Manually create a new catalog Service
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createServiceAction(rawData: any) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const parsed = serviceSchema.safeParse(rawData);
@@ -83,11 +87,14 @@ export async function createServiceAction(rawData: any) {
           externalId: data.externalId,
           targetType: targetType,
           customDataType: data.customDataType,
+          customDataLabel: data.customDataLabel,
           isMediaGroupAware: data.isMediaGroupAware,
           isDripFeedEnabled: data.isDripFeedEnabled,
           isRefillEnabled: data.isRefillEnabled,
           isCancelEnabled: data.isCancelEnabled,
           isActive: data.isActive,
+          requireWarning: data.requireWarning,
+          warningMessage: data.warningMessage,
           pricePer1000Cents
         }
       });
@@ -104,12 +111,16 @@ export async function createServiceAction(rawData: any) {
         categoryId: service.categoryId,
         rate: service.rate,
         markup: service.markup,
-        pricePer1000Cents: service.pricePer1000Cents
+        pricePer1000Cents: service.pricePer1000Cents,
+        requireWarning: service.requireWarning,
+        warningMessage: service.warningMessage
       }
     });
 
     revalidatePath("/admin/catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("services");
 
     return { success: true as const, serviceId: service.id };
@@ -119,6 +130,7 @@ export async function createServiceAction(rawData: any) {
 /**
  * Manually update an existing catalog Service
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function updateServiceAction(id: string, rawData: any) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     if (!id || typeof id !== 'string') {
@@ -183,11 +195,14 @@ export async function updateServiceAction(id: string, rawData: any) {
           externalId: data.externalId,
           targetType: targetType,
           customDataType: data.customDataType,
+          customDataLabel: data.customDataLabel,
           isMediaGroupAware: data.isMediaGroupAware,
           isDripFeedEnabled: data.isDripFeedEnabled,
           isRefillEnabled: data.isRefillEnabled,
           isCancelEnabled: data.isCancelEnabled,
           isActive: data.isActive,
+          requireWarning: data.requireWarning,
+          warningMessage: data.warningMessage,
           pricePer1000Cents
         }
       });
@@ -204,19 +219,25 @@ export async function updateServiceAction(id: string, rawData: any) {
         categoryId: service.categoryId,
         rate: service.rate,
         markup: service.markup,
-        pricePer1000Cents: service.pricePer1000Cents
+        pricePer1000Cents: service.pricePer1000Cents,
+        requireWarning: service.requireWarning,
+        warningMessage: service.warningMessage
       },
       newValue: {
         name: updatedService.name,
         categoryId: updatedService.categoryId,
         rate: updatedService.rate,
         markup: updatedService.markup,
-        pricePer1000Cents: updatedService.pricePer1000Cents
+        pricePer1000Cents: updatedService.pricePer1000Cents,
+        requireWarning: updatedService.requireWarning,
+        warningMessage: updatedService.warningMessage
       }
     });
 
     revalidatePath("/admin/catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("services");
 
     return { success: true as const, serviceId: updatedService.id };

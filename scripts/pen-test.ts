@@ -40,6 +40,7 @@ async function runPenetrationTest() {
        if (res.status === 429) {
            _429Count++;
        }
+     // eslint-disable-next-line no-empty
      } catch(e) {}
   });
 

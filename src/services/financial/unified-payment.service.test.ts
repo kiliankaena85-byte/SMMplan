@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { UnifiedPaymentService } from './unified-payment.service';
 import { db } from '@/lib/db';
 
@@ -8,6 +8,7 @@ vi.mock('@/lib/db', () => ({
     payment: {
       create: vi.fn().mockResolvedValue({ id: 'payment-123' }),
       update: vi.fn().mockResolvedValue({}),
+      aggregate: vi.fn().mockResolvedValue({ _sum: { amount: 0 } }),
     }
   }
 }));
@@ -36,10 +37,18 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe('UnifiedPaymentService', () => {
+  let originalNodeEnv: string | undefined;
+
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.dynamicbrand.com';
     global.fetch = vi.fn();
+    originalNodeEnv = process.env.NODE_ENV;
+    (process.env as any).NODE_ENV = 'production';
+  });
+
+  afterEach(() => {
+    (process.env as any).NODE_ENV = originalNodeEnv;
   });
 
   it('YooKassa gateway uses dynamic brand domain for success return_url', async () => {

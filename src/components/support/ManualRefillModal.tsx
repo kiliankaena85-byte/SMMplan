@@ -41,6 +41,7 @@ export default function ManualRefillModal({
         setTopUpBalance(false);
         toast.success(topUpBalance ? 'Баланс пополнен и лимит списан' : 'Компенсация успешно списана с лимита');
         onClose();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         toast.error(e.message || 'Ошибка списания лимита');
       }

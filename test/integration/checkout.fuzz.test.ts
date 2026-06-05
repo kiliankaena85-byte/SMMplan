@@ -57,7 +57,7 @@ describe('Financial Fuzzing: Checkout & WalletOps', () => {
 
     await fc.assert(
       fc.asyncProperty(
-        fc.double({ min: 0.001, max: 0.009 }), // Extremely small fractions
+        fc.double({ min: 0.001, max: 0.0049 }), // Extremely small fractions that round to 0 cents
         async (tinyAmount) => {
            let thrown = false;
            try {

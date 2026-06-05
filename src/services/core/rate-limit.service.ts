@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { headers } from "next/headers";
 import { redis } from "@/lib/redis";
 
@@ -21,11 +22,12 @@ export class RateLimitService {
   ): Promise<boolean> {
     try {
       const { SettingsProvider } = await import('@/lib/settings');
-      if (SettingsProvider.isTestEnvironment() || await SettingsProvider.isTestMode()) {
+      if ((SettingsProvider.isTestEnvironment() || await SettingsProvider.isTestMode()) && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') {
         return true;
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
-      if (process.env.NODE_ENV === 'test') return true;
+      if (process.env.NODE_ENV === 'test' && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') return true;
     }
     try {
       const { getClientIp } = await import('@/utils/ip');
@@ -53,6 +55,7 @@ export class RateLimitService {
           }
           return true;
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (redisError: any) {
         console.warn("[RATE_LIMIT:REDIS] Redis check failed, falling back to PostgreSQL:", (redisError as Error).message);
       }
@@ -60,6 +63,7 @@ export class RateLimitService {
       // 2. Fallback to Postgres (if Redis is down or not configured)
       db.rateLimit.deleteMany({
         where: { expiresAt: { lte: now } }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }).catch((e: any) => console.error("RateLimit cleanup error:", e));
 
       const existingRecord = await db.rateLimit.findUnique({
@@ -97,6 +101,7 @@ export class RateLimitService {
       }
 
       return true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error("[RATE_LIMIT] Fatal Failure:", e);
       if (failClosed) {
@@ -116,11 +121,12 @@ export class RateLimitService {
   ): Promise<boolean> {
     try {
       const { SettingsProvider } = await import('@/lib/settings');
-      if (SettingsProvider.isTestEnvironment() || await SettingsProvider.isTestMode()) {
+      if ((SettingsProvider.isTestEnvironment() || await SettingsProvider.isTestMode()) && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') {
         return true;
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
-      if (process.env.NODE_ENV === 'test') return true;
+      if (process.env.NODE_ENV === 'test' && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') return true;
     }
     try {
       // W6-1 SECURITY FIX: Prevent Redis OOM or DB bloat from huge custom keys
@@ -149,6 +155,7 @@ export class RateLimitService {
           }
           return true;
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (redisError: any) {
         console.warn("[RATE_LIMIT_CUSTOM:REDIS] Redis check failed, falling back to PostgreSQL:", (redisError as Error).message);
       }
@@ -156,6 +163,7 @@ export class RateLimitService {
       // 2. Fallback to Postgres
       db.rateLimit.deleteMany({
         where: { expiresAt: { lte: now } }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }).catch((e: any) => console.error("RateLimit cleanup error:", e));
 
       // We'll store it as ip: 'CUSTOM_KEY', endpoint: key
@@ -186,6 +194,7 @@ export class RateLimitService {
          return false;
       }
       return true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error("[RATE_LIMIT_CUSTOM] Fatal Failure:", e);
       if (failClosed) {

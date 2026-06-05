@@ -154,6 +154,7 @@ export async function runCleanup(): Promise<void> {
   // ── 5. Orders: Stuck IN_PROGRESS TTL Sweep ────────────────────────────────
   try {
     await runInProgressTTLSweep();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (ttlErr: any) {
     log.error('runCleanup: runInProgressTTLSweep failed', { error: ttlErr.message });
   }
@@ -201,6 +202,7 @@ export async function runOrphanSweep(): Promise<void> {
           jobExists = true;
           jobState = await job.getState();
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (redisErr: any) {
         const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans getJob. Order ${orphan.id} remains PENDING. Error: ${redisErr.message}`;
         log.error(msg);
@@ -246,6 +248,7 @@ export async function runOrphanSweep(): Promise<void> {
               // failOrderTerminal returned null = order was already terminal
               log.info(`[ARCH-2] Order ${orphan.id} already terminal, no action needed`);
             }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } catch (recoveryErr: any) {
             // Auto-recovery failed — escalate to manual
             const refundRub = (Number(orphan.charge) / 100).toFixed(2);
@@ -269,6 +272,7 @@ export async function runOrphanSweep(): Promise<void> {
         const minutesPending = Math.round((Date.now() - orphan.createdAt.getTime()) / 60000);
         log.warn(`[WARNING] recovered orphan orderId=${orphan.id} jobId=${jobId}`);
         sweptDetails.push(`• Восстановлен: ID \`${orphan.id}\` (#${orphan.numericId}), висел ${minutesPending} мин`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (addErr: any) {
         const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans add. Order ${orphan.id} remains PENDING. Error: ${addErr.message}`;
         log.error(msg);
@@ -417,6 +421,7 @@ export async function runInProgressTTLSweep(): Promise<void> {
             `• ID: \`${order.id}\` (#${order.numericId}), Юзер: \`${order.userId}\`, Выполнено: ${delivered}/${quantity}, Статус: \`${targetStatus}\`, Возврат: ${refundRub} ₽`
           );
         }, { isolationLevel: 'Serializable' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (orderErr: any) {
         log.error(`runInProgressTTLSweep: failed to sweep order ${order.id}`, { error: orderErr.message });
       }

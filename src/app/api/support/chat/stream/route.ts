@@ -18,9 +18,7 @@ import { db } from '@/lib/db';
 import { sseBroadcaster } from '@/lib/sse-broadcaster';
 import { jwtVerify } from 'jose';
 
-if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
-const secretKey = process.env.JWT_SECRET;
-const encodedKey = new TextEncoder().encode(secretKey);
+import { getEncodedKey } from '@/lib/session';
 
 // Max SSE connections per ticket to prevent resource exhaustion (VQ2)
 const MAX_CONNECTIONS_PER_TICKET = 10;
@@ -33,7 +31,7 @@ export async function GET(req: NextRequest) {
     if (!token) {
       return new Response('Unauthorized', { status: 401 });
     }
-    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] });
+    const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     userId = payload.userId as string;
   } catch {
     return new Response('Unauthorized', { status: 401 });

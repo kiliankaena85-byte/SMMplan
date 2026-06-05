@@ -184,6 +184,7 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
       }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const crypto = require('crypto');
     const rawBody = JSON.stringify(webhookPayload);
     const signature = crypto

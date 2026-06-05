@@ -3,7 +3,6 @@ import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
 import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvider';
-import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 
 export const metadata: Metadata = {
   title: {
@@ -54,7 +53,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <NetworkAwareProvider>
             {children}
           </NetworkAwareProvider>
-          <ThemeSwitcher />
         </Providers>
         <Toaster
           richColors

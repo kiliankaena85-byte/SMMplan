@@ -27,6 +27,7 @@ export const depositWizard = new Scenes.WizardScene(
   DEPOSIT_WIZARD,
 
   // ШАГ 1: Запрос суммы
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     ctx.wizard.state.depositData = {};
     await ctx.reply('💰 <b>Пополнение баланса</b>\n\nВведите сумму пополнения в рублях (от 100 до 500 000):', {
@@ -37,6 +38,7 @@ export const depositWizard = new Scenes.WizardScene(
   },
 
   // ШАГ 2: Обработка суммы и выбор метода
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (!ctx.message?.text) {
       return ctx.reply('❌ Пожалуйста, введите число.');
@@ -64,12 +66,14 @@ export const depositWizard = new Scenes.WizardScene(
   },
 
   // ШАГ 3: Заглушка, обрабатываемая через .action()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
   async (_ctx: any) => { return; }
 );
 
 // ──────────────────────────────────────────────────────────────
 // SCENE GUARD & ACTIONS
 // ──────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 depositWizard.use(async (ctx: any, next: any) => {
   if (ctx.callbackQuery) {
     const data = ctx.callbackQuery.data;
@@ -84,12 +88,14 @@ depositWizard.use(async (ctx: any, next: any) => {
   return next();
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 depositWizard.action('cancel_deposit', async (ctx: any) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText('❌ Пополнение отменено.');
   return ctx.scene.leave();
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: any) => {
   const gateway = ctx.match[1] as 'yookassa' | 'cryptobot';
   const amount = ctx.wizard.state.depositData?.amount;
@@ -135,6 +141,7 @@ depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: any) => {
     } else {
       await ctx.editMessageText(`❌ <b>Ошибка при создании платежа.</b>\n${res.error || 'Попробуйте позже.'}`, { parse_mode: 'HTML' });
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     console.error('[DepositWizard] Error:', e);
     await ctx.reply('❌ Произошла техническая ошибка. Попробуйте позже.');

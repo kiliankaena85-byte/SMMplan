@@ -16,6 +16,7 @@ class SupportBotService {
   /**
    * INBOUND: Handle messages from Telegram Bot and save to Database
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async handleIncomingMessage(ctx: any, userId: string) {
     let text = '';
     let mediaUrl: string | null = null;
@@ -104,6 +105,7 @@ class SupportBotService {
       // For subsequent messages, just react to avoid spam
       try {
         await ctx.react('👨‍💻');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch(e) {
         // Ignored. Not all chats support reactions.
       }
@@ -115,6 +117,7 @@ class SupportBotService {
    */
   async sendSupportReply(telegramId: string, text: string, replyToTgMsgId?: string, mediaUrl?: string, mediaType?: string): Promise<string | null> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const extra: any = { parse_mode: 'HTML' };
       if (replyToTgMsgId) {
         extra.reply_to_message_id = Number(replyToTgMsgId);
@@ -145,6 +148,7 @@ class SupportBotService {
       }
 
       return String(msg.message_id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[SupportBot] Failed to send to telegram:', e.message);
       // If reply_to_message_id failed (message deleted), retry without reply
@@ -168,6 +172,7 @@ class SupportBotService {
         { parse_mode: 'HTML' }
       );
       return true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[SupportBot] Failed to edit telegram message:', e.message);
       if (e.message.includes('message is not modified')) return true; // It's fine
@@ -182,6 +187,7 @@ class SupportBotService {
     try {
       await bot.telegram.deleteMessage(telegramId, Number(telegramMsgId));
       return true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[SupportBot] Failed to delete telegram message:', e.message);
       throw new Error(e.message, { cause: e });
@@ -189,6 +195,7 @@ class SupportBotService {
   }
 
   // --- Helper ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async downloadTelegramFile(ctx: any, fileId: string, ext: string, ticketId: string, fileSize?: number): Promise<string | null> {
     const MAX_SIZE = 10 * 1024 * 1024; // 10 MB (Reduced from 20MB for safety)
     if (fileSize && fileSize > MAX_SIZE) {

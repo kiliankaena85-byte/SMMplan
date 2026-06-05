@@ -66,6 +66,7 @@ async function main() {
           cleanName = cleanName.replace(regex, '').trim();
           
           // Удаляем ведущие дефисы, слэши или скобки, если остались
+          // eslint-disable-next-line no-useless-escape
           cleanName = cleanName.replace(/^[-\/\|\[\]\s]+/, '').trim();
           break;
         }

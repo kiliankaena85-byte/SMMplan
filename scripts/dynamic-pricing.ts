@@ -17,6 +17,7 @@ async function main() {
     for (const service of services) {
         // Себестоимость за 1000 единиц (costUsd)
         const costUsd = service.rate;
+        // eslint-disable-next-line no-useless-assignment
         let newMarkup = 3.0; // Базовая минимальная наценка 300%
         
         const isTwitch = service.category?.name.toLowerCase().includes('twitch') || service.name.toLowerCase().includes('twitch');

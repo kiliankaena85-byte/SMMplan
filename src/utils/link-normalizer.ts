@@ -38,6 +38,7 @@ export function stripQueryParams(url: string): string {
     }
     
     return result;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     // If not a valid absolute URL, do a regex search/replace for common tracking query params
     let cleaned = trimmed;

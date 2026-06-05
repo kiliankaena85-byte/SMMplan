@@ -13,7 +13,17 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ClientDate } from "@/components/ui/client-date";
 
-export function CMSTable({ items }: { items: any[] }) {
+export interface CMSItem {
+  id: string;
+  title: string;
+  slug: string;
+  type: string;
+  isPublished: boolean;
+  authorName: string | null;
+  createdAt: Date | string;
+}
+
+export function CMSTable({ items }: { items: CMSItem[] }) {
   if (!items || items.length === 0) {
     return (
       <div className="flex h-32 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
@@ -36,7 +46,7 @@ export function CMSTable({ items }: { items: any[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((item: any) => (
+          {items.map((item: CMSItem) => (
             <TableRow key={item.id}>
               <TableCell>
                 <div className="flex flex-col">

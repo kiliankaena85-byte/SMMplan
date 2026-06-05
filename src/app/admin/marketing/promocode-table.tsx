@@ -2,11 +2,10 @@
 
 import * as React from 'react';
 import { DataTable } from '@/components/ui/data-table';
-import { columns } from './promocode-columns';
-import { PromoCode } from '@prisma/client';
+import { columns, PromoCodeWithUsages } from './promocode-columns';
 
 interface PromoCodeTableProps {
-  data: PromoCode[];
+  data: PromoCodeWithUsages[];
 }
 
 export function PromoCodeTable({ data }: PromoCodeTableProps) {

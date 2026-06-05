@@ -82,6 +82,7 @@ async function main() {
         where: { externalId }
       });
       if (!srv) {
+        // eslint-disable-next-line no-useless-assignment
         srv = await prisma.service.create({
           data: {
             name: `${cat.name} • ${tiers[t]}`,

@@ -148,6 +148,7 @@ export const WalletOps = {
       });
 
       return { success: true, balance: updatedUser.balance, cached: false, entry };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (idempotencyKey && error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
         // In a Serializable transaction, the transaction is already aborted here.
@@ -163,6 +164,7 @@ export const WalletOps = {
    * Does NOT affect totalSpent.
    */
   async adminAdjust(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tx: any,
     userId: string,
     amountCents: number,

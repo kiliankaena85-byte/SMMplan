@@ -46,7 +46,9 @@ export function SubmitButton({
       <Button 
         ref={buttonRef}
         type="submit" 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         intent={variant === 'default' ? 'primary' : variant as any}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         size={size as any}
         className={className} 
         disabled={pending || props.disabled}
@@ -66,7 +68,7 @@ export function SubmitButton({
         )}
       </Button>
 
-      {confirmMessage && (
+      {confirmMessage && isOpen && (
         <ConfirmModal
           isOpen={isOpen}
           onClose={() => setIsOpen(false)}

@@ -103,6 +103,7 @@ export async function scanSubscriberQuality(
       `[QualityDetector] Сканирование завершено успешно. Создан новый слепок на ${totalMembers.length} пользователей. ` +
       `Обнаружено подозрительных ботов в порции: ${suspiciousUsers.length} шт.`
     );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     // ВАЖНО: Тихо логируем ошибку в консоль и НЕ выбрасываем ее наружу, чтобы не сломать доставку Dripfeed
     console.error(`[QualityDetector] Critical error during silent quality scanning for campaign ${campaignId}:`, err.message);

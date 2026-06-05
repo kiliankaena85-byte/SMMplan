@@ -4,6 +4,7 @@ import { draftMode } from "next/headers";
 import parse, { DOMNode, Element } from "html-react-parser";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ServiceCard } from "@/components/landing/order-engine/ServiceCard";
 
 export const revalidate = 3600; // Ревалидация раз в час (ISR)

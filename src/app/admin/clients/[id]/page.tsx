@@ -10,6 +10,7 @@ import { formatBalance } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STATUS_COLORS: Record<string, string> = {
   PENDING:    'bg-warning/20  text-amber-700',
   PROCESSING: 'bg-blue-100   text-blue-700',
@@ -209,7 +210,7 @@ export default async function ClientDetailPage({ params }: Props) {
         <div className="px-4 py-3 border-b border-border">
           <h2 className="text-sm font-semibold text-foreground">Последние заказы</h2>
         </div>
-        <ClientOrdersTable orders={orders as any} />
+        <ClientOrdersTable orders={orders} />
         {ordersCount > 15 && (
           <div className="px-4 py-3 border-t border-border">
             <Link href={`/admin/orders?userId=${user.id}`} className="text-xs text-primary hover:underline">

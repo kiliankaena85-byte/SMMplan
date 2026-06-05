@@ -10,6 +10,7 @@
 
 import { useState, useTransition, useCallback } from 'react';
 import { toast } from 'sonner';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getLedgerAction, type LedgerEntryDTO, type LedgerPageResult } from '@/actions/admin/finance/ledger';
 import { getPaymentsAction, type PaymentsPageResult } from '@/actions/admin/finance/payments';
 import { 
@@ -55,6 +56,7 @@ function fmt(cents: number, showSign = false): string {
 function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult; period: string }) {
   const [period, setPeriod]       = useState(initPeriod);
   const [data,   setData]         = useState<LedgerPageResult>(initial);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isPending, startTransition] = useTransition();
 
   const load = useCallback((newPeriod: string) => {
@@ -246,6 +248,7 @@ function BalanceCorrectionTab() {
 function PaymentsTab({ initial, period: initPeriod }: { initial: PaymentsPageResult; period: string }) {
   const [period, setPeriod]       = useState(initPeriod);
   const [data,   setData]         = useState<PaymentsPageResult>(initial);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isPending, startTransition] = useTransition();
 
   const load = useCallback((newPeriod: string) => {

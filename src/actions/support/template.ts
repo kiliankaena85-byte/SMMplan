@@ -9,8 +9,15 @@ import { auditAdmin } from '@/lib/admin-audit';
 
 const templateSchema = z.object({
   id: z.string().optional(),
+  shortcut: z.string()
+    .min(1, 'Шорткат обязателен')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Шорткат может содержать только латинские буквы, цифры, дефис и подчеркивание')
+    .optional()
+    .nullable(),
   label: z.string().min(1, 'Название обязательно'),
   text: z.string().min(1, 'Текст обязателен'),
+  category: z.string().default('GENERAL'),
+  isActive: z.boolean().default(true),
   sort: z.number().int().default(0)
 });
 
@@ -22,18 +29,36 @@ export async function getTemplates() {
   });
 }
 
+export async function incrementTemplateUsage(id: string) {
+  return requireStaffPermission('support', 'view', async () => {
+    try {
+      await db.supportTemplate.update({
+        where: { id },
+        data: { useCount: { increment: 1 } }
+      });
+      return { success: true };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      return { success: false, error: 'Database error' };
+    }
+  });
+}
+
 export async function upsertTemplate(formData: FormData) {
   return requireStaffPermission('support', 'edit', async (admin) => {
 
   const parsed = templateSchema.safeParse({
     id: formData.get('id') || undefined,
+    shortcut: formData.get('shortcut') || null,
     label: formData.get('label'),
     text: formData.get('text'),
+    category: formData.get('category') || 'GENERAL',
+    isActive: formData.get('isActive') === 'true' || formData.get('isActive') === 'on',
     sort: parseInt(formData.get('sort') as string || '0', 10)
   });
 
   if (!parsed.success) {
-    throw new Error('Invalid input');
+    throw new Error('Invalid input: ' + parsed.error.message);
   }
 
   const data = parsed.data;
@@ -46,7 +71,14 @@ export async function upsertTemplate(formData: FormData) {
 
     const newTemplate = await db.supportTemplate.update({
       where: { id: data.id },
-      data: { label: data.label, text: data.text, sort: data.sort }
+      data: {
+        shortcut: data.shortcut,
+        label: data.label,
+        text: data.text,
+        category: data.category,
+        isActive: data.isActive,
+        sort: data.sort
+      }
     });
 
     auditAdmin({
@@ -61,7 +93,14 @@ export async function upsertTemplate(formData: FormData) {
     });
   } else {
     const newTemplate = await db.supportTemplate.create({
-      data: { label: data.label, text: data.text, sort: data.sort }
+      data: {
+        shortcut: data.shortcut,
+        label: data.label,
+        text: data.text,
+        category: data.category,
+        isActive: data.isActive,
+        sort: data.sort
+      }
     });
 
     auditAdmin({

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { X, Smartphone, Monitor, Check, AlertTriangle, HelpCircle, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 

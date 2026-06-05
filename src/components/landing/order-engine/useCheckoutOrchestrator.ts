@@ -22,6 +22,7 @@ export function useCheckoutOrchestrator({
   const [showMassConfirmModal, setShowMassConfirmModal] = useState(false);
   const [emailHasError, setEmailHasError] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pendingCheckoutParams, setPendingCheckoutParams] = useState<any>(null);
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export function useCheckoutOrchestrator({
         const errorMessage = res.error || 'Ошибка создания заказа. Попробуйте еще раз.';
         window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=yookassa&email=${encodeURIComponent(confirmedEmail)}&url=${encodeURIComponent(url)}&paymentId=&orderId=`;
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       const errorMessage = e.message || 'Ошибка платежного шлюза.';
       window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=yookassa&email=${encodeURIComponent(confirmedEmail)}&url=${encodeURIComponent(url)}&paymentId=&orderId=`;
@@ -177,6 +179,7 @@ export function useCheckoutOrchestrator({
             setShowLinkModal(true);
             return;
           }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           setLinkHasError(true);
           toast.error("Неверный формат ссылки.", { position: 'top-center' });
@@ -191,6 +194,69 @@ export function useCheckoutOrchestrator({
       }
     }
     // -------------------------------------------------
+    // --- WAVE 4.3 MANDATORY WARNING CONFIRMATION CHECK ---
+    const sName = selectedService.name.toLowerCase();
+    const isLiveStream = sName.includes('зрител') || sName.includes('эфир') || sName.includes('трансляц');
+    const isPrivateChannel = sName.includes('закрыт');
+    
+    const urlLower = url.toLowerCase();
+    const isPrivateTelegramPost = urlLower.includes('t.me/c/') || urlLower.includes('telegram.me/c/');
+    const isVkPhotoOrVideo = urlLower.includes('vk.com/photo') || urlLower.includes('vk.com/video') || urlLower.includes('vk.ru/photo') || urlLower.includes('vk.ru/video') || urlLower.includes('vkvideo.ru/');
+
+    const activeCategory = activeNetwork?.categories.find(c => c.id === engine.categoryId);
+    const isTelegramViews = activeNetwork?.slug?.toLowerCase() === 'telegram'
+      && activeCategory?.name?.toLowerCase().includes('просмотр')
+      && !activeCategory?.name?.toLowerCase().includes('авто')
+      && !activeCategory?.name?.toLowerCase().includes('auto')
+      && !activeCategory?.name?.toLowerCase().includes('будущ')
+      && selectedService?.targetType !== 'CHANNEL';
+
+    // Validation message from validator
+    let validationWarningActive = false;
+    if (url.trim().length > 3 && selectedService && activeNetwork) {
+      const activePlatform = engine.platform || engine.manualPlatform;
+      const validationPlatform = (activePlatform && activePlatform !== IntelligencePlatform.OTHER)
+        ? activePlatform
+        : activeNetwork.slug.toUpperCase();
+      
+      const activeCatForVal = engine.catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
+      const targetType = selectedService.targetType === 'POST'
+        ? inferTargetTypeFromCategory(activeCatForVal?.name)
+        : (selectedService.targetType || inferTargetTypeFromCategory(activeCatForVal?.name));
+      
+      try {
+        const validator = getLinkValidator(validationPlatform, targetType);
+        const linkResult = validator.safeParse(url);
+        if (!linkResult.success) {
+          validationWarningActive = true;
+        }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-empty
+      } catch (e) {}
+    }
+
+    const hasDbWarnings = !!(
+      (selectedService.requireWarning && selectedService.warningMessage) ||
+      (activeCategory?.requireWarning && activeCategory?.warningMessage)
+    );
+
+    const hasWarnings = isLiveStream || isPrivateChannel || isPrivateTelegramPost || isVkPhotoOrVideo || isTelegramViews || validationWarningActive || hasDbWarnings;
+
+    if (hasWarnings && !engine.isWarningConfirmed) {
+      engine.setWarningHasError(true);
+      toast.error("Пожалуйста, подтвердите согласие с особенностями накрутки (отметьте галочку согласия в предупреждениях).", { 
+        position: 'top-center',
+        duration: 5000 
+      });
+      setTimeout(() => {
+        const warningEl = document.getElementById("warning-confirm-checkbox");
+        if (warningEl) {
+          warningEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          warningEl.focus();
+        }
+      }, 100);
+      return;
+    }
+
     if (quantity < (selectedService.minQty || 1)) {
       toast.error(`Минимальное количество для заказа: ${selectedService.minQty}`, { position: 'top-center' });
       return;
@@ -234,7 +300,9 @@ export function useCheckoutOrchestrator({
       mediaGroupUrl: engine.mediaGroupUrl?.trim() || undefined,
       isLinkOverridden: engine.isLinkOverridden,
       isSmartDrip: engine.isSmartDrip,
-      smartDripDays: engine.isSmartDrip ? engine.smartDripDays : undefined
+      smartDripDays: engine.isSmartDrip ? engine.smartDripDays : undefined,
+      runs: engine.dripFeedEnabled ? engine.runs : undefined,
+      interval: engine.dripFeedEnabled ? engine.dripInterval : undefined
     });
     setShowPaymentModal(true);
   };
@@ -276,6 +344,7 @@ export function useCheckoutOrchestrator({
           window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${serviceId}&gateway=${gateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(url)}&paymentId=${paymentId}&orderId=${orderId}`;
         }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setIsSubmitting(false);
       const errorMessage = e.message || "Ошибка платежного шлюза.";

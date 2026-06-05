@@ -34,6 +34,7 @@ export function serializeForClient<T>(obj: T): T {
  */
 const BALANCE_SAFETY_LIMIT = BigInt(2_000_000_000_00); // 20M RUB in kopecks
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function checkBalanceSafetyLimit(balance: bigint, userId: string): void {
   if (balance > BALANCE_SAFETY_LIMIT) {
     // Fire-and-forget alert — import inline to avoid circular deps

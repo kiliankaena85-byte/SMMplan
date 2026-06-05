@@ -4,7 +4,9 @@ import React from 'react';
 
 interface CategorySelectorProps {
   categoryId: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setCategoryId: (id: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   availableCategories: any[];
 }
 

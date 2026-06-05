@@ -7,11 +7,13 @@ export function ActionForm({
   className,
   formRef
 }: { 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   action: (formData: FormData) => Promise<any>, 
   children: React.ReactNode | ((props: { isPending: boolean }) => React.ReactNode),
   className?: string,
   formRef?: React.RefObject<HTMLFormElement | null>
 }) {
+   // eslint-disable-next-line @typescript-eslint/no-explicit-any
    const [state, formAction, isPending] = useActionState(async (prevState: any, formData: FormData) => {
        try {
            const result = await action(formData);
@@ -19,6 +21,7 @@ export function ActionForm({
                return { error: result.error };
            }
            return { success: true };
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
        } catch (err: any) {
            return { error: err.message || "System error" };
        }

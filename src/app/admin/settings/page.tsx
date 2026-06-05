@@ -1,11 +1,13 @@
 import { settingsService } from '@/services/admin/settings.service';
 import { db } from '@/lib/db';
-import { Settings, Shield, Globe, Link as LinkIcon, Users, History } from 'lucide-react';
+import { Settings, Shield, Globe, Link as LinkIcon, Users, History, MessageSquare } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { TestModePanel } from '@/components/admin/test-mode-panel';
 import { GeneralSettings } from './general-settings';
 import { IntegrationsSettings } from './integrations-settings';
 import { TeamManagement } from './team-management';
+import { CopSimulator } from './cop-simulator';
+import { SupportTemplatesSettings } from './support-templates';
 import { DataTable } from '@/components/ui/data-table';
 import { columns as auditColumns } from './audit-columns';
 import Link from 'next/link';
@@ -18,17 +20,19 @@ export default async function AdminSettingsPage({
 }: {
   searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
-  await enforcePageRole(['OWNER', 'ADMIN']);
+  const admin = await enforcePageRole(['OWNER', 'ADMIN']);
   
   const params = await searchParams;
   const activeTab = params.tab || 'system';
   const searchQuery = params.q || '';
 
-  const [staffUsers, users, settings, recentLogs] = await Promise.all([
+  const [staffUsers, users, settings, recentLogs, staffRoles, templates] = await Promise.all([
     settingsService.listStaffUsers(),
     searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
     settingsService.getSystemSettings(),
     db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
+    db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
+    db.supportTemplate.findMany({ orderBy: { sort: 'asc' } }),
   ]);
 
   const sanitizedSettings = {
@@ -41,12 +45,14 @@ export default async function AdminSettingsPage({
     inboundEmailWebhookSecret: settings.inboundEmailWebhookSecret ? '••••••••••••••••' : null,
   };
 
-  const regularUsers = users.filter((u) => u.role === 'USER' || u.role === 'BANNED');
+  const regularUsers = users.filter((u) => u.id !== admin.id);
 
   const tabs = [
     { id: 'system', label: 'Система', icon: Globe },
     { id: 'integrations', label: 'Интеграции', icon: LinkIcon },
     { id: 'team', label: 'Команда', icon: Users },
+    { id: 'templates', label: 'Шаблоны', icon: MessageSquare },
+    { id: 'cop', label: 'COP Симулятор', icon: Shield },
     { id: 'audit', label: 'Аудит', icon: History },
   ];
 
@@ -99,7 +105,23 @@ export default async function AdminSettingsPage({
               staffUsers={staffUsers} 
               regularUsers={regularUsers} 
               searchQuery={searchQuery} 
+              currentAdminRole={admin.role}
+              staffRoles={staffRoles}
             />
+          </div>
+        )}
+
+        {/* ── TAB 3.7: SUPPORT TEMPLATES ── */}
+        {activeTab === 'templates' && (
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+            <SupportTemplatesSettings initialTemplates={templates} />
+          </div>
+        )}
+
+        {/* ── TAB 3.5: COP SIMULATION ── */}
+        {activeTab === 'cop' && (
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+            <CopSimulator />
           </div>
         )}
 
@@ -110,6 +132,7 @@ export default async function AdminSettingsPage({
               <div className="p-0">
                 <DataTable 
                   columns={auditColumns} 
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   data={recentLogs as any} 
                   searchKey="action"
                   searchPlaceholder="Поиск по действию..."

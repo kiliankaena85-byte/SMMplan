@@ -50,7 +50,9 @@ export async function batchToggleServicesAction(
     });
 
     revalidatePath('/admin/catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('services');
     return { success: true as const, count: ids.data.length };
   });
@@ -105,7 +107,9 @@ export async function batchSetMarkupAction(
     });
 
     revalidatePath('/admin/catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('services');
     return { success: true as const, count: ids.data.length };
   });
@@ -154,7 +158,9 @@ export async function updateServiceMarkupAction(
     });
 
     revalidatePath('/admin/catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('services');
     return { success: true as const };
   });
@@ -181,7 +187,9 @@ export async function toggleServiceActiveAction(
     });
 
     revalidatePath('/admin/catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('services');
     return { success: true as const };
   });
@@ -226,7 +234,9 @@ export async function batchReassignServicesCategoryAction(
     });
 
     revalidatePath('/admin/catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('services');
     return { success: true as const, count: updateResult.count };
   });

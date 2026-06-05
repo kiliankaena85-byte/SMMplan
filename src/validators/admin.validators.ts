@@ -11,6 +11,7 @@ export const userIdSchema = z.object({
   userId: z.string().min(1)
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const entryIdSchema = z.object({
   entryId: z.string().min(1)
 });
@@ -35,7 +36,13 @@ export const bulkUpdateMarkupSchema = z.object({
 // Settings
 export const roleSchema = z.object({
   userId: z.string().min(1),
-  role: z.enum(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'CLIENT', 'BANNED']),
+  role: z.enum(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'USER', 'CLIENT', 'BANNED']),
+  staffRoleId: z.string().nullable().optional(),
+});
+
+export const createRoleSchema = z.object({
+  name: z.string().trim().min(2, "Название должно быть не менее 2 символов").max(50, "Название не должно превышать 50 символов"),
+  description: z.string().trim().max(200).optional().default(""),
 });
 
 export const globalSettingsSchema = z.object({
@@ -68,6 +75,8 @@ export const globalSettingsSchema = z.object({
   legalCompanyInn: z.string().trim().max(50).nullable().optional(),
   legalCompanyOgrnip: z.string().trim().max(50).nullable().optional(),
   legalCompanyAddress: z.string().trim().max(1000).nullable().optional(),
+  robokassaLogin: z.string().trim().max(150).nullable().optional(),
+  robokassaPassword: z.string().trim().max(300).nullable().optional(),
 });
 
 // Orders

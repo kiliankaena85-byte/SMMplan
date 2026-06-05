@@ -28,9 +28,10 @@ describe('Server Actions: Checkout Integration', () => {
     // Relying on global setup to TRUNCATE DB
     
     // Enable test mode in DB so it doesn't crash on Payment Gateways
-    await db.systemSettings.update({
+    await db.systemSettings.upsert({
       where: { id: 'global' },
-      data: { isTestMode: true }
+      create: { id: 'global', isTestMode: true },
+      update: { isTestMode: true }
     });
     revalidateTag('settings');
     // Wipe out rate limit from previous runs or other loops
@@ -61,8 +62,8 @@ describe('Server Actions: Checkout Integration', () => {
   it('Calculates correct preview price (calculatePriceAction)', async () => {
     // 500 followers at 150 RUB/1k = 75 RUB = 7500 cents
     const res = await calculatePriceAction(service.id, 500);
-    expect(res.error).toBeUndefined();
-    expect().toBe();
+    expect(res.success).toBe(true);
+    expect(res.data?.totalCents).toBe(7500);
   });
 
   it('Creates order transaction and returns mock url (checkoutAction)', async () => {
@@ -120,22 +121,81 @@ describe('Server Actions: Checkout Integration', () => {
   });
 
   it('Triggers RateLimit after 15 fast checkouts', async () => {
-    // 1 checkout was already done above, and it hits "checkoutCore" globally. Let's do 15 more to ensure 429.
-    let blockedResponse;
-    for (let i = 0; i < 16; i++) {
-      const res = await checkoutAction({
-        serviceId: service.id,
-        link: 'https://site.com',
-        quantity: 100, // min Qty
-        email: `spammer${i}@test.com`,
-        gateway: 'yookassa'
-      });
-      if (!res.success && res.error === 'Слишком много запросов. Попробуйте через минуту.') {
-        blockedResponse = res;
-        break;
+    process.env.ENABLE_RATE_LIMIT_TEST = 'true';
+    try {
+      // 1 checkout was already done above, and it hits "checkoutCore" globally. Let's do 15 more to ensure 429.
+      let blockedResponse;
+      for (let i = 0; i < 16; i++) {
+        const res = await checkoutAction({
+          serviceId: service.id,
+          link: 'https://site.com',
+          quantity: 100, // min Qty
+          email: `spammer${i}@test.com`,
+          gateway: 'yookassa'
+        });
+        if (!res.success && res.error?.includes('Слишком много запросов. Попробуйте через минуту.')) {
+          blockedResponse = res;
+          break;
+        }
       }
+      expect(blockedResponse).toBeDefined();
+      expect(blockedResponse?.success).toBe(false);
+    } finally {
+      delete process.env.ENABLE_RATE_LIMIT_TEST;
     }
-    expect(blockedResponse).toBeDefined();
-    expect(blockedResponse?.success).toBe(false);
+  });
+
+  it('Allows retrying failed/ERROR orders with the same idempotencyKey', async () => {
+    const key = 'test_failed_retry_key_123';
+    
+    // First, let's make sure the user exists
+    const user = await db.user.upsert({
+      where: { email: 'failed@test.com' },
+      update: {},
+      create: { email: 'failed@test.com' }
+    });
+    
+    // First, let's create a failed order in the DB with the key
+    const order = await db.order.create({
+      data: {
+        userId: user.id,
+        serviceId: service.id,
+        quantity: 100,
+        link: 'https://test-failed.com',
+        charge: 1500n,
+        providerCost: 500n,
+        status: 'ERROR',
+        idempotencyKey: key,
+        email: 'failed@test.com'
+      }
+    });
+
+    // Now, run checkoutAction using the SAME key
+    const res = await checkoutAction({
+      serviceId: service.id,
+      link: 'https://test-failed.com',
+      quantity: 100,
+      email: 'failed@test.com',
+      gateway: 'yookassa',
+      idempotencyKey: key
+    });
+
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.orderId).not.toBe(order.id);
+    }
+
+    // Verify old order's idempotency key was updated
+    const oldOrder = await db.order.findUnique({
+      where: { id: order.id }
+    });
+    expect(oldOrder?.idempotencyKey).toBe(`${key}_failed_${order.id}`);
+
+    // Verify new order was created with the active key
+    const newOrder = await db.order.findUnique({
+      where: { idempotencyKey: key }
+    });
+    expect(newOrder).toBeDefined();
+    expect(newOrder?.id).not.toBe(order.id);
   });
 });

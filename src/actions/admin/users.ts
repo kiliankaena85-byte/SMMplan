@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { adminUserService } from '@/services/admin/user.service';
 import { escrowService } from '@/services/admin/escrow.service';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
@@ -11,9 +12,7 @@ import { updateBalanceSchema, userIdSchema } from '@/validators/admin.validators
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { getClientIp } from '@/utils/ip';
 
-if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
-const secretKey = process.env.JWT_SECRET;
-const encodedKey = new TextEncoder().encode(secretKey);
+import { getEncodedKey } from '@/lib/session';
 
 export async function updateBalanceAction(formData: FormData) {
   return requireStaffPermission('clients', 'edit', async (admin) => {
@@ -149,7 +148,7 @@ export async function loginAsAction(formData: FormData) {
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('1h')
-      .sign(encodedKey);
+      .sign(getEncodedKey());
 
     (await cookies()).set('session_token', sessionToken, {
       httpOnly: true,

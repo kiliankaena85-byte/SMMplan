@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { User, StaffRole, StaffPermission } from "@prisma/client";
+import { handleServerError } from "@/utils/error-handler";
 
 async function getSessionUserId(): Promise<string | null> {
   const sessionUser = await verifySession();
@@ -64,9 +66,11 @@ export async function requireStaffPermission<T>(
     }
 
     return await action(user, user.staffRole);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("[RBAC] Execution Error:", error);
-    return { success: false, error: "Internal Server Error during execution" };
+    const localized = handleServerError(error);
+    return { success: false, error: localized.message };
   }
 }
 
@@ -87,9 +91,11 @@ export async function requireOwnerPermission<T>(
     }
 
     return await action(user);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("[RBAC] Execution Error:", error);
-    return { success: false, error: "Internal Server Error during execution" };
+    const localized = handleServerError(error);
+    return { success: false, error: localized.message };
   }
 }
 

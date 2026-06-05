@@ -315,14 +315,16 @@ export async function getFailoverPreview(orderId: string) {
       const exchangeRate = route.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
       
       // Fetch rate from Shadow Catalog in Redis
-      const cacheKey = `provider:${route.providerId}:shadow_catalog`;
+      const cacheKey = `provider:${route.providerId}:catalog`;
       const cachedStr = await redis.get(cacheKey);
       let providerRate = 0.0;
       if (cachedStr) {
         try {
           const services = JSON.parse(cachedStr);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const s = services.find((x: any) => String(x.service) === String(route.providerServiceId));
           if (s) providerRate = parseFloat(s.rate) || 0.0;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
           // ignore
         }
@@ -390,14 +392,16 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
       const exchangeRate = newRoute.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
       
       // Fetch rate from Shadow Catalog in Redis
-      const cacheKey = `provider:${newRoute.providerId}:shadow_catalog`;
+      const cacheKey = `provider:${newRoute.providerId}:catalog`;
       const cachedStr = await redis.get(cacheKey);
       let providerRate = 0.0;
       if (cachedStr) {
         try {
           const services = JSON.parse(cachedStr);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const s = services.find((x: any) => String(x.service) === String(newRoute.providerServiceId));
           if (s) providerRate = parseFloat(s.rate) || 0.0;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
           // ignore
         }
@@ -405,10 +409,11 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
 
       const newProviderCostCents = Math.round(providerRate * exchangeRate * 100);
 
-      // Списание с баланса (перезапуск за счет пользователя, т.к. при ERROR/CANCELED был refund)
-      await tx.user.update({
-        where: { id: order.userId },
-        data: { balance: { decrement: order.charge } }
+      // Списание с баланса (перезапуск за счет пользователя, т.к. при ERROR/CANCELED был refund) via WalletOps
+      const idempotencyKey = `reroute_${orderId}_${newRouteId}`;
+      await WalletOps.charge(tx, order.userId, Number(order.charge), `MANUAL_REROUTE: Order #${order.numericId}`, {
+        idempotencyKey,
+        adminId: admin.id
       });
 
       // Обновление заказа
@@ -422,16 +427,6 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
           externalId: null,
           error: null,
           retryCount: 0
-        }
-      });
-
-      // LedgerEntry для биллинга
-      await tx.ledgerEntry.create({
-        data: {
-          userId: order.userId,
-          amount: -order.charge,
-          reason: `MANUAL_REROUTE: Order #${order.numericId}`,
-          idempotencyKey: `reroute_${orderId}_${newRouteId}`,
         }
       });
 

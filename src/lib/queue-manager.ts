@@ -32,12 +32,20 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
         if (prop === 'add') return async () => ({ id: 'mock-id' });
         if (prop === 'close') return async () => {};
         if (prop === 'disconnect') return async () => {};
+        if (prop === 'defaultJobOptions') {
+          return {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5000 }
+          };
+        }
         return async () => {};
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as unknown as Queue<PayloadType, any, string>;
   }
 
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new Queue<PayloadType, any, string>(name, {
     connection: getRedisConnection(),
     defaultJobOptions: {
@@ -52,8 +60,11 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
 
 export type CatalogMutationPayload = 
   | { type: 'SYNC_PRICES'; usdToRub: number }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | { type: 'SYNC_PROVIDER_CATALOG'; providerId: string; admin: any }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | { type: 'SYNC_ALL_CATALOGS'; admin: any }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | { type: 'BULK_MARKUP'; filter: { categoryId?: string; platform?: string }; markupPercent: number; admin: any };
 
 export interface OrderJobPayload {

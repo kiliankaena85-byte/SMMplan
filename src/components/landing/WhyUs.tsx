@@ -1,10 +1,12 @@
 "use client";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { 
   IconSparkles, 
   IconShieldCheck, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconTrendingUp, 
   IconDiamond, 
   IconTerminal2, 
@@ -14,7 +16,7 @@ import {
 
 export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
   return (
-    <section aria-labelledby="why-us-heading" className="mx-auto max-w-6xl px-4 py-24">
+    <section aria-labelledby="why-us-heading" className="mx-auto max-w-6xl px-4 py-12 md:py-24">
       <div className="text-center mb-16">
         <h2 id="why-us-heading" className="text-4xl font-extrabold tracking-normal text-foreground mb-4">
           Платформа нового поколения
@@ -125,7 +127,7 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
               </p>
               <Link 
                 href="/login?role=reseller&promo=B2BSTART"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-slate-50 text-slate-900 text-xs font-extrabold shadow-lg shadow-white/10 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shrink-0 border border-slate-200"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-card hover:bg-accent text-card-foreground text-xs font-extrabold shadow-lg shadow-background/10 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shrink-0 border border-border"
               >
                 <span>Кабинет Реселлера</span>
                 <IconArrowUpRight className="w-3.5 h-3.5" />

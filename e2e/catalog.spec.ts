@@ -23,6 +23,7 @@ test.describe('Catalog & Pricing Flow', () => {
 
     let service = await prisma.service.findFirst({ where: { name: 'E2E Test Safety Floor Service' } });
     if (!service) {
+      // eslint-disable-next-line no-useless-assignment
       service = await prisma.service.create({
         data: {
           name: 'E2E Test Safety Floor Service',
@@ -35,6 +36,7 @@ test.describe('Catalog & Pricing Flow', () => {
         }
       });
     } else {
+      // eslint-disable-next-line no-useless-assignment
       service = await prisma.service.update({
         where: { id: service.id },
         data: { rate: 10.0, markup: 2.0 }
@@ -52,6 +54,7 @@ test.describe('Catalog & Pricing Flow', () => {
     try {
       await expect(searchInput).toBeVisible({ timeout: 10000 });
     } catch (err) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('fs');
       fs.writeFileSync('catalog-error.html', await page.content());
       throw err;

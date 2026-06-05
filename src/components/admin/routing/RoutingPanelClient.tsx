@@ -5,15 +5,86 @@ import { Card, Button, Modal, ModalHeader, ModalBody, ModalFooter, Checkbox, Chi
 import { previewHotSwap, executeHotSwap, addServiceRoute, toggleRouteStatus, changeRoutePriority, deleteServiceRoute } from '@/actions/admin/routing.actions';
 import { toast } from 'sonner';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { ProviderComparisonHub } from './ProviderComparisonHub';
 
-export function RoutingPanelClient({ service, routes, auditLogs, activeProviders }: any) {
+export interface RoutingProvider {
+  id: string;
+  name: string;
+}
+
+export interface RoutingServiceRoute {
+  id: string;
+  isPrimary: boolean;
+  priority: number;
+  isActive: boolean;
+  providerServiceId: string;
+  provider: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface RoutingAuditLog {
+  id: string;
+  action: string;
+  reason: string | null;
+  createdAt: string | Date;
+  fromProviderId?: string | null;
+  toProviderId?: string | null;
+}
+
+export interface RoutingComparisonItem {
+  routeId: string;
+  limitsMismatch: boolean;
+  providerName: string;
+  costPer1k?: number;
+  providerId?: string;
+  providerServiceId?: string;
+  isPrimary?: boolean;
+  isActive?: boolean;
+  sla?: number;
+  avgEtaSeconds?: number;
+  providerMinQty?: number | null;
+  providerMaxQty?: number | null;
+  procurementRatePer1kUsd?: number | null;
+  procurementRatePer1kRub?: number | null;
+  procurementCostPerUnitUsd?: number | null;
+  procurementCostPerUnitRub?: number | null;
+  marginPerUnitRub?: number | null;
+  markupPercent?: number | null;
+  rate?: number;
+  min?: number;
+  max?: number;
+}
+
+export interface RoutingService {
+  id: string;
+}
+
+export interface SwapPreviewData {
+  currentProvider: string;
+  targetProvider: string;
+  unaffectedExistingOrders: number;
+  estimatedDailyOrders: number;
+  warning?: string | null;
+}
+
+export interface RoutingPanelClientProps {
+  service: RoutingService;
+  routes: RoutingServiceRoute[];
+  auditLogs: RoutingAuditLog[];
+  activeProviders: RoutingProvider[];
+  comparisonData: RoutingComparisonItem[];
+}
+
+export function RoutingPanelClient({ service, routes, auditLogs, activeProviders, comparisonData }: RoutingPanelClientProps) {
   const [isOpen, setIsOpen] = useState(false);
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
   const onOpenChange = (open: boolean) => setIsOpen(open);
   
-  const [selectedRoute, setSelectedRoute] = useState<any>(null);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [selectedRoute, setSelectedRoute] = useState<RoutingServiceRoute | null>(null);
+  const [previewData, setPreviewData] = useState<SwapPreviewData | null>(null);
   const [reason, setReason] = useState("");
   const [understood, setUnderstood] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -24,7 +95,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [routeIdToDelete, setRouteIdToDelete] = useState<string | null>(null);
 
-  const handleOpenSwap = async (route: any) => {
+  const handleOpenSwap = async (route: RoutingServiceRoute) => {
     setSelectedRoute(route);
     setPreviewData(null);
     setReason("");
@@ -34,10 +105,10 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
     try {
       const res = await previewHotSwap(service.id, route.id);
       if (res.success) {
-        setPreviewData(res.data);
+        setPreviewData(res.data as unknown as SwapPreviewData);
       }
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -53,6 +124,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
 
     startTransition(async () => {
       try {
+        if (!selectedRoute) return;
         await executeHotSwap({
           serviceId: service.id,
           newRouteId: selectedRoute.id,
@@ -61,6 +133,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
         });
         toast.success("Маршрут изменен");
         onClose();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message);
       }
@@ -82,6 +155,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
         toast.success("Маршрут добавлен");
         setNewProviderId("");
         setNewExternalId("");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message);
       }
@@ -93,6 +167,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
       try {
         await toggleRouteStatus(routeId);
         toast.success("Статус изменен");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message);
       }
@@ -103,6 +178,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
     startTransition(async () => {
       try {
         await changeRoutePriority(routeId, direction);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message);
       }
@@ -123,6 +199,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
       try {
         await deleteServiceRoute(routeId);
         toast.success("Маршрут удален");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message);
       }
@@ -130,7 +207,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
   };
 
   // Sort routes by priority DESC for display
-  const sortedRoutes = [...routes].sort((a: any, b: any) => b.priority - a.priority);
+  const sortedRoutes = [...routes].sort((a, b) => b.priority - a.priority);
 
   return (
     <div className="space-y-6">
@@ -146,7 +223,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
             className="w-full md:max-w-xs bg-default-100 border-none rounded-lg px-4 h-14 text-sm focus:ring-2 focus:ring-primary outline-none"
           >
             <option value="" disabled>Выберите провайдера</option>
-            {activeProviders?.map((p: any) => (
+            {activeProviders?.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
@@ -166,6 +243,14 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
         </div>
       </Card>
 
+      {/* PROVIDER COMPARISON HUB */}
+      <ProviderComparisonHub 
+        comparisonData={comparisonData} 
+        service={service} 
+        onSwap={handleOpenSwap} 
+        routes={routes}
+      />
+
       {/* ROUTES TABLE */}
       <Card className="shadow-sm">
         <div className="p-4 border-b border-divider flex justify-between items-center bg-default-50">
@@ -184,7 +269,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
             <Table.Column id="actions">ДЕЙСТВИЯ</Table.Column>
           </Table.Header>
           <Table.Body renderEmptyState={() => "Нет доступных маршрутов"}>
-            {sortedRoutes.map((route: any, index: number) => (
+            {sortedRoutes.map((route, index: number) => (
               <Table.Row key={route.id} id={route.id} className={route.isPrimary ? "bg-success-50/50" : ""}>
                 <Table.Cell className="font-semibold">
                   <div className="flex flex-col gap-1">
@@ -260,7 +345,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
           {auditLogs?.length === 0 ? (
             <p className="text-sm text-muted-foreground">Нет записей</p>
           ) : (
-            auditLogs?.map((log: any) => (
+            auditLogs?.map((log) => (
               <div key={log.id} className="text-sm border-l-2 border-primary pl-3 py-2">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground">{log.action}</span>
@@ -293,6 +378,12 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
                   <Alert color="warning" title="Осторожно! Вы меняете маршрут живого трафика.">
                     Это действие мгновенно перенаправит все **новые** заказы.
                   </Alert>
+
+                  {comparisonData?.find((item) => item.routeId === selectedRoute?.id)?.limitsMismatch && (
+                    <Alert color="danger" title="⚠️ Несовместимость лимитов">
+                      Лимиты выбранного провайдера не соответствуют настройкам услуги в каталоге! Заказы могут зависать с ошибками.
+                    </Alert>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4 bg-default-50 p-4 rounded-xl border border-default-200">
                     <div>

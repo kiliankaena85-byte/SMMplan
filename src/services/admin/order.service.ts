@@ -62,6 +62,7 @@ class AdminOrderService {
     } = params;
 
     // Build dynamic WHERE clause
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: Record<string, any> = {};
 
     if (userId && userId.trim()) {
@@ -150,6 +151,7 @@ class AdminOrderService {
       const numericId = parseInt(q, 10);
       const cleanSubstring = q.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const textConditions: any[] = [
         { externalId: { contains: q, mode: 'insensitive' } },
         { link: { contains: cleanSubstring, mode: 'insensitive' } },
@@ -211,6 +213,7 @@ class AdminOrderService {
    * refund only the undelivered portion.
    */
   async cancelOrder(orderId: string, admin: { id: string; email: string }) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const orderBefore = await db.order.findUniqueOrThrow({ where: { id: orderId } });
 
     const result = await db.$transaction(async (tx) => {

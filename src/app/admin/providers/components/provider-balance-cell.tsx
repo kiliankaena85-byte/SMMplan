@@ -24,6 +24,7 @@ export function ProviderBalanceCell({ providerId }: { providerId: string }) {
         } else {
           setError(res.error || 'Failed to fetch');
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         if (mounted) setError(err.message || 'Error');
       } finally {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Copy, Check, Terminal, Code, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 

@@ -14,9 +14,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_CLASSES: Record<string, string> = {
-  SUCCEEDED: 'bg-success/20 text-emerald-700 border-emerald-200',
-  PENDING:   'bg-warning/20 text-amber-700 border-amber-200',
-  CANCELED:  'bg-destructive/20 text-rose-700 border-destructive/30',
+  SUCCEEDED: 'bg-success/15 text-success border-success/20',
+  PENDING:   'bg-warning/15 text-warning border-warning/20',
+  CANCELED:  'bg-destructive/15 text-destructive border-destructive/20',
 };
 
 const GATEWAY_LABELS: Record<string, string> = {
@@ -36,7 +36,7 @@ export const columns: ColumnDef<PaymentDTO>[] = [
     cell: ({ row }) => (
       <Link
         href={`/admin/clients?q=${encodeURIComponent(row.original.userEmail)}`}
-        className="text-sky-600 hover:text-sky-800 hover:underline font-mono text-xs font-semibold"
+        className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold transition-colors"
       >
         {row.original.userEmail}
       </Link>
@@ -68,7 +68,7 @@ export const columns: ColumnDef<PaymentDTO>[] = [
       return (
         <Badge
           className={cn(
-            "uppercase font-bold tracking-wider text-[10px]",
+            "uppercase font-bold tracking-wider text-xs",
             STATUS_CLASSES[status] || 'bg-muted text-muted-foreground border-border'
           )}
         >
@@ -103,7 +103,7 @@ export const columns: ColumnDef<PaymentDTO>[] = [
               href={`/admin/finance/payments/${row.original.id}/dispute-pack`}
               className={cn(
                 buttonVariants({ intent: 'tint', size: 'sm' }),
-                "text-[11px] font-bold uppercase tracking-wider py-1 h-8 rounded-lg"
+                "text-xs font-bold uppercase tracking-wider py-1 h-8 rounded-xl"
               )}
             >
               📄 Оформить пакет

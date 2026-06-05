@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { Redis } = require('ioredis');
 
 // Simple Next.js Cache Handler using ioredis

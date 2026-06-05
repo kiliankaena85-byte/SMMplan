@@ -30,6 +30,7 @@ export async function GET(req: Request) {
       const dummyJob = {
         id: `cron-${Date.now()}`,
         data: { timestamp: Date.now() }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any;
   
       await syncProcessor(dummyJob);
@@ -40,6 +41,7 @@ export async function GET(req: Request) {
 
     console.info('[SyncOrdersCron] Synchronization completed successfully.');
     return NextResponse.json({ success: true, timestamp: new Date().toISOString() });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[SyncOrdersCron] Error during execution:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });

@@ -22,12 +22,14 @@ import {
   DialogFooter,
   DialogClose
 } from "@/components/ui/dialog";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Switch } from '@heroui/react';
 import { toast } from 'sonner';
 import { 
   updateCampaignStatus, 
   updateServiceConfig, 
-  toggleSmartGlobalStatus 
+  toggleSmartGlobalStatus,
+  bulkUpdateServiceConfigs
 } from '@/actions/admin/smart';
 import { SocialIcon } from '@/components/ui/SocialIcon';
 import { 
@@ -39,6 +41,7 @@ import {
   AlertTriangle,
   Cpu,
   Layers,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
@@ -100,6 +103,7 @@ export function SmartDripClient({
   const [campaignSearch, setCampaignSearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
   const [selectedNetwork, setSelectedNetwork] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
 
   // Edit Service Config Dialog State
   const [editingService, setEditingService] = useState<ServiceDTO | null>(null);
@@ -134,6 +138,7 @@ export function SmartDripClient({
         } else {
           toast.error('Не удалось изменить глобальный статус');
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message || 'Ошибка выполнения действия');
       }
@@ -157,6 +162,7 @@ export function SmartDripClient({
         } else {
           toast.error('Не удалось изменить статус кампании');
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message || 'Ошибка выполнения действия');
       }
@@ -171,6 +177,45 @@ export function SmartDripClient({
     setConfigMinChunk(service.smartConfig?.minChunk || 50);
     setConfigMaxChunk(service.smartConfig?.maxChunk || 200);
     setConfigMarkup(service.smartConfig?.markup || 0.15);
+  };
+
+  const handleBulkConfigToggle = (enable: boolean) => {
+    const targetServiceIds = filteredServices.map(s => s.id);
+    if (targetServiceIds.length === 0) return;
+
+    const actionText = enable ? 'ВКЛЮЧИТЬ' : 'ОТКЛЮЧИТЬ';
+    if (!window.confirm(`Вы уверены, что хотите массово ${actionText} Dripfeed для всех ${targetServiceIds.length} отфильтрованных услуг?`)) {
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const res = await bulkUpdateServiceConfigs(targetServiceIds, {
+          isEnabled: enable
+        });
+
+        if (res.success) {
+          setServices(prev => prev.map(s => {
+            if (targetServiceIds.includes(s.id)) {
+              return {
+                ...s,
+                smartConfig: s.smartConfig 
+                  ? { ...s.smartConfig, isEnabled: enable }
+                  : { isEnabled: enable, isTestMode: false, minChunk: 50, maxChunk: 200, markup: 0.15 }
+              };
+            }
+            return s;
+          }));
+
+          toast.success(`Массовое действие выполнено! Обновлено услуг: ${res.count}`);
+        } else {
+          toast.error('Не удалось выполнить массовое обновление настроек');
+        }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        toast.error(err.message || 'Ошибка выполнения массового действия');
+      }
+    });
   };
 
   // Save service config
@@ -213,6 +258,7 @@ export function SmartDripClient({
         } else {
           toast.error('Не удалось сохранить настройки');
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error(err.message || 'Ошибка сохранения настроек');
       }
@@ -232,7 +278,17 @@ export function SmartDripClient({
     const matchesSearch = s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
       s.id.toLowerCase().includes(serviceSearch.toLowerCase());
     const matchesNetwork = selectedNetwork === 'ALL' || s.category.network.name === selectedNetwork;
-    return matchesSearch && matchesNetwork;
+    
+    let matchesStatus = true;
+    if (selectedStatus === 'ENABLED') {
+      matchesStatus = !!s.smartConfig?.isEnabled;
+    } else if (selectedStatus === 'DISABLED') {
+      matchesStatus = !s.smartConfig?.isEnabled;
+    } else if (selectedStatus === 'TEST') {
+      matchesStatus = !!s.smartConfig?.isEnabled && !!s.smartConfig?.isTestMode;
+    }
+    
+    return matchesSearch && matchesNetwork && matchesStatus;
   });
 
   return (
@@ -258,12 +314,16 @@ export function SmartDripClient({
               <span className={`text-xs font-bold uppercase tracking-wider ${globalDisabled ? 'text-destructive' : 'text-success'}`}>
                 {globalDisabled ? 'ОТКЛЮЧЕН' : 'АКТИВЕН'}
               </span>
-              <Switch 
-                aria-label="Глобальный стоп умного Dripfeed"
-                isSelected={!globalDisabled} 
-                onChange={(checked: boolean) => handleGlobalToggle(checked)}
-                isDisabled={isPending}
-              />
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={!globalDisabled}
+                  onChange={(e) => handleGlobalToggle(e.target.checked)}
+                  disabled={isPending}
+                />
+                <div className="w-11 h-6 bg-muted border border-border rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/20 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
             </div>
           </CardContent>
         </Card>
@@ -472,7 +532,7 @@ export function SmartDripClient({
               </div>
               <div className="flex flex-wrap md:flex-nowrap gap-3 items-center w-full lg:max-w-2xl justify-end">
                 <select 
-                  className="bg-background border border-input rounded-lg text-xs font-bold px-3 h-11 text-foreground select-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="bg-background border border-input rounded-lg text-xs font-bold px-3 h-11 text-foreground select-none focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
                   value={selectedNetwork}
                   onChange={(e) => setSelectedNetwork(e.target.value)}
                 >
@@ -480,6 +540,16 @@ export function SmartDripClient({
                   {networks.map(n => (
                     <option key={n} value={n}>{n}</option>
                   ))}
+                </select>
+                <select 
+                  className="bg-background border border-input rounded-lg text-xs font-bold px-3 h-11 text-foreground select-none focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                >
+                  <option value="ALL">Все статусы</option>
+                  <option value="ENABLED">Включен Dripfeed</option>
+                  <option value="DISABLED">Отключен Dripfeed</option>
+                  <option value="TEST">В тестовом режиме</option>
                 </select>
                 <div className="relative max-w-sm w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -489,6 +559,35 @@ export function SmartDripClient({
                     value={serviceSearch}
                     onChange={(e) => setServiceSearch(e.target.value)}
                   />
+                </div>
+              </div>
+            </div>
+            
+            {/* Bulk Actions Panel */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4 border-t border-border/40 pt-4">
+              <div className="flex items-center gap-3 bg-muted/40 p-2.5 rounded-xl border border-border/40 w-fit select-none">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1.5">
+                  Массовые действия ({filteredServices.length} услуг отфильтровано):
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    intent="primary"
+                    size="sm"
+                    className="h-8 text-[11px] font-extrabold bg-success hover:bg-success/90 text-white rounded-lg flex items-center shadow-sm"
+                    onClick={() => handleBulkConfigToggle(true)}
+                    disabled={isPending || filteredServices.length === 0}
+                  >
+                    ⚡ Массово Включить
+                  </Button>
+                  <Button
+                    intent="outline"
+                    size="sm"
+                    className="h-8 text-[11px] font-extrabold text-destructive border-destructive/20 hover:bg-destructive/10 rounded-lg flex items-center shadow-sm"
+                    onClick={() => handleBulkConfigToggle(false)}
+                    disabled={isPending || filteredServices.length === 0}
+                  >
+                    🛑 Массово Отключить
+                  </Button>
                 </div>
               </div>
             </div>
@@ -624,12 +723,16 @@ export function SmartDripClient({
                   <span className={`text-xs font-bold ${globalDisabled ? 'text-destructive' : 'text-success'}`}>
                     {globalDisabled ? 'ЗАМОРОЖЕН' : 'АКТИВЕН'}
                   </span>
-                  <Switch 
-                    aria-label="Глобальный стоп dripfeed"
-                    isSelected={!globalDisabled} 
-                    onChange={(checked: boolean) => handleGlobalToggle(checked)}
-                    isDisabled={isPending}
-                  />
+                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer" 
+                      checked={!globalDisabled}
+                      onChange={(e) => handleGlobalToggle(e.target.checked)}
+                      disabled={isPending}
+                    />
+                    <div className="w-11 h-6 bg-muted border border-border rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/20 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
                 </div>
               </div>
 
@@ -668,11 +771,15 @@ export function SmartDripClient({
                 <span className="font-bold text-xs text-foreground uppercase tracking-wide">Поддержка Dripfeed</span>
                 <p className="text-[10px] text-muted-foreground">Активировать возможность растягивания заказа</p>
               </div>
-              <Switch 
-                aria-label="Включить Smart Drip"
-                isSelected={configEnabled} 
-                onChange={(checked: boolean) => setConfigEnabled(checked)} 
-              />
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={configEnabled}
+                  onChange={(e) => setConfigEnabled(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-muted/80 border border-border rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/20 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
             </div>
 
             {/* Test Mode toggle */}
@@ -681,11 +788,15 @@ export function SmartDripClient({
                 <span className="font-bold text-xs text-foreground uppercase tracking-wide">Тестовый режим (Mock)</span>
                 <p className="text-[10px] text-muted-foreground">Заказы не будут уходить провайдерам, а имитируются</p>
               </div>
-              <Switch 
-                aria-label="Включить тест-режим"
-                isSelected={configTestMode} 
-                onChange={(checked: boolean) => setConfigTestMode(checked)} 
-              />
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={configTestMode}
+                  onChange={(e) => setConfigTestMode(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-muted/80 border border-border rounded-full peer peer-focus:ring-2 peer-focus:ring-primary/20 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
             </div>
 
             {/* Limits form */}

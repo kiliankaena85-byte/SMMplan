@@ -8,13 +8,18 @@ interface LinkInputFieldProps {
   url: string;
   setUrl: (val: string) => void;
   isLoading: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   platform: any;
   networkId: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   manualPlatform: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setManualPlatform: (val: any) => void;
   validationErrors: { link?: string };
   urlMutatedTrigger: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   availablePlatforms: any[];
+  onBlur?: () => void;
 }
 
 const inputCls =
@@ -32,7 +37,8 @@ export function LinkInputField({
   setManualPlatform,
   validationErrors,
   urlMutatedTrigger,
-  availablePlatforms
+  availablePlatforms,
+  onBlur
 }: LinkInputFieldProps) {
   const urlInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -49,6 +55,7 @@ export function LinkInputField({
           ref={urlInputRef}
           value={url}
           onChange={e => setUrl(e.target.value)}
+          onBlur={onBlur}
           placeholder="Вставьте ссылку, например t.me/channel или instagram.com/username"
           aria-label="Ссылка на страницу для продвижения"
           inputMode="url"
@@ -70,7 +77,7 @@ export function LinkInputField({
               setUrl('');
               urlInputRef.current?.focus();
             }}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
             aria-label="Очистить ссылку"
           >
             <div className="w-5 h-5 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-muted-foreground hover:text-foreground transition-all duration-200">

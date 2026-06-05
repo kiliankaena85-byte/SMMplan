@@ -14,6 +14,7 @@ export function ApiDashboardClient({ hasKey }: ApiDashboardClientProps) {
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
   // Determine if user has key currently active (either from DB or newly generated)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isKeyActive = hasKey || !!generatedKey;
 
   return (

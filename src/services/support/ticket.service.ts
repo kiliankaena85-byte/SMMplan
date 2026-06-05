@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { sendMail } from '@/lib/smtp';
 import { SettingsProvider } from '@/lib/settings';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { TicketSource, TicketStatus, MessageSender } from '@prisma/client';
 import { getMimeType } from '@/lib/mime';
 
@@ -124,10 +125,14 @@ class TicketService {
 
     // Notify user if STAFF replied via Email (Omnichannel notification)
     if (sender === 'STAFF' && message.ticket.user.email && !message.ticket.user.telegramId) {
-      const isGuest = message.ticket.source === 'EMAIL';
-      const actionText = isGuest 
-        ? `<p style="color: #64748b; font-size: 14px;">Для ответа на это сообщение, просто напишите ответное письмо.</p>`
-        : `<p style="color: #64748b; font-size: 14px;">Пожалуйста, войдите в панель управления (Dashboard), чтобы ответить.</p>`;
+      const actionText = `
+        <p style="color: #4f46e5; font-size: 14px; font-weight: bold; margin-top: 20px;">
+          ✍️ Вы можете ответить на это сообщение прямо через почту — просто напишите ответное письмо.
+        </p>
+        <p style="color: #64748b; font-size: 12px; margin-top: 5px;">
+          Или вы можете войти в панель управления (Dashboard) для просмотра всей переписки.
+        </p>
+      `;
 
       const supportDomain = await SettingsProvider.getSupportEmailDomain();
       const settings = await SettingsProvider.getContactAndLegalSettings();
@@ -142,14 +147,48 @@ class TicketService {
         .replace(/'/g, "&#039;")
         .replace(/\n/g, "<br>");
 
+      // Fetch recent message history for full context
+      const previousMessages = await db.ticketMessage.findMany({
+        where: { ticketId, sender: { in: ['USER', 'STAFF'] } }, // exclude internal notes for safety
+        orderBy: { createdAt: 'desc' },
+        take: 6 // get current + last 5 messages
+      });
+
+      // Filter out the current message to keep it as main block, reverse to chronological
+      const historyMessages = previousMessages
+        .filter(m => m.id !== message.id)
+        .reverse();
+
+      let historyHtml = '';
+      if (historyMessages.length > 0) {
+        historyHtml = `
+          <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <h3 style="color: #475569; font-size: 13px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.05em;">Предыдущие сообщения:</h3>
+            ${historyMessages.map(m => {
+              const senderLabel = m.sender === 'USER' ? 'Вы' : 'Поддержка';
+              const isStaff = m.sender === 'STAFF';
+              return `
+                <div style="margin-bottom: 12px; padding: 12px; border-radius: 8px; background-color: ${isStaff ? '#f8fafc' : '#f0f9ff'}; border-left: 4px solid ${isStaff ? '#94a3b8' : '#38bdf8'};">
+                  <div style="font-size: 11px; font-weight: bold; color: #64748b; margin-bottom: 5px;">
+                    ${senderLabel} • ${new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                  </div>
+                  <div style="font-size: 13px; color: #334155; white-space: pre-wrap; line-height: 1.5;">${escapeHtml(m.text)}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
       void sendMail(message.ticket.user.email, `Support Reply: ${message.ticket.subject}`, `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
-          <h2 style="color: #4f46e5;">Новое сообщение от поддержки ${companyName}</h2>
-          <p><strong>Тема:</strong> ${escapeHtml(message.ticket.subject)}</p>
-          <div style="background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #4f46e5;">
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <h2 style="color: #4f46e5; margin-top: 0;">Новое сообщение от поддержки ${companyName}</h2>
+          <p style="font-size: 14px; color: #475569;"><strong>Тема:</strong> ${escapeHtml(message.ticket.subject)}</p>
+          <div style="background: #f8fafc; padding: 18px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4f46e5; font-size: 15px; color: #1e293b; line-height: 1.6; white-space: pre-wrap;">
             ${escapeHtml(text)}
           </div>
           ${actionText}
+          ${historyHtml}
         </div>
       `, replyToAddress);
     }

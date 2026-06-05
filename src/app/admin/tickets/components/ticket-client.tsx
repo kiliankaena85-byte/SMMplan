@@ -16,6 +16,7 @@ export function TicketClient({ data, totalPages, currentPage }: TicketClientProp
 
   const status = searchParams.get('status') || 'ALL';
   const source = searchParams.get('source') || 'ALL';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const q = searchParams.get('q') || '';
 
   const updateFilters = (key: string, value: string) => {

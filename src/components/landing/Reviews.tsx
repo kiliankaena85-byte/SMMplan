@@ -8,7 +8,7 @@ export function Reviews() {
   ];
 
   return (
-    <section className="py-20 bg-content2 relative overflow-hidden">
+    <section className="py-10 md:py-20 bg-content2 relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-normal">

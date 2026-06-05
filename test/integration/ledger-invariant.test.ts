@@ -14,8 +14,12 @@ describe('Financial Invariants: Double-Entry Ledger', () => {
   });
 
   it('Ensures Sum(LedgerEntry.amount) EXACTLY EQUALS User.balance across complex operations', async () => {
+    const userInDb = await db.user.findUnique({ where: { id: testUserId } });
+    console.log('DEBUG USER IN DB BEFORE TX:', userInDb);
     // Step 1: Initial Deposit (Top-up)
     await db.$transaction(async (tx) => {
+      const userInTx = await tx.user.findUnique({ where: { id: testUserId } });
+      console.log('DEBUG USER IN TX:', userInTx);
       await WalletOps.credit(tx, testUserId, 150000, 'Initial Deposit', { idempotencyKey: `dep-1` });
     }, { isolationLevel: 'Serializable' });
 

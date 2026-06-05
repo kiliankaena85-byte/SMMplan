@@ -21,6 +21,7 @@ export async function cancelOrderCoolingOffAction(orderId: string) {
     }
 
     return { success: false, error: result.error || 'Failed to cancel the order' };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[cancelOrderAction] Action error:', error);
     return { success: false, error: 'Сеть или серверная ошибка при отмене' };

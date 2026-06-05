@@ -41,6 +41,7 @@ Code Change → Build → Screenshot → Compare → Report
 - Dark theme
 - Different content lengths (empty, normal, overflow)
 - Interactive states (hover, focus, active)
+- Form validation error states (e.g. attempting to pay on specific services without checking the confirmation checkbox)
 
 ## Инструменты
 
@@ -53,7 +54,8 @@ Code Change → Build → Screenshot → Compare → Report
 
 1. **Choose tool**: Выбрать инструмент (Chromatic / Percy / Playwright / BackstopJS)
 2. **Define test pages**: Определить страницы/компоненты для тестирования
-3. **Capture baseline**: Сделать baseline скриншоты для всех viewport и тем
+3. **Define interactive states and warning scenarios**: Написать тесты на валидацию блокирующих форм и появление предупреждений.
+4. **Capture baseline**: Сделать baseline скриншоты для всех viewport и тем
 4. **Setup pipeline**: Интегрировать в CI/CD (GitHub Actions / GitLab CI)
 5. **Define threshold**: Установить порог различия (0.1% рекомендуется)
 6. **Setup notifications**: Настроить уведомления о failed diffs

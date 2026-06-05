@@ -1,11 +1,23 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { redis } from '@/lib/redis';
 import { db } from '@/lib/db';
 
 describe('Security: Rate Limiter Fail-Closed / Fail-Open Boundaries', () => {
+  let originalEnv: string | undefined;
+
   beforeEach(() => {
     vi.restoreAllMocks();
+    originalEnv = process.env.ENABLE_RATE_LIMIT_TEST;
+    process.env.ENABLE_RATE_LIMIT_TEST = 'true';
+  });
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.ENABLE_RATE_LIMIT_TEST;
+    } else {
+      process.env.ENABLE_RATE_LIMIT_TEST = originalEnv;
+    }
   });
 
   it('Blocks traffic (429 / false) when both Redis and Postgres fail, if failClosed = true (Auth Endpoints)', async () => {

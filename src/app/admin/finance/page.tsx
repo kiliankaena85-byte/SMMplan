@@ -7,6 +7,7 @@ import { FinanceClient } from './finance-client';
 import { QuarantineList } from './quarantine-list';
 import { FinanceSettingsForm } from './finance-settings-form';
 import { VatThresholdWidget } from './vat-threshold-widget';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Wallet, TrendingUp, TrendingDown, DollarSign, PieChart, Calculator, AlertTriangle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -106,7 +107,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
         description="Метрики эффективности, балансы и история транзакций"
       />
 
-      <QuarantineList entries={quarantineList as any} />
+      <QuarantineList entries={quarantineList} />
 
       {/* ── KPI Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

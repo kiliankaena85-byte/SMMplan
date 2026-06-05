@@ -16,7 +16,7 @@ export async function updateUserRole(formData: FormData) {
   const result = await requireStaffPermission("settings", "edit", async (admin) => {
     const parsed = roleSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Некорректные данные' };
-    const { userId: targetUserId, role: newRole } = parsed.data;
+    const { userId: targetUserId, role: newRole, staffRoleId } = parsed.data;
 
     if (targetUserId === admin.id) throw new Error('Cannot change own role');
 
@@ -33,7 +33,8 @@ export async function updateUserRole(formData: FormData) {
       return { success: false as const, error: 'Только Владелец может изменять права администраторов' };
     }
 
-    await settingsService.updateUserRole(targetUserId, newRole);
+    const finalStaffRoleId = staffRoleId === 'NONE' || !staffRoleId ? null : staffRoleId;
+    await settingsService.updateUserRole(targetUserId, newRole, finalStaffRoleId);
 
     const ipAddress = await getClientIp();
 
@@ -76,6 +77,8 @@ export async function updateGlobalSettings(formData: FormData) {
       yookassaTestShopId,
       yookassaTestSecretKey: rawYookassaTestSecret,
       cryptoBotToken: rawCryptoBotToken,
+      robokassaLogin,
+      robokassaPassword: rawRobokassaPassword,
       exchangeRateUSD,
       emailProvider,
       resendApiKey: rawResendApiKey,
@@ -99,6 +102,7 @@ export async function updateGlobalSettings(formData: FormData) {
 
     const oldSettings = await db.systemSettings.findUnique({ where: { id: 'global' } });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dataToUpdate: any = { 
       maintenanceMode, 
       siteName, 
@@ -131,6 +135,8 @@ export async function updateGlobalSettings(formData: FormData) {
     if (yookassaTestShopId) dataToUpdate.yookassaTestShopId = yookassaTestShopId;
     if (rawYookassaTestSecret) dataToUpdate.yookassaTestSecretKey = VaultService.encrypt(rawYookassaTestSecret);
     if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
+    if (robokassaLogin) dataToUpdate.robokassaLogin = robokassaLogin;
+    if (rawRobokassaPassword) dataToUpdate.robokassaPassword = VaultService.encrypt(rawRobokassaPassword);
 
     // Email / SMTP settings
     if (emailProvider !== undefined) dataToUpdate.emailProvider = emailProvider;
@@ -183,4 +189,89 @@ export async function updateGlobalSettings(formData: FormData) {
   if (result && typeof result === 'object' && 'success' in result && !result.success) {
     throw new Error(result.error);
   }
+}
+
+// ── COP Usability Simulator ──
+const flows: Record<string, { clicks: number; cognitiveLoad: number; steps: Array<{ name: string; clicks: number; cognitiveLoad: number }>; rating: 'PREMIUM' | 'ACCEPTABLE' | 'HIGH' }> = {
+  CLIENT_ORDER: {
+    clicks: 6,
+    cognitiveLoad: 6,
+    steps: [
+      { name: "Переход на страницу заказа", clicks: 1, cognitiveLoad: 1 },
+      { name: "Выбор категории и услуги", clicks: 2, cognitiveLoad: 2 },
+      { name: "Ввод ссылки для накрутки", clicks: 1, cognitiveLoad: 1 },
+      { name: "Ввод количества", clicks: 1, cognitiveLoad: 1 },
+      { name: "Нажатие кнопки 'Создать заказ'", clicks: 1, cognitiveLoad: 1 }
+    ],
+    rating: 'PREMIUM'
+  },
+  SUPPORT_TICKET: {
+    clicks: 7,
+    cognitiveLoad: 8,
+    steps: [
+      { name: "Переход в раздел поддержки", clicks: 1, cognitiveLoad: 1 },
+      { name: "Нажатие 'Новый тикет'", clicks: 1, cognitiveLoad: 1 },
+      { name: "Выбор темы и категории проблемы", clicks: 2, cognitiveLoad: 2 },
+      { name: "Заполнение темы и текста сообщения", clicks: 2, cognitiveLoad: 3 },
+      { name: "Отправка тикета", clicks: 1, cognitiveLoad: 1 }
+    ],
+    rating: 'ACCEPTABLE'
+  },
+  ROLE_CHANGE: {
+    clicks: 7,
+    cognitiveLoad: 7,
+    steps: [
+      { name: "Переход в настройки системы", clicks: 1, cognitiveLoad: 1 },
+      { name: "Выбор вкладки 'Команда'", clicks: 1, cognitiveLoad: 1 },
+      { name: "Поиск нужного сотрудника", clicks: 2, cognitiveLoad: 2 },
+      { name: "Выбор новой роли в выпадающем списке", clicks: 2, cognitiveLoad: 2 },
+      { name: "Сохранение изменений / подтверждение", clicks: 1, cognitiveLoad: 1 }
+    ],
+    rating: 'ACCEPTABLE'
+  }
+};
+
+export async function runCopSimulation(flowType: string) {
+  const result = await requireStaffPermission("settings", "edit", async (admin) => {
+    if (!['CLIENT_ORDER', 'SUPPORT_TICKET', 'ROLE_CHANGE'].includes(flowType)) {
+      return { success: false as const, error: 'Некорректный тип сценария' };
+    }
+
+    const flow = flows[flowType];
+    const targetSizeWeight = 1.0;
+    const frictionScore = (flow.clicks * 1.5) + (flow.cognitiveLoad * 2.0) - (targetSizeWeight * 0.5);
+
+    let rating: 'PREMIUM' | 'ACCEPTABLE' | 'HIGH' = 'HIGH';
+    if (frictionScore <= 21) {
+      rating = 'PREMIUM';
+    } else if (frictionScore <= 27) {
+      rating = 'ACCEPTABLE';
+    }
+
+    const ipAddress = await getClientIp();
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'COP_SIMULATION',
+      target: flowType,
+      targetType: 'SYSTEM',
+      oldValue: {},
+      newValue: { frictionScore, rating, clicks: flow.clicks, cognitiveLoad: flow.cognitiveLoad },
+      ipAddress
+    });
+
+    return {
+      success: true as const,
+      frictionScore,
+      rating,
+      steps: flow.steps
+    };
+  });
+
+  if (result && typeof result === 'object' && 'success' in result && !result.success) {
+    throw new Error(result.error);
+  }
+
+  return result;
 }

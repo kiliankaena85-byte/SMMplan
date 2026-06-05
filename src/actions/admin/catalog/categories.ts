@@ -9,19 +9,23 @@ import { revalidatePath, revalidateTag } from "next/cache";
 const categorySchema = z.object({
   name: z.string().min(1).max(255, "Category name too long"),
   networkId: z.string().min(1, "Network ID required"),
-  sort: z.coerce.number().int().default(0)
+  sort: z.coerce.number().int().default(0),
+  requireWarning: z.coerce.boolean().default(false),
+  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable()
 });
 
 const idSchema = z.string().min(1);
 
-export async function createCategory(rawData: { name: string; networkId: string; sort: number }) {
+export async function createCategory(rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const data = categorySchema.parse(rawData);
     const cat = await db.category.create({
       data: {
         name: data.name,
         networkId: data.networkId,
-        sort: data.sort
+        sort: data.sort,
+        requireWarning: data.requireWarning,
+        warningMessage: data.warningMessage
       }
     });
 
@@ -31,17 +35,19 @@ export async function createCategory(rawData: { name: string; networkId: string;
       action: "CATEGORY_CREATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId }
+      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage }
     });
 
     revalidatePath("/admin/catalog/categories");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("services");
     return { success: true, error: undefined, categoryId: cat.id };
   });
 }
 
-export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number }) {
+export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     const data = categorySchema.parse(rawData);
@@ -50,7 +56,9 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
       data: {
         name: data.name,
         networkId: data.networkId,
-        sort: data.sort
+        sort: data.sort,
+        requireWarning: data.requireWarning,
+        warningMessage: data.warningMessage
       }
     });
 
@@ -60,11 +68,13 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
       action: "CATEGORY_UPDATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId }
+      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage }
     });
 
     revalidatePath("/admin/catalog/categories");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("services");
     return { success: true, error: undefined };
   });
@@ -89,7 +99,9 @@ export async function deleteCategory(rawId: string) {
     });
 
     revalidatePath("/admin/catalog/categories");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("services");
     return { success: true, error: undefined };
   });
@@ -143,7 +155,9 @@ export async function mergeCategoriesAction(sourceCategoryId: string, targetCate
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("services");
 
     return { success: true as const };
@@ -197,6 +211,7 @@ export async function createNetworkAction(rawData: { name: string; slug: string;
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
 
     return { success: true as const, networkId: network.id };
@@ -257,6 +272,7 @@ export async function updateNetworkAction(id: string, rawData: { name: string; s
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
 
     return { success: true as const };
@@ -298,6 +314,7 @@ export async function deleteNetworkAction(id: string) {
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
 
     return { success: true as const };

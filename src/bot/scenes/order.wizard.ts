@@ -32,6 +32,7 @@ async function resolveUser(tgId: number) {
 // ──────────────────────────────────────────────────────────────
 // HELPER: Show final confirmation with pricing from Lite core
 // ──────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function showFinalConfirmation(ctx: any) {
   const { service, qty, isDripFeed, runs, interval, link } = ctx.wizard.state.orderData;
   const tgId = ctx.from.id;
@@ -42,6 +43,7 @@ async function showFinalConfirmation(ctx: any) {
   }
 
   // --- REQUIREMENTS CHECK (Human-in-the-loop protection) ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const reqs = (service.features as any)?.requirements;
   if (reqs && Array.isArray(reqs) && reqs.length > 0 && !ctx.wizard.state.orderData.requirementsConfirmed) {
     const reqText = reqs.map((r: string) => {
@@ -124,6 +126,7 @@ export const orderWizard = new Scenes.WizardScene(
   ORDER_WIZARD,
 
   // ШАГ 1: Начало — показать выбранную услугу или запросить ссылку
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     const preSelected = ctx.scene.state?.preSelectedService;
     if (preSelected) {
@@ -147,6 +150,7 @@ export const orderWizard = new Scenes.WizardScene(
   },
 
   // ШАГ 2: Получение ссылки
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (!ctx.message?.text) return ctx.reply('Пожалуйста, отправьте текстовую ссылку.');
     const link = ctx.message.text.trim();
@@ -170,6 +174,7 @@ export const orderWizard = new Scenes.WizardScene(
   },
 
   // ШАГ 3: Количество
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (!ctx.message?.text) return ctx.reply('Введите числовое значение.');
     const qty = parseInt(ctx.message.text);
@@ -200,6 +205,7 @@ export const orderWizard = new Scenes.WizardScene(
   },
 
   // ШАГ 4: Обработка выбора Drip-Feed
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (ctx.callbackQuery) {
       const action = ctx.callbackQuery.data;
@@ -218,6 +224,7 @@ export const orderWizard = new Scenes.WizardScene(
   },
 
   // ШАГ 5: Ввод Runs
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (!ctx.message?.text) return ctx.reply('Введите число.');
     const runs = parseInt(ctx.message.text);
@@ -230,6 +237,7 @@ export const orderWizard = new Scenes.WizardScene(
   },
 
   // ШАГ 6: Ввод Interval
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (!ctx.message?.text) return ctx.reply('Введите число.');
     const interval = parseInt(ctx.message.text);
@@ -239,12 +247,14 @@ export const orderWizard = new Scenes.WizardScene(
   },
 
   // ШАГ 7: Ожидание подтверждения (noop — handled via action)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
   async (_ctx: any) => { return; }
 );
 
 // ──────────────────────────────────────────────────────────────
 // SCENE GUARD: Ignore unrelated callbacks / slash commands
 // ──────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 orderWizard.use(async (ctx: any, next: any) => {
   if (ctx.callbackQuery) {
     const data = ctx.callbackQuery.data;
@@ -264,6 +274,7 @@ orderWizard.use(async (ctx: any, next: any) => {
 // ──────────────────────────────────────────────────────────────
 // ACTION: Confirm Requirements
 // ──────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 orderWizard.action('confirm_reqs', async (ctx: any) => {
   ctx.wizard.state.orderData.requirementsConfirmed = true;
   await ctx.answerCbQuery();
@@ -274,6 +285,7 @@ orderWizard.action('confirm_reqs', async (ctx: any) => {
 // ──────────────────────────────────────────────────────────────
 // ACTION: Confirm Order — Uses Lite core orderService.createBotOrder()
 // ──────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 orderWizard.action('confirm_order', async (ctx: any) => {
   const {
     service, totalQuantity, totalCents, providerCostCents,
@@ -337,6 +349,7 @@ orderWizard.action('confirm_order', async (ctx: any) => {
         await ctx.reply('❌ Ошибка платежной системы. Попробуйте позже.');
       }
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     console.error('[OrderWizard] confirm_order error:', e);
     await ctx.reply('❌ Произошла техническая ошибка. Попробуйте позже.');
@@ -344,6 +357,7 @@ orderWizard.action('confirm_order', async (ctx: any) => {
   return ctx.scene.leave();
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 orderWizard.action('cancel_wizard', async (ctx: any) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText('❌ Оформление отменено.');

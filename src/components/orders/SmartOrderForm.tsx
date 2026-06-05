@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Clock, CheckCircle2 } from 'lucide-react';
+import { Clock, CheckCircle2, Info, ArrowRight, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { useOrderEngine } from '@/hooks/useOrderEngine';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 
@@ -13,7 +14,7 @@ import { OrderSummaryCard } from './sub/OrderSummaryCard';
 
 function formatPricePerUnit(price: number): string {
   if (price === 0) return '0.00';
-  let formatted = '';
+  let formatted: string;
   if (price < 0.01) {
     formatted = price.toFixed(6);
   } else if (price < 0.1) {
@@ -42,10 +43,27 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
     manualPlatform,
     platform,
     urlMutatedTrigger,
+    unfilteredCatalog,
   } = engine;
 
+  if (!unfilteredCatalog || unfilteredCatalog.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] border border-border bg-card/50 rounded-3xl p-8 text-center space-y-4 animate-pulse">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-lg font-black text-foreground uppercase tracking-wider">Синхронизация каталога</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+            Получаем актуальные тарифы, проверяем доступность услуг и синхронизируем розничные цены с провайдерами в реальном времени...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Platform catalog mapper
-  const availablePlatforms = (engine.unfilteredCatalog || []).map(net => {
+  const availablePlatforms = (unfilteredCatalog || []).map(net => {
     let platformEnum = IntelligencePlatform.OTHER;
     const slugUpper = net.slug.toUpperCase();
     if (slugUpper.includes('TELEGRAM')) platformEnum = IntelligencePlatform.TELEGRAM;
@@ -65,10 +83,11 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
   }).filter(p => p.name !== IntelligencePlatform.OTHER);
 
   // Platform select handler
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handlePlatformSelect = (pId: string, pName: any) => {
     engine.setNetworkId(pId);
     engine.setManualPlatform(pName);
-    const netObj = engine.unfilteredCatalog.find(n => n.id === pId);
+    const netObj = unfilteredCatalog.find(n => n.id === pId);
     if (netObj && netObj.categories.length > 0) {
       engine.setCategoryId(netObj.categories[0].id);
     }
@@ -81,7 +100,7 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
         platform={platform}
         manualPlatform={manualPlatform}
         networkId={engine.networkId}
-        unfilteredCatalog={engine.unfilteredCatalog}
+        unfilteredCatalog={unfilteredCatalog}
         onSelect={handlePlatformSelect}
       />
 
@@ -107,14 +126,32 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
             validationErrors={validationErrors}
             urlMutatedTrigger={urlMutatedTrigger}
             availablePlatforms={availablePlatforms}
+            onBlur={() => engine.validate(true)}
           />
 
           {/* Desktop Service Selector */}
           <div className="hidden md:block space-y-2" role="listbox" aria-label="Список тарифов">
             {services.length === 0 && !isLoading && (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                Введите ссылку выше, чтобы увидеть подходящие тарифы
-              </div>
+              categoryId ? (
+                <div className="p-6 rounded-2xl border border-dashed border-border bg-card text-center space-y-3">
+                  <div className="text-xl">📦</div>
+                  <h4 className="font-bold text-sm text-foreground text-center">Синхронизация тарифов</h4>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed text-center">
+                    Наш ИИ-ассистент в данный момент обновляет тарифные сетки с провайдерами. Это займет около 2 минут.
+                  </p>
+                  <div className="flex justify-center">
+                    <button 
+                      onClick={() => engine.setCategoryId(categoryId)}
+                      aria-label="Обновить сетку тарифов"
+                      className="h-11 px-4 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                    >
+                      Обновить сетку
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <OrderGuideWidget />
+              )
             )}
             {services.map(srv => (
               <button
@@ -141,7 +178,7 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {srv.badge && (
-                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase">
+                        <span className="text-[10px] bg-warning/10 text-warning-text px-1.5 py-0.5 rounded font-bold uppercase">
                           {srv.badge}
                         </span>
                       )}
@@ -167,9 +204,26 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
               Тариф
             </label>
             {services.length === 0 && !isLoading ? (
-              <div className="text-center py-6 text-sm bg-muted/40 border border-dashed border-border rounded-xl text-muted-foreground px-4">
-                Введите ссылку выше, чтобы увидеть подходящие тарифы
-              </div>
+              categoryId ? (
+                <div className="p-6 rounded-2xl border border-dashed border-border bg-card text-center space-y-3">
+                  <div className="text-xl">📦</div>
+                  <h4 className="font-bold text-sm text-foreground text-center">Синхронизация тарифов</h4>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed text-center">
+                    Наш ИИ-ассистент в данный момент обновляет тарифные сетки с провайдерами. Это займет около 2 минут.
+                  </p>
+                  <div className="flex justify-center">
+                    <button 
+                      onClick={() => engine.setCategoryId(categoryId)}
+                      aria-label="Обновить сетку тарифов"
+                      className="h-11 px-4 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                    >
+                      Обновить сетку
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <OrderGuideWidget />
+              )
             ) : (
               <div className="space-y-3">
                 <div className="relative">
@@ -207,7 +261,7 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                           {selectedService.badge && (
-                            <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
+                            <span className="text-[10px] bg-warning/10 text-warning-text px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
                               {selectedService.badge}
                             </span>
                           )}
@@ -235,6 +289,49 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
           userBalanceCents={userBalanceCents}
           engine={engine}
         />
+      </div>
+    </div>
+  );
+}
+
+function OrderGuideWidget() {
+  return (
+    <div className="p-5 rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+      {/* Subtle Sky Blue Accent bar */}
+      <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
+      
+      <div className="pl-2 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0">
+            <Info className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-bold text-foreground text-sm leading-tight flex items-center gap-1.5">
+              Сначала вставьте ссылку
+              <span className="inline-flex h-2 w-2 rounded-full bg-success animate-pulse" />
+            </h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Наш ИИ-анализатор автоматически определит платформу и адаптирует тарифную сетку под ваш заказ. Это убережет вас от сбоев и сэкономит бюджет!
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-border/60">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Гайд по ссылкам</span>
+              <p className="text-xs text-foreground font-semibold">Какую ссылку указывать для тарифов?</p>
+            </div>
+            
+            <Link
+              href="/knowledge/how-to-order"
+              className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl text-xs font-bold bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground transition-all duration-200 shadow-sm hover:shadow active:scale-95 whitespace-nowrap"
+            >
+              <span>Читать гайд</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

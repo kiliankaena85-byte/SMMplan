@@ -41,15 +41,16 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  authTokens     AuthToken[]
-  sessions       Session[]
-  orders         Order[]
-  payments       Payment[]
-  tickets        Ticket[]
-  auditLogs      AuditLog[]
-  ledgerLogs     LedgerEntry[]   @relation("UserLedger")
-  invoices       Invoice[]
-  smartCampaigns SmartCampaign[]
+  authTokens      AuthToken[]
+  sessions        Session[]
+  orders          Order[]
+  payments        Payment[]
+  tickets         Ticket[]
+  auditLogs       AuditLog[]
+  ledgerLogs      LedgerEntry[]   @relation("UserLedger")
+  invoices        Invoice[]
+  smartCampaigns  SmartCampaign[]
+  promoCodeUsages PromoCodeUsage[]
 
   // B2B & Accounting Fields
   companyName  String?
@@ -65,6 +66,22 @@ model User {
   // RBAC
   staffRoleId String?
   staffRole   StaffRole? @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
+
+  b2bConfig   B2bConfig?
+}
+
+model B2bConfig {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isB2b           Boolean  @default(true)
+  prioritySupport Boolean  @default(true) // Выделение и приоритетная поддержка
+  webhookUrl      String?  // Webhook URL для синхронизации тикетов
+  webhookSecret   String?  // Секретный ключ подписи вебхуков B2B
+  customLimitCents Int?    // Кастомный лимит компенсаций (если null — лимит не применяется!)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model PromoCode {
@@ -78,6 +95,15 @@ model PromoCode {
   isActive        Boolean   @default(true)
   expiresAt       DateTime?
   createdAt       DateTime  @default(now())
+
+  description  String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  budgetCents  Int              @default(0)
+  isSuspicious Boolean          @default(false)
+  usages       PromoCodeUsage[]
+  orders       Order[]
 }
 
 model AuthToken {
@@ -135,8 +161,10 @@ model Category {
   slug      String    @unique @default(cuid())
   networkId String?
   network   Network?  @relation(fields: [networkId], references: [id], onDelete: Restrict)
-  sort      Int       @default(0)
-  services  Service[]
+  sort           Int       @default(0)
+  requireWarning Boolean   @default(false)
+  warningMessage String?
+  services       Service[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -189,8 +217,11 @@ model Service {
   // Link Target & Format Validation (Wave 2)
   targetType        String  @default("POST") // POST, PROFILE, CHANNEL, COMMENT, POLL, VK_WALL, etc.
   customDataType    String  @default("NONE") // NONE, TEXTAREA, NUMBER
+  customDataLabel   String? // Optional custom text prompt for the input field
   isMediaGroupAware Boolean @default(false) // If false, backend splits "123-125" into separate orders
 
+  requireWarning    Boolean  @default(false)
+  warningMessage    String?
   isActive          Boolean  @default(true)
   pricePer1000Cents Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
   createdAt         DateTime @default(now())
@@ -264,6 +295,9 @@ model Order {
   // Lifecycle Wait specifics
   waitingUntil DateTime?
 
+  discountCents BigInt      @default(0)
+  promoCodeId   String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -271,6 +305,8 @@ model Order {
   service        Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   paymentId      String?
   payment        Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  promoCode      PromoCode?      @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  promoCodeUsage PromoCodeUsage?
   refills        Refill[]
   tickets        Ticket[]
   ticketMessages TicketMessage[]
@@ -311,6 +347,7 @@ model Payment {
 
   orders Order[]
   smartCampaigns SmartCampaign[]
+  tickets        Ticket[]
 
   amount    BigInt // amount in Cents (BigInt: supports balances up to 90 trillion RUB)
   currency  String  @default("RUB")
@@ -453,6 +490,9 @@ model Ticket {
   orderId String?
   order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
+  paymentId        String?
+  payment          Payment?     @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
   firstRespondedAt DateTime? // SLA: First Response Time (FRT)
   resolvedAt       DateTime? // SLA: Time to Resolution (TTR)
   tags             String[]  @default([]) // NLP Tagging
@@ -465,6 +505,7 @@ model Ticket {
   @@index([userId])
   @@index([source])
   @@index([orderId])
+  @@index([paymentId])
 }
 
 model TicketMessage {
@@ -603,11 +644,17 @@ model LedgerEntry {
 
 model SupportTemplate {
   id        String   @id @default(cuid())
+  shortcut  String?  @unique // unique keyboard command e.g. "delay", "refund"
   label     String
   text      String
+  category  String   @default("GENERAL")
+  isActive  Boolean  @default(true)
+  useCount  Int      @default(0)
   sort      Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([category])
 }
 
 // Telemetry
@@ -843,6 +890,7 @@ model SmartCampaign {
 
   tasks     SmartTask[]
   snapshots SmartSnapshot[]
+  metrics   SmartChannelMetric[]
 
   paymentId String?
   payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
@@ -898,8 +946,27 @@ model ServiceSmartConfig {
   maxChunk          Int      @default(200)
   markup            Float    @default(0.15)
   providersPriority String[] @default([])
+  
+  // Smart Drip 2.5 extensions
+  useInviteBuffer   Boolean  @default(false)
+  autoCompensate    Boolean  @default(true)
+  checkIntervalMins Int      @default(120)
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model SmartChannelMetric {
+  id              String        @id @default(cuid())
+  campaignId      String
+  campaign        SmartCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  recordedAt      DateTime      @default(now())
+  memberCount     Int
+  delta           Int
+  detectedDrops   Int           @default(0)
+  compensatedQty  Int           @default(0)
+
+  @@index([campaignId])
 }
 
 model SmartSnapshot {
@@ -919,3 +986,47 @@ model SmartDetectedUser {
   reasons    String[]
   createdAt  DateTime @default(now())
 }
+
+model PromoCodeUsage {
+  id            String    @id @default(cuid())
+  promoCodeId   String
+  promoCode     PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId       String?   @unique
+  order         Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  
+  discountCents BigInt    // Exact discount given in cents
+  revenueCents  BigInt    // Order payment (order.charge) in cents
+  profitCents   BigInt    // Margin (order.charge - order.providerCost) in cents
+  
+  isSuspicious  Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  @@index([promoCodeId])
+  @@index([userId])
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Article {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  title       String
+  description String        @db.Text
+  content     String        @db.Text
+  status      ArticleStatus
+  category    String
+  viewCount   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  authorName  String        @default("Михаил")
+  authorRole  String        @default("Системный архитектор прокси-сетей Smmplan")
+
+  @@index([category, status])
+  @@index([status])
+}
+

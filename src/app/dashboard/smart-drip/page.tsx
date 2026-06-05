@@ -1,5 +1,5 @@
 import { getClientCampaigns } from '@/actions/order/smart';
-import { SmartDripDashboardClient } from './smart-client';
+import { SmartDripDashboardClient, CampaignDTO } from './smart-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +16,7 @@ export default async function SmartDripDashboardPage() {
         </p>
       </div>
 
-      <SmartDripDashboardClient initialCampaigns={campaigns as any} />
+      <SmartDripDashboardClient initialCampaigns={campaigns as CampaignDTO[]} />
     </div>
   );
 }

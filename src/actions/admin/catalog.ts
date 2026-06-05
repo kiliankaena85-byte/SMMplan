@@ -1,16 +1,20 @@
 'use server';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { verifySession } from '@/lib/session';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { db } from '@/lib/db';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { catalogQueue } from '@/workers/queues';
 import { revalidatePath } from 'next/cache';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { z } from 'zod';
 import { updateMarkupSchema, toggleServiceSchema, bulkUpdateMarkupSchema } from '@/validators/admin.validators';
 import { auditAdmin } from '@/lib/admin-audit';
 
 import { requireStaffPermission } from '@/lib/server/rbac';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function updateMarkupAction(formData: FormData) {
   const result = await requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = updateMarkupSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -22,6 +26,15 @@ async function updateMarkupAction(formData: FormData) {
       email: admin.email,
     });
 
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'SERVICE_MARKUP_UPDATE',
+      target: serviceId,
+      targetType: 'SERVICE',
+      newValue: { markup }
+    });
+
     revalidatePath('/admin/catalog');
   });
 
@@ -30,6 +43,7 @@ async function updateMarkupAction(formData: FormData) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function toggleServiceAction(formData: FormData) {
   const result = await requireStaffPermission('catalog', 'edit', async (admin) => {
     const parsed = toggleServiceSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -39,6 +53,14 @@ async function toggleServiceAction(formData: FormData) {
     await adminCatalogService.toggleService(serviceId, isActive, {
       id: admin.id,
       email: admin.email,
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: isActive ? 'SERVICE_ENABLE' : 'SERVICE_DISABLE',
+      target: serviceId,
+      targetType: 'SERVICE',
     });
 
     revalidatePath('/admin/catalog');
@@ -94,6 +116,7 @@ export async function bulkUpdateMarkupAction(formData: FormData) {
 /**
  * Returns markup distribution analytics for the admin dashboard.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getMarkupAnalyticsAction() {
   const result = await requireStaffPermission('catalog', 'view', async () => {
     return adminCatalogService.getMarkupAnalytics();

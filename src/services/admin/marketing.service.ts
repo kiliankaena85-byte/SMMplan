@@ -3,9 +3,19 @@ import { db } from '@/lib/db';
 export const adminMarketingService = {
   // ── PromoCodes ──
   async listPromoCodes() {
-    return db.promoCode.findMany({
+    const promoCodes = await db.promoCode.findMany({
+      include: { usages: true },
       orderBy: { createdAt: 'desc' },
     });
+    return promoCodes.map(promo => ({
+      ...promo,
+      usages: promo.usages.map(usage => ({
+        ...usage,
+        discountCents: Number(usage.discountCents),
+        revenueCents: Number(usage.revenueCents),
+        profitCents: Number(usage.profitCents),
+      }))
+    }));
   },
 
   async createPromoCode(data: {
@@ -15,6 +25,12 @@ export const adminMarketingService = {
     amount?: number;
     maxUses: number;
     expiresAt?: Date | null;
+    description?: string;
+    utmSource?: string;
+    utmMedium?: string;
+    utmCampaign?: string;
+    budgetCents?: number;
+    isSuspicious?: boolean;
   }) {
     return db.promoCode.create({
       data: {
@@ -25,6 +41,12 @@ export const adminMarketingService = {
         maxUses: data.maxUses,
         expiresAt: data.expiresAt,
         isActive: true,
+        description: data.description,
+        utmSource: data.utmSource,
+        utmMedium: data.utmMedium,
+        utmCampaign: data.utmCampaign,
+        budgetCents: data.budgetCents || 0,
+        isSuspicious: data.isSuspicious || false,
       },
     });
   },

@@ -35,15 +35,15 @@ export type ClientProfileData = {
 
 const ORDER_STATUS_MAP: Record<string, { label: string, color: string }> = {
   IN_PROGRESS: { label: 'В работе', color: 'text-primary bg-indigo-50' },
-  PENDING: { label: 'Ожидание', color: 'text-amber-600 bg-amber-50' },
-  COMPLETED: { label: 'Выполнен', color: 'text-emerald-600 bg-emerald-50' },
+  PENDING: { label: 'Ожидание', color: 'text-warning-text bg-warning/10' },
+  COMPLETED: { label: 'Выполнен', color: 'text-success-text bg-success/10' },
   CANCELED: { label: 'Отменен', color: 'text-slate-500 bg-slate-50' },
   ERROR: { label: 'Ошибка', color: 'text-rose-600 bg-rose-50' },
 };
 
 const PAYMENT_STATUS_MAP: Record<string, { label: string, color: string }> = {
-  SUCCEEDED: { label: 'Успешно', color: 'text-emerald-600 bg-emerald-50' },
-  PENDING: { label: 'Ожидание', color: 'text-amber-600 bg-amber-50' },
+  SUCCEEDED: { label: 'Успешно', color: 'text-success-text bg-success/10' },
+  PENDING: { label: 'Ожидание', color: 'text-warning-text bg-warning/10' },
   CANCELED: { label: 'Отмена', color: 'text-slate-500 bg-slate-50' },
 };
 
@@ -55,6 +55,7 @@ export default function ClientProfileSidebar({
   supportLimitCents,
   supportSpentTodayCents,
   onClose,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isMobile
 }: { 
   user: ClientProfileData; 
@@ -66,19 +67,20 @@ export default function ClientProfileSidebar({
 }) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [previewData, setPreviewData] = useState<any>(null);
   const [emailVal, setEmailVal] = useState('');
 
   if (!isOpen) {
     return (
-      <div className="h-full flex items-center justify-center shrink-0 border-l border-warm-border bg-warm-card rounded-xl w-12 transition-all">
+      <div className="h-full flex items-center justify-center shrink-0 border-l border-border bg-card rounded-xl w-12 transition-all">
         <button
           onClick={() => {
             if (onClose) onClose();
             else setIsOpen(true);
           }}
           aria-label="Показать профиль клиента"
-          className="min-w-[44px] min-h-[44px] rounded-full bg-warm-zinc hover:bg-warm-accent/10 text-warm-text hover:text-warm-accent flex items-center justify-center transition-all duration-200 cursor-pointer"
+          className="min-w-[44px] min-h-[44px] rounded-full bg-muted hover:bg-primary/10 text-foreground hover:text-primary flex items-center justify-center transition-all duration-200 cursor-pointer"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -87,28 +89,28 @@ export default function ClientProfileSidebar({
   }
 
   return (
-    <div className="w-[340px] shrink-0 h-full bg-warm-card border border-warm-border rounded-xl flex flex-col relative animate-in slide-in-from-right-8 duration-300">
+    <div className="w-[340px] shrink-0 h-full bg-card border border-border rounded-xl flex flex-col relative animate-in slide-in-from-right-8 duration-300">
       <button
         onClick={() => {
           if (onClose) onClose();
           else setIsOpen(false);
         }}
         aria-label="Скрыть панель профиля"
-        className="absolute top-4 right-4 z-10 min-w-[44px] min-h-[44px] rounded-full bg-warm-zinc hover:bg-warm-border text-warm-text flex items-center justify-center transition-all duration-200 cursor-pointer"
+        className="absolute top-4 right-4 z-10 min-w-[44px] min-h-[44px] rounded-full bg-muted hover:bg-border text-foreground flex items-center justify-center transition-all duration-200 cursor-pointer"
       >
         <ChevronRight className="w-4 h-4" />
       </button>
 
       {/* Profile header */}
-      <div className="p-5 border-b border-warm-border flex flex-col items-center text-center">
-        <div className="w-14 h-14 rounded-full bg-warm-accent/10 border-2 border-warm-accent/20 text-warm-accent flex items-center justify-center mb-3 text-lg font-bold uppercase">
+      <div className="p-5 border-b border-border flex flex-col items-center text-center">
+        <div className="w-14 h-14 rounded-full bg-primary/10 border-2 border-primary/20 text-primary flex items-center justify-center mb-3 text-lg font-bold uppercase">
           {user.email.substring(0, 2)}
         </div>
-        <h3 className="font-bold text-warm-text mb-1 truncate w-full px-2 text-sm" title={user.email}>
+        <h3 className="font-bold text-foreground mb-1 truncate w-full px-2 text-sm" title={user.email}>
           {user.email}
         </h3>
         {user.email.startsWith('tg_') && (
-          <div className="w-full mb-3 mt-1 bg-warning/10 text-amber-600 border border-amber-500/20 rounded-lg p-2 text-[10px] text-center font-medium">
+          <div className="w-full mb-3 mt-1 bg-warning/10 text-warning-text border border-warning/20 rounded-lg p-2 text-[10px] text-center font-medium">
             <p className="mb-2">Временный профиль. Вы можете запросить у клиента авторизацию:</p>
             <div className="mb-3">
               <button 
@@ -121,7 +123,7 @@ export default function ClientProfileSidebar({
                     await requestTelegramBind(fd);
                   });
                 }}
-                className="w-full py-1.5 px-2 bg-warning hover:bg-amber-600 text-primary-foreground rounded-md font-bold transition-colors disabled:opacity-50"
+                className="w-full py-1.5 px-2 bg-warning hover:bg-warning/90 text-primary-foreground rounded-md font-bold transition-colors disabled:opacity-50"
               >
                 {isPending ? 'Отправка...' : 'Отправить ссылку для привязки'}
               </button>
@@ -151,6 +153,7 @@ export default function ClientProfileSidebar({
                       fd.set('targetEmail', emailVal);
                       console.info('[Sidebar] Calling adminManualTelegramBind with email:', emailVal);
                       // Safe type cast to resolve the requireStaffPermission wrapper union type
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       const res = (await adminManualTelegramBind(fd)) as { preview?: boolean; data?: any; success?: boolean };
                       console.info('[Sidebar] adminManualTelegramBind result Step 1:', JSON.stringify(res));
                       if (res && res.preview) {
@@ -160,14 +163,14 @@ export default function ClientProfileSidebar({
                         setEmailVal('');
                       }
                     })}
-                    className="bg-warning hover:bg-amber-600 text-primary-foreground px-2 py-1 rounded font-bold transition-colors disabled:opacity-50"
+                    className="bg-warning hover:bg-warning/90 text-primary-foreground px-2 py-1 rounded font-bold transition-colors disabled:opacity-50"
                   >
                     OK
                   </button>
                 </div>
               ) : (
                 <div className="mt-1 bg-warning/20 border border-warning/40 rounded p-2 text-[10px]">
-                  <p className="font-bold text-amber-700 mb-1">Подтвердите слияние:</p>
+                  <p className="font-bold text-warning-text mb-1">Подтвердите слияние:</p>
                   <ul className="list-disc pl-3 mb-2 text-slate-700 space-y-0.5">
                     <li>Врем. заказов: <b>{previewData.tempUserOrders}</b></li>
                     <li>Цель: <b>{previewData.targetEmail}</b></li>
@@ -197,7 +200,7 @@ export default function ClientProfileSidebar({
                           setEmailVal('');
                         }
                       })}
-                      className="flex-1 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition-colors text-center"
+                      className="flex-1 py-1 bg-success hover:bg-success/90 text-white rounded font-bold transition-colors text-center"
                     >
                       Слить
                     </button>
@@ -212,27 +215,27 @@ export default function ClientProfileSidebar({
         </p>
 
         <div className="flex w-full gap-2">
-          <div className="flex-1 bg-warm-zinc/45 rounded-xl p-3 border border-warm-border">
+          <div className="flex-1 bg-muted/30 rounded-xl p-3 border border-border">
             <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Баланс</div>
-            <div className="font-bold text-emerald-600 text-sm">{formatBalance(user.balance)}</div>
+            <div className="font-bold text-success-text text-sm">{formatBalance(user.balance)}</div>
           </div>
-          <div className="flex-1 bg-warm-zinc/45 rounded-xl p-3 border border-warm-border">
+          <div className="flex-1 bg-muted/30 rounded-xl p-3 border border-border">
             <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">LTV</div>
-            <div className="font-bold text-warm-text text-sm">{formatBalance(user.totalSpent)}</div>
+            <div className="font-bold text-foreground text-sm">{formatBalance(user.totalSpent)}</div>
           </div>
         </div>
 
         {supportLimitCents !== undefined && (
-          <div className="w-full mt-3 p-3 bg-warm-accent/5 border border-warm-accent/10 rounded-xl space-y-2 text-left">
-            <div className="text-[10px] font-bold text-warm-accent uppercase tracking-wider">Лимиты поддержки</div>
+          <div className="w-full mt-3 p-3 bg-primary/5 border border-primary/10 rounded-xl space-y-2 text-left">
+            <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Лимиты поддержки</div>
             <div className="flex justify-between text-xs leading-normal">
               <span className="text-muted-foreground">Доступно лимита:</span>
-              <span className="font-bold text-warm-text">{(supportLimitCents / 100).toFixed(2)} ₽</span>
+              <span className="font-bold text-foreground">{(supportLimitCents / 100).toFixed(2)} ₽</span>
             </div>
             {supportSpentTodayCents !== undefined && (
               <div className="flex justify-between text-xs leading-normal">
                 <span className="text-muted-foreground">Потрачено сегодня:</span>
-                <span className="font-bold text-warm-text">{(supportSpentTodayCents / 100).toFixed(2)} ₽</span>
+                <span className="font-bold text-foreground">{(supportSpentTodayCents / 100).toFixed(2)} ₽</span>
               </div>
             )}
           </div>
@@ -241,9 +244,9 @@ export default function ClientProfileSidebar({
         <Link
           href={`/admin/clients/${user.id}`}
           aria-label="Открыть полный профиль клиента"
-          className="mt-3 w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-warm-border bg-warm-card text-warm-text hover:bg-warm-zinc transition-all duration-200 cursor-pointer"
+          className="mt-3 w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border bg-card text-foreground hover:bg-muted transition-all duration-200 cursor-pointer"
         >
-          <User className="w-3.5 h-3.5 text-warm-accent" /> В профиль клиента
+          <User className="w-3.5 h-3.5 text-primary" /> В профиль клиента
         </Link>
       </div>
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { IntelligenceLinkAnalyzer } from "@/services/analyzer/link-analyzer";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 import { RateLimitService } from '@/services/core/rate-limit.service';
 

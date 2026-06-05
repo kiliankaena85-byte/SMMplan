@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { VisualLinkGuideModal } from "./VisualLinkGuideModal";
 import { stripQueryParams, normalizeUsername } from "@/utils/link-normalizer";
 
@@ -14,14 +15,39 @@ interface HeroInputProps {
   handleCheckout: () => void;
   linkHasError: boolean;
   setLinkHasError: (val: boolean) => void;
+  onOpenGuide: () => void;
 }
 
-export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasError }: HeroInputProps) {
+export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasError, onOpenGuide }: HeroInputProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isFocused, setIsFocused] = useState(false);
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const { url, setUrl, setEmail, isMassMode, isMassCalculating } = engine;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { url, setUrl, setEmail, isMassMode, isMassCalculating, categoryId, selectedService } = engine;
 
   const isEmailDetected = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(url.trim());
+
+  const handleStartAction = () => {
+    const trimmedUrl = url.trim();
+    if (trimmedUrl.length === 0) {
+      toast.error("Пожалуйста, введите ссылку для продолжения.", { position: "top-center" });
+      const inputEl = document.getElementById("landing-url");
+      inputEl?.focus();
+      return;
+    }
+
+    if (linkHasError) {
+      toast.error("Пожалуйста, укажите корректную ссылку.", { position: "top-center" });
+      return;
+    }
+
+    // Scroll smoothly to the catalog tariffs section
+    const catalogEl = document.getElementById("catalog-section");
+    if (catalogEl) {
+      catalogEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.scrollTo({ top: 500, behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="w-full max-w-4xl mx-auto relative z-20 mb-4 md:mb-10 mt-4">
@@ -105,8 +131,8 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
         </div>
       ) : (
         <div className="flex flex-col gap-2.5">
-          {/* Visual Step Guide Indicator (Foolproof UX) */}
-          <div className="flex items-center gap-6 mb-2 px-6 select-none">
+          {/* Visual Step Guide Indicator (Simplified 3-Step UX) */}
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6 mb-3 px-6 select-none">
             <div className="flex items-center gap-2">
               <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 ${
                 !url ? 'bg-primary text-primary-foreground scale-110 shadow-md shadow-primary/30 animate-pulse border border-primary/20' : 'bg-success text-success-foreground'
@@ -119,30 +145,30 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
                 Шаг 1: Ссылка
               </span>
             </div>
-            <div className="w-8 h-px bg-border/40 shrink-0"></div>
+            <div className="hidden sm:block w-6 md:w-8 h-px bg-border/40 shrink-0"></div>
             <div className="flex items-center gap-2">
               <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 ${
-                url && !engine.selectedService ? 'bg-primary text-primary-foreground scale-110 shadow-md shadow-primary/30 animate-pulse border border-primary/20' 
-                : engine.selectedService ? 'bg-success text-success-foreground'
+                url && !selectedService ? 'bg-primary text-primary-foreground scale-110 shadow-md shadow-primary/30 animate-pulse border border-primary/20' 
+                : url && selectedService ? 'bg-success text-success-foreground'
                 : 'bg-muted text-muted-foreground'
               }`}>
-                {engine.selectedService ? '✓' : '2'}
+                {url && selectedService ? '✓' : '2'}
               </span>
               <span className={`text-[10px] sm:text-xs font-extrabold tracking-wide uppercase transition-colors duration-300 ${
-                url && !engine.selectedService ? 'text-foreground font-black' : 'text-muted-foreground'
+                url && !selectedService ? 'text-foreground font-black' : 'text-muted-foreground'
               }`}>
-                Шаг 2: Тариф
+                Шаг 2: Услуга
               </span>
             </div>
-            <div className="w-8 h-px bg-border/40 shrink-0"></div>
+            <div className="hidden sm:block w-6 md:w-8 h-px bg-border/40 shrink-0"></div>
             <div className="flex items-center gap-2">
               <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 ${
-                engine.selectedService ? 'bg-primary text-primary-foreground scale-110 shadow-md shadow-primary/30 animate-pulse border border-primary/20' : 'bg-muted text-muted-foreground'
+                selectedService ? 'bg-primary text-primary-foreground scale-110 shadow-md shadow-primary/30 animate-pulse border border-primary/20' : 'bg-muted text-muted-foreground'
               }`}>
                 3
               </span>
               <span className={`text-[10px] sm:text-xs font-extrabold tracking-wide uppercase transition-colors duration-300 ${
-                engine.selectedService ? 'text-foreground font-black' : 'text-muted-foreground'
+                selectedService ? 'text-foreground font-black' : 'text-muted-foreground'
               }`}>
                 Шаг 3: Оплата
               </span>
@@ -206,22 +232,29 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
                   setUrl(val);
                 }
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleStartAction();
+                }
+              }}
               placeholder="Вставьте ссылку на канал, группу или пост..."
               className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm sm:text-base md:text-lg font-semibold text-foreground placeholder:text-muted-foreground px-1.5 sm:px-3 h-full w-full"
             />
             <Button
-              onClick={handleCheckout}
+              type="button"
+              onClick={handleStartAction}
               disabled={isMassCalculating}
               className="h-full rounded-full px-4 sm:px-6 md:px-10 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-base md:text-lg shadow-lg shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 shrink-0"
             >
-              {isMassCalculating ? <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" /> : "Начать"}
+              {isMassCalculating ? <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" /> : "Показать тарифы →"}
             </Button>
           </div>
 
           <div className="flex justify-between items-center px-6">
             <button
               type="button"
-              onClick={() => setIsGuideOpen(true)}
+              onClick={onOpenGuide}
               className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
             >
               <HelpCircle className="w-3.5 h-3.5 text-primary/80 animate-pulse" />
@@ -230,12 +263,6 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
           </div>
         </div>
       )}
-      
-      <VisualLinkGuideModal 
-        isOpen={isGuideOpen} 
-        onClose={() => setIsGuideOpen(false)} 
-        initialPlatform={engine.catalog.find(n => n.id === engine.networkId)?.slug}
-      />
     </div>
   );
 }

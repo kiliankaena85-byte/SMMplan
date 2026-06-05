@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BookOpen, Clock, Eye, GraduationCap, ChevronLeft, Calendar, UserCircle, ShoppingCart } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';

@@ -113,6 +113,7 @@ export async function updateClientNoteAction(userId: string, note: string) {
 }
 
 /** Fetch full client profile for the detail page */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getClientProfileAction(userId: string) {
   return requireStaffPermission('CLIENTS', 'view', async () => {
     const user = await db.user.findUnique({

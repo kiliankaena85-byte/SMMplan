@@ -70,6 +70,7 @@ export function ReferralEconomicsChart({ paidOut, pending }: ReferralEconomicsCh
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
             }}
             labelStyle={{ fontWeight: 'bold', color: 'var(--foreground)', marginBottom: '4px', fontSize: 12 }}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             formatter={(value: any, name: any) => {
               if (name === 'paid') return [`${value} ₽`, 'Выплачено'];
               if (name === 'pending') return [`${value} ₽`, 'В ожидании'];

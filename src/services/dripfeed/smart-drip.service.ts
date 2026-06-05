@@ -106,6 +106,7 @@ export class SmartDripService {
         providerCostCents: pricing.providerCostCents,
         markup,
       };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       return { success: false, basePriceCents: 0, finalPriceCents: 0, providerCostCents: 0, markup: 0, error: err.message || 'Ошибка расчета цен' };
     }
@@ -116,6 +117,7 @@ export class SmartDripService {
    * Вызывается внутри Checkout транзакции при успешной оплате/оформлении.
    */
   static async createCampaign(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tx: any, // Prisma Transaction client
     params: {
       userId: string;
@@ -160,11 +162,25 @@ export class SmartDripService {
     });
 
     // 2. Распределяем порции (SmartTask)
+    // Smart Step: If using invite buffer, chunk limits can scale down to as small as 10
+    // since we make 1 bulk order and let the bot approve tiny segments smoothly over the week.
+    let effectiveMinChunk = config.minChunk;
+    let effectiveMaxChunk = config.maxChunk;
+
+    if (config.useInviteBuffer) {
+      effectiveMinChunk = Math.max(10, Math.floor(quantity / (days * 2)));
+      effectiveMaxChunk = Math.max(30, Math.floor(quantity / days));
+      
+      if (effectiveMinChunk > config.minChunk) effectiveMinChunk = config.minChunk;
+      if (effectiveMaxChunk > config.maxChunk) effectiveMaxChunk = config.maxChunk;
+      if (effectiveMinChunk > effectiveMaxChunk) effectiveMinChunk = effectiveMaxChunk;
+    }
+
     const taskAllocations = this.generateTaskDistribution(
       quantity,
       days,
-      config.minChunk,
-      config.maxChunk
+      effectiveMinChunk,
+      effectiveMaxChunk
     );
 
     // 3. Сохраняем задачи SmartTask

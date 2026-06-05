@@ -12,9 +12,10 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  Table as ReactTable,
 } from '@tanstack/react-table';
 
-import { Table } from '@heroui/react';
+import { Table } from '@/components/admin/hero-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -29,8 +30,9 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   searchKey?: string;
   searchPlaceholder?: string;
-  renderToolbar?: (table: ReturnType<typeof useReactTable>) => React.ReactNode;
+  renderToolbar?: (table: ReactTable<TData>) => React.ReactNode;
   hideClientPagination?: boolean;
+  initialColumnVisibility?: VisibilityState;
 }
 
 export function DataTable<TData, TValue>({
@@ -40,10 +42,11 @@ export function DataTable<TData, TValue>({
   searchPlaceholder = 'Поиск...',
   renderToolbar,
   hideClientPagination = false,
+  initialColumnVisibility = {},
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(initialColumnVisibility);
   const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
@@ -67,7 +70,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="relative">
-      {renderToolbar && renderToolbar(table as any)}
+      {renderToolbar && renderToolbar(table)}
       <div className="flex items-center py-4 justify-between gap-4">
         {searchKey && (
           <Input
@@ -108,7 +111,7 @@ export function DataTable<TData, TValue>({
             <Table.Content aria-label="Data Table" className="w-full">
               <Table.Header className="bg-muted/30">
                 {table.getFlatHeaders().map((header, index) => (
-                  <Table.Column isRowHeader={index === 0} key={header.id} className="py-3 px-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <Table.Column isRowHeader={index === 0} key={header.id} className="py-4 px-6 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -127,7 +130,7 @@ export function DataTable<TData, TValue>({
                       className="hover:bg-muted/30 even:bg-muted/10 transition-colors"
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <Table.Cell key={cell.id} className="py-3 px-4 text-sm text-foreground">
+                        <Table.Cell key={cell.id} className="py-5 px-6 text-sm text-foreground">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </Table.Cell>
                       ))}

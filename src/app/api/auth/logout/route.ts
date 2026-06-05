@@ -3,17 +3,16 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { jwtVerify } from 'jose';
 
-if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
-const secretKey = process.env.JWT_SECRET;
-const encodedKey = new TextEncoder().encode(secretKey);
+import { getEncodedKey } from '@/lib/session';
 
 async function deleteSessionFromDB(token?: string) {
   if (token) {
     try {
-      const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] });
+      const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
       if (payload.sessionId) {
         await db.session.delete({ where: { id: payload.sessionId as string } }).catch(() => {});
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       // ignore validation errors on logout
     }

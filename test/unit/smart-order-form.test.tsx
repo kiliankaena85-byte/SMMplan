@@ -50,7 +50,8 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     setInterval: vi.fn(),
     availableCategories: [],
     services: [],
-    catalog: [],
+    catalog: [{ id: 'net-tg', name: 'Telegram', slug: 'telegram', categories: [] }],
+    unfilteredCatalog: [{ id: 'net-tg', name: 'Telegram', slug: 'telegram', categories: [] }],
     isLoading: false,
     isCalculating: false,
     totalPriceFormatted: '0 ₽',
@@ -131,15 +132,15 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     render(<SmartOrderForm />);
 
     // Ensure the consent text is present
-    const consentText = screen.getByText(/Я подтверждаю заказ и соглашаюсь с/i);
+    const consentText = screen.getByText(/Нажимая кнопку «Оплатить заказ», вы соглашаетесь с/i);
     expect(consentText).toBeDefined();
 
-    // Ensure the explicit consent checkbox is rendered
-    const checkbox = screen.getByRole('checkbox', { name: /Согласие с публичной офертой/i });
-    expect(checkbox).toBeDefined();
+    // Ensure NO explicit consent checkbox is rendered
+    const checkbox = screen.queryByRole('checkbox', { name: /Согласие с публичной офертой/i });
+    expect(checkbox).toBeNull();
 
-    // The submit button should be disabled by default because agreedToTerms is false in mock state
+    // The submit button should be enabled by default (not disabled by a missing checkbox)
     const submitBtn = screen.getByRole('button', { name: /Оплатить заказ/i }) as HTMLButtonElement;
-    expect(submitBtn.disabled).toBe(true);
+    expect(submitBtn.disabled).toBe(false);
   });
 });

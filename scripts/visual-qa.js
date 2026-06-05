@@ -70,6 +70,7 @@ async function seedData(userId) {
 
   let quarantinedService = await prisma.service.findFirst({ where: { isQuarantined: true } });
   if (!quarantinedService) {
+    // eslint-disable-next-line no-useless-assignment
     quarantinedService = await prisma.service.create({
       data: {
         name: 'E2E Quarantined Service',
@@ -88,6 +89,7 @@ async function seedData(userId) {
   // 4. Заказ
   let order = await prisma.order.findFirst({ where: { userId } });
   if (!order) {
+    // eslint-disable-next-line no-useless-assignment
     order = await prisma.order.create({
       data: {
         userId,
@@ -105,6 +107,7 @@ async function seedData(userId) {
   // 5. Тикет (чат поддержки)
   let ticket = await prisma.ticket.findFirst({ where: { userId } });
   if (!ticket) {
+    // eslint-disable-next-line no-useless-assignment
     ticket = await prisma.ticket.create({
       data: {
         userId,

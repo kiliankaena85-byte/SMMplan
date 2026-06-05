@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function TopServicesTable({ topServices }: { topServices: any[] }) {
   return (
     <Table aria-label="Топ услуг по кликам" className="w-full text-xs table-fixed">
@@ -36,6 +37,7 @@ export function TopServicesTable({ topServices }: { topServices: any[] }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ProfitCategoriesTable({ categories, fmt }: { categories: any[], fmt: (v: number) => string }) {
   return (
     <Table aria-label="Рентабельность по категориям" className="w-full text-xs table-fixed">
@@ -75,6 +77,7 @@ export function ProfitCategoriesTable({ categories, fmt }: { categories: any[], 
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ProfitServicesTable({ services, fmt }: { services: any[], fmt: (v: number) => string }) {
   return (
     <Table aria-label="Рентабельность по услугам (Топ 15)" className="w-full text-xs table-fixed">

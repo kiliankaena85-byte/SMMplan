@@ -137,7 +137,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
           onClick={() => setActiveTab('api')} 
           className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === 'api' ? 'text-primary border-primary' : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'}`}>
           Сбои API 
-          {apiErrors.length > 0 && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-500 text-xs">{apiErrors.length}</span>}
+          {apiErrors.length > 0 && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-warning/20 text-warning text-xs">{apiErrors.length}</span>}
         </button>
       </div>
 
@@ -180,18 +180,18 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                                 </div>
                               </div>
                             </Table.Cell>
-                            <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-amber-700 border border-amber-500/20">{item.quarantineReason}</span></Table.Cell>
+                            <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-warning border border-warning/20">{item.quarantineReason}</span></Table.Cell>
                             <Table.Cell className="text-right"><span className="text-sm font-mono text-muted-foreground">${item.currentRate.toFixed(4)}</span></Table.Cell>
                             <Table.Cell className="text-right">
                               <div className="flex flex-col items-end gap-0.5">
                                 <span className={`text-sm font-mono font-semibold ${isRise ? 'text-destructive' : 'text-success'}`}>${item.pendingRate?.toFixed(4) ?? '—'}</span>
-                                <span className={`text-xs ${isRise ? 'text-rose-400' : 'text-emerald-400'}`}>{isRise ? '▲' : '▼'} {priceDiff}%</span>
+                                <span className={`text-xs ${isRise ? 'text-destructive' : 'text-success'}`}>{isRise ? '▲' : '▼'} {priceDiff}%</span>
                               </div>
                             </Table.Cell>
                             <Table.Cell className="text-right">
                               <div className="flex items-center gap-2 justify-end">
-                                <button onClick={() => handleApprove(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-emerald-500/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50">✅ Принять</button>
-                                <button onClick={() => handleReject(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-slate-300 transition-all duration-200 disabled:opacity-50">✕ Отклонить</button>
+                                <button onClick={() => handleApprove(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50">✅ Принять</button>
+                                <button onClick={() => handleReject(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50">✕ Отклонить</button>
                               </div>
                             </Table.Cell>
                           </Table.Row>
@@ -236,7 +236,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                             </Table.Cell>
                             <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-destructive/10 text-destructive border border-destructive/20">{item.quarantineReason}</span></Table.Cell>
                             <Table.Cell className="text-right">
-                              <button onClick={() => handleArchiveZombie(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-slate-300 transition-all duration-200 disabled:opacity-50">📦 Скрыть навсегда</button>
+                              <button onClick={() => handleArchiveZombie(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50">📦 Скрыть навсегда</button>
                             </Table.Cell>
                           </Table.Row>
                         );
@@ -280,10 +280,10 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                                 </div>
                               </div>
                             </Table.Cell>
-                            <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-amber-500/10 text-amber-500 border border-amber-500/20">{item.quarantineReason}</span></Table.Cell>
+                            <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-warning border border-warning/20">{item.quarantineReason}</span></Table.Cell>
                             <Table.Cell><span className="text-sm font-mono text-muted-foreground">{untilDate}</span></Table.Cell>
                             <Table.Cell className="text-right">
-                              <button onClick={() => handleLiftApiBlock(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-emerald-500/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50">🔓 Снять блок</button>
+                              <button onClick={() => handleLiftApiBlock(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50">🔓 Снять блок</button>
                             </Table.Cell>
                           </Table.Row>
                         );

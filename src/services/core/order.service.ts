@@ -1,6 +1,7 @@
 import { db } from '../../lib/db';
 import { OrderStatus } from '@prisma/client';
 import { SettingsProvider } from '../../lib/settings';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { WalletService } from '../financial/wallet.service';
 import { WalletOps } from '../financial/wallet-ops';
 import { calculatePartialRefund } from '@/utils/refund';
@@ -109,6 +110,7 @@ class OrderService {
       // 3. Dispatch to Queues (Drip-feed is now passed natively to the provider)
       try {
         await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: 3 * 60 * 1000 });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (queueError: any) {
         // [FIN-006] Premortem Bugfix: Ghost Order Prevention.
         // If Redis is down, we MUST NOT fail the request since the balance is already charged 
@@ -131,6 +133,7 @@ class OrderService {
 
       return { success: true, orderId: newOrder.id };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[OrderService] Creation failed:', e.message);
       // We return e.message here so that WalletOps throw "Insufficient funds" bubbles up to UI
@@ -202,6 +205,7 @@ class OrderService {
 
         return { success: true };
       }, { isolationLevel: 'Serializable' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[OrderService] cancelPendingOrderClient failed:', e.message);
       return { success: false, error: 'Внутренняя ошибка при отмене заказа' };
@@ -313,6 +317,7 @@ class OrderService {
         return { success: true, orderId: order.id, status: internalStatus };
       }, { isolationLevel: 'Serializable' });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error(`[OrderService] processStatusUpdate failed for extId ${externalId}:`, e.message);
       return { success: false };
@@ -374,11 +379,13 @@ class OrderService {
         try {
           const { sendOrderCanceledMail } = await import('../../lib/smtp');
           await sendOrderCanceledMail(txResult.email, txResult.numericId, txResult.serviceName);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (mailErr: any) {
           console.error(`[OrderService] Failed to send cancellation email for ${orderId}:`, mailErr.message);
         }
       }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e.message);
       try {
@@ -387,6 +394,7 @@ class OrderService {
           `🚨 failOrderTerminal ERROR\n\norderId: ${orderId}\nreason: ${reason}\nerror: ${e.message}`,
           'CRITICAL'
         );
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (importErr) {
         // Fallback catch in case import itself fails
       }
@@ -477,6 +485,7 @@ class OrderService {
           } catch { /* non-fatal */ }
         }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error(`[OrderService] failOrderTerminalFast failed for ${orderId}:`, e.message);
       // Last-resort admin alert

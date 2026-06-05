@@ -19,6 +19,7 @@ import {
   FaLinkedinIn,
   FaLine,
   FaPlay,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   FaYandex,
   FaSteam,
   FaMediumM,
@@ -43,7 +44,7 @@ interface SocialIconProps {
 }
 
 export function SocialIcon({ slug, className = "", size = 24, colored = true }: SocialIconProps) {
-  const norm = slug.toLowerCase();
+  const norm = (slug || "").toLowerCase();
   
   const iconProps = (hex: string) => ({
     className,

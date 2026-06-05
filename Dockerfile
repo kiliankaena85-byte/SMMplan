@@ -7,7 +7,7 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json* .npmrc* ./
 COPY prisma ./prisma
 RUN npm ci --legacy-peer-deps
 
@@ -19,7 +19,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Environment variables must be set at build time for Next.js
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV DISABLE_REDIS_CACHE=1
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
 # Generate prisma client and build next.js
 RUN npx prisma generate
@@ -29,8 +31,8 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN apk add --no-cache openssl tini
 
@@ -69,9 +71,9 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
+ENV PORT=3000
 # set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME="0.0.0.0"
 
 ENTRYPOINT ["/sbin/tini", "--", "./docker-entrypoint.sh"]
 CMD ["node", "server.js"]

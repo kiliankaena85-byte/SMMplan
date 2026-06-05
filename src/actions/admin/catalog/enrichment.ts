@@ -29,6 +29,7 @@ export async function updateServiceDescription(serviceId: string, description: s
 
       revalidatePath("/admin/catalog/enrichment");
       return { success: true };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Failed to update service description:", error);
       return { success: false, error: error.message };

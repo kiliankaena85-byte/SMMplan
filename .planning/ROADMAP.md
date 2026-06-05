@@ -152,3 +152,30 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
+### Phase 999.11: Provider Ticket URL Integration in Orders Table (BACKLOG)
+
+**Goal:** [Captured for future planning] Внедрить в таблицу "Заказы" рядом с ID провайдера прямую ссылку на его сайт/страницу создания тикетов, добавив ручное управление URL для каждого провайдера в его карточке настроек.
+**Requirements:**
+- Добавить поле `ticketUrl` в модель `Provider` в Prisma.
+- Добавить поле ввода для `ticketUrl` в форму создания/редактирования провайдера в админке.
+- В админ-таблице заказов выводить кликабельную ссылку-иконку рядом с внешним ID заказа/провайдера, ведущую прямо на URL тикетов этого провайдера для быстрого разрешения споров оператором.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
+
+### Phase 999.12: Guest & Client Knowledge Base & SEO Blog Gateway (BACKLOG)
+
+**Goal:** [Captured for future planning] Создать встроенную базу знаний и блог для клиентов, ориентированный на SEO/AEO-продвижение Smmplan, информирование об алгоритмах соцсетей, лимитах накрутки, и нативную конверсию читателей в покупателей.
+**Requirements:**
+- Спроектировать Prisma-модель `Article` (slug, title, description, content, status, category, viewCount).
+- Разработать динамический SEO-генератор с поддержкой разметки JSON-LD (Schema.org `BlogPosting`) в Next.js 16.
+- Внедрить текстовый редактор Markdown в панель администратора для удобного написания статей контент-менеджерами.
+- Создать воронку конверсий: контекстные виджеты с ценами на подходящие услуги Smmplan прямо внутри обучающих статей.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
+
+
+

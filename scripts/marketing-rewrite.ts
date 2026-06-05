@@ -60,6 +60,7 @@ async function callGemini(services: any[]): Promise<any[]> {
         return parsed;
     } catch (e: any) {
         console.error("Gemini raw text was:", text);
+        // eslint-disable-next-line preserve-caught-error
         throw new Error("Failed to parse Gemini JSON: " + e.message);
     }
 }

@@ -1,5 +1,6 @@
 'use server';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';

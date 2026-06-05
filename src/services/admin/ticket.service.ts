@@ -1,6 +1,8 @@
 import { db } from '@/lib/db';
 import type { MessageAttachment } from '@prisma/client';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
+import { extractOrderIds } from '@/utils/ticket-parser';
 
 // ── Types ──
 
@@ -60,12 +62,31 @@ class AdminTicketService {
         skip,
         orderBy: { updatedAt: 'desc' },
         include: {
-          user: { select: { id: true, email: true } },
+          user: { 
+            select: { 
+              id: true, 
+              email: true,
+              b2bConfig: {
+                select: {
+                  isB2b: true,
+                  prioritySupport: true
+                }
+              }
+            } 
+          },
           _count: { select: { messages: true } },
           messages: { orderBy: { createdAt: 'desc' }, take: 1 },
         },
       })
     ]);
+
+    // Priority B2B sorting: Float B2B tickets with prioritySupport flag to the top of the queue
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    items.sort((a: any, b: any) => {
+      const aPri = a.user?.b2bConfig?.prioritySupport ? 1 : 0;
+      const bPri = b.user?.b2bConfig?.prioritySupport ? 1 : 0;
+      return bPri - aPri;
+    });
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -134,6 +155,13 @@ class AdminTicketService {
             balance: true,
             totalSpent: true,
             createdAt: true,
+            b2bConfig: {
+              select: {
+                isB2b: true,
+                prioritySupport: true,
+                webhookUrl: true
+              }
+            },
             orders: {
               take: 3,
               orderBy: { createdAt: 'desc' },
@@ -218,6 +246,7 @@ class AdminTicketService {
     historicalTickets.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
     // Map Message DTO helper
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mapMessage = (m: any, isHistorical = false, histTicketId?: string, histSubject?: string) => ({
       id: m.id,
       sender: m.sender,
@@ -256,6 +285,7 @@ class AdminTicketService {
       historicalSubject: histSubject
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stitchedMessages: any[] = [];
     
     // 1. Add historical messages
@@ -276,6 +306,40 @@ class AdminTicketService {
     // 2. Add current ticket messages
     stitchedMessages.push(...activeMessages.map(m => mapMessage(m)));
 
+    // 3. Extract B2B attached order IDs on the fly from subject and message texts
+    const allText = [ticket.subject, ...ticket.messages.map(m => m.text)].join(' ');
+    const extractedIds = extractOrderIds(allText);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let attachedOrders: any[] = [];
+    if (extractedIds.length > 0) {
+      const orders = await db.order.findMany({
+        where: {
+          userId: ticket.user.id,
+          OR: [
+            { id: { in: extractedIds } },
+            { numericId: { in: extractedIds.map((id: string) => parseInt(id, 10)).filter((id: number) => !isNaN(id)) } }
+          ]
+        },
+        include: {
+          service: { select: { name: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      attachedOrders = orders.map(o => ({
+        id: o.id,
+        numericId: o.numericId,
+        status: o.status,
+        charge: Number(o.charge),
+        remains: o.remains,
+        quantity: o.quantity,
+        link: o.link,
+        createdAt: o.createdAt.toISOString(),
+        serviceName: o.service?.name || 'Услуга'
+      }));
+    }
+
     return {
       id: ticket.id,
       subject: ticket.subject,
@@ -290,6 +354,7 @@ class AdminTicketService {
         createdAt: ticket.order.createdAt.toISOString(),
         serviceName: ticket.order.service?.name || 'Услуга'
       } : null,
+      attachedOrders,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
       nextCursor,
@@ -299,6 +364,11 @@ class AdminTicketService {
         balance: ticket.user.balance,
         totalSpent: ticket.user.totalSpent,
         createdAt: ticket.user.createdAt.toISOString(),
+        b2bConfig: ticket.user.b2bConfig ? {
+          isB2b: ticket.user.b2bConfig.isB2b,
+          prioritySupport: ticket.user.b2bConfig.prioritySupport,
+          webhookUrl: ticket.user.b2bConfig.webhookUrl
+        } : null,
         orders: ticket.user.orders.map(o => ({
           id: o.id,
           status: o.status,

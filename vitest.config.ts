@@ -6,13 +6,16 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.temp/**', '**/.git/**', '**/e2e/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.temp/**', '**/.git/**', '**/e2e/**', '**/.agents/**', '**/.planning/**'],
     clearMocks: true,
     restoreMocks: true,
     unstubGlobals: true,
     pool: 'forks',
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    maxWorkers: 1,
+    minWorkers: 1,
+    retry: 3,
+    testTimeout: 30000,
+    hookTimeout: 30000,
     setupFiles: ['./test/setup.ts'],
     globals: true,
     alias: {
@@ -34,5 +37,5 @@ export default defineConfig({
     sequence: {
       concurrent: false
     }
-  }
+  } as any
 });

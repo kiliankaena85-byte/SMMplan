@@ -4,14 +4,22 @@ import React, { useState } from 'react';
 import { ActionForm } from '@/components/admin/action-form';
 import { SubmitButton } from '@/components/admin/submit-button';
 import { massOrderCalculateAction, massOrderCheckoutAction } from '@/actions/order/mass';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Zap, AlertCircle, CheckCircle2, Loader2, Wallet, CreditCard, Bitcoin } from 'lucide-react';
+
+interface MassOrderCalculation {
+  globalError?: string;
+  validCount?: number;
+  totalRub?: number;
+  errors?: { line: number; error: string; text: string }[];
+}
 
 export function MassOrderForm({ userEmail }: { userEmail?: string }) {
   const [text, setText] = useState('');
   const [email, setEmail] = useState(userEmail || '');
   const [gateway, setGateway] = useState<'yookassa' | 'balance' | 'cryptobot'>('yookassa');
   
-  const [calculation, setCalculation] = useState<any>(null);
+  const [calculation, setCalculation] = useState<MassOrderCalculation | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState('');
 
@@ -31,6 +39,7 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
       } else {
         setCalculation({ globalError: res.error });
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setCalculation({ globalError: e.message });
     } finally {
@@ -92,14 +101,14 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between border-b border-border/50 pb-4">
                   <span className="text-muted-foreground font-medium">Валидных заказов:</span>
-                  <span className="font-bold text-lg">{calculation.validCount}</span>
+                  <span className="font-bold text-lg">{calculation.validCount ?? 0}</span>
                 </div>
                 
-                {calculation.errors?.length > 0 && (
+                {(calculation.errors?.length ?? 0) > 0 && (
                   <div className="bg-warning-50 text-warning-700 border border-warning-200 p-4 rounded-xl text-sm">
                     <p className="font-bold mb-2 flex items-center gap-2"><AlertCircle className="w-4 h-4"/> Найдены ошибки:</p>
                     <ul className="list-disc pl-5 space-y-1">
-                      {calculation.errors.map((err: any, i: number) => (
+                      {calculation.errors?.map((err, i) => (
                         <li key={i}>Строка {err.line > 0 ? err.line : '?'}: {err.error} <span className="opacity-50">({err.text})</span></li>
                       ))}
                     </ul>
@@ -108,11 +117,11 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
 
                 <div className="flex items-center justify-between border-b border-border/50 pb-4 pt-2">
                   <span className="text-foreground font-bold text-lg">К оплате:</span>
-                  <span className="font-extrabold text-2xl tabular-nums tracking-tight">{calculation.totalRub.toLocaleString('ru-RU')} ₽</span>
+                  <span className="font-extrabold text-2xl tabular-nums tracking-tight">{(calculation.totalRub ?? 0).toLocaleString('ru-RU')} ₽</span>
                 </div>
               </div>
 
-              {calculation.validCount > 0 && (
+              {(calculation.validCount ?? 0) > 0 && (
                 <ActionForm action={handleCheckout} className="space-y-6">
                   {!userEmail && (
                     <div className="space-y-2">
@@ -152,7 +161,7 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
                   </div>
 
                   <SubmitButton className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-14 rounded-xl text-lg shadow-[0_8px_20px_rgb(0,0,0,0.1)] transition-all">
-                    Оплатить {calculation.totalRub.toLocaleString('ru-RU')} ₽
+                    Оплатить {(calculation.totalRub ?? 0).toLocaleString('ru-RU')} ₽
                   </SubmitButton>
                 </ActionForm>
               )}

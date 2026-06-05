@@ -68,6 +68,7 @@ function ReassignCategoryModal({
   startTransition,
 }: {
   selectedIds: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[];
   onSuccess: () => void;
   isPending: boolean;
@@ -166,6 +167,7 @@ function ReassignCategoryModal({
 function BatchActionBar({
   selectedIds,
   onClear,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   usdToRub,
   canEditFinance,
   categories,
@@ -174,6 +176,7 @@ function BatchActionBar({
   onClear: () => void;
   usdToRub: number;
   canEditFinance: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[];
 }) {
   const [isPending, startTransition] = useTransition();
@@ -332,10 +335,10 @@ function InlinePriceCell({ service, usdToRub, canEditFinance }: { service: Catal
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-3">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[9px] uppercase text-muted-foreground font-bold tracking-tight">Цена (₽)</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] uppercase text-muted-foreground/80 font-bold tracking-wider">Цена (₽)</span>
           <div className="relative group">
             <input
               type="number"
@@ -344,7 +347,7 @@ function InlinePriceCell({ service, usdToRub, canEditFinance }: { service: Catal
               onBlur={save}
               onKeyDown={e => e.key === 'Enter' && save()}
               disabled={isPending || !canEditFinance}
-              className={`w-20 px-2 py-1.5 text-xs font-mono font-bold rounded-lg border outline-none transition-all duration-200 tabular-nums
+              className={`w-28 px-3 py-2 text-sm h-10 font-mono font-bold rounded-xl border outline-none transition-all duration-200 tabular-nums
                 ${isBelowSafety
                   ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
                   : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
@@ -353,10 +356,10 @@ function InlinePriceCell({ service, usdToRub, canEditFinance }: { service: Catal
           </div>
         </div>
         
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[9px] uppercase text-muted-foreground font-bold tracking-tight">Наценка (%)</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] uppercase text-muted-foreground/80 font-bold tracking-wider">Наценка (%)</span>
           <div className="relative group">
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">+</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground pointer-events-none">+</span>
             <input
               type="number"
               value={markup > 0 ? ((markup - 1) * 100).toFixed(0) : "0"}
@@ -364,23 +367,23 @@ function InlinePriceCell({ service, usdToRub, canEditFinance }: { service: Catal
               onBlur={save}
               onKeyDown={e => e.key === 'Enter' && save()}
               disabled={isPending || !canEditFinance}
-              className={`w-20 pl-5 pr-2 py-1.5 text-xs font-mono font-bold rounded-lg border outline-none transition-all duration-200 tabular-nums
+              className={`w-28 pl-6 pr-6 py-2 text-sm h-10 font-mono font-bold rounded-xl border outline-none transition-all duration-200 tabular-nums
                 ${isBelowSafety
                   ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
                   : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
                 } disabled:opacity-50 ${!canEditFinance && 'bg-muted border-transparent text-muted-foreground'}`}
             />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground pointer-events-none">%</span>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-         <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-success/10 text-emerald-600 font-bold border border-emerald-500/20">
+      <div className="flex items-center gap-2.5">
+         <span className="text-[10px] px-2 py-1 rounded-md bg-success/10 text-emerald-600 font-bold border border-emerald-500/20">
            Прибыль: {(localPrice - providerCostRub).toFixed(2)} ₽
          </span>
          {isBelowSafety && (
-          <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-destructive/20 text-destructive font-bold border border-destructive/30 animate-pulse">
+          <span className="text-[10px] px-2 py-1 rounded-md bg-destructive/20 text-destructive font-bold border border-destructive/30 animate-pulse">
             УБЫТОК
           </span>
         )}
@@ -439,7 +442,7 @@ function ArchiveButton({ service }: { service: CatalogServiceDTO }) {
         onClick={handleArchive}
         disabled={isPending}
         aria-label={`Архивировать услугу ${service.name}`}
-        className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 disabled:opacity-40"
+        className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 disabled:opacity-40 cursor-pointer"
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -470,7 +473,9 @@ function ServiceFormDialog({
   onSuccess,
 }: {
   service?: CatalogServiceDTO;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   providers: any[];
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -491,6 +496,7 @@ function ServiceFormDialog({
   const [externalId, setExternalId] = useState(service?.externalId || "");
   const [targetType, setTargetType] = useState(service?.targetType || "none");
   const [customDataType, setCustomDataType] = useState(service?.customDataType || "NONE");
+  const [customDataLabel, setCustomDataLabel] = useState(service?.customDataLabel || "");
   
   // Checkbox flags
   const [isMediaGroupAware, setIsMediaGroupAware] = useState(service?.isMediaGroupAware ?? false);
@@ -498,6 +504,8 @@ function ServiceFormDialog({
   const [isRefillEnabled, setIsRefillEnabled] = useState(service?.isRefillEnabled ?? false);
   const [isCancelEnabled, setIsCancelEnabled] = useState(service?.isCancelEnabled ?? false);
   const [isActive, setIsActive] = useState(service?.isActive ?? true);
+  const [requireWarning, setRequireWarning] = useState(service?.requireWarning ?? false);
+  const [warningMessage, setWarningMessage] = useState(service?.warningMessage || "");
 
   const targetTypeItems = [
     { id: "none", name: "Автоматически по категории" },
@@ -523,6 +531,10 @@ function ServiceFormDialog({
       toast.error("Категория обязательна");
       return;
     }
+    if (requireWarning && !warningMessage.trim()) {
+      toast.error("Текст предупреждения обязателен к заполнению");
+      return;
+    }
 
     startTransition(async () => {
       const payload = {
@@ -537,11 +549,14 @@ function ServiceFormDialog({
         externalId: externalId.trim() || null,
         targetType: targetType === "none" ? null : targetType,
         customDataType,
+        customDataLabel: customDataType !== "NONE" ? customDataLabel.trim() || null : null,
         isMediaGroupAware,
         isDripFeedEnabled,
         isRefillEnabled,
         isCancelEnabled,
-        isActive
+        isActive,
+        requireWarning,
+        warningMessage: requireWarning ? warningMessage.trim() : null
       };
 
       const res = service?.id
@@ -771,6 +786,29 @@ function ServiceFormDialog({
                 </Select>
               </div>
             </div>
+
+            {customDataType !== "NONE" && (
+              <div className="space-y-1 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Кастомная подсказка для поля (Опционально)
+                </label>
+                <input
+                  type="text"
+                  maxLength={100}
+                  placeholder={
+                    customDataType === "TEXTAREA" 
+                      ? "Например: Ваши комментарии (по одному в строке)" 
+                      : "Например: Номер варианта ответа"
+                  }
+                  value={customDataLabel}
+                  onChange={e => setCustomDataLabel(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Свой заголовок-подсказка, который увидит пользователь при заполнении заказа (макс. 100 символов).
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Section 5: Флаги */}
@@ -803,7 +841,28 @@ function ServiceFormDialog({
                 <Checkbox checked={isCancelEnabled} onCheckedChange={(val) => setIsCancelEnabled(!!val)} />
                 <span className="text-xs font-medium text-foreground select-none">Возможна отмена (Cancel)</span>
               </label>
+
+              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                <Checkbox checked={requireWarning} onCheckedChange={(val) => setRequireWarning(!!val)} />
+                <span className="text-xs font-medium text-foreground select-none">Показывать предупреждение</span>
+              </label>
             </div>
+
+            {requireWarning && (
+              <div className="space-y-1 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Текст интерактивного предупреждения
+                </label>
+                <input
+                  type="text"
+                  required={requireWarning}
+                  placeholder="Например: В посте несколько фото, просмотры будут идти только на последнее..."
+                  value={warningMessage}
+                  onChange={e => setWarningMessage(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="pt-4 border-t border-border flex justify-end gap-2">
@@ -830,7 +889,9 @@ export function CreateServiceModal({
   providers,
   onSuccess,
 }: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   providers: any[];
   onSuccess: () => void;
 }) {
@@ -868,7 +929,9 @@ export function EditServiceModal({
   onSuccess,
 }: {
   service: CatalogServiceDTO;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   providers: any[];
   onSuccess: () => void;
 }) {
@@ -880,7 +943,7 @@ export function EditServiceModal({
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Редактировать услугу ${service.name}`}
-        className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+        className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
       >
         <Pencil className="w-4 h-4" />
       </button>
@@ -914,7 +977,9 @@ export function CatalogTable({
   canEdit?: boolean,
   canEditFinance?: boolean,
   canSeeRates?: boolean,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories?: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   providers?: any[],
 }) {
   const router = useRouter();
@@ -959,7 +1024,7 @@ export function CatalogTable({
             <Table.ScrollContainer>
               <Table.Content aria-label="Каталог услуг" className="w-full">
                 <Table.Header>
-                <Table.Column key="checkbox" className={canEdit ? "w-10 px-4" : "hidden"}>
+                <Table.Column key="checkbox" className={canEdit ? "w-10 px-6 py-4" : "hidden"}>
                   <input
                     type="checkbox" checked={allSelected}
                     onChange={toggleAll}
@@ -967,13 +1032,13 @@ export function CatalogTable({
                     disabled={!canEdit}
                   />
                 </Table.Column>
-                <Table.Column isRowHeader key="id" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">ID</Table.Column>
-                <Table.Column key="name" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[250px] w-full">Классификация и Название</Table.Column>
-                <Table.Column key="rate" className={`text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right ${!canSeeRates ? "hidden" : ""}`}>Закуп ($)</Table.Column>
-                <Table.Column key="price" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ценообразование {canEdit ? '(RUB)' : ''}</Table.Column>
-                <Table.Column key="orders" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right hidden lg:table-cell">Заказы</Table.Column>
-                <Table.Column key="status" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center">Статус</Table.Column>
-                <Table.Column key="actions" className={canEdit ? "w-12" : "hidden"}><span className="sr-only">Actions</span></Table.Column>
+                <Table.Column isRowHeader key="id" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-6 py-4">ID</Table.Column>
+                <Table.Column key="name" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[250px] w-full px-6 py-4">Классификация и Название</Table.Column>
+                <Table.Column key="rate" className={`text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right px-6 py-4 ${!canSeeRates ? "hidden" : ""}`}>Закуп ($)</Table.Column>
+                <Table.Column key="price" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-6 py-4">Ценообразование {canEdit ? '(RUB)' : ''}</Table.Column>
+                <Table.Column key="orders" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right hidden lg:table-cell px-6 py-4">Заказы</Table.Column>
+                <Table.Column key="status" className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center px-6 py-4">Статус</Table.Column>
+                <Table.Column key="actions" className={canEdit ? "w-12 px-6 py-4" : "hidden"}><span className="sr-only">Actions</span></Table.Column>
             </Table.Header>
             <Table.Body renderEmptyState={() => (
               <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
@@ -995,7 +1060,7 @@ export function CatalogTable({
                         : 'hover:bg-muted/30'
                     }`}
                   >
-                    <Table.Cell key={`cell-checkbox-${s.id}`} className={canEdit ? "py-4 px-4" : "hidden"}>
+                    <Table.Cell key={`cell-checkbox-${s.id}`} className={canEdit ? "py-5 px-6" : "hidden"}>
                       <input
                         type="checkbox" checked={isChecked}
                         onChange={() => toggleOne(s.id)}
@@ -1003,25 +1068,25 @@ export function CatalogTable({
                         disabled={!canEdit}
                       />
                     </Table.Cell>
-                    <Table.Cell key={`cell-id-${s.id}`} className="py-4 px-4">
+                    <Table.Cell key={`cell-id-${s.id}`} className="py-5 px-6">
                       <span className="font-mono text-xs text-muted-foreground">
                         #{s.numericId}
                       </span>
                     </Table.Cell>
-                    <Table.Cell key={`cell-name-${s.id}`} className="py-4 px-4">
-                      <div className="flex flex-col text-[12px] leading-relaxed text-foreground py-1 min-w-[250px]">
+                    <Table.Cell key={`cell-name-${s.id}`} className="py-5 px-6">
+                      <div className="flex flex-col text-[13px] leading-relaxed text-foreground py-1.5 min-w-[250px] space-y-1.5">
                         <div className="flex gap-2">
-                          <span className="text-muted-foreground w-[70px] shrink-0">Соцсеть:</span>
-                          <span className="font-medium text-foreground truncate" title={s.networkName || '—'}>{s.networkName || '—'}</span>
+                          <span className="text-muted-foreground/80 w-[85px] shrink-0 font-medium">Соцсеть:</span>
+                          <span className="font-semibold text-foreground truncate" title={s.networkName || '—'}>{s.networkName || '—'}</span>
                         </div>
                         <div className="flex gap-2">
-                          <span className="text-muted-foreground w-[70px] shrink-0">Категория:</span>
-                          <span className="font-medium text-foreground truncate" title={s.categoryName}>{s.categoryName}</span>
+                          <span className="text-muted-foreground/80 w-[85px] shrink-0 font-medium">Категория:</span>
+                          <span className="font-semibold text-foreground truncate" title={s.categoryName}>{s.categoryName}</span>
                         </div>
                         <div className="flex gap-2 items-start mt-0.5">
-                          <span className="text-muted-foreground w-[70px] shrink-0">Услуга:</span>
+                          <span className="text-muted-foreground/80 w-[85px] shrink-0 font-medium">Услуга:</span>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-foreground leading-tight" title={s.name}>
+                            <span className="font-bold text-foreground leading-tight" title={s.name}>
                               {s.name}
                             </span>
                             {s.isQuarantined && (
@@ -1033,42 +1098,42 @@ export function CatalogTable({
                         </div>
                       </div>
                     </Table.Cell>
-                    <Table.Cell key={`cell-rate-${s.id}`} className={`py-4 px-4 text-right ${!canSeeRates ? "hidden" : ""}`}>
+                    <Table.Cell key={`cell-rate-${s.id}`} className={`py-5 px-6 text-right ${!canSeeRates ? "hidden" : ""}`}>
                       {canSeeRates ? (
                         <div className="flex flex-col items-end">
-                          <span className="font-mono text-xs font-medium text-foreground">
+                          <span className="font-mono text-sm font-semibold text-foreground">
                             ${s.rate.toFixed(4)}
                           </span>
-                          <span className="text-[9px] text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground/80 font-medium">
                             ≈ {providerCostRub.toFixed(2)} ₽
                           </span>
                         </div>
                       ) : <span className="sr-only">Rate hidden</span>}
                     </Table.Cell>
-                    <Table.Cell key={`cell-price-${s.id}`} className="py-4 px-4 w-[280px]">
+                    <Table.Cell key={`cell-price-${s.id}`} className="py-5 px-6 w-[320px]">
                       {canEdit ? (
                         <InlinePriceCell service={s} usdToRub={usdToRub} canEditFinance={canEditFinance} />
                       ) : (
-                        <div className="text-sm font-mono font-bold text-foreground">
+                        <div className="text-sm font-mono font-bold text-foreground bg-muted/30 px-3 py-2 rounded-xl border border-border/40 inline-block tabular-nums">
                           {applyBeautifulRounding(s.rate * s.markup * usdToRub).toLocaleString('ru-RU')} ₽
                         </div>
                       )}
                     </Table.Cell>
-                    <Table.Cell key={`cell-orders-${s.id}`} className="py-4 px-4 text-right hidden lg:table-cell">
-                      <span className="text-xs font-mono font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                    <Table.Cell key={`cell-orders-${s.id}`} className="py-5 px-6 text-right hidden lg:table-cell">
+                      <span className="text-xs font-mono font-semibold text-muted-foreground bg-muted/60 px-2.5 py-1.5 rounded-lg border border-border/30">
                         {s.ordersCount.toLocaleString('ru-RU')}
                       </span>
                     </Table.Cell>
-                    <Table.Cell key={`cell-status-${s.id}`} className="py-4 px-4 text-center">
+                    <Table.Cell key={`cell-status-${s.id}`} className="py-5 px-6 text-center">
                       {canEdit ? <StatusToggle service={s} /> : (
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.isActive ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'}`}>
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${s.isActive ? 'bg-success/15 text-success border border-emerald-500/10' : 'bg-muted text-muted-foreground border border-border/30'}`}>
                           {s.isActive ? 'Вкл' : 'Выкл'}
                         </span>
                       )}
                     </Table.Cell>
-                    <Table.Cell key={`cell-actions-${s.id}`} className={canEdit ? "py-4 px-2" : "hidden"}>
+                    <Table.Cell key={`cell-actions-${s.id}`} className={canEdit ? "py-5 px-6" : "hidden"}>
                       {canEdit ? (
-                        <div className="flex items-center gap-1 justify-end">
+                        <div className="flex items-center gap-2 justify-end">
                           <EditServiceModal service={s} categories={categories} providers={providers} onSuccess={() => router.refresh()} />
                           <ArchiveButton service={s} />
                         </div>

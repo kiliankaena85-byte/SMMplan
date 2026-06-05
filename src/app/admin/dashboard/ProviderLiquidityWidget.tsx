@@ -51,14 +51,14 @@ export function ProviderLiquidityWidget() {
 
   if (error || !data) {
     return (
-      <div className="bg-card text-card-foreground rounded-2xl p-6 lg:p-7 shadow-sm border border-rose-500/30 transition-all hover:shadow-md h-[240px] flex flex-col">
+      <div className="bg-card text-card-foreground rounded-2xl p-6 lg:p-7 shadow-sm border border-destructive/30 transition-all hover:shadow-md h-[240px] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <span className="text-muted-foreground text-sm font-semibold tracking-wide">Внешняя ликвидность</span>
           <AlertTriangle className="w-4 h-4 text-destructive" />
         </div>
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           <p className="text-sm text-destructive mb-2">{error || 'Ошибка загрузки'}</p>
-          <Link href="/admin/providers" className="text-xs font-semibold text-sky-600 hover:underline">Проверить провайдеров →</Link>
+          <Link href="/admin/providers" className="text-xs font-semibold text-primary hover:underline">Проверить провайдеров →</Link>
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export function ProviderLiquidityWidget() {
         <div className="flex items-center justify-between mb-4">
           <span className="text-muted-foreground text-sm font-semibold tracking-wide">Внешняя ликвидность</span>
           <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full border border-border/50 text-xs font-bold text-foreground">
-            <span className="w-3 h-3 rounded-full overflow-hidden bg-sky-500 border border-sky-600"></span> 
+            <span className="w-3 h-3 rounded-full overflow-hidden bg-primary"></span> 
             <span>Балансы провайдеров</span>
           </div>
         </div>
@@ -90,11 +90,11 @@ export function ProviderLiquidityWidget() {
             {totalStr} ₽
             </div>
             {isDanger ? (
-                <div className="mb-1.5 flex items-center gap-1 text-xs font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-md">
+                <div className="mb-1.5 flex items-center gap-1 text-xs font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
                     <TrendingDown className="w-3 h-3" /> Критично
                 </div>
             ) : (
-                <div className="mb-1.5 flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-md">
+                <div className="mb-1.5 flex items-center gap-1 text-xs font-bold text-success bg-success/10 px-2 py-0.5 rounded-md">
                     <TrendingUp className="w-3 h-3" /> Ок
                 </div>
             )}
@@ -102,13 +102,13 @@ export function ProviderLiquidityWidget() {
         
         <div className="mt-3 flex items-center justify-between text-xs font-medium bg-muted/30 p-2.5 rounded-lg border border-border/40 mb-5">
             <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Activity className="w-3.5 h-3.5 text-orange-500" />
+                <Activity className="w-3.5 h-3.5 text-warning" />
                 <span>Burn Rate (24ч):</span>
             </div>
             <div className="flex items-center gap-3">
                 <span className="font-bold text-foreground tabular-nums">{burnStr} ₽</span>
                 {runwayDays !== null && (
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${runwayDays < 3 ? 'bg-rose-100 text-rose-700' : runwayDays < 7 ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${runwayDays < 3 ? 'bg-destructive/10 text-destructive' : runwayDays < 7 ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success'}`}>
                         ~{runwayDays} дн.
                     </span>
                 )}
@@ -118,7 +118,7 @@ export function ProviderLiquidityWidget() {
         <div className="flex gap-3 mt-auto w-full">
           <Link href="/admin/providers" className="flex-1">
             <button className="w-full bg-primary text-primary-foreground font-semibold rounded-xl text-sm h-11 shadow-sm hover:bg-primary/90 transition-colors">
-              Провайдеры ({data.activeCount}) {data.errorCount > 0 && <span className="text-rose-400">({data.errorCount} сбоев)</span>}
+              Провайдеры ({data.activeCount}) {data.errorCount > 0 && <span className="text-destructive font-black">({data.errorCount} сбоев)</span>}
             </button>
           </Link>
         </div>

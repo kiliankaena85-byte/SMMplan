@@ -125,6 +125,7 @@ export async function runSmartDripfeedTick() {
           });
         }
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(
         `[Dripfeed Status Sync] Не удалось синхронизировать статус выполнения ${exec.id}:`,
@@ -153,11 +154,16 @@ export async function runSmartDripfeedTick() {
 
   for (const task of plannedTasks) {
     try {
-      // 1. Атомарно помечаем задачу как SENT
-      await prisma.smartTask.update({
-        where: { id: task.id },
+      // 1. Атомарно помечаем задачу как SENT (Защита от состояния гонки между параллельными инстансами воркеров)
+      const affected = await prisma.smartTask.updateMany({
+        where: { id: task.id, status: SmartTaskStatus.PLANNED },
         data: { status: SmartTaskStatus.SENT },
       });
+
+      if (affected.count === 0) {
+        console.warn(`[Dripfeed Worker] Задача ${task.id} уже запущена другим инстансом воркера. Пропускаем.`);
+        continue;
+      }
 
       const campaign = task.campaign;
       const service = campaign.service;
@@ -224,6 +230,7 @@ export async function runSmartDripfeedTick() {
       console.info(
         `[Dripfeed Worker] Задача ${task.id} успешно отправлена провайдеру. External ID: ${extOrderId}`
       );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(`[Dripfeed Worker] Ошибка обработки задачи ${task.id}:`, err.message);
       await prisma.smartTask.update({

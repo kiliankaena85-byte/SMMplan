@@ -1,17 +1,19 @@
 import { db } from '@/lib/db';
 import { SettingsManager } from '@/lib/settings';
+import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
 
 type PaymentMetadata = {
   source?: string;
   serviceId?: string;
   promoId?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
 
 export class UnifiedPaymentService {
   /**
    * Universal method to generate payment URLs for the Bot (Deposits & Top-ups).
-   * Note: projectId is ignored since Smmplan_lite is primarily single-project but kept for signature compatibility.
+   * Reused central PaymentGatewayFactory to support Robokassa, YooKassa, and CryptoBot without duplication.
    */
   static async createPayment(
     projectId: string | undefined, 
@@ -19,13 +21,12 @@ export class UnifiedPaymentService {
     amountRub: number, 
     description: string, 
     metadata: PaymentMetadata,
-    gateway: 'yookassa' | 'cryptobot' = 'yookassa'
+    gateway: 'yookassa' | 'cryptobot' | 'robokassa' = 'yookassa'
   ): Promise<{ success: boolean; confirmationUrl?: string; paymentId?: string; error?: string }> {
     try {
       const amountCents = Math.round(amountRub * 100);
 
       // 1. Create a PENDING payment record
-      // We do not link an orderId, making it a pure deposit/fund-loading payment.
       const payment = await db.payment.create({
         data: {
           userId,
@@ -37,109 +38,40 @@ export class UnifiedPaymentService {
       });
 
       const { SettingsProvider } = await import('@/lib/settings');
-      const settings = await SettingsProvider.getContactAndLegalSettings();
-      const companyName = settings.COMPANY_NAME || "Smmplan";
       const supportDomain = await SettingsProvider.getSupportEmailDomain();
-
       const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`}/dashboard`;
-      let paymentUrl = '';
-      let remoteGatewayId = '';
 
-      // 2. Generate Payment Link
-      if (gateway === 'yookassa') {
-        if (await SettingsManager.isTestMode()) {
-          paymentUrl = `/api/dev/mock-payment?paymentId=${payment.id}`;
-          remoteGatewayId = `mock_${payment.id}`;
-        } else {
-          const secrets = await SettingsManager.getPaymentSecrets();
-          const shopId = secrets.yookassaShopId;
-          const secretKey = secrets.yookassaSecretKey;
+      // 2. Generate Payment Link using standard Gateway Factory
+      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway);
+      const gatewayResult = await gatewaySvc.createPayment({
+        paymentId: payment.id,
+        userId,
+        amountRub,
+        email: null,
+        successUrl,
+        description,
+        metadata,
+        isTestMode: await SettingsManager.isTestMode()
+      });
 
-          if (!shopId || !secretKey) {
-              console.error('[UnifiedPayment] YooKassa not configured');
-              return { success: false, error: 'Payment gateway unconfigured' };
-          }
-
-          const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-          const payload = {
-            amount: { value: amountRub.toFixed(2), currency: 'RUB' },
-            capture: true,
-            confirmation: { type: 'redirect', return_url: successUrl },
-            description,
-            metadata: { paymentId: payment.id, userId, ...metadata }
-          };
-
-          const resp = await fetch('https://api.yookassa.ru/v3/payments', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': authHeader,
-              'Idempotence-Key': payment.id
-            },
-            body: JSON.stringify(payload)
-          });
-
-          if (!resp.ok) {
-            console.error('[UnifiedPayment] YooKassa error:', await resp.text());
-            return { success: false, error: 'YooKassa gateway error' };
-          }
-
-          const data = await resp.json();
-          paymentUrl = data.confirmation.confirmation_url;
-          remoteGatewayId = data.id;
-        }
-
-      } else if (gateway === 'cryptobot') {
-        const secrets = await SettingsManager.getPaymentSecrets();
-        const cryptoToken = secrets.cryptoBotToken;
-
-        if (!cryptoToken) {
-            console.error('[UnifiedPayment] CryptoBot not configured');
-            return { success: false, error: 'Payment gateway unconfigured' };
-        }
-
-        const resp = await fetch('https://pay.crypt.bot/api/createInvoice', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Crypto-Pay-API-Token': cryptoToken
-          },
-          body: JSON.stringify({
-            currency_type: 'fiat', 
-            fiat: 'RUB',
-            amount: amountRub.toFixed(2),
-            description,
-            hidden_message: `${companyName} Deposit`,
-            payload: payment.id
-          })
-        });
-
-        if (!resp.ok) {
-          console.error('[UnifiedPayment] CryptoBot error:', await resp.text());
-          return { success: false, error: 'CryptoBot gateway error' };
-        }
-
-        const data = await resp.json();
-        if (!data.ok) return { success: false, error: 'CryptoBot logic error' };
-        
-        paymentUrl = data.result.pay_url;
-        remoteGatewayId = data.result.invoice_id.toString();
-      }
-
-      // 3. Save remote ID for Webhook mapping
-      if (remoteGatewayId) {
+      // 3. Save remote ID and URL for Webhook mapping / client resumption
+      if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
         await db.payment.update({
           where: { id: payment.id },
-          data: { gatewayId: remoteGatewayId }
+          data: { 
+            gatewayId: gatewayResult.remoteGatewayId || undefined,
+            checkoutUrl: gatewayResult.paymentUrl || undefined
+          }
         });
       }
 
       return {
         success: true,
         paymentId: payment.id,
-        confirmationUrl: paymentUrl
+        confirmationUrl: gatewayResult.paymentUrl
       };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[UnifiedPayment] System error:', e.message);
       return { success: false, error: 'Internal logic exception' };

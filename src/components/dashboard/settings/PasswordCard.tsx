@@ -59,6 +59,7 @@ export default function PasswordCard({ hasPassword }: { hasPassword: boolean }) 
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
       } catch (error: any) {
         toast.error('Не удалось обновить пароль. Пожалуйста, попробуйте еще раз.');
       }

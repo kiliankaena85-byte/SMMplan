@@ -192,7 +192,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
     it('TC-SYN-001: Performs successful pricing update when conditions are normal', async () => {
       // Curated service list
       mockDb.service.findMany.mockResolvedValueOnce([
-        { id: 'srv-1', externalId: 'ext-1', rate: 1.0, markup: 2.0, isActive: true, isQuarantined: false, pricePer1000Cents: 20000 }
+        { id: 'srv-1', externalId: 'ext-1', rate: 1.0, markup: 2.0, isActive: true, isQuarantined: false, pricePer1000Cents: 20000, providerCurrency: 'USD' }
       ]);
 
       // Fresh provider rates (rate didn't spike, stays 1.1)
@@ -208,14 +208,13 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
       expect(result.stats?.updatedCount).toBe(1);
       expect(result.stats?.disabledCount).toBe(0);
 
-      // Verify DB update:
-      // Retail price per 1k = 1.1 (rate) * 2.0 (markup) * 100 (exchange) = 220 RUB.
-      // Beautifully rounded from 220 = 230. Cents = 23000.
+      // Verify DB update with Price Absorption (rate increase <= 10% is absorbed, markup is updated to ~1.818)
       expect(mockDb.service.update).toHaveBeenCalledWith({
         where: { id: 'srv-1' },
         data: {
           rate: 1.1,
-          pricePer1000Cents: 23000,
+          pricePer1000Cents: 20000,
+          markup: 1.818181818181818,
           minQty: 10,
           maxQty: 10000,
           lastSeenAt: expect.any(Date),
@@ -229,7 +228,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
     it('TC-SYN-002: Triggers quarantine automatically on >20% price spike', async () => {
       // Curated service list
       mockDb.service.findMany.mockResolvedValueOnce([
-        { id: 'srv-1', externalId: 'ext-1', rate: 1.0, markup: 2.0, isActive: true, isQuarantined: false, pricePer1000Cents: 20000 }
+        { id: 'srv-1', externalId: 'ext-1', rate: 1.0, markup: 2.0, isActive: true, isQuarantined: false, pricePer1000Cents: 20000, providerCurrency: 'USD' }
       ]);
 
       // Fresh provider rates (rate jumped from 1.0 to 1.3 -> +30%)
@@ -249,7 +248,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
         where: { id: 'srv-1' },
         data: {
           isQuarantined: true,
-          quarantineReason: "Ценовой скачок у провайдера",
+          quarantineReason: "Ценовой скачок у провайдера (>10%)",
           isActive: false,
           pendingRate: 1.3,
           quarantinedAt: expect.any(Date)
@@ -257,7 +256,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
       });
 
       expect(mockSendAdminAlert).toHaveBeenCalledWith(
-        expect.stringContaining('ушла в карантин из-за ценового скачка >20%'),
+        expect.stringContaining('ушла в карантин из-за ценового скачка'),
         'WARNING'
       );
     });
@@ -265,7 +264,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
     it('TC-SYN-003: Triggers Loss Prevention deactivation when retail is unprofitable', async () => {
       // Curated service list with unsafe low markup (e.g. 0.4)
       mockDb.service.findMany.mockResolvedValueOnce([
-        { id: 'srv-1', externalId: 'ext-1', rate: 1.0, markup: 0.4, isActive: true, isQuarantined: false, pricePer1000Cents: 4000 }
+        { id: 'srv-1', externalId: 'ext-1', rate: 1.0, markup: 0.4, isActive: true, isQuarantined: false, pricePer1000Cents: 4000, providerCurrency: 'USD' }
       ]);
 
       // Fresh provider rates

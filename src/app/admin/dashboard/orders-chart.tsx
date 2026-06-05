@@ -61,6 +61,7 @@ export function OrdersChart({ data }: OrdersChartProps) {
               boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
             }}
             labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '8px' }}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             formatter={(value: any, name: any) => {
               if (name === 'completed') return [value, 'Выполнены'];
               if (name === 'canceled') return [value, 'Отменены'];

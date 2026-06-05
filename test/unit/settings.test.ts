@@ -23,11 +23,12 @@ describe('SettingsProvider (Dynamic Branding)', () => {
     SettingsProvider.lastFetch = 0;
   });
 
-  it('should throw if DB is inaccessible', async () => {
+  it('should fallback to defaults if DB is inaccessible', async () => {
     // Simulate DB failure
     (db.systemSettings.upsert as any).mockRejectedValue(new Error('DB Error'));
 
-    await expect(SettingsProvider.getContactAndLegalSettings()).rejects.toThrow('DB Error');
+    const settings = await SettingsProvider.getContactAndLegalSettings();
+    expect(settings.SITE_NAME).toBe('Smmplan Lite');
   });
 
   it('should return default values from create if DB is empty but accessible', async () => {

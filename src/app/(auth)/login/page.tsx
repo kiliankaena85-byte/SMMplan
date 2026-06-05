@@ -2,6 +2,7 @@ import { LoginForm } from './login-form';
 import Link from 'next/link';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { UserCheck, LogOut, ArrowRight } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +38,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
-        <div className="w-full max-w-md bg-content1 border border-border/80 rounded-[2rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] text-center space-y-6 animate-in fade-in duration-300">
+        <div className="w-full max-w-md bg-content1 border border-border/80 rounded-[var(--radius)] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] text-center space-y-6 animate-in fade-in duration-300">
           <div className="flex justify-center">
             <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-sm">
               <UserCheck className="w-8 h-8" />
@@ -73,8 +74,14 @@ export default async function LoginPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* ── Left: Branding panel ── */}
-      <div className="hidden lg:flex flex-col justify-between bg-primary p-10 text-primary-foreground">
-        <div>
+      <div className="hidden lg:flex flex-col justify-between bg-primary p-10 text-primary-foreground relative overflow-hidden">
+        {/* Decorative Grid Pattern & Soft Glows for Premium Feel */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,255,255,0.15),rgba(255,255,255,0))] pointer-events-none z-0" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none z-0" />
+        <div className="absolute top-1/4 right-0 w-96 h-96 bg-primary-foreground/15 rounded-full blur-3xl pointer-events-none z-0" />
+        <div className="absolute bottom-1/4 left-0 w-80 h-80 bg-primary-foreground/5 rounded-full blur-3xl pointer-events-none z-0" />
+        
+        <div className="relative z-10">
           <Link href="/" className="flex items-center gap-2.5" aria-label="На главную">
             <div className="w-9 h-9 rounded-xl bg-primary-foreground/15 backdrop-blur flex items-center justify-center font-black text-primary-foreground text-lg">
               S
@@ -83,7 +90,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           </Link>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 relative z-10">
           <div className="space-y-4">
             <div className="text-4xl font-black leading-tight">
               Продвижение<br />в социальных<br />сетях
@@ -108,7 +115,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           </div>
         </div>
 
-        <p className="text-xs text-primary-foreground/40">
+        <p className="text-xs text-primary-foreground/40 relative z-10">
           © {new Date().getFullYear()} Smmplan · Безопасная оплата через ЮKassa
         </p>
       </div>
@@ -157,12 +164,12 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
           <p className="text-center text-xs text-muted-foreground">
             Вводя email, вы соглашаетесь с{' '}
-            <Link href="/p/offer" className="underline hover:text-foreground transition-colors">
+            <Link href="/legal/terms" className="underline hover:text-foreground transition-colors">
               Публичной офертой
             </Link>{' '}
             и{' '}
-            <Link href="/p/privacy" className="underline hover:text-foreground transition-colors">
-              политикой конфиденциальности
+            <Link href="/legal/privacy" className="underline hover:text-foreground transition-colors">
+              Политикой конфиденциальности
             </Link>
           </p>
         </div>

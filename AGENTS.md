@@ -67,6 +67,7 @@
 - **НЕОБХОДИМОСТЬ:** Архитектура Smmplan разделена на веб-сервер (`next start`) и фоновые процессы (`BullMQ`, `Cron`). 
 - **ДЕПЛОЙ:** На production (Ubuntu/Docker) веб-сервер и воркеры обязаны запускаться параллельно! Если веб-сервер запущен, а команда `npm run worker` (запускающая `tsx src/workers/index.ts`) нет, то заказы будут навечно "зависать" в Redis в статусе "PENDING", а Telegram/VK отложенные посты не будут публиковаться.
 - Всегда включайте воркера в `docker-compose.yml` или `PM2` экосистему отдельными процессами.
+- **РЕСТАРТ NGINX:** После каждого обновления и перезапуска контейнеров ОБЯЗАТЕЛЬНО перезагрузить конфигурацию Nginx (`docker compose exec nginx nginx -s reload`), чтобы применить изменения, очистить кэш статики и восстановить апстримы без даунтайма.
 
 ### Provider Synchronization (Cherry-Pick Architecture)
 **🔴 ОБЯЗАТЕЛЬНАЯ архитектура работы с провайдерами (Anti-Mass-Sync):**
@@ -112,6 +113,12 @@
 4. ✅ **ОБЯЗАТЕЛЬНО** использовать `inferTargetTypeFromCategory(categoryName)` из `src/utils/target-type.ts` как fallback.
 5. ❌ **ЗАПРЕЩЕНО** создавать услуги (seed, import, admin) без явного `targetType`. Prisma `@default("POST")` — аварийный дефолт, а не рабочий.
 
+### Payment Gateways Rules (CRITICAL)
+**🔴 ОБЯЗАТЕЛЬНЫЕ правила интеграции платежных шлюзов:**
+1. **API запросы выполняются ВСЕГДА:** Запрещено локально имитировать/заглушать или делать моковые перенаправления на `/api/dev/mock-payment` при пополнении баланса или оплате заказов, если в панели администратора настроены любые реквизиты шлюза (даже если это тестовый магазин и тестовый ключ ЮKassa/Robokassa).
+2. **Локальный мок только при пустых реквизитах:** Внутренний симулятор `/api/dev/mock-payment` используется ИСКЛЮЧИТЕЛЬНО как аварийный резерв, если ключи шлюзов отсутствуют или установлены в плейсхолдеры по умолчанию (`test_shop_id` / `test_login`).
+3. **Авто-откат на тестовые ключи:** В среде разработки, если боевые ключи содержат плейсхолдеры, но настроены тестовые ключи шлюза (например, `yookassaTestShopId`), система обязана автоматически переключиться на тестовые реквизиты и выполнить реальный API запрос в платежный сервис.
+
 ### File Structure
 ```
 src/
@@ -151,4 +158,89 @@ src/
 - ❌ `any` тип без обоснования в комментарии
 - ❌ `console.log` в production коде (используй `console.error` для ошибок)
 - ❌ Интеграция SMS-шлюзов или сбор/хранение номеров телефонов пользователей (включая request_contact в Telegram боте)
+
+
+## Figma MCP Workflow
+
+### Стек проекта (Дизайн)
+- React 19 + TypeScript (strict mode)
+- Tailwind CSS v4
+- Vitest + React Testing Library
+- Figma MCP (скилл: figma-mcp)
+
+### Правила работы с Figma
+
+#### Источник правды
+- `src/tokens/[design-system].ts` — единственный источник всех значений
+- Никаких hardcoded hex, px, rem вне файла токенов
+- Никаких inline-стилей в компонентах
+
+#### Подключение к Figma
+- Всегда использовать Mode B (figma-developer-mcp) по умолчанию
+- Перед работой проверить: node --version (≥18), npx --version
+- Перед записью любого файла — показать diff и ждать подтверждения
+
+#### Что нельзя делать
+- Использовать Plugin API (figma.getLocalPaintStyles и др.)
+- Перезаписывать tailwind.config.ts — только merge
+- Запускать npm install -g без подтверждения пользователя
+- Писать в tokens.ts из нескольких агентов одновременно
+
+### Архитектура компонентов
+
+```text
+src/
+  tokens/
+    telegram.ts          ← все дизайн-токены (auto-generated)
+  styles/
+    telegram-vars.css    ← CSS custom properties
+  components/
+    chat/                ← ChatBubble, ChatInput, ChatListItem
+    navigation/          ← NavigationBar, TabBar
+    ui/                  ← Avatar, Badge, SearchBar, SettingsRow
+```
+
+### Правила компонентов
+- Функциональные компоненты + TypeScript интерфейсы
+- React.memo для всех компонентов в списках
+- Именование: PascalCase для компонентов, camelCase для props
+- Каждый компонент: named export + default export
+- JSDoc с ссылкой на Figma-компонент обязателен
+- aria-label на всех интерактивных элементах
+
+### Правила стилизации
+- Только Tailwind CSS классы
+- Mobile-first: sm → md → lg → xl
+- Light/Dark mode через CSS custom properties
+- Все значения через токены: `tokens.colors.light.accent.primary`
+
+### Приоритет компонентов (Telegram UI Kit)
+1. ChatBubble
+2. ChatInput
+3. ChatListItem
+4. NavigationBar
+5. TabBar
+6. Avatar
+7. Badge
+8. SearchBar
+9. SettingsRow
+10. MediaViewer
+
+### Параллельная работа агентов
+- Token Agent    → пишет tokens.ts (эксклюзивно)
+- Chat Agent     → читает tokens.ts, пишет компоненты чата
+- Nav Agent      → читает tokens.ts, пишет компоненты навигации
+- Test Agent     → пишет тесты (Vitest)
+- Docs Agent     → пишет Storybook + JSDoc
+
+Если parallel mode недоступен — работать последовательно в том же порядке.
+
+### Валидация перед коммитом
+- [ ] `npx tsc --noEmit` — нет TypeScript ошибок
+- [ ] `grep -r "hardcoded" src/` — нет захардкоженных значений
+- [ ] `npm test` — все тесты проходят
+- [ ] Все компоненты имеют aria-label
+- [ ] tokens.ts содержит URL исходного Figma файла
+- [ ] tailwind.config.ts extend не перезаписан
+
 

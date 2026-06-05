@@ -9,6 +9,7 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.resetModules();
+    vi.restoreAllMocks();
   });
 
   describe('POST /api/dev/sandbox/yookassa', () => {
@@ -56,6 +57,9 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
   describe('POST /api/dev/mock-provider', () => {
     it('SEC-MOCK-001: Returns 403 in production', async () => {
       vi.stubEnv('NODE_ENV', 'production');
+
+      const { SettingsProvider } = await import('@/lib/settings');
+      vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
       const { POST } = await import(
         '@/app/api/dev/mock-provider/route'

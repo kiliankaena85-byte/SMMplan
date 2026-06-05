@@ -4,7 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Plus, Minus, Mail, Loader2, Clock, CheckCircle2,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Wallet, CreditCard, Bitcoin, CheckSquare, Square
 } from 'lucide-react';
 import { ActionForm } from '@/components/admin/action-form';
@@ -12,6 +14,7 @@ import { DripFeedSettings } from '@/components/orders/DripFeedSettings';
 
 interface OrderSummaryCardProps {
   userBalanceCents: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   engine: any;
 }
 
@@ -20,9 +23,10 @@ const inputCls =
   'text-sm outline-none placeholder:text-muted-foreground ' +
   'focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatPricePerUnit(price: number): string {
   if (price === 0) return '0.00';
-  let formatted = '';
+  let formatted: string;
   if (price < 0.01) {
     formatted = price.toFixed(6);
   } else if (price < 0.1) {
@@ -44,6 +48,7 @@ export function OrderSummaryCard({
   engine
 }: OrderSummaryCardProps) {
   const {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     url, setUrl,
     selectedService,
     quantity, setQuantity,
@@ -60,6 +65,7 @@ export function OrderSummaryCard({
     validationErrors,
     pricing,
     mediaGroupMultiplier,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     agreedToTerms, setAgreedToTerms
   } = engine;
 
@@ -109,6 +115,7 @@ export function OrderSummaryCard({
 
   useEffect(() => {
     setRequirementsConfirmed(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const reqs = (selectedService?.features as any)?.requirements;
     if (reqs && Array.isArray(reqs) && reqs.length > 0) {
        setModalRequirements(reqs);
@@ -119,10 +126,53 @@ export function OrderSummaryCard({
 
   const handlePreSubmit = () => {
     if (submitting) return;
+
+    if (isCalculating) {
+      toast.warning("Пожалуйста, подождите, идёт расчёт стоимости заказа...", { id: "checkout-err" });
+      return;
+    }
+
+    if (!pricing || finalTotalCents <= 0) {
+      toast.error("Ошибка расчёта стоимости. Пожалуйста, проверьте количество.", { id: "checkout-err" });
+      return;
+    }
+
+    if (!selectedService) {
+      toast.error("Пожалуйста, сначала выберите тариф/услугу из каталога ниже ↓", { id: "checkout-err" });
+      document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    if (quantity < selectedService.minQty) {
+      toast.error(`Минимальный заказ для выбранного тарифа: ${selectedService.minQty} шт.`, { id: "checkout-err" });
+      return;
+    }
+    if (quantity > selectedService.maxQty) {
+      toast.error(`Максимальный заказ для выбранного тарифа: ${selectedService.maxQty} шт.`, { id: "checkout-err" });
+      return;
+    }
+    if (!url.trim()) {
+      toast.error("Пожалуйста, укажите ссылку для продвижения.", { id: "checkout-err" });
+      document.getElementById("order-url")?.focus();
+      return;
+    }
+
+    const sName = selectedService.name.toLowerCase();
+    const cType = selectedService.customDataType;
+    const needsPayload = (cType && cType !== 'NONE') || sName.includes('свои') || sName.includes('свой текст') || sName.includes('ключево') || (sName.includes('опрос') && !sName.includes('просмотр')) || sName.includes('голосование');
+    if (needsPayload && !engine.customData.trim()) {
+      toast.error("Пожалуйста, заполните необходимые дополнительные данные для выбранного тарифа.", { id: "checkout-err" });
+      return;
+    }
+
+    if (!validate(true)) {
+      toast.error("Пожалуйста, проверьте правильность введённых данных.", { id: "checkout-err" });
+      return;
+    }
+
     if (modalRequirements.length > 0 && !requirementsConfirmed) {
-       setShowRequirementsModal(true);
+      setShowRequirementsModal(true);
     } else {
-       formRef.current?.requestSubmit();
+      formRef.current?.requestSubmit();
     }
   };
 
@@ -135,16 +185,20 @@ export function OrderSummaryCard({
     }, 50);
   };
 
+
   const handleAction = async () => {
     if (submitting) return { error: 'Заказ уже обрабатывается' };
     setSubmitting(true);
     try {
       // 1. Adaptive validation block
       const sName = selectedService?.name.toLowerCase() || "";
-      const isCustomComments = sName.includes('свои') || sName.includes('свой текст');
+      const cType = selectedService?.customDataType;
+      const isCustomComments = cType === 'TEXTAREA' || sName.includes('свои') || sName.includes('свой текст');
       const isKeywords = sName.includes('ключево');
-      const isPoll = sName.includes('опрос') || sName.includes('голосование');
+      const isPoll = cType === 'NUMBER' || (sName.includes('опрос') && !sName.includes('просмотр')) || sName.includes('голосование');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const isLiveStream = sName.includes('зрител') || sName.includes('эфир');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const isPrivateChannel = sName.includes('закрыт');
 
       const needsPayload = isCustomComments || isKeywords || isPoll;
@@ -174,22 +228,33 @@ export function OrderSummaryCard({
         return res;
       }
       
-      if (!res.success && res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
-        toast.error(
-          'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
-          {
-            position: 'top-center',
-            duration: 6000,
-            action: {
-              label: 'Мой баланс',
-              onClick: () => window.location.href = '/dashboard/add-funds'
+      if (!res.success) {
+        if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
+          toast.error(
+            'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
+            {
+              position: 'top-center',
+              duration: 6000,
+              action: {
+                label: 'Мой баланс',
+                onClick: () => window.location.href = '/dashboard/add-funds'
+              }
             }
-          }
-        );
-        return { ...res, error: undefined }; // Prevent ActionForm from showing a second toast
+          );
+          return { ...res, error: undefined }; // Prevent ActionForm from showing a second toast
+        } else {
+          const errorMessage = res.error || "Ошибка создания заказа. Попробуйте снова.";
+          window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${selectedService.id}&gateway=${gateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(url)}`;
+          return { success: false, error: undefined };
+        }
       }
 
       return res;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      const errorMessage = e.message || "Ошибка платежного шлюза.";
+      window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${selectedService?.id || ''}&gateway=${gateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(url)}`;
+      return { success: false, error: undefined };
     } finally {
       setSubmitting(false);
     }
@@ -252,11 +317,18 @@ export function OrderSummaryCard({
   }
 
   const sName = selectedService.name.toLowerCase();
-  const isCustomComments = sName.includes('свои') || sName.includes('свой текст');
-  const isKeywords = sName.includes('ключево');
-  const isPoll = sName.includes('опрос') || sName.includes('голосование');
+  const cType = selectedService.customDataType;
+  const isCustomComments = cType === 'TEXTAREA' || sName.includes('свои') || sName.includes('свой текст');
+  const isKeywords = cType === 'TEXT' || sName.includes('ключево');
+  const isPoll = cType === 'NUMBER' || (sName.includes('опрос') && !sName.includes('просмотр')) || sName.includes('голосование');
   const isLiveStream = sName.includes('зрител') || sName.includes('эфир');
   const isPrivateChannel = sName.includes('закрыт');
+  const customFieldLabel = selectedService?.customDataLabel?.trim() || (
+    isCustomComments ? 'Ваши комментарии (по одному в строке)' 
+    : isKeywords ? 'Ключевые слова (через запятую)' 
+    : isPoll ? 'Номер варианта ответа' 
+    : null
+  );
 
   return (
     <>
@@ -272,13 +344,13 @@ export function OrderSummaryCard({
           <div className="space-y-4">
             {/* Warnings */}
             {isLiveStream && (
-              <div className="bg-destructive/10 border border-rose-500/20 text-destructive text-xs font-bold p-3 rounded-lg flex items-start gap-2">
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold p-3 rounded-lg flex items-start gap-2">
                 <span className="text-base leading-none">⚡</span>
                 Внимание! Услуга только для запущенного стрима. Если стрим прервется — гарантия сгорает.
               </div>
             )}
             {isPrivateChannel && (
-              <div className="bg-warning/10 border border-amber-500/20 text-warning text-xs font-bold p-3 rounded-lg flex items-start gap-2">
+              <div className="bg-warning/10 border border-warning/20 text-warning text-xs font-bold p-3 rounded-lg flex items-start gap-2">
                 <span className="text-base leading-none">⚠️</span>
                 Услуга для закрытых каналов. В поле "Ссылка" указывайте только пригласительную ссылку (t.me/+...).
               </div>
@@ -288,7 +360,7 @@ export function OrderSummaryCard({
             {isCustomComments && (
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Ваши комментарии (по одному в строке)
+                  {customFieldLabel}
                 </label>
                 <textarea
                   value={engine.customData}
@@ -302,7 +374,7 @@ export function OrderSummaryCard({
             {(isKeywords || isPoll) && (
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  {isPoll ? "Номер варианта ответа" : "Ключевые слова (через запятую)"}
+                  {customFieldLabel}
                 </label>
                 <input
                   type="text"
@@ -353,7 +425,7 @@ export function OrderSummaryCard({
               Мин: {selectedService.minQty.toLocaleString('ru-RU')}
             </div>
             {validationErrors.quantity && (
-              <p className="text-xs text-rose-600 font-semibold mt-1">{validationErrors.quantity}</p>
+              <p className="text-xs text-destructive font-semibold mt-1">{validationErrors.quantity}</p>
             )}
           </div>
 
@@ -372,13 +444,13 @@ export function OrderSummaryCard({
                 readOnly={gateway === 'balance'}
                 aria-label="Email для уведомлений о заказе"
                 className={`${inputCls} text-base pl-10 h-11 transition-all duration-200 ${
-                  gateway === 'balance' ? 'bg-muted/60 text-muted-foreground cursor-not-allowed select-none border-emerald-500/20' : ''
-                }`}
-                placeholder="your@email.com"
-              />
-            </div>
-            {gateway === 'balance' && (
-              <p className="text-[10px] text-emerald-600 font-bold mt-1.5 flex items-center gap-1 animate-in fade-in duration-200">
+                gateway === 'balance' ? 'bg-muted/60 text-muted-foreground cursor-not-allowed select-none border-success/20' : ''
+              }`}
+              placeholder="your@email.com"
+            />
+          </div>
+          {gateway === 'balance' && (
+            <p className="text-[10px] text-success-text font-bold mt-1.5 flex items-center gap-1 animate-in fade-in duration-200">
                 <span>🔒</span> Зафиксировано для оплаты с баланса вашего аккаунта
               </p>
             )}
@@ -428,18 +500,21 @@ export function OrderSummaryCard({
                     Случайными порциями по плавному графику (+{Math.round(selectedService.smartConfig.markup * 100)}% к цене)
                   </span>
                 </div>
-                <input 
-                  type="checkbox"
-                  checked={isSmartDrip}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setIsSmartDrip(checked);
-                    if (checked) {
-                      setDripFeedEnabled(false); // Reset normal dripfeed
-                    }
-                  }}
-                  className="w-4 h-4 accent-primary rounded cursor-pointer shrink-0"
-                />
+                <div className="w-11 h-11 flex items-center justify-end shrink-0">
+                  <input 
+                    type="checkbox"
+                    checked={isSmartDrip}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setIsSmartDrip(checked);
+                      if (checked) {
+                        setDripFeedEnabled(false); // Reset normal dripfeed
+                      }
+                    }}
+                    className="w-5 h-5 accent-primary rounded cursor-pointer"
+                    aria-label="Включить Smart Drip"
+                  />
+                </div>
               </div>
 
               {isSmartDrip && (
@@ -454,7 +529,8 @@ export function OrderSummaryCard({
                         key={d}
                         type="button"
                         onClick={() => setSmartDripDays(d)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        aria-label={`${d} дней`}
+                        className={`flex-1 h-11 rounded-lg text-xs font-bold border transition-all flex items-center justify-center ${
                           smartDripDays === d 
                             ? 'border-primary bg-primary/10 text-primary shadow-xs' 
                             : 'border-border bg-background text-muted-foreground hover:bg-muted'
@@ -507,7 +583,7 @@ export function OrderSummaryCard({
                 onClick={() => setGateway('balance')}
                 className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
                   gateway === 'balance'
-                    ? 'border-emerald-700 bg-emerald-700/10 text-emerald-700 shadow-sm ring-1 ring-emerald-700/20'
+                    ? 'border-success/30 bg-success/10 text-success-text shadow-sm ring-1 ring-success/20'
                     : 'border-border bg-background text-muted-foreground hover:bg-muted'
                 }`}
               >
@@ -518,7 +594,7 @@ export function OrderSummaryCard({
                 onClick={() => setGateway('cryptobot')}
                 className={`flex-1 min-w-[100px] flex items-center justify-center gap-1.5 p-3 rounded-xl border text-sm font-semibold transition-all duration-200 ${
                   gateway === 'cryptobot'
-                    ? 'border-orange-500 bg-orange-500/10 text-orange-600 shadow-sm ring-1 ring-orange-500/20'
+                    ? 'border-warning/30 bg-warning/10 text-warning-text shadow-sm ring-1 ring-warning/20'
                     : 'border-border bg-background text-muted-foreground hover:bg-muted'
                 }`}
               >
@@ -528,8 +604,8 @@ export function OrderSummaryCard({
           </div>
 
           {gateway !== 'balance' && totalPrice > 0 && totalPrice < 10 && (
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs leading-relaxed space-y-2 animate-in fade-in duration-300">
-              <div className="font-bold flex items-center gap-1.5 text-amber-400">
+            <div className="p-4 rounded-2xl bg-warning/10 border border-warning/20 text-warning-text text-xs leading-relaxed space-y-2 animate-in fade-in duration-300">
+              <div className="font-bold flex items-center gap-1.5 text-warning-text">
                 <span>💡</span> Минимальный платеж эквайринга — 10 ₽
               </div>
               <div>
@@ -548,36 +624,6 @@ export function OrderSummaryCard({
               paddingBottom: viewportBottom > 0 ? '1rem' : 'max(1rem, env(safe-area-inset-bottom))'
             }}
           >
-            {/* Consent */}
-            <label 
-              className="w-full flex items-start gap-3 p-3 bg-content2 border border-border/50 rounded-2xl cursor-pointer select-none transition-all duration-200 hover:bg-content2/80 active:scale-[0.99] mb-3"
-            >
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={e => {
-                  if (navigator.vibrate) navigator.vibrate(20);
-                  setAgreedToTerms(e.target.checked);
-                }}
-                className="sr-only"
-                aria-label="Согласие с публичной офертой"
-              />
-              <div className="text-primary shrink-0 transition-transform duration-200 hover:scale-105 mt-0.5">
-                {agreedToTerms ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5 text-muted-foreground/30" />}
-              </div>
-              <span className="text-xs text-muted-foreground font-semibold leading-relaxed">
-                Я подтверждаю заказ и соглашаюсь с{' '}
-                <Link
-                  href="/legal/terms"
-                  onClick={e => e.stopPropagation()}
-                  className="text-foreground underline hover:no-underline font-bold"
-                  target="_blank"
-                >
-                  Договором оферты
-                </Link>
-              </span>
-            </label>
-
             {/* Submit */}
             <div className={gateway === 'balance' && userBalanceRub >= totalPrice ? 'emerald-light' : ''}>
               <button
@@ -586,13 +632,7 @@ export function OrderSummaryCard({
                   if (navigator.vibrate) navigator.vibrate(50);
                   handlePreSubmit();
                 }}
-                disabled={(() => {
-                  if (!selectedService || quantity < selectedService.minQty || isCalculating || !agreedToTerms) return true;
-                  const sName = selectedService.name.toLowerCase();
-                  const needsPayload = sName.includes('свои') || sName.includes('свой текст') || sName.includes('ключево') || sName.includes('опрос') || sName.includes('голосование');
-                  if (needsPayload && !engine.customData.trim()) return true;
-                  return false;
-                })()}
+                disabled={submitting}
                 className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black text-base hover:scale-[1.01] active:scale-[0.99] hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none disabled:hover:shadow-none transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
               >
                 {submitting ? (
@@ -609,6 +649,15 @@ export function OrderSummaryCard({
                   </>
                 )}
               </button>
+            </div>
+
+            {/* Consent */}
+            <div className="text-[10px] text-center text-muted-foreground mt-2 leading-relaxed select-none">
+              Нажимая кнопку «Оплатить заказ», вы соглашаетесь с{" "}
+              <Link href="/legal/terms" className="underline hover:text-foreground font-semibold" target="_blank">
+                Договором публичной оферты
+              </Link>{" "}
+              и правилами сервиса.
             </div>
           </div>
         </ActionForm>
@@ -629,7 +678,7 @@ export function OrderSummaryCard({
                   <li key={idx}>{req}</li>
                 ))}
               </ul>
-              <p className="text-xs text-rose-500 font-bold mt-2">
+              <p className="text-xs text-destructive font-bold mt-2">
                 * Запуск заказа при несоблюдении правил аннулирует гарантию возврата средств!
               </p>
             </div>

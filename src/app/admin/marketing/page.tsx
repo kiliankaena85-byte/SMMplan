@@ -5,19 +5,28 @@ import { AdminPageHeader } from '@/components/admin/page-header';
 import { MarketingTabs } from './client-tabs';
 import { ReferralEconomicsChart } from './referral-chart';
 import { PromoCodeTable } from './promocode-table';
-import { CreatePromoForm } from './create-promo-form';
+import { CreatePromoModal } from './create-promo-form';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { PayoutButton } from './payout-button';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Link from 'next/link';
 import { ReferrersTable } from './client-referrers-table';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MarketingPage() {
-  const [promos, stats, topReferrers] = await Promise.all([
+  const [promos, stats, rawTopReferrers] = await Promise.all([
     adminMarketingService.listPromoCodes(),
     adminMarketingService.getReferralStats(),
     adminMarketingService.listTopReferrers(),
   ]);
+
+  const topReferrers = rawTopReferrers.map(r => ({
+    id: r.id,
+    email: r.email,
+    referralBalance: Number(r.referralBalance),
+    _count: r._count,
+  }));
 
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
@@ -29,16 +38,15 @@ export default async function MarketingPage() {
 
       <MarketingTabs
         promocodesContent={
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1">
-              <CreatePromoForm />
-            </div>
-
-            <Card className="lg:col-span-3 rounded-2xl border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
-              <CardHeader className="border-b border-border/50/50 bg-muted/50/50 rounded-t-2xl pb-4">
-                <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest">Список промокодов</CardTitle>
+          <div className="w-full">
+            <Card className="rounded-2xl border-warm-border bg-warm-card shadow-[0_12px_40px_rgba(39,39,42,0.02)]">
+              <CardHeader className="border-b border-warm-border bg-warm-zinc/20 rounded-t-2xl pb-4 pt-5 flex flex-row items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-warm-text text-sm font-extrabold uppercase tracking-wider">Список промокодов</CardTitle>
+                </div>
+                <CreatePromoModal />
               </CardHeader>
-              <CardContent className="pt-2">
+              <CardContent className="pt-4">
                 <PromoCodeTable data={promos} />
               </CardContent>
             </Card>
@@ -108,7 +116,7 @@ export default async function MarketingPage() {
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="w-full">
-                      <ReferrersTable referrers={topReferrers as any} />
+                      <ReferrersTable referrers={topReferrers} />
                     </div>
                   </CardContent>
                </Card>

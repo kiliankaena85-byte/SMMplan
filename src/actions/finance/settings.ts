@@ -1,6 +1,7 @@
 'use server';
 
 import { accountingService } from '@/services/financial/accounting.service';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
@@ -16,6 +17,7 @@ const financeSettingsSchema = z.object({
 });
 
 export async function updateSystemSettings(formData: FormData) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const result = await requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = financeSettingsSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Validation error');

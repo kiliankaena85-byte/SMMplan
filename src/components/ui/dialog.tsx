@@ -62,11 +62,13 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
+            aria-label="Закрыть модальное окно"
             render={
               <Button
                 intent="ghost"
-                className="absolute top-2 right-2 w-8 h-8 rounded-full p-0"
+                className="absolute top-2 right-2 w-11 h-11 rounded-full p-0 flex items-center justify-center"
                 size="sm"
+                aria-label="Закрыть модальное окно"
               />
             }
           >

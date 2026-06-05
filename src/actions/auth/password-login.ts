@@ -14,6 +14,7 @@ const schema = z.object({
   password: z.string().min(1, "Введите пароль"),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loginWithPasswordAction(prevState: any, formData: FormData) {
   const parsed = schema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
@@ -79,6 +80,7 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
     }
 
     return { success: true, error: null, redirectTo };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     log.error('Password login action failed', { error: error.message, email: cleanEmail });
     return { error: "Ошибка сервера при авторизации. Попробуйте позже.", success: false };

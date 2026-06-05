@@ -76,9 +76,11 @@ export function TariffCard({ service, isSelected, onSelect }: TariffCardProps) {
             </span>
           </div>
 
-          {/* Description (truncated) */}
+          {/* Description (truncated on unselected, expanded on selected) */}
           {service.description && (
-            <p className="text-[11px] text-muted-foreground/70 mt-2 leading-relaxed line-clamp-2 whitespace-pre-line">
+            <p className={`text-[11px] text-muted-foreground/70 mt-2 leading-relaxed whitespace-pre-line transition-all duration-300 ${
+              isSelected ? "" : "line-clamp-2"
+            }`}>
               {service.description}
             </p>
           )}

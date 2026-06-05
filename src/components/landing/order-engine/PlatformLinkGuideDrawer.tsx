@@ -91,11 +91,13 @@ const GUIDES: Record<string, PlatformGuide> = {
 export function PlatformLinkGuideDrawer({
   isOpen,
   onClose,
-  initialPlatform = "telegram"
+  initialPlatform = "telegram",
+  initialStep = 0
 }: {
   isOpen: boolean;
   onClose: () => void;
   initialPlatform?: string;
+  initialStep?: number;
 }) {
   const [activeTab, setActiveTab] = useState<string>("telegram");
   const [activeStep, setActiveStep] = useState<number>(0);
@@ -113,7 +115,7 @@ export function PlatformLinkGuideDrawer({
       } else {
         setActiveTab("telegram");
       }
-      setActiveStep(0);
+      setActiveStep(initialStep);
       // Lock body scroll
       document.body.style.overflow = "hidden";
     } else {

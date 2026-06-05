@@ -153,6 +153,7 @@ test.describe('Admin Panel Flow', () => {
       await expect(page.getByText('Корректировка баланса')).toBeVisible({ timeout: 5000 });
     } catch (e) {
       const content = await page.content();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('fs');
       fs.writeFileSync('page-dump.html', content);
       throw e;

@@ -60,6 +60,7 @@ export async function setPasswordAction(formData: FormData) {
 
     revalidatePath('/dashboard/settings');
     return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Failed to set password:', error);
     return { success: false, error: 'Ошибка сервера при установке пароля' };
@@ -113,6 +114,7 @@ export async function changePasswordAction(formData: FormData) {
 
     revalidatePath('/dashboard/settings');
     return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Failed to change password:', error);
     return { success: false, error: 'Ошибка сервера при смене пароля' };

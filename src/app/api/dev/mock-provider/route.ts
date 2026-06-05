@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Add (Order) Action
     if (action === 'add') {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const quantity = parseInt(params.get('quantity') || '0', 10);
       const link = params.get('link');
       
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
       // If user sends multiple comma-separated IDs
       if (orderArg.includes(',')) {
         const ids = orderArg.split(',');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const response: any = {};
         for (const id of ids) {
           response[id] = {
@@ -113,6 +115,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 200 });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 200 });
   }

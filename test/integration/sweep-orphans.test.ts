@@ -135,15 +135,19 @@ describe('Sweep Orphans (Task C3)', () => {
 
     const jobId = `dispatch-${order.id}`;
     
-    // Mock getJob
+        // Mock getJob
     const spy = vi.spyOn(ordersQueue, 'getJob').mockResolvedValue({
       id: jobId,
       getState: async () => 'completed'
     } as any);
 
+    const before = await db.order.findUnique({ where: { id: order.id } });
+    console.log('[DEBUG-TEST] Order before sweep:', before);
+
     await runOrphanSweep();
 
     const dbOrder = await db.order.findUnique({ where: { id: order.id } });
+    console.log('[DEBUG-TEST] Order after sweep:', dbOrder);
     expect(dbOrder?.status).toBe('PENDING'); // Unchanged
 
     const delayed = await ordersQueue.getDelayedCount();

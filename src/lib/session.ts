@@ -3,14 +3,18 @@ import { cookies, headers } from 'next/headers';
 import { db } from './db';
 
 // W0-2 SECURITY FIX: Fail-fast — never allow hardcoded fallback in any environment
-if (!process.env.JWT_SECRET) {
-  throw new Error(
-    'FATAL: JWT_SECRET environment variable is not set. ' +
-    'This is required for session security. Add it to your .env file.'
-  );
+let cachedEncodedKey: Uint8Array | null = null;
+export function getEncodedKey() {
+  if (cachedEncodedKey) return cachedEncodedKey;
+  if (!process.env.JWT_SECRET) {
+    throw new Error(
+      'FATAL: JWT_SECRET environment variable is not set. ' +
+      'This is required for session security. Add it to your .env file.'
+    );
+  }
+  cachedEncodedKey = new TextEncoder().encode(process.env.JWT_SECRET);
+  return cachedEncodedKey;
 }
-const secretKey = process.env.JWT_SECRET;
-const encodedKey = new TextEncoder().encode(secretKey);
 
 import { getClientIp } from '@/utils/ip';
 
@@ -36,7 +40,7 @@ export async function createSession(userId: string) {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(encodedKey);
+    .sign(getEncodedKey());
     
   // Clear explicit logout cookie if it exists
   (await cookies()).delete('explicit_logout');
@@ -78,7 +82,7 @@ export async function verifySession() {
   }
 
   try {
-    const { payload } = await jwtVerify(sessionToken, encodedKey, {
+    const { payload } = await jwtVerify(sessionToken, getEncodedKey(), {
       algorithms: ['HS256'],
     });
     

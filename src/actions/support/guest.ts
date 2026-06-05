@@ -44,13 +44,13 @@ export async function createGuestTicketAction(formData: FormData) {
     const realIp = await getClientIp('unknown');
     
     // IP-based global limit (max 10 requests per hour per IP)
-    const isIpAllowed = await RateLimitService.check(`guest_ip:${realIp}`, 10, 3600);
+    const isIpAllowed = await RateLimitService.checkCustomKey(`guest_ip:${realIp}`, 10, 3600);
     if (!isIpAllowed) {
       return { success: false, error: "Слишком много обращений с вашего IP. Попробуйте позже." };
     }
 
     // Email-based limit (max 5 requests per hour per Email)
-    const isAllowed = await RateLimitService.check(`guest_ticket:${lowerEmail}`, 5, 3600);
+    const isAllowed = await RateLimitService.checkCustomKey(`guest_ticket:${lowerEmail}`, 5, 3600);
     if (!isAllowed) {
       return { success: false, error: "Слишком много обращений. Попробуйте позже." };
     }
@@ -85,6 +85,7 @@ export async function createGuestTicketAction(formData: FormData) {
     });
 
     return { success: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[createGuestTicketAction]', error);
     return { success: false, error: "Внутренняя ошибка сервера" };

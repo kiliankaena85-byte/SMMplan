@@ -36,47 +36,73 @@ export async function GET(req: NextRequest) {
     }
 
     // Synchronous status check fallback if webhook is delayed/lost
-    if (order.status === 'AWAITING_PAYMENT' && order.payment && order.payment.gateway === 'yookassa' && order.payment.gatewayId) {
-      const secrets = await SettingsManager.getPaymentSecrets();
-      const shopId = secrets.yookassaShopId;
-      const secretKey = secrets.yookassaSecretKey;
-      if (shopId && secretKey) {
-        const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-        try {
-          const response = await fetch(`https://api.yookassa.ru/v3/payments/${order.payment.gatewayId}`, {
-            headers: { 'Authorization': authHeader }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.status === 'succeeded' || data.status === 'waiting_for_capture') {
-              const realAmount = Math.round(parseFloat(data.amount.value) * 100);
-              const { paymentService } = await import('@/services/financial/payment.service');
-              await paymentService.confirmPayment(
-                order.payment.gatewayId,
-                realAmount,
-                session.userId,
-                false,
-                'yookassa',
-                order.payment.id,
-                'order'
-              );
-              
-              // Re-fetch the updated order after sync confirmation
-              const updatedOrder = await db.order.findUnique({
-                where: { id: orderId, userId: session.userId },
-                include: {
-                  payment: true,
-                  service: { select: { name: true } },
-                },
-              });
-              if (updatedOrder) {
-                order = updatedOrder;
+    if (order.status === 'AWAITING_PAYMENT' && order.payment && order.payment.gatewayId) {
+      const gateway = order.payment.gateway;
+      const gatewayId = order.payment.gatewayId;
+      const paymentId = order.payment.id;
+      
+      let isActuallyPaid = false;
+      let checkAmount = Number(order.payment.amount);
+
+      if (gateway === 'yookassa') {
+        const secrets = await SettingsManager.getPaymentSecrets();
+        const shopId = secrets.yookassaShopId;
+        const secretKey = secrets.yookassaSecretKey;
+        if (shopId && secretKey) {
+          const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+          try {
+            const response = await fetch(`https://api.yookassa.ru/v3/payments/${gatewayId}`, {
+              headers: { 'Authorization': authHeader }
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.status === 'succeeded' || data.status === 'waiting_for_capture') {
+                isActuallyPaid = true;
+                checkAmount = Math.round(parseFloat(data.amount.value) * 100);
               }
             }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } catch (e: any) {
+            console.error('[order-status] YooKassa sync fallback failed:', e.message);
           }
+        }
+      } else if (gateway === 'cryptobot' || gateway === 'robokassa') {
+        try {
+          const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+          const gatewaySvc = PaymentGatewayFactory.getGateway(gateway);
+          if (gatewaySvc.checkStatusSync) {
+            isActuallyPaid = await gatewaySvc.checkStatusSync(gatewayId);
+          }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
-          console.error('[order-status] YooKassa sync fallback failed:', e.message);
+          console.error(`[order-status] ${gateway} sync fallback failed:`, e.message);
+        }
+      }
+
+      if (isActuallyPaid) {
+        const isTestMode = await SettingsManager.isTestMode();
+        const { paymentService } = await import('@/services/financial/payment.service');
+        await paymentService.confirmPayment(
+          gatewayId,
+          checkAmount,
+          session.userId,
+          isTestMode,
+          gateway as 'yookassa' | 'cryptobot' | 'robokassa',
+          paymentId,
+          'order'
+        );
+
+        // Re-fetch the updated order after sync confirmation
+        const updatedOrder = await db.order.findUnique({
+          where: { id: orderId, userId: session.userId },
+          include: {
+            payment: true,
+            service: { select: { name: true } },
+          },
+        });
+        if (updatedOrder) {
+          order = updatedOrder;
         }
       }
     }
@@ -89,6 +115,7 @@ export async function GET(req: NextRequest) {
       quantity: order.quantity,
       serviceName: order.service.name,
     });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[order-status] Error:', error.message);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });

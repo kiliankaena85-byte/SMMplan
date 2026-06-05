@@ -11,7 +11,7 @@ interface MassOrderPreviewProps {
 }
 
 export function MassOrderPreview({ engine, handleCheckout, isSubmitting }: MassOrderPreviewProps) {
-  const { massCalculation, isMassCalculating, agreedToTerms, setAgreedToTerms } = engine;
+  const { massCalculation, isMassCalculating } = engine;
 
   if (isMassCalculating) {
     return (
@@ -152,34 +152,17 @@ export function MassOrderPreview({ engine, handleCheckout, isSubmitting }: MassO
           </p>
         </div>
 
-        {/* Terms agreement checkbox */}
-        <label className="flex items-start gap-3 cursor-pointer group select-none">
-          <input
-            type="checkbox"
-            checked={agreedToTerms}
-            onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="sr-only"
-          />
-          <div
-            className={`w-5 h-5 rounded-md border-2 shrink-0 transition-all flex items-center justify-center ${
-              agreedToTerms
-                ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20 scale-100"
-                : "border-border hover:border-primary/50"
-            }`}
-          >
-            {agreedToTerms && (
-              <svg className="w-3.5 h-3.5 stroke-current stroke-[3]" fill="none" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-            )}
-          </div>
-          <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors leading-relaxed">
-            Я согласен с правилами предоставления услуг и договором{" "}
-            <a href="/terms" target="_blank" className="text-primary hover:underline">
-              Публичной оферты
-            </a>
-          </span>
-        </label>
+        {/* Passive Legal Notice (BUG-03: no checkbox friction) */}
+        <p className="text-[11px] text-muted-foreground font-semibold text-center px-2 leading-relaxed">
+          Нажимая «Оформить пакет», вы соглашаетесь с{' '}
+          <a href="/legal/terms" target="_blank" className="underline text-foreground/80 hover:text-primary">
+            Офертой
+          </a>{' '}
+          и{' '}
+          <a href="/legal/privacy" target="_blank" className="underline text-foreground/80 hover:text-primary">
+            Политикой
+          </a>
+        </p>
 
         <Button
           onClick={handleCheckout}

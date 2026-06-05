@@ -13,6 +13,7 @@
  * - Grouped by category for better readability
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useOptimistic, useTransition, useState } from 'react';
 import { setFeatureFlagState } from '@/actions/admin/feature-flags';
 import type { FeatureFlagDTO, FlagState } from '@/services/system/feature-flag.service';

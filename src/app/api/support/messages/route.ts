@@ -4,9 +4,7 @@ import { db } from '@/lib/db';
 import { jwtVerify } from 'jose';
 import { Prisma } from '@prisma/client';
 
-if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is required');
-const secretKey = process.env.JWT_SECRET;
-const encodedKey = new TextEncoder().encode(secretKey);
+import { getEncodedKey } from '@/lib/session';
 
 export async function GET(req: NextRequest) {
   // Auth errors → 401
@@ -16,7 +14,7 @@ export async function GET(req: NextRequest) {
     const token = req.cookies.get('session_token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { payload } = await jwtVerify(token, encodedKey, { algorithms: ['HS256'] });
+    const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     userId = payload.userId as string;
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

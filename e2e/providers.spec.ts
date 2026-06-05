@@ -38,6 +38,7 @@ test.describe('Providers Integration Flow', () => {
     const prisma = new PrismaClient();
     let provider = await prisma.provider.findFirst({ where: { name: 'E2E Connection Test Provider' } });
     if (!provider) {
+      // eslint-disable-next-line no-useless-assignment
       provider = await prisma.provider.create({ 
         data: { name: 'E2E Connection Test Provider', apiUrl: 'http://localhost:9999/api/v2', apiKey: 'fake_key_123', isActive: true } 
       });
@@ -66,6 +67,7 @@ test.describe('Providers Integration Flow', () => {
     const prisma = new PrismaClient();
     let provider = await prisma.provider.findFirst({ where: { name: 'E2E Fake Provider' } });
     if (!provider) {
+      // eslint-disable-next-line no-useless-assignment
       provider = await prisma.provider.create({ 
         data: { name: 'E2E Fake Provider', apiUrl: 'http://test.local', apiKey: 'test_key', isActive: true } 
       });

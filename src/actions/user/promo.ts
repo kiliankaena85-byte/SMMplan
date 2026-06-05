@@ -72,6 +72,7 @@ export async function activatePromoCodeAction(code: string) {
 
         return { success: true, amount: promo.amount };
       }, { isolationLevel: 'Serializable' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
         throw new Error("Вы уже активировали этот промокод", { cause: error });

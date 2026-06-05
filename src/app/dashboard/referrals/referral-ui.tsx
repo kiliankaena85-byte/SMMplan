@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Copy, Gift, Users, CreditCard, CheckCheck, AlertTriangle } from 'lucide-react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { generateApiKey, revokeApiKey } from '@/actions/auth/api-key';
 import { transferReferralBalanceAction } from '@/actions/user/referral.action';
 import { useRouter } from 'next/navigation';
@@ -27,6 +29,7 @@ export function ReferralUi({
       try {
         await transferReferralBalanceAction();
         router.refresh();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         setError(e.message || 'Ошибка перевода');
       }

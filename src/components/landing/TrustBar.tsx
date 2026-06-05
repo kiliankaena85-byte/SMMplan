@@ -20,18 +20,18 @@ export function TrustBar() {
       <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-content1 to-transparent z-10 pointer-events-none hidden md:block" />
       
       {/* Mobile Grid Layout (< md) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 px-4 w-full max-w-lg sm:max-w-2xl mx-auto md:hidden">
+      <div className="grid grid-cols-2 gap-3.5 px-4 w-full max-w-lg sm:max-w-2xl mx-auto md:hidden">
         {stats.map((s, idx) => (
           <div
             key={`${s.label}-${idx}`}
-            className="flex items-center gap-4 bg-content2 border border-border/50 rounded-2xl p-4 w-full shadow-sm hover:border-primary/20 transition-all duration-300"
+            className="flex items-center gap-2 md:gap-4 bg-content2 border border-border/50 rounded-2xl p-3 md:p-4 w-full shadow-sm hover:border-primary/20 transition-all duration-300"
           >
             <div className={`p-2.5 rounded-xl bg-content1 shadow-sm border border-border/50 shrink-0 ${s.color}`}>
                <s.icon className="w-5 h-5 drop-shadow-sm" />
             </div>
             <div className="flex flex-col min-w-0">
-               <div className="text-base font-bold tracking-tight text-foreground">{s.value}</div>
-               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-normal leading-tight">{s.label}</div>
+               <div className="text-sm md:text-base font-bold tracking-tight text-foreground">{s.value}</div>
+               <div className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-normal leading-tight">{s.label}</div>
             </div>
           </div>
         ))}

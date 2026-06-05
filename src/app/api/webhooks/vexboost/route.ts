@@ -56,6 +56,7 @@ export async function POST(request: Request) {
       // Return 200 anyway to prevent provider retries if order is just not found
       return NextResponse.json({ success: false, message: 'Order not found' });
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[VexBoost Webhook] Error:', error.message);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

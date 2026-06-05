@@ -24,7 +24,14 @@ export class IntelligenceLinkAnalyzer {
         if (!rawUrl || rawUrl.trim() === '') {
              return this.getFallbackResult(rawUrl);
         }
-        const sanitizedUrl = this.sanitize(rawUrl);
+        let cleanUrl = rawUrl.trim();
+        // If it's a plain handle without slash or dot, e.g. "durov" or "@durov"
+        if (!cleanUrl.includes('/') && !cleanUrl.includes('.') && /^[a-zA-Z0-9_@]+$/.test(cleanUrl)) {
+            const handle = cleanUrl.startsWith('@') ? cleanUrl.substring(1) : cleanUrl;
+            // Reconstruct it as a Telegram link by default because Telegram is 70% of SMM orders
+            cleanUrl = `https://t.me/${handle}`;
+        }
+        const sanitizedUrl = this.sanitize(cleanUrl);
         const expandedUrl = await this.resolve(sanitizedUrl);
         const normalizedUrl = this.normalizeVkUrl(expandedUrl);
         return this.match(normalizedUrl);
@@ -52,21 +59,47 @@ export class IntelligenceLinkAnalyzer {
     private sanitize(url: string): string {
         try {
             let cleanUrl = url.trim();
-            cleanUrl = cleanUrl.split(' ')[0];
-            cleanUrl = cleanUrl.split('%20')[0];
+            // Pre-strip trailing encoded spaces and spaces
+            cleanUrl = cleanUrl.replace(/(?:%20|\s)+$/, '');
             
+            // 1. Fuzzy URL Extraction: find a URL-like match inside any surrounding text
+            // e.g. "подпишитесь на https://t.me/durov!" -> "https://t.me/durov"
+            const urlPattern = /(https?:\/\/[^\s!,;()]+|www\.[^\s!,;()]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}\/[^\s!,;()]*)/i;
+            const match = cleanUrl.match(urlPattern);
+            if (match) {
+                cleanUrl = match[0];
+                // Split by %20 or space if they were captured inside the pattern match
+                cleanUrl = cleanUrl.split('%20')[0].split(' ')[0];
+                // Strip trailing punctuation like ?, !, ., ,, ; from the end of the URL
+                cleanUrl = cleanUrl.replace(/[?.,!;:]+$/, '');
+            } else {
+                cleanUrl = cleanUrl.split(' ')[0];
+                cleanUrl = cleanUrl.split('%20')[0];
+                cleanUrl = cleanUrl.replace(/[?.,!;:]+$/, '');
+            }
+
             // Clean up UTM parameters using our dedicated normalizer
             cleanUrl = stripQueryParams(cleanUrl);
 
+            // 2. Convert plain @username to proper URL if it starts with @
+            if (cleanUrl.startsWith('@')) {
+                cleanUrl = `https://t.me/${cleanUrl.substring(1)}`;
+            }
+
             // Only parse full URL if it has http scheme
-            if (!cleanUrl.startsWith('http')) {
+            if (!cleanUrl.startsWith('http') && cleanUrl.includes('.')) {
                 cleanUrl = 'https://' + cleanUrl;
             }
 
             const urlObj = new URL(cleanUrl);
             return urlObj.toString().replace(/%40/g, '@');
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (_e) {
-            return url.trim().replace(/%40/g, '@');
+            const cleanUrl = url.trim().replace(/%40/g, '@');
+            if (cleanUrl.startsWith('@')) {
+                return `https://t.me/${cleanUrl.substring(1)}`;
+            }
+            return cleanUrl;
         }
     }
 
@@ -84,6 +117,7 @@ export class IntelligenceLinkAnalyzer {
                     signal: AbortSignal.timeout(1500)
                 });
                 if (res.url) return res.url;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (e) {
                 // Silent fallback on timeout/error
             }

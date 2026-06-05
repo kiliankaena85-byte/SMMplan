@@ -30,11 +30,13 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
         const combined = Array.from(new Set([...sortedPrefs, ...DEFAULT_TOP]));
         setTopSlugs(combined.slice(0, 6));
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       // ignore
     }
   }, [DEFAULT_TOP]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleNetworkSelect = (net: any) => {
     setNetworkId(net.id);
     setShowAllNetworks(false);
@@ -52,6 +54,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
       
       const combined = Array.from(new Set([...sortedPrefs, ...DEFAULT_TOP]));
       setTopSlugs(combined.slice(0, 6));
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       // ignore
     }

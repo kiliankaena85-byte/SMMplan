@@ -49,6 +49,7 @@ export function LoginForm() {
         if (res.redirectTo) {
           window.location.href = res.redirectTo;
         }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
       } catch (err: any) {
         toast.error('Произошла непредвиденная ошибка. Пожалуйста, попробуйте позже.');
       }

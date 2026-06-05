@@ -15,6 +15,7 @@ vi.mock('@/lib/db', () => ({
     ticketMessage: {
       create: vi.fn(),
       findUnique: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
     }
   }
 }));

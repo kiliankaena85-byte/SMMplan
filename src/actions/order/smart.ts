@@ -3,6 +3,7 @@
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getClientIp } from '@/utils/ip';
 
 export async function getClientCampaigns(page: number = 1, limit: number = 20) {

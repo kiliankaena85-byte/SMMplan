@@ -14,4 +14,5 @@ export const orderFormSchema = z.object({
   customData: z.string().max(5000, "Слишком много текста (макс. 5000 символов)").optional()
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type OrderFormData = z.infer<typeof orderFormSchema>;

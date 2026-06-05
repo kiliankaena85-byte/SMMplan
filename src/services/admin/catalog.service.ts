@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
@@ -13,6 +12,7 @@ import {
   TOTAL_MANDATORY_DEDUCTIONS,
   applyBeautifulRounding
 } from '@/lib/financial-constants';
+import { inferTargetTypeFromCategory } from '@/utils/target-type';
 
 // ── Types ──
 
@@ -60,6 +60,7 @@ class AdminCatalogService {
     categoryId?: string;
     pageSize?: number;
   }): Promise<PaginatedResult<CatalogRow>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
 
     if (params.categoryId) {
@@ -71,6 +72,7 @@ class AdminCatalogService {
       const lowerQ = q.toLowerCase();
       const numId = parseInt(q, 10);
       const isPureNumber = !isNaN(numId) && q === String(numId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const orConditions: any[] = [];
 
       // Vector 1: Numeric ID Match
@@ -130,12 +132,13 @@ class AdminCatalogService {
     const service = await db.service.findUniqueOrThrow({ where: { id: serviceId } });
     const oldMarkup = service.markup;
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const exchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
 
     await db.service.update({
       where: { id: serviceId },
       data: { 
         markup: newMarkup,
-        pricePer1000Cents: Math.round(applyBeautifulRounding(service.rate * newMarkup * usdToRub) * 100)
+        pricePer1000Cents: Math.round(applyBeautifulRounding(service.rate * newMarkup * exchangeRate) * 100)
       },
     });
 
@@ -208,6 +211,7 @@ class AdminCatalogService {
       throw new Error('API провайдера вернуло пустой список или ошибку. Синхронизация прервана (защита).');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const liveMap = new Map(liveServices.map((s: any) => [String(s.service), s]));
     
     const ourServices = await db.service.findMany({
@@ -294,8 +298,25 @@ class AdminCatalogService {
           }
         } else if (s.isActive && !s.isQuarantined) {
           // Active Service Price Drift Detection
-          const oldRate = s.rate;
+          let oldRate = s.rate;
           const newRate = rawRate;
+          const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
+
+          // Self-heal mismatch between service providerCurrency and current provider balanceCurrency on the fly
+          if (s.providerCurrency !== providerCurrency) {
+            const conversionFactor = (s.providerCurrency === 'USD' && providerCurrency === 'RUB')
+              ? usdToRub
+              : (s.providerCurrency === 'RUB' && providerCurrency === 'USD')
+              ? (1.0 / usdToRub)
+              : 1.0;
+            oldRate = oldRate * conversionFactor;
+            
+            // permanently align in DB
+            await db.service.update({
+              where: { id: s.id },
+              data: { providerCurrency }
+            });
+          }
 
           if (oldRate > 0 && newRate !== oldRate) {
             const driftPercent = (newRate - oldRate) / oldRate;
@@ -324,7 +345,7 @@ class AdminCatalogService {
                 data: {
                   isQuarantined: true,
                   pendingRate: newRate,
-                  quarantineReason: `Price Spike: Цена выросла с $${oldRate} до $${newRate} (+${(driftPercent * 100).toFixed(1)}%)`,
+                  quarantineReason: `Price Spike: Цена выросла с ${providerCurrency === 'RUB' ? '₽' : '$'}${oldRate.toFixed(4)} до ${providerCurrency === 'RUB' ? '₽' : '$'}${newRate.toFixed(4)} (+${(driftPercent * 100).toFixed(1)}%)`,
                   quarantinedAt: new Date()
                 }
               });
@@ -336,6 +357,7 @@ class AdminCatalogService {
                 where: { id: s.id },
                 data: {
                   rate: newRate,
+                  providerCurrency: providerCurrency,
                   pricePer1000Cents: newPriceCents
                 }
               });
@@ -378,11 +400,13 @@ class AdminCatalogService {
     categoryId: string,
     defaultMarkup: number,
     admin: { id: string; email: string },
-    providerId: string
+    providerId: string,
+    categoryIdMap?: Record<string, string>
   ) {
     // 1. Fetch from Shadow Catalog (Redis) to get the AI-normalized names and metrics
-    const cacheKey = `provider:${providerId}:shadow_catalog`;
+    const cacheKey = `provider:${providerId}:catalog`;
     const cached = await redis.get(cacheKey);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let shadowServices: any[] = [];
     if (cached) {
       try { shadowServices = JSON.parse(cached); } catch { /* ignore */ }
@@ -398,6 +422,7 @@ class AdminCatalogService {
     const liveServices = await providerInstance.getServices();
     
     // Map live services for O(1) lookup
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const liveMap = new Map(liveServices.map((s: any) => [s.service.toString(), s]));
 
     // Fetch all existing external IDs for this provider in one query
@@ -406,6 +431,18 @@ class AdminCatalogService {
       select: { externalId: true }
     });
     const existingSet = new Set(existingServices.map(s => s.externalId));
+
+    // Fetch category names for target type inference
+    const uniqueCategoryIds = new Set<string>();
+    if (categoryId) uniqueCategoryIds.add(categoryId);
+    if (categoryIdMap) {
+      Object.values(categoryIdMap).forEach(id => uniqueCategoryIds.add(id));
+    }
+    const categoriesDb = await db.category.findMany({
+      where: { id: { in: Array.from(uniqueCategoryIds) } },
+      select: { id: true, name: true }
+    });
+    const categoryNameMap = new Map(categoriesDb.map(c => [c.id, c.name]));
 
     const servicesToCreate = [];
     const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
@@ -453,7 +490,7 @@ class AdminCatalogService {
         name: shadowExt.cleanName || liveExt.name, // Use AI Clean Name
         description: liveExt.description || shadowExt.description || null,
         externalId: extId,
-        categoryId,
+        categoryId: categoryIdMap?.[extId] || categoryId,
         providerId: providerDbRecord.id,
         providerCurrency: providerCurrency,
         rate: rawRate, // Live provider rate
@@ -463,7 +500,7 @@ class AdminCatalogService {
         maxQty: parseInt(liveExt.max, 10) || 10000,
         features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
         anomalyScore: shadowExt.metrics?.anomalyScore || 0,
-        targetType: shadowExt.metrics?.targetType || 'POST',
+        targetType: shadowExt.metrics?.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId)),
         customDataType: shadowExt.metrics?.customDataType || 'NONE',
         isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
         isActive: true,
@@ -565,15 +602,16 @@ class AdminCatalogService {
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
     if (newMarkup <= 0) {
-      const services = await db.service.findMany({ where, select: { id: true, rate: true } });
+      const services = await db.service.findMany({ where, select: { id: true, rate: true, providerCurrency: true } });
       const updates = services.map(s => {
-         const retailFromLadder = applyPricingLadder(s.rate * usdToRub);
-         const calculatedMarkup = s.rate > 0 ? Math.round((retailFromLadder / (s.rate * usdToRub)) * 100) / 100 : 3.0;
+         const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+         const retailFromLadder = applyPricingLadder(s.rate * exchangeRate);
+         const calculatedMarkup = s.rate > 0 ? Math.round((retailFromLadder / (s.rate * exchangeRate)) * 100) / 100 : 3.0;
          return db.service.update({
             where: { id: s.id },
             data: { 
               markup: calculatedMarkup,
-              pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * calculatedMarkup * usdToRub) * 100)
+              pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * calculatedMarkup * exchangeRate) * 100)
             }
          });
       });
@@ -583,13 +621,14 @@ class AdminCatalogService {
       }
       updatedCount = services.length;
     } else {
-      const services = await db.service.findMany({ where, select: { id: true, rate: true } });
+      const services = await db.service.findMany({ where, select: { id: true, rate: true, providerCurrency: true } });
       const updates = services.map(s => {
+         const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
          return db.service.update({
             where: { id: s.id },
             data: { 
               markup: newMarkup,
-              pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * newMarkup * usdToRub) * 100)
+              pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * newMarkup * exchangeRate) * 100)
             }
          });
       });
@@ -618,16 +657,18 @@ class AdminCatalogService {
    */
   async syncDenormalizedPrices(usdToRub: number) {
     const allServices = await db.service.findMany({
-      select: { id: true, name: true, rate: true, markup: true, isActive: true }
+      select: { id: true, name: true, rate: true, markup: true, isActive: true, providerCurrency: true }
     });
 
     console.info(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatesBatch: any[] = [];
     for (const s of allServices) {
-      const pricePer1kRubRounded = applyBeautifulRounding(s.rate * s.markup * usdToRub);
+      const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+      const pricePer1kRubRounded = applyBeautifulRounding(s.rate * s.markup * exchangeRate);
       const pricePerUnitRub = pricePer1kRubRounded / 1000;
-      const purchaseCostPerUnitRub = (s.rate * usdToRub) / 1000;
+      const purchaseCostPerUnitRub = (s.rate * exchangeRate) / 1000;
 
       if (pricePerUnitRub < purchaseCostPerUnitRub) {
         // Loss prevention breach! Deactivate service
@@ -719,6 +760,13 @@ class AdminCatalogService {
       select: {
         id: true,
         name: true,
+        network: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          }
+        },
         _count: { select: { services: true } },
       },
       orderBy: { name: 'asc' },
@@ -727,6 +775,11 @@ class AdminCatalogService {
     return rows.map(c => ({
       id: c.id,
       name: c.name,
+      network: c.network ? {
+        id: c.network.id,
+        name: c.network.name,
+        slug: c.network.slug
+      } : null,
       serviceCount: c._count.services,
     }));
   }

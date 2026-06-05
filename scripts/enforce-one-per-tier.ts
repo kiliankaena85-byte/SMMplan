@@ -25,6 +25,7 @@ async function main() {
                     tier = feats.tier;
                 }
             }
+        // eslint-disable-next-line no-empty
         } catch(e) {}
         
         const groupKey = `${s.categoryId}-${tier}`;

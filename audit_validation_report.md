@@ -36,6 +36,7 @@ To comply with the Google Android/iOS guidelines and WCAG 2.2 AA target size cri
     *   Reply, edit, and delete action triggers enlarged to a minimum height/width of 44px (`h-11 w-11` or padded container).
     *   Inline edit cancellation (`Отмена`) and confirmation (`Сохранить`) buttons resized to `h-11`.
     *   Staff note toggle and post/save triggers enlarged to `h-11`.
+    *   "Быстрые шаблоны ответов" (Templates) popover trigger button resized from `py-1` to `h-11` to meet the minimum 44px touch target height.
 
 ### C. Contrast and Color Token Standardization
 *   Removed hardcoded/non-standard values (e.g. `text-amber-600`, `text-emerald-600`) and replaced them with standard design token colors mapping to semantic variables defined in `@theme` of `src/app/globals.css`:
@@ -45,6 +46,8 @@ To comply with the Google Android/iOS guidelines and WCAG 2.2 AA target size cri
     *   `src/components/orders/DripFeedSettings.tsx` (emerald replaced with `success-text`)
     *   `src/components/support/ClientProfileSidebar.tsx` (amber text and background replaced with `text-warning-text bg-warning/10`)
     *   `src/components/dashboard/transactions/TransactionsClient.tsx` (amber and emerald statuses/cents replaced with `text-warning-text` and `text-success-text`)
+    *   `src/components/landing/order-engine/MobileWizard.tsx` (fixed low contrast warning text by replacing `text-warning` with `text-warning-text` on `bg-warning/10` background, ensuring contrast >= 4.5:1)
+    *   `src/components/support/ChatWindow.tsx` (fixed low contrast button state for internal messages/orders by changing `bg-warning text-warning-foreground hover:bg-warning/90` to `bg-warning-text text-white hover:bg-warning-text/90`)
 
 ### D. Accessibility & Semantic HTML Improvements
 *   Added `aria-label` attributes to all custom interactive elements (toggles, close buttons, action triggers) that lack clear text content.

@@ -11,10 +11,15 @@ import {
   ensurePaymentSyncCron, 
   ensureDripfeedCron,
   dlqQueue, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cleanupQueue, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   telegramQueue, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   etaQueue,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   paymentSyncQueue,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   refillQueue
 } from '../lib/queue-manager';
 import { sendAdminAlert, sendAdminAlertSync } from '../lib/notifications';
@@ -100,6 +105,7 @@ async function handleDeadLetter(
 
       // 🔥 Option B: Automatic Refund & State transition
       if (queueName === 'ordersQueue') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const payload = job.data as any;
         if (payload?.orderId) {
            await orderService.failOrderTerminal(payload.orderId, err.message);
@@ -108,6 +114,7 @@ async function handleDeadLetter(
       }
 
       if (queueName === 'refillQueue') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const payload = job.data as any;
         if (payload?.refillId) {
           await db.refill.update({
@@ -188,3 +195,18 @@ const shutdown = async () => {
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+
+// IPC and stdin shutdown hooks for automated test runners (especially on Windows)
+if (process.send) {
+  process.on('message', (msg) => {
+    if (msg === 'shutdown') {
+      shutdown();
+    }
+  });
+}
+process.stdin.on('data', (data) => {
+  if (data.toString().trim() === 'shutdown') {
+    shutdown();
+  }
+});
+

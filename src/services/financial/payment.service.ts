@@ -15,6 +15,7 @@ export class PaymentService {
     gatewayId: string, 
     amount: number, 
     userId: string, 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isDevSandbox = false,
     gatewayType: 'yookassa' | 'cryptobot' | 'robokassa' = 'yookassa',
     internalPaymentId?: string,
@@ -50,6 +51,7 @@ export class PaymentService {
                 } else {
                     throw new Error(`GATEWAY_ERROR: Failed to contact YooKassa API or Payment Not Found (${response.status})`);
                 }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.error(`[Payment] Verification Exploit Blocked: ${e.message}`);
                 return false; // Reject payment
@@ -214,6 +216,7 @@ export class PaymentService {
       });
 
       return true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[PaymentService] Error confirming payment:', e.message);
       return false;
@@ -355,6 +358,7 @@ export class PaymentService {
       }
 
       return true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[PaymentService] Error:', e.message);
       return false;

@@ -62,6 +62,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
       default:
         throw new Error(`Unknown catalog mutation type`);
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error(`[CatalogProcessor] Failed processing job ${job.id}:`, error.message);
     throw error; // Let BullMQ retry and eventually DLQ

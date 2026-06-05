@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getClientIp } from '@/utils/ip';
 import { auditAdmin } from '@/lib/admin-audit';
+import { WalletOps } from '@/services/financial/wallet-ops';
 
 // ... (rest of imports)
 
@@ -18,6 +19,7 @@ export async function generateSmartReplyAction(ticketId: string) {
     try {
       const reply = await aiSupportService.generateReply(ticketId);
       return { success: true, reply };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       return { success: false, error: err.message };
     }
@@ -480,6 +482,7 @@ export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[
 
           createdRefills.push({ id: refill.id });
           processedCount++;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
           errors.push(`Ошибка по заказу ${orderId}: ${err.message}`);
         }
@@ -531,42 +534,38 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
 
     for (const orderId of orderIds) {
       try {
-        const order = await db.order.findFirst({
-          where: { id: orderId, userId: ticket.userId }
-        });
+        const refundAmountCents = await db.$transaction(async (tx) => {
+          const order = await tx.order.findFirst({
+            where: { id: orderId, userId: ticket.userId }
+          });
 
-        if (!order) {
-          errors.push(`Заказ ${orderId} не найден или принадлежит другому пользователю`);
-          continue;
-        }
+          if (!order) {
+            throw new Error(`Заказ ${orderId} не найден или принадлежит другому пользователю`);
+          }
 
-        if (['CANCELED', 'PARTIAL'].includes(order.status)) {
-          errors.push(`Заказ #${order.numericId}: Уже отменен или частично возвращен`);
-          continue;
-        }
+          if (['CANCELED', 'PARTIAL'].includes(order.status)) {
+            throw new Error(`Заказ #${order.numericId}: Уже отменен или частично возвращен`);
+          }
 
-        if (order.remains <= 0) {
-          errors.push(`Заказ #${order.numericId}: Нет остатков для возврата (remains <= 0)`);
-          continue;
-        }
+          if (order.remains <= 0) {
+            throw new Error(`Заказ #${order.numericId}: Нет остатков для возврата (remains <= 0)`);
+          }
 
-        const refundAmountCents = calculatePartialRefund({
-          remains: order.remains,
-          quantity: order.quantity,
-          charge: order.charge
-        });
+          const calculatedAmount = calculatePartialRefund({
+            remains: order.remains,
+            quantity: order.quantity,
+            charge: order.charge
+          });
 
-        if (refundAmountCents <= 0) {
-          errors.push(`Заказ #${order.numericId}: Сумма возврата равна 0`);
-          continue;
-        }
+          if (calculatedAmount <= 0) {
+            throw new Error(`Заказ #${order.numericId}: Сумма возврата равна 0`);
+          }
 
-        await db.$transaction(async (tx) => {
           // B2B clients bypass the standard operator's daily support limit check completely!
           if (!isB2bClient) {
             const currentSpentToday = await getAdminSpentToday(admin.id, tx);
             const limitLeft = admin.supportLimitCents - currentSpentToday;
-            if (refundAmountCents > limitLeft) {
+            if (calculatedAmount > limitLeft) {
               throw new Error(`Превышен суточный лимит компенсаций оператора. Осталось: ${(limitLeft / 100).toFixed(2)} ₽`);
             }
           }
@@ -576,24 +575,18 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
             data: { status: 'PARTIAL' }
           });
 
-          await tx.user.update({
-            where: { id: ticket.userId },
-            data: { balance: { increment: refundAmountCents } }
-          });
+          const idempotencyKey = `refund_ticket_${ticketId}_order_${order.id}`;
+          await WalletOps.refund(tx, ticket.userId, calculatedAmount,
+            `Компенсация (частичный возврат) по тикету #${ticketId} за недовыполненный заказ #${order.numericId}`,
+            { idempotencyKey, adminId: admin.id }
+          );
 
-          await tx.ledgerEntry.create({
-            data: {
-              userId: ticket.userId,
-              adminId: admin.id,
-              amount: refundAmountCents,
-              transactionType: 'REFUND',
-              reason: `Компенсация (частичный возврат) по тикету #${ticketId} за недовыполненный заказ #${order.numericId}`
-            }
-          });
-        });
+          return calculatedAmount;
+        }, { isolationLevel: 'Serializable' });
 
         processedCount++;
         totalRefundedCents += refundAmountCents;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         errors.push(`Ошибка по заказу ${orderId}: ${err.message}`);
       }
@@ -622,6 +615,7 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getAdminSpentToday(adminId: string, tx?: any): Promise<number> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -640,6 +634,7 @@ async function getAdminSpentToday(adminId: string, tx?: any): Promise<number> {
     }
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ledgerCompensations.reduce((acc: number, entry: any) => {
     const amt = Number(entry.amount);
     return acc + Math.abs(amt);

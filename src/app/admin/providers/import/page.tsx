@@ -1,7 +1,6 @@
 import { adminProviderService } from '@/services/admin/provider.service';
 import { ImportWizard } from './components/import-wizard';
 import Link from 'next/link';
-import { providerService } from '@/services/providers/provider.service';
 import { ArrowLeft } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +24,7 @@ export default async function ImportProvidersPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Импорт Услуг</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Синхронизация и вишлист услуг от провайдера.
+            Загрузите каталог провайдера, выберите услуги и импортируйте в один клик.
           </p>
         </div>
         <Link
@@ -39,12 +38,14 @@ export default async function ImportProvidersPage() {
       </div>
 
       {errorMsg ? (
-        <div className="bg-warning/10 border border-amber-200 text-amber-800 p-6 rounded-xl">
-          <h2 className="text-base font-semibold mb-2">⚠️ Провайдер не настроен</h2>
-          <p className="text-sm mb-4">{errorMsg}</p>
+        <div className="bg-card border border-[#dfe5ec] text-[#212121] p-6 rounded-[12px] shadow-[0px_1px_3px_rgba(0,0,0,0.08)]">
+          <h2 className="text-base font-bold mb-2 flex items-center gap-2 text-foreground">
+            <span>🔌</span> Провайдер не настроен
+          </h2>
+          <p className="text-sm text-[#707579] mb-4">{errorMsg}</p>
           <Link
             href="/admin/providers/new"
-            className="inline-block bg-amber-600 text-primary-foreground px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-amber-700 transition-all duration-200"
+            className="inline-block bg-primary hover:bg-primary/95 text-primary-foreground px-4 py-2 rounded-[8px] text-sm font-semibold transition-all duration-200"
           >
             + Добавить провайдера
           </Link>

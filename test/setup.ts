@@ -1,6 +1,160 @@
 import { beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 
+// Mock nodemailer and resend globally to prevent actual email dispatch during tests
+vi.mock('nodemailer', () => {
+  return {
+    default: {
+      createTransport: vi.fn().mockReturnValue({
+        sendMail: vi.fn().mockResolvedValue({ messageId: 'mock-email-id' })
+      })
+    }
+  };
+});
+
+vi.mock('resend', () => {
+  return {
+    Resend: class MockResend {
+      emails = {
+        send: vi.fn().mockResolvedValue({ data: { id: 'mock-resend-id' }, error: null })
+      };
+    }
+  };
+});
+
+// Mock ioredis globally to prevent attempting actual Redis connections during tests
+vi.mock('ioredis', () => {
+  class MockRedis {
+    status = 'ready';
+    store = new Map<string, any>();
+    constructor() {}
+    on = vi.fn().mockReturnThis();
+    get = vi.fn().mockImplementation(async (key: string) => this.store.get(key) ?? null);
+    set = vi.fn().mockImplementation(async (key: string, value: any) => {
+      this.store.set(key, value);
+      return 'OK';
+    });
+    del = vi.fn().mockImplementation(async (key: string | string[]) => {
+      if (Array.isArray(key)) {
+        let deletedCount = 0;
+        for (const k of key) {
+          if (this.store.has(k)) {
+            this.store.delete(k);
+            deletedCount++;
+          }
+        }
+        return deletedCount;
+      }
+      const exists = this.store.has(key);
+      this.store.delete(key);
+      return exists ? 1 : 0;
+    });
+    keys = vi.fn().mockImplementation(async (pattern: string) => {
+      const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+      return Array.from(this.store.keys()).filter(k => regexPattern.test(k));
+    });
+    quit = vi.fn().mockResolvedValue(undefined);
+    disconnect = vi.fn().mockResolvedValue(undefined);
+    eval = vi.fn().mockImplementation(async (script: string, numKeys: number, key: string, ...args: any[]) => {
+      const current = (this.store.get(key) || 0) + 1;
+      this.store.set(key, current);
+      return current;
+    });
+    incr = vi.fn().mockImplementation(async (key: string) => {
+      const current = (this.store.get(key) || 0) + 1;
+      this.store.set(key, current);
+      return current;
+    });
+    setex = vi.fn().mockImplementation(async (key: string, seconds: number, value: any) => {
+      this.store.set(key, value);
+      return 'OK';
+    });
+    setnx = vi.fn().mockImplementation(async (key: string, value: any) => {
+      if (this.store.has(key)) return 0;
+      this.store.set(key, value);
+      return 1;
+    });
+    expire = vi.fn().mockResolvedValue(1);
+    ping = vi.fn().mockResolvedValue('PONG');
+  }
+  return {
+    Redis: MockRedis,
+    default: MockRedis,
+  };
+});
+
+// Mock bullmq globally to prevent BullMQ queue initializations from attempting Redis connections
+vi.mock('bullmq', () => {
+  class MockQueue {
+    name: string;
+    jobs = new Map<string, any>();
+    defaultJobOptions = { attempts: 3, backoff: { type: 'exponential' } };
+
+    constructor(name: string) {
+      this.name = name;
+    }
+
+    add = vi.fn().mockImplementation(async (name: string, data: any, opts?: any) => {
+      const jobId = opts?.jobId || `mock-job-${Date.now()}-${Math.random()}`;
+      const job = {
+        id: jobId,
+        name,
+        data,
+        opts,
+        getState: async () => {
+          if (opts?.delay) return 'delayed';
+          return 'waiting';
+        }
+      };
+      this.jobs.set(jobId, job);
+      return job;
+    });
+
+    close = vi.fn().mockImplementation(async () => {
+      this.jobs.clear();
+    });
+
+    getJob = vi.fn().mockImplementation(async (jobId: string) => {
+      return this.jobs.get(jobId);
+    });
+
+    getDelayedCount = vi.fn().mockImplementation(async () => {
+      let count = 0;
+      for (const job of this.jobs.values()) {
+        if (job.opts?.delay) count++;
+      }
+      return count;
+    });
+
+    getWaitingCount = vi.fn().mockImplementation(async () => {
+      let count = 0;
+      for (const job of this.jobs.values()) {
+        if (!job.opts?.delay) count++;
+      }
+      return count;
+    });
+
+    obliterate = vi.fn().mockImplementation(async (opts?: any) => {
+      this.jobs.clear();
+    });
+  }
+  class MockWorker {
+    constructor() {}
+    close = vi.fn().mockResolvedValue(undefined);
+  }
+  class MockUnrecoverableError extends Error {
+    constructor(message?: string) {
+      super(message);
+      this.name = 'UnrecoverableError';
+    }
+  }
+  return {
+    Queue: MockQueue,
+    Worker: MockWorker,
+    UnrecoverableError: MockUnrecoverableError,
+  };
+});
+
 // Mock admin audit module globally to prevent concurrent background DB writes from causing deadlocks during TRUNCATE.
 vi.mock('@/lib/admin-audit', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/lib/admin-audit')>();
@@ -59,6 +213,7 @@ beforeAll(async () => {
   }
 
   // Terminate other active connections to avoid lock-wait deadlocks with zombie connections
+  /*
   try {
     await db.$executeRawUnsafe(`
       SELECT pg_terminate_backend(pid) 
@@ -69,6 +224,7 @@ beforeAll(async () => {
   } catch (err) {
     // Ignore errors if the database is in a state where pg_stat_activity isn't queried or user lacks permission
   }
+  */
 
   // Provide test encryption key so EncryptionService doesn't fail
   process.env.APP_ENCRYPTION_KEY = '0000000000000000000000000000000000000000000000000000000000000000';
@@ -148,7 +304,47 @@ async function resetTestDb() {
 }
 
 beforeEach(async () => {
-  await resetTestDb();
+  let shouldReset = true;
+  try {
+    const testPath = expect.getState().testPath;
+    if (testPath) {
+      const skipPatterns = [
+        'utils',
+        'parser',
+        'format-eta',
+        'link-normalizer',
+        'balance-verifier',
+        'link-analyzer',
+        'category-matcher',
+        'eta.fuzzing',
+        'smtp.test.ts',
+        'smart-analyzer'
+      ];
+      if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
+        shouldReset = false;
+      }
+      
+      // Skip unit/ except for marketing, smart-feedback-loop, wallet.race, smart-drip, audit-log
+      if (testPath.toLowerCase().includes('unit/')) {
+        const allowedUnitTests = [
+          'marketing.test.ts',
+          'smart-feedback-loop.test.ts',
+          'wallet.race.test.ts',
+          'smart-drip.test.ts',
+          'audit-log.test.ts'
+        ];
+        if (!allowedUnitTests.some(testName => testPath.toLowerCase().includes(testName))) {
+          shouldReset = false;
+        }
+      }
+    }
+  } catch (e) {
+    // Fallback if expect.getState() is not available or throws
+  }
+
+  if (shouldReset) {
+    await resetTestDb();
+  }
 });
 
 afterEach(async () => {

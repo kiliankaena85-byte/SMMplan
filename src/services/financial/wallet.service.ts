@@ -19,6 +19,7 @@ export class WalletService {
         // Maximum isolation to prevent concurrent writes stealing balance
         { isolationLevel: 'Serializable' }
       );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       return { success: false, error: e.message || 'Transaction failed', balance: null, cached: false };
     }
@@ -39,6 +40,7 @@ export class WalletService {
         async (tx) => WalletOps.credit(tx, userId, amountCents, reason, { idempotencyKey, adminId }),
         { isolationLevel: 'Serializable' }
       );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       return { success: false, error: e.message || 'Transaction failed', balance: null, cached: false };
     }
@@ -65,6 +67,7 @@ export class WalletService {
         async (tx) => WalletOps.refund(tx, userId, amountCents, reason, { idempotencyKey, adminId }),
         { isolationLevel: 'Serializable' }
       );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       return { success: false, error: e.message || 'Refund transaction failed', balance: null, cached: false };
     }
