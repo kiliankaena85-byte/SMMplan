@@ -106,10 +106,6 @@ test.describe('Order Lifecycle', () => {
     await expect(balanceBtn).toBeVisible();
     await balanceBtn.click();
 
-    // 6. Check "I agree to terms"
-    const termsCheckbox = page.locator('input[type="checkbox"]');
-    await termsCheckbox.check({ force: true });
-
     // 7. Verify the submit button is enabled
     const submitBtn = page.getByRole('button', { name: /Создать заказ и перейти к оплате/i });
     await expect(submitBtn).toBeEnabled();

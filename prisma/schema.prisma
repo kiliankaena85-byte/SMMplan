@@ -30,6 +30,7 @@ model User {
   telegramId      String? // Telegram user ID for omnichannel support routing
   phoneHash       String? @unique // SHA-256 hash of verified Telegram contact
   isKycVerified   Boolean @default(false)
+  isEmailVerified Boolean @default(true)
   isActive        Boolean @default(true)
   isDeleted       Boolean @default(false)
 
@@ -1025,6 +1026,7 @@ model Article {
   updatedAt   DateTime      @updatedAt
   authorName  String        @default("Михаил")
   authorRole  String        @default("Системный архитектор прокси-сетей Smmplan")
+  priority    Int           @default(0) // 0-100, used for Drip-Feed publish queue
 
   @@index([category, status])
   @@index([status])

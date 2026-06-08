@@ -119,19 +119,28 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     const waitingUntil = new Date(Date.now() + 60 * 60 * 1000);
     
     // Update order with External ID from provider
-    await db.order.update({
-      where: { id: order.id },
-      data: {
-        externalId: extId,
-        status: 'IN_PROGRESS',
-        waitingUntil
-      }
-    });
+    try {
+      await db.order.update({
+        where: { id: order.id },
+        data: {
+          externalId: extId,
+          status: 'IN_PROGRESS',
+          waitingUntil
+        }
+      });
+    } catch (dbError) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (dbError as any).isDatabaseError = true;
+      throw dbError;
+    }
 
     console.info(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    if (error.isDatabaseError) {
+      throw error;
+    }
     // === AMBIGUOUS TIMEOUT PROTECTION (P0) ===
     // If the error is a network timeout (not an explicit API rejection), the provider 
     // MIGHT have accepted the order but failed to respond. A fail-fast refund here

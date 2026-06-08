@@ -201,13 +201,12 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
       if (initialData) {
         await updateProvider(initialData.id, payload);
         toast.success('Настройки провайдера сохранены.');
+        router.refresh();
       } else {
         await createProvider(payload);
         toast.success('Провайдер успешно добавлен.');
         router.push('/admin/providers');
       }
-
-      router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Неизвестная ошибка';
       toast.error(msg);

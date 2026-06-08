@@ -8,6 +8,9 @@
   /* ── Card ── */
   --color-card: #ffffff; /* Pure white cards stand out on slate-50 */
   --color-card-foreground: #0f172a;
+  
+  /* ── HeroUI Content Tokens (Fallbacks for Tailwind 4) ── */
+  --color-content1: var(--color-card);
 
   /* ── Popover ── */
   --color-popover: #ffffff;

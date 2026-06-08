@@ -325,11 +325,13 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
               : [];
            const availableCats = matchedCats.length > 0 ? matchedCats : catsForNet;
            if (availableCats.length > 0 && !availableCats.some(c => c.id === categoryId)) {
-              setCategoryId(availableCats[0].id);
+              if (!selectedService) {
+                 setCategoryId(availableCats[0].id);
+              }
            }
         }
      }
-  }, [networkId, catalog, categoryId, suggestedCategories]);
+  }, [networkId, catalog, categoryId, suggestedCategories, selectedService]);
 
   // 3. Load Services when Category changes
   useEffect(() => {
@@ -593,6 +595,10 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   if (isMatchingAutodetected && suggestedCategories.length > 0) {
     const filteredCats = availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories));
     if (filteredCats.length > 0) {
+      const currentCat = activeNetwork?.categories.find(c => c.id === categoryId);
+      if (currentCat && !filteredCats.some(c => c.id === categoryId)) {
+        filteredCats.push(currentCat);
+      }
       availableCategories = filteredCats;
     }
   }

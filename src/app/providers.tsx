@@ -4,7 +4,7 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes';
 
 // Фикс для next-themes (поддержка пробелов в именах классов для кастомных темных тем в classList)
 if (typeof window !== 'undefined') {
-  const patchClassList = (proto: any, method: 'add' | 'remove') => {
+  const patchClassList = (proto: DOMTokenList, method: 'add' | 'remove') => {
     const original = proto[method];
     proto[method] = function (...args: string[]) {
       const processed: string[] = [];

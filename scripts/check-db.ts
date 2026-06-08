@@ -38,8 +38,9 @@ async function main() {
 
   console.log('\n--- 1. Transactional Tables Verification ---');
   for (const table of tablesToCheck) {
+    if (!table.model) { continue; }
     try {
-      const count = await table.model.count();
+      const count = await (table.model as any).count();
       if (count > 0) {
         console.error(`[FAIL] Table ${table.name} has ${count} records. Should be 0.`);
         failed = true;

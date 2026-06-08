@@ -18,7 +18,7 @@ export function getEncodedKey() {
 
 import { getClientIp } from '@/utils/ip';
 
-export async function createSession(userId: string) {
+export async function createSession(userId: string, canResetPassword: boolean = false) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 дней
   
   const reqHeaders = await cookies().then(() => headers()); // await context
@@ -36,22 +36,30 @@ export async function createSession(userId: string) {
   });
 
   // Шифруем ID сессии в JWT
-  const sessionToken = await new SignJWT({ sessionId: session.id, userId })
+  const sessionToken = await new SignJWT({ sessionId: session.id, userId, canResetPassword })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
     .sign(getEncodedKey());
     
-  // Clear explicit logout cookie if it exists
-  (await cookies()).delete('explicit_logout');
+  try {
+    // Clear explicit logout cookie if it exists
+    (await cookies()).delete('explicit_logout');
 
-  (await cookies()).set('session_token', sessionToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    expires: expiresAt,
-    sameSite: 'lax',
-    path: '/',
-  });
+    (await cookies()).set('session_token', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      expires: expiresAt,
+      sameSite: 'lax',
+      path: '/',
+    });
+  } catch (err) {
+    // In Route Handlers (GET/etc) cookies() is read-only and throws an error.
+    // The caller must use the returned sessionToken to set the cookie manually on the Response.
+    console.warn('[Session] Failed to set cookie (expected in Route Handlers):', err instanceof Error ? err.message : String(err));
+  }
+
+  return { sessionToken, expiresAt };
 }
 
 export async function verifySession() {
@@ -76,7 +84,7 @@ export async function verifySession() {
       if (process.env.NODE_ENV === 'development') {
         console.info("[verifySession] devUser found:", !!devUser);
       }
-      if (devUser) return { userId: devUser.id };
+      if (devUser) return { userId: devUser.id, canResetPassword: false };
     }
     return null;
   }
@@ -91,15 +99,20 @@ export async function verifySession() {
       where: { id: sessionId },
       include: { user: true }
     });
-    if (!session) return null;
+    if (!session) {
+      console.log('[verifySession] null because: session not found in DB', payload.sessionId);
+      return null;
+    }
 
     const user = session.user;
     if (!user || user.isDeleted === true || user.isActive === false) {
+      console.log('[verifySession] null because: user missing or deleted/inactive', user?.id, 'isDeleted:', user?.isDeleted, 'isActive:', user?.isActive);
       return null;
     }
 
     // W3-1 SECURITY FIX: Enforce database-level session expiration
     if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+      console.log('[verifySession] null because: session expired in DB', session.expiresAt);
       return null;
     }
 
@@ -137,7 +150,10 @@ export async function verifySession() {
       });
     }
 
-    return { userId: payload.userId as string };
+    return { 
+      userId: user.id,
+      canResetPassword: payload.canResetPassword === true
+    };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
     // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.

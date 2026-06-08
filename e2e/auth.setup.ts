@@ -43,7 +43,7 @@ setup('authenticate', async ({ page, context }) => {
     {
       name: 'session_token',
       value: sessionToken,
-      domain: 'localhost',
+      domain: '127.0.0.1',
       path: '/',
       httpOnly: true,
       secure: false, // http running locally

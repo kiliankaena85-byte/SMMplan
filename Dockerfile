@@ -26,6 +26,16 @@ ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholde
 # Generate prisma client and build next.js
 RUN npx prisma generate
 RUN npm run build
+RUN rm -rf node_modules/@next/swc-*
+
+# Prepare production dependencies only
+FROM base AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json* .npmrc* ./
+COPY prisma ./prisma
+RUN npm ci --omit=dev --legacy-peer-deps
+RUN npm install tsx typescript @types/node --no-save
+RUN npx prisma generate
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -42,17 +52,17 @@ RUN adduser --system --uid 1001 nextjs
 # Copy configuration files
 COPY package.json tsconfig.json ./
 # Copy prisma client & schema for run-time operations (e.g. migrate deploy script)
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 # Copy scripts for data management
-COPY --from=builder /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 # Copy src code for bot/workers not included in Next.js standalone
-COPY --from=builder /app/src ./src
+COPY --from=builder --chown=nextjs:nodejs /app/src ./src
 # Next.js standalone output doesn't include node_modules completely safely if they rely on binaries. 
 # But it does bundle prisma via webpack. However, for migrate deploy we need the cli.
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy public directory for static assets
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Set the correct permission for prerender cache
 RUN mkdir .next

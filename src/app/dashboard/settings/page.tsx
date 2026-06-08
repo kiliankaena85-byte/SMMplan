@@ -2,6 +2,7 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import {
   User, Mail, Calendar, Shield,
   CreditCard, TrendingUp, Settings, Star,
@@ -20,6 +21,8 @@ export const metadata = {
 export default async function ClientSettingsPage() {
   const session = await verifySession();
   if (!session) redirect('/login');
+
+  const canResetPassword = session.canResetPassword === true;
 
   const user = await db.user.findUnique({
     where: { id: session.userId },
@@ -144,7 +147,7 @@ export default async function ClientSettingsPage() {
       <TelegramCard telegramId={user.telegramId} />
 
       {/* Password Management */}
-      <PasswordCard hasPassword={!!user.passwordHash} />
+      <PasswordCard hasPassword={!!user.passwordHash} canResetPassword={canResetPassword} />
 
       {/* Account Soft Deletion */}
       <DeleteAccountCard hasPassword={!!user.passwordHash} />

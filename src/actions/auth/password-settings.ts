@@ -15,7 +15,7 @@ const setPasswordSchema = z.object({
 });
 
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Введите текущий пароль"),
+  currentPassword: z.string().optional(),
   newPassword: z.string().min(8, "Новый пароль должен состоять как минимум из 8 символов"),
   confirmPassword: z.string()
 }).refine(data => data.newPassword === data.confirmPassword, {
@@ -81,6 +81,13 @@ export async function changePasswordAction(formData: FormData) {
 
   const { currentPassword, newPassword } = parsed.data;
 
+  // Проверяем, авторизовался ли пользователь через Magic Link недавно
+  const canResetPassword = session.canResetPassword === true;
+
+  if (!canResetPassword && !currentPassword) {
+    return { success: false, error: 'Введите текущий пароль' };
+  }
+
   try {
     const user = await db.user.findUnique({
       where: { id: session.userId },
@@ -95,9 +102,11 @@ export async function changePasswordAction(formData: FormData) {
       return { success: false, error: 'У вас не установлен пароль. Пожалуйста, сначала установите пароль.' };
     }
 
-    const isMatch = await verifyPassword(currentPassword, user.passwordHash);
-    if (!isMatch) {
-      return { success: false, error: 'Неверный текущий пароль' };
+    if (!canResetPassword) {
+      const isMatch = await verifyPassword(currentPassword as string, user.passwordHash);
+      if (!isMatch) {
+        return { success: false, error: 'Неверный текущий пароль' };
+      }
     }
 
     const hashed = await hashPassword(newPassword);
@@ -111,6 +120,9 @@ export async function changePasswordAction(formData: FormData) {
     await db.session.deleteMany({
       where: { userId: session.userId }
     });
+
+    // Create a new session for the current device (and clear canResetPassword flag)
+    await import('@/lib/session').then(m => m.createSession(session.userId, false));
 
     revalidatePath('/dashboard/settings');
     return { success: true };

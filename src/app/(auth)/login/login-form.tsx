@@ -3,6 +3,7 @@
 import { useState, useTransition, useActionState } from 'react';
 import { requestMagicLink } from '@/actions/auth/request-magic-link';
 import { loginWithPasswordAction } from '@/actions/auth/password-login';
+import { registerWithPasswordAction } from '@/actions/auth/password-register';
 import { Mail, Loader2, CheckCircle2, ArrowRight, Eye, EyeOff, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -12,7 +13,7 @@ const inputCls =
   'focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200';
 
 export function LoginForm() {
-  const [activeTab, setActiveTab] = useState<'magic' | 'password'>('password'); // Password by default
+  const [activeTab, setActiveTab] = useState<'magic' | 'password' | 'register'>('password'); // Password by default
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -25,6 +26,11 @@ export function LoginForm() {
   // 2. Password login states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // 3. Password registration states
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerPending, setRegisterPending] = useState(false);
 
   const toggleShowPassword = () => setShowPassword(!showPassword);
 
@@ -49,9 +55,35 @@ export function LoginForm() {
         if (res.redirectTo) {
           window.location.href = res.redirectTo;
         }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-      } catch (err: any) {
+      } catch {
         toast.error('Произошла непредвиденная ошибка. Пожалуйста, попробуйте позже.');
+      }
+    });
+  };
+
+  const handleRegisterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!registerEmail || !registerPassword) return;
+
+    setRegisterPending(true);
+    startTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.append('email', registerEmail);
+        formData.append('password', registerPassword);
+
+        const res = await registerWithPasswordAction(null, formData);
+        if (!res.success) {
+          toast.error(res.error || 'Ошибка при регистрации');
+          setRegisterPending(false);
+          return;
+        }
+
+        toast.success(res.message || 'Регистрация успешна! Проверьте почту.');
+        setActiveTab('password');
+      } catch {
+        toast.error('Произошла непредвиденная ошибка при регистрации.');
+        setRegisterPending(false);
       }
     });
   };
@@ -90,7 +122,7 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setActiveTab('password')}
-          className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all duration-200 ${
+          className={`flex-1 py-2 px-2 text-xs font-bold rounded-lg transition-all duration-200 ${
             activeTab === 'password'
               ? 'bg-card text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
@@ -101,13 +133,24 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setActiveTab('magic')}
-          className={`flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all duration-200 ${
+          className={`flex-1 py-2 px-2 text-xs font-bold rounded-lg transition-all duration-200 ${
             activeTab === 'magic'
               ? 'bg-card text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           Войти по ссылке
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('register')}
+          className={`flex-1 py-2 px-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+            activeTab === 'register'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Регистрация
         </button>
       </div>
 
@@ -226,6 +269,75 @@ export function LoginForm() {
             ) : (
               <>
                 Получить ссылку
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </form>
+      )}
+
+      {/* Tab 3: Password Registration */}
+      {activeTab === 'register' && (
+        <form onSubmit={handleRegisterSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="register-email" className="block text-sm font-medium text-foreground">
+              Email адрес
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                id="register-email"
+                type="email"
+                required
+                placeholder="name@example.com"
+                value={registerEmail}
+                onChange={(e) => setRegisterEmail(e.target.value)}
+                className={`${inputCls} pl-10`}
+                aria-label="Email адрес для регистрации"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="register-password" className="block text-sm font-medium text-foreground">
+              Пароль
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                id="register-password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                placeholder="Создайте пароль (мин. 6 символов)"
+                value={registerPassword}
+                onChange={(e) => setRegisterPassword(e.target.value)}
+                className={`${inputCls} pl-10 pr-10`}
+                aria-label="Пароль для регистрации"
+              />
+              <button
+                type="button"
+                onClick={toggleShowPassword}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={registerPending || !registerEmail || registerPassword.length < 6}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all duration-200 shadow-sm cursor-pointer font-bold"
+          >
+            {registerPending ? (
+              <>
+                <Loader2 className="animate-spin w-4 h-4" />
+                Регистрация...
+              </>
+            ) : (
+              <>
+                Создать аккаунт
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

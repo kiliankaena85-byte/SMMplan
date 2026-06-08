@@ -46,8 +46,9 @@ async function main() {
   const deletionCounts: Record<string, number> = {};
 
   for (const table of tablesToEmpty) {
+    if (!table.model) { continue; }
     try {
-      const result = await table.model.deleteMany({});
+      const result = await (table.model as any).deleteMany({});
       deletionCounts[table.name] = result.count;
       console.log(`[EMPTY] Table ${table.name}: deleted ${result.count} records.`);
     } catch (error) {

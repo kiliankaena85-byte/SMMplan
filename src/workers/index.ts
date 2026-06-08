@@ -10,6 +10,7 @@ import {
   ensureOrphanSweepCron, 
   ensurePaymentSyncCron, 
   ensureDripfeedCron,
+  ensureArticlePublishCron,
   dlqQueue, 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cleanupQueue, 
@@ -20,7 +21,9 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   paymentSyncQueue,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  refillQueue
+  refillQueue,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  articlePublishQueue
 } from '../lib/queue-manager';
 import { sendAdminAlert, sendAdminAlertSync } from '../lib/notifications';
 import orderProcessor from './processors/order.processor';
@@ -30,6 +33,7 @@ import { runETARecalculation } from './processors/eta.processor';
 import catalogProcessor from './processors/catalog.processor';
 import paymentSyncProcessor from './processors/payment-sync';
 import refillProcessor from './processors/refill.processor';
+import articlePublishProcessor from './processors/article-publish.processor';
 import { orderService } from '../services/core/order.service';
 
 const log = logger.child({ component: 'WorkerManager' });
@@ -67,6 +71,7 @@ const telegramWorker = new Worker('telegram-notifications', async (job) => {
 const etaWorker = new Worker('eta-recalc', async () => { await runETARecalculation(); }, workerConfig);
 const paymentSyncWorker = new Worker('paymentSyncQueue', paymentSyncProcessor, workerConfig);
 const refillWorker = new Worker('refillQueue', refillProcessor, workerConfig);
+const articlePublishWorker = new Worker('articlePublishQueue', articlePublishProcessor, workerConfig);
 
 // ── P2.1: DLQ — Dead Letter Queue handler ────────────────────────────────────
 const MAX_ATTEMPTS = 3; // Must match createQueue defaults
@@ -144,6 +149,7 @@ cleanupWorker.on('failed', (job, err) => { log.error('Cleanup job failed', { err
 telegramWorker.on('failed', (job, err) => { log.error('Telegram notification failed', { error: err.message }); });
 paymentSyncWorker.on('failed', (job, err) => { handleDeadLetter('paymentSyncQueue', job, err); });
 refillWorker.on('failed', (job, err) => { handleDeadLetter('refillQueue', job, err); });
+articlePublishWorker.on('failed', (job, err) => { handleDeadLetter('articlePublishQueue', job, err); });
 
 // ── P0.3: Worker heartbeat (Redis key, renewed every 60s) ─────────────────────
 // health endpoint checks for this key; if missing → worker is down
@@ -169,8 +175,9 @@ ensureCatalogSyncCron().catch(e => log.error('Failed to setup Catalog Sync Cron'
 ensureOrphanSweepCron().catch(e => log.error('Failed to setup Orphan Sweep Cron', { error: (e as Error).message }));
 ensurePaymentSyncCron().catch(e => log.error('Failed to setup Payment Sync Cron', { error: (e as Error).message }));
 ensureDripfeedCron().catch(e => log.error('Failed to setup Dripfeed Cron', { error: (e as Error).message }));
+ensureArticlePublishCron().catch(e => log.error('Failed to setup Article Publish Cron', { error: (e as Error).message }));
 
-log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue'] });
+log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue', 'articlePublishQueue'] });
 
 // ── Graceful Shutdown (12-Factor App) ────────────────────────────────────────
 const shutdown = async () => {
@@ -186,6 +193,7 @@ const shutdown = async () => {
     telegramWorker.close(),
     etaWorker.close(),
     paymentSyncWorker.close(),
+    articlePublishWorker.close(),
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();

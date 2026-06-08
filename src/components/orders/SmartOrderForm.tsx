@@ -153,18 +153,21 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
                 <OrderGuideWidget />
               )
             )}
-            {services.map(srv => (
+            {services.map(srv => {
+              const isQuarantined = srv.cooldownUntil && new Date(srv.cooldownUntil) > new Date();
+              return (
               <button
                 key={srv.id}
                 type="button"
                 role="option"
+                disabled={!!isQuarantined}
                 aria-selected={selectedService?.id === srv.id}
-                onClick={() => setSelectedService(selectedService?.id === srv.id ? null : srv)}
+                onClick={() => !isQuarantined && setSelectedService(selectedService?.id === srv.id ? null : srv)}
                 className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
                   selectedService?.id === srv.id
                     ? 'ring-2 ring-primary bg-primary/5 shadow-sm'
                     : 'ring-1 ring-border bg-card hover:ring-primary/50 hover:bg-muted hover:shadow-md hover:-translate-y-0.5 shadow-sm'
-                }`}
+                } ${isQuarantined ? 'opacity-50 cursor-not-allowed grayscale' : 'cursor-pointer'}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -193,9 +196,14 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
                     </div>
                     <div className="text-[10px] font-bold text-muted-foreground tracking-wider">/ шт</div>
                   </div>
+                  {isQuarantined && (
+                    <div className="mt-2 text-[10px] font-semibold text-warning bg-warning/10 rounded-lg px-2 py-1 w-max">
+                      ⏳ Временно недоступен
+                    </div>
+                  )}
                 </div>
               </button>
-            ))}
+            )})}
           </div>
 
           {/* Mobile Service Selector */}

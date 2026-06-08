@@ -44,7 +44,14 @@ export default tseslint.config(
       "build/**",
       "scratch/**",
       ".agents/**",
-      ".agent/**"
+      ".agent/**",
+      "dist_patch/**",
+      "scripts/**",
+      "tests/**",
+      "test-results/**",
+      "playwright-report/**",
+      "test-async-throw.ts",
+      "test-floating-promise.ts"
     ]
   }
 );

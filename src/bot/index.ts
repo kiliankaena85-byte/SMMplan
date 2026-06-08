@@ -221,30 +221,181 @@ bot.start(async (ctx: any) => {
   );
 });
 
+// Helper to render network list (Catalog Level 1)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function renderNetworkCatalog(ctx: any) {
+  const networks = await db.network.findMany({
+    where: {
+      isActive: true,
+      categories: { some: { services: { some: { isActive: true } } } }
+    },
+    orderBy: { sort: 'asc' }
+  });
+  if (networks.length === 0) {
+    const text = '😔 Каталог пока пуст.';
+    return ctx.callbackQuery ? ctx.editMessageText(text) : ctx.reply(text);
+  }
+
+  const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
+  const text = '🛍 <b>Каталог услуг Smmplan</b>\nВыберите интересующую вас социальную сеть:';
+
+  if (ctx.callbackQuery) {
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(text, {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard(buttons)
+    }).catch(() => {});
+  } else {
+    await ctx.reply(text, {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard(buttons)
+    });
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 bot.hears('🛍 Каталог', async (ctx: any) => {
-  // Show list of active services as simple buttons
-  const services = await db.service.findMany({
-    where: { isActive: true },
-    take: 20,
-    orderBy: { numericId: 'asc' },
-    select: { id: true, name: true, minQty: true, maxQty: true, isDripFeedEnabled: true }
-  });
-  if (services.length === 0) return ctx.reply('😔 Каталог пока пуст.');
+  try {
+    await renderNetworkCatalog(ctx);
+  } catch (err) {
+    console.error('[Bot Catalog] Error:', err);
+    await ctx.reply('⚠️ Ошибка при загрузке каталога. Попробуйте позже.');
+  }
+});
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buttons = services.map((s: any) => [Markup.button.callback(s.name, `order_svc_${s.id}`)]);
-  await ctx.reply('🛍 <b>Каталог услуг:</b>\nВыберите услугу для заказа:', {
-    parse_mode: 'HTML',
-    ...Markup.inlineKeyboard(buttons)
-  });
+// Callback handler: Back to networks list
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+bot.action('cat_back_networks', async (ctx: any) => {
+  try {
+    await renderNetworkCatalog(ctx);
+  } catch (err) {
+    console.error('[Bot Catalog Back Networks] Error:', err);
+    await ctx.answerCbQuery('Произошла ошибка');
+  }
+});
+
+// Callback handler: Select Network -> Show Categories
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+bot.action(/^cat_net_(.+)$/, async (ctx: any) => {
+  const netId = ctx.match[1];
+  try {
+    const network = await db.network.findUnique({ where: { id: netId } });
+    if (!network) return ctx.answerCbQuery('Социальная сеть не найдена');
+
+    const categories = await db.category.findMany({
+      where: {
+        networkId: netId,
+        services: { some: { isActive: true } }
+      },
+      orderBy: { sort: 'asc' }
+    });
+
+    if (categories.length === 0) {
+      return ctx.answerCbQuery('В этой соцсети пока нет доступных категорий');
+    }
+
+    const buttons = categories.map((c: { id: string; name: string }) => [Markup.button.callback(c.name, `cat_ctg_${c.id}`)]);
+    buttons.push([Markup.button.callback('⬅️ Назад к списку сетей', 'cat_back_networks')]);
+
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(`🛍 <b>Каталог: ${network.name}</b>\nВыберите категорию услуг:`, {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard(buttons)
+    }).catch(() => {});
+  } catch (err) {
+    console.error('[Bot Catalog Network Select] Error:', err);
+    await ctx.answerCbQuery('Произошла ошибка');
+  }
+});
+
+// Callback handler: Select Category -> Show Services
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+bot.action(/^cat_ctg_(.+)$/, async (ctx: any) => {
+  const catId = ctx.match[1];
+  try {
+    const category = await db.category.findUnique({
+      where: { id: catId },
+      include: { network: true }
+    });
+    if (!category) return ctx.answerCbQuery('Категория не найдена');
+
+    const { SettingsProvider } = await import('@/lib/settings');
+    const { calculatePricePerUnit, formatPricePerUnit } = await import('./utils/formatter');
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+
+    const services = await db.service.findMany({
+      where: { categoryId: catId, isActive: true },
+      orderBy: { rate: 'asc' },
+      select: { id: true, name: true, rate: true, markup: true, providerCurrency: true }
+    });
+
+    if (services.length === 0) {
+      return ctx.answerCbQuery('В этой категории пока нет доступных тарифов');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buttons = services.map((s: any) => {
+      const pricePerUnit = calculatePricePerUnit(s, usdToRub);
+      const label = `${s.name} — ${formatPricePerUnit(pricePerUnit)} ₽ / шт`;
+      return [Markup.button.callback(label, `order_svc_${s.id}`)];
+    });
+    buttons.push([Markup.button.callback('⬅️ Назад к категориям', `cat_back_net_${category.networkId}`)]);
+
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(`🛍 <b>Каталог: ${category.network?.name} / ${category.name}</b>\nВыберите услугу для оформления заказа:`, {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard(buttons)
+    }).catch(() => {});
+  } catch (err) {
+    console.error('[Bot Catalog Category Select] Error:', err);
+    await ctx.answerCbQuery('Произошла ошибка');
+  }
+});
+
+// Callback handler: Back to categories from service confirmation
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+bot.action(/^cat_back_net_(.+)$/, async (ctx: any) => {
+  const netId = ctx.match[1];
+  try {
+    const network = await db.network.findUnique({ where: { id: netId } });
+    if (!network) return ctx.answerCbQuery('Социальная сеть не найдена');
+
+    const categories = await db.category.findMany({
+      where: {
+        networkId: netId,
+        services: { some: { isActive: true } }
+      },
+      orderBy: { sort: 'asc' }
+    });
+
+    const buttons = categories.map((c: { id: string; name: string }) => [Markup.button.callback(c.name, `cat_ctg_${c.id}`)]);
+    buttons.push([Markup.button.callback('⬅️ Назад к списку сетей', 'cat_back_networks')]);
+
+    await ctx.answerCbQuery();
+    await ctx.editMessageText(`🛍 <b>Каталог: ${network.name}</b>\nВыберите категорию услуг:`, {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard(buttons)
+    }).catch(() => {});
+  } catch (err) {
+    console.error('[Bot Catalog Back Net] Error:', err);
+    await ctx.answerCbQuery('Произошла ошибка');
+  }
 });
 
 // Inline handler: Start order wizard with pre-selected service
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 bot.action(/^order_svc_(.+)$/, async (ctx: any) => {
   const serviceId = ctx.match[1];
-  const service = await db.service.findUnique({ where: { id: serviceId } });
+  const service = await db.service.findUnique({
+    where: { id: serviceId },
+    include: {
+      category: {
+        include: {
+          network: true
+        }
+      }
+    }
+  });
   if (!service) return ctx.answerCbQuery('Услуга не найдена');
   await ctx.answerCbQuery();
   return ctx.scene.enter(ORDER_WIZARD, { preSelectedService: service });

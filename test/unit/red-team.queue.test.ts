@@ -140,4 +140,30 @@ describe('Red Team: BullMQ Retry & Partial Failure Safety', () => {
       })
     });
   });
+
+  it('should propagate database write/transaction failure and not fail-fast or refund customer', async () => {
+    const { db } = await import('../../src/lib/db');
+    const { orderService } = await import('../../src/services/core/order.service');
+    
+    const order = mockOrder();
+    vi.mocked(db.order.findUnique).mockResolvedValue(order);
+
+    // Mock provider success
+    mocks.mockCreateOrder.mockResolvedValueOnce({ order: 'ext-success-123' });
+
+    // Mock db.order.update to throw an error (simulating db write/transaction failure during success path update)
+    mocks.mockOrderDbUpdate.mockRejectedValueOnce(new Error('Prisma database connection error'));
+
+    // Spy on failOrderTerminalFast to verify it is NOT called
+    const failOrderTerminalFastSpy = vi.spyOn(orderService, 'failOrderTerminalFast');
+
+    // Verify that the order processor propagates the exception, allowing BullMQ to retry the job
+    await expect(orderProcessor(fakeJob({ orderId: 'ord-red-1' }))).rejects.toThrow('Prisma database connection error');
+
+    // Ensure failOrderTerminalFast was NOT called (no instant terminal refund/fail)
+    expect(failOrderTerminalFastSpy).not.toHaveBeenCalled();
+    
+    // Restore the spy
+    failOrderTerminalFastSpy.mockRestore();
+  });
 });

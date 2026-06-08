@@ -33,6 +33,10 @@ const articleSchema = z.object({
     (val) => (val === "" || val === undefined || val === null) ? "Системный архитектор прокси-сетей Smmplan" : val,
     z.string().min(2, "Роль автора должна состоять минимум из 2 символов").max(200).optional()
   ),
+  priority: z.preprocess(
+    (val) => (val === "" || val === undefined || val === null) ? 0 : Number(val),
+    z.number().int().min(0).max(100).optional().default(0)
+  ),
 });
 
 // Admin Check helper for view detail protection
@@ -276,6 +280,7 @@ export async function createArticle(data: {
   category: string;
   authorName?: string;
   authorRole?: string;
+  priority?: number;
 }) {
   await enforcePageRole(["ADMIN", "OWNER"]);
 
@@ -320,6 +325,7 @@ export async function updateArticle(id: string, data: {
   category: string;
   authorName?: string;
   authorRole?: string;
+  priority?: number;
 }) {
   await enforcePageRole(["ADMIN", "OWNER"]);
 

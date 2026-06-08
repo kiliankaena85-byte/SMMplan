@@ -23,111 +23,93 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
   const cleanEmail = parsed.data.email.toLowerCase();
 
-  let shouldRedirectToAdmin = false;
-
   try {
-    // [SAFE BYPASS] Только для локальной разработки! 
-    if (
-      (process.env.NODE_ENV !== "production" || process.env.ALLOW_DEV_BYPASS_IN_PROD === "true") &&
-      process.env.DEV_BYPASS_EMAIL &&
-      cleanEmail === process.env.DEV_BYPASS_EMAIL.toLowerCase()
-    ) {
+    const isIpAllowed = await RateLimitService.check('auth:magic-link:ip', 15, 3600);
+    if (!isIpAllowed) {
+      log.warn('Magic link rate limit exceeded IP', { email: cleanEmail });
+      return { error: "Слишком много запросов. Пожалуйста, подождите 1 час перед новым запросом.", success: false };
+    }
 
-      let user = await db.user.findUnique({ where: { email: cleanEmail } });
+    const cookieStore = await cookies();
+    const refCode = cookieStore.get("ref")?.value;
+    let referredById = null;
+
+    if (refCode) {
+      const referrer = await db.user.findUnique({ where: { referralCode: refCode } });
+      if (referrer) referredById = referrer.id;
+    }
+
+    const txResult = await db.$transaction(async (tx) => {
+      let isNewUser = false;
+      let user = await tx.user.findUnique({ where: { email: cleanEmail } });
+
+      if (user && (user.isDeleted || !user.isActive)) {
+        return { type: 'blocked' as const };
+      }
+
       if (!user) {
-        user = await db.user.create({ data: { email: cleanEmail, role: "OWNER" } });
-      } else if (user.role !== "OWNER") {
-        user = await db.user.update({ where: { id: user.id }, data: { role: "OWNER" } });
+        isNewUser = true;
+        const isIpAllowedForReg = await RateLimitService.check('auth:register:ip', 3, 86400);
+        if (!isIpAllowedForReg) {
+          return { type: 'rate_limit_reg' as const };
+        }
+
+        const ownerCount = await tx.user.count({ where: { role: "OWNER" } });
+        const role = ownerCount === 0 ? "OWNER" : "USER";
+        user = await tx.user.create({ data: { email: cleanEmail, role, referredById } });
       }
-      
-      const { createSession } = await import("@/lib/session");
-      await createSession(user.id);
 
-      shouldRedirectToAdmin = true;
-    }
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 минут
 
-    if (!shouldRedirectToAdmin) {
-    let user = await db.user.findUnique({ where: { email: cleanEmail } });
-    if (user && (user.isDeleted || !user.isActive)) {
+      await tx.authToken.deleteMany({ where: { userId: user.id, expiresAt: { lt: new Date() } } });
+      await tx.authToken.create({
+        data: {
+          userId: user.id,
+          token: hashedToken,
+          expiresAt,
+        },
+      });
+
+      return { type: 'success' as const, user, isNewUser, rawToken };
+    }, { isolationLevel: 'Serializable' });
+
+    if (txResult.type === 'blocked') {
       log.warn('Magic link requested for blocked/deleted account', { email: cleanEmail });
-      return { error: "Неверный email или пароль", success: false };
-    }
-    if (!user) {
-      // P1.3 Anti-Fraud: Strict IP limit for new registrations (Max 3 per 24 hours)
-      const isIpAllowedForReg = await RateLimitService.check('auth:register:ip', 3, 86400);
-      if (!isIpAllowedForReg) {
-        log.warn('Registration IP rate limit exceeded (Anti-Fraud blocked attempt)');
-        return { error: "Превышен лимит регистраций с вашего IP. Попробуйте завтра.", success: false };
-      }
-
-      // Пытаемся получить реферальный код из куки
-      const cookieStore = await cookies();
-      const refCode = cookieStore.get("ref")?.value;
-      let referredById = null;
-
-      if (refCode) {
-        const referrer = await db.user.findUnique({ where: { referralCode: refCode } });
-        // Anti-Fraud: Prevent circular referrals or self-referrals (handled by logic down the line, but we link it here)
-        if (referrer) referredById = referrer.id;
-      }
-
-      // Авто-bootstrap: Если в базе еще нет ни одного Владельца, этот юзер им станет
-      const ownerCount = await db.user.count({ where: { role: "OWNER" } });
-      const role = ownerCount === 0 ? "OWNER" : "USER";
-      user = await db.user.create({ data: { email: cleanEmail, role, referredById } });
-      
-      // Send Welcome Letter asynchronously
-      sendWelcomeLetter(cleanEmail).catch(console.error);
-    } else {
-      // Loose IP limit for existing logins (Max 15 per hour)
-      const isIpAllowedForLogin = await RateLimitService.check('auth:login:ip', 15, 3600);
-      if (!isIpAllowedForLogin) {
-        log.warn('Login IP rate limit exceeded');
-        return { error: "Слишком много попыток входа с этого IP адреса. Пожалуйста, подождите 1 час.", success: false };
-      }
-    }
-
-    // P1.2: Email-level rate limiting — 3 requests per 5 minutes per email
-    // Protects against email-bombing attacks
-    const isAllowed = await RateLimitService.checkCustomKey(
-      `magic-link:${cleanEmail}`,
-      3,   // max 3 requests
-      300  // per 5 minutes (300 seconds)
-    );
-
-    if (!isAllowed) {
-      log.warn('Magic link rate limit exceeded', { email: cleanEmail });
-      return { error: "Слишком много запросов. Пожалуйста, подождите 5 минут перед новым запросом.", success: false };
-    }
-
-    // Генерируем секретный токен (используем crypto для надежности)
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 минут
-
-    await db.authToken.create({
-      data: {
-        userId: user.id,
-        token: hashedToken, // Безопасное хранение хэша в БД
-        expiresAt,
-      },
-    });
-
-    // Отправляем линк
-    await sendMagicLink(cleanEmail, rawToken);
-
-    }
-
-    if (!shouldRedirectToAdmin) {
       return { success: true, error: null };
     }
-  } catch (error) {
-    log.error('Magic link request failed', { error: (error as Error).message });
-    return { error: "Что-то пошло не так. Попробуйте еще раз.", success: false };
-  }
 
-  if (shouldRedirectToAdmin) {
-    const { redirect } = await import("next/navigation");
-    redirect("/admin/dashboard");
+    if (txResult.type === 'rate_limit_reg') {
+      log.warn('Registration IP rate limit exceeded (Anti-Fraud blocked attempt)');
+      return { success: true, error: null };
+    }
+
+    const { user, isNewUser, rawToken } = txResult;
+
+    try {
+      await sendMagicLink(cleanEmail, rawToken);
+      if (isNewUser) {
+        sendWelcomeLetter(cleanEmail).catch(console.error);
+      }
+    } catch (smtpError) {
+      log.error('Magic link SMTP error', { error: smtpError });
+      console.error("Exact SMTP error:", smtpError);
+      if (isNewUser) {
+        log.info('Deleting newly created user due to SMTP failure', { email: cleanEmail });
+        try {
+          await db.user.delete({ where: { id: user.id } });
+        } catch (e) {
+          log.error('Failed to delete newly created user', { error: e });
+        }
+      }
+      return { error: "Не удалось отправить письмо. Проверьте правильность email или попробуйте позже.", success: false };
+    }
+
+    return { success: true, error: null };
+  } catch (error) {
+    console.error("DEBUG ERROR", error);
+    log.error('Magic link request failed', { error: error instanceof Error ? error.message : String(error) });
+    return { error: "Произошла ошибка при обработке запроса", success: false };
   }
 }

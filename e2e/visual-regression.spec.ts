@@ -452,22 +452,28 @@ test.describe('Visual Regression QA for Admin Panel', () => {
     const warningConfirmContainer = mobilePage.locator('div.bg-warning\\/5').first();
     await expect(warningConfirmContainer).toBeVisible();
 
-    // 7. Нажимаем кнопку оплаты без активации согласия
+    // 7. Сначала активируем обход проверки ссылки (так как ссылка на пост, а категория подписчиков)
+    const overrideBtn = mobilePage.locator('button:has-text("Я уверен, что ссылка верная")').first();
+    await expect(overrideBtn).toBeVisible();
+    await overrideBtn.click();
+    await mobilePage.waitForTimeout(1000);
+
+    // 8. Нажимаем кнопку оплаты без активации согласия (чекбокс предупреждения)
     const payBtn = mobilePage.locator('button:has-text("Оплатить")').first();
     await expect(payBtn).toBeVisible();
     await payBtn.click();
     await mobilePage.waitForTimeout(1000);
 
-    // 8. Убеждаемся, что чекбокс согласия подсветился ошибкой (получил класс border-destructive)
+    // 9. Убеждаемся, что чекбокс согласия подсветился ошибкой (получил класс border-destructive)
     await expect(warningConfirmContainer).toHaveClass(/border-destructive/);
 
-    // 9. Кликаем по чекбоксу согласия
+    // 10. Кликаем по чекбоксу согласия
     const checkbox = mobilePage.locator('input#warning-confirm-checkbox').first();
     await expect(checkbox).toBeVisible();
     await checkbox.click();
     await mobilePage.waitForTimeout(1000);
 
-    // 10. Убеждаемся, что класс ошибки ушел
+    // 11. Убеждаемся, что класс ошибки ушел
     await expect(warningConfirmContainer).not.toHaveClass(/border-destructive/);
 
     await mobileContext.close();

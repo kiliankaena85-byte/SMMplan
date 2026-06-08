@@ -6,7 +6,7 @@ import { setPasswordAction, changePasswordAction } from '@/actions/auth/password
 import { Lock, Eye, EyeOff, KeyRound, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function PasswordCard({ hasPassword }: { hasPassword: boolean }) {
+export default function PasswordCard({ hasPassword, canResetPassword = false }: { hasPassword: boolean, canResetPassword?: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   
@@ -74,10 +74,10 @@ export default function PasswordCard({ hasPassword }: { hasPassword: boolean }) 
         </div>
         <div>
           <h2 className="font-semibold text-foreground text-sm">
-            {hasPassword ? 'Смена пароля' : 'Защита аккаунта'}
+            {canResetPassword ? 'Сброс пароля' : hasPassword ? 'Смена пароля' : 'Защита аккаунта'}
           </h2>
           <p className="text-[10px] text-muted-foreground">
-            {hasPassword ? 'Регулярно обновляйте пароль для безопасности' : 'Установите пароль для быстрого входа без почты'}
+            {canResetPassword ? 'Установите новый пароль' : hasPassword ? 'Регулярно обновляйте пароль для безопасности' : 'Установите пароль для быстрого входа без почты'}
           </p>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function PasswordCard({ hasPassword }: { hasPassword: boolean }) 
         )}
 
         <div className="space-y-3.5">
-          {hasPassword && (
+          {hasPassword && !canResetPassword && (
             <div className="space-y-1">
               <label htmlFor="currentPassword" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Текущий пароль
@@ -174,10 +174,10 @@ export default function PasswordCard({ hasPassword }: { hasPassword: boolean }) 
             intent="primary"
             size="sm"
             isAnimated={true}
-            disabled={isPending || !newPassword || !confirmPassword || (hasPassword && !currentPassword)}
+            disabled={isPending || !newPassword || !confirmPassword || (hasPassword && !canResetPassword && !currentPassword)}
             className="rounded-xl shrink-0 w-full sm:w-auto font-semibold px-6 shadow-sm"
           >
-            {isPending ? 'Сохранение...' : hasPassword ? 'Обновить пароль' : 'Установить пароль'}
+            {isPending ? 'Сохранение...' : canResetPassword ? 'Сохранить новый пароль' : hasPassword ? 'Обновить пароль' : 'Установить пароль'}
           </Button>
         </div>
       </form>

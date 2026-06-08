@@ -15,9 +15,7 @@ import { UnifiedPaymentService } from '@/services/financial/unified-payment.serv
 import { escapeHtml } from '../utils/formatter';
 import { formatCents } from '@/lib/utils';
 
-
 export const ORDER_WIZARD = 'order-wizard';
-
 
 /**
  * Resolve Lite User from Telegram context.
@@ -64,7 +62,7 @@ async function showFinalConfirmation(ctx: any) {
         ])
       }
     );
-    return ctx.wizard.selectStep(6);
+    return ctx.wizard.selectStep(7);
   }
   // ---------------------------------------------------------
 
@@ -84,8 +82,14 @@ async function showFinalConfirmation(ctx: any) {
   ctx.wizard.state.orderData.providerCostCents = pricing.providerCostCents;
   ctx.wizard.state.orderData.totalQuantity = totalQuantity;
 
+  const { SettingsProvider } = await import('@/lib/settings');
+  const { calculatePricePerUnit, formatPricePerUnit } = await import('../utils/formatter');
+  const usdToRub = await SettingsProvider.getExchangeRateUSD();
+  const pricePerUnit = calculatePricePerUnit(service, usdToRub);
+
   let summaryText = `🛒 <b>ПОДТВЕРЖДЕНИЕ ЗАКАЗА</b>\n────────────────────\n` +
     `📦 Услуга: <b>${escapeHtml(service.name)}</b>\n` +
+    `💰 Цена: <b>${formatPricePerUnit(pricePerUnit)} ₽ / шт</b>\n` +
     `🔗 Ссылка: <code>${escapeHtml(link)}</code>\n` +
     `🔢 Количество: <b>${totalQuantity.toLocaleString()} шт.</b>\n`;
 
@@ -116,7 +120,7 @@ async function showFinalConfirmation(ctx: any) {
     ])
   });
 
-  return ctx.wizard.selectStep(6);
+  return ctx.wizard.selectStep(7);
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -125,7 +129,7 @@ async function showFinalConfirmation(ctx: any) {
 export const orderWizard = new Scenes.WizardScene(
   ORDER_WIZARD,
 
-  // ШАГ 1: Начало — показать выбранную услугу или запросить ссылку
+  // ШАГ 1 (Index 0): Начало — показать выбранную услугу или запросить ссылку
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     const preSelected = ctx.scene.state?.preSelectedService;
@@ -149,31 +153,76 @@ export const orderWizard = new Scenes.WizardScene(
     return ctx.scene.leave();
   },
 
-  // ШАГ 2: Получение ссылки
+  // ШАГ 2 (Index 1): Получение ссылки и автоматическая валидация
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (!ctx.message?.text) return ctx.reply('Пожалуйста, отправьте текстовую ссылку.');
     const link = ctx.message.text.trim();
 
-    // Basic URL validation
-    if (!link.includes('.') || link.length < 5) {
-      return ctx.reply('❌ <b>Некорректная ссылка.</b> Пришлите ссылку на пост, канал, профиль или видео:', {
-        parse_mode: 'HTML',
-        ...Markup.inlineKeyboard([[Markup.button.callback('❌ Отмена', 'cancel_wizard')]])
-      });
+    const service = ctx.wizard.state.orderData.service;
+    const platformSlug = service.category?.network?.slug?.toUpperCase() || '';
+    const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
+    const { inferTargetTypeFromCategory } = await import('@/utils/target-type');
+    const targetType = service.targetType === 'POST'
+      ? inferTargetTypeFromCategory(service.category?.name)
+      : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
+
+    let normalizedLink = link;
+    let isValid = true;
+    let validationErrorMsg = '';
+
+    try {
+      normalizedLink = mutateLink(link, platformSlug, targetType);
+      const validator = getLinkValidator(platformSlug, targetType);
+      const linkResult = validator.safeParse(normalizedLink);
+      if (!linkResult.success) {
+        isValid = false;
+        validationErrorMsg = linkResult.error.errors[0].message;
+      }
+    } catch (err) {
+      isValid = false;
+      validationErrorMsg = err instanceof Error ? err.message : 'неверный формат';
     }
 
-    ctx.wizard.state.orderData.link = link;
+    if (!isValid) {
+      ctx.wizard.state.orderData.tempLink = normalizedLink;
+      await ctx.reply(
+        `⚠️ <b>Ссылка не прошла проверку:</b>\n${escapeHtml(validationErrorMsg)}\n\n` +
+        `Вы хотите продолжить в обход автоматической проверки или отправить другую ссылку?`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('✅ Продолжить (в обход)', 'bypass_yes')],
+            [Markup.button.callback('❌ Ввести другую', 'bypass_no')],
+            [Markup.button.callback('❌ Отмена заказа', 'cancel_wizard')]
+          ])
+        }
+      );
+      return ctx.wizard.next(); // Переходим на ШАГ 3 (Index 2): Ожидание выбора обхода
+    }
+
+    ctx.wizard.state.orderData.link = normalizedLink;
+    ctx.wizard.state.orderData.isLinkOverridden = false;
     const { minQty, maxQty } = ctx.wizard.state.orderData;
 
     await ctx.reply(
       `⌨️ <b>Введите количество:</b>\nМинимум: <b>${minQty}</b>\nМаксимум: <b>${maxQty}</b>`,
       { parse_mode: 'HTML' }
     );
-    return ctx.wizard.next();
+    return ctx.wizard.selectStep(3); // Переходим на ШАГ 4 (Index 3): Количество
   },
 
-  // ШАГ 3: Количество
+  // ШАГ 3 (Index 2): Обработка выбора обхода (если пользователь вместо кнопки ввёл новый текст)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async (ctx: any) => {
+    if (ctx.message?.text) {
+      ctx.wizard.selectStep(1);
+      return (ctx.wizard.steps[1] as (ctx: unknown) => unknown)(ctx);
+    }
+    return;
+  },
+
+  // ШАГ 4 (Index 3): Количество
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (!ctx.message?.text) return ctx.reply('Введите числовое значение.');
@@ -204,7 +253,7 @@ export const orderWizard = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
-  // ШАГ 4: Обработка выбора Drip-Feed
+  // ШАГ 5 (Index 4): Обработка выбора Drip-Feed
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (ctx.callbackQuery) {
@@ -223,7 +272,7 @@ export const orderWizard = new Scenes.WizardScene(
     return;
   },
 
-  // ШАГ 5: Ввод Runs
+  // ШАГ 6 (Index 5): Ввод Runs
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (!ctx.message?.text) return ctx.reply('Введите число.');
@@ -236,7 +285,7 @@ export const orderWizard = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
-  // ШАГ 6: Ввод Interval
+  // ШАГ 7 (Index 6): Ввод Interval
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async (ctx: any) => {
     if (!ctx.message?.text) return ctx.reply('Введите число.');
@@ -246,7 +295,7 @@ export const orderWizard = new Scenes.WizardScene(
     return showFinalConfirmation(ctx);
   },
 
-  // ШАГ 7: Ожидание подтверждения (noop — handled via action)
+  // ШАГ 8 (Index 7): Ожидание подтверждения (noop — handled via action)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
   async (_ctx: any) => { return; }
 );
@@ -258,7 +307,7 @@ export const orderWizard = new Scenes.WizardScene(
 orderWizard.use(async (ctx: any, next: any) => {
   if (ctx.callbackQuery) {
     const data = ctx.callbackQuery.data;
-    const wizardActions = ['drip_', 'confirm_order', 'cancel_wizard', 'confirm_reqs'];
+    const wizardActions = ['drip_', 'confirm_order', 'cancel_wizard', 'confirm_reqs', 'bypass_'];
     if (!wizardActions.some(p => data.startsWith(p))) {
       await ctx.scene.leave();
       return next();
@@ -269,6 +318,35 @@ orderWizard.use(async (ctx: any, next: any) => {
     return next();
   }
   return next();
+});
+
+// ──────────────────────────────────────────────────────────────
+// ACTION: Bypass Link Validation Choice
+// ──────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+orderWizard.action('bypass_yes', async (ctx: any) => {
+  const tempLink = ctx.wizard.state.orderData.tempLink;
+  ctx.wizard.state.orderData.link = tempLink;
+  ctx.wizard.state.orderData.isLinkOverridden = true;
+  await ctx.answerCbQuery();
+  await ctx.deleteMessage().catch(() => {});
+
+  const { minQty, maxQty } = ctx.wizard.state.orderData;
+  await ctx.reply(
+    `⌨️ <b>Введите количество (в обход проверки):</b>\nМинимум: <b>${minQty}</b>\nМаксимум: <b>${maxQty}</b>`,
+    { parse_mode: 'HTML' }
+  );
+  return ctx.wizard.selectStep(3); // Jump to Quantity step (Index 3)
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+orderWizard.action('bypass_no', async (ctx: any) => {
+  await ctx.answerCbQuery();
+  await ctx.deleteMessage().catch(() => {});
+  await ctx.reply('🚀 <b>Пришлите ссылку еще раз:</b>', {
+    ...Markup.inlineKeyboard([[Markup.button.callback('❌ Отмена', 'cancel_wizard')]])
+  });
+  return ctx.wizard.selectStep(1); // Return to Receive Link step (Index 1)
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -289,7 +367,7 @@ orderWizard.action('confirm_reqs', async (ctx: any) => {
 orderWizard.action('confirm_order', async (ctx: any) => {
   const {
     service, totalQuantity, totalCents, providerCostCents,
-    link, isDripFeed, runs, interval
+    link, isDripFeed, runs, interval, isLinkOverridden
   } = ctx.wizard.state.orderData;
   const tgId = ctx.from.id;
 
@@ -305,6 +383,7 @@ orderWizard.action('confirm_order', async (ctx: any) => {
       const result = await orderService.createOrder(user.id, {
         serviceId: service.id,
         link,
+        isLinkOverridden: isLinkOverridden || false,
         quantity: totalQuantity,
         charge: totalCents,
         providerCost: providerCostCents,

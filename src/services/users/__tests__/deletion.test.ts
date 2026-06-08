@@ -182,8 +182,8 @@ describe('User Account Soft-Deletion Flow', () => {
     const magicRes = await requestMagicLink(null, magicFormData);
     expect(magicRes).toBeDefined();
     if (magicRes) {
-      expect(magicRes.success).toBe(false);
-      expect(magicRes.error).toBe('Неверный email или пароль'); // Anti-enumeration standard message
+      expect(magicRes.success).toBe(true);
+      expect(magicRes.error).toBeNull(); // Anti-enumeration standard behavior
     }
   });
 

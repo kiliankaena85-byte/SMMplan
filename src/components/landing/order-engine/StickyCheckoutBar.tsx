@@ -122,7 +122,7 @@ export function StickyCheckoutBar({
         <button
           type="button"
           onClick={onClearSelection}
-          className="absolute -top-3 -right-3 w-8 h-8 bg-default-100 hover:bg-default-200 text-foreground hover:text-destructive rounded-full flex items-center justify-center border-2 border-primary shadow-lg transition-all z-10"
+          className="absolute -top-3 -right-3 w-8 h-8 bg-card hover:bg-muted text-foreground hover:text-destructive rounded-full flex items-center justify-center border-2 border-primary shadow-lg transition-all z-10"
           title="Сбросить выбор"
         >
           <X className="w-4 h-4" />

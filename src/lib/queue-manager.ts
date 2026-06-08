@@ -142,6 +142,12 @@ export const refillQueue = createQueue<RefillJobPayload>('refillQueue', {
   }
 });
 
+// Article publishing queue payload (empty for cron tick)
+export interface ArticlePublishJobPayload {
+  timestamp: number;
+}
+export const articlePublishQueue = createQueue<ArticlePublishJobPayload>('articlePublishQueue');
+
 
 /**
  * Configure global cron sync job if not exists
@@ -255,6 +261,22 @@ export async function ensureDripfeedCron() {
   );
 }
 
+/**
+ * Article Publisher: Run at 09:00 and 15:00 every day
+ */
+export async function ensureArticlePublishCron() {
+  await articlePublishQueue.add(
+    'article-publish-tick',
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '0 9,15 * * *' // 09:00 and 15:00
+      },
+      jobId: 'article-publish-singleton'
+    }
+  );
+}
+
 export const closeQueues = async () => {
     await ordersQueue.close();
     await refillQueue.close();
@@ -264,5 +286,6 @@ export const closeQueues = async () => {
     await telegramQueue.close();
     await etaQueue.close();
     await paymentSyncQueue.close();
+    await articlePublishQueue.close();
     if (redisConnection) await redisConnection.quit();
 };

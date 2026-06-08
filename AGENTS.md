@@ -3,13 +3,13 @@
 # Все AI-генерируемые изменения ОБЯЗАНЫ соблюдать эти правила.
 
 ## Stack
-- **Framework**: Next.js 16.2.6 (App Router, Turbopack)
-- **UI**: React 19.2.6
+- **Framework**: Next.js 16.x (App Router, Turbopack)
+- **UI**: React 19.x
 - **Styling**: Tailwind CSS 4.0.0 (`@theme` directive в `globals.css`, CSS-first config)
 - **Component Library**: HeroUI v3 (dot notation API: `<Table.Header>`, `<Table.Column>`)
 - **ORM**: Prisma 5 (PostgreSQL)
 - **Language**: TypeScript 5.7+ (strict mode)
-- **AI Model**: `gemini-3.5-flash` (ТОЛЬКО эта модель как наиболее актуальная)
+- **AI Model**: `gemini-3-flash` или `gemini-3-flash-preview` (ТОЛЬКО эти модели как наиболее актуальные)
 - **Linting**: ESLint 10 (Flat Config — `eslint.config.mjs`)
 - **Testing**: Vitest 4
 
@@ -20,6 +20,7 @@
 
 1. **Phase 1: Analyst (`gsd-prompt-engineer`) & Double-Pass Planner**:
    - ПЕРЕД любой работой задай уточняющие вопросы (3-5 шт).
+   - **🔴 ВЕКТОРНЫЙ ПОИСК ПАМЯТИ (GraphRAG):** Прежде чем слепо искать по файлам, всегда обращайся к векторной базе знаний для получения архитектурного контекста. Выполни в терминале: `npx tsx scripts/query-rag.ts "<твой вопрос по архитектуре или логике>"`.
    - Сформируй четкое ТЗ (UI-SPEC/API-SPEC).
    - Не начинай кодить, пока не будет "High-Definition" понимания задачи.
    - **🔴 Двухпроходное планирование (Double-Pass Planning)**: сразу после составления первого черновика плана (`implementation_plan.md`) принудительно перечитай его и переоцени с точки зрения 5 векторов надежности.
@@ -63,11 +64,20 @@
 - **СНАЧАЛА** читай ошибки build/runtime, **ПОТОМ** правь код.
 - Не гадай — проверяй логи и типы.
 
-### Deployment & Background Workers (CRITICAL)
-- **НЕОБХОДИМОСТЬ:** Архитектура Smmplan разделена на веб-сервер (`next start`) и фоновые процессы (`BullMQ`, `Cron`). 
-- **ДЕПЛОЙ:** На production (Ubuntu/Docker) веб-сервер и воркеры обязаны запускаться параллельно! Если веб-сервер запущен, а команда `npm run worker` (запускающая `tsx src/workers/index.ts`) нет, то заказы будут навечно "зависать" в Redis в статусе "PENDING", а Telegram/VK отложенные посты не будут публиковаться.
-- Всегда включайте воркера в `docker-compose.yml` или `PM2` экосистему отдельными процессами.
-- **РЕСТАРТ NGINX:** После каждого обновления и перезапуска контейнеров ОБЯЗАТЕЛЬНО перезагрузить конфигурацию Nginx (`docker compose exec nginx nginx -s reload`), чтобы применить изменения, очистить кэш статики и восстановить апстримы без даунтайма.
+### Deployment Strategies (Full vs Fast-Patch)
+**🔴 У нас есть 2 стандарта деплоя на сервер. Выбирай правильный в зависимости от задачи:**
+
+**1. Full Hybrid Deploy (ПОЛНЫЙ ДЕПЛОЙ)**
+- **Скрипт:** `powershell ./scripts/deploy-hybrid.ps1`
+- **Когда использовать:** При изменении `schema.prisma` (требует миграций), установке новых npm-пакетов (`package.json`), изменении переменных окружения.
+- **Как работает:** Локальная сборка Next.js -> локальное создание Docker-образа -> **архивация gzip (`tar -czf`) для сжатия** -> SCP отправка 70 МБ архива на сервер -> `docker load` на сервере без затрат оперативной памяти.
+- **Важно:** Веб-сервер и воркеры (`npm run worker`) обязаны запускаться параллельно (см. `docker-compose.yml`). После апдейта контейнеров скрипт автоматически перезагружает конфигурацию Nginx (`nginx -s reload`).
+
+**2. Hot-Patching (БЫСТРЫЙ ПАТЧ)**
+- **Скрипт:** `npx tsx scripts/fast-patch.ts --prod`
+- **Когда использовать:** При запросе "Быстрый патч", "Fast patch", "Быстрый деплой". Для быстрых визуальных правок фронтенда или бизнес-логики в `src/`, которые **НЕ** затрагивают БД или NPM.
+- **Как работает:** Скрипт локально соберет `next build`, упакует `.next`, `src`, `public` в крошечный `patch.tar.gz`, отправит на сервер и распакует файлы напрямую в запущенные Docker-контейнеры через `docker cp`, после чего мягко их перезапустит (30 секунд).
+- **Ограничения:** Скрипт автоматически прервётся, если были изменены критические файлы БД или NPM. В таком случае делай Full Hybrid Deploy.
 
 ### Provider Synchronization (Cherry-Pick Architecture)
 **🔴 ОБЯЗАТЕЛЬНАЯ архитектура работы с провайдерами (Anti-Mass-Sync):**
@@ -158,89 +168,5 @@ src/
 - ❌ `any` тип без обоснования в комментарии
 - ❌ `console.log` в production коде (используй `console.error` для ошибок)
 - ❌ Интеграция SMS-шлюзов или сбор/хранение номеров телефонов пользователей (включая request_contact в Telegram боте)
-
-
-## Figma MCP Workflow
-
-### Стек проекта (Дизайн)
-- React 19 + TypeScript (strict mode)
-- Tailwind CSS v4
-- Vitest + React Testing Library
-- Figma MCP (скилл: figma-mcp)
-
-### Правила работы с Figma
-
-#### Источник правды
-- `src/tokens/[design-system].ts` — единственный источник всех значений
-- Никаких hardcoded hex, px, rem вне файла токенов
-- Никаких inline-стилей в компонентах
-
-#### Подключение к Figma
-- Всегда использовать Mode B (figma-developer-mcp) по умолчанию
-- Перед работой проверить: node --version (≥18), npx --version
-- Перед записью любого файла — показать diff и ждать подтверждения
-
-#### Что нельзя делать
-- Использовать Plugin API (figma.getLocalPaintStyles и др.)
-- Перезаписывать tailwind.config.ts — только merge
-- Запускать npm install -g без подтверждения пользователя
-- Писать в tokens.ts из нескольких агентов одновременно
-
-### Архитектура компонентов
-
-```text
-src/
-  tokens/
-    telegram.ts          ← все дизайн-токены (auto-generated)
-  styles/
-    telegram-vars.css    ← CSS custom properties
-  components/
-    chat/                ← ChatBubble, ChatInput, ChatListItem
-    navigation/          ← NavigationBar, TabBar
-    ui/                  ← Avatar, Badge, SearchBar, SettingsRow
-```
-
-### Правила компонентов
-- Функциональные компоненты + TypeScript интерфейсы
-- React.memo для всех компонентов в списках
-- Именование: PascalCase для компонентов, camelCase для props
-- Каждый компонент: named export + default export
-- JSDoc с ссылкой на Figma-компонент обязателен
-- aria-label на всех интерактивных элементах
-
-### Правила стилизации
-- Только Tailwind CSS классы
-- Mobile-first: sm → md → lg → xl
-- Light/Dark mode через CSS custom properties
-- Все значения через токены: `tokens.colors.light.accent.primary`
-
-### Приоритет компонентов (Telegram UI Kit)
-1. ChatBubble
-2. ChatInput
-3. ChatListItem
-4. NavigationBar
-5. TabBar
-6. Avatar
-7. Badge
-8. SearchBar
-9. SettingsRow
-10. MediaViewer
-
-### Параллельная работа агентов
-- Token Agent    → пишет tokens.ts (эксклюзивно)
-- Chat Agent     → читает tokens.ts, пишет компоненты чата
-- Nav Agent      → читает tokens.ts, пишет компоненты навигации
-- Test Agent     → пишет тесты (Vitest)
-- Docs Agent     → пишет Storybook + JSDoc
-
-Если parallel mode недоступен — работать последовательно в том же порядке.
-
-### Валидация перед коммитом
-- [ ] `npx tsc --noEmit` — нет TypeScript ошибок
-- [ ] `grep -r "hardcoded" src/` — нет захардкоженных значений
-- [ ] `npm test` — все тесты проходят
-- [ ] Все компоненты имеют aria-label
-- [ ] tokens.ts содержит URL исходного Figma файла
-- [ ] tailwind.config.ts extend не перезаписан
 
 

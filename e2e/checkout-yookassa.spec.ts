@@ -75,7 +75,10 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
   });
 
   test('should create AWAITING_PAYMENT order and successfully credit via Webhook simulation', async ({ page, request }) => {
-    // 1. Visit Dashboard (logged out user gets auto-login via auth.setup)
+    // 1. Revalidate catalog cache to ensure newly seeded data is visible
+    await request.get('/api/debug?revalidate=catalog');
+    
+    // 2. Visit Dashboard (logged out user gets auto-login via auth.setup)
     await page.goto('/dashboard/new-order');
     
     await expect(page).toHaveTitle(/Новый заказ | Smmplan/i);
@@ -111,11 +114,6 @@ test.describe('External Payment (YooKassa) Lifecycle', () => {
       await yookassaTab.click();
     }
     
-    const agreementCheckbox = page.locator('input[type="checkbox"]').first();
-    await expect(agreementCheckbox).toBeVisible({ timeout: 5000 });
-    await agreementCheckbox.check({ force: true });
-    await expect(agreementCheckbox).toBeChecked();
-
     // Intercept mock-payment redirect so it doesn't auto-confirm the payment
     // We want the Webhook to do the confirmation!
     await page.route('**/api/dev/mock-payment*', route => route.fulfill({

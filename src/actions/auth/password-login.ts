@@ -42,7 +42,7 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
     // 3. Find User
     const user = await db.user.findUnique({
       where: { email: cleanEmail },
-      select: { id: true, passwordHash: true, role: true, isActive: true, isDeleted: true }
+      select: { id: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
     });
 
     if (!user) {
@@ -56,8 +56,19 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
       return { error: "Неверный email или пароль", success: false };
     }
 
+    if (!user.isEmailVerified) {
+      log.warn('Password login: Email not verified', { email: cleanEmail });
+      return { error: "Пожалуйста, подтвердите email по ссылке из письма", success: false };
+    }
+
     if (!user.passwordHash) {
       log.info('Password login: User has no password set', { email: cleanEmail });
+      
+      const isSmtpConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD;
+      if (!isSmtpConfigured) {
+        return { error: "Вход по ссылке временно недоступен (ошибка почты). Обратитесь в поддержку для установки пароля.", success: false };
+      }
+      
       return { error: "Для вашего аккаунта не установлен пароль. Пожалуйста, войдите по ссылке на почту.", success: false };
     }
 

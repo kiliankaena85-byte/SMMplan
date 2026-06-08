@@ -33,7 +33,7 @@ export function LinkModal({
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="bg-content1 rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-8 w-full max-w-md"
+        className="bg-card rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-8 w-full max-w-md"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
@@ -54,7 +54,7 @@ export function LinkModal({
             onChange={e => setUrl(e.target.value)} 
             placeholder="Например: t.me/durov или instagram.com/username"
             autoFocus
-            className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-border bg-content1 text-[15px] font-semibold text-foreground placeholder-slate-400 focus:border-primary/50 focus:shadow-[0_8px_20px_-6px] focus:shadow-primary/15 outline-none transition-all"
+            className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-border bg-background text-[15px] font-semibold text-foreground placeholder-slate-400 focus:border-primary/50 focus:shadow-[0_8px_20px_-6px] focus:shadow-primary/15 outline-none transition-all"
             onBlur={(e) => {
               const val = e.target.value.trim();
               if (val && !/^https?:\/\//i.test(val) && val.includes('.') && !val.includes(' ')) {

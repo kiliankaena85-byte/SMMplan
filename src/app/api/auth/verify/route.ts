@@ -3,15 +3,15 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import crypto from "crypto";
-
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
 
   if (!token) {
-    return NextResponse.redirect(new URL("/login?error=InvalidToken", BASE_URL));
+    redirect("/login?error=InvalidToken");
   }
 
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -20,8 +20,15 @@ export async function GET(request: Request) {
     where: { token: hashedToken },
   });
 
+  console.log('DEBUG_VERIFY:', {
+    tokenFound: !!authToken,
+    expiresAt: authToken?.expiresAt,
+    now: new Date(),
+    isExpired: authToken ? authToken.expiresAt < new Date() : null
+  });
+
   if (!authToken || authToken.expiresAt < new Date()) {
-    return NextResponse.redirect(new URL("/login?error=ExpiredToken", BASE_URL));
+    redirect("/login?error=ExpiredToken");
   }
 
   // Помечаем как использованный, атомарная проверка (Race Condition Guard)
@@ -31,21 +38,32 @@ export async function GET(request: Request) {
   });
 
   if (result.count === 0) {
-    return NextResponse.redirect(new URL("/login?error=AlreadyUsed", BASE_URL));
+    redirect("/login?error=AlreadyUsed");
   }
 
   const user = await db.user.findUnique({ where: { id: authToken.userId } });
   if (!user || user.isDeleted || !user.isActive) {
-    return NextResponse.redirect(new URL("/login?error=AccountBlocked", BASE_URL));
+    redirect("/login?error=AccountBlocked");
   }
 
-  // Устанавливаем куку сессии
-  await createSession(authToken.userId);
+  // Устанавливаем куку сессии и даем разрешение на сброс пароля (через JWT)
+  if (!user.isEmailVerified) {
+    await db.user.update({ where: { id: user.id }, data: { isEmailVerified: true } });
+  }
+  const { sessionToken, expiresAt } = await createSession(authToken.userId, true);
   
-  if (["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role)) {
-    return NextResponse.redirect(new URL("/admin/dashboard", BASE_URL));
-  }
+  const redirectPath = ["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role)
+    ? "/admin/dashboard"
+    : "/dashboard";
 
-  return NextResponse.redirect(new URL("/dashboard", BASE_URL));
+  const cookieStore = await cookies();
+  cookieStore.set('session_token', sessionToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    expires: expiresAt,
+    sameSite: 'lax',
+    path: '/',
+  });
+
+  redirect(redirectPath);
 }
-

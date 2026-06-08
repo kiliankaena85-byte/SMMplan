@@ -12,7 +12,7 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
-  allowedDevOrigins: ["public-walls-play.loca.lt", "*.loca.lt"],
+  allowedDevOrigins: ["public-walls-play.loca.lt", "*.loca.lt", "127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost"],
   
   // OSAD-V2: Distributed Cache Sync for Redis (Resolves C4.1)
   cacheHandler: (process.env.NODE_ENV === 'production' && !process.env.DISABLE_REDIS_CACHE) ? process.cwd() + '/cache-handler.js' : undefined,

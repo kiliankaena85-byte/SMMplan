@@ -44,7 +44,7 @@ export const test = base.extend<AuthFixtures>({
     await context.addCookies([{
       name: 'session_token',
       value: sessionToken,
-      domain: 'localhost',
+      domain: '127.0.0.1',
       path: '/',
     }]);
 
@@ -92,7 +92,7 @@ export const test = base.extend<AuthFixtures>({
     await context.addCookies([{
       name: 'session_token',
       value: sessionToken,
-      domain: 'localhost',
+      domain: '127.0.0.1',
       path: '/',
     }]);
 

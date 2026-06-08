@@ -39,4 +39,20 @@ describe('UniversalProvider - WAF Bypass & V2 Standard', () => {
             }
         }
     });
+
+    it('should successfully fetch and parse service catalog', async () => {
+        const services = await provider.getServices();
+        
+        expect(services).toBeInstanceOf(Array);
+        expect(services.length).toBeGreaterThan(0);
+        
+        const first = services[0];
+        expect(first).toHaveProperty('service');
+        expect(first).toHaveProperty('name');
+        expect(first).toHaveProperty('rate');
+        expect(first).toHaveProperty('min');
+        expect(first).toHaveProperty('max');
+        expect(typeof first.service).toBe('string');
+        console.log(`[Universal Test] Successfully parsed service catalog. Found ${services.length} services.`);
+    });
 });
