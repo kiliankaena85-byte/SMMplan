@@ -23,6 +23,7 @@ interface MobileWizardProps {
   emailInputRef?: React.RefObject<HTMLInputElement | null>;
   emailHasError?: boolean;
   onOpenGuide?: () => void;
+  onOpenDocument?: (slug: string) => void;
 }
 
 function getCategoryDemandScore(name: string): number {
@@ -67,7 +68,8 @@ export function MobileWizard({
   isSubmitting,
   emailInputRef,
   emailHasError,
-  onOpenGuide
+  onOpenGuide,
+  onOpenDocument
 }: MobileWizardProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [showCatalog, setShowCatalog] = useState(false);
@@ -384,6 +386,7 @@ export function MobileWizard({
           checked={agreedToTerms}
           onChange={(val) => setAgreedToTerms(val)}
           labelClassName="text-muted-foreground font-medium"
+          onOpenDocument={onOpenDocument}
         />
 
         {/* Price + Pay CTA */}
@@ -918,6 +921,7 @@ export function MobileWizard({
           checked={agreedToTerms}
           onChange={(val) => setAgreedToTerms(val)}
           labelClassName="text-muted-foreground font-medium"
+          onOpenDocument={onOpenDocument}
         />
 
         {/* Total Price + Pay */}

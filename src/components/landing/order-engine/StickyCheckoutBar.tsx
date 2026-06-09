@@ -47,6 +47,7 @@ export function StickyCheckoutBar({
   emailInputRef,
   emailHasError,
   engine,
+  onOpenDocument,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedService: any;
@@ -67,6 +68,7 @@ export function StickyCheckoutBar({
   emailInputRef?: React.RefObject<HTMLInputElement | null>;
   emailHasError?: boolean;
   engine?: OrderEngine;
+  onOpenDocument?: (slug: string) => void;
 }) {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -261,6 +263,7 @@ export function StickyCheckoutBar({
               checked={engine?.agreedToTerms ?? false}
               onChange={(val) => engine?.setAgreedToTerms(val)}
               className="max-w-[340px] justify-center"
+              onOpenDocument={onOpenDocument}
             />
           </div>
 

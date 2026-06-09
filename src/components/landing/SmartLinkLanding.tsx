@@ -15,6 +15,7 @@ import { NetworkSelector } from "./order-engine/NetworkSelector";
 import { CategorySidebar } from "./order-engine/CategorySidebar";
 import { ServiceGrid } from "./order-engine/ServiceGrid";
 import { MobileWizard } from "./order-engine/MobileWizard";
+import { LegalDocumentModal } from "./order-engine/LegalDocumentModal";
 import { useCheckoutOrchestrator } from "./order-engine/useCheckoutOrchestrator";
 import { HeroInput } from "./order-engine/HeroInput";
 import { DynamicPayloadWarnings } from "./order-engine/DynamicPayloadWarnings";
@@ -84,6 +85,7 @@ export function SmartLinkLanding({
   const desktopEmailInputRef = React.useRef<HTMLInputElement>(null);
   const mobileEmailInputRef = React.useRef<HTMLInputElement>(null);
   const [isGuideOpen, setIsGuideOpen] = React.useState(false);
+  const [activeLegalSlug, setActiveLegalSlug] = React.useState<string | null>(null);
 
   const {
     isSubmitting,
@@ -228,6 +230,7 @@ export function SmartLinkLanding({
                       emailInputRef={mobileEmailInputRef}
                       emailHasError={emailHasError}
                       onOpenGuide={() => setIsGuideOpen(true)}
+                      onOpenDocument={setActiveLegalSlug}
                     />
 
                  {/* SECTION 1: NETWORKS (Top Tabs Premium) - Hidden on Mobile */}
@@ -326,6 +329,7 @@ export function SmartLinkLanding({
           emailInputRef={desktopEmailInputRef}
           emailHasError={emailHasError}
           engine={engine}
+          onOpenDocument={setActiveLegalSlug}
         />
       )}
 
@@ -360,6 +364,10 @@ export function SmartLinkLanding({
         totalPriceFormatted={pricing ? (pricing.totalCents / 100).toFixed(2) : "0.00"}
         isSubmitting={isSubmitting}
         onSelectGateway={confirmAndPay}
+      />
+      <LegalDocumentModal
+        slug={activeLegalSlug}
+        onClose={() => setActiveLegalSlug(null)}
       />
     </div>
   );

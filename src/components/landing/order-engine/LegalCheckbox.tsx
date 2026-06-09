@@ -11,6 +11,7 @@ interface LegalCheckboxProps {
   onChange: (checked: boolean) => void;
   className?: string;
   labelClassName?: string;
+  onOpenDocument?: (slug: string) => void;
 }
 
 export function LegalCheckbox({
@@ -19,6 +20,7 @@ export function LegalCheckbox({
   onChange,
   className = "",
   labelClassName = "",
+  onOpenDocument,
 }: LegalCheckboxProps) {
   return (
     <label
@@ -77,7 +79,13 @@ export function LegalCheckbox({
           href={ROUTES.LEGAL.TERMS}
           target="_blank"
           className="underline text-primary hover:text-primary-600 transition-colors font-extrabold"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onOpenDocument) {
+              e.preventDefault();
+              onOpenDocument("terms");
+            }
+          }}
         >
           Офертой
         </Link>{" "}
@@ -86,7 +94,13 @@ export function LegalCheckbox({
           href={ROUTES.LEGAL.PRIVACY}
           target="_blank"
           className="underline text-primary hover:text-primary-600 transition-colors font-extrabold"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onOpenDocument) {
+              e.preventDefault();
+              onOpenDocument("privacy");
+            }
+          }}
         >
           Политикой конфиденциальности
         </Link>
