@@ -336,6 +336,12 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
+    const termsDoc = await db.contentItem.findUnique({
+      where: { slug: 'terms' },
+      select: { updatedAt: true }
+    });
+    const consentVersion = termsDoc ? `terms:${termsDoc.updatedAt.toISOString()}` : `fallback:${new Date().toISOString().split('T')[0]}`;
+
     // 5. Create Order(s) + Payment atomically
     const result = await db.$transaction(async (tx) => {
       // Create primary Order (first media / main link)
@@ -405,7 +411,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           status: 'PENDING',
           gateway,
           consentIp,
-          consentUserAgent
+          consentUserAgent,
+          consentVersion
         }
       });
 

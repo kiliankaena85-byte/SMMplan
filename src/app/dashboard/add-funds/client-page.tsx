@@ -23,7 +23,7 @@ export default function AddFundsPage() {
   const [amount, setAmount]     = useState<number>(50);
   const [method, setMethod]     = useState<'yookassa' | 'cryptobot' | 'robokassa'>('yookassa');
   const [error,  setError]      = useState<string | null>(null);
-  const [consent, setConsent]   = useState(false);
+  const [consent, setConsent]   = useState(true);
   const [isPending, startTransition] = useTransition();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -198,52 +198,11 @@ export default function AddFundsPage() {
           </p>
         )}
 
-        {/* Consent Checkbox (Expanded Touch Target) */}
-        <label className="flex items-start bg-muted/30 hover:bg-muted/50 border border-border/50 rounded-xl p-3 gap-2.5 cursor-pointer select-none transition-all duration-200 active:scale-[0.99]">
-          <input
-            type="checkbox"
-            id="legal-consent"
-            checked={consent}
-            onChange={(e) => {
-              if (navigator.vibrate) navigator.vibrate(20);
-              setConsent(e.target.checked);
-            }}
-            className="sr-only"
-          />
-          <div className="text-primary shrink-0 mt-0.5 transition-transform duration-200">
-            {consent ? (
-              <CheckSquare className="w-4.5 h-4.5 text-primary" />
-            ) : (
-              <Square className="w-4.5 h-4.5 text-muted-foreground/45 transition-colors" />
-            )}
-          </div>
-          <span className="text-xs text-muted-foreground leading-relaxed">
-            Я подтверждаю платёж и соглашаюсь с{' '}
-            <Link
-              href="/legal/terms"
-              target="_blank"
-              onClick={e => e.stopPropagation()}
-              className="text-primary hover:underline font-semibold pointer-events-auto"
-            >
-              Договором оферты
-            </Link>{' '}
-            и{' '}
-            <Link
-              href="/legal/refund"
-              target="_blank"
-              onClick={e => e.stopPropagation()}
-              className="text-primary hover:underline font-semibold pointer-events-auto"
-            >
-              Политикой возврата (Refund Policy)
-            </Link>.
-          </span>
-        </label>
-
         {/* Submit */}
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isPending || amount < 10 || !consent}
+          disabled={isPending || amount < 10}
           aria-label={`Перейти к оплате ${amount} рублей`}
           className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50
             font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-sm text-base
@@ -253,6 +212,26 @@ export default function AddFundsPage() {
             ? '⟳ Создаём платёж...'
             : `Оплатить ${amount.toLocaleString('ru-RU')} ₽`}
         </button>
+
+        {/* Legal notice instead of checkbox for seamless UX */}
+        <p className="text-[10px] leading-relaxed text-muted-foreground text-center px-2">
+          Нажимая «Оплатить», вы принимаете{' '}
+          <Link
+            href="/legal/terms"
+            target="_blank"
+            className="text-primary hover:underline font-semibold"
+          >
+            Договор оферты
+          </Link>{' '}
+          и{' '}
+          <Link
+            href="/legal/refund"
+            target="_blank"
+            className="text-primary hover:underline font-semibold"
+          >
+            Политику возврата (Refund Policy)
+          </Link>.
+        </p>
 
         <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
           <Wallet className="w-3 h-3" />

@@ -359,6 +359,7 @@ model Payment {
   // Legal Consent Logging (PB-004 Chargeback Defense)
   consentIp        String?
   consentUserAgent String?
+  consentVersion   String?
 
   checkoutUrl String? // Persistent checkout URL to allow users to resume payment
 

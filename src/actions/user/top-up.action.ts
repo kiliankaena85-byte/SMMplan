@@ -32,6 +32,12 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
   const consentIp = await getClientIp();
   const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
+  const termsDoc = await db.contentItem.findUnique({
+    where: { slug: 'terms' },
+    select: { updatedAt: true }
+  });
+  const consentVersion = termsDoc ? `terms:${termsDoc.updatedAt.toISOString()}` : `fallback:${new Date().toISOString().split('T')[0]}`;
+
   const secrets = await SettingsManager.getPaymentSecrets();
 
   if (gateway === 'cryptobot') {
@@ -46,7 +52,8 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
         status: "PENDING",
         gateway: "cryptobot",
         consentIp,
-        consentUserAgent
+        consentUserAgent,
+        consentVersion
       }
     });
 
@@ -102,7 +109,8 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
         status: "PENDING",
         gateway: "robokassa",
         consentIp,
-        consentUserAgent
+        consentUserAgent,
+        consentVersion
       }
     });
 
@@ -157,7 +165,8 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
       status: "PENDING",
       gateway: "yookassa",
       consentIp,
-      consentUserAgent
+      consentUserAgent,
+      consentVersion
     }
   });
 

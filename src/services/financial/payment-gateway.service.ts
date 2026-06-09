@@ -83,7 +83,7 @@ class YooKassaGateway extends BasePaymentGateway {
       payload.receipt = {
         customer: { email: params.email || `no-reply@${supportDomain}` },
         items: [{
-          description: "Услуги цифрового маркетинга",
+          description: "Информационные услуги",
           quantity: "1.00",
           amount: { value: params.amountRub.toFixed(2), currency: 'RUB' },
           vat_code: vatCode,
@@ -360,13 +360,25 @@ class RobokassaGateway extends BasePaymentGateway {
     const sigStr = `${login}:${outSum}:${invId}:${password}:shp_paymentId=${params.paymentId}`;
     const signature = crypto.createHash('sha256').update(sigStr).digest('hex');
 
+    const receipt = {
+      items: [{
+        name: "Информационные услуги",
+        quantity: 1,
+        sum: params.amountRub.toFixed(2),
+        tax: "none",
+        payment_method: "full_prepayment",
+        payment_subject: "service"
+      }]
+    };
+
     const queryParams = new URLSearchParams({
       MerchantLogin: login,
       OutSum: outSum,
       InvId: invId.toString(),
       Description: params.description,
       SignatureValue: signature,
-      shp_paymentId: params.paymentId
+      shp_paymentId: params.paymentId,
+      Receipt: JSON.stringify(receipt)
     });
 
     const robokassaUrl = `https://auth.robokassa.ru/Merchant/Index.aspx?${queryParams.toString()}`;
