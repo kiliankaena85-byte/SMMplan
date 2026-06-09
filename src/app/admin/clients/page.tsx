@@ -1,10 +1,7 @@
 import { adminUserService, getVolumeTier } from '@/services/admin/user.service';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { updateBalanceAction, banUserAction, unbanUserAction, loginAsAction } from '@/actions/admin/users';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { ClientTable } from './components/client-table';

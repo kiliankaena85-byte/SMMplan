@@ -214,8 +214,8 @@ export function PlatformLinkGuideDrawer({
                 <span className="text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary px-2.5 py-1 rounded-full">
                   Шаг {activeStep + 1} из {currentGuide.steps.length}
                 </span>
-                <span className="text-[10px] text-muted-foreground font-bold">
-                  {currentStepData.title}
+                <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">
+                  {currentGuide.name}
                 </span>
               </div>
               <h4 className="text-base font-extrabold text-foreground leading-tight">
@@ -250,7 +250,7 @@ export function PlatformLinkGuideDrawer({
           </div>
 
           {/* Right/Bottom: Elegant Mock Visual Representation */}
-          <div className="w-full md:w-[260px] bg-content2 border border-border/30 rounded-2xl p-4 flex flex-col justify-between min-h-[160px] md:min-h-[240px] shrink-0 relative overflow-hidden shadow-inner select-none">
+          <div className="hidden md:flex w-[260px] bg-content2 border border-border/30 rounded-2xl p-4 flex-col justify-between min-h-[240px] shrink-0 relative overflow-hidden shadow-inner select-none">
             {/* Visual Header */}
             <div className="flex items-center gap-2 border-b border-border/20 pb-2">
               <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />

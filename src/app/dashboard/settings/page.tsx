@@ -2,7 +2,6 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { cookies } from 'next/headers';
 import {
   User, Mail, Calendar, Shield,
   CreditCard, TrendingUp, Settings, Star,
