@@ -14,6 +14,7 @@ import { DripFeedConfigurator } from "./DripFeedConfigurator";
 import Link from "next/link";
 import { ROUTES } from "@/lib/routes";
 import { motion, AnimatePresence } from "framer-motion";
+import { LegalCheckbox } from "./LegalCheckbox";
 
 interface MobileWizardProps {
   engine: OrderEngine;
@@ -377,13 +378,13 @@ export function MobileWizard({
 
         <DripFeedConfigurator engine={engine} />
 
-        {/* Passive Legal Notice (BUG-03: no checkbox friction) */}
-        <p className="text-[9px] text-muted-foreground font-medium text-center px-2 leading-relaxed">
-          Нажимая «Купить», вы соглашаетесь с{' '}
-          <Link href={ROUTES.LEGAL.TERMS} target="_blank" className="underline text-foreground/80 hover:text-primary">Офертой</Link>{' '}
-          и{' '}
-          <Link href={ROUTES.LEGAL.PRIVACY} target="_blank" className="underline text-foreground/80 hover:text-primary">Политикой</Link>
-        </p>
+        {/* Active Legal Notice with Checkbox (152-FZ compliance) - Pro Mode */}
+        <LegalCheckbox
+          id="pro-legal-checkbox"
+          checked={agreedToTerms}
+          onChange={(val) => setAgreedToTerms(val)}
+          labelClassName="text-muted-foreground font-medium"
+        />
 
         {/* Price + Pay CTA */}
         <div className="flex items-center justify-between gap-4 pt-1 border-t border-border/30">
@@ -403,7 +404,9 @@ export function MobileWizard({
             <Button
               onClick={handleCheckout}
               disabled={isSubmitting}
-              className="w-full h-11 min-h-[44px] min-w-[44px] rounded-xl bg-primary text-primary-foreground font-black text-xs shadow-md shadow-primary/30 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
+              className={`w-full h-11 min-h-[44px] min-w-[44px] rounded-xl bg-primary text-primary-foreground font-black text-xs shadow-md shadow-primary/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                isSubmitting ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : 'active:scale-95'
+              }`}
             >
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>💳 Купить</>}
             </Button>
@@ -909,13 +912,13 @@ export function MobileWizard({
 
         {/* Fabricated metrics removed to protect platform integrity */}
 
-        {/* Passive Legal Notice (BUG-03: no checkbox friction) */}
-        <p className="text-[10.5px] text-muted-foreground font-medium text-center px-2 leading-relaxed">
-          Нажимая «Оплатить», вы соглашаетесь с{' '}
-          <Link href={ROUTES.LEGAL.TERMS} target="_blank" className="underline text-foreground hover:text-primary">Офертой</Link>{' '}
-          и{' '}
-          <Link href={ROUTES.LEGAL.PRIVACY} target="_blank" className="underline text-foreground hover:text-primary">Политикой</Link>
-        </p>
+        {/* Active Legal Notice with Checkbox (152-FZ compliance) - Step 2 */}
+        <LegalCheckbox
+          id="step2-legal-checkbox"
+          checked={agreedToTerms}
+          onChange={(val) => setAgreedToTerms(val)}
+          labelClassName="text-muted-foreground font-medium"
+        />
 
         {/* Total Price + Pay */}
         <div className="flex items-center justify-between gap-4 pt-2 border-t border-border/30">
@@ -934,7 +937,9 @@ export function MobileWizard({
           <Button
             onClick={handleCheckout}
             disabled={isSubmitting}
-            className="flex-1 max-w-[160px] h-12 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-black text-sm shadow-md shadow-primary/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+            className={`flex-1 max-w-[160px] h-12 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-black text-sm shadow-md shadow-primary/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              isSubmitting ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : 'active:scale-95'
+            }`}
           >
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>💳 Оплатить</>}
           </Button>

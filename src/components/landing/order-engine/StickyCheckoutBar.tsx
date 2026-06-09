@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { DripFeedConfigurator } from "./DripFeedConfigurator";
+import { LegalCheckbox } from "./LegalCheckbox";
 
 function formatPricePerUnit(price: number): string {
   if (price === 0) return '0.00';
@@ -254,25 +255,13 @@ export function StickyCheckoutBar({
 
             {/* Fabricated metrics removed to protect platform integrity */}
 
-            {/* Passive Legal Notice (BUG-03: no checkbox friction) */}
-            <p className="text-[10px] text-foreground/80 font-extrabold text-center mt-1 max-w-[340px] leading-relaxed">
-              Нажимая «Оплатить», вы соглашаетесь с{' '}
-              <Link 
-                href={ROUTES.LEGAL.TERMS} 
-                target="_blank"
-                className="underline text-primary hover:text-primary-600 transition-colors font-bold"
-              >
-                Офертой
-              </Link>{' '}
-              и{' '}
-              <Link 
-                href={ROUTES.LEGAL.PRIVACY} 
-                target="_blank"
-                className="underline text-primary hover:text-primary-600 transition-colors font-bold"
-              >
-                Политикой
-              </Link>
-            </p>
+            {/* Active Legal Notice with Checkbox (152-FZ compliance) */}
+            <LegalCheckbox
+              id="desktop-legal-checkbox"
+              checked={engine?.agreedToTerms ?? false}
+              onChange={(val) => engine?.setAgreedToTerms(val)}
+              className="max-w-[340px] justify-center"
+            />
           </div>
 
           {/* Right: Checkout */}
@@ -283,7 +272,7 @@ export function StickyCheckoutBar({
                 onClick={handleCheckout}
                 disabled={isSubmitting}
                 className={`h-12 sm:h-14 w-full sm:w-auto px-8 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 group ${
-                  isSubmitting ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'
+                  isSubmitting ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : 'hover:scale-[1.02] active:scale-95'
                 }`}
               >
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
