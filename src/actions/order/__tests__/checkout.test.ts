@@ -1,0 +1,274 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { db } from '@/lib/db';
+import { checkoutAction } from '../checkout';
+import { RateLimitService } from '@/services/core/rate-limit.service';
+import { verifySession, createSession } from '@/lib/session';
+import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
+
+vi.mock('@/lib/db', () => ({
+  db: {
+    $transaction: vi.fn((cb) => cb(db)),
+    user: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
+    service: {
+      findUnique: vi.fn(),
+    },
+    order: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+    payment: {
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+    contentItem: {
+      findUnique: vi.fn(),
+    },
+    promoCode: {
+      findUnique: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    serviceSmartConfig: {
+      findUnique: vi.fn(),
+    },
+  },
+}));
+
+vi.mock('@/services/core/rate-limit.service', () => ({
+  RateLimitService: {
+    check: vi.fn().mockResolvedValue(true),
+  },
+}));
+
+vi.mock('@/lib/settings', () => ({
+  SettingsManager: {
+    isTestMode: vi.fn().mockResolvedValue(false),
+    getPaymentSecrets: vi.fn().mockResolvedValue({}),
+  },
+}));
+
+vi.mock('@/lib/session', () => ({
+  verifySession: vi.fn(),
+  createSession: vi.fn(),
+  getEncodedKey: vi.fn().mockReturnValue(new TextEncoder().encode('secretsecretsecretsecretsecretsecretsecret')),
+}));
+
+vi.mock('@/services/marketing.service', () => ({
+  marketingService: {
+    calculatePrice: vi.fn().mockResolvedValue({
+      totalCents: 1000,
+      originalTotalCents: 1000,
+      discountCents: 0,
+      providerCostCents: 500,
+    }),
+    consumePromoCode: vi.fn(),
+  },
+}));
+
+vi.mock('@/validators/link-mutators', () => ({
+  mutateLink: vi.fn((link) => link),
+  getLinkValidator: vi.fn(() => ({
+    safeParse: vi.fn().mockReturnValue({ success: true }),
+  })),
+}));
+
+vi.mock('@/utils/target-type', () => ({
+  inferTargetTypeFromCategory: vi.fn().mockReturnValue('POST'),
+}));
+
+vi.mock('@/services/financial/payment-gateway.service', () => ({
+  PaymentGatewayFactory: {
+    getGateway: vi.fn(),
+  },
+}));
+
+vi.mock('@/utils/ip', () => ({
+  getClientIp: vi.fn().mockResolvedValue('127.0.0.1'),
+}));
+
+vi.mock('next/headers', () => ({
+  headers: vi.fn().mockResolvedValue({
+    get: vi.fn((key) => {
+      if (key === 'host') return 'localhost:3000';
+      if (key === 'x-forwarded-proto') return 'http';
+      if (key === 'user-agent') return 'test-agent';
+      return null;
+    }),
+  }),
+}));
+
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
+vi.mock('@/lib/smtp', () => ({
+  sendOrderPaidMail: vi.fn().mockResolvedValue(true),
+}));
+
+describe('checkoutAction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const validData = {
+    serviceId: 'service-1',
+    link: 'https://t.me/durov',
+    quantity: 100,
+    email: 'test@test.com',
+  };
+
+  it('1. Successful balance payment', async () => {
+    vi.mocked(verifySession).mockResolvedValue({ userId: 'user-1' } as any);
+    
+    // Auth check lookup and then generic user lookup (mocking sequence if needed or just simple return)
+    vi.mocked(db.user.findUnique).mockResolvedValue({
+      id: 'user-1',
+      email: 'test@test.com',
+      balance: 5000,
+      isActive: true,
+      isDeleted: false,
+    } as any);
+    
+    vi.mocked(db.service.findUnique).mockResolvedValue({
+      id: 'service-1',
+      isActive: true,
+      externalId: 'ext-1',
+      minQty: 10,
+      maxQty: 1000,
+      targetType: 'POST',
+      category: { network: { slug: 'tg' } },
+    } as any);
+
+    vi.mocked(db.contentItem.findUnique).mockResolvedValue({
+      updatedAt: new Date(),
+    } as any);
+
+    vi.mocked(db.order.create).mockResolvedValue({ id: 'order-1', numericId: 1001 } as any);
+    vi.mocked(db.payment.create).mockResolvedValue({ id: 'payment-1' } as any);
+    
+    const mockGateway = {
+      createPayment: vi.fn().mockResolvedValue({ paymentUrl: 'balance-success' }),
+    };
+    vi.mocked(PaymentGatewayFactory.getGateway).mockReturnValue(mockGateway as any);
+
+    const result = await checkoutAction({
+      ...validData,
+      gateway: 'balance',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.orderId).toBe('order-1');
+      expect(result.data.paymentId).toBe('payment-1');
+      expect(db.$transaction).toHaveBeenCalled();
+      expect(db.order.create).toHaveBeenCalled();
+      expect(mockGateway.createPayment).toHaveBeenCalled();
+    }
+  });
+
+  it('2. Insufficient funds rejection', async () => {
+    vi.mocked(verifySession).mockResolvedValue({ userId: 'user-1' } as any);
+    vi.mocked(db.user.findUnique).mockResolvedValue({
+      id: 'user-1',
+      email: 'test@test.com',
+      balance: 0, // 0 balance
+      isActive: true,
+      isDeleted: false,
+    } as any);
+    
+    vi.mocked(db.service.findUnique).mockResolvedValue({
+      id: 'service-1',
+      isActive: true,
+      externalId: 'ext-1',
+      minQty: 10,
+      maxQty: 1000,
+      targetType: 'POST',
+      category: { network: { slug: 'tg' } },
+    } as any);
+
+    const result = await checkoutAction({
+      ...validData,
+      gateway: 'balance',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toMatch(/Недостаточно средств/);
+    }
+  });
+
+  it('3. Successful gateway payment redirect', async () => {
+    vi.mocked(db.user.findUnique).mockResolvedValue({
+      id: 'user-2',
+      email: 'test@test.com',
+      balance: 0,
+      isActive: true,
+      isDeleted: false,
+    } as any);
+    
+    vi.mocked(db.service.findUnique).mockResolvedValue({
+      id: 'service-1',
+      isActive: true,
+      externalId: 'ext-1',
+      minQty: 10,
+      maxQty: 1000,
+      targetType: 'POST',
+      category: { network: { slug: 'tg' } },
+    } as any);
+
+    vi.mocked(db.order.create).mockResolvedValue({ id: 'order-2', numericId: 1002 } as any);
+    vi.mocked(db.payment.create).mockResolvedValue({ id: 'payment-2' } as any);
+
+    const mockGateway = {
+      createPayment: vi.fn().mockResolvedValue({
+        paymentUrl: 'https://yookassa.ru/checkout',
+        remoteGatewayId: 'yoo-123',
+      }),
+    };
+    vi.mocked(PaymentGatewayFactory.getGateway).mockReturnValue(mockGateway as any);
+
+    const result = await checkoutAction({
+      ...validData,
+      gateway: 'yookassa',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(mockGateway.createPayment).toHaveBeenCalled();
+      expect(result.data.paymentUrl).toBe('https://yookassa.ru/checkout');
+      expect(db.payment.update).toHaveBeenCalledWith({
+        where: { id: 'payment-2' },
+        data: expect.objectContaining({
+          checkoutUrl: 'https://yookassa.ru/checkout',
+          gatewayId: 'yoo-123',
+        }),
+      });
+    }
+  });
+
+  it('4. Idempotency key deduplication', async () => {
+    vi.mocked(db.order.findUnique).mockResolvedValue({
+      id: 'existing-order-1',
+      paymentId: 'existing-payment-1',
+      status: 'PENDING',
+      payment: { checkoutUrl: 'https://existing-url' },
+    } as any);
+
+    const result = await checkoutAction({
+      ...validData,
+      gateway: 'yookassa',
+      idempotencyKey: 'idemp-123',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.orderId).toBe('existing-order-1');
+      expect(result.data.paymentId).toBe('existing-payment-1');
+      expect(result.data.paymentUrl).toBe('https://existing-url');
+      expect(db.order.create).not.toHaveBeenCalled();
+    }
+  });
+});
