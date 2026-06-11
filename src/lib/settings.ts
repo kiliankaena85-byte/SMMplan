@@ -249,6 +249,9 @@ export class SettingsProvider {
       COMPANY_INN: settings.legalCompanyInn || "Укажите ИНН",
       COMPANY_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
       COMPANY_ADDRESS: settings.legalCompanyAddress || "г. Москва",
+      LEGAL_INN: settings.legalCompanyInn || "Укажите ИНН",
+      LEGAL_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
+      LEGAL_ADDRESS: settings.legalCompanyAddress || "г. Москва",
     };
   }
 
