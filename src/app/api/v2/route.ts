@@ -277,7 +277,7 @@ async function handleRefillStatus(user: any, formData: FormData) {
     const refillsStr = formData.get('refills')?.toString();
     if (refillsStr) {
       // Multiple
-      const ids = refillsStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+      const ids = refillsStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)).slice(0, 100);
       const refills = await db.refill.findMany({
         where: { numericId: { in: ids }, order: { userId: user.id } }
       });

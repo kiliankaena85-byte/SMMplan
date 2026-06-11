@@ -63,6 +63,11 @@ export async function createSession(userId: string, canResetPassword: boolean = 
 }
 
 export async function verifySession() {
+  const reqHeaders = await headers();
+  const rawIp = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || '';
+  // Very basic localhost sanity check if headers are present
+  const isLocalhostRequest = !rawIp || rawIp.includes('127.0.0.1') || rawIp.includes('::1');
+
   const explicitLogout = (await cookies()).get('explicit_logout')?.value;
   if (explicitLogout === 'true') {
     return null;
@@ -73,7 +78,7 @@ export async function verifySession() {
   if (!sessionToken) {
     // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.
     // Prevents accidental OWNER access on misconfigured staging/preview deployments.
-    if (process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
+    if (isLocalhostRequest && process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
       const bypassEmail = process.env.DEV_BYPASS_EMAIL;
       if (process.env.NODE_ENV === 'development') {
         console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
@@ -100,24 +105,23 @@ export async function verifySession() {
       include: { user: true }
     });
     if (!session) {
-      console.log('[verifySession] null because: session not found in DB', payload.sessionId);
+      console.warn('[verifySession] null because: session not found in DB');
       return null;
     }
 
     const user = session.user;
     if (!user || user.isDeleted === true || user.isActive === false) {
-      console.log('[verifySession] null because: user missing or deleted/inactive', user?.id, 'isDeleted:', user?.isDeleted, 'isActive:', user?.isActive);
+      console.warn('[verifySession] null because: user missing or deleted/inactive');
       return null;
     }
 
     // W3-1 SECURITY FIX: Enforce database-level session expiration
     if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
-      console.log('[verifySession] null because: session expired in DB', session.expiresAt);
+      console.warn('[verifySession] null because: session expired in DB');
       return null;
     }
 
     // OSAD-V2 SECURITY FIX: Session Fixation / Hijacking Protection (User-Agent verify)
-    const reqHeaders = await headers();
     const currentUserAgent = reqHeaders.get('user-agent') || 'unknown';
     if (session.userAgent && session.userAgent !== 'unknown' && session.userAgent !== currentUserAgent) {
       // Не блокируем — UA меняется при обновлении браузера, это норма
@@ -157,7 +161,7 @@ export async function verifySession() {
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
     // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.
-    if (process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
+    if (isLocalhostRequest && process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
       const bypassEmail = process.env.DEV_BYPASS_EMAIL;
       if (process.env.NODE_ENV === 'development') {
         console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);

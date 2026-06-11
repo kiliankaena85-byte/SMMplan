@@ -12,7 +12,7 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
   log.info('Starting pending payments synchronization...');
 
   const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 1000);
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   // 1. Fetch pending YooKassa payments
   const pendingPayments = await db.payment.findMany({
