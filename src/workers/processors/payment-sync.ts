@@ -14,7 +14,45 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
   const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  // 1. Fetch pending YooKassa payments
+  // 1. Auto-cancel stale non-YooKassa payments older than 24 hours
+  const staleThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  try {
+    const stalePayments = await db.payment.findMany({
+      where: {
+        status: 'PENDING',
+        gateway: { notIn: ['yookassa'] },
+        createdAt: { lt: staleThreshold }
+      },
+      select: { id: true, orderId: true },
+      take: 50
+    });
+
+    for (const payment of stalePayments) {
+      try {
+        await db.$transaction(async (tx) => {
+          const updated = await tx.payment.updateMany({
+            where: { id: payment.id, status: 'PENDING' },
+            data: { status: 'CANCELED' }
+          });
+          if (updated.count === 0) return;
+
+          if (payment.orderId) {
+            await tx.order.updateMany({
+              where: { id: payment.orderId, status: 'AWAITING_PAYMENT' },
+              data: { status: 'CANCELED', error: 'Оплата не поступила в течение 24ч (auto-expire)' }
+            });
+          }
+        });
+        log.info(`Stale non-YooKassa payment ${payment.id} expired successfully.`);
+      } catch (err: any) {
+        log.error(`Failed to expire stale payment ${payment.id}: ${err.message}`);
+      }
+    }
+  } catch (err: any) {
+    log.error(`Error during stale payments cleanup: ${err.message}`);
+  }
+
+  // 2. Fetch pending YooKassa payments
   const pendingPayments = await db.payment.findMany({
     where: {
       status: 'PENDING',

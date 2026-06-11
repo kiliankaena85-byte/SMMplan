@@ -112,7 +112,7 @@ export interface RefillJobPayload {
 export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue', {
   attempts: 5
 });
-const syncQueue = createQueue<SyncJobPayload>('syncQueue');
+export const syncQueue = createQueue<SyncJobPayload>('syncQueue');
 export const catalogQueue = createQueue<CatalogMutationPayload>('catalogQueue', {
   attempts: 2,
   backoff: { type: 'exponential', delay: 5000 }
@@ -279,6 +279,7 @@ export async function ensureArticlePublishCron() {
 
 export const closeQueues = async () => {
     await ordersQueue.close();
+    await syncQueue.close();
     await refillQueue.close();
     await catalogQueue.close();
     await dlqQueue.close();
