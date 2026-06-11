@@ -4,13 +4,13 @@ import { SettingsProvider } from '@/lib/settings';
 import { GuestSupportOptions } from '@/components/support/GuestSupportOptions';
 import { CopyDetailsButton } from '@/components/support/CopyDetailsButton';
 import { 
-  IconAlertTriangle, 
-  IconCreditCard, 
-  IconQrcode, 
-  IconWorld, 
-  IconRefresh, 
-  IconBrandTelegram 
-} from '@tabler/icons-react';
+  AlertTriangle, 
+  CreditCard, 
+  QrCode, 
+  Globe, 
+  RefreshCw, 
+  Send 
+} from 'lucide-react';
 import Link from 'next/link';
 
 interface PageProps {
@@ -92,7 +92,7 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
         {/* Header Indicator / Status Card */}
         <div className="flex flex-col items-center text-center gap-6 max-w-3xl mx-auto">
           <div className="w-20 h-20 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive shadow-sm animate-pulse">
-            <IconAlertTriangle size={42} stroke={2} />
+            <AlertTriangle size={42} strokeWidth={2} />
           </div>
           <div className="space-y-3">
             <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground">
@@ -125,7 +125,7 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
             
             <div className="p-6 bg-card border border-border rounded-3xl flex flex-col gap-4 shadow-sm hover:border-primary/30 transition-all duration-200">
               <div className="w-12 h-12 rounded-2xl bg-warning/10 flex items-center justify-center text-warning-text">
-                <IconCreditCard size={24} />
+                <CreditCard size={24} />
               </div>
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-foreground">Лимиты карты</h3>
@@ -137,7 +137,7 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
 
             <div className="p-6 bg-card border border-border rounded-3xl flex flex-col gap-4 shadow-sm hover:border-primary/30 transition-all duration-200">
               <div className="w-12 h-12 rounded-2xl bg-success/10 flex items-center justify-center text-success">
-                <IconQrcode size={24} />
+                <QrCode size={24} />
               </div>
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-foreground">Оплатите по СБП</h3>
@@ -149,7 +149,7 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
 
             <div className="p-6 bg-card border border-border rounded-3xl flex flex-col gap-4 shadow-sm hover:border-primary/30 transition-all duration-200">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                <IconWorld size={24} />
+                <Globe size={24} />
               </div>
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-foreground">Выключите VPN</h3>
@@ -161,7 +161,7 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
 
             <div className="p-6 bg-card border border-border rounded-3xl flex flex-col gap-4 shadow-sm hover:border-primary/30 transition-all duration-200">
               <div className="w-12 h-12 rounded-2xl bg-info/10 flex items-center justify-center text-info">
-                <IconRefresh size={24} />
+                <RefreshCw size={24} />
               </div>
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-foreground">Другой шлюз</h3>
@@ -190,7 +190,7 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
             className="w-full text-center flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-full min-h-[48px] px-6 text-sm transition-all shadow-lg shadow-primary/20"
             aria-label="Связаться с техподдержкой в Telegram"
           >
-            <IconBrandTelegram size={18} />
+            <Send size={18} />
             <span>Поддержка в Telegram</span>
           </a>
         </div>

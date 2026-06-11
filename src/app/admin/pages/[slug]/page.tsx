@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { TiptapEditor } from '@/components/cms/TiptapEditorWrapper';
+import { ContentEditorInput } from '@/components/admin/cms/ContentEditorInput';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +45,7 @@ export default async function AdminPageEditor({ params }: { params: Promise<{ sl
 
           <div className="space-y-2">
             <Label>Content</Label>
-            <TiptapEditor content={page?.content || ''} name="content" />
+            <ContentEditorInput initialContent={page?.content || ''} name="content" />
           </div>
 
           <div className="flex justify-end pt-4 border-t border-border/50">

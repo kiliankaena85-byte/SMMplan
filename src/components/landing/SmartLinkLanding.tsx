@@ -23,7 +23,7 @@ import { DynamicPayloadWarnings } from "./order-engine/DynamicPayloadWarnings";
 import { MegaFooter } from "./MegaFooter";
 import { PlatformLinkGuideDrawer } from "./order-engine/PlatformLinkGuideDrawer";
 import { PaymentGatewaySelectionModal } from "./order-engine/PaymentGatewaySelectionModal";
-import { IconBox } from "@tabler/icons-react";
+import { Box } from "lucide-react";
 import { MassOrderPreview } from "./order-engine/MassOrderPreview";
 import { MassConfirmEmailModal } from "./order-engine/MassConfirmEmailModal";
 import { PlatformSelectorFallback } from "@/components/orders/PlatformSelectorFallback";
@@ -265,7 +265,7 @@ export function SmartLinkLanding({
              {unfilteredCatalog.length === 0 ? (
                <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2.5rem] min-h-[360px] p-8 m-4">
                  <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center animate-bounce">
-                   <IconBox className="w-8 h-8 text-primary/60" />
+                   <Box className="w-8 h-8 text-primary/60" />
                  </div>
                  <div className="text-center space-y-2">
                    <p className="text-lg font-extrabold text-foreground">Каталог временно недоступен</p>
@@ -322,7 +322,7 @@ export function SmartLinkLanding({
                          ) : services.length === 0 ? (
                            <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2rem] min-h-[320px] p-8">
                              <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center">
-                               <IconBox className="w-8 h-8 text-primary/60" />
+                               <Box className="w-5 h-5 text-primary/60" />
                              </div>
                              <div className="text-center space-y-1.5">
                                <p className="text-base font-bold text-foreground">

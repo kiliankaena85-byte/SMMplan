@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { IconCopy, IconCheck } from '@tabler/icons-react';
+import { Copy, Check } from 'lucide-react';
 
 interface CopyDetailsButtonProps {
   textToCopy: string;
@@ -30,12 +30,12 @@ export function CopyDetailsButton({ textToCopy }: CopyDetailsButtonProps) {
     >
       {copied ? (
         <>
-          <IconCheck size={18} className="text-success" />
+          <Check size={18} className="text-success" />
           <span>Скопировано!</span>
         </>
       ) : (
         <>
-          <IconCopy size={18} className="text-muted-foreground" />
+          <Copy size={18} className="text-muted-foreground" />
           <span>Скопировать детали ошибки</span>
         </>
       )}

@@ -4,15 +4,13 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { 
-  IconSparkles, 
-  IconShieldCheck, 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  IconTrendingUp, 
-  IconDiamond, 
-  IconTerminal2, 
-  IconFileSpreadsheet, 
-  IconArrowUpRight 
-} from "@tabler/icons-react";
+  Sparkles, 
+  ShieldCheck, 
+  Diamond, 
+  Terminal, 
+  FileSpreadsheet, 
+  ArrowUpRight 
+} from "lucide-react";
 
 export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
   return (
@@ -35,7 +33,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
           <div className="relative z-10 flex flex-col justify-between md:h-full">
             <div>
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform dark:bg-primary/10">
-                <IconSparkles className="w-6 h-6" stroke={1.5} />
+                <Sparkles className="w-6 h-6" strokeWidth={1.5} />
               </div>
               <h3 className="text-2xl font-bold text-foreground mb-3">AI-подбор услуг</h3>
               <p className="text-muted-foreground font-medium leading-relaxed max-w-md">
@@ -50,7 +48,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
         <div className="md:col-span-1 bg-content1 rounded-[2rem] p-5 md:p-8 relative overflow-hidden group border border-border/50 dark:border-border/40 hover:shadow-2xl hover:shadow-success/10 transition-all duration-300 min-h-[240px]">
           <div className="relative z-10 flex flex-col md:h-full">
             <div className="w-12 h-12 bg-success/10 rounded-2xl flex items-center justify-center mb-6 text-success group-hover:scale-110 transition-transform">
-              <IconShieldCheck className="w-6 h-6" stroke={1.5} />
+              <ShieldCheck className="w-6 h-6" strokeWidth={1.5} />
             </div>
             <h3 className="text-xl font-bold text-foreground mb-3">Прозрачные условия</h3>
             <p className="text-muted-foreground font-medium leading-relaxed text-sm">
@@ -64,7 +62,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
           <div className="relative z-10 flex flex-col md:h-full justify-between">
             <div>
               <div className="w-12 h-12 bg-danger/10 rounded-2xl flex items-center justify-center mb-6 text-danger group-hover:scale-110 transition-transform">
-                <IconDiamond className="w-6 h-6" stroke={1.5} />
+                <Diamond className="w-6 h-6" strokeWidth={1.5} />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-3">Персональные скидки</h3>
               <p className="text-muted-foreground font-medium leading-relaxed text-sm">
@@ -86,7 +84,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-primary-foreground/10 rounded-xl flex items-center justify-center text-primary-foreground group-hover:scale-110 transition-transform">
-                  <IconTerminal2 className="w-5 h-5" stroke={1.5} />
+                  <Terminal className="w-5 h-5" strokeWidth={1.5} />
                 </div>
                 <span className="text-xs font-bold text-primary-foreground/90 uppercase tracking-widest">B2B Интеграция</span>
               </div>
@@ -95,7 +93,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
               {/* Triple-Hook Feature List */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
                 <div className="flex items-start gap-2 bg-card/5 p-3 rounded-xl border border-white/5">
-                  <IconFileSpreadsheet className="w-5 h-5 text-primary-foreground/90 shrink-0 mt-0.5" stroke={1.5} />
+                  <FileSpreadsheet className="w-5 h-5 text-primary-foreground/90 shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
                     <h4 className="text-sm font-semibold text-primary-foreground">Массовый заказ</h4>
                     <p className="text-[11px] text-primary-foreground/75 mt-0.5 leading-snug">Умный Excel-парсер с автоочисткой ссылок</p>
@@ -103,7 +101,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
                 </div>
                 
                 <div className="flex items-start gap-2 bg-card/5 p-3 rounded-xl border border-white/5">
-                  <IconTerminal2 className="w-5 h-5 text-primary-foreground/90 shrink-0 mt-0.5" stroke={1.5} />
+                  <Terminal className="w-5 h-5 text-primary-foreground/90 shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
                     <h4 className="text-sm font-semibold text-primary-foreground">PerfectPanel API</h4>
                     <p className="text-[11px] text-primary-foreground/75 mt-0.5 leading-snug">Спецификация v2 для автоматизации</p>
@@ -111,7 +109,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
                 </div>
 
                 <div className="flex items-start gap-2 bg-card/5 p-3 rounded-xl border border-white/5">
-                  <IconDiamond className="w-5 h-5 text-primary-foreground/90 shrink-0 mt-0.5" stroke={1.5} />
+                  <Diamond className="w-5 h-5 text-primary-foreground/90 shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
                     <h4 className="text-sm font-semibold text-primary-foreground">Wholesale Цены</h4>
                     <p className="text-[11px] text-primary-foreground/75 mt-0.5 leading-snug">Накопительный дисконт до 15% пожизненно</p>
@@ -130,7 +128,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-card hover:bg-accent text-card-foreground text-xs font-extrabold shadow-lg shadow-background/10 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shrink-0 border border-border"
               >
                 <span>Кабинет Реселлера</span>
-                <IconArrowUpRight className="w-3.5 h-3.5" />
+                <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>

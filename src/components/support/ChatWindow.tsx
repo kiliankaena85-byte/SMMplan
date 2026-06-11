@@ -12,8 +12,8 @@ interface ChatWindowProps {
   initialMessages: Message[];
   isStaff?: boolean;
   initialTemplates?: { id: string, label: string, text: string }[];
-  onSendMessage: (formData: FormData) => Promise<any>;
-  editTicketMessage?: (formData: FormData) => Promise<any>;
+  onSendMessage: (formData: FormData) => Promise<unknown>;
+  editTicketMessage?: (formData: FormData) => Promise<unknown>;
   initialNextCursor?: string | null;
   isClosed?: boolean;
   initialOrders?: { id: string; numericId: number; status: string; serviceName: string; charge: number }[];

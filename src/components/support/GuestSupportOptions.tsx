@@ -3,7 +3,7 @@
 import { useActionState } from 'react';
 import { createGuestTicketAction } from '@/actions/support/guest';
 import { createOfflineTicketAction } from '@/actions/support/offline-ticket';
-import { IconBrandTelegram, IconMail, IconCheck } from '@tabler/icons-react';
+import { Send, Mail, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -69,7 +69,7 @@ export function GuestSupportOptions({
     return (
       <Card className="max-w-2xl mx-auto p-12 flex flex-col items-center text-center gap-6 bg-card/80 backdrop-blur-xl border-border shadow-2xl rounded-[2.5rem]">
         <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center text-success shadow-inner">
-          <IconCheck size={48} stroke={3} />
+          <Check size={48} strokeWidth={3} />
         </div>
         <div className="space-y-2">
           <h2 className="text-3xl font-black text-foreground">Запрос отправлен!</h2>
@@ -94,7 +94,7 @@ export function GuestSupportOptions({
       {/* Telegram Option */}
       <Card className="p-8 bg-card border-border flex flex-col items-center text-center justify-center gap-8 transition-all hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/10 group rounded-[2.5rem] h-full">
         <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center transition-transform group-hover:scale-110 duration-500">
-          <IconBrandTelegram size={48} className="text-primary" />
+          <Send size={48} className="text-primary" />
         </div>
         <div className="space-y-3">
           <h3 className="text-2xl font-black text-foreground">Telegram Поддержка</h3>
@@ -113,7 +113,7 @@ export function GuestSupportOptions({
           className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 rounded-full h-16 text-lg"
         >
           <a href={`https://t.me/${telegramBotUsername}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
-            <IconBrandTelegram size={24} />
+            <Send size={24} />
             <span>Написать в Telegram</span>
           </a>
         </Button>
@@ -123,7 +123,7 @@ export function GuestSupportOptions({
       <Card className="p-8 bg-card border-border flex flex-col gap-8 rounded-[2.5rem] h-full">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center shrink-0">
-            <IconMail size={32} className="text-muted-foreground" />
+            <Mail size={32} className="text-muted-foreground" />
           </div>
           <div>
             <h3 className="text-xl font-black text-foreground">Email Запрос</h3>
