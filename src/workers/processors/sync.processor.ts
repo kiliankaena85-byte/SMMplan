@@ -113,8 +113,10 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
               sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(err => log.error('Failed to send completion email', { cause: err }));
           } else if (anyCanceled) {
               // Canceled mini-run -> We mark generic Drip-Feed as Partial
-              const updated = await db.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: totalRemainsText } });
-              await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) });
+              await db.$transaction(async (tx) => {
+                const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: totalRemainsText } });
+                await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, undefined, tx);
+              });
           }
 
         } else {
@@ -126,8 +128,10 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
               const orderAgeHours = (Date.now() - order.updatedAt.getTime()) / (1000 * 60 * 60);
               if (orderAgeHours > 72) {
                   log.warn(`Order ${order.externalId} missing from provider for >72h. Marking ERROR.`);
-                  const updated = await db.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: 'Орфан-заказ: провайдер удалил заказ' } });
-                  await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Орфан-заказ: провайдер удалил заказ)');
+                  await db.$transaction(async (tx) => {
+                    const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: 'Орфан-заказ: провайдер удалил заказ' } });
+                    await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Орфан-заказ: провайдер удалил заказ)', tx);
+                  });
               }
               continue;
           }
@@ -139,8 +143,10 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
                   continue; // Skip, waiting
               }
               log.warn(`Order ${order.externalId} returned string error: ${s}`);
-              const updated = await db.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: s } });
-              await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Ошибка синхронизации или истек таймер)');
+              await db.$transaction(async (tx) => {
+                const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: s } });
+                await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Ошибка синхронизации или истек таймер)', tx);
+              });
               continue;
           }
 
@@ -149,8 +155,10 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
 
           if (['CANCELED'].includes(providerStatus)) {
             // Full Canceled -> Full Refund
-            const updated = await db.order.update({ where: { id: order.id }, data: { status: 'CANCELED', remains: parsedRemains } });
-            await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Отмена на стороне провайдера)');
+            await db.$transaction(async (tx) => {
+              const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELED', remains: parsedRemains } });
+              await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Отмена на стороне провайдера)', tx);
+            });
             
             // WAVE 4.1: TRIGGER B (SILENT FAILURE QUARANTINE)
             const { QuarantineService } = await import('@/services/providers/quarantine.service');
@@ -158,8 +166,10 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           } 
           else if (['PARTIAL'].includes(providerStatus)) {
             // Partial -> Mathematical Proportional Refund
-            const updated = await db.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: parsedRemains } });
-            await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) });
+            await db.$transaction(async (tx) => {
+              const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: parsedRemains } });
+              await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, undefined, tx);
+            });
           } 
           else if (['COMPLETED'].includes(providerStatus)) {
             await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });

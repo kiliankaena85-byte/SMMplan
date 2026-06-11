@@ -12,6 +12,7 @@ vi.mock('@/lib/db', () => ({
     promoCode: { findUnique: vi.fn(), update: vi.fn() },
     session: { create: vi.fn() },
     systemSettings: { findUnique: vi.fn() },
+    contentItem: { findUnique: vi.fn() },
     $transaction: vi.fn(async (cb) => cb(db)),
   }
 }));

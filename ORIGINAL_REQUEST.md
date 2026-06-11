@@ -1450,9 +1450,9 @@ Integrity mode: development
 - [ ] Резюме в конце отчёта: сколько блоков верно, сколько исправлено
 
 
-## Follow-up � 2026-06-04T15:20:35+03:00
+## Follow-up � 2026-06-04T15:20:35+03:00
 
-������� ������������� ����������� ������ �� ����� ������� Smmplan �� ������ ��������� ������������ �������� ������� ����. R1: ������������ ������������ �� 9 ������� (���������������� ����, ������, �������, admin+RBAC, ����������, Telegram-���, ������, �������/���������, �������/CRON). R2: ������� d:\SMM_plan_2\artifacts\extended_manual.md (300+ �����, 10 ��������). R3: �������� support_training_manual.md. Acceptance criteria: ��� 10 �������� �������, ��� 4 ���� RBAC, ��� 3 �����, 20+ �������� ��, ������� ����, markdown-�������.
+������� ������������� ����������� ������ �� ����� ������� Smmplan �� ������ ��������� ������������ �������� ������� ����. R1: ������������ ������������ �� 9 ������� (���������������� ����, ������, �������, admin+RBAC, ����������, Telegram-���, ������, �������/���������, �������/CRON). R2: ������� d:\SMM_plan_2\artifacts\extended_manual.md (300+ �����, 10 ��������). R3: �������� support_training_manual.md. Acceptance criteria: ��� 10 �������� �������, ��� 4 ���� RBAC, ��� 3 �����, 20+ �������� ��, ������� ����, markdown-�������.
 
 ## Follow-up — 2026-06-05T07:58:51+03:00
 
@@ -1557,3 +1557,210 @@ Integrity mode: development
 - [ ] Р’СЃРµ С‚РµСЃС‚С‹ Р·Р°РїСѓСЃРєР°СЋС‚СЃСЏ С‡РµСЂРµР· СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ РєРѕРјР°РЅРґС‹ РІ `package.json` (`npm run test`, `npm run test:e2e`).
 - [ ] РЎРіРµРЅРµСЂРёСЂРѕРІР°РЅ РїРѕРґСЂРѕР±РЅС‹Р№ РѕС‚С‡РµС‚ Рѕ РїСЂРѕС…РѕР¶РґРµРЅРёРё С‚РµСЃС‚РѕРІ Рё СѓСЂРѕРІРЅРµ РїРѕРєСЂС‹С‚РёСЏ РєСЂРёС‚РёС‡РµСЃРєРёС… С„СѓРЅРєС†РёР№.
 
+
+
+## Follow-up — 2026-06-09T14:57:26+03:00
+
+Визуальный аудит и устранение багов мобильной верстки (для экранов от 320px до 480px) на сайте Smmplan, включая проверку перекрытий элементов, отступов, адаптивности и соответствия премиальному дизайн-манифесту.
+
+Working directory: d:\\SMM_plan_2
+Integrity mode: development
+
+## Requirements
+
+### R1. Mobile Viewport Layout Audit
+- Использовать Playwright или браузерные средства для визуального обхода основных экранов (лендинг, мастер заказа, личный кабинет пользователя, настройки профиля) в разрешении мобильных устройств (ширина 320px - 480px).
+- Выявить все случаи наложения текста, вырезания элементов, отсутствия адаптивности, некорректного контраста и проблем с интерактивными элементами (touch targets < 44px).
+
+### R2. Visual & Semantic Style Compliance
+- Исправить найденные визуальные баги, строго соблюдая цветовую палитру и семантические токены Tailwind CSS 4.0.0 (избегать инлайновых `text-white`, `bg-black`, использовать семантические токены вроде `text-foreground`, `bg-background` из `globals.css`).
+- Убедиться, что элементы соответствуют премиальному качестве (плавные анимации, сбалансированные отступы, корректная кириллическая типографика).
+
+### R3. Automated Visual Verification
+- Настроить/обновить скриншотные тесты Playwright для ключевых мобильных экранов с целью фиксации отсутствия регрессии.
+- Все тесты должны проходить без ошибок линтинга (`npm run lint` и `npx tsc --noEmit`).
+
+## Acceptance Criteria
+
+### Visual Density & WCAG 2.2 AA Compliance
+- [ ] Все кнопки и интерактивные элементы в мобильной версии имеют размер области клика (touch target) не менее 44x44px.
+- [ ] Отсутствуют перекрытия текстовых контейнеров, обрезка текста или выход блоков за ширину экрана (нет горизонтального скролла страницы).
+- [ ] Цветовой контраст текста относительно фона составляет не менее 4.5:1 для обычного текста.
+
+### Technical & System Integrity
+- [ ] Нет инлайновых стилей цветов (все цвета берутся из `@theme` в `globals.css`).
+- [ ] Проект успешно проходит сборку (`npm run build`) и линтинг (`npm run lint`).
+- [ ] Playwright-тесты для мобильных разрешений успешно проходят локально.
+
+## Follow-up — 2026-06-10T04:38:36Z
+
+Redesign the mobile order wizard in `MobileWizard.tsx` to implement a progressive collapsible accordion-wizard flow, reducing visual clutter and cognitive load, and update the associated Playwright tests to ensure build and test suite integrity.
+
+Working directory: d:\SMM_plan_2
+Integrity mode: development
+
+## Requirements
+
+### R1. Collapsible Accordion-Wizard Layout (`MobileWizard.tsx`)
+Redesign the mobile order wizard layout so that only one active step is expanded at any time, while completed steps collapse into compact read-only summary badges with "Edit" options:
+1. **Step 1 (Link Entry - Active by Default)**:
+   - User immediately sees the link input field (our primary feature).
+   - Below the link input, display the helper link "Выбрать из каталога вручную".
+   - Once a valid link is entered (and the social platform/available categories are resolved), Step 1 collapses into a compact read-only summary card: e.g. `🔗 Ссылка: t.me/durov [Изменить]`.
+2. **Step 2 (Category Selection)**:
+   - Opens automatically when Step 1 collapses.
+   - Hides the "Выбрать из каталога вручную" button and other details.
+   - Shows only the category list.
+   - Once a category is clicked, Step 2 collapses into a compact summary card: e.g. `📁 Категория: Подписчики [Изменить]`.
+3. **Step 3 (Service Tariff Selection)**:
+   - Opens automatically when Step 2 collapses.
+   - Shows only the available service tariffs/cards.
+   - Provides a "Назад к выбору категории" action at the top.
+   - Once a service is selected, Step 3 collapses into a compact summary card: e.g. `⚡ Тариф: Эконом (45 ₽ / шт) [Изменить]`.
+4. **Step 4 (Checkout Parameters)**:
+   - Opens automatically when Step 3 collapses.
+   - Shows only the quantity input, email, promo code, dynamic warning blocks, legal terms checkbox, price summary, and "Заказать" CTA button.
+   - Provides a "Назад к выбору тарифа" action at the top (or "Назад к каталогу" if selected manually).
+
+### R3. Editing Previous Steps
+- Clicking any collapsed step summary card or its "Изменить" button expands that specific step for editing, while collapsing subsequent steps.
+
+### R4. E2E Test Suite Alignment (`e2e/visual-regression.spec.ts`)
+- Update the mobile visual regression test case `test('9. Mobile UX Warning Block and Validation Checkbox')` to interact with the new step-by-step accordion-wizard flow (collapsing/expanding) rather than expecting all fields to be visible simultaneously.
+
+### R5. Visual Quality & Accessibility
+- Maintain mobile viewport responsiveness (320px–480px) and WCAG 2.2 AA touch targets (>= 44px).
+- Use semantic design tokens from `globals.css` (no inline background/text colors).
+
+## Acceptance Criteria
+
+### UX Flow & Density
+- [ ] By default, only Step 1 (Link input) and "Выбрать из каталога вручную" are visible.
+- [ ] Entering a valid link collapses Step 1 and displays only Step 2 (Categories).
+- [ ] Selecting a category collapses Step 2 and displays only Step 3 (Services).
+- [ ] Selecting a service collapses Step 3 and displays only Step 4 (Checkout Parameters).
+- [ ] Clicking "Изменить" on any summary card expands it and collapses subsequent steps.
+
+### Technical & Testing Integrity
+- [ ] `npm run lint` finishes with 0 errors.
+- [ ] `npx tsc --noEmit` compiles successfully with 0 errors.
+- [ ] `npm run test:visual` runs and passes successfully.
+
+## Follow-up — 2026-06-10T04:42:53Z
+
+Команда, заказчик внес важное изменение в требования по ходу работы:
+Для накрутки альбомов/медиагрупп в Telegram теперь требуется указывать ДВЕ ссылки: на первое фото (основное) и на последнее фото.
+Мы уже внесли необходимые изменения в:
+1. src/components/landing/order-engine/DynamicPayloadWarnings.tsx (добавлены два поля ввода и обновлен текст).
+2. src/components/landing/order-engine/PlatformLinkGuideDrawer.tsx (обновлена инструкция по копированию двух ссылок).
+
+Пожалуйста, учтите это при реализации мобильного визарда и при адаптации авто-тестов в e2e/visual-regression.spec.ts. Запустите тесты и проверьте, что сборка проходит без ошибок.
+## Follow-up - 2026-06-11T06:38:25Z
+
+Analyze the payment return flow (/success), fix technical root causes causing false-positive payment errors, and redesign the error page UX to guide users gracefully without requiring immediate support intervention.
+
+Working directory: d:\SMM_plan_2
+Integrity mode: development
+
+## Requirements
+
+### R1. Root Cause Analysis & Fix
+Identify and fix the technical issues causing the payment success page to incorrectly display errors (e.g., /api/order-status failing due to missing session cookies after YooKassa redirect in certain browsers).
+
+### R2. Progressive Error Handling UX
+Redesign the payment error/success page UX with a progressive fallback mechanism:
+1. **Auto-polling (Phase 1):** Automatically poll the payment status in the background (e.g., каждые 5 секунд в течение 30 секунд). Показывать состояние загрузки/ожидания в этой фазе.
+2. **Manual Intervention (Phase 2):** Если автоматический опрос завершается по таймауту или выдает ошибку, предоставить четкие действия для пользователя (например, кнопку «Обновить статус» или «Оплатить заново»), прежде чем предлагать обратиться в поддержку.
+
+## Acceptance Criteria
+
+### Technical Fix
+- [ ] Automated or manual verification confirms that checking order status without a session cookie succeeds for recently created orders.
+- [ ] The success page successfully resolves the order status without throwing 401 Unauthorized errors when returning from YooKassa.
+
+### UX Improvement
+- [ ] The UI first attempts auto-polling seamlessly before displaying any hard error states.
+- [ ] After auto-polling fails, the user is presented with manual retry buttons.
+- [ ] Visual regression or E2E tests pass for the updated payment return flow.
+
+## Follow-up — 2026-06-11T14:44:40+03:00
+
+Служба семантического анализа и сравнения описаний услуг в нашей базе данных с описаниями от провайдеров (из кэша Redis `provider:{id}:catalog`) для выявления критических расхождений в характеристиках (гарантия, скорость, тип ссылок, ограничения).
+
+Working directory: d:/SMM_plan_2/project-docs/description_audit
+Integrity mode: development
+
+## Requirements
+
+### R1. Сервис аудита описаний (`src/services/admin/description-audit.ts`)
+Реализовать класс `DescriptionAuditEngine` со статическим методом для запуска семантической проверки описаний услуг:
+1. **Сравнение через Gemini**: Использовать модель `gemini-3-flash` или `gemini-3-flash-preview` для анализа соответствия локального описания услуги описанию от провайдера.
+2. **Анализ параметров**:
+   - **Гарантии** (наличие Refill, кнопка компенсации, количество дней гарантии).
+   - **Скорость старта и выполнения** (например, в локальном описании заявлено "10к в сутки", у провайдера изменилось на "500 в сутки").
+   - **Тип целевых ссылок** (`targetType` - канал, пост, профиль).
+   - **Критические требования** (наличие аватарки, возраст канала, запрет закрытых аккаунтов).
+3. **Логирование и реакция**:
+   - При обнаружении расхождения создавать запись в `AdminAuditLog` с `action: "DESCRIPTION_DISCREPANCY"`, `targetType: "SERVICE"`, с JSON-полями расхождения.
+   - Записывать статус расхождения в JSON-поле `features` услуги (например, `descriptionAudit: { status: 'DISCREPANCY', issues: [...], checkedAt: '...' }`).
+   - Саму услугу в жесткий карантин не отправлять, но помечать предупреждением в интерфейсе.
+
+### R2. Панель управления расхождениями в Админке
+1. Добавить вкладку **«Анализ описаний»** на страницу `/admin/catalog/quarantine` или в `/admin/catalog/enrichment`.
+2. Отображать таблицу услуг с расхождениями с использованием HeroUI v3:
+   - Название услуги, категория и провайдер.
+   - Найденные расхождения (краткая выжимка от ИИ).
+   - Кнопка **«Принять описание провайдера»** (заменяет локальное описание и имя на очищенный текст провайдера и сбрасывает статус предупреждения).
+   - Кнопка **«Игнорировать»** (сбрасывает статус предупреждения).
+
+### R3. Модульные тесты (`test/unit/description-audit.test.ts`)
+Написать юнит-тесты на Vitest для проверки:
+- Корректного парсинга ответа ИИ о расхождениях.
+- Записи логов в `AdminAuditLog`.
+- Обновления полей в базе данных при подтверждении или игнорировании.
+
+## Acceptance Criteria
+
+### Проверка типов и линтинг
+- [ ] Команда `npx tsc --noEmit` выполняется без единой ошибки.
+- [ ] Команда `npm run lint` завершается без ошибок.
+
+### Корректность работы
+- [ ] Модульные тесты проходят успешно (`npx vitest run test/unit/description-audit.test.ts`).
+- [ ] Логи автосверки записываются в базу данных и корректно форматируются.
+
+## Follow-up — 2026-06-11T14:46:48+03:00
+
+Одноразовый консольный скрипт для семантического анализа, маркетинговой оптимизации и синхронизации описаний услуг в нашей базе данных с реальными спецификациями провайдера (из кэша Redis или живого API).
+
+Working directory: d:/SMM_plan_2/project-docs/marketing_rewrite
+Integrity mode: development
+
+## Requirements
+
+### R1. Одноразовый скрипт рерайтинга описаний (`scripts/marketing-description-rewriter.ts`)
+Создать консольный TS-скрипт, который выполняет следующие шаги:
+1. **Выборка услуг**: Находит в базе данных все активные услуги (`isActive: true`), у которых есть `externalId`.
+2. **Получение спецификаций провайдера**: Извлекает описание услуги от провайдера (сначала проверяет Redis-кэш `provider:{id}:catalog`, при отсутствии делает запрос к API провайдера).
+3. **ИИ Маркетолог (Gemini)**: Отправляет текущее имя/описание услуги и имя/описание от провайдера в модель `gemini-3-flash` или `gemini-3-flash-preview` со специализированным системным промптом:
+   - **Честность (Без вранья)**: Описание должно строго соответствовать техническим лимитам провайдера (если у провайдера нет гарантий списаний, нельзя обещать "без списаний"; если старт долгий, указать "старт до 12-24 ч").
+   - **Продающая B2B структура**: Переписать текст на чистом русском языке, структурировано (с помощью markdown-списков: Скорость, Гарантия, Лимиты, Особенности), делая его привлекательным для клиентов.
+   - **Очистка от спама**: Текст должен быть очищен от любых ссылок, контактов, Telegram @юзернеймов провайдера и запрещенных слов («накрутка», «накрутить» и др.).
+4. **Обновление БД и Лог аудита**:
+   - Обновляет поля `name` и `description` услуги в базе данных.
+   - Записывает лог в `AdminAuditLog` с `action: "SERVICE_AUTO_FIX"`, `adminEmail: "system@smmplan.pro"` с подробным diff изменений, чтобы они отображались во вкладке автоисправлений админки.
+
+### R2. Модульные тесты (`test/unit/marketing-rewrite.test.ts`)
+Написать Vitest-тесты для проверки:
+- Ожидаемого поведения рерайтера при нестыковках (например, когда локальное описание обещает гарантию, а провайдер ее отменил).
+- Успешной записи изменений в базу данных и лог аудита.
+
+## Acceptance Criteria
+
+### Проверка типов и линтинг
+- [ ] Команда `npx tsc --noEmit` выполняется без единой ошибки.
+- [ ] Команда `npm run lint` завершается без ошибок.
+
+### Корректность работы
+- [ ] Скрипт запускается через `npx tsx scripts/marketing-description-rewriter.ts --dry-run` (режим симуляции без изменения БД) и выводит diff в консоль.
+- [ ] Тесты проходят успешно (`npx vitest run test/unit/marketing-rewrite.test.ts`).

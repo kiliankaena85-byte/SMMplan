@@ -4,7 +4,7 @@ import { QuarantineClient } from './quarantine-client';
 export const dynamic = 'force-dynamic';
 
 export default async function QuarantinePage() {
-  const [quarantined, zombies, blockedByApi] = await Promise.all([
+  const [quarantined, zombies, blockedByApi, autoFixLogs] = await Promise.all([
     db.service.findMany({
       where: { isQuarantined: true },
       include: { category: { include: { network: true } }, provider: { select: { id: true, name: true } } },
@@ -22,6 +22,11 @@ export default async function QuarantinePage() {
       },
       include: { category: { include: { network: true } }, provider: { select: { id: true, name: true } } },
       orderBy: { cooldownUntil: 'desc' },
+    }),
+    db.adminAuditLog.findMany({
+      where: { action: 'SERVICE_AUTO_FIX' },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
     }),
   ]);
 
@@ -44,6 +49,43 @@ export default async function QuarantinePage() {
   const zombieItems = zombies.map(mapToDto);
   const apiErrors = blockedByApi.map(mapToDto);
 
+  const serviceIds = autoFixLogs.map(l => l.target);
+  const servicesInfo = await db.service.findMany({
+    where: { id: { in: serviceIds } },
+    select: {
+      id: true,
+      name: true,
+      category: { select: { name: true, network: { select: { slug: true } } } },
+      provider: { select: { name: true } },
+    },
+  });
+
+  const serviceInfoMap = new Map(servicesInfo.map(s => [s.id, s]));
+
+  const autoFixes = autoFixLogs.map(log => {
+    const sInfo = serviceInfoMap.get(log.target);
+    let oldValueParsed = null;
+    let newValueParsed = null;
+    try {
+      oldValueParsed = log.oldValue ? JSON.parse(log.oldValue) : null;
+    } catch { /* ignore */ }
+    try {
+      newValueParsed = log.newValue ? JSON.parse(log.newValue) : null;
+    } catch { /* ignore */ }
+
+    return {
+      id: log.id,
+      serviceId: log.target,
+      serviceName: sInfo?.name ?? `Услуга #${log.target.slice(0, 8)}`,
+      categoryName: sInfo?.category?.name ?? '—',
+      networkSlug: sInfo?.category?.network?.slug ?? 'unknown',
+      providerName: sInfo?.provider?.name ?? '—',
+      oldValue: oldValueParsed,
+      newValue: newValueParsed,
+      createdAt: log.createdAt.toISOString(),
+    };
+  });
+
   const totalAnomalies = priceSpikes.length + zombieItems.length + apiErrors.length;
 
   return (
@@ -65,6 +107,7 @@ export default async function QuarantinePage() {
         initialPriceSpikes={priceSpikes} 
         initialZombies={zombieItems} 
         initialApiErrors={apiErrors} 
+        initialAutoFixes={autoFixes}
       />
     </div>
   );

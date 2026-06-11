@@ -9,7 +9,7 @@ WORKDIR /app
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* .npmrc* ./
 COPY prisma ./prisma
-RUN npm ci --legacy-peer-deps
+RUN npm config set fetch-retries 5 && npm config set fetch-retry-mintimeout 20000 && npm ci --legacy-peer-deps
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -33,7 +33,7 @@ FROM base AS prod-deps
 WORKDIR /app
 COPY package.json package-lock.json* .npmrc* ./
 COPY prisma ./prisma
-RUN npm ci --omit=dev --legacy-peer-deps
+RUN npm config set fetch-retries 5 && npm config set fetch-retry-mintimeout 20000 && npm ci --omit=dev --legacy-peer-deps
 RUN npm install tsx typescript @types/node --no-save
 RUN npx prisma generate
 

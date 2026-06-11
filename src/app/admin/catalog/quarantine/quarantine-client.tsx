@@ -10,6 +10,7 @@ import {
 } from '@/actions/admin/providers/sync-action';
 import { toast } from 'sonner';
 import { Table } from '@/components/admin/hero-ui';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface QuarantineItem {
   id: string;
@@ -25,10 +26,23 @@ interface QuarantineItem {
   cooldownUntil: string | null;
 }
 
+interface AutoFixItem {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  categoryName: string;
+  networkSlug: string;
+  providerName: string;
+  oldValue: Record<string, string | number | null> | null;
+  newValue: Record<string, string | number | null> | null;
+  createdAt: string;
+}
+
 interface Props {
   initialPriceSpikes: QuarantineItem[];
   initialZombies: QuarantineItem[];
   initialApiErrors: QuarantineItem[];
+  initialAutoFixes: AutoFixItem[];
 }
 
 const NETWORK_EMOJI: Record<string, string> = {
@@ -36,11 +50,12 @@ const NETWORK_EMOJI: Record<string, string> = {
   tiktok: '🎵', vk: '🔵', twitter: '🐦', unknown: '🌐',
 };
 
-export function QuarantineClient({ initialPriceSpikes, initialZombies, initialApiErrors }: Props) {
+export function QuarantineClient({ initialPriceSpikes, initialZombies, initialApiErrors, initialAutoFixes }: Props) {
   const [priceSpikes, setPriceSpikes] = useState(initialPriceSpikes);
   const [zombies, setZombies] = useState(initialZombies);
   const [apiErrors, setApiErrors] = useState(initialApiErrors);
-  const [activeTab, setActiveTab] = useState<'price' | 'zombies' | 'api'>('price');
+  const [autoFixes] = useState(initialAutoFixes);
+  const [activeTab, setActiveTab] = useState<'price' | 'zombies' | 'api' | 'autofix'>('price');
   
   const [isPending, startTransition] = useTransition();
 
@@ -120,25 +135,43 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="flex gap-4 border-b border-border mb-6">
-        <button 
-          onClick={() => setActiveTab('price')} 
-          className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === 'price' ? 'text-primary border-primary' : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'}`}>
-          Ценовые скачки 
-          {priceSpikes.length > 0 && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-warning/20 text-warning text-xs">{priceSpikes.length}</span>}
-        </button>
-        <button 
-          onClick={() => setActiveTab('zombies')} 
-          className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === 'zombies' ? 'text-primary border-primary' : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'}`}>
-          Зомби-услуги 
-          {zombies.length > 0 && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-destructive/20 text-destructive text-xs">{zombies.length}</span>}
-        </button>
-        <button 
-          onClick={() => setActiveTab('api')} 
-          className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === 'api' ? 'text-primary border-primary' : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'}`}>
-          Сбои API 
-          {apiErrors.length > 0 && <span className="ml-2 px-1.5 py-0.5 rounded-md bg-warning/20 text-warning text-xs">{apiErrors.length}</span>}
-        </button>
+      <div className="mb-6">
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'price' | 'zombies' | 'api' | 'autofix')}>
+          <TabsList variant="line" className="gap-6 border-b border-divider w-full justify-start rounded-none h-auto p-0">
+            <TabsTrigger value="price" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px] flex items-center gap-2">
+              <span>Ценовые скачки</span>
+              {priceSpikes.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-warning/20 text-warning text-[10px]">
+                  {priceSpikes.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="zombies" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px] flex items-center gap-2">
+              <span>Зомби-услуги</span>
+              {zombies.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-destructive/20 text-destructive text-[10px]">
+                  {zombies.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="api" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px] flex items-center gap-2">
+              <span>Сбои API</span>
+              {apiErrors.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-warning/20 text-warning text-[10px]">
+                  {apiErrors.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="autofix" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px] flex items-center gap-2">
+              <span>История автоисправлений</span>
+              {autoFixes.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-success/20 text-success text-[10px]">
+                  {autoFixes.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* PRICE SPIKES TAB */}
@@ -284,6 +317,112 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                             <Table.Cell><span className="text-sm font-mono text-muted-foreground">{untilDate}</span></Table.Cell>
                             <Table.Cell className="text-right">
                               <button onClick={() => handleLiftApiBlock(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50">🔓 Снять блок</button>
+                            </Table.Cell>
+                          </Table.Row>
+                        );
+                      })}
+                    </Table.Body>
+                  </Table.Content>
+                </Table.ScrollContainer>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AUTOFIX LOGS TAB */}
+      {activeTab === 'autofix' && (
+        <div className="space-y-4 animate-in fade-in duration-300">
+          <p className="text-sm text-muted-foreground">{autoFixes.length} последних автоисправлений (очистка текста, автокоррекция наценки)</p>
+          {autoFixes.length === 0 ? renderEmptyState('История пуста', 'Никаких автоисправлений еще не производилось') : (
+            <div className="bg-card border border-border rounded-xl overflow-hidden w-full">
+              <Table aria-label="История автоисправлений">
+                <Table.ScrollContainer>
+                  <Table.Content>
+                    <Table.Header>
+                      <Table.Column isRowHeader>УСЛУГА</Table.Column>
+                      <Table.Column>ДАТА</Table.Column>
+                      <Table.Column>ИЗМЕНЕНИЯ</Table.Column>
+                    </Table.Header>
+                    <Table.Body>
+                      {autoFixes.map(item => {
+                        const emoji = NETWORK_EMOJI[item.networkSlug] ?? '🌐';
+                        const dateFormatted = new Date(item.createdAt).toLocaleString('ru-RU');
+
+                        const changesList: React.ReactNode[] = [];
+                        type AuditVal = { name?: string; description?: string; markup?: number; pricePer1000Cents?: number };
+                        const oldVal = (item.oldValue || {}) as AuditVal;
+                        const newVal = (item.newValue || {}) as AuditVal;
+
+                        if (oldVal.name !== undefined && newVal.name !== undefined && oldVal.name !== newVal.name) {
+                          changesList.push(
+                            <div key="name" className="text-xs">
+                              <span className="font-semibold text-muted-foreground">Название:</span>{" "}
+                              <span className="line-through text-destructive/80 mr-1">{String(oldVal.name)}</span>
+                              <span className="text-success font-medium">→ {String(newVal.name)}</span>
+                            </div>
+                          );
+                        }
+                        if (oldVal.description !== undefined && newVal.description !== undefined && oldVal.description !== newVal.description) {
+                          const descOld = String(oldVal.description || "—");
+                          const descNew = String(newVal.description || "—");
+                          changesList.push(
+                            <div key="desc" className="text-xs mt-1">
+                              <span className="font-semibold text-muted-foreground">Описание:</span>{" "}
+                              <span className="text-xs text-muted-foreground line-through block" title={descOld}>Было: {descOld}</span>
+                              <span className="text-xs text-success font-medium block" title={descNew}>Стало: {descNew}</span>
+                            </div>
+                          );
+                        }
+                        if (oldVal.markup !== undefined && newVal.markup !== undefined && oldVal.markup !== newVal.markup) {
+                          const mOld = Number(oldVal.markup || 0);
+                          const mNew = Number(newVal.markup || 0);
+                          changesList.push(
+                            <div key="markup" className="text-xs mt-1">
+                              <span className="font-semibold text-muted-foreground">Наценка:</span>{" "}
+                              <span className="text-destructive/80 font-mono mr-1">{mOld.toFixed(2)}x</span>
+                              <span className="text-success font-mono font-medium">→ {mNew.toFixed(2)}x</span>
+                            </div>
+                          );
+                        }
+                        if (oldVal.pricePer1000Cents !== undefined && newVal.pricePer1000Cents !== undefined && oldVal.pricePer1000Cents !== newVal.pricePer1000Cents) {
+                          const pOld = Number(oldVal.pricePer1000Cents || 0);
+                          const pNew = Number(newVal.pricePer1000Cents || 0);
+                          changesList.push(
+                            <div key="price" className="text-xs mt-1">
+                              <span className="font-semibold text-muted-foreground">Цена/1k:</span>{" "}
+                              <span className="text-destructive/80 font-mono mr-1">{(pOld / 100).toFixed(2)} ₽</span>
+                              <span className="text-success font-mono font-medium">→ {(pNew / 100).toFixed(2)} ₽</span>
+                            </div>
+                          );
+                        }
+
+                        if (changesList.length === 0) {
+                          changesList.push(
+                            <div key="no-change" className="text-xs text-muted-foreground italic">
+                              Параметры без изменений (повторный запуск аудита)
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <Table.Row key={item.id}>
+                            <Table.Cell>
+                              <div className="flex items-start gap-2">
+                                <span className="text-base">{emoji}</span>
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">{item.serviceName}</div>
+                                  <div className="text-xs text-muted-foreground">{item.categoryName} · {item.providerName}</div>
+                                </div>
+                              </div>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <span className="text-sm font-mono text-muted-foreground whitespace-nowrap">{dateFormatted}</span>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <div className="space-y-1.5 py-1">
+                                {changesList}
+                              </div>
                             </Table.Cell>
                           </Table.Row>
                         );

@@ -83,15 +83,15 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     });
 
     // 6. Pre-create active services
-    // Service A: rate = 0.50 USD/1k, markup = 3.0 (x3), retail price = 150 RUB
+    // Service A: rate = 0.50 USD/1k, markup = 6.0 (x6), retail price = 300 RUB
     serviceA = await db.service.create({
       data: {
         name: 'TG Views Fast',
         categoryId: category.id,
         providerId: provider.id,
         rate: 0.50,
-        markup: 3.0,
-        pricePer1000Cents: 15000, // 0.5 * 3 * 100 * 100
+        markup: 6.0,
+        pricePer1000Cents: 30000, // 0.5 * 6 * 100 * 100
         minQty: 10,
         maxQty: 10000,
         externalId: 'ext-303',
@@ -143,25 +143,42 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     expect(serviceBDb?.isActive).toBe(true);
   });
 
-  it('should detect margin floor breaches and quarantine the service to prevent B2B financial loss', async () => {
+  it('should auto-fix margin floor breaches (markup < 5.0) to 5.0 and recalculate pricing instead of quarantining', async () => {
     // Provider catalog contains ext-404 but price hiked from $1.00 to $1.25
     // With rate = $1.25, markup = 1.2, retail = 1.2 * 1.0 * 100 = 120 RUB per 1k.
-    // Procurement cost is $1.25 * 100 = 125 RUB per 1k.
-    // Actual markup multiplier is 120 / 125 = 0.96x, which is below the SAFETY_FLOOR_MARKUP (1.0x extra = x2.0 multiplier)
+    // Since markup is 1.2 (which is < 5.0), the engine auto-fixes the markup to 5.0
+    // and updates retail price using rate $1.25, exchange rate 100.0, markup 5.0:
+    // Retail = 1.25 * 5.0 * 100 = 625 RUB per 1k -> beautiful rounded to 630 RUB -> 63000 cents.
     mockGetServices.mockResolvedValue([
       { service: 'ext-303', name: 'TG Views Fast', rate: '0.50', min: '10', max: '10000', category: 'TG Views' },
       { service: 'ext-404', name: 'TG Views High Quality', rate: '1.25', min: '10', max: '10000', category: 'TG Views' }
     ]);
 
     const res = await adminCatalogService.syncProviderCatalog(provider.id, adminUser);
-    expect(res.marginFloorBreaches).toBe(1);
-    expect(res.priceAnomalies).toBe(1);
+    expect(res.marginFloorBreaches).toBe(0);
+    expect(res.priceAnomalies).toBe(1); // Service B still quarantines for Price Spike (>20%) after auto-fix
 
-    // Service B should be quarantined!
+    // Service B should be quarantined for Price Spike, not Margin Floor Breach
     const serviceBDb = await db.service.findUnique({ where: { id: serviceB.id } });
     expect(serviceBDb?.isQuarantined).toBe(true);
-    expect(serviceBDb?.quarantineReason).toContain('Margin Floor Breach');
+    expect(serviceBDb?.quarantineReason).toContain('Price Spike');
     expect(serviceBDb?.pendingRate).toBe(1.25);
+    expect(serviceBDb?.markup).toBe(5.0);
+    expect(serviceBDb?.pricePer1000Cents).toBe(63000);
+
+    // Verify AdminAuditLog entry was created for the auto-fix
+    const autoFixLog = await db.adminAuditLog.findFirst({
+      where: {
+        action: 'SERVICE_AUTO_FIX',
+        target: serviceB.id,
+      },
+    });
+    expect(autoFixLog).toBeDefined();
+    expect(autoFixLog?.adminEmail).toBe('system@smmplan.pro');
+    const oldVal = JSON.parse(autoFixLog?.oldValue || '{}');
+    const newVal = JSON.parse(autoFixLog?.newValue || '{}');
+    expect(oldVal.markup).toBe(1.2);
+    expect(newVal.markup).toBe(5.0);
   });
 
   it('should detect a price spike anomaly (>20% increase) and quarantine the service safely', async () => {
@@ -191,10 +208,10 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     const res = await adminCatalogService.syncProviderCatalog(provider.id, adminUser);
     expect(res.priceUpdatedSilent).toBe(1);
 
-    // Service A price should be silently updated: rate = 0.53, retail price: 0.53 * 3.0 * 100 = 159 -> beautiful rounding to 160 RUB -> 16000 cents
+    // Service A price should be silently updated: rate = 0.53, retail price: 0.53 * 6.0 * 100 = 318 -> beautiful rounding to 320 RUB -> 32000 cents
     const serviceADb = await db.service.findUnique({ where: { id: serviceA.id } });
     expect(serviceADb?.rate).toBe(0.53);
-    expect(serviceADb?.pricePer1000Cents).toBe(16000);
+    expect(serviceADb?.pricePer1000Cents).toBe(32000);
     expect(serviceADb?.isQuarantined).toBe(false);
   });
 });

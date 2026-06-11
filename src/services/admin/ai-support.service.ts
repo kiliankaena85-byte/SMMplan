@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { ProxyAgent } from 'undici';
 
 class AiSupportService {
   /**
@@ -49,7 +50,8 @@ If the user needs a refund, explain that support can issue compensations up to 5
      if (!apiKey) return "AI API Key missing";
 
      const model = 'gemini-3.5-flash';
-     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+     const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
+     const url = `${baseUrl}/v1beta/models/${model}:generateContent`;
      
      // W1-3 SECURITY FIX: Structured messages — system instruction separate from user data.
      // Previously: raw user text was concat'd into prompt string → prompt injection risk.
@@ -58,6 +60,9 @@ If the user needs a refund, explain that support can issue compensations up to 5
        role: m.sender === 'USER' ? 'user' : 'model',
        parts: [{ text: m.text }]
      }));
+
+     const proxyUrl = process.env.GEMINI_PROXY || process.env.HTTPS_PROXY;
+     const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 
      const res = await fetch(url, {
        method: 'POST',
@@ -68,8 +73,11 @@ If the user needs a refund, explain that support can issue compensations up to 5
        body: JSON.stringify({
          system_instruction: { parts: [{ text: systemInstruction }] },
          contents
-       })
-     });
+       }),
+       dispatcher
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     } as any);
+
 
      if (!res.ok) {
        console.error(`[AI Support] API Error ${res.status}: ${await res.text()}`);

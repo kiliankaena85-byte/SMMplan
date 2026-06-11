@@ -13,6 +13,7 @@ import {
   applyBeautifulRounding
 } from '@/lib/financial-constants';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
+import { ServiceAuditEngine } from './audit-engine';
 
 // ── Types ──
 
@@ -266,6 +267,9 @@ class AdminCatalogService {
            continue;
         }
 
+        // Clean name/description and fix markup/price if needed
+        await ServiceAuditEngine.auditAndFixService(s, liveExt, exchangeRate);
+
         if (!s.isActive && s.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
           // Check Price Spike before resurrecting
           const oldRate = s.rate;
@@ -486,9 +490,12 @@ class AdminCatalogService {
         effectiveMarkup = SAFETY_FLOOR_MARKUP;
       }
 
+      const importedName = shadowExt.cleanName || liveExt.name;
+      const importedDesc = liveExt.description || shadowExt.description || null;
+
       servicesToCreate.push({
-        name: shadowExt.cleanName || liveExt.name, // Use AI Clean Name
-        description: liveExt.description || shadowExt.description || null,
+        name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization
+        description: importedDesc ? ServiceAuditEngine.cleanText(importedDesc) : null,
         externalId: extId,
         categoryId: categoryIdMap?.[extId] || categoryId,
         providerId: providerDbRecord.id,

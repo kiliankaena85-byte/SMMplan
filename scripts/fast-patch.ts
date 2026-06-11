@@ -85,7 +85,7 @@ async function main() {
   // 3. Локальный билд Next.js
   log.info('2/6 Сборка Next.js приложения...');
   try {
-    execSync('npm run build', { stdio: 'inherit' });
+    execSync('npm run build', { stdio: 'inherit', env: { ...process.env, DISABLE_REDIS_CACHE: '1' } });
     log.success('Сборка Next.js выполнена успешно.');
   } catch (err) {
     log.error('Сборка Next.js завершилась с ошибкой.');
@@ -108,25 +108,35 @@ async function main() {
     // Копирование необходимых собранных файлов
     log.info('Копирование файлов сборки...');
     fs.cpSync(path.join(process.cwd(), '.next/standalone/server.js'), path.join(distPath, 'server.js'));
+    if (fs.existsSync(path.join(process.cwd(), 'cache-handler.js'))) {
+      fs.cpSync(path.join(process.cwd(), 'cache-handler.js'), path.join(distPath, 'cache-handler.js'));
+    }
     fs.cpSync(path.join(process.cwd(), '.next/standalone/.next'), path.join(distPath, '.next'), { recursive: true });
     fs.cpSync(path.join(process.cwd(), '.next/static'), path.join(distPath, '.next/static'), { recursive: true });
     fs.cpSync(path.join(process.cwd(), 'public'), path.join(distPath, 'public'), { recursive: true });
     fs.cpSync(path.join(process.cwd(), 'src'), path.join(distPath, 'src'), { recursive: true });
+    if (fs.existsSync(path.join(process.cwd(), 'scripts'))) {
+      fs.cpSync(path.join(process.cwd(), 'scripts'), path.join(distPath, 'scripts'), { recursive: true });
+    }
 
     const standalonePrismaPath = path.join(process.cwd(), '.next/standalone/node_modules/.prisma');
-    if (fs.existsSync(standalonePrismaPath)) {
+    if (fs.existsSync(standalonePrismaPath) && process.platform !== 'win32') {
       log.info('Копирование бинарников Prisma...');
       fs.cpSync(standalonePrismaPath, path.join(distPath, 'node_modules/.prisma'), { recursive: true });
+    } else if (fs.existsSync(standalonePrismaPath)) {
+      log.info('Пропуск копирования бинарников Prisma на Windows (для сохранения Linux query-engine в Docker)...');
     }
 
 
     // FIX FOR WINDOWS: Convert backslashes to forward slashes in Next.js manifests so they work on Linux
     const manifestsToFix = [
+      path.join(distPath, 'server.js'),
       path.join(distPath, '.next', 'server', 'app-paths-manifest.json'),
       path.join(distPath, '.next', 'server', 'pages-manifest.json'),
       path.join(distPath, '.next', 'server', 'middleware-manifest.json'),
       path.join(distPath, '.next', 'prerender-manifest.json'),
-      path.join(distPath, '.next', 'routes-manifest.json')
+      path.join(distPath, '.next', 'routes-manifest.json'),
+      path.join(distPath, '.next', 'required-server-files.json')
     ];
     for (const manifestPath of manifestsToFix) {
       if (fs.existsSync(manifestPath)) {
@@ -167,7 +177,7 @@ async function main() {
     `rm -f /tmp/smmplan_patch.tar.gz`,
     `echo "Копирование файлов в контейнеры..."`,
     `docker cp /tmp/smmplan_patch/. ${target.containers.app}:/app/`,
-    `docker exec -u root ${target.containers.app} chown -R nextjs:nodejs /app/server.js /app/.next /app/public /app/src`,
+    `docker exec -u root ${target.containers.app} chown -R nextjs:nodejs /app/server.js /app/cache-handler.js /app/.next /app/public /app/src || true`,
     `docker cp /tmp/smmplan_patch/src/. ${target.containers.worker}:/app/src/`,
     `docker exec -u root ${target.containers.worker} chown -R nextjs:nodejs /app/src`,
     `docker cp /tmp/smmplan_patch/src/. ${target.containers.bot}:/app/src/`,
@@ -182,6 +192,9 @@ async function main() {
     `HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" ${target.healthCheckUrl} || echo "000")`,
     `if [ "$HTTP_STATUS" != "200" ]; then`,
     `  echo "❌ Ошибка! Health Check вернул код: $HTTP_STATUS"`,
+    `  echo "=== LOGS FROM FAILED CONTAINER ==="`,
+    `  docker logs --tail 100 ${target.containers.app} || true`,
+    `  echo "=================================="`,
     `  echo "🚨 Запуск автоматического отката (восстановление из чистого образа)..."`,
     `  cd ${target.path}`,
     `  docker compose -f ${target.composeFile} up -d --force-recreate`,

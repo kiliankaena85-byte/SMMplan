@@ -13,6 +13,7 @@ vi.mock('@/lib/db', () => ({
     payment: { create: vi.fn(), update: vi.fn() },
     promoCode: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     session: { create: vi.fn() },
+    contentItem: { findUnique: vi.fn() },
     $transaction: vi.fn(async (cb) => {
       // Имитация асинхронности через microtask queue без блокировки Fake Timers
       await Promise.resolve();

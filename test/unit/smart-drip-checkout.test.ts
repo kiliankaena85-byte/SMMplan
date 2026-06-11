@@ -14,6 +14,7 @@ vi.mock('@/lib/db', () => ({
     serviceSmartConfig: { findUnique: vi.fn() },
     smartCampaign: { create: vi.fn() },
     smartTask: { create: vi.fn() },
+    contentItem: { findUnique: vi.fn() },
     $transaction: vi.fn(async (cb) => {
       await Promise.resolve();
       return cb(db);

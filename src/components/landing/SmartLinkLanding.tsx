@@ -71,7 +71,6 @@ export function SmartLinkLanding({
     customData, setCustomData,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     agreedToTerms, setAgreedToTerms,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     catalog,
     unfilteredCatalog,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

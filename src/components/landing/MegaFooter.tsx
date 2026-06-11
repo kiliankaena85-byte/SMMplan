@@ -18,11 +18,19 @@ export function MegaFooter({
   }
 }) {
   const siteName = contactSettings?.SITE_NAME || "SMMplan";
-  const companyName = contactSettings?.COMPANY_NAME || "Самозанятый Соколов Артём Андреевич";
+  const companyName = contactSettings?.COMPANY_NAME && contactSettings.COMPANY_NAME !== "SMMplan" && !contactSettings.COMPANY_NAME.includes("Укажите")
+    ? contactSettings.COMPANY_NAME
+    : "Самозанятый Соколов Артём Андреевич";
   const supportEmail = contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro";
-  const inn = contactSettings?.LEGAL_INN || "695006320024";
-  const ogrnip = contactSettings?.LEGAL_OGRNIP && contactSettings.LEGAL_OGRNIP !== "300000000000000" ? contactSettings.LEGAL_OGRNIP : "";
-  const address = contactSettings?.LEGAL_ADDRESS && !contactSettings.LEGAL_ADDRESS.includes("укажите") ? contactSettings.LEGAL_ADDRESS : "Российская Федерация, Тверская область, г. Тверь";
+  const inn = contactSettings?.LEGAL_INN && contactSettings.LEGAL_INN !== "Укажите ИНН" && contactSettings.LEGAL_INN !== "000000000000"
+    ? contactSettings.LEGAL_INN
+    : "695006320024";
+  const ogrnip = contactSettings?.LEGAL_OGRNIP && contactSettings.LEGAL_OGRNIP !== "Укажите ОГРНИП" && contactSettings.LEGAL_OGRNIP !== "300000000000000"
+    ? contactSettings.LEGAL_OGRNIP
+    : "";
+  const address = contactSettings?.LEGAL_ADDRESS && !contactSettings.LEGAL_ADDRESS.includes("укажите") && contactSettings.LEGAL_ADDRESS !== "г. Москва"
+    ? contactSettings.LEGAL_ADDRESS
+    : "Российская Федерация, Тверская область, г. Тверь";
 
   return (
     <footer className="bg-background text-foreground pt-12 md:pt-24 pb-8 md:pb-12 border-t border-border relative overflow-hidden mt-auto">
@@ -125,7 +133,7 @@ export function MegaFooter({
         <div className="flex flex-col gap-1.5">
           <p>© {new Date().getFullYear()} {companyName}. Все права защищены.</p>
           <p className="text-[10px] opacity-70">
-            Официальный сервис продвижения. ИНН: {inn} / ОГРНИП: {ogrnip}
+            Официальный сервис продвижения. ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""}
           </p>
           <p className="text-[10px] opacity-70">Адрес: {address}</p>
         </div>

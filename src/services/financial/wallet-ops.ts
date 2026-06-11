@@ -175,6 +175,13 @@ export const WalletOps = {
       throw new WalletInvalidAmountError('Adjustment');
     }
 
+    if (amountCents < 0) {
+      const user = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
+      if (!user || user.balance < Math.abs(amountCents)) {
+        throw new Error(`Insufficient balance for negative adjustment. User has ${user?.balance}, trying to deduct ${Math.abs(amountCents)}.`);
+      }
+    }
+
     const { idempotencyKey, adminId } = opts || {};
 
     // Removed Redis Mutex to prevent DB connection pool exhaustion.

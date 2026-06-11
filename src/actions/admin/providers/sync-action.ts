@@ -16,6 +16,7 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin } from "@/lib/admin-audit";
 import { applyPostSyncRules } from "@/services/providers/post-sync-rules";
 import { MutexManager } from "@/lib/redis-lock";
+import { ServiceAuditEngine } from "@/services/admin/audit-engine";
 
 export async function adminSyncProviderCatalog() {
   return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
@@ -38,7 +39,20 @@ export async function adminSyncProviderCatalog() {
         // Note: For SMMplan we fetch all services that have an externalId
         const ourServices = await db.service.findMany({
           where: { externalId: { not: null } },
-          select: { id: true, externalId: true, rate: true, markup: true, isActive: true, isQuarantined: true, pricePer1000Cents: true, providerCurrency: true },
+          select: {
+            id: true,
+            externalId: true,
+            rate: true,
+            markup: true,
+            isActive: true,
+            isQuarantined: true,
+            pricePer1000Cents: true,
+            providerCurrency: true,
+            name: true,
+            description: true,
+            quarantineReason: true,
+            quarantinedAt: true,
+          },
         });
 
         let updatedCount = 0;
@@ -94,6 +108,8 @@ export async function adminSyncProviderCatalog() {
           }
 
           const serviceExchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
+          await ServiceAuditEngine.auditAndFixService(myService, external, serviceExchangeRate);
+
           const newCostCents = newRate * serviceExchangeRate * 100;
           const actualMarkup = newCostCents > 0 ? (myService.pricePer1000Cents / newCostCents) : myService.markup;
 

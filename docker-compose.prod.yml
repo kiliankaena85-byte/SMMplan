@@ -177,6 +177,16 @@ services:
     depends_on:
       - loki
 
+  clash:
+    image: metacubex/mihomo:latest
+    container_name: smmplan_lite_prod_clash
+    restart: always
+    volumes:
+      - ./clash:/root/.config/mihomo
+    ports:
+      - "127.0.0.1:7890:7890"
+
+
 volumes:
   prod_postgres_data:
   prod_redis_data:
