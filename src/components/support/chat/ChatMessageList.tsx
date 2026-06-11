@@ -1,0 +1,736 @@
+import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, MessageSquare } from 'lucide-react';
+import { ClientDate } from '@/components/ui/client-date';
+import { Message } from './useChatMessages';
+import { ImageZoomModal } from './ImageZoomModal';
+
+// Deterministic gradient picker for avatars based on string hash
+const getAvatarGradient = (str: string) => {
+  const gradients = [
+    'from-destructive to-warning',
+    'from-success to-info',
+    'from-primary to-info',
+    'from-info to-primary',
+    'from-destructive to-primary',
+    'from-info to-success',
+    'from-warning to-primary',
+  ];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % gradients.length;
+  return gradients[index];
+};
+
+const getInitials = (sender: string, email?: string) => {
+  if (sender === 'USER') {
+    if (email) {
+      const parts = email.split('@')[0];
+      return parts.substring(0, 2).toUpperCase();
+    }
+    return 'CL';
+  }
+  if (sender === 'INTERNAL') return '🔒';
+  return 'OP';
+};
+
+interface ChatMessageListProps {
+  messages: Message[];
+  messageKeysRef: React.MutableRefObject<Record<string, string>>;
+  clientEmail?: string;
+  nextCursor: string | null;
+  loadingOlder: boolean;
+  onLoadOlder: () => void;
+  onSetReplyingTo: (msg: Message) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  editTicketMessage?: (formData: FormData) => Promise<any>;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  isStaff?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onSelectOrder?: (order: any) => void;
+}
+
+export function ChatMessageList({
+  messages,
+  messageKeysRef,
+  clientEmail,
+  nextCursor,
+  loadingOlder,
+  onLoadOlder,
+  onSetReplyingTo,
+  editTicketMessage,
+  setMessages,
+  isStaff,
+  onSelectOrder,
+}: ChatMessageListProps) {
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    // U1.3 Fix: Delay scrollIntoView for iOS keyboard layout recalc
+    const timer = setTimeout(() => {
+      if (isFirstRender.current) {
+        bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        isFirstRender.current = false;
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages.length]);
+
+  const handleEditSubmit = async (msgId: string) => {
+    if (!editingText.trim() || !editTicketMessage) {
+      return setEditingMessageId(null);
+    }
+
+    // Optimistic update
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? { ...m, text: editingText.trim() } : m))
+    );
+    setEditingMessageId(null);
+
+    const fd = new FormData();
+    fd.set('messageId', msgId);
+    fd.set('newText', editingText);
+
+    try {
+      await editTicketMessage(fd);
+    } catch {
+      /* error silently failing in MVP */
+    }
+  };
+
+  return (
+    <>
+      <div className="telegram-chat-bg flex-1 overflow-y-auto p-4 space-y-4 relative">
+        {nextCursor && (
+          <div className="flex justify-center py-2 shrink-0">
+            <button
+              type="button"
+              onClick={onLoadOlder}
+              disabled={loadingOlder}
+              aria-label="Загрузить предыдущие сообщения"
+              className="px-4 h-11 text-xs font-bold text-primary bg-primary/10 border border-primary/20 hover:bg-primary/25 rounded-xl transition-all duration-200 flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+            >
+              {loadingOlder ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Загрузка...</span>
+                </>
+              ) : (
+                <span>Загрузить предыдущие сообщения</span>
+              )}
+            </button>
+          </div>
+        )}
+
+        <AnimatePresence initial={false}>
+          {messages.map((msg, index) => {
+            const showSeparator =
+              index > 0 && messages[index - 1].isHistorical && !msg.isHistorical;
+            const isExpired =
+              Date.now() - new Date(msg.createdAt).getTime() > 48 * 60 * 60 * 1000;
+
+            return (
+              <motion.div
+                key={messageKeysRef.current[msg.id] || msg.id}
+                className="flex flex-col"
+                initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              >
+                {showSeparator && (
+                  <div className="flex items-center justify-center my-6 opacity-50">
+                    <div className="h-px bg-divider flex-1 max-w-[50px] mx-4"></div>
+                    <span className="text-xs font-semibold uppercase text-muted-foreground tracking-widest">
+                      --- Диалог завершен ---
+                    </span>
+                    <div className="h-px bg-divider flex-1 max-w-[50px] mx-4"></div>
+                  </div>
+                )}
+                {msg.isHistorical &&
+                  (index === 0 ||
+                    messages[index - 1].historicalTicketId !== msg.historicalTicketId) && (
+                    <div className="text-center text-[10px] uppercase font-bold text-muted-foreground my-4 bg-default-100 rounded-full px-3 py-1 w-max mx-auto border border-default-200">
+                      История: {msg.historicalSubject || 'Предыдущий тикет'}
+                    </div>
+                  )}
+                <div
+                  className={`flex ${
+                    msg.sender === 'USER' ? 'justify-start' : 'justify-end'
+                  } items-end mb-4 gap-4`}
+                >
+                  {msg.sender === 'USER' && (
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${getAvatarGradient(
+                        clientEmail || 'client'
+                      )} shrink-0`}
+                      title="Клиент"
+                    >
+                      {getInitials(msg.sender, clientEmail)}
+                    </div>
+                  )}
+                  <div
+                    className={`group relative max-w-[75%] p-4 shadow-xs transition-all duration-300 ${
+                      msg.isDeleted
+                        ? 'bg-default-100 text-default-400 opacity-80 rounded-[12px]'
+                        : msg.sender === 'USER'
+                        ? 'bg-card text-foreground rounded-tl-[12px] rounded-tr-[12px] rounded-br-[12px] rounded-bl-none'
+                        : msg.sender === 'INTERNAL'
+                        ? 'bg-warning/10 text-warning-text rounded-tl-[12px] rounded-tr-[12px] rounded-bl-[12px] rounded-br-none'
+                        : 'bg-secondary text-secondary-foreground rounded-tl-[12px] rounded-tr-[12px] rounded-bl-[12px] rounded-br-none'
+                    } ${
+                      msg.id.startsWith('temp-')
+                        ? 'opacity-60 saturate-50 animate-pulse'
+                        : ''
+                    }`}
+                  >
+                    {/* Telegram Bubble Tail */}
+                    {!msg.isDeleted &&
+                      (msg.sender === 'USER' ? (
+                        <div className="absolute left-[-6px] bottom-0 w-[6px] h-4 pointer-events-none select-none">
+                          <svg
+                            width="6"
+                            height="16"
+                            viewBox="0 0 6 16"
+                            className="text-card"
+                          >
+                            <path
+                              d="M6 16 L0 16 C2 15 4.5 10 6 0 Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </div>
+                      ) : (
+                        <div className="absolute right-[-6px] bottom-0 w-[6px] h-4 pointer-events-none select-none">
+                          {msg.sender === 'INTERNAL' ? (
+                            <svg
+                              width="6"
+                              height="16"
+                              viewBox="0 0 6 16"
+                              className="text-warning/10"
+                            >
+                              <path
+                                d="M0 16 L6 16 C4 15 1.5 10 0 0 Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                          ) : (
+                            <svg
+                              width="6"
+                              height="16"
+                              viewBox="0 0 6 16"
+                              className="text-secondary"
+                            >
+                              <path
+                                d="M0 16 L6 16 C4 15 1.5 10 0 0 Z"
+                                fill="currentColor"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                      ))}
+
+                    {/* Actions hover */}
+                    {!msg.isDeleted && editingMessageId !== msg.id && (
+                      <div
+                        className={`absolute ${
+                          msg.sender === 'USER' ? '-right-20' : '-left-20'
+                        } top-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex gap-1 transition-opacity z-10`}
+                      >
+                        <button
+                          onClick={() => onSetReplyingTo(msg)}
+                          className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-primary rounded-full bg-card shadow-sm border border-default-200 cursor-pointer"
+                          title="Ответить"
+                          aria-label="Ответить"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="9 17 4 12 9 7"></polyline>
+                            <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+                          </svg>
+                        </button>
+
+                        {editTicketMessage && msg.sender !== 'USER' && (
+                          isExpired ? (
+                            <div
+                              className="w-11 h-11 flex items-center justify-center text-muted-foreground/50 rounded-full bg-card shadow-sm border border-default-200 cursor-not-allowed"
+                              title="Заблокировано Telegram API (>48ч)"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                              </svg>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setEditingMessageId(msg.id);
+                                setEditingText(msg.text);
+                              }}
+                              className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-warning-text rounded-full bg-card shadow-sm border border-default-200 cursor-pointer"
+                              title="Редактировать"
+                              aria-label="Редактировать"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M12 20h9"></path>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                              </svg>
+                            </button>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {/* Reply Quote */}
+                    {!msg.isDeleted && msg.replyTo && (
+                      <div
+                        className={`mb-2 p-2 rounded-lg border-l-2 text-xs ${
+                          msg.sender === 'STAFF'
+                            ? 'bg-foreground/10 border-white/40 text-primary-foreground'
+                            : 'bg-default-100 border-primary/50 text-foreground'
+                        }`}
+                      >
+                        <div className="font-bold opacity-70 mb-0.5">
+                          {msg.replyTo.sender}
+                        </div>
+                        <div className="opacity-80 line-clamp-2">
+                          {msg.replyTo.text || 'Медиа сообщение'}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Order Context Attachment Card */}
+                    {!msg.isDeleted && msg.order && (
+                      <div
+                        className={`mb-3 rounded-xl p-3 flex flex-col gap-2 max-w-sm border-0 shadow-xs transition-all duration-200 ${
+                          msg.sender === 'USER'
+                            ? 'bg-default-100 text-foreground'
+                            : msg.sender === 'INTERNAL'
+                            ? 'bg-warning/10 text-warning-text'
+                            : 'bg-info/10 text-foreground'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0 ${
+                              msg.sender === 'USER'
+                                ? 'bg-primary/10 text-primary'
+                                : msg.sender === 'INTERNAL'
+                                ? 'bg-warning/25 text-warning-text'
+                                : 'bg-secondary-foreground/10 text-secondary-foreground'
+                            }`}
+                          >
+                            📦
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-black text-[11px] leading-none">
+                                Заказ #{msg.order.numericId}
+                              </span>
+                              <span
+                                className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                  msg.order.status === 'COMPLETED'
+                                    ? 'bg-success/15 text-success-text'
+                                    : msg.order.status === 'IN_PROGRESS'
+                                    ? 'bg-primary/15 text-primary'
+                                    : msg.order.status === 'PENDING'
+                                    ? 'bg-warning/15 text-warning-text'
+                                    : msg.order.status === 'AWAITING_PAYMENT'
+                                    ? 'bg-warning/15 text-warning-text'
+                                    : 'bg-default-200/50 text-muted-foreground'
+                                }`}
+                              >
+                                {msg.order.status === 'COMPLETED'
+                                  ? 'Выполнен'
+                                  : msg.order.status === 'IN_PROGRESS'
+                                  ? 'Выполняется'
+                                  : msg.order.status === 'PENDING'
+                                  ? 'В очереди'
+                                  : msg.order.status === 'AWAITING_PAYMENT'
+                                  ? 'Ожидает оплаты'
+                                  : msg.order.status}
+                              </span>
+                            </div>
+                            <p className="text-[10px] opacity-80 mt-1 truncate leading-tight font-medium">
+                              {msg.order.serviceName}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-dashed border-current/10 pt-2.5 mt-1.5 gap-4">
+                          <div className="text-xs font-bold opacity-90 leading-none">
+                            {(Number(msg.order.charge) / 100).toFixed(2)} ₽
+                          </div>
+
+                          {isStaff && onSelectOrder ? (
+                            <button
+                              type="button"
+                              onClick={() => onSelectOrder(msg.order)}
+                              className={`text-[11px] font-black px-3 h-11 rounded-xl transition-all duration-200 flex items-center justify-center gap-0.5 shadow-xs cursor-pointer hover:scale-[1.02] active:scale-[0.98] border-0 ${
+                                msg.sender === 'USER'
+                                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                  : msg.sender === 'INTERNAL'
+                                  ? 'bg-warning-text text-white hover:bg-warning-text/90'
+                                  : 'bg-card text-foreground hover:bg-card/90'
+                              }`}
+                            >
+                              Перейти к заказу ➔
+                            </button>
+                          ) : isStaff ? (
+                            <a
+                              href={`/admin/orders?edit_order_id=${msg.order.id}`}
+                              className={`text-[11px] font-black px-3 h-11 rounded-xl transition-all duration-200 flex items-center justify-center gap-0.5 shadow-xs hover:scale-[1.02] active:scale-[0.98] border-0 ${
+                                msg.sender === 'USER'
+                                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                  : msg.sender === 'INTERNAL'
+                                  ? 'bg-warning-text text-white hover:bg-warning-text/90'
+                                  : 'bg-card text-foreground hover:bg-card/90'
+                              }`}
+                            >
+                              Перейти к заказу ➔
+                            </a>
+                          ) : (
+                            <a
+                              href={`/dashboard/orders/${msg.order.id}`}
+                              className={`text-[11px] font-black px-3 h-11 rounded-xl transition-all duration-200 flex items-center justify-center gap-0.5 shadow-xs hover:scale-[1.02] active:scale-[0.98] border-0 ${
+                                msg.sender === 'USER'
+                                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                  : 'bg-card text-foreground hover:bg-card/90'
+                              }`}
+                            >
+                              Перейти к заказу ➔
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Media preview */}
+                    {!msg.isDeleted && msg.mediaUrl === 'uploading...' && (
+                      <div className="w-full h-32 bg-primary/10 animate-pulse rounded-xl mb-2 flex items-center justify-center border border-primary/20">
+                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                      </div>
+                    )}
+
+                    {!msg.isDeleted &&
+                      msg.mediaUrl !== 'uploading...' &&
+                      (() => {
+                        const filesToRender =
+                          msg.attachments && msg.attachments.length > 0
+                            ? msg.attachments
+                            : msg.mediaUrl
+                            ? [
+                                {
+                                  id: msg.id,
+                                  url: msg.mediaUrl,
+                                  type: msg.mediaType || 'document',
+                                  name: 'Вложение',
+                                  mimeType: '',
+                                  createdAt: msg.createdAt,
+                                },
+                              ]
+                            : [];
+
+                        if (filesToRender.length === 0) return null;
+
+                        if (filesToRender.length === 1) {
+                          const file = filesToRender[0];
+                          if (file.type === 'image') {
+                            return (
+                              <div className="relative group/att mb-2 inline-block max-w-full">
+                                <img
+                                  src={`/api/media/${encodeURIComponent(file.url)}`}
+                                  alt={file.name}
+                                  onClick={() => setZoomedImage(file.url)}
+                                  className="rounded-xl max-h-60 cursor-zoom-in border border-default-200 hover:opacity-90 transition-all duration-200 object-cover"
+                                />
+                                <div
+                                  className="absolute bottom-2 left-2 right-2 bg-background/90 backdrop-blur-sm text-foreground text-[10px] px-2 py-1 rounded-md opacity-0 group-hover/att:opacity-100 transition-opacity duration-200 truncate"
+                                  title={file.name}
+                                >
+                                  {file.name}
+                                </div>
+                              </div>
+                            );
+                          }
+                          if (file.type === 'video') {
+                            return (
+                              <div className="relative group/att mb-2 w-full max-w-[320px]">
+                                <video
+                                  src={`/api/media/${encodeURIComponent(file.url)}`}
+                                  controls
+                                  className="rounded-xl max-h-60 border border-default-200 w-full object-cover"
+                                />
+                                <div
+                                  className="text-[10px] text-muted-foreground mt-1 truncate"
+                                  title={file.name}
+                                >
+                                  {file.name}
+                                </div>
+                              </div>
+                            );
+                          }
+                          if (file.type === 'audio') {
+                            return (
+                              <div className="relative group/att mb-2 w-full max-w-[280px]">
+                                <audio
+                                  src={`/api/media/${encodeURIComponent(file.url)}`}
+                                  controls
+                                  className="w-full opacity-90 hover:opacity-100 transition-all"
+                                />
+                                <div
+                                  className="text-[10px] text-muted-foreground mt-1 truncate"
+                                  title={file.name}
+                                >
+                                  {file.name}
+                                </div>
+                              </div>
+                            );
+                          }
+                          // Document
+                          return (
+                            <div className="flex items-center gap-2 bg-foreground/5 p-2.5 rounded-xl border border-black/10 mb-2 max-w-sm">
+                              <div className="text-2xl drop-shadow-sm shrink-0">📄</div>
+                              <div
+                                className="text-sm font-semibold truncate flex-1 leading-tight text-foreground/90 min-w-0"
+                                title={file.name}
+                              >
+                                {file.name}
+                              </div>
+                              <a
+                                href={`/api/media/${encodeURIComponent(file.url)}`}
+                                download={file.name}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary text-[10px] font-bold px-2.5 py-1.5 bg-background shadow-sm border border-default-200 rounded-md hover:bg-default-50 transition-colors shrink-0"
+                              >
+                                Скачать
+                              </a>
+                            </div>
+                          );
+                        }
+
+                        // Multiple attachments (Grid)
+                        return (
+                          <div className="grid grid-cols-2 gap-2 mb-2 w-full max-w-[480px]">
+                            {filesToRender.map((file) => {
+                              if (file.type === 'image') {
+                                return (
+                                  <div
+                                    key={file.id}
+                                    className="relative aspect-video rounded-xl overflow-hidden border border-default-200 group/att cursor-zoom-in"
+                                    onClick={() => setZoomedImage(file.url)}
+                                  >
+                                    <img
+                                      src={`/api/media/${encodeURIComponent(file.url)}`}
+                                      alt={file.name}
+                                      className="w-full h-full object-cover group-hover/att:scale-105 transition-transform duration-200"
+                                    />
+                                    <div
+                                      className="absolute inset-x-0 bottom-0 bg-background/90 backdrop-blur-sm text-foreground text-[10px] px-2 py-1 opacity-0 group-hover/att:opacity-100 transition-opacity duration-200 truncate"
+                                      title={file.name}
+                                    >
+                                      {file.name}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              if (file.type === 'video') {
+                                return (
+                                  <div
+                                    key={file.id}
+                                    className="relative aspect-video rounded-xl overflow-hidden border border-default-200 w-full group/att"
+                                  >
+                                    <video
+                                      src={`/api/media/${encodeURIComponent(file.url)}`}
+                                      controls
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <div
+                                      className="absolute inset-x-0 bottom-0 bg-background/90 backdrop-blur-sm text-foreground text-[10px] px-2 py-1 opacity-0 group-hover/att:opacity-100 transition-opacity duration-200 truncate"
+                                      title={file.name}
+                                    >
+                                      {file.name}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              if (file.type === 'audio') {
+                                return (
+                                  <div
+                                    key={file.id}
+                                    className="bg-foreground/5 p-2 rounded-xl border border-black/10 flex flex-col justify-between h-full group/att min-w-0"
+                                  >
+                                    <audio
+                                      src={`/api/media/${encodeURIComponent(file.url)}`}
+                                      controls
+                                      className="w-full opacity-90 hover:opacity-100 transition-all max-h-8 scale-90 origin-left"
+                                    />
+                                    <div
+                                      className="text-[9px] text-muted-foreground truncate mt-1 min-w-0"
+                                      title={file.name}
+                                    >
+                                      {file.name}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              // Document
+                              return (
+                                <div
+                                  key={file.id}
+                                  className="flex items-center gap-2 bg-foreground/5 p-2 rounded-xl border border-black/10 group/att min-w-0"
+                                >
+                                  <div className="text-xl drop-shadow-sm shrink-0">📄</div>
+                                  <div
+                                    className="text-[11px] font-semibold truncate flex-1 leading-tight text-foreground/90 min-w-0"
+                                    title={file.name}
+                                  >
+                                    {file.name}
+                                  </div>
+                                  <a
+                                    href={`/api/media/${encodeURIComponent(file.url)}`}
+                                    download={file.name}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary text-[9px] font-bold px-2.5 py-1 bg-background shadow-sm border border-default-200 rounded-md hover:bg-default-50 transition-colors shrink-0"
+                                  >
+                                    Скачать
+                                  </a>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+
+                    {msg.isDeleted ? (
+                      <div className="italic text-sm">Удалено (Видно только стаффу)</div>
+                    ) : editingMessageId === msg.id ? (
+                      <div className="mt-2 animate-in fade-in zoom-in-95 duration-200">
+                        <textarea
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                          className="w-full text-sm text-slate-900 bg-card border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]"
+                          autoFocus
+                        />
+                        <div className="flex gap-2 justify-end mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingMessageId(null)}
+                            className="text-[11px] font-bold uppercase bg-card/50 text-slate-700 px-4 h-11 rounded-xl border border-slate-300 hover:bg-card flex items-center justify-center cursor-pointer"
+                          >
+                            Отмена
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEditSubmit(msg.id)}
+                            className="text-[11px] font-bold uppercase bg-primary text-primary-foreground px-4 h-11 rounded-xl hover:bg-primary shadow-sm border border-indigo-700 flex items-center justify-center cursor-pointer"
+                          >
+                            Сохранить
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap text-sm leading-[1.6] pr-12 pb-1 relative min-w-[50px] min-h-[1.25rem] text-inherit">
+                        {msg.text}
+                        <span className="absolute bottom-0 right-0 text-[10px] opacity-40 select-none flex items-center gap-1 font-medium text-inherit/80">
+                          {msg.sender === 'INTERNAL' && (
+                            <span title="Внутренняя заметка">🔒</span>
+                          )}
+                          {msg.isEdited && (
+                            <span
+                              title={msg.originalText || ''}
+                              className="text-[8px] opacity-75"
+                            >
+                              изм.
+                            </span>
+                          )}
+                          <ClientDate date={msg.createdAt} format="time" />
+                          {msg.isHistorical && (
+                            <span className="text-[8px] opacity-75">(Архив)</span>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {msg.sender !== 'USER' && (
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${getAvatarGradient(
+                        'staff'
+                      )} shrink-0`}
+                      title={msg.sender === 'INTERNAL' ? 'Внутренняя заметка' : 'Поддержка'}
+                    >
+                      {getInitials(msg.sender, clientEmail)}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+
+        {messages.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center h-full max-h-[400px]"
+          >
+            <div className="w-20 h-20 mb-6 rounded-3xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
+              <MessageSquare className="w-10 h-10 text-primary opacity-80" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2 tracking-tight">
+              Нет сообщений
+            </h3>
+            <p className="text-muted-foreground text-sm text-center max-w-sm mb-6">
+              Напишите ваш вопрос ниже. Мы отвечаем быстро и по делу.
+            </p>
+          </motion.div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {zoomedImage && (
+        <ImageZoomModal url={zoomedImage} onClose={() => setZoomedImage(null)} />
+      )}
+    </>
+  );
+}
