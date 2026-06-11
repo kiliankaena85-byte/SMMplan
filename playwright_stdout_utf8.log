@@ -1,0 +1,17 @@
+﻿◇ injected env (0) from .env.test // tip: ◈ encrypted .env [www.dotenvx.com]
+[2m[WebServer] [22m[1m[38;2;173;127;168m▲ Next.js 16.2.6[39m[22m
+[2m[WebServer] [22m- Local:         http://localhost:3001
+[2m[WebServer] [22m- Network:       http://198.18.0.1:3001
+[2m[WebServer] [22m[32m[1m✓[22m[39m Ready in 748ms
+node.exe : [2m[WebServer] [22mError: Could not find a production build in the '.next' directory. Try building your ap
+p with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-i
+d
+At D:\npm-global\npx.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/npm/bin/npx-cli.js" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([2m[WebServer]...art-no-build-id:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[2m[WebServer] [22m    at [3mignore-listed frames[23m
+Error: Process from config.webServer was not able to start. Exit code: 1
+

@@ -1,0 +1,261 @@
+# Original User Request
+
+## Initial Request — 2026-06-07T07:13:22Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+
+Generate a comprehensive Knowledge Base consisting of approximately 50 SEO-optimized, highly valuable articles for Smmplan. The articles must cover various social networks, provide tangible value to clients, and be substantial in length to rank well in search engines.
+
+Working directory: d:/SMM_plan_2/src/data/knowledge
+Integrity mode: development
+
+## Requirements
+
+### R1. Content Generation & Deep Integration
+Generate ~50 unique articles. Based on focus-group research, the topics must not be generic SEO spam. They must tie into actual Smmplan platform mechanics to solve real client pains:
+- Explain order statuses (PENDING_CHECK, PARTIAL, ERROR).
+- Explain Drip-Feed (капельная накрутка) and why it's safe.
+- Explain the difference between services with and without 'Refill' (Гарантия).
+- Explain Telegram Smart Bind and why it's useful.
+- Explain TargetType link validation errors (Channel vs Post).
+
+### R2. Volume & Network Distribution
+- **Network distribution:** 
+  - **Telegram**: 5-7 articles.
+  - **VK (ВКонтакте)**: 5-7 articles.
+  - **Instagram, YouTube, TikTok**: At least 3 articles each.
+- **Word count:** Every single article must contain **strictly NO LESS than 500 words**.
+
+### R3. Quality Standards
+- **Uniqueness:** You may use external resources for research, but the final output must be 100% unique. Do not blindly copy-paste internet articles.
+
+### R4. Output Format
+Save the articles as `.mdx` or `.md` files (with appropriate frontmatter containing title, category, seo_keywords, etc.) directly into the project's knowledge base directory (`d:/SMM_plan_2/src/data/knowledge`). 
+
+## Acceptance Criteria
+
+### Content Quality & Volume
+- [ ] There are approximately 50 generated articles.
+- [ ] Telegram and VK have 5-7 articles each; others have at least 3.
+- [ ] Every article file contains `> 500` words (must be verified programmatically via a word-counting script).
+
+### Uniqueness & Value Verification (AI Marketer Audit)
+- [ ] The generated articles must be passed through a strict **AI Marketer / Editor Agent** to verify:
+   1) The text doesn't sound like "AI water" (watered down fluff).
+   2) It correctly references Smmplan features (Refill, Partial, Drip-feed, etc).
+   3) It provides real SEO value and structure (H2, H3, bullet points).
+- [ ] Any article failing the AI Marketer audit must be rewritten before final submission.
+
+## Follow-up — 2026-06-07T07:16:52Z
+
+Urgent Requirement Update from User:
+In addition to the current requirements, please add a new category/theme of articles specifically for absolute beginners. These articles must cover:
+1. Why people need to boost/fake engagement (накрутка) for their resource or channel in the first place.
+2. How boosting impacts organic promotion and algorithms.
+3. Why social networks actively fight against such boosting methods (and how to avoid penalties, tying back to our Drip-Feed and safety features).
+
+Please ensure at least 3-4 articles are dedicated to this "Beginner/Philosophy of SMM" section.
+
+## Follow-up — 2026-06-07T07:21:27Z
+
+URGENT: The user has approved the final Content Strategy! 
+Please generate EXACTLY the 50 articles listed below, maintaining the minimum 500-word requirement and AI Marketer checks.
+
+### Блок 1: Философия SMM и Базовые концепции (5 статей)
+1. Зачем нужна накрутка на старте проекта: психология "пустого зала".
+2. Как стартовый буст влияет на органические алгоритмы (Снежный ком).
+3. Почему соцсети борются с накрутками и как работает теневой бан.
+4. Живые люди vs Боты: что выбрать для разных задач.
+5. Безопасность аккаунта: как не получить блокировку при продвижении.
+
+### Блок 2: Продвижение в Telegram (7 статей)
+6. Как безопасно накрутить подписчиков в Telegram-канал.
+7. Разница между ссылками на канал (CHANNEL) и на конкретный пост (POST) при заказах.
+8. Зачем нужны реакции на посты в Telegram и как они повышают доверие.
+9. Премиум-подписчики Telegram: как они влияют на поиск внутри мессенджера.
+10. Как работает система "Smart Bind" для Telegram-пользователей в Smmplan.
+11. Накрутка просмотров на старые посты: зачем это нужно рекламодателям.
+12. Автопросмотры в Telegram: настройка автоматического продвижения.
+
+### Блок 3: Продвижение ВКонтакте (VK) (6 статей)
+13. Алгоритмы Умной Ленты ВК 2026: как лайки и репосты поднимают охваты.
+14. Почему ВКонтакте списывает подписчиков и превращает их в "собачек".
+15. Как накрутка участников в группу ВК помогает в SEO (Яндекс/Google).
+16. Просмотры на клипы ВКонтакте: быстрый старт для видеоконтента.
+17. Накрутка опросов и голосований ВК: нюансы и безопасность.
+18. Гарантия (Refill) на услуги ВК: как работает авто-докрутка при отписках.
+
+### Блок 4: Instagram, YouTube, TikTok (10 статей)
+19. Instagram: Капельная накрутка (Drip-Feed) лайков для имитации живого роста.
+20. Instagram: Теневой бан в Инстаграме — как выйти и не попасть снова.
+21. Instagram: Просмотры Reels: почему важна скорость набора первых 1000 просмотров.
+22. YouTube: Как набрать часы просмотров для включения монетизации.
+23. YouTube: Алгоритм YouTube Shorts: как удержание аудитории влияет на показы.
+24. YouTube: Безопасные лайки и комментарии для продвижения видео в Топ.
+25. TikTok: Секрет попадания в "Рекомендации" (FYP) через стартовый буст.
+26. TikTok: Зрители на прямые эфиры (Стримы): как поднять трансляцию в топ.
+27. TikTok: Почему TikTok списывает лайки и алгоритмы защиты.
+28. Общее: Сравнение алгоритмов продвижения коротких видео (Reels vs Shorts vs TikTok).
+
+### Блок 5: Механика работы с платформой Smmplan (12 статей)
+29. Статусы заказов: что значат PENDING_CHECK, IN_PROGRESS и COMPLETED.
+30. Ошибка CANCELED: почему заказ был отменен и как это исправить.
+31. PARTIAL: что такое частичный возврат и как рассчитывается сумма компенсации.
+32. Гарантия на услуги: как нажать кнопку Refill (Докрутка) и сколько ждать.
+33. Drip-Feed (Капельная накрутка): Подробная инструкция по настройке.
+34. Ошибка TargetType: почему нельзя заказывать подписчиков по ссылке на пост.
+35. Почему скорость выполнения заказа (ETA) может меняться.
+36. Как правильно оформить тикет в поддержку, чтобы получить ответ за 5 минут.
+37. Массовый заказ (Mass Order): как запускать 100 заказов одновременно.
+38. Автоматические заказы (Subscriptions): как настроить автолайки на новые посты.
+39. Ограничения и лимиты соцсетей: сколько можно крутить в день.
+40. Разница между серверами: почему цена на "одинаковые" услуги отличается.
+
+### Блок 6: Финансы, B2B и Реселлинг (10 статей)
+41. Как пополнить баланс Smmplan банковской картой РФ, СБП или Yookassa.
+42. Инструкция по пополнению криптой (USDT/Bitcoin) без скрытых комиссий.
+43. Реферальная программа: как зарабатывать пассивный доход на приглашениях.
+44. API Smmplan: Подробное руководство для реселлеров.
+45. Как открыть свою SMM-панель и подключить нас как провайдера.
+46. Уровни цен и скидок: как получить статус оптовика (B2B).
+47. Возвраты средств (Refunds): политика отмены неверных заказов.
+48. Что делать, если платеж завис или не поступил на баланс.
+49. Бонусная система: как получить +5% к каждому пополнению.
+50. Мультивалютность: почему цены в каталоге пересчитываются по курсу ЦБ РФ.
+
+Please acknowledge receipt of this message and ensure the team is writing files into `d:/SMM_plan_2/src/data/knowledge`.
+
+## Follow-up — 2026-06-07T07:22:08Z
+
+URGENT ADDITION FROM USER (TELEGRAM CLUSTER):
+The user has requested to add the following highly specialized topics to the Telegram block. These are crucial for B2B and arbitrage clients. Please add them to your backlog of articles to write (making it 53 articles total, or replacing 3 generic ones):
+
+51. Как продвигаются Телеграм-каналы с нуля: органический поиск (Global Search) и привлечение аудитории.
+52. Как люди ищут и попадают в Телеграм-каналы (SEO внутри мессенджера, каталоги, инвайты).
+53. Как работают аналитические сервисы TGStat и Telemetr: алгоритмы детекта накрутки и специальные услуги Smmplan для безопасного обхода этих сервисов (высококачественный трафик без метки "ботовод").
+
+Ensure these are covered with the same deep technical detail and >500 words per article.
+
+## 2026-06-07T11:08:00Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt > get user approval > delegate to teamwork_preview
+
+Investigate the "something went wrong" error in the current magic link login flow and fully implement a robust password-based fallback authentication architecture that works even when the SMTP server is down or misconfigured. You must write automated tests for your solution.
+
+Working directory: d:\SMM_plan_2
+Integrity mode: development
+
+## Requirements
+
+### R1. Root Cause Analysis & Fix
+Analyze the codebase to determine why the magic link login currently throws a "something went wrong" error. Fix the root cause of this error so that magic links work correctly when SMTP is available.
+
+### R2. Implement Fallback Password Authentication
+Fully implement a password-based fallback login mechanism for both the Admin Panel and User Dashboard. Crucially, this fallback must allow administrators to log in **without relying on an SMTP server**. 
+- Add necessary database fields (e.g., passwordHash) via Prisma.
+- Update the UI forms to accept a password.
+- Implement the backend logic to verify the password securely.
+
+### R3. Automated Testing
+Write automated tests (e.g., unit or integration tests) to verify that both the magic link (when SMTP works) and the password fallback (when SMTP fails) function correctly. 
+
+## Acceptance Criteria
+
+### Diagnostics & Fix
+- [ ] The root cause of the "something went wrong" error is fixed.
+
+### Architecture Proposal & Implementation
+- [ ] Prisma schema is updated with a password hash field.
+- [ ] Users and admins can successfully log in using a password instead of a magic link.
+- [ ] The solution does not break existing Next.js / NextAuth or custom auth boundaries.
+
+### Verification
+- [ ] Automated tests are written.
+- [ ] Tests successfully pass, programmatically proving that the password login mechanism works independently of the SMTP server.
+
+## Follow-up — 2026-06-09T14:57:26+03:00
+
+Визуальный аудит и устранение багов мобильной верстки (для экранов от 320px до 480px) на сайте Smmplan, включая проверку перекрытий элементов, отступов, адаптивности и соответствия премиальному дизайн-манифесту.
+
+Working directory: d:\\SMM_plan_2
+Integrity mode: development
+
+## Requirements
+
+### R1. Mobile Viewport Layout Audit
+- Использовать Playwright или браузерные средства для визуального обхода основных экранов (лендинг, мастер заказа, личный кабинет пользователя, настройки профиля) в разрешении мобильных устройств (ширина 320px - 480px).
+- Выявить все случаи наложения текста, вырезания элементов, отсутствия адаптивности, некорректного контраста и проблем с интерактивными элементами (touch targets < 44px).
+
+### R2. Visual & Semantic Style Compliance
+- Исправить найденные визуальные баги, строго соблюдая цветовую палитру и семантические токены Tailwind CSS 4.0.0 (избегать инлайновых `text-white`, `bg-black`, использовать семантические токены вроде `text-foreground`, `bg-background` из `globals.css`).
+- Убедиться, что элементы соответствуют премиальному качестве (плавные анимации, сбалансированные отступы, корректная кириллическая типографика).
+
+### R3. Automated Visual Verification
+- Настроить/обновить скриншотные тесты Playwright для ключевых мобильных экранов с целью фиксации отсутствия регрессии.
+- Все тесты должны проходить без ошибок линтинга (`npm run lint` и `npx tsc --noEmit`).
+
+## Acceptance Criteria
+
+### Visual Density & WCAG 2.2 AA Compliance
+- [ ] Все кнопки и интерактивные элементы в мобильной версии имеют размер области клика (touch target) не менее 44x44px.
+- [ ] Отсутствуют перекрытия текстовых контейнеров, обрезка текста или выход блоков за ширину экрана (нет горизонтального скролла страницы).
+- [ ] Цветовой контраст текста относительно фона составляет не менее 4.5:1 для обычного текста.
+
+### Technical & System Integrity
+- [ ] Нет инлайновых стилей цветов (все цвета берутся из `@theme` в `globals.css`).
+- [ ] Проект успешно проходит сборку (`npm run build`) и линтинг (`npm run lint`).
+- [ ] Playwright-тесты для мобильных разрешений успешно проходят локально.
+
+## Follow-up — 2026-06-09T12:01:25Z
+
+## Расширенная спецификация аудита (v2)
+
+Промпт был существенно расширен. Передай оркестратору следующие дополнения к текущему плану:
+
+### 1. Полный перечень экранов (20 штук)
+Кроме лендинга и мастера заказа, необходимо проверить:
+- `/login` — авторизация
+- `/dashboard` — дашборд пользователя (включая `sidebar-nav.tsx`)
+- `/dashboard/settings` — настройки профиля и `PasswordCard.tsx`
+- `/dashboard/orders` — история заказов
+- `/dashboard/add-funds` — пополнение баланса
+- `/knowledge`, `/academy` — база знаний
+- Все модалы: `PaymentGatewaySelectionModal`, `MassConfirmEmailModal`, `VisualLinkGuideModal`
+- Компоненты внутри лендинга: `FAQ.tsx`, `Reviews.tsx`, `WhyUs.tsx`, `MegaFooter.tsx`, `TrustBar.tsx`
+
+### 2. Конкретные HOT SPOTS (зоны повышенного риска)
+1. **`MobileWizard.tsx`** (950 строк / 46 КБ) — самый сложный компонент, высокий риск overflow и z-index конфликтов.
+2. **`StickyCheckoutBar.tsx`** — проверить safe-area-inset для iPhone с вырезом, кнопка оплаты не должна перекрываться.
+3. **`PlatformLinkGuideDrawer.tsx`** — недавно исправлен (скрыта mock-карта через `hidden md:flex`), подтвердить корректность.
+4. **`DynamicPayloadWarnings.tsx`** (22 КБ) — длинные предупреждения могут overflow.
+5. **`VisualLinkGuideModal.tsx`** (50 КБ) — модал визуального руководства, проверить viewport boundaries.
+6. **Header.tsx** — три кнопки (Кабинет + Выйти + Бургер) должны помещаться в 320px.
+
+### 3. Классификация дефектов
+Каждый найденный баг — через severity:
+- 🔴 P0 (Critical) — невозможно совершить действие
+- 🟠 P1 (Major) — серьезная визуальная проблема
+- 🟡 P2 (Minor) — косметика
+- 🟢 P3 (Enhancement) — улучшение премиальности
+
+### 4. Обязательные AI-скиллы для прочтения
+Перед началом работы агенты должны прочитать SKILL.md следующих скиллов:
+- `gsd-premium-audit` — аудит премиальности
+- `ru-cyrillic-typography` — кириллическая типографика  
+- `ru-visual-culture` — визуальная культура CIS
+- `gsd-ui-review` — 6-pillar visual audit
+- `gsd-tailwind-v4-manifest` — правила Tailwind 4
+
+### 5. Три разрешения для тестирования
+Все экраны проверить при: **320px** (iPhone SE), **390px** (iPhone 14), **430px** (iPhone 15 Pro Max).
+
+### 6. Deliverables
+- Markdown-отчёт со всеми дефектами (severity + скриншоты до/после + файл:строка)
+- Код-фиксы всех P0 и P1 дефектов
+- `npm run lint` = 0 errors, `npx tsc --noEmit` = clean

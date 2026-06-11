@@ -1,0 +1,941 @@
+﻿◇ injected env (0) from .env.test // tip: ⌘ enable debugging { debug: true }
+[2m[WebServer] [22m[1m[38;2;173;127;168m▲ Next.js 16.2.6[39m[22m (Turbopack)
+[2m[WebServer] [22m- Local:         http://localhost:3001
+[2m[WebServer] [22m- Network:       http://198.18.0.1:3001
+[2m[WebServer] [22m- Environments: .env
+[2m[WebServer] [22m[32m[1m✓[22m[39m Ready in 1393ms
+[2m[WebServer] [22m- Experiments (use with caution):
+[2m[WebServer] [22m  · serverActions
+[2m[WebServer] [22m
+[2m[WebServer] [22m[37m[1m○[22m[39m Compiling / ...
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Network"."id", "public"."Network"."name", "public"."Network"."slug", "public"."Network"."icon", "public"."Network"."sort", "public"."Network"."isActive", "public"."Network"."createdAt", "public"."Network"."updatedAt" FROM "public"."Network" WHERE ("public"."Network"."isActive" = $1 AND ("public"."Network"."id") IN (SELECT "t1"."networkId" FROM "public"."Category" AS "t1" WHERE (("t1"."id") IN (SELECT "t2"."categoryId" FROM "public"."Service" AS "t2" WHERE ("t2"."isActive" = $2 AND "t2"."categoryId" IS NOT NULL)) AND "t1"."networkId" IS NOT NULL))) ORDER BY "public"."Network"."sort" ASC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Network"."id", "public"."Network"."name", "public"."Network"."slug", "public"."Network"."icon", "public"."Network"."sort", "public"."Network"."isActive", "public"."Network"."createdAt", "public"."Network"."updatedAt" FROM "public"."Network" WHERE ("public"."Network"."isActive" = $1 AND ("public"."Network"."id") IN (SELECT "t1"."networkId" FROM "public"."Category" AS "t1" WHERE (("t1"."id") IN (SELECT "t2"."categoryId" FROM "public"."Service" AS "t2" WHERE ("t2"."isActive" = $2 AND "t2"."categoryId" IS NOT NULL)) AND "t1"."networkId" IS NOT NULL))) ORDER BY "public"."Network"."sort" ASC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Category"."id", "public"."Category"."name", "public"."Category"."slug", "public"."Category"."networkId", "public"."Category"."sort", "public"."Category"."requireWarning", "public"."Category"."warningMessage", "public"."Category"."createdAt", "public"."Category"."updatedAt" FROM "public"."Category" WHERE (("public"."Category"."id") IN (SELECT "t1"."categoryId" FROM "public"."Service" AS "t1" WHERE ("t1"."isActive" = $1 AND "t1"."categoryId" IS NOT NULL)) AND "public"."Category"."networkId" IN ($2,$3)) ORDER BY "public"."Category"."name" ASC OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Category"."id", "public"."Category"."name", "public"."Category"."slug", "public"."Category"."networkId", "public"."Category"."sort", "public"."Category"."requireWarning", "public"."Category"."warningMessage", "public"."Category"."createdAt", "public"."Category"."updatedAt" FROM "public"."Category" WHERE (("public"."Category"."id") IN (SELECT "t1"."categoryId" FROM "public"."Service" AS "t1" WHERE ("t1"."isActive" = $1 AND "t1"."categoryId" IS NOT NULL)) AND "public"."Category"."networkId" IN ($2,$3)) ORDER BY "public"."Category"."name" ASC OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail: testuser@smmplan.local
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."email" = $1 LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[verifySession] devUser found: [33mfalse[39m
+[2m[WebServer] [22m[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail: testuser@smmplan.local
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."email" = $1 LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[verifySession] devUser found: [33mfalse[39m
+
+Running 9 tests using 1 worker
+
+◇ injected env (0) from .env.test // tip: ◈ encrypted .env [www.dotenvx.com]
+[2m[WebServer] [22m GET / [32m200[39m in 49s[2m (next.js: 19.8s, proxy.ts: 519ms, application-code: 29.1s)[22m
+[2m[WebServer] [22m GET / [32m200[39m in 67s[2m (next.js: 20.3s, proxy.ts: 517ms, application-code: 47s)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Network"."id", "public"."Network"."name", "public"."Network"."slug", "public"."Network"."icon", "public"."Network"."sort", "public"."Network"."isActive", "public"."Network"."createdAt", "public"."Network"."updatedAt" FROM "public"."Network" WHERE ("public"."Network"."isActive" = $1 AND ("public"."Network"."id") IN (SELECT "t1"."networkId" FROM "public"."Category" AS "t1" WHERE (("t1"."id") IN (SELECT "t2"."categoryId" FROM "public"."Service" AS "t2" WHERE ("t2"."isActive" = $2 AND "t2"."categoryId" IS NOT NULL)) AND "t1"."networkId" IS NOT NULL))) ORDER BY "public"."Network"."sort" ASC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Category"."id", "public"."Category"."name", "public"."Category"."slug", "public"."Category"."networkId", "public"."Category"."sort", "public"."Category"."requireWarning", "public"."Category"."warningMessage", "public"."Category"."createdAt", "public"."Category"."updatedAt" FROM "public"."Category" WHERE (("public"."Category"."id") IN (SELECT "t1"."categoryId" FROM "public"."Service" AS "t1" WHERE ("t1"."isActive" = $1 AND "t1"."categoryId" IS NOT NULL)) AND "public"."Category"."networkId" IN ($2,$3)) ORDER BY "public"."Category"."name" ASC OFFSET $4
+  ok 1 [setup] › e2e\auth.setup.ts:11:6 › authenticate (22.8s)
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail: testuser@smmplan.local
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."email" = $1 LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[verifySession] devUser found: [33mfalse[39m
+[2m[WebServer] [22m GET / [32m200[39m in 904ms[2m (next.js: 39ms, proxy.ts: 196ms, application-code: 669ms)[22m
+[2m[WebServer] [22m[32m[1m✓[22m[39m Finished writing to filesystem cache in 47s
+◇ injected env (0) from .env.test // tip: ◈ secrets for agents [www.dotenvx.com]
+node.exe : LedgerEntry cleanup skipped (ledger is immutable): 
+At D:\npm-global\npx.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/npm/bin/npx-cli.js" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (LedgerEntry cle...is immutable): :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Network"."id", "public"."Network"."name", "public"."Network"."slug", "public"."Network"."icon", "public"."Network"."sort", "public"."Network"."isActive", "public"."Network"."createdAt", "public"."Network"."updatedAt" FROM "public"."Network" WHERE ("public"."Network"."isActive" = $1 AND ("public"."Network"."id") IN (SELECT "t1"."networkId" FROM "public"."Category" AS "t1" WHERE (("t1"."id") IN (SELECT "t2"."categoryId" FROM "public"."Service" AS "t2" WHERE ("t2"."isActive" = $2 AND "t2"."categoryId" IS NOT NULL)) AND "t1"."networkId" IS NOT NULL))) ORDER BY "public"."Network"."sort" ASC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Category"."id", "public"."Category"."name", "public"."Category"."slug", "public"."Category"."networkId", "public"."Category"."sort", "public"."Category"."requireWarning", "public"."Category"."warningMessage", "public"."Category"."createdAt", "public"."Category"."updatedAt" FROM "public"."Category" WHERE (("public"."Category"."id") IN (SELECT "t1"."categoryId" FROM "public"."Service" AS "t1" WHERE ("t1"."isActive" = $1 AND "t1"."categoryId" IS NOT NULL)) AND "public"."Category"."networkId" IN ($2,$3)) ORDER BY "public"."Category"."name" ASC OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE ("public"."Session"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[37m[1m○[22m[39m Compiling /login ...
+[2m[WebServer] [22m GET / [32m200[39m in 733ms[2m (next.js: 9ms, proxy.ts: 22ms, application-code: 703ms)[22m
+[2m[WebServer] [22m[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail: testuser@smmplan.local
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."email" = $1 LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[verifySession] devUser found: [33mfalse[39m
+[2m[WebServer] [22m GET /login [32m200[39m in 4.9s[2m (next.js: 4.5s, proxy.ts: 13ms, application-code: 372ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST / [32m200[39m in 1407ms[2m (next.js: 239ms, proxy.ts: 252ms, application-code: 916ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("e2e-telegram-likes-cat") in 105ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m[37m[1m○[22m[39m Compiling /knowledge ...
+LedgerEntry cleanup skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE ("public"."Session"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."description", "public"."Article"."content", "public"."Article"."status"::text, "public"."Article"."category", "public"."Article"."viewCount", "public"."Article"."createdAt", "public"."Article"."updatedAt", "public"."Article"."authorName", "public"."Article"."authorRole", "public"."Article"."priority" FROM "public"."Article" WHERE "public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") ORDER BY "public"."Article"."createdAt" DESC OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."category" FROM "public"."Article" WHERE "public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."category" FROM "public"."Article" WHERE "public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") ORDER BY "public"."Article"."createdAt" DESC OFFSET $2
+  x  2 [chromium] › e2e\user-flow.spec.ts:348:9 › Milestone 4: Playwright E2E User Flow Tests › Magic Link authentication › should request magic link, create AuthToken in DB, and verify successfully via callback (13.1s)
+[2m[WebServer] [22m GET /knowledge [32m200[39m in 7.1s[2m (next.js: 5.7s, proxy.ts: 66ms, application-code: 1335ms)[22m
+◇ injected env (0) from .env.test // tip: ◈ encrypted .env [www.dotenvx.com]
+LedgerEntry cleanup skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE "public"."Session"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Order"."id", "public"."Order"."numericId", "public"."Order"."status"::text, "public"."Order"."charge", "public"."Order"."quantity", "public"."Order"."createdAt", "public"."Order"."serviceId" FROM "public"."Order" WHERE "public"."Order"."userId" = $1 ORDER BY "public"."Order"."createdAt" DESC LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance", "public"."User"."totalSpent", "public"."User"."referralCode", "public"."User"."createdAt" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT COUNT(*) FROM (SELECT "public"."User"."id" FROM "public"."User" WHERE "public"."User"."referredById" = $1 OFFSET $2) AS "sub"
+[2m[WebServer] [22m[34mprisma:query[39m SELECT COUNT(*) FROM (SELECT "public"."Order"."id" FROM "public"."Order" WHERE ("public"."Order"."userId" = $1 AND "public"."Order"."status" IN (CAST($2::text AS "public"."OrderStatus"),CAST($3::text AS "public"."OrderStatus"),CAST($4::text AS "public"."OrderStatus"))) OFFSET $5) AS "sub"
+[2m[WebServer] [22m[PROXY] RateLimitService timeout on /api/auth/verify - Failing OPEN
+[2m[WebServer] [22m GET /dashboard [32m200[39m in 4.7s[2m (next.js: 3.4s, proxy.ts: 12ms, application-code: 1253ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE ("public"."Session"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."role" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m GET /login?role=reseller&promo=B2BSTART [32m200[39m in 414ms[2m (next.js: 10ms, proxy.ts: 13ms, application-code: 392ms)[22m
+[2m[WebServer] [22m[37m[1m○[22m[39m Compiling /api/auth/verify ...
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."AuthToken"."id", "public"."AuthToken"."token", "public"."AuthToken"."userId", "public"."AuthToken"."used", "public"."AuthToken"."expiresAt", "public"."AuthToken"."createdAt" FROM "public"."AuthToken" WHERE ("public"."AuthToken"."token" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22mDEBUG_VERIFY: {
+[2m[WebServer] [22m  tokenFound: [33mtrue[39m,
+[2m[WebServer] [22m  expiresAt: [35m2026-06-09T07:10:44.823Z[39m,
+[2m[WebServer] [22m  now: [35m2026-06-08T07:10:49.292Z[39m,
+[2m[WebServer] [22m  isExpired: [33mfalse[39m
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[34mprisma:query[39m BEGIN
+[2m[WebServer] [22m[34mprisma:query[39m UPDATE "public"."AuthToken" SET "used" = $1 WHERE ("public"."AuthToken"."id" = $2 AND "public"."AuthToken"."used" = $3)
+[2m[WebServer] [22m[34mprisma:query[39m COMMIT
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m INSERT INTO "public"."Session" ("id","userId","expiresAt","userAgent","ipAddress","createdAt") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt"
+[2m[WebServer] [22m GET /api/auth/verify?token=a0b65a5e3bd0797955add17c9b9901e1cf47ef1f748732231f3c989cccd24089 [34m307[39m in 6.1s[2m (next.js: 3.2s, proxy.ts: 93ms, application-code: 2.9s)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE "public"."Session"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Order"."id", "public"."Order"."numericId", "public"."Order"."status"::text, "public"."Order"."charge", "public"."Order"."quantity", "public"."Order"."createdAt", "public"."Order"."serviceId" FROM "public"."Order" WHERE "public"."Order"."userId" = $1 ORDER BY "public"."Order"."createdAt" DESC LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT COUNT(*) FROM (SELECT "public"."User"."id" FROM "public"."User" WHERE "public"."User"."referredById" = $1 OFFSET $2) AS "sub"
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance", "public"."User"."totalSpent", "public"."User"."referralCode", "public"."User"."createdAt" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT COUNT(*) FROM (SELECT "public"."Order"."id" FROM "public"."Order" WHERE ("public"."Order"."userId" = $1 AND "public"."Order"."status" IN (CAST($2::text AS "public"."OrderStatus"),CAST($3::text AS "public"."OrderStatus"),CAST($4::text AS "public"."OrderStatus"))) OFFSET $5) AS "sub"
+[2m[WebServer] [22m GET /dashboard [32m200[39m in 1541ms[2m (next.js: 5ms, proxy.ts: 7ms, application-code: 1529ms)[22m
+[2m[WebServer] [22m[PROXY] RateLimitService timeout on /api/debug - Failing OPEN
+[2m[WebServer] [22m[37m[1m○[22m[39m Compiling /api/debug ...
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use
+ "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+[2m[WebServer] [22m GET /api/debug?revalidate=catalog [32m200[39m in 5.2s[2m (next.js: 5.1s, proxy.ts: 9ms, application-code: 114ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ContentItem"."id", "public"."ContentItem"."type"::text, "public"."ContentItem"."slug", "public"."ContentItem"."title", "public"."ContentItem"."excerpt", "public"."ContentItem"."coverImage", "public"."ContentItem"."contentJson", "public"."ContentItem"."contentHtml", "public"."ContentItem"."categoryId", "public"."ContentItem"."authorName", "public"."ContentItem"."viewCount", "public"."ContentItem"."isPublished", "public"."ContentItem"."publishedAt", "public"."ContentItem"."metaTitle", "public"."ContentItem"."metaDescription", "public"."ContentItem"."readTimeMinutes", "public"."ContentItem"."createdAt", "public"."ContentItem"."updatedAt" FROM "public"."ContentItem" WHERE ("public"."ContentItem"."slug" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ContentItem"."id", "public"."ContentItem"."title", "public"."ContentItem"."metaTitle", "public"."ContentItem"."metaDescription" FROM "public"."ContentItem" WHERE ("public"."ContentItem"."slug" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m GET /legal/terms [33m404[39m in 15.2s[2m (next.js: 12.9s, proxy.ts: 10ms, application-code: 2.3s)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ContentItem"."id", "public"."ContentItem"."title", "public"."ContentItem"."metaTitle", "public"."ContentItem"."metaDescription" FROM "public"."ContentItem" WHERE ("public"."ContentItem"."slug" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ContentItem"."id", "public"."ContentItem"."type"::text, "public"."ContentItem"."slug", "public"."ContentItem"."title", "public"."ContentItem"."excerpt", "public"."ContentItem"."coverImage", "public"."ContentItem"."contentJson", "public"."ContentItem"."contentHtml", "public"."ContentItem"."categoryId", "public"."ContentItem"."authorName", "public"."ContentItem"."viewCount", "public"."ContentItem"."isPublished", "public"."ContentItem"."publishedAt", "public"."ContentItem"."metaTitle", "public"."ContentItem"."metaDescription", "public"."ContentItem"."readTimeMinutes", "public"."ContentItem"."createdAt", "public"."ContentItem"."updatedAt" FROM "public"."ContentItem" WHERE ("public"."ContentItem"."slug" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m GET /legal/privacy [33m404[39m in 381ms[2m (next.js: 27ms, proxy.ts: 107ms, application-code: 247ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ContentItem"."id", "public"."ContentItem"."type"::text, "public"."ContentItem"."slug", "public"."ContentItem"."title", "public"."ContentItem"."excerpt", "public"."ContentItem"."coverImage", "public"."ContentItem"."contentJson", "public"."ContentItem"."contentHtml", "public"."ContentItem"."categoryId", "public"."ContentItem"."authorName", "public"."ContentItem"."viewCount", "public"."ContentItem"."isPublished", "public"."ContentItem"."publishedAt", "public"."ContentItem"."metaTitle", "public"."ContentItem"."metaDescription", "public"."ContentItem"."readTimeMinutes", "public"."ContentItem"."createdAt", "public"."ContentItem"."updatedAt" FROM "public"."ContentItem" WHERE ("public"."ContentItem"."slug" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ContentItem"."id", "public"."ContentItem"."title", "public"."ContentItem"."metaTitle", "public"."ContentItem"."metaDescription" FROM "public"."ContentItem" WHERE ("public"."ContentItem"."slug" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m GET /legal/refund [33m404[39m in 458ms[2m (next.js: 41ms, proxy.ts: 28ms, application-code: 388ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE ("public"."Session"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."description", "public"."Article"."content", "public"."Article"."status"::text, "public"."Article"."category", "public"."Article"."viewCount", "public"."Article"."createdAt", "public"."Article"."updatedAt", "public"."Article"."authorName", "public"."Article"."authorRole", "public"."Article"."priority" FROM "public"."Article" WHERE ("public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") AND "public"."Article"."category" = $2) ORDER BY "public"."Article"."createdAt" DESC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."category" FROM "public"."Article" WHERE "public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."category" FROM "public"."Article" WHERE "public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") ORDER BY "public"."Article"."createdAt" DESC OFFSET $2
+[2m[WebServer] [22m GET /knowledge?category=%D0%91%D0%B5%D0%B7%D0%BE%D0%BF%D0%B0%D1%81%D0%BD%D0%BE%D1%81%D1%82%D1%8C%20%D1%81%D0%BE%D1%86%D1%81%D0%B5%D1%82%D0%B5%D0%B9 [32m200[39m in 873ms[2m (next.js: 12ms, proxy.ts: 68ms, application-code: 793ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE ("public"."Session"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[37m[1m○[22m[39m Compiling /dashboard/new-order ...
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."description", "public"."Article"."content", "public"."Article"."status"::text, "public"."Article"."category", "public"."Article"."viewCount", "public"."Article"."createdAt", "public"."Article"."updatedAt", "public"."Article"."authorName", "public"."Article"."authorRole", "public"."Article"."priority" FROM "public"."Article" WHERE ("public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") AND "public"."Article"."category" = $2) ORDER BY "public"."Article"."createdAt" DESC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."category" FROM "public"."Article" WHERE "public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."category" FROM "public"."Article" WHERE "public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") ORDER BY "public"."Article"."createdAt" DESC OFFSET $2
+[2m[WebServer] [22m GET /knowledge?category=%D0%9F%D1%80%D0%BE%D0%B4%D0%B2%D0%B8%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%B8%20%D0%9E%D1%80%D0%B3%D0%B0%D0%BD%D0%B8%D0%BA%D0%B0 [32m200[39m in 991ms[2m (next.js: 47ms, proxy.ts: 14ms, application-code: 930ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE ("public"."Session"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."description", "public"."Article"."content", "public"."Article"."status"::text, "public"."Article"."category", "public"."Article"."viewCount", "public"."Article"."createdAt", "public"."Article"."updatedAt", "public"."Article"."authorName", "public"."Article"."authorRole", "public"."Article"."priority" FROM "public"."Article" WHERE ("public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") AND "public"."Article"."category" = $2) ORDER BY "public"."Article"."createdAt" DESC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."category" FROM "public"."Article" WHERE "public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Article"."id", "public"."Article"."slug", "public"."Article"."title", "public"."Article"."category" FROM "public"."Article" WHERE "public"."Article"."status" = CAST($1::text AS "public"."ArticleStatus") ORDER BY "public"."Article"."createdAt" DESC OFFSET $2
+[2m[WebServer] [22m GET /knowledge?category=%D0%91%D0%B8%D0%BB%D0%BB%D0%B8%D0%BD%D0%B3%20%D0%B8%20%D0%9B%D0%B8%D0%BC%D0%B8%D1%82%D1%8B [32m200[39m in 4.2s[2m (next.js: 2.9s, proxy.ts: 368ms, application-code: 884ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE "public"."Session"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance" FROM "public"."User" WHERE "public"."User"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m GET /dashboard/new-order [32m200[39m in 34.3s[2m (next.js: 30.6s, proxy.ts: 50ms, application-code: 3.6s)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Network"."id", "public"."Network"."name", "public"."Network"."slug", "public"."Network"."icon", "public"."Network"."sort", "public"."Network"."isActive", "public"."Network"."createdAt", "public"."Network"."updatedAt" FROM "public"."Network" WHERE ("public"."Network"."isActive" = $1 AND ("public"."Network"."id") IN (SELECT "t1"."networkId" FROM "public"."Category" AS "t1" WHERE (("t1"."id") IN (SELECT "t2"."categoryId" FROM "public"."Service" AS "t2" WHERE ("t2"."isActive" = $2 AND "t2"."categoryId" IS NOT NULL)) AND "t1"."networkId" IS NOT NULL))) ORDER BY "public"."Network"."sort" ASC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Category"."id", "public"."Category"."name", "public"."Category"."slug", "public"."Category"."networkId", "public"."Category"."sort", "public"."Category"."requireWarning", "public"."Category"."warningMessage", "public"."Category"."createdAt", "public"."Category"."updatedAt" FROM "public"."Category" WHERE (("public"."Category"."id") IN (SELECT "t1"."categoryId" FROM "public"."Service" AS "t1" WHERE ("t1"."isActive" = $1 AND "t1"."categoryId" IS NOT NULL)) AND "public"."Category"."networkId" IN ($2,$3)) ORDER BY "public"."Category"."name" ASC OFFSET $4
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 263ms[2m (next.js: 64ms, proxy.ts: 21ms, application-code: 179ms)[22m
+[2m[WebServer] [22m  └─ ƒ getPublicCatalogAction() in 141ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 579ms[2m (next.js: 50ms, proxy.ts: 21ms, application-code: 509ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("e2e-telegram-likes-cat") in 443ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 170ms[2m (next.js: 58ms, proxy.ts: 12ms, application-code: 100ms)[22m
+[2m[WebServer] [22m  └─ ƒ analyzeUrl("https://t.me/durov") in 14ms [2msrc/actions/order/analyze-url.ts[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 421ms[2m (next.js: 10ms, proxy.ts: 13ms, application-code: 398ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("e2e-telegram-custom-cat") in 159ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE ("public"."Session"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 2.1s[2m (next.js: 185ms, proxy.ts: 80ms, application-code: 1806ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("e2e-telegram-subs-cat") in 24ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m GET /support [34m307[39m in 30.2s[2m (next.js: 29.7s, proxy.ts: 6ms, application-code: 458ms)[22m
+  ok 3 [chromium] › e2e\user-flow.spec.ts:480:7 › Milestone 4: Playwright E2E User Flow Tests › should display unit prices (₽ / шт) instead of per 1000 units and exclude bulk package labels (57.5s)
+[2m[WebServer] [22mResponseAborted: 
+[2m[WebServer] [22m    at [3mignore-listed frames[23m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."AuthToken"."id", "public"."AuthToken"."token", "public"."AuthToken"."userId", "public"."AuthToken"."used", "public"."AuthToken"."expiresAt", "public"."AuthToken"."createdAt" FROM "public"."AuthToken" WHERE ("public"."AuthToken"."token" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22mDEBUG_VERIFY: {
+[2m[WebServer] [22m  tokenFound: [33mtrue[39m,
+[2m[WebServer] [22m  expiresAt: [35m2026-06-09T07:11:42.444Z[39m,
+[2m[WebServer] [22m  now: [35m2026-06-08T07:11:42.673Z[39m,
+[2m[WebServer] [22m  isExpired: [33mfalse[39m
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[34mprisma:query[39m BEGIN
+[2m[WebServer] [22m[34mprisma:query[39m UPDATE "public"."AuthToken" SET "used" = $1 WHERE ("public"."AuthToken"."id" = $2 AND "public"."AuthToken"."used" = $3)
+[2m[WebServer] [22m[34mprisma:query[39m COMMIT
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m INSERT INTO "public"."Session" ("id","userId","expiresAt","userAgent","ipAddress","createdAt") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt"
+[2m[WebServer] [22m GET /api/auth/verify?token=e80c6ccb2bec16798061a9bca2105a49ae38e65e3fa2693049744c2eec54555a [34m307[39m in 412ms[2m (next.js: 48ms, proxy.ts: 66ms, application-code: 298ms)[22m
+[2m[WebServer] [22m[PROXY] RateLimitService timeout on /api/auth/verify - Failing OPEN
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE "public"."Session"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Order"."id", "public"."Order"."numericId", "public"."Order"."status"::text, "public"."Order"."charge", "public"."Order"."quantity", "public"."Order"."createdAt", "public"."Order"."serviceId" FROM "public"."Order" WHERE "public"."Order"."userId" = $1 ORDER BY "public"."Order"."createdAt" DESC LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT COUNT(*) FROM (SELECT "public"."User"."id" FROM "public"."User" WHERE "public"."User"."referredById" = $1 OFFSET $2) AS "sub"
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance", "public"."User"."totalSpent", "public"."User"."referralCode", "public"."User"."createdAt" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT COUNT(*) FROM (SELECT "public"."Order"."id" FROM "public"."Order" WHERE ("public"."Order"."userId" = $1 AND "public"."Order"."status" IN (CAST($2::text AS "public"."OrderStatus"),CAST($3::text AS "public"."OrderStatus"),CAST($4::text AS "public"."OrderStatus"))) OFFSET $5) AS "sub"
+[2m[WebServer] [22m GET /dashboard [32m200[39m in 575ms[2m (next.js: 25ms, proxy.ts: 11ms, application-code: 538ms)[22m
+[2m[WebServer] [22m"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use
+ "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+[2m[WebServer] [22m GET /api/debug?revalidate=catalog [32m200[39m in 40ms[2m (next.js: 6ms, proxy.ts: 20ms, application-code: 14ms)[22m
+[2m[WebServer] [22m[PROXY] RateLimitService timeout on /api/debug - Failing OPEN
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE "public"."Session"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance" FROM "public"."User" WHERE "public"."User"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m GET /dashboard/new-order [32m200[39m in 669ms[2m (next.js: 9ms, proxy.ts: 10ms, application-code: 650ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Network"."id", "public"."Network"."name", "public"."Network"."slug", "public"."Network"."icon", "public"."Network"."sort", "public"."Network"."isActive", "public"."Network"."createdAt", "public"."Network"."updatedAt" FROM "public"."Network" WHERE ("public"."Network"."isActive" = $1 AND ("public"."Network"."id") IN (SELECT "t1"."networkId" FROM "public"."Category" AS "t1" WHERE (("t1"."id") IN (SELECT "t2"."categoryId" FROM "public"."Service" AS "t2" WHERE ("t2"."isActive" = $2 AND "t2"."categoryId" IS NOT NULL)) AND "t1"."networkId" IS NOT NULL))) ORDER BY "public"."Network"."sort" ASC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Category"."id", "public"."Category"."name", "public"."Category"."slug", "public"."Category"."networkId", "public"."Category"."sort", "public"."Category"."requireWarning", "public"."Category"."warningMessage", "public"."Category"."createdAt", "public"."Category"."updatedAt" FROM "public"."Category" WHERE (("public"."Category"."id") IN (SELECT "t1"."categoryId" FROM "public"."Service" AS "t1" WHERE ("t1"."isActive" = $1 AND "t1"."categoryId" IS NOT NULL)) AND "public"."Category"."networkId" IN ($2,$3)) ORDER BY "public"."Category"."name" ASC OFFSET $4
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 282ms[2m (next.js: 20ms, proxy.ts: 13ms, application-code: 250ms)[22m
+[2m[WebServer] [22m  └─ ƒ getPublicCatalogAction() in 168ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 139ms[2m (next.js: 57ms, proxy.ts: 19ms, application-code: 63ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("e2e-telegram-likes-cat") in 41ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 103ms[2m (next.js: 66ms, proxy.ts: 15ms, application-code: 22ms)[22m
+[2m[WebServer] [22m  └─ ƒ analyzeUrl("https://t.me/durov/123") in 2ms [2msrc/actions/order/analyze-url.ts[22m
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 117ms[2m (next.js: 68ms, proxy.ts: 14ms, application-code: 36ms)[22m
+[2m[WebServer] [22m  └─ ƒ analyzeUrl("https://t.me/durov") in 2ms [2msrc/actions/order/analyze-url.ts[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 119ms[2m (next.js: 54ms, proxy.ts: 24ms, application-code: 41ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("e2e-telegram-subs-cat") in 26ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 43ms[2m (next.js: 17ms, proxy.ts: 9ms, application-code: 17ms)[22m
+[2m[WebServer] [22m  └─ ƒ analyzeUrl("https://t.me/durov/123") in 0ms [2msrc/actions/order/analyze-url.ts[22m
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 44ms[2m (next.js: 12ms, proxy.ts: 11ms, application-code: 21ms)[22m
+[2m[WebServer] [22m  └─ ƒ analyzeUrl("https://t.me/durov") in 1ms [2msrc/actions/order/analyze-url.ts[22m
+  ok 4 [chromium] › e2e\user-flow.spec.ts:527:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (CHANNEL vs POST) and show validation errors (8.2s)
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."AuthToken"."id", "public"."AuthToken"."token", "public"."AuthToken"."userId", "public"."AuthToken"."used", "public"."AuthToken"."expiresAt", "public"."AuthToken"."createdAt" FROM "public"."AuthToken" WHERE ("public"."AuthToken"."token" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22mDEBUG_VERIFY: {
+[2m[WebServer] [22m  tokenFound: [33mtrue[39m,
+[2m[WebServer] [22m  expiresAt: [35m2026-06-09T07:11:50.516Z[39m,
+[2m[WebServer] [22m  now: [35m2026-06-08T07:11:50.623Z[39m,
+[2m[WebServer] [22m  isExpired: [33mfalse[39m
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[34mprisma:query[39m BEGIN
+[2m[WebServer] [22m[34mprisma:query[39m UPDATE "public"."AuthToken" SET "used" = $1 WHERE ("public"."AuthToken"."id" = $2 AND "public"."AuthToken"."used" = $3)
+[2m[WebServer] [22m[34mprisma:query[39m COMMIT
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m INSERT INTO "public"."Session" ("id","userId","expiresAt","userAgent","ipAddress","createdAt") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt"
+[2m[WebServer] [22m GET /api/auth/verify?token=a92e35672bb1f44f640c01058f3b6d667ee0d48084a92ad58a1e04e272603530 [34m307[39m in 212ms[2m (next.js: 8ms, proxy.ts: 15ms, application-code: 189ms)[22m
+[2m[WebServer] [22m[PROXY] RateLimitService timeout on /api/auth/verify - Failing OPEN
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE "public"."Session"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT COUNT(*) FROM (SELECT "public"."User"."id" FROM "public"."User" WHERE "public"."User"."referredById" = $1 OFFSET $2) AS "sub"
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance", "public"."User"."totalSpent", "public"."User"."referralCode", "public"."User"."createdAt" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Order"."id", "public"."Order"."numericId", "public"."Order"."status"::text, "public"."Order"."charge", "public"."Order"."quantity", "public"."Order"."createdAt", "public"."Order"."serviceId" FROM "public"."Order" WHERE "public"."Order"."userId" = $1 ORDER BY "public"."Order"."createdAt" DESC LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT COUNT(*) FROM (SELECT "public"."Order"."id" FROM "public"."Order" WHERE ("public"."Order"."userId" = $1 AND "public"."Order"."status" IN (CAST($2::text AS "public"."OrderStatus"),CAST($3::text AS "public"."OrderStatus"),CAST($4::text AS "public"."OrderStatus"))) OFFSET $5) AS "sub"
+[2m[WebServer] [22m GET /dashboard [32m200[39m in 475ms[2m (next.js: 7ms, proxy.ts: 9ms, application-code: 459ms)[22m
+[2m[WebServer] [22m"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use
+ "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg
+[2m[WebServer] [22m GET /api/debug?revalidate=catalog [32m200[39m in 29ms[2m (next.js: 8ms, proxy.ts: 11ms, application-code: 10ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Session"."id", "public"."Session"."userId", "public"."Session"."expiresAt", "public"."Session"."userAgent", "public"."Session"."ipAddress", "public"."Session"."impersonatedBy", "public"."Session"."createdAt" FROM "public"."Session" WHERE "public"."Session"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."role", "public"."User"."balance", "public"."User"."quarantineBalance", "public"."User"."totalSpent", "public"."User"."personalDiscount", "public"."User"."discountEndsAt", "public"."User"."supportLimitCents", "public"."User"."supportSpentTodayCents", "public"."User"."supportLastResetAt", "public"."User"."apiKeyHash", "public"."User"."referralCode", "public"."User"."referredById", "public"."User"."referralBalance", "public"."User"."telegramId", "public"."User"."phoneHash", "public"."User"."isKycVerified", "public"."User"."isEmailVerified", "public"."User"."isActive", "public"."User"."isDeleted", "public"."User"."adminNote", "public"."User"."adminNoteUpdatedAt", "public"."User"."adminNoteUpdatedBy", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."companyName", "public"."User"."inn", "public"."User"."kpp", "public"."User"."legalAddress", "public"."User"."staffRoleId" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."User"."id", "public"."User"."email", "public"."User"."balance" FROM "public"."User" WHERE "public"."User"."id" IN ($1,$2) OFFSET $3
+[2m[WebServer] [22m[PROXY] RateLimitService timeout on /api/debug - Failing OPEN
+[2m[WebServer] [22m GET /dashboard/new-order [32m200[39m in 697ms[2m (next.js: 7ms, proxy.ts: 12ms, application-code: 678ms)[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Network"."id", "public"."Network"."name", "public"."Network"."slug", "public"."Network"."icon", "public"."Network"."sort", "public"."Network"."isActive", "public"."Network"."createdAt", "public"."Network"."updatedAt" FROM "public"."Network" WHERE ("public"."Network"."isActive" = $1 AND ("public"."Network"."id") IN (SELECT "t1"."networkId" FROM "public"."Category" AS "t1" WHERE (("t1"."id") IN (SELECT "t2"."categoryId" FROM "public"."Service" AS "t2" WHERE ("t2"."isActive" = $2 AND "t2"."categoryId" IS NOT NULL)) AND "t1"."networkId" IS NOT NULL))) ORDER BY "public"."Network"."sort" ASC OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Category"."id", "public"."Category"."name", "public"."Category"."slug", "public"."Category"."networkId", "public"."Category"."sort", "public"."Category"."requireWarning", "public"."Category"."warningMessage", "public"."Category"."createdAt", "public"."Category"."updatedAt" FROM "public"."Category" WHERE (("public"."Category"."id") IN (SELECT "t1"."categoryId" FROM "public"."Service" AS "t1" WHERE ("t1"."isActive" = $1 AND "t1"."categoryId" IS NOT NULL)) AND "public"."Category"."networkId" IN ($2,$3)) ORDER BY "public"."Category"."name" ASC OFFSET $4
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 68ms[2m (next.js: 20ms, proxy.ts: 11ms, application-code: 36ms)[22m
+[2m[WebServer] [22m  └─ ƒ getPublicCatalogAction() in 16ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT 1
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 160ms[2m (next.js: 39ms, proxy.ts: 61ms, application-code: 61ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("e2e-telegram-likes-cat") in 36ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 41ms[2m (next.js: 14ms, proxy.ts: 11ms, application-code: 16ms)[22m
+[2m[WebServer] [22m  └─ ƒ analyzeUrl("https://instagram.com/cristiano") in 1ms [2msrc/actions/order/analyze-url.ts[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 113ms[2m (next.js: 33ms, proxy.ts: 10ms, application-code: 71ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("cmq4r4dsm0042hvu1iq657aq2") in 54ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 246ms[2m (next.js: 90ms, proxy.ts: 19ms, application-code: 138ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("e2e-instagram-stories-cat") in 77ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 132ms[2m (next.js: 82ms, proxy.ts: 16ms, application-code: 34ms)[22m
+[2m[WebServer] [22m  └─ ƒ analyzeUrl("https://www.instagram.com/p/C0f9g4xN8a9/") in 1ms [2msrc/actions/order/analyze-url.ts[22m
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 49ms[2m (next.js: 12ms, proxy.ts: 13ms, application-code: 24ms)[22m
+[2m[WebServer] [22m  └─ ƒ analyzeUrl("https://instagram.com/cristiano") in 1ms [2msrc/actions/order/analyze-url.ts[22m
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 49ms[2m (next.js: 12ms, proxy.ts: 12ms, application-code: 25ms)[22m
+[2m[WebServer] [22m  └─ ƒ analyzeUrl("https://t.me/durov") in 1ms [2msrc/actions/order/analyze-url.ts[22m
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."SystemSettings"."id", "public"."SystemSettings"."isTestMode", "public"."SystemSettings"."taxRate", "public"."SystemSettings"."usnScheme"::text, "public"."SystemSettings"."opexMonthly", "public"."SystemSettings"."maintenanceMode", "public"."SystemSettings"."siteName", "public"."SystemSettings"."siteDescription", "public"."SystemSettings"."welcomeMessage", "public"."SystemSettings"."yookassaShopId", "public"."SystemSettings"."yookassaSecretKey", "public"."SystemSettings"."yookassaTestShopId", "public"."SystemSettings"."yookassaTestSecretKey", "public"."SystemSettings"."cryptoBotToken", "public"."SystemSettings"."quarantineThreshold", "public"."SystemSettings"."globalMarkup", "public"."SystemSettings"."safetyFloor", "public"."SystemSettings"."exchangeRateUSD", "public"."SystemSettings"."exchangeRateUpdatedAt", "public"."SystemSettings"."siteLogoUrl", "public"."SystemSettings"."siteFaviconUrl", "public"."SystemSettings"."emailProvider", "public"."SystemSettings"."resendApiKey", "public"."SystemSettings"."smtpHost", "public"."SystemSettings"."smtpPort", "public"."SystemSettings"."smtpUser", "public"."SystemSettings"."smtpPassword", "public"."SystemSettings"."supportEmailDomain", "public"."SystemSettings"."inboundEmailWebhookSecret", "public"."SystemSettings"."robokassaLogin", "public"."SystemSettings"."robokassaPassword", "public"."SystemSettings"."updatedAt", "public"."SystemSettings"."contactSupportEmail", "public"."SystemSettings"."contactPrivacyEmail", "public"."SystemSettings"."contactTelegramBot", "public"."SystemSettings"."contactTelegramChannel", "public"."SystemSettings"."contactWhatsApp", "public"."SystemSettings"."contactVk", "public"."SystemSettings"."legalCompanyName", "public"."SystemSettings"."legalCompanyInn", "public"."SystemSettings"."legalCompanyOgrnip", "public"."SystemSettings"."legalCompanyAddress" FROM "public"."SystemSettings" WHERE ("public"."SystemSettings"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."Service"."id", "public"."Service"."numericId", "public"."Service"."name", "public"."Service"."description", "public"."Service"."features", "public"."Service"."categoryId", "public"."Service"."providerId", "public"."Service"."rate", "public"."Service"."providerCurrency", "public"."Service"."markup", "public"."Service"."anomalyScore", "public"."Service"."minQty", "public"."Service"."maxQty", "public"."Service"."externalId", "public"."Service"."dataHash", "public"."Service"."lastSeenAt", "public"."Service"."isDripFeedEnabled", "public"."Service"."isRefillEnabled", "public"."Service"."isCancelEnabled", "public"."Service"."isQuarantined", "public"."Service"."pendingRate", "public"."Service"."quarantineReason", "public"."Service"."quarantinedAt", "public"."Service"."cooldownUntil", "public"."Service"."cooldownReason", "public"."Service"."etaP50Seconds", "public"."Service"."etaP90Seconds", "public"."Service"."etaSampleCount", "public"."Service"."etaSpeedClass", "public"."Service"."etaUpdatedAt", "public"."Service"."targetType", "public"."Service"."customDataType", "public"."Service"."customDataLabel", "public"."Service"."isMediaGroupAware", "public"."Service"."requireWarning", "public"."Service"."warningMessage", "public"."Service"."isActive", "public"."Service"."pricePer1000Cents", "public"."Service"."createdAt", "public"."Service"."updatedAt" FROM "public"."Service" WHERE ("public"."Service"."categoryId" = $1 AND "public"."Service"."isActive" = $2) ORDER BY "public"."Service"."rate" ASC LIMIT $3 OFFSET $4
+[2m[WebServer] [22m[34mprisma:query[39m SELECT "public"."ServiceSmartConfig"."id", "public"."ServiceSmartConfig"."serviceId", "public"."ServiceSmartConfig"."isEnabled", "public"."ServiceSmartConfig"."isTestMode", "public"."ServiceSmartConfig"."minChunk", "public"."ServiceSmartConfig"."maxChunk", "public"."ServiceSmartConfig"."markup", "public"."ServiceSmartConfig"."providersPriority", "public"."ServiceSmartConfig"."useInviteBuffer", "public"."ServiceSmartConfig"."autoCompensate", "public"."ServiceSmartConfig"."checkIntervalMins", "public"."ServiceSmartConfig"."createdAt", "public"."ServiceSmartConfig"."updatedAt" FROM "public"."ServiceSmartConfig" WHERE "public"."ServiceSmartConfig"."serviceId" IN ($1) OFFSET $2
+[2m[WebServer] [22m POST /dashboard/new-order [32m200[39m in 95ms[2m (next.js: 11ms, proxy.ts: 18ms, application-code: 66ms)[22m
+[2m[WebServer] [22m  └─ ƒ getServicesByCategoryAction("e2e-telegram-custom-cat") in 40ms [2msrc/actions/order/catalog.ts[22m
+[2m[WebServer] [22m[?25h[2m[WebServer] [22m
+Loader was not visible or did not disappear in time: ExpectError: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeHidden[2m([22m[2m)[22m failed
+
+Locator:  locator('.animate-spin').first()
+Expected: hidden
+Received: visible
+Timeout:  15000ms
+
+Call log:
+[2m  - Expect "toBeHidden" with timeout 15000ms[22m
+[2m  - waiting for locator('.animate-spin').first()[22m
+[2m    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>[22m
+[2m       - unexpected value "visible"[22m
+
+    at fillUrlAndWait [90m(D:\SMM_plan_2\[39me2e\user-flow.spec.ts:468:30[90m)[39m
+    at [90mD:\SMM_plan_2\[39me2e\user-flow.spec.ts:640:5 {
+  matcherResult: {
+    message: [32m'\x1B[2mexpect(\x1B[22m\x1B[31mlocator\x1B[39m\x1B[2m).\x1B[22mtoBeHidden\x1B[2m(\x1B[22m\x1B[2m)\x1B[22m failed\n'[39m +
+      [32m'\n'[39m +
+      [32m"Locator:  locator('.animate-spin').first()\n"[39m +
+      [32m'Expected: hidden\n'[39m +
+      [32m'Received: visible\n'[39m +
+      [32m'Timeout:  15000ms\n'[39m +
+      [32m'\n'[39m +
+      [32m'Call log:\n'[39m +
+      [32m'\x1B[2m  - Expect "toBeHidden" with timeout 15000ms\x1B[22m\n'[39m +
+      [32m"\x1B[2m  - waiting for locator('.animate-spin').first()\x1B[22m\n"[39m +
+      [32m'\x1B[2m    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>\x1B[22m\n'[39m +
+      [32m'\x1B[2m       - unexpected value "visible"\x1B[22m\n'[39m,
+    pass: [33mfalse[39m,
+    actual: [32m'visible'[39m,
+    name: [32m'toBeHidden'[39m,
+    expected: [32m'hidden'[39m,
+    log: [
+      [32m'  - Expect "toBeHidden" with timeout 15000ms'[39m,
+      [32m"  - waiting for locator('.animate-spin').first()"[39m,
+      [32m'    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>'[39m,
+      [32m'       - unexpected value "visible"'[39m
+    ],
+    timeout: [33m15000[39m,
+    ariaSnapshot: [32m'- img'[39m
+  },
+  [32mSymbol(step)[39m: {
+    category: [32m'expect'[39m,
+    apiName: [32m'expect.toBeHidden'[39m,
+    title: [32m`Expect "toBeHidden" locator('.animate-spin').first()`[39m,
+    shortTitle: [32m'Expect "toBeHidden"'[39m,
+    params: { expected: [36m[Object][39m },
+    stepId: [32m'expect@69'[39m,
+    group: [90mundefined[39m,
+    boxedStack: [90mundefined[39m,
+    location: {
+      file: [32m'D:\\SMM_plan_2\\e2e\\user-flow.spec.ts'[39m,
+      line: [33m468[39m,
+      column: [33m30[39m,
+      function: [32m'fillUrlAndWait'[39m
+    },
+    steps: [],
+    attachmentIndices: [],
+    info: TestStepInfoImpl {
+      annotations: [],
+      _testInfo: [36m[TestInfoImpl][39m,
+      _stepId: [32m'expect@69'[39m,
+      _title: [32m`Expect "toBeHidden" locator('.animate-spin').first()`[39m,
+      _parentStep: [90mundefined[39m,
+      skip: [36m[Function (anonymous)][39m
+    },
+    complete: [36m[Function: complete][39m,
+    endWallTime: [33m1780902734250[39m,
+    error: {
+      message: [32m'Error: \x1B[2mexpect(\x1B[22m\x1B[31mlocator\x1B[39m\x1B[2m).\x1B[22mtoBeHidden\x1B[2m(\x1B[22m\x1B[2m)\x1B[22m failed\n'[39m +
+        [32m'\n'[39m +
+        [32m"Locator:  locator('.animate-spin').first()\n"[39m +
+        [32m'Expected: hidden\n'[39m +
+        [32m'Received: visible\n'[39m +
+        [32m'Timeout:  15000ms\n'[39m +
+        [32m'\n'[39m +
+        [32m'Call log:\n'[39m +
+        [32m'\x1B[2m  - Expect "toBeHidden" with timeout 15000ms\x1B[22m\n'[39m +
+        [32m"\x1B[2m  - waiting for locator('.animate-spin').first()\x1B[22m\n"[39m +
+        [32m'\x1B[2m    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>\x1B[22m\n'[39m +
+        [32m'\x1B[2m       - unexpected value "visible"\x1B[22m\n'[39m,
+      stack: [32m'Error: \x1B[2mexpect(\x1B[22m\x1B[31mlocator\x1B[39m\x1B[2m).\x1B[22mtoBeHidden\x1B[2m(\x1B[22m\x1B[2m)\x1B[22m failed\n'[39m +
+        [32m'\n'[39m +
+        [32m"Locator:  locator('.animate-spin').first()\n"[39m +
+        [32m'Expected: hidden\n'[39m +
+        [32m'Received: visible\n'[39m +
+        [32m'Timeout:  15000ms\n'[39m +
+        [32m'\n'[39m +
+        [32m'Call log:\n'[39m +
+        [32m'\x1B[2m  - Expect "toBeHidden" with timeout 15000ms\x1B[22m\n'[39m +
+        [32m"\x1B[2m  - waiting for locator('.animate-spin').first()\x1B[22m\n"[39m +
+        [32m'\x1B[2m    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>\x1B[22m\n'[39m +
+        [32m'\x1B[2m       - unexpected value "visible"\x1B[22m\n'[39m +
+        [32m'\n'[39m +
+        [32m'    at fillUrlAndWait (D:\\SMM_plan_2\\e2e\\user-flow.spec.ts:468:30)\n'[39m +
+        [32m'    at D:\\SMM_plan_2\\e2e\\user-flow.spec.ts:640:5'[39m,
+      cause: [90mundefined[39m,
+      errorContext: [32m'- img'[39m
+    }
+  }
+}
+Loader was not visible or did not disappear in time: ExpectError: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeHidden[2m([22m[2m)[22m failed
+
+Locator:  locator('.animate-spin').first()
+Expected: hidden
+Received: visible
+Timeout:  15000ms
+
+Call log:
+[2m  - Expect "toBeHidden" with timeout 15000ms[22m
+[2m  - waiting for locator('.animate-spin').first()[22m
+[2m    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>[22m
+[2m       - unexpected value "visible"[22m
+
+    at fillUrlAndWait [90m(D:\SMM_plan_2\[39me2e\user-flow.spec.ts:468:30[90m)[39m
+    at [90mD:\SMM_plan_2\[39me2e\user-flow.spec.ts:647:5 {
+  matcherResult: {
+    message: [32m'\x1B[2mexpect(\x1B[22m\x1B[31mlocator\x1B[39m\x1B[2m).\x1B[22mtoBeHidden\x1B[2m(\x1B[22m\x1B[2m)\x1B[22m failed\n'[39m +
+      [32m'\n'[39m +
+      [32m"Locator:  locator('.animate-spin').first()\n"[39m +
+      [32m'Expected: hidden\n'[39m +
+      [32m'Received: visible\n'[39m +
+      [32m'Timeout:  15000ms\n'[39m +
+      [32m'\n'[39m +
+      [32m'Call log:\n'[39m +
+      [32m'\x1B[2m  - Expect "toBeHidden" with timeout 15000ms\x1B[22m\n'[39m +
+      [32m"\x1B[2m  - waiting for locator('.animate-spin').first()\x1B[22m\n"[39m +
+      [32m'\x1B[2m    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>\x1B[22m\n'[39m +
+      [32m'\x1B[2m       - unexpected value "visible"\x1B[22m\n'[39m,
+    pass: [33mfalse[39m,
+    actual: [32m'visible'[39m,
+    name: [32m'toBeHidden'[39m,
+    expected: [32m'hidden'[39m,
+    log: [
+      [32m'  - Expect "toBeHidden" with timeout 15000ms'[39m,
+      [32m"  - waiting for locator('.animate-spin').first()"[39m,
+      [32m'    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>'[39m,
+      [32m'       - unexpected value "visible"'[39m
+    ],
+    timeout: [33m15000[39m,
+    ariaSnapshot: [32m'- img'[39m
+  },
+  [32mSymbol(step)[39m: {
+    category: [32m'expect'[39m,
+    apiName: [32m'expect.toBeHidden'[39m,
+    title: [32m`Expect "toBeHidden" locator('.animate-spin').first()`[39m,
+    shortTitle: [32m'Expect "toBeHidden"'[39m,
+    params: { expected: [36m[Object][39m },
+    stepId: [32m'expect@77'[39m,
+    group: [90mundefined[39m,
+    boxedStack: [90mundefined[39m,
+    location: {
+      file: [32m'D:\\SMM_plan_2\\e2e\\user-flow.spec.ts'[39m,
+      line: [33m468[39m,
+      column: [33m30[39m,
+      function: [32m'fillUrlAndWait'[39m
+    },
+    steps: [],
+    attachmentIndices: [],
+    info: TestStepInfoImpl {
+      annotations: [],
+      _testInfo: [36m[TestInfoImpl][39m,
+      _stepId: [32m'expect@77'[39m,
+      _title: [32m`Expect "toBeHidden" locator('.animate-spin').first()`[39m,
+      _parentStep: [90mundefined[39m,
+      skip: [36m[Function (anonymous)][39m
+    },
+    complete: [36m[Function: complete][39m,
+    endWallTime: [33m1780902750056[39m,
+    error: {
+      message: [32m'Error: \x1B[2mexpect(\x1B[22m\x1B[31mlocator\x1B[39m\x1B[2m).\x1B[22mtoBeHidden\x1B[2m(\x1B[22m\x1B[2m)\x1B[22m failed\n'[39m +
+        [32m'\n'[39m +
+        [32m"Locator:  locator('.animate-spin').first()\n"[39m +
+        [32m'Expected: hidden\n'[39m +
+        [32m'Received: visible\n'[39m +
+        [32m'Timeout:  15000ms\n'[39m +
+        [32m'\n'[39m +
+        [32m'Call log:\n'[39m +
+        [32m'\x1B[2m  - Expect "toBeHidden" with timeout 15000ms\x1B[22m\n'[39m +
+        [32m"\x1B[2m  - waiting for locator('.animate-spin').first()\x1B[22m\n"[39m +
+        [32m'\x1B[2m    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>\x1B[22m\n'[39m +
+        [32m'\x1B[2m       - unexpected value "visible"\x1B[22m\n'[39m,
+      stack: [32m'Error: \x1B[2mexpect(\x1B[22m\x1B[31mlocator\x1B[39m\x1B[2m).\x1B[22mtoBeHidden\x1B[2m(\x1B[22m\x1B[2m)\x1B[22m failed\n'[39m +
+        [32m'\n'[39m +
+        [32m"Locator:  locator('.animate-spin').first()\n"[39m +
+        [32m'Expected: hidden\n'[39m +
+        [32m'Received: visible\n'[39m +
+        [32m'Timeout:  15000ms\n'[39m +
+        [32m'\n'[39m +
+        [32m'Call log:\n'[39m +
+        [32m'\x1B[2m  - Expect "toBeHidden" with timeout 15000ms\x1B[22m\n'[39m +
+        [32m"\x1B[2m  - waiting for locator('.animate-spin').first()\x1B[22m\n"[39m +
+        [32m'\x1B[2m    33 × locator resolved to <svg width="24" height="24" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" class="lucide lucide-loader-circle absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin">…</svg>\x1B[22m\n'[39m +
+        [32m'\x1B[2m       - unexpected value "visible"\x1B[22m\n'[39m +
+        [32m'\n'[39m +
+        [32m'    at fillUrlAndWait (D:\\SMM_plan_2\\e2e\\user-flow.spec.ts:468:30)\n'[39m +
+        [32m'    at D:\\SMM_plan_2\\e2e\\user-flow.spec.ts:647:5'[39m,
+      cause: [90mundefined[39m,
+      errorContext: [32m'- img'[39m
+    }
+  }
+}
+  ok 5 [chromium] › e2e\user-flow.spec.ts:595:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (STORY vs CUSTOM) and show validation errors (40.2s)
+LedgerEntry cleanup skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+  x  6 [chromium] › e2e\user-flow.spec.ts:656:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should deduct balance and create order when balance is sufficient (10.2s)
+◇ injected env (0) from .env.test // tip: ⌘ override existing { override: true }
+LedgerEntry cleanup skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+LedgerEntry cleanup skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+  x  7 [chromium] › e2e\user-flow.spec.ts:714:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should refuse checkout and redirect to payment error page when balance is insufficient (4.8s)
+◇ injected env (0) from .env.test // tip: ◈ encrypted .env [www.dotenvx.com]
+LedgerEntry cleanup skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+LedgerEntry cleanup skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+  x  8 [chromium] › e2e\user-flow.spec.ts:767:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via YooKassa (3.0s)
+◇ injected env (0) from .env.test // tip: ⌘ enable debugging { debug: true }
+LedgerEntry cleanup skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+LedgerEntry cleanup skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:55:34
+
+  52 
+  53 // 4. Delete ledger entries for these users (skip because of database trigger immutability)
+  54 try {
+→ 55   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+User cleanup skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:100:27
+
+   97 
+   98 // 9. Delete users
+   99 try {
+→ 100   await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+  x  9 [chromium] › e2e\user-flow.spec.ts:833:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via CryptoBot (3.0s)
+[Playwright Teardown] Cleaning up database test records...
+[Teardown] Deleted 0 test orders.
+[Teardown] Deleted 0 test payments.
+[Teardown] Deleted 0 test tickets.
+[Teardown] LedgerEntry deletion skipped (ledger is immutable): 
+Invalid `prisma.ledgerEntry.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\utils\db-cleaner.ts:71:34
+
+  68 
+  69 // 3.6 Delete ledger entries for these users
+  70 try {
+→ 71   await prisma.ledgerEntry.deleteMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "Fina
+ncial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.", severity: "ERROR", detail: None, column:
+ None, hint: None }), transient: false })
+[Teardown] User deletion skipped (possibly referenced by immutable ledger): 
+Invalid `prisma.user.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\utils\db-cleaner.ts:80:53
+
+  77 
+  78 // 4. Delete test users
+  79 try {
+→ 80   const deletedUsersCount = await prisma.user.deleteMany(
+Foreign key constraint violated: `LedgerEntry_userId_fkey (index)`
+
+
+  1) [chromium] › e2e\user-flow.spec.ts:348:9 › Milestone 4: Playwright E2E User Flow Tests › Magic Link authentication › should request magic link, create AuthToken in DB, and verify successfully via callback 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('input#login-email-magic')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('input#login-email-magic')[22m
+
+
+      360 |       // 3. Fill email in the magic link email field
+      361 |       const magicEmailInput = page.locator('input#login-email-magic');
+    > 362 |       await expect(magicEmailInput).toBeVisible();
+          |                                     ^
+      363 |       await magicEmailInput.fill(email);
+      364 |
+      365 |       // 4. Click the send button (submit)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:362:37
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-63bc3-y-successfully-via-callback-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-63bc3-y-successfully-via-callback-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-63bc3-y-successfully-via-callback-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-63bc3-y-successfully-via-callback-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-63bc3-y-successfully-via-callback-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e\user-flow.spec.ts:656:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should deduct balance and create order when balance is sufficient 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/api/auth/verify?token=70c6c53fbcb4bfa9772e3472a985529cb48f6ed57783033857c76451bd66b8b8
+    Call log:
+    [2m  - navigating to "http://localhost:3001/api/auth/verify?token=70c6c53fbcb4bfa9772e3472a985529cb48f6ed57783033857c76451bd66b8b8", waiting until "load"[22m
+
+
+      439 |
+      440 |     // Authenticate by visiting the verification callback
+    > 441 |     await page.goto(`/api/auth/verify?token=${rawToken}`);
+          |                ^
+      442 |     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+      443 |     return user;
+      444 |   };
+        at setupAuthenticatedUser (D:\SMM_plan_2\e2e\user-flow.spec.ts:441:16)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:659:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-43775--when-balance-is-sufficient-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-43775--when-balance-is-sufficient-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-43775--when-balance-is-sufficient-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-43775--when-balance-is-sufficient-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-43775--when-balance-is-sufficient-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e\user-flow.spec.ts:714:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should refuse checkout and redirect to payment error page when balance is insufficient 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/api/auth/verify?token=41f9e518cee5be0f6d027c782a8f8d7992abca8927bc2c2329c58aea68f49845
+    Call log:
+    [2m  - navigating to "http://localhost:3001/api/auth/verify?token=41f9e518cee5be0f6d027c782a8f8d7992abca8927bc2c2329c58aea68f49845", waiting until "load"[22m
+
+
+      439 |
+      440 |     // Authenticate by visiting the verification callback
+    > 441 |     await page.goto(`/api/auth/verify?token=${rawToken}`);
+          |                ^
+      442 |     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+      443 |     return user;
+      444 |   };
+        at setupAuthenticatedUser (D:\SMM_plan_2\e2e\user-flow.spec.ts:441:16)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:717:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e\user-flow.spec.ts:767:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via YooKassa 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/api/auth/verify?token=9ee0a9ae662ee0cbca4433eef40d93204c3165f62a800c7ea7176e441619c6a5
+    Call log:
+    [2m  - navigating to "http://localhost:3001/api/auth/verify?token=9ee0a9ae662ee0cbca4433eef40d93204c3165f62a800c7ea7176e441619c6a5", waiting until "load"[22m
+
+
+      439 |
+      440 |     // Authenticate by visiting the verification callback
+    > 441 |     await page.goto(`/api/auth/verify?token=${rawToken}`);
+          |                ^
+      442 |     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+      443 |     return user;
+      444 |   };
+        at setupAuthenticatedUser (D:\SMM_plan_2\e2e\user-flow.spec.ts:441:16)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:769:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e\user-flow.spec.ts:833:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via CryptoBot 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/api/auth/verify?token=59f3836c75ab322710dc4d0ea16b1c9a0025df6f4d42c1977ed57b8747f4887d
+    Call log:
+    [2m  - navigating to "http://localhost:3001/api/auth/verify?token=59f3836c75ab322710dc4d0ea16b1c9a0025df6f4d42c1977ed57b8747f4887d", waiting until "load"[22m
+
+
+      439 |
+      440 |     // Authenticate by visiting the verification callback
+    > 441 |     await page.goto(`/api/auth/verify?token=${rawToken}`);
+          |                ^
+      442 |     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+      443 |     return user;
+      444 |   };
+        at setupAuthenticatedUser (D:\SMM_plan_2\e2e\user-flow.spec.ts:441:16)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:835:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [chromium] › e2e\user-flow.spec.ts:348:9 › Milestone 4: Playwright E2E User Flow Tests › Magic Link authentication › should request magic link, create AuthToken in DB, and verify successfully via callback 
+    [chromium] › e2e\user-flow.spec.ts:656:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should deduct balance and create order when balance is sufficient 
+    [chromium] › e2e\user-flow.spec.ts:714:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should refuse checkout and redirect to payment error page when balance is insufficient 
+    [chromium] › e2e\user-flow.spec.ts:767:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via YooKassa 
+    [chromium] › e2e\user-flow.spec.ts:833:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via CryptoBot 
+  4 passed (4.2m)

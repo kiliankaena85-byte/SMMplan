@@ -795,10 +795,10 @@ export function UnifiedTicketsWorkspace({
                     <Button
                       intent="ghost"
                       onClick={() => setShowProfile(!showProfile)}
-                      className="min-h-[44px] min-w-[44px] touch-target-expand rounded-xl p-0 flex items-center justify-center cursor-pointer text-white hover:bg-white/10"
+                      className="min-h-[44px] min-w-[44px] touch-target-expand rounded-xl p-0 flex items-center justify-center cursor-pointer text-primary-foreground hover:bg-primary-foreground/10"
                       title="Профиль клиента"
                     >
-                      <Info className="w-5 h-5 text-white" />
+                      <Info className="w-5 h-5 text-primary-foreground" />
                     </Button>
                   </div>
                 </div>

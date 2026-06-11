@@ -170,7 +170,7 @@ export function ChatMessageList({
                 >
                   {msg.sender === 'USER' && (
                     <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${getAvatarGradient(
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-primary-foreground font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${getAvatarGradient(
                         clientEmail || 'client'
                       )} shrink-0`}
                       title="Клиент"
@@ -408,7 +408,7 @@ export function ChatMessageList({
                                 msg.sender === 'USER'
                                   ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                                   : msg.sender === 'INTERNAL'
-                                  ? 'bg-warning-text text-white hover:bg-warning-text/90'
+                                  ? 'bg-warning-text text-primary-foreground hover:bg-warning-text/90'
                                   : 'bg-card text-foreground hover:bg-card/90'
                               }`}
                             >
@@ -421,7 +421,7 @@ export function ChatMessageList({
                                 msg.sender === 'USER'
                                   ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                                   : msg.sender === 'INTERNAL'
-                                  ? 'bg-warning-text text-white hover:bg-warning-text/90'
+                                  ? 'bg-warning-text text-primary-foreground hover:bg-warning-text/90'
                                   : 'bg-card text-foreground hover:bg-card/90'
                               }`}
                             >
@@ -694,7 +694,7 @@ export function ChatMessageList({
                   </div>
                   {msg.sender !== 'USER' && (
                     <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${getAvatarGradient(
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-primary-foreground font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${getAvatarGradient(
                         'staff'
                       )} shrink-0`}
                       title={msg.sender === 'INTERNAL' ? 'Внутренняя заметка' : 'Поддержка'}

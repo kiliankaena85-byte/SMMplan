@@ -89,7 +89,7 @@ describe('Cleanup Processor', () => {
     }] as any);
 
     const { ordersQueue } = await import('../../../lib/queue-manager');
-    vi.mocked(ordersQueue.getJob).mockResolvedValue(null);
+    vi.mocked(ordersQueue.getJob).mockResolvedValue(undefined as any);
 
     await runOrphanSweep();
 

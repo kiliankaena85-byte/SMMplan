@@ -1,0 +1,9 @@
+﻿◇ injected env (0) from .env.test // tip: ⌁ auth for agents [www.vestauth.com]
+[2m[WebServer] [22m[1m[38;2;173;127;168m▲ Next.js 16.2.6[39m[22m (Turbopack)
+[2m[WebServer] [22m- Local:         http://localhost:3001
+[2m[WebServer] [22m- Network:       http://198.18.0.1:3001
+[2m[WebServer] [22m- Environments: .env
+[2m[WebServer] [22m[32m[1m✓[22m[39m Ready in 4.0s
+[2m[WebServer] [22m[?25h[2m[WebServer] [22m
+Error: Process from config.webServer was not able to start. Exit code: 1
+

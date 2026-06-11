@@ -1,0 +1,33 @@
+﻿◇ injected env (0) from .env.test // tip: ◈ secrets for agents [www.dotenvx.com]
+[2m[WebServer] [22m[1m[38;2;173;127;168m▲ Next.js 16.2.6[39m[22m (Turbopack)
+[2m[WebServer] [22m- Local:         http://localhost:3001
+[2m[WebServer] [22m- Network:       http://198.18.0.1:3001
+[2m[WebServer] [22m- Environments: .env
+[2m[WebServer] [22m[32m[1m✓[22m[39m Ready in 884ms
+node.exe : [2m[WebServer] [22m[31m[1m⨯[22m[39m Another [36mnext dev[39m server is already running.
+At D:\npm-global\npx.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/npm/bin/npx-cli.js" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([2m[WebServer]...lready running.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[2m[WebServer] [22m
+[2m[WebServer] [22m- Local:        [36mhttp://localhost:3002[39m
+[2m[WebServer] [22m- PID:          7304
+[2m[WebServer] [22m- Dir:          D:\SMM_plan_2
+[2m[WebServer] [22m- Log:          .next\dev\logs\next-development.log
+[2m[WebServer] [22m
+[2m[WebServer] [22mRun [36mtaskkill /PID 7304 /F[39m to stop it.
+[2m[WebServer] [22m[?25h
+
+Running 9 tests using 1 worker
+
+◇ injected env (0) from .env.test // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 1 [setup] › e2e\auth.setup.ts:11:6 › authenticate (278ms)
+◇ injected env (0) from .env.test // tip: ◈ secrets for agents [www.dotenvx.com]
+  ok 2 [chromium] › e2e\user-flow.spec.ts:348:9 › Milestone 4: Playwright E2E User Flow Tests › Magic Link authentication › should request magic link, create AuthToken in DB, and verify successfully via callback (3.4s)
+  ok 3 [chromium] › e2e\user-flow.spec.ts:480:7 › Milestone 4: Playwright E2E User Flow Tests › should display unit prices (₽ / шт) instead of per 1000 units and exclude bulk package labels (4.2s)
+  ok 4 [chromium] › e2e\user-flow.spec.ts:527:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (CHANNEL vs POST) and show validation errors (6.2s)
+  ok 5 [chromium] › e2e\user-flow.spec.ts:595:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (STORY vs CUSTOM) and show validation errors (8.7s)
+  ok 6 [chromium] › e2e\user-flow.spec.ts:656:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should deduct balance and create order when balance is sufficient (7.3s)
+  ok 7 [chromium] › e2e\user-flow.spec.ts:714:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should refuse checkout and redirect to payment error page when balance is insufficient (5.3s)

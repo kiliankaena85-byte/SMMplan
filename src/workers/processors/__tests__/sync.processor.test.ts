@@ -110,9 +110,9 @@ describe('Sync Processor', () => {
       { id: 'o2', externalId: 'ext2', charge: 100, user: { email: 'test@test.com' }, service: { name: 'S1' }, serviceId: 's1', updatedAt: new Date() }
     ] as any).mockResolvedValueOnce([]); // for orphan orders
 
-    vi.mocked(db.order.update).mockImplementation(async ({ where }) => {
-      return { id: where.id, charge: 100 } as any;
-    });
+    vi.mocked(db.order.update).mockImplementation(((args: any) => {
+      return Promise.resolve({ id: args.where.id, charge: 100 });
+    }) as any);
 
     const providerMock = {
       getMultiOrderStatus: vi.fn().mockResolvedValue({

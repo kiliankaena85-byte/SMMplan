@@ -59,7 +59,7 @@ export default function TelegramCard({ telegramId }: TelegramCardProps) {
               </div>
               <a
                 href="/api/support/telegram"
-                className="inline-flex items-center justify-center gap-2 text-xs font-semibold bg-[#24A1DE] hover:bg-[#208ebe] text-white px-5 py-3 rounded-xl shadow-sm hover:shadow transition-all duration-200 active:scale-95 touch-manipulation min-h-[44px]"
+                className="inline-flex items-center justify-center gap-2 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-xl shadow-sm hover:shadow transition-all duration-200 active:scale-95 touch-manipulation min-h-[44px]"
                 aria-label="Написать в Telegram-бот"
               >
                 <Send className="w-4 h-4" />
@@ -69,7 +69,7 @@ export default function TelegramCard({ telegramId }: TelegramCardProps) {
           ) : (
             <a
               href="/api/support/telegram"
-              className="inline-flex items-center gap-2 text-xs font-semibold bg-[#24A1DE] hover:bg-[#208ebe] text-white px-5 py-3 rounded-xl shadow-sm hover:shadow transition-all duration-200 active:scale-95 touch-manipulation min-h-[44px]"
+              className="inline-flex items-center gap-2 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-xl shadow-sm hover:shadow transition-all duration-200 active:scale-95 touch-manipulation min-h-[44px]"
               aria-label="Привязать Telegram-аккаунт"
             >
               <Send className="w-4 h-4" />

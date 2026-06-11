@@ -1,0 +1,6 @@
+﻿тЦ▓ Next.js 16.2.6 (webpack)
+- Environments: .env
+- Experiments (use with caution):
+  ┬╖ serverActions
+
+  Creating an optimized production build ...

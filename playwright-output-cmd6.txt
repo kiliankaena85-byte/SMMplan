@@ -1,0 +1,251 @@
+◇ injected env (8) from .env.test // tip: ⌁ auth for agents [www.vestauth.com]
+
+Running 9 tests using 1 worker
+
+◇ injected env (0) from .env.test // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+  ok 1 [setup] › e2e\auth.setup.ts:11:6 › authenticate (436ms)
+◇ injected env (0) from .env.test // tip: ◈ encrypted .env [www.dotenvx.com]
+  ok 2 [chromium] › e2e\user-flow.spec.ts:348:9 › Milestone 4: Playwright E2E User Flow Tests › Magic Link authentication › should request magic link, create AuthToken in DB, and verify successfully via callback (5.3s)
+  ok 3 [chromium] › e2e\user-flow.spec.ts:480:7 › Milestone 4: Playwright E2E User Flow Tests › should display unit prices (₽ / шт) instead of per 1000 units and exclude bulk package labels (4.1s)
+  x  4 [chromium] › e2e\user-flow.spec.ts:527:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (CHANNEL vs POST) and show validation errors (19.7s)
+◇ injected env (0) from .env.test // tip: ⌘ enable debugging { debug: true }
+Category cleanup skipped: 
+Invalid `prisma.category.deleteMany()` invocation in
+D:\SMM_plan_2\e2e\user-flow.spec.ts:91:31
+
+  88 
+  89 // 8. Delete categories
+  90 try {
+→ 91   await prisma.category.deleteMany(
+Foreign key constraint violated: `Service_categoryId_fkey (index)`
+  x  5 [chromium] › e2e\user-flow.spec.ts:595:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (STORY vs CUSTOM) and show validation errors (23.7s)
+◇ injected env (0) from .env.test // tip: ⌘ enable debugging { debug: true }
+  x  6 [chromium] › e2e\user-flow.spec.ts:656:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should deduct balance and create order when balance is sufficient (2.8s)
+◇ injected env (0) from .env.test // tip: ⌘ enable debugging { debug: true }
+  x  7 [chromium] › e2e\user-flow.spec.ts:714:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should refuse checkout and redirect to payment error page when balance is insufficient (37.3s)
+◇ injected env (0) from .env.test // tip: ⌘ override existing { override: true }
+  x  8 [chromium] › e2e\user-flow.spec.ts:767:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via YooKassa (7.1s)
+◇ injected env (0) from .env.test // tip: ⌘ override existing { override: true }
+  x  9 [chromium] › e2e\user-flow.spec.ts:833:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via CryptoBot (2.8s)
+[Playwright Teardown] Cleaning up database test records...
+[Teardown] Deleted 0 test orders.
+[Teardown] Deleted 0 test payments.
+
+
+  1) [chromium] › e2e\user-flow.spec.ts:527:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (CHANNEL vs POST) and show validation errors 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('button[role="option"]').filter({ hasText: 'E2E Subscribers Service' }).first()
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for locator('button[role="option"]').filter({ hasText: 'E2E Subscribers Service' }).first()[22m
+
+
+      451 |     } else {
+      452 |       const optionBtn = page.locator('button[role="option"]', { hasText: serviceName }).first();
+    > 453 |       await expect(optionBtn).toBeVisible({ timeout: 15000 });
+          |                               ^
+      454 |       await optionBtn.click();
+      455 |     }
+      456 |   };
+        at selectService (D:\SMM_plan_2\e2e\user-flow.spec.ts:453:31)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:565:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-cf719--and-show-validation-errors-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-cf719--and-show-validation-errors-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-cf719--and-show-validation-errors-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-cf719--and-show-validation-errors-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-cf719--and-show-validation-errors-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e\user-flow.spec.ts:595:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (STORY vs CUSTOM) and show validation errors 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/dashboard/[39m
+    Received string:  [31m"http://localhost:3001/api/auth/verify?token=286ed3584c536fad485e96a15c3e64545b8bd36cda7ea09dd5eda629662c0e52"[39m
+    Timeout: 15000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 15000ms[22m
+    [2m    33 × unexpected value "http://localhost:3001/api/auth/verify?token=286ed3584c536fad485e96a15c3e64545b8bd36cda7ea09dd5eda629662c0e52"[22m
+
+
+      440 |     // Authenticate by visiting the verification callback
+      441 |     await page.goto(`/api/auth/verify?token=${rawToken}`);
+    > 442 |     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+          |                        ^
+      443 |     return user;
+      444 |   };
+      445 |
+        at setupAuthenticatedUser (D:\SMM_plan_2\e2e\user-flow.spec.ts:442:24)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:597:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-c24f3--and-show-validation-errors-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-c24f3--and-show-validation-errors-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-c24f3--and-show-validation-errors-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-c24f3--and-show-validation-errors-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-c24f3--and-show-validation-errors-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e\user-flow.spec.ts:656:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should deduct balance and create order when balance is sufficient 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/api/auth/verify?token=8227ca26d62284b5cc1a87b049492c454a23e7aebe9bab3a208de0f97cfb1c7b
+    Call log:
+    [2m  - navigating to "http://localhost:3001/api/auth/verify?token=8227ca26d62284b5cc1a87b049492c454a23e7aebe9bab3a208de0f97cfb1c7b", waiting until "load"[22m
+
+
+      439 |
+      440 |     // Authenticate by visiting the verification callback
+    > 441 |     await page.goto(`/api/auth/verify?token=${rawToken}`);
+          |                ^
+      442 |     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+      443 |     return user;
+      444 |   };
+        at setupAuthenticatedUser (D:\SMM_plan_2\e2e\user-flow.spec.ts:441:16)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:659:20
+
+    Error: ENOENT: no such file or directory, open 'D:\SMM_plan_2\test-results\.playwright-artifacts-3\aacd58df6c4ce96f31ea58cdb1fad3df.zip'
+
+    [31mTest timeout of 60000ms exceeded.[39m
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-43775--when-balance-is-sufficient-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-43775--when-balance-is-sufficient-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-43775--when-balance-is-sufficient-chromium\error-context.md
+
+  4) [chromium] › e2e\user-flow.spec.ts:714:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should refuse checkout and redirect to payment error page when balance is insufficient 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/dashboard/[39m
+    Received string:  [31m"http://localhost:3001/login?error=ExpiredToken"[39m
+    Timeout: 15000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 15000ms[22m
+    [2m    33 × unexpected value "http://localhost:3001/login?error=ExpiredToken"[22m
+
+
+      440 |     // Authenticate by visiting the verification callback
+      441 |     await page.goto(`/api/auth/verify?token=${rawToken}`);
+    > 442 |     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+          |                        ^
+      443 |     return user;
+      444 |   };
+      445 |
+        at setupAuthenticatedUser (D:\SMM_plan_2\e2e\user-flow.spec.ts:442:24)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:717:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-d65a1-hen-balance-is-insufficient-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e\user-flow.spec.ts:767:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via YooKassa 
+
+    Error: apiRequestContext.get: connect ECONNREFUSED ::1:3001
+    Call log:
+    [2m  - → GET http://localhost:3001/api/debug?revalidate=catalog[22m
+    [2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36[22m
+    [2m    - accept: */*[22m
+    [2m    - accept-encoding: gzip,deflate,br[22m
+    [2m    - cookie: session_token=eyJhbGciOiJIUzI1NiJ9.eyJzZXNzaW9uSWQiOiJjbXE0dzNxN3IwMDA5Y253cWljbnZpNTBkIiwidXNlcklkIjoiY21xNHczcTJyMDAwODEzOHF4dmRwa2dkMSIsImlhdCI6MTc4MDkwMzczNywiZXhwIjoxNzgxNTA4NTM3fQ.PkhopjoI2AWlHoRhVxOspBWBJtlWaLTcH5Is6-LIMk8[22m
+
+        at apiRequestContext.get: connect ECONNREFUSED ::1:3001
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:770:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-4bf01-n-checking-out-via-YooKassa-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › e2e\user-flow.spec.ts:833:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via CryptoBot 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/api/auth/verify?token=e234a45e14df5bcde3ceb5e8283d5fa987060e372024bbd4a3a274ffaba7d430
+    Call log:
+    [2m  - navigating to "http://localhost:3001/api/auth/verify?token=e234a45e14df5bcde3ceb5e8283d5fa987060e372024bbd4a3a274ffaba7d430", waiting until "load"[22m
+
+
+      439 |
+      440 |     // Authenticate by visiting the verification callback
+    > 441 |     await page.goto(`/api/auth/verify?token=${rawToken}`);
+          |                ^
+      442 |     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+      443 |     return user;
+      444 |   };
+        at setupAuthenticatedUser (D:\SMM_plan_2\e2e\user-flow.spec.ts:441:16)
+        at D:\SMM_plan_2\e2e\user-flow.spec.ts:835:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\error-context.md
+
+    Error Context: test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\user-flow-Milestone-4-Play-ef79f--checking-out-via-CryptoBot-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    [chromium] › e2e\user-flow.spec.ts:527:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (CHANNEL vs POST) and show validation errors 
+    [chromium] › e2e\user-flow.spec.ts:595:7 › Milestone 4: Playwright E2E User Flow Tests › should enforce link targetType validations (STORY vs CUSTOM) and show validation errors 
+    [chromium] › e2e\user-flow.spec.ts:656:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should deduct balance and create order when balance is sufficient 
+    [chromium] › e2e\user-flow.spec.ts:714:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should refuse checkout and redirect to payment error page when balance is insufficient 
+    [chromium] › e2e\user-flow.spec.ts:767:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via YooKassa 
+    [chromium] › e2e\user-flow.spec.ts:833:9 › Milestone 4: Playwright E2E User Flow Tests › Checkout flows › should generate PENDING payment in DB and redirect with paymentId when checking out via CryptoBot 
+  3 passed (3.1m)

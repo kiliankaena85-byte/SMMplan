@@ -573,7 +573,7 @@ export function SmartDripClient({
                   <Button
                     intent="primary"
                     size="sm"
-                    className="h-8 text-[11px] font-extrabold bg-success hover:bg-success/90 text-white rounded-lg flex items-center shadow-sm"
+                    className="h-8 text-[11px] font-extrabold bg-success hover:bg-success/90 text-success-foreground rounded-lg flex items-center shadow-sm"
                     onClick={() => handleBulkConfigToggle(true)}
                     disabled={isPending || filteredServices.length === 0}
                   >

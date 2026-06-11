@@ -18,7 +18,7 @@ export default function TiptapEditor({ content, name }: TiptapEditorProps) {
     content: content || '<p>Start writing...</p>',
     editorProps: {
       attributes: {
-        class: 'prose prose-slate max-w-none min-h-[400px] p-4 focus:outline-none',
+        class: 'prose max-w-none min-h-[400px] p-4 focus:outline-none',
       },
     },
   });
@@ -31,9 +31,9 @@ export default function TiptapEditor({ content, name }: TiptapEditorProps) {
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden bg-card">
+    <div className="border border-border rounded-lg overflow-hidden bg-card">
       {/* Toolbar */}
-      <div className="flex flex-wrap gap-1 p-2 border-b border-slate-200 bg-slate-50">
+      <div className="flex flex-wrap gap-1 p-2 border-b border-border bg-muted">
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleBold().run()}
           active={editor?.isActive('bold')}
@@ -52,7 +52,7 @@ export default function TiptapEditor({ content, name }: TiptapEditorProps) {
           label="S"
           className="line-through"
         />
-        <div className="w-px h-6 bg-slate-300 mx-1 self-center" />
+        <div className="w-px h-6 bg-border mx-1 self-center" />
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
           active={editor?.isActive('heading', { level: 1 })}
@@ -68,7 +68,7 @@ export default function TiptapEditor({ content, name }: TiptapEditorProps) {
           active={editor?.isActive('heading', { level: 3 })}
           label="H3"
         />
-        <div className="w-px h-6 bg-slate-300 mx-1 self-center" />
+        <div className="w-px h-6 bg-border mx-1 self-center" />
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
           active={editor?.isActive('bulletList')}
@@ -84,7 +84,7 @@ export default function TiptapEditor({ content, name }: TiptapEditorProps) {
           active={editor?.isActive('blockquote')}
           label="❝ Quote"
         />
-        <div className="w-px h-6 bg-slate-300 mx-1 self-center" />
+        <div className="w-px h-6 bg-border mx-1 self-center" />
         <ToolbarBtn onClick={addImage} label="🖼 Image" />
         <ToolbarBtn
           onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
@@ -119,7 +119,7 @@ function ToolbarBtn({ onClick, active, label, className }: {
       className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${className || ''} ${
         active
           ? 'bg-primary text-primary-foreground'
-          : 'bg-card text-slate-700 hover:bg-slate-100 border border-slate-200'
+          : 'bg-card text-muted-foreground hover:bg-muted border border-border'
       }`}
     >
       {label}
