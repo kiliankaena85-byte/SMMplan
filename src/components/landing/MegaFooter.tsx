@@ -17,12 +17,12 @@ export function MegaFooter({
     LEGAL_ADDRESS?: string;
   }
 }) {
-  const siteName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "SMMplan";
-  const companyName = contactSettings?.COMPANY_NAME || "SMMplan";
+  const siteName = contactSettings?.SITE_NAME || "SMMplan";
+  const companyName = contactSettings?.COMPANY_NAME || "Самозанятый Соколов Артём Андреевич";
   const supportEmail = contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro";
-  const inn = contactSettings?.LEGAL_INN || "000000000000";
-  const ogrnip = contactSettings?.LEGAL_OGRNIP || "300000000000000";
-  const address = contactSettings?.LEGAL_ADDRESS || "г. Москва (укажите реальный адрес офиса)";
+  const inn = contactSettings?.LEGAL_INN || "695006320024";
+  const ogrnip = contactSettings?.LEGAL_OGRNIP && contactSettings.LEGAL_OGRNIP !== "300000000000000" ? contactSettings.LEGAL_OGRNIP : "";
+  const address = contactSettings?.LEGAL_ADDRESS && !contactSettings.LEGAL_ADDRESS.includes("укажите") ? contactSettings.LEGAL_ADDRESS : "Российская Федерация, Тверская область, г. Тверь";
 
   return (
     <footer className="bg-background text-foreground pt-12 md:pt-24 pb-8 md:pb-12 border-t border-border relative overflow-hidden mt-auto">
