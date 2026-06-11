@@ -74,21 +74,34 @@ class AccountingService {
     }
 
     // 3. Calculate COGS (Provider Costs for confirmed part)
-    const orders = await db.order.findMany({
-      where: {
-        ...whereClause,
-        status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] }
-      }
-    });
-
     let cogs = 0;
-    for (const order of orders) {
-      // If partial, the providerCost recorded might be for the FULL quantity initially.
-      // E.g., we set providerCost = 50 for 1000 items. If remains is 100, actual COGS is 45.
-      if (order.quantity > 0) {
-        const deliveredQty = order.quantity - order.remains;
-        cogs += Math.round((deliveredQty / order.quantity) * Number(order.providerCost));
-      }
+    if (startDate && endDate) {
+      const cogsResult = await db.$queryRaw<[{ total: bigint | null }]>`
+        SELECT SUM(
+          CASE
+            WHEN "quantity" > 0
+            THEN ROUND(CAST("quantity" - "remains" AS NUMERIC) / "quantity" * "providerCost")
+            ELSE 0
+          END
+        ) as total
+        FROM "Order"
+        WHERE status NOT IN ('AWAITING_PAYMENT', 'PENDING', 'ERROR')
+          AND "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+      `;
+      cogs = Number(cogsResult[0]?.total ?? 0);
+    } else {
+      const cogsResult = await db.$queryRaw<[{ total: bigint | null }]>`
+        SELECT SUM(
+          CASE
+            WHEN "quantity" > 0
+            THEN ROUND(CAST("quantity" - "remains" AS NUMERIC) / "quantity" * "providerCost")
+            ELSE 0
+          END
+        ) as total
+        FROM "Order"
+        WHERE status NOT IN ('AWAITING_PAYMENT', 'PENDING', 'ERROR')
+      `;
+      cogs = Number(cogsResult[0]?.total ?? 0);
     }
 
     const revenueNet = revenueGross - refunds - gatewayFees;

@@ -181,7 +181,6 @@ export async function forceCompleteOrderAction(orderId: string) {
         where: { id: orderId },
         data: {
           status: 'COMPLETED',
-          remains: 0,
         },
       });
 

@@ -28,13 +28,49 @@ export async function checkAndCompleteCampaign(campaignId: string) {
     });
 
     if (campaign.orderId) {
-      await prisma.order.update({
-        where: { id: campaign.orderId },
-        data: {
-          status: finalStatus === SmartCampaignStatus.COMPLETED ? 'COMPLETED' : 'ERROR',
-          remains: 0,
-        },
-      });
+      const parentOrderId = campaign.orderId;
+      const orderTargetStatus = finalStatus === SmartCampaignStatus.COMPLETED ? 'COMPLETED' : 'ERROR';
+
+      await prisma.$transaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: parentOrderId, status: 'IN_PROGRESS' },
+          data: {
+            status: orderTargetStatus,
+            remains: 0,
+            updatedAt: new Date()
+          }
+        });
+
+        if (updated.count === 0) return; // Status already changed by sync processor
+
+        // Handle refund for ERROR campaigns
+        if (orderTargetStatus === 'ERROR') {
+          const order = await tx.order.findUnique({
+            where: { id: parentOrderId },
+            select: { userId: true, charge: true, numericId: true }
+          });
+          
+          if (order && order.charge > 0) {
+            const { WalletOps } = await import('@/services/financial/wallet-ops');
+            const refundKey = `refund-dripfeed-error-${parentOrderId}`;
+            const existing = await tx.ledgerEntry.findFirst({ where: { idempotencyKey: refundKey } });
+            if (!existing) {
+              await WalletOps.refund(tx, order.userId, Number(order.charge),
+                `Авто-возврат: SmartCampaign #${order.numericId} завершилась с ошибкой`,
+                { idempotencyKey: refundKey }
+              );
+            }
+          }
+        }
+
+        // Handle commission
+        const { LoyaltyService } = await import('@/services/users/loyalty.service');
+        if (orderTargetStatus === 'COMPLETED') {
+          await LoyaltyService.confirmCommission(tx, parentOrderId);
+        } else {
+          await LoyaltyService.reverseCommission(tx, parentOrderId);
+        }
+      }, { isolationLevel: 'Serializable' });
     }
 
     console.info(`[Dripfeed] SmartCampaign ${campaignId} завершена со статусом ${finalStatus}.`);

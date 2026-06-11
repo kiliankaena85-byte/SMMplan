@@ -43,6 +43,14 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
         console.info(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
         const stats = await adminCatalogService.syncProviderCatalog(providerId, admin);
         console.info(`[CatalogProcessor] Catalog sync completed. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
+        
+        // Apply blacklists, reclassification, and maxQty caps
+        try {
+          const { applyPostSyncRules } = await import('@/services/providers/post-sync-rules');
+          await applyPostSyncRules();
+        } catch (postSyncErr: any) {
+          console.error('[CatalogProcessor] applyPostSyncRules failed:', postSyncErr.message);
+        }
         break;
       }
       

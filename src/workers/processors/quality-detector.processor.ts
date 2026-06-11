@@ -73,7 +73,11 @@ export async function scanSubscriberQuality(
     }
 
     // Объединяем старых и новых подписчиков
-    const totalMembers = [...previousMembers, ...newMembers];
+    const MAX_SNAPSHOT_MEMBERS = 5000;
+    const combined = [...previousMembers, ...newMembers];
+    const totalMembers = combined.length > MAX_SNAPSHOT_MEMBERS
+      ? combined.slice(combined.length - MAX_SNAPSHOT_MEMBERS)
+      : combined;
 
     // 5. Записываем результаты в БД в рамках единой транзакции
     await prisma.$transaction(async (tx) => {
