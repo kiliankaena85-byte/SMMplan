@@ -210,7 +210,7 @@ export async function getGlobalProviderLiquidity() {
                     } else if (currency === 'RUB') {
                         totalRub += balance;
                     } else if (currency === 'EUR') {
-                        // Rough approx if EUR is ever used, though Smmplan standard is USD/RUB
+                        // Rough approx if EUR is ever used, though SMMplan standard is USD/RUB
                         totalRub += (balance * usdRate * 1.08); 
                     }
                     activeCount++;

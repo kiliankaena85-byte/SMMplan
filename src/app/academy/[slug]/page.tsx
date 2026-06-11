@@ -20,12 +20,12 @@ export async function generateMetadata({ params }: AcademyArticlePageProps) {
 
   if (!article) {
     return {
-      title: 'Статья не найдена | Smmplan Academy',
+      title: 'Статья не найдена | SMMplan Academy',
     };
   }
 
   return {
-    title: `${article.title} | Академия Smmplan`,
+    title: `${article.title} | Академия SMMplan`,
     description: article.excerpt || article.metaDescription || `Методическое руководство: ${article.title}. Безопасное SMM-продвижение.`,
   };
 }
@@ -78,7 +78,7 @@ export default async function AcademyArticlePage({ params }: AcademyArticlePageP
             "inLanguage": "ru",
             "author": {
               "@type": "Person",
-              "name": article.authorName || "Эксперт Smmplan"
+              "name": article.authorName || "Эксперт SMMplan"
             },
             "datePublished": publishDate.toISOString(),
             "dateModified": article.updatedAt.toISOString(),
@@ -145,7 +145,7 @@ export default async function AcademyArticlePage({ params }: AcademyArticlePageP
               <UserCircle className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-extrabold text-foreground">{article.authorName || 'Автор Академии Smmplan'}</p>
+              <p className="font-extrabold text-foreground">{article.authorName || 'Автор Академии SMMplan'}</p>
               <div className="flex items-center gap-1 mt-0.5 font-semibold text-[10px] tracking-wide uppercase">
                 <Calendar className="w-3 h-3 text-muted-foreground/60" />
                 <span>
@@ -198,7 +198,7 @@ export default async function AcademyArticlePage({ params }: AcademyArticlePageP
 
       {/* Footer */}
       <footer className="bg-card border-t border-border/60 py-8 text-center select-none text-xs text-muted-foreground mt-20">
-        <p>© {new Date().getFullYear()} Smmplan Academy. Все права защищены.</p>
+        <p>© {new Date().getFullYear()} SMMplan Academy. Все права защищены.</p>
       </footer>
     </div>
   );

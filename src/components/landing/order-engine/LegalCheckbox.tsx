@@ -73,7 +73,7 @@ export function LegalCheckbox({
         </motion.div>
       </div>
 
-      <span className={`text-[10px] leading-tight text-left text-foreground/80 font-bold select-none ${labelClassName}`}>
+      <span className={`text-[11px] leading-snug text-left text-foreground/80 font-bold select-none ${labelClassName}`}>
         Я согласен с{" "}
         <Link
           href={ROUTES.LEGAL.TERMS}

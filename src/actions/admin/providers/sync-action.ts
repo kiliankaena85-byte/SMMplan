@@ -35,7 +35,7 @@ export async function adminSyncProviderCatalog() {
         }
 
         // 2. Fetch OUR Curated Catalog (Only imported services)
-        // Note: For Smmplan Lite we fetch all services that have an externalId
+        // Note: For SMMplan we fetch all services that have an externalId
         const ourServices = await db.service.findMany({
           where: { externalId: { not: null } },
           select: { id: true, externalId: true, rate: true, markup: true, isActive: true, isQuarantined: true, pricePer1000Cents: true, providerCurrency: true },

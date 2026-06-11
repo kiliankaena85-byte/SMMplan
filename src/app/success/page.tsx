@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { SuccessContent } from './SuccessContent';
 
 export const metadata = {
-  title: 'Статус оплаты | Smmplan',
+  title: 'Статус оплаты | SMMplan',
   description: 'Проверка статуса вашего платежа',
 };
 

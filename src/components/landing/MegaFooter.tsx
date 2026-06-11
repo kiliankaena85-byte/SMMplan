@@ -17,8 +17,8 @@ export function MegaFooter({
     LEGAL_ADDRESS?: string;
   }
 }) {
-  const siteName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "Smmplan Lite";
-  const companyName = contactSettings?.COMPANY_NAME || "Smmplan Lite";
+  const siteName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "SMMplan";
+  const companyName = contactSettings?.COMPANY_NAME || "SMMplan";
   const supportEmail = contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro";
   const inn = contactSettings?.LEGAL_INN || "000000000000";
   const ogrnip = contactSettings?.LEGAL_OGRNIP || "300000000000000";
@@ -30,7 +30,7 @@ export function MegaFooter({
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-30 mask-image:linear-gradient(to_bottom,white,transparent)" />
       
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-12 mb-16 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 md:grid-cols-12 gap-12 mb-16 relative z-10">
         
         {/* Column 1: Brand & Payments (Takes more space) */}
         <div className="md:col-span-5 space-y-6 pr-4">

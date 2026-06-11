@@ -162,7 +162,7 @@ class CryptoBotGateway extends BasePaymentGateway {
 
     const { SettingsProvider } = await import('@/lib/settings');
     const legalSettings = await SettingsProvider.getContactAndLegalSettings();
-    const brandName = legalSettings.COMPANY_NAME || 'Smmplan';
+    const brandName = legalSettings.COMPANY_NAME || 'SMMplan';
     const cleanDesc = params.description.startsWith('Test ') 
       ? params.description.substring(5) 
       : params.description;

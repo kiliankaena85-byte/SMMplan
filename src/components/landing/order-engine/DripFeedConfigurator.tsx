@@ -43,14 +43,14 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
           <p className="text-[11px] font-black text-foreground uppercase tracking-widest flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-primary" /> Плавная накрутка (Drip-Feed)
           </p>
-          <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">
+          <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
             Распределите выполнение заказа на части, чтобы имитировать естественный рост
           </p>
         </div>
         <button
           type="button"
           onClick={toggleDripFeed}
-          className={`h-9 px-4 rounded-xl text-xs font-bold transition-all shrink-0 ml-2 ${
+          className={`h-11 px-4 rounded-xl text-xs font-bold transition-all shrink-0 ml-2 ${
             isAnyDripEnabled
               ? "bg-danger/10 text-danger hover:bg-danger/20"
               : "bg-primary/10 text-primary hover:bg-primary/20"
@@ -78,7 +78,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                       engine.setIsSmartDrip(true);
                       engine.setDripFeedEnabled(false);
                     }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-[10px] font-black uppercase transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-11 rounded-lg text-[10px] font-black uppercase transition-all ${
                       engine.isSmartDrip
                         ? "bg-background text-primary shadow-sm ring-1 ring-border"
                         : "text-muted-foreground hover:text-foreground"
@@ -92,7 +92,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                       engine.setIsSmartDrip(false);
                       engine.setDripFeedEnabled(true);
                     }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-[10px] font-black uppercase transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-11 rounded-lg text-[10px] font-black uppercase transition-all ${
                       engine.dripFeedEnabled
                         ? "bg-background text-foreground shadow-sm ring-1 ring-border"
                         : "text-muted-foreground hover:text-foreground"
@@ -125,7 +125,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                     </button>
                     <div className="flex flex-col items-center">
                       <span className="text-base font-black tabular-nums">{engine.smartDripDays}</span>
-                      <span className="text-[9px] text-muted-foreground uppercase font-bold">Дней</span>
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold">Дней</span>
                     </div>
                     <button
                       type="button"
@@ -135,7 +135,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-[9px] text-muted-foreground mt-2 leading-relaxed text-center px-2">
+                  <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed text-center px-2">
                     Нейросеть автоматически распределит <b>{engine.quantity}</b> ед. на <b>{engine.smartDripDays} дней</b>, имитируя случайные всплески активности.
                   </p>
                   {validationErrors?.dripfeed && engine.isSmartDrip && (
@@ -150,14 +150,14 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
               {engine.dripFeedEnabled && (
                 <div className="animate-in fade-in zoom-in-95 duration-200 grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[9px] font-extrabold text-foreground uppercase tracking-widest ml-1">
+                    <label className="text-[10px] font-extrabold text-foreground uppercase tracking-widest ml-1">
                       Запусков (Runs)
                     </label>
                     <div className="flex items-center justify-between bg-content2 p-1 rounded-xl border border-border">
                       <button
                         type="button"
                         onClick={() => engine.setRuns(Math.max(2, engine.runs - 1))}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
+                        className="w-11 h-11 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
@@ -165,7 +165,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                       <button
                         type="button"
                         onClick={() => engine.setRuns(Math.min(100, engine.runs + 1))}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
+                        className="w-11 h-11 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
@@ -173,14 +173,14 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[9px] font-extrabold text-foreground uppercase tracking-widest ml-1">
+                    <label className="text-[10px] font-extrabold text-foreground uppercase tracking-widest ml-1">
                       Интервал (Мин)
                     </label>
                     <div className="flex items-center justify-between bg-content2 p-1 rounded-xl border border-border">
                       <button
                         type="button"
                         onClick={() => engine.setDripInterval(Math.max(5, engine.dripInterval - 5))}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
+                        className="w-11 h-11 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
@@ -188,7 +188,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                       <button
                         type="button"
                         onClick={() => engine.setDripInterval(Math.min(2880, engine.dripInterval + 5))}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
+                        className="w-11 h-11 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
@@ -196,7 +196,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                   </div>
                   
                   <div className="col-span-2 text-center mt-1">
-                    <p className="text-[9px] text-muted-foreground leading-relaxed">
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
                       Будет выполнено <b>{engine.runs}</b> запусков по <b>{Math.floor(engine.quantity / engine.runs)}</b> ед. каждые <b>{engine.dripInterval} минут</b>.
                       <br/> Итого: <b className="text-foreground">{engine.quantity}</b> ед.
                     </p>

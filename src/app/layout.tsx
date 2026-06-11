@@ -6,8 +6,8 @@ import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvide
 
 export const metadata: Metadata = {
   title: {
-    default: 'Smmplan — продвижение в социальных сетях',
-    template: '%s | Smmplan',
+    default: 'SMMplan — продвижение в социальных сетях',
+    template: '%s | SMMplan',
   },
   description:
     'Накрутка подписчиков, лайков, просмотров для Instagram, TikTok, VK, YouTube. Быстрый старт, надежные исполнители, поддержка 24/7.',
@@ -15,14 +15,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'ru_RU',
-    siteName: 'Smmplan',
-    title: 'Smmplan — продвижение в социальных сетях',
+    siteName: 'SMMplan',
+    title: 'SMMplan — продвижение в социальных сетях',
     description:
       'Накрутка подписчиков, лайков, просмотров. Быстрый старт, профессиональное выполнение, поддержка 24/7.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Smmplan — продвижение в социальных сетях',
+    title: 'SMMplan — продвижение в социальных сетях',
     description: 'B2B платформа продвижения: накрутка подписчиков, лайков, просмотров.',
   },
   robots: {

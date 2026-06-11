@@ -43,7 +43,7 @@ export async function sendAdminAlertSync(message: string, severity: AlertSeverit
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
 
   const emoji = SEVERITY_EMOJI[severity];
-  const text = `${emoji} <b>Smmplan [${severity}]</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</i>`;
+  const text = `${emoji} <b>SMMplan [${severity}]</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</i>`;
 
   try {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {

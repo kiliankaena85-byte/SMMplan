@@ -31,7 +31,7 @@ export function TrustBar() {
             </div>
             <div className="flex flex-col min-w-0">
                <div className="text-sm md:text-base font-bold tracking-tight text-foreground">{s.value}</div>
-               <div className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-normal leading-tight">{s.label}</div>
+               <div className="text-[10px] md:text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-normal leading-tight">{s.label}</div>
             </div>
           </div>
         ))}

@@ -16,23 +16,41 @@ type OrderStatus = {
 
 type PageState = 'verifying' | 'confirmed' | 'awaiting' | 'error' | 'no-context';
 
-const MAX_POLLS = 20; // 20 * 3s = 60 секунд максимум
-const POLL_INTERVAL = 3000;
+const MAX_POLLS = 6;
+const POLL_INTERVAL = 5000;
 
 export function SuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get('orderId');
+  const paymentId = searchParams.get('paymentId');
+  const token = searchParams.get('token');
 
-  const [pageState, setPageState] = useState<PageState>(orderId ? 'verifying' : 'no-context');
+  const [pageState, setPageState] = useState<PageState>((orderId || paymentId) ? 'verifying' : 'no-context');
   const [order, setOrder] = useState<OrderStatus | null>(null);
   const [pollCount, setPollCount] = useState(0);
   const [autoRedirect, setAutoRedirect] = useState(10);
+  const [isManualFetching, setIsManualFetching] = useState(false);
 
-  const checkStatus = useCallback(async () => {
-    if (!orderId) return;
+  // Clear the order draft session storage upon landing on success page
+  useEffect(() => {
     try {
-      const res = await fetch(`/api/order-status?orderId=${orderId}`);
+      sessionStorage.removeItem('smmplan_draft');
+    } catch {
+      // sessionStorage might be blocked in incognito/SSR
+    }
+  }, []);
+
+  const checkStatus = useCallback(async (manual = false) => {
+    if (!orderId && !paymentId) return;
+    if (manual) setIsManualFetching(true);
+    try {
+      const params = new URLSearchParams();
+      if (orderId) params.append('orderId', orderId);
+      if (paymentId) params.append('paymentId', paymentId);
+      if (token) params.append('token', token);
+
+      const res = await fetch(`/api/order-status?${params.toString()}`);
       if (!res.ok) {
         setPageState('error');
         return;
@@ -51,16 +69,18 @@ export function SuccessContent() {
       }
     } catch {
       setPageState('error');
+    } finally {
+      if (manual) setIsManualFetching(false);
     }
-  }, [orderId]);
+  }, [orderId, paymentId, token]);
 
   // Initial check + polling
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId && !paymentId) return;
     checkStatus();
-  }, [orderId, checkStatus]);
+  }, [orderId, paymentId, checkStatus]);
 
-  // Auto-poll while awaiting
+  // Phase 1: Auto-poll while awaiting (up to MAX_POLLS)
   useEffect(() => {
     if (pageState !== 'awaiting' && pageState !== 'verifying') return;
     if (pollCount >= MAX_POLLS) return;
@@ -134,59 +154,69 @@ export function SuccessContent() {
             </p>
           </div>
 
-          {/* Progress indicator */}
-          <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground font-medium">Статус проверки</span>
-              <span className="text-warning-text font-bold flex items-center gap-1.5">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                Проверка {pollCount + 1}/{MAX_POLLS}
-              </span>
-            </div>
-            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-warning rounded-full transition-all duration-1000"
-                style={{ width: `${Math.min(((pollCount + 1) / MAX_POLLS) * 100, 100)}%` }}
-              />
-            </div>
-            {order && (
-              <p className="text-xs text-muted-foreground">
-                Заказ #{order.numericId} · {order.serviceName} · {(order.charge / 100).toLocaleString('ru-RU')} ₽
-              </p>
-            )}
-          </div>
+          {pollCount < MAX_POLLS ? (
+            <>
+              {/* Progress indicator */}
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground font-medium">Статус проверки</span>
+                  <span className="text-warning-text font-bold flex items-center gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Проверка {pollCount + 1}/{MAX_POLLS}
+                  </span>
+                </div>
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-warning rounded-full transition-all duration-1000"
+                    style={{ width: `${Math.min(((pollCount + 1) / MAX_POLLS) * 100, 100)}%` }}
+                  />
+                </div>
+                {order && (
+                  <p className="text-xs text-muted-foreground">
+                    Заказ #{order.numericId} · {order.serviceName} · {(order.charge / 100).toLocaleString('ru-RU')} ₽
+                  </p>
+                )}
+              </div>
 
-          {/* Hint after ~15 seconds */}
-          {pollCount >= 5 && (
-            <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 text-left animate-in fade-in duration-300">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
-                <div className="text-sm text-warning-text">
-                  <p className="font-semibold mb-1">Подтверждение задерживается</p>
-                  <p>Если вы уже оплатили — не волнуйтесь, мы автоматически зачислим платёж, когда банк пришлёт подтверждение. Вы также можете проверить статус позже в разделе «Мои заказы».</p>
+              {/* Hint after ~15 seconds */}
+              {pollCount >= 3 && (
+                <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 text-left animate-in fade-in duration-300">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                    <div className="text-sm text-warning-text">
+                      <p className="font-semibold mb-1">Подтверждение задерживается</p>
+                      <p>Если вы уже оплатили — не волнуйтесь, мы автоматически зачислим платёж, когда банк пришлёт подтверждение. Вы также можете проверить статус позже в разделе «Мои заказы».</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Phase 2: Manual fallback after max polls */
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 text-left">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                  <div className="text-sm text-warning-text">
+                    <p className="font-semibold mb-1">Подтверждение задерживается</p>
+                    <p>Банк ещё не прислал ответ. Нажмите «Обновить статус», чтобы запросить статус вручную, или проверьте позже.</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Manual fallback after max polls */}
-          {pollCount >= MAX_POLLS && (
-            <div className="space-y-3 animate-in fade-in duration-300">
-              <p className="text-sm text-muted-foreground">
-                Автоматическая проверка завершена. Платёж может поступить с небольшой задержкой.
-              </p>
               <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => checkStatus(true)}
+                  disabled={isManualFetching}
+                  className="flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all duration-200 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isManualFetching ? 'animate-spin' : ''}`} />
+                  Обновить статус
+                </button>
                 <Link
                   href="/dashboard/orders"
-                  className="flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all duration-200"
-                >
-                  <LayoutDashboard className="w-4 h-4" /> Мои заказы
-                </Link>
-                <Link
-                  href="/dashboard/tickets"
                   className="flex items-center justify-center gap-2 py-3 bg-card border border-border text-foreground rounded-xl font-semibold text-sm hover:bg-muted transition-all duration-200"
                 >
-                  <MessageSquare className="w-4 h-4" /> Поддержка
+                  <LayoutDashboard className="w-4 h-4" /> В Мои заказы
                 </Link>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * (c) 2026 Smmplan.
+ * (c) 2026 SMMplan.
  * Link Mutators and Validators based on the LINK_TYPE_VALIDATION_MATRIX.
  * Ensures strict filtering, cleaning, and Soft Refusal validation.
  */

@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link2, Edit3, ChevronRight, Loader2, X } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ROUTES } from "@/lib/routes";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { DripFeedConfigurator } from "./DripFeedConfigurator";
 import { LegalCheckbox } from "./LegalCheckbox";

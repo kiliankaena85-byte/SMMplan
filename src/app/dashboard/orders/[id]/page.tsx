@@ -21,13 +21,13 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  COMPLETED:       'text-success bg-success/10 border-emerald-500/20',
-  IN_PROGRESS:     'text-blue-500    bg-blue-500/10    border-blue-500/20',
-  PENDING:         'text-orange-500  bg-orange-500/10  border-orange-500/20',
-  AWAITING_PAYMENT:'text-orange-500  bg-orange-500/10  border-orange-500/20',
-  PROVISIONING:    'text-indigo-500  bg-indigo-500/10  border-indigo-500/20',
-  ERROR:           'text-destructive     bg-destructive/10     border-red-500/20',
-  PARTIAL:         'text-warning         bg-warning/10         border-amber-500/20',
+  COMPLETED:       'text-emerald-800 dark:text-success bg-success/10 border-emerald-500/20',
+  IN_PROGRESS:     'text-blue-800 dark:text-blue-500    bg-blue-500/10    border-blue-500/20',
+  PENDING:         'text-orange-800 dark:text-orange-500  bg-orange-500/10  border-orange-500/20',
+  AWAITING_PAYMENT:'text-orange-800 dark:text-orange-500  bg-orange-500/10  border-orange-500/20',
+  PROVISIONING:    'text-indigo-800 dark:text-indigo-500  bg-indigo-500/10  border-indigo-500/20',
+  ERROR:           'text-red-800 dark:text-destructive     bg-destructive/10     border-red-500/20',
+  PARTIAL:         'text-amber-800 dark:text-warning         bg-warning/10         border-amber-500/20',
   CANCELED:        'text-muted-foreground bg-muted border-border',
 };
 
@@ -65,7 +65,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       <div className="flex items-center gap-4">
         <Link 
           href="/dashboard/orders"
-          className="w-10 h-10 flex items-center justify-center rounded-xl bg-card border border-border hover:bg-muted transition-colors"
+          className="w-11 h-11 flex items-center justify-center rounded-xl bg-card border border-border hover:bg-muted transition-all duration-200"
           aria-label="Назад к заказам"
         >
           <ArrowLeft className="w-5 h-5 text-muted-foreground" />

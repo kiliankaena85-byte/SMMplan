@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { TransactionsClient } from '@/components/dashboard/transactions/TransactionsClient';
 
 export const metadata = {
-  title: 'История транзакций | Smmplan',
+  title: 'История транзакций | SMMplan',
   description: 'Прозрачный балансовый отчет, пополнения, возвраты и детализированный аудит трат.',
 };
 

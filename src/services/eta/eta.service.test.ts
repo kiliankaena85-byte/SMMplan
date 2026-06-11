@@ -4,7 +4,7 @@ import { recalculateAllETAs } from '@/services/eta/eta.service';
 
 /**
  * Integration + Edge Case tests for the Adaptive Percentile Window ETA system.
- * Uses REAL test PostgreSQL database (Smmplan convention: no Prisma mocks).
+ * Uses REAL test PostgreSQL database (SMMplan convention: no Prisma mocks).
  * Tables are truncated before each test by test/setup.ts.
  */
 

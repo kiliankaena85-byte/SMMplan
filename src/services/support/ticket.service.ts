@@ -136,7 +136,7 @@ class TicketService {
 
       const supportDomain = await SettingsProvider.getSupportEmailDomain();
       const settings = await SettingsProvider.getContactAndLegalSettings();
-      const companyName = settings.COMPANY_NAME || "Smmplan";
+      const companyName = settings.COMPANY_NAME || "SMMplan";
       const replyToAddress = `support+${message.ticket.id}@${supportDomain}`;
       
       const escapeHtml = (unsafe: string) => unsafe

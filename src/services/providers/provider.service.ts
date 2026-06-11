@@ -51,7 +51,7 @@ export class ProviderService {
   }
 
   /**
-   * Auto-resolves the default provider (for Smmplan Lite, we usually have one)
+   * Auto-resolves the default provider (for SMMplan, we usually have one)
    */
   async getDefaultProvider(): Promise<BaseProvider> {
     const provider = await db.provider.findFirst({

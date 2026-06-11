@@ -14,7 +14,7 @@ import { formatBalance } from '@/lib/utils';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Профиль | Smmplan',
+  title: 'Профиль | SMMplan',
 };
 
 export default async function ClientSettingsPage() {

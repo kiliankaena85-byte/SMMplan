@@ -32,6 +32,164 @@ interface Transaction {
   createdAt: string;
 }
 
+interface MobileTransactionListProps {
+  entries: Transaction[];
+  isAccountantMode: boolean;
+  formatDate: (isoString: string, full?: boolean) => string;
+  handleCopy: (text: string, id: string) => void;
+  copiedId: string | null;
+}
+
+function MobileTransactionList({
+  entries,
+  isAccountantMode,
+  formatDate,
+  handleCopy,
+  copiedId,
+}: MobileTransactionListProps) {
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="md:hidden divide-y divide-border/40 select-none">
+      {entries.map((item) => {
+        const isCredit = item.amountRub > 0;
+        const isRefund = item.transactionType === 'REFUND';
+        const typeLabel = isRefund ? 'Возврат' : isCredit ? 'Пополнение' : 'Списание';
+        const typeColor = isRefund ? 'text-info bg-info/10 border-info/20' 
+          : isCredit ? 'text-success-text bg-success/10 border-success/20' 
+          : 'text-destructive bg-destructive/10 border-destructive/20';
+
+        if (!isAccountantMode) {
+          return (
+            <div
+              key={item.id}
+              className="p-4 space-y-2.5"
+            >
+              {/* Header: Type Badge & Status */}
+              <div className="flex justify-between items-center">
+                <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-extrabold uppercase rounded-md border tracking-wider ${typeColor}`}>
+                  {typeLabel}
+                </span>
+                <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-md ${
+                  item.status === 'APPROVED' ? 'bg-success/10 text-success-text border border-success/20' 
+                  : item.status === 'PENDING' ? 'bg-warning/10 text-warning-text border border-warning/20' 
+                  : 'bg-destructive/10 text-destructive border border-destructive/20'
+                }`}>
+                  {item.status === 'APPROVED' ? 'Успешно' : item.status === 'PENDING' ? 'В обработке' : 'Отклонено'}
+                </span>
+              </div>
+
+              {/* Description */}
+              <div className="text-xs font-semibold text-foreground leading-normal">
+                {item.reason}
+              </div>
+
+              {/* Footer: Date & Amount */}
+              <div className="flex justify-between items-center pt-1 text-xs">
+                <span className="text-muted-foreground font-semibold tabular-nums">
+                  {formatDate(item.createdAt)}
+                </span>
+                <span className={`font-bold tabular-nums text-sm ${isCredit ? 'text-success' : 'text-destructive'}`}>
+                  {isCredit ? '+' : ''}{item.amountRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                </span>
+              </div>
+            </div>
+          );
+        } else {
+          // Accountant mode card
+          return (
+            <div
+              key={item.id}
+              className="p-4 space-y-3 font-mono text-[10px]"
+            >
+              {/* CUID Row */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold">ID:</span>
+                  <span className="text-[10px] text-foreground select-all font-semibold max-w-[120px] truncate" title={item.id}>
+                    {item.id}
+                  </span>
+                  <button
+                    onClick={() => handleCopy(item.id, `id-mob-${item.id}`)}
+                    className="w-11 h-11 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all"
+                    title="Скопировать Transaction ID"
+                  >
+                    {copiedId === `id-mob-${item.id}` ? (
+                      <Check className="w-3 h-3 text-success animate-in zoom-in" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
+                </div>
+                <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-black rounded ${
+                  item.status === 'APPROVED' ? 'bg-success/10 text-success-text border border-success/20' 
+                  : item.status === 'PENDING' ? 'bg-warning/10 text-warning-text border border-warning/20' 
+                  : 'bg-destructive/10 text-destructive border border-destructive/20'
+                }`}>
+                  {item.status}
+                </span>
+              </div>
+
+              {/* Precise ISO Time & Type */}
+              <div className="grid grid-cols-2 gap-2 text-[9px] border-b border-border/20 pb-2">
+                <div>
+                  <div className="text-muted-foreground font-bold">Precise Time</div>
+                  <div className="text-foreground mt-0.5">{formatDate(item.createdAt, true)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground font-bold">DB Type</div>
+                  <div className="text-foreground mt-0.5">{item.transactionType}</div>
+                </div>
+              </div>
+
+              {/* Idempotency Key */}
+              <div className="text-[9px] border-b border-border/20 pb-2">
+                <div className="text-muted-foreground font-bold">Idempotency Key</div>
+                <div className="mt-0.5">
+                  {item.idempotencyKey ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-foreground select-all max-w-[180px] truncate" title={item.idempotencyKey}>
+                        {item.idempotencyKey}
+                      </span>
+                      <button
+                        onClick={() => handleCopy(item.idempotencyKey!, `idmp-mob-${item.id}`)}
+                        className="w-11 h-11 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all"
+                        title="Скопировать Idempotency Key"
+                      >
+                        {copiedId === `idmp-mob-${item.id}` ? (
+                          <Check className="w-3 h-3 text-success" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div>
+                <div className="text-[9px] text-muted-foreground font-bold">Reason</div>
+                <div className="text-foreground font-semibold mt-0.5 leading-relaxed">{item.reason}</div>
+              </div>
+
+              {/* Raw Cents */}
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-muted-foreground font-bold">Raw Cents</span>
+                <span className={`font-bold text-xs ${isCredit ? 'text-success-text' : 'text-destructive'}`}>
+                  {isCredit ? '+' : ''}{item.amountCents.toLocaleString('ru-RU')} коп.
+                </span>
+              </div>
+            </div>
+          );
+        }
+      })}
+    </div>
+  );
+}
+
 interface TransactionsClientProps {
   initialEntries: Transaction[];
   userEmail: string;
@@ -210,7 +368,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
       <div className="hidden print:block border-b-2 border-border pb-6 mb-6">
         <div className="flex justify-between items-end">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight">Smmplan Financial Statement</h2>
+            <h2 className="text-3xl font-extrabold tracking-tight">SMMplan Financial Statement</h2>
             <p className="text-sm text-muted-foreground mt-1">Клиент: <span className="font-semibold text-foreground">{userEmail}</span></p>
             <p className="text-xs text-muted-foreground mt-0.5">Дата генерации: {new Date().toLocaleString('ru-RU')}</p>
           </div>
@@ -234,7 +392,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
           <div className="flex bg-muted p-1 rounded-xl border border-border/40 select-none">
             <button
               onClick={() => setTypeFilter('ALL')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`px-4 py-2.5 text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
                 typeFilter === 'ALL' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -242,7 +400,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
             </button>
             <button
               onClick={() => setTypeFilter('DEPOSIT')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`px-4 py-2.5 text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
                 typeFilter === 'DEPOSIT' ? 'bg-success text-success-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -250,7 +408,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
             </button>
             <button
               onClick={() => setTypeFilter('SPENT')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`px-4 py-2.5 text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
                 typeFilter === 'SPENT' ? 'bg-background text-foreground shadow-sm border border-rose-500/10' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -258,7 +416,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
             </button>
             <button
               onClick={() => setTypeFilter('REFUND')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`px-4 py-2.5 text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
                 typeFilter === 'REFUND' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -271,7 +429,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
             value={dateFilter}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onChange={(e) => setDateFilter(e.target.value as any)}
-            className="h-10 bg-content2 border border-border/60 rounded-xl px-3 py-1 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
+            className="h-11 bg-content2 border border-border/60 rounded-xl px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
             aria-label="Фильтр по дате"
           >
             <option value="ALL">За всё время</option>
@@ -292,14 +450,14 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
               placeholder="Поиск по ID или причине..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 bg-muted border border-border/60 rounded-xl text-xs font-medium placeholder:text-muted-foreground outline-none focus:bg-background focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+              className="w-full h-11 pl-10 pr-4 bg-muted border border-border/60 rounded-xl text-sm font-medium placeholder:text-muted-foreground outline-none focus:bg-background focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
             />
           </div>
 
           {/* Unofficial Statement Printer Button */}
           <button
             onClick={handlePrint}
-            className="h-10 px-4 flex items-center justify-center gap-2 bg-content2 border border-border/60 hover:bg-content3 rounded-xl text-xs font-bold text-foreground transition-all active:scale-95 cursor-pointer shadow-sm"
+            className="h-11 px-4 flex items-center justify-center gap-2 bg-content2 border border-border/60 hover:bg-content3 rounded-xl text-sm font-bold text-foreground transition-all active:scale-95 cursor-pointer shadow-sm"
             title="Распечатать финансовый отчет"
           >
             <Printer className="w-4 h-4" />
@@ -307,11 +465,11 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
           </button>
 
           {/* Dual-Mode Accountant Toggle */}
-          <div className="flex items-center gap-2 bg-muted/60 border border-border/40 px-3 h-10 rounded-xl select-none">
+          <div className="flex items-center gap-2 bg-muted/60 border border-border/40 px-3 h-11 rounded-xl select-none">
             <span className="text-[10px] font-extrabold uppercase text-muted-foreground">Бухгалтер</span>
             <button
               onClick={() => setIsAccountantMode(!isAccountantMode)}
-              className="text-primary hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+              className="h-11 flex items-center text-primary hover:opacity-90 active:scale-95 transition-all cursor-pointer"
               title="Переключить в режим бухгалтера"
               aria-label="Переключить в режим бухгалтера"
             >
@@ -330,173 +488,190 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
         
         {/* Simple User Mode (Clean layouts) */}
         {!isAccountantMode ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" aria-label="История транзакций (простой вид)">
-              <thead>
-                <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground bg-muted/20 border-b border-border/40 select-none">
-                  <th className="py-4 px-5 font-bold">Дата операции</th>
-                  <th className="py-4 px-5 font-bold">Тип</th>
-                  <th className="py-4 px-5 font-bold">Описание / Причина</th>
-                  <th className="py-4 px-5 font-bold text-right">Сумма (₽)</th>
-                  <th className="py-4 px-5 font-bold text-center">Статус</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEntries.map((item) => {
-                  const isCredit = item.amountRub > 0;
-                  const isRefund = item.transactionType === 'REFUND';
-                  const typeLabel = isRefund ? 'Возврат' : isCredit ? 'Пополнение' : 'Списание';
-                  const typeColor = isRefund ? 'text-info bg-info/10 border-info/20' 
-                    : isCredit ? 'text-success-text bg-success/10 border-success/20' 
-                    : 'text-destructive bg-destructive/10 border-destructive/20';
+          <>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm" aria-label="История транзакций (простой вид)">
+                <thead>
+                  <tr className="text-left text-[10px] uppercase tracking-widest text-foreground/75 bg-muted/20 border-b border-border/40 select-none">
+                    <th className="py-4 px-5 font-bold">Дата операции</th>
+                    <th className="py-4 px-5 font-bold">Тип</th>
+                    <th className="py-4 px-5 font-bold">Описание / Причина</th>
+                    <th className="py-4 px-5 font-bold text-right">Сумма (₽)</th>
+                    <th className="py-4 px-5 font-bold text-center">Статус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEntries.map((item) => {
+                    const isCredit = item.amountRub > 0;
+                    const isRefund = item.transactionType === 'REFUND';
+                    const typeLabel = isRefund ? 'Возврат' : isCredit ? 'Пополнение' : 'Списание';
+                    const typeColor = isRefund ? 'text-info bg-info/10 border-info/20' 
+                      : isCredit ? 'text-success-text bg-success/10 border-success/20' 
+                      : 'text-destructive bg-destructive/10 border-destructive/20';
 
-                  return (
-                    <tr
-                      key={item.id}
-                      className="border-b border-border/40 hover:bg-muted/10 transition-colors last:border-0"
-                    >
-                      {/* Date */}
-                      <td className="py-3.5 px-5 text-xs text-muted-foreground font-semibold tabular-nums whitespace-nowrap">
-                        {formatDate(item.createdAt)}
-                      </td>
-                      
-                      {/* Badge type */}
-                      <td className="py-3.5 px-5">
-                        <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-extrabold uppercase rounded-md border tracking-wider select-none ${typeColor}`}>
-                          {typeLabel}
-                        </span>
-                      </td>
-
-                      {/* Decoded Reason */}
-                      <td className="py-3.5 px-5 text-xs font-semibold text-foreground leading-normal max-w-[320px]">
-                        {item.reason}
-                      </td>
-
-                      {/* Amount with colored sign */}
-                      <td className={`py-3.5 px-5 text-right font-bold tabular-nums text-sm whitespace-nowrap ${isCredit ? 'text-success' : 'text-destructive'}`}>
-                        {isCredit ? '+' : ''}{item.amountRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3.5 px-5 text-center select-none">
-                        <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-md ${
-                          item.status === 'APPROVED' ? 'bg-success/10 text-success-text border border-success/20' 
-                          : item.status === 'PENDING' ? 'bg-warning/10 text-warning-text border border-warning/20' 
-                          : 'bg-destructive/10 text-destructive border border-destructive/20'
-                        }`}>
-                          {item.status === 'APPROVED' ? 'Успешно' : item.status === 'PENDING' ? 'В обработке' : 'Отклонено'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          
-          /* Meticulous Accountant Mode (High Density Database properties) */
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs" aria-label="История транзакций (бухгалтерский аудит)">
-              <thead>
-                <tr className="text-left text-[9px] uppercase tracking-widest text-muted-foreground bg-muted/30 border-b border-border/40 select-none">
-                  <th className="py-4 px-4 font-bold">ISO Время</th>
-                  <th className="py-4 px-4 font-bold">Transaction CUID</th>
-                  <th className="py-4 px-4 font-bold">Копейки (Raw Cents)</th>
-                  <th className="py-4 px-4 font-bold">Тип в БД</th>
-                  <th className="py-4 px-4 font-bold">Идемпотентность (Idempotency Key)</th>
-                  <th className="py-4 px-4 font-bold">Обоснование (Reason)</th>
-                  <th className="py-4 px-4 font-bold text-center">Статус</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEntries.map((item) => {
-                  const isCredit = item.amountRub > 0;
-                  return (
-                    <tr
-                      key={item.id}
-                      className="border-b border-border/40 hover:bg-muted/20 font-mono transition-colors last:border-0"
-                    >
-                      {/* Precise Timestamp */}
-                      <td className="py-3 px-4 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">
-                        {formatDate(item.createdAt, true)}
-                      </td>
-
-                      {/* Transaction CUID with Clipboard action */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-foreground select-all font-semibold max-w-[80px] truncate" title={item.id}>
-                            {item.id}
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-b border-border/40 hover:bg-muted/10 transition-colors last:border-0"
+                      >
+                        {/* Date */}
+                        <td className="py-3.5 px-5 text-xs text-muted-foreground font-semibold tabular-nums whitespace-nowrap">
+                          {formatDate(item.createdAt)}
+                        </td>
+                        
+                        {/* Badge type */}
+                        <td className="py-3.5 px-5">
+                          <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-extrabold uppercase rounded-md border tracking-wider select-none ${typeColor}`}>
+                            {typeLabel}
                           </span>
-                          <button
-                            onClick={() => handleCopy(item.id, `id-${item.id}`)}
-                            className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all"
-                            title="Скопировать Transaction ID"
-                          >
-                            {copiedId === `id-${item.id}` ? (
-                              <Check className="w-3 h-3 text-success animate-in zoom-in" />
-                            ) : (
-                              <Copy className="w-3 h-3" />
-                            )}
-                          </button>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Raw cents count */}
-                      <td className={`py-3 px-4 text-left font-bold text-[11px] whitespace-nowrap ${isCredit ? 'text-success-text' : 'text-destructive'}`}>
-                        {isCredit ? '+' : ''}{item.amountCents.toLocaleString('ru-RU')} коп.
-                      </td>
+                        {/* Decoded Reason */}
+                        <td className="py-3.5 px-5 text-xs font-semibold text-foreground leading-normal max-w-[320px]">
+                          {item.reason}
+                        </td>
 
-                      {/* DB Enum type */}
-                      <td className="py-3 px-4 text-foreground font-extrabold text-[10px]">
-                        {item.transactionType}
-                      </td>
+                        {/* Amount with colored sign */}
+                        <td className={`py-3.5 px-5 text-right font-bold tabular-nums text-sm whitespace-nowrap ${isCredit ? 'text-success' : 'text-destructive'}`}>
+                          {isCredit ? '+' : ''}{item.amountRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                        </td>
 
-                      {/* Idempotency Key */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        {item.idempotencyKey ? (
+                        {/* Status */}
+                        <td className="py-3.5 px-5 text-center select-none">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-md ${
+                            item.status === 'APPROVED' ? 'bg-success/10 text-success-text border border-success/20' 
+                            : item.status === 'PENDING' ? 'bg-warning/10 text-warning-text border border-warning/20' 
+                            : 'bg-destructive/10 text-destructive border border-destructive/20'
+                          }`}>
+                            {item.status === 'APPROVED' ? 'Успешно' : item.status === 'PENDING' ? 'В обработке' : 'Отклонено'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <MobileTransactionList
+              entries={filteredEntries}
+              isAccountantMode={false}
+              formatDate={formatDate}
+              handleCopy={handleCopy}
+              copiedId={copiedId}
+            />
+          </>
+        ) : (
+          <>
+            {/* Meticulous Accountant Mode (High Density Database properties) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-xs" aria-label="История транзакций (бухгалтерский аудит)">
+                <thead>
+                  <tr className="text-left text-[9px] uppercase tracking-widest text-foreground/75 bg-muted/30 border-b border-border/40 select-none">
+                    <th className="py-4 px-4 font-bold">ISO Время</th>
+                    <th className="py-4 px-4 font-bold">Transaction CUID</th>
+                    <th className="py-4 px-4 font-bold">Копейки (Raw Cents)</th>
+                    <th className="py-4 px-4 font-bold">Тип в БД</th>
+                    <th className="py-4 px-4 font-bold">Идемпотентность (Idempotency Key)</th>
+                    <th className="py-4 px-4 font-bold">Обоснование (Reason)</th>
+                    <th className="py-4 px-4 font-bold text-center">Статус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEntries.map((item) => {
+                    const isCredit = item.amountRub > 0;
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-b border-border/40 hover:bg-muted/20 font-mono transition-colors last:border-0"
+                      >
+                        {/* Precise Timestamp */}
+                        <td className="py-3 px-4 font-semibold text-muted-foreground whitespace-nowrap text-[11px]">
+                          {formatDate(item.createdAt, true)}
+                        </td>
+
+                        {/* Transaction CUID with Clipboard action */}
+                        <td className="py-3 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-muted-foreground select-all max-w-[90px] truncate" title={item.idempotencyKey}>
-                              {item.idempotencyKey}
+                            <span className="text-[10px] text-foreground select-all font-semibold max-w-[80px] truncate" title={item.id}>
+                              {item.id}
                             </span>
                             <button
-                              onClick={() => handleCopy(item.idempotencyKey!, `idmp-${item.id}`)}
+                              onClick={() => handleCopy(item.id, `id-${item.id}`)}
                               className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all"
-                              title="Скопировать Idempotency Key"
+                              title="Скопировать Transaction ID"
                             >
-                              {copiedId === `idmp-${item.id}` ? (
-                                <Check className="w-3 h-3 text-success" />
+                              {copiedId === `id-${item.id}` ? (
+                                <Check className="w-3 h-3 text-success animate-in zoom-in" />
                               ) : (
                                 <Copy className="w-3 h-3" />
                               )}
                             </button>
                           </div>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground">—</span>
-                        )}
-                      </td>
+                        </td>
 
-                      {/* Raw Reason string */}
-                      <td className="py-3 px-4 font-semibold text-foreground max-w-[200px] truncate" title={item.reason}>
-                        {item.reason}
-                      </td>
+                        {/* Raw cents count */}
+                        <td className={`py-3 px-4 text-left font-bold text-[11px] whitespace-nowrap ${isCredit ? 'text-success-text' : 'text-destructive'}`}>
+                          {isCredit ? '+' : ''}{item.amountCents.toLocaleString('ru-RU')} коп.
+                        </td>
 
-                      {/* Precise raw Status */}
-                      <td className="py-3 px-4 text-center select-none">
-                        <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-black rounded ${
-                          item.status === 'APPROVED' ? 'bg-success/10 text-success-text border border-success/20' 
-                          : item.status === 'PENDING' ? 'bg-warning/10 text-warning-text border border-warning/20' 
-                          : 'bg-destructive/10 text-destructive border border-destructive/20'
-                        }`}>
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {/* DB Enum type */}
+                        <td className="py-3 px-4 text-foreground font-extrabold text-[10px]">
+                          {item.transactionType}
+                        </td>
+
+                        {/* Idempotency Key */}
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {item.idempotencyKey ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-muted-foreground select-all max-w-[90px] truncate" title={item.idempotencyKey}>
+                                {item.idempotencyKey}
+                              </span>
+                              <button
+                                onClick={() => handleCopy(item.idempotencyKey!, `idmp-${item.id}`)}
+                                className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-all"
+                                title="Скопировать Idempotency Key"
+                              >
+                                {copiedId === `idmp-${item.id}` ? (
+                                  <Check className="w-3 h-3 text-success" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">—</span>
+                          )}
+                        </td>
+
+                        {/* Raw Reason string */}
+                        <td className="py-3 px-4 font-semibold text-foreground max-w-[200px] truncate" title={item.reason}>
+                          {item.reason}
+                        </td>
+
+                        {/* Precise raw Status */}
+                        <td className="py-3 px-4 text-center select-none">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-black rounded ${
+                            item.status === 'APPROVED' ? 'bg-success/10 text-success-text border border-success/20' 
+                            : item.status === 'PENDING' ? 'bg-warning/10 text-warning-text border border-warning/20' 
+                            : 'bg-destructive/10 text-destructive border border-destructive/20'
+                          }`}>
+                            {item.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <MobileTransactionList
+              entries={filteredEntries}
+              isAccountantMode={true}
+              formatDate={formatDate}
+              handleCopy={handleCopy}
+              copiedId={copiedId}
+            />
+          </>
         )}
 
         {/* Empty state container */}

@@ -5,7 +5,7 @@
  * for a given ticketId. Lightweight, zero-dependency, process-local.
  *
  * ARCHITECTURE NOTE: This is intentionally in-memory (not Redis Pub/Sub)
- * because Smmplan runs as a single Node.js process. If horizontal scaling
+ * because SMMplan runs as a single Node.js process. If horizontal scaling
  * is ever needed, replace with Redis Pub/Sub adapter.
  */
 

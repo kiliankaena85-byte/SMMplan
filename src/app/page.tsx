@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "Smmplan";
+  const siteName = settings.SITE_NAME || "SMMplan";
   
   return {
     title: `Накрутка подписчиков и просмотров в Telegram, Instagram, VK | ${siteName}`,
@@ -26,7 +26,7 @@ export default async function Home() {
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "Smmplan";
+  const siteName = settings.SITE_NAME || "SMMplan";
   const supportDomain = await SettingsProvider.getSupportEmailDomain();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`;
 

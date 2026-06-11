@@ -1,5 +1,5 @@
 /**
- * (c) 2024-2026 Smmplan. All rights reserved.
+ * (c) 2024-2026 SMMplan. All rights reserved.
  * 
  * POST-SYNC RULES ENGINE
  * ========================

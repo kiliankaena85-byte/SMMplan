@@ -197,7 +197,7 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
                     <div className="text-[10px] font-bold text-muted-foreground tracking-wider">/ шт</div>
                   </div>
                   {isQuarantined && (
-                    <div className="mt-2 text-[10px] font-semibold text-warning bg-warning/10 rounded-lg px-2 py-1 w-max">
+                    <div className="mt-2 text-[10px] font-semibold text-warning-text bg-warning/10 border border-warning/20 rounded-lg px-2 py-1 w-max">
                       ⏳ Временно недоступен
                     </div>
                   )}

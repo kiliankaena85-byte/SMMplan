@@ -23,7 +23,6 @@ export default function AddFundsPage() {
   const [amount, setAmount]     = useState<number>(50);
   const [method, setMethod]     = useState<'yookassa' | 'cryptobot' | 'robokassa'>('yookassa');
   const [error,  setError]      = useState<string | null>(null);
-  const [consent, setConsent]   = useState(true);
   const [isPending, startTransition] = useTransition();
 
   const inputRef = useRef<HTMLInputElement>(null);

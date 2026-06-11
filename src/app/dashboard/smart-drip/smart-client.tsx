@@ -182,9 +182,9 @@ export function SmartDripDashboardClient({ initialCampaigns }: SmartDripDashboar
                               c.status === 'PAUSED' ? 'secondary' : 'destructive'
                             }
                             className={`font-bold text-[9px] uppercase tracking-wider px-1.5 py-0 ${
-                              c.status === 'COMPLETED' ? 'bg-success/15 text-success border-emerald-500/20' :
-                              c.status === 'RUNNING' ? 'bg-primary/10 text-primary border-primary/20' :
-                              c.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'
+                              c.status === 'COMPLETED' ? 'bg-success/10 text-emerald-800 dark:text-success border-emerald-500/20' :
+                              c.status === 'RUNNING' ? 'bg-primary/10 text-blue-800 dark:text-primary border-primary/20' :
+                              c.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-800 dark:text-warning border-amber-500/20' : 'bg-destructive/10 text-red-800 dark:text-destructive border-destructive/20'
                             }`}
                           >
                             {c.status === 'COMPLETED' ? 'Завершено' :
@@ -200,8 +200,8 @@ export function SmartDripDashboardClient({ initialCampaigns }: SmartDripDashboar
                         {c.status !== 'COMPLETED' && c.status !== 'ERROR' && (
                           <Button
                             intent={c.status === 'RUNNING' ? 'outline' : 'primary'}
-                            size="sm"
-                            className="h-8 text-xs font-bold shrink-0"
+                            size="icon"
+                            className="shrink-0"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleToggleStatus(c.id, c.status);
@@ -209,9 +209,9 @@ export function SmartDripDashboardClient({ initialCampaigns }: SmartDripDashboar
                             disabled={isPending}
                           >
                             {c.status === 'RUNNING' ? (
-                              <Pause className="w-3.5 h-3.5" />
+                              <Pause className="w-4 h-4" />
                             ) : (
-                              <Play className="w-3.5 h-3.5" />
+                              <Play className="w-4 h-4" />
                             )}
                           </Button>
                         )}
@@ -261,12 +261,12 @@ export function SmartDripDashboardClient({ initialCampaigns }: SmartDripDashboar
 
                             <div className="shrink-0 flex flex-col items-end gap-1">
                               {t.status === 'COMPLETED' && (
-                                <span className="text-[10px] font-bold text-success flex items-center gap-1">
+                                <span className="text-[10px] font-bold text-emerald-800 dark:text-success flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Выполнено
                                 </span>
                               )}
                               {t.status === 'SENT' && (
-                                <span className="text-[10px] font-bold text-primary flex items-center gap-1 animate-pulse">
+                                <span className="text-[10px] font-bold text-blue-800 dark:text-primary flex items-center gap-1 animate-pulse">
                                   <Clock className="w-3.5 h-3.5" /> В процессе
                                 </span>
                               )}
@@ -276,7 +276,7 @@ export function SmartDripDashboardClient({ initialCampaigns }: SmartDripDashboar
                                 </span>
                               )}
                               {t.status === 'ERROR' && (
-                                <span className="text-[10px] font-bold text-destructive flex items-center gap-1" title={t.error || ''}>
+                                <span className="text-[10px] font-bold text-red-800 dark:text-destructive flex items-center gap-1" title={t.error || ''}>
                                   <AlertCircle className="w-3.5 h-3.5" /> Ошибка
                                 </span>
                               )}

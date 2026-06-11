@@ -119,7 +119,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <aside className="md:hidden w-full bg-primary border-b border-slate-800 text-primary-foreground p-4 z-10 shadow-md">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-sky-400">
-            Smmplan
+            SMMplan
           </h2>
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{roleInfo.label}</span>
         </div>

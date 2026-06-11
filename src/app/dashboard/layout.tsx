@@ -34,7 +34,7 @@ export default async function DashboardLayout({
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-xs shrink-0">
             S
           </div>
-          <span className="truncate">Smmplan</span>
+          <span className="truncate">SMMplan</span>
         </Link>
         <div className="flex items-center gap-3 ml-auto">
           <BalanceDisplay initialBalance={formatBalance(user.balance)} variant="mobile-header" />

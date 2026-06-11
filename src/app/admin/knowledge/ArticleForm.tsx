@@ -174,17 +174,17 @@ export function ArticleForm({ initialData }: ArticleFormProps) {
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = React.useState(isEdit);
 
   const COMMON_AUTHORS = React.useMemo(() => [
-    { name: "Михаил", role: "Системный архитектор прокси-сетей Smmplan" },
-    { name: "Ольга", role: "Контент-стратег и SEO-специалист Smmplan" },
-    { name: "Дмитрий", role: "Руководитель SMM-отдела Smmplan" }
+    { name: "Михаил", role: "Системный архитектор прокси-сетей SMMplan" },
+    { name: "Ольга", role: "Контент-стратег и SEO-специалист SMMplan" },
+    { name: "Дмитрий", role: "Руководитель SMM-отдела SMMplan" }
   ], []);
 
   const [authorName, setAuthorName] = React.useState(initialData?.authorName || "Михаил");
-  const [authorRole, setAuthorRole] = React.useState(initialData?.authorRole || "Системный архитектор прокси-сетей Smmplan");
+  const [authorRole, setAuthorRole] = React.useState(initialData?.authorRole || "Системный архитектор прокси-сетей SMMplan");
   
   const [selectedAuthorType, setSelectedAuthorType] = React.useState(() => {
     const name = initialData?.authorName || "Михаил";
-    const role = initialData?.authorRole || "Системный архитектор прокси-сетей Smmplan";
+    const role = initialData?.authorRole || "Системный архитектор прокси-сетей SMMplan";
     const matched = COMMON_AUTHORS.find(a => a.name === name && a.role === role);
     return matched ? name : "CUSTOM";
   });

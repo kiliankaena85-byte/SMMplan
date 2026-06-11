@@ -22,11 +22,11 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   COMPLETED:       'text-success bg-success/10 border-emerald-500/20',
   IN_PROGRESS:     'text-blue-500    bg-blue-500/10    border-blue-500/20',
-  PENDING:         'text-orange-500  bg-orange-500/10  border-orange-500/20',
-  AWAITING_PAYMENT:'text-orange-500  bg-orange-500/10  border-orange-500/20',
+  PENDING:         'text-warning-text bg-warning/10 border-warning/20',
+  AWAITING_PAYMENT:'text-warning-text bg-warning/10 border-warning/20',
   PROVISIONING:    'text-indigo-500  bg-indigo-500/10  border-indigo-500/20',
   ERROR:           'text-destructive     bg-destructive/10     border-red-500/20',
-  PARTIAL:         'text-warning         bg-warning/10         border-amber-500/20',
+  PARTIAL:         'text-warning-text bg-warning/10 border-warning/20',
   CANCELED:        'text-muted-foreground bg-muted border-border',
 };
 

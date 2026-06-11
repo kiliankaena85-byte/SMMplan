@@ -1,5 +1,5 @@
 /**
- * (c) 2024-2026 Smmplan. All rights reserved.
+ * (c) 2024-2026 SMMplan. All rights reserved.
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  *
@@ -186,7 +186,7 @@ bot.start(async (ctx: any) => {
 
   if (payload === 'support') {
     await ctx.reply(
-      `🎧 <b>Служба поддержки Smmplan</b>\n\n` +
+      `🎧 <b>Служба поддержки SMMplan</b>\n\n` +
       `Просто напишите ваш вопрос, отправьте фото или голосовое сообщение прямо в этот чат, и оператор ответит вам здесь же.`,
       {
         parse_mode: 'HTML',
@@ -204,7 +204,7 @@ bot.start(async (ctx: any) => {
   }
 
   await ctx.reply(
-    `👋 <b>Добро пожаловать в Smmplan!</b>\n\n` +
+    `👋 <b>Добро пожаловать в SMMplan!</b>\n\n` +
     `💰 Ваш баланс: <b>${(Number(user.balance) / 100).toFixed(2)}₽</b>\n\n` +
     `Используйте меню ниже:`,
     {
@@ -237,7 +237,7 @@ async function renderNetworkCatalog(ctx: any) {
   }
 
   const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
-  const text = '🛍 <b>Каталог услуг Smmplan</b>\nВыберите интересующую вас социальную сеть:';
+  const text = '🛍 <b>Каталог услуг SMMplan</b>\nВыберите интересующую вас социальную сеть:';
 
   if (ctx.callbackQuery) {
     await ctx.answerCbQuery();

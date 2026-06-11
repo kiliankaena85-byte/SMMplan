@@ -106,7 +106,7 @@ export default async function CMSPage({ params }: PageProps) {
         <header className="mb-12 text-center">
           {post.categoryId && (
             <span className="text-primary font-medium tracking-wider uppercase text-sm mb-4 block">
-              Smmplan Academy
+              SMMplan Academy
             </span>
           )}
           <h1 className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight mb-4">

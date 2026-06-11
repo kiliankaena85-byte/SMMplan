@@ -1090,7 +1090,7 @@ export function CatalogTable({
                               {s.name}
                             </span>
                             {s.isQuarantined && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-warning/15 text-warning font-bold border border-amber-500/20 whitespace-nowrap">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-warning/15 text-warning-text font-bold border border-warning/20 whitespace-nowrap">
                                 ⚠️ КАРАНТИН
                               </span>
                             )}

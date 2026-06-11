@@ -66,7 +66,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[#3390EC]/5 to-transparent pointer-events-none" />
         
         <h2 className="text-xl font-extrabold tracking-tight mb-1 text-[#FFFFFF]">
-          Smmplan
+          SMMplan
         </h2>
         <p className="text-[11px] text-[#707579] font-medium truncate mb-3 tracking-wide">{userEmail}</p>
         <div className="flex items-center gap-2">

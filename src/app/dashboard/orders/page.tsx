@@ -183,7 +183,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm" aria-label="Список заказов">
             <thead>
-              <tr className="text-left text-[11px] uppercase tracking-widest text-muted-foreground bg-muted/20 border-b border-border/40">
+              <tr className="text-left text-[11px] uppercase tracking-widest text-foreground/75 bg-muted/20 border-b border-border/40">
                 <th className="py-3.5 px-4 font-bold">ID</th>
                 <th className="py-3.5 px-4 font-bold min-w-[200px]">Услуга</th>
                 <th className="py-3.5 px-4 font-bold">Ссылка / Кол-во</th>

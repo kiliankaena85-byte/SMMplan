@@ -7,7 +7,7 @@ import { headers } from 'next/headers';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Реферальная программа | Smmplan',
+  title: 'Реферальная программа | SMMplan',
 };
 
 export default async function ReferralsPage() {

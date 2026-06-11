@@ -8,8 +8,8 @@ import { UserCheck, LogOut, ArrowRight } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Вход | Smmplan',
-  description: 'Войдите в личный кабинет Smmplan — управляйте заказами на продвижение.',
+  title: 'Вход | SMMplan',
+  description: 'Войдите в личный кабинет SMMplan — управляйте заказами на продвижение.',
 };
 
 interface PageProps {
@@ -86,7 +86,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
             <div className="w-9 h-9 rounded-xl bg-primary-foreground/15 backdrop-blur flex items-center justify-center font-black text-primary-foreground text-lg">
               S
             </div>
-            <span className="font-bold text-xl">Smmplan</span>
+            <span className="font-bold text-xl">SMMplan</span>
           </Link>
         </div>
 
@@ -116,7 +116,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </div>
 
         <p className="text-xs text-primary-foreground/40 relative z-10">
-          © {new Date().getFullYear()} Smmplan · Безопасная оплата через ЮKassa
+          © {new Date().getFullYear()} SMMplan · Безопасная оплата через ЮKassa
         </p>
       </div>
 
@@ -128,7 +128,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center font-black text-primary-foreground text-lg">
               S
             </div>
-            <span className="font-bold text-xl text-foreground">Smmplan</span>
+            <span className="font-bold text-xl text-foreground">SMMplan</span>
           </Link>
         </div>
 

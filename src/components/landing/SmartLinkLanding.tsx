@@ -1,7 +1,7 @@
 "use client";
 
 import { useOrderEngine } from "@/hooks/useOrderEngine";
-import { PublicNetwork } from "@/actions/order/catalog";
+import { PublicNetwork, PublicService } from "@/actions/order/catalog";
 import { motion } from "framer-motion";
 import React from "react";
 import { ROUTES } from "@/lib/routes";
@@ -15,6 +15,7 @@ import { NetworkSelector } from "./order-engine/NetworkSelector";
 import { CategorySidebar } from "./order-engine/CategorySidebar";
 import { ServiceGrid } from "./order-engine/ServiceGrid";
 import { MobileWizard } from "./order-engine/MobileWizard";
+import { MobileCatalogModal } from "./order-engine/MobileCatalogModal";
 import { LegalDocumentModal } from "./order-engine/LegalDocumentModal";
 import { useCheckoutOrchestrator } from "./order-engine/useCheckoutOrchestrator";
 import { HeroInput } from "./order-engine/HeroInput";
@@ -49,7 +50,7 @@ export function SmartLinkLanding({
     LEGAL_ADDRESS?: string;
   };
 }) {
-  const companyName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "Smmplan";
+  const companyName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "SMMplan";
   const engine = useOrderEngine(initialCatalog, initialEmail);
   const {
     url, setUrl,
@@ -86,6 +87,14 @@ export function SmartLinkLanding({
   const mobileEmailInputRef = React.useRef<HTMLInputElement>(null);
   const [isGuideOpen, setIsGuideOpen] = React.useState(false);
   const [activeLegalSlug, setActiveLegalSlug] = React.useState<string | null>(null);
+  const [showCatalogModal, setShowCatalogModal] = React.useState(false);
+
+  const handleSelectServiceFromCatalog = (srv: PublicService, catId: string, netId: string) => {
+    engine.setNetworkId(netId);
+    engine.setCategoryId(catId);
+    engine.setSelectedService(srv);
+    setShowCatalogModal(false);
+  };
 
   const {
     isSubmitting,
@@ -133,9 +142,55 @@ export function SmartLinkLanding({
       {/* ── Секция 2: Hero Блок (App Style) ── */}
       <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 py-8 md:py-20 pb-16 md:pb-40 flex flex-col items-center relative z-10">
 
-        {/* --- Variant B: Fintech Grid Backdrop --- */}
-        <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden premium-grid-backdrop" />
+        {/* --- Variant B: Fintech Dot Grid Backdrop --- */}
+        <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden premium-dot-grid" />
         <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden bg-gradient-to-b from-transparent via-background/50 to-background" />
+
+        {/* --- Glassmorphic Blur Blobs (Floating space spheres inspired by Lovable.dev) --- */}
+        <div className="absolute top-0 inset-x-0 h-[600px] z-[-2] pointer-events-none overflow-hidden select-none">
+          {/* Blob 1: Pink/Violet */}
+          <motion.div
+            animate={{
+              x: [0, 50, -30, 0],
+              y: [0, -30, 40, 0],
+              scale: [1, 1.1, 0.95, 1],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute top-[10%] left-[12%] w-72 h-72 rounded-full bg-pink-500/10 dark:bg-pink-500/5 blur-3xl"
+          />
+          {/* Blob 2: Sky Blue/Primary */}
+          <motion.div
+            animate={{
+              x: [0, -60, 40, 0],
+              y: [0, 40, -30, 0],
+              scale: [1, 0.95, 1.05, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute top-[15%] right-[15%] w-80 h-80 rounded-full bg-primary/10 dark:bg-primary/5 blur-3xl"
+          />
+          {/* Blob 3: Emerald */}
+          <motion.div
+            animate={{
+              x: [0, 30, -40, 0],
+              y: [0, 50, 30, 0],
+              scale: [1, 1.05, 0.98, 1],
+            }}
+            transition={{
+              duration: 22,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="absolute top-[30%] left-[30%] w-64 h-64 rounded-full bg-emerald-500/10 dark:bg-emerald-500/5 blur-3xl"
+          />
+        </div>
 
         <motion.div 
           initial={{ opacity: 0.0, y: 30 }}
@@ -150,14 +205,14 @@ export function SmartLinkLanding({
           <div className="mb-4">
             <ThemeSwitcher />
           </div>
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-normal text-foreground leading-[1.05] drop-shadow-sm">
-            Ускоряем ваши <span className="text-primary">соцсети</span>
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.05] drop-shadow-md">
+            Ускоряем ваши <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">соцсети</span>
           </h1>
           <p className="text-lg text-muted-foreground leading-relaxed font-medium max-w-xl mx-auto drop-shadow-sm">
             Автоматическая платформа для продвижения в социальных сетях с мгновенным запуском.
           </p>
           {/* Social Proof Stats */}
-          <div className="hidden md:flex items-center justify-center gap-6 sm:gap-10 pt-2">
+          <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-10 pt-2">
             <div className="text-center">
               <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums drop-shadow-sm">15+</p>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Платформ</p>
@@ -176,7 +231,7 @@ export function SmartLinkLanding({
         </motion.div>
  
         {/* ── Main Input & UI Panel ── */}
-        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.08)] border border-border/80 rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-8 relative">
+        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.08)] border border-border/80 rounded-2xl md:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-8 relative">
           
           {/* Smart Input (Massive Pill) - Hidden on mobile to prevent duplicate inputs */}
           <div className="hidden md:block">
@@ -201,7 +256,7 @@ export function SmartLinkLanding({
           )}
 
           {/* Витрина интерфейса */}
-          <div id="catalog-section" className="w-full bg-content1 rounded-3xl overflow-hidden mt-2 md:mt-6">
+          <div id="catalog-section" className="w-full bg-content1 rounded-3xl overflow-visible md:overflow-hidden mt-2 md:mt-6">
              {unfilteredCatalog.length === 0 ? (
                <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2.5rem] min-h-[360px] p-8 m-4">
                  <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center animate-bounce">
@@ -231,6 +286,7 @@ export function SmartLinkLanding({
                       emailHasError={emailHasError}
                       onOpenGuide={() => setIsGuideOpen(true)}
                       onOpenDocument={setActiveLegalSlug}
+                      onOpenCatalog={() => setShowCatalogModal(true)}
                     />
 
                  {/* SECTION 1: NETWORKS (Top Tabs Premium) - Hidden on Mobile */}
@@ -369,6 +425,16 @@ export function SmartLinkLanding({
         slug={activeLegalSlug}
         onClose={() => setActiveLegalSlug(null)}
       />
+
+      {/* Fullscreen Mobile Catalog Modal */}
+      {showCatalogModal && (
+        <MobileCatalogModal
+          catalog={catalog}
+          selectedService={selectedService}
+          onSelect={handleSelectServiceFromCatalog}
+          onClose={() => setShowCatalogModal(false)}
+        />
+      )}
     </div>
   );
 }

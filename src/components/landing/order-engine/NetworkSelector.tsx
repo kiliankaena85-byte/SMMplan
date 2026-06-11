@@ -4,6 +4,8 @@ import { SocialIcon } from "@/components/ui/SocialIcon";
 import { GripHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { getBrandStyles } from "@/utils/brand-styles";
+
 export function NetworkSelector({ engine }: { engine: OrderEngine }) {
   const { networkId, setNetworkId, catalog, platform, manualPlatform } = engine;
   const [showAllNetworks, setShowAllNetworks] = useState(false);
@@ -95,15 +97,17 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
       <div className="flex flex-wrap gap-2 py-2 items-center justify-center">
         {topNetworks.map(net => {
           const isActive = networkId === net.id;
+          const brand = getBrandStyles(net.slug);
+          
           return (
             <button
               key={net.id}
               onClick={(e) => { e.preventDefault(); handleNetworkSelect(net); }}
               title={net.name}
-              className={`group relative flex flex-col items-center justify-center gap-1 font-bold text-[11px] origin-center shrink-0 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+              className={`group relative flex flex-col items-center justify-center gap-1 font-bold text-[11px] origin-center shrink-0 transition-all duration-300 ease-out focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                 isActive 
-                  ? 'bg-primary text-primary-foreground shadow-[0_8px_24px_-6px] shadow-primary/50 rounded-2xl h-16 md:h-[72px] px-4 md:px-5 scale-[1.02]'
-                  : 'bg-content1 border border-border/50 text-muted-foreground hover:bg-content2 hover:shadow-md hover:text-foreground rounded-2xl w-16 h-16 md:w-[72px] md:h-[72px] shadow-sm'
+                  ? `${brand.activeBg} ${brand.activeText} ${brand.activeShadow} rounded-2xl h-16 md:h-[72px] px-4 md:px-5 scale-[1.05]`
+                  : 'bg-content1 border border-border text-foreground hover:bg-content2 hover:shadow-md hover:border-border/80 hover:scale-[1.02] rounded-2xl w-16 h-16 md:w-[72px] md:h-[72px] shadow-sm'
               }`}
             >
               <SocialIcon 
@@ -111,12 +115,14 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
                 size={22}
                 className={`shrink-0 z-10 transition-all duration-300 ${
                   isActive 
-                   ? 'drop-shadow-sm scale-110 brightness-0 invert' 
-                   : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100'
+                   ? (brand.activeText === 'text-black' ? 'drop-shadow-sm scale-110' : 'drop-shadow-sm scale-110 brightness-0 invert') 
+                   : 'scale-100 group-hover:scale-110'
                 }`} 
               />
               <span className={`z-10 tracking-tight whitespace-nowrap transition-colors duration-200 ${
-                isActive ? 'text-primary-foreground font-bold text-xs' : 'text-muted-foreground group-hover:text-foreground text-[10px]'
+                isActive 
+                  ? `${brand.activeText} font-bold text-xs` 
+                  : 'text-foreground/85 group-hover:text-foreground text-[10px] font-semibold'
               }`}>
                 {isActive 
                   ? net.name 
@@ -140,7 +146,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
             className={`flex items-center justify-center gap-2 h-12 md:h-14 rounded-full font-bold text-sm transition-all duration-300 shrink-0 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
               showAllNetworks 
                 ? 'bg-primary/10 text-primary shadow-inner px-5' 
-                : 'bg-content1 border border-border/50 text-muted-foreground hover:bg-content2 hover:shadow-md hover:text-foreground w-12 md:w-14 shadow-sm'
+                : 'bg-content1 border border-border text-muted-foreground hover:bg-content2 hover:shadow-md hover:text-foreground w-12 md:w-14 shadow-sm'
             }`}
           >
             <GripHorizontal className={`w-6 h-6 transition-transform duration-300 ${showAllNetworks ? 'rotate-180' : ''}`} />
@@ -162,26 +168,30 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
             <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3 pt-2 pb-4">
               {otherNetworks.map(net => {
                 const isActive = networkId === net.id;
+                const brand = getBrandStyles(net.slug);
+                
                 return (
                   <button
                     key={net.id}
                     onClick={(e) => { e.preventDefault(); handleNetworkSelect(net); }}
                     title={net.name}
-                    className={`group flex flex-col items-center justify-center gap-2 py-3 rounded-2xl transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                    className={`group flex flex-col items-center justify-center gap-2 py-3 rounded-2xl transition-all duration-300 ease-out focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                       isActive 
-                        ? 'bg-primary/10 text-primary shadow-inner ring-1 ring-primary/30 scale-105'
-                        : 'bg-content1 border border-border/50 hover:bg-content2 hover:shadow-md hover:-translate-y-0.5'
+                        ? `${brand.activeBg} ${brand.activeText} ${brand.activeShadow} scale-105`
+                        : 'bg-content1 border border-border hover:bg-content2 hover:shadow-md hover:border-border/80 hover:scale-[1.02] shadow-sm'
                     }`}
                   >
                     <SocialIcon 
                       slug={net.slug} 
                       size={20}
                       className={`transition-all duration-300 ${
-                        isActive ? 'scale-110 drop-shadow-sm' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100'
+                        isActive 
+                          ? (brand.activeText === 'text-black' ? 'scale-110 drop-shadow-sm' : 'scale-110 drop-shadow-sm brightness-0 invert') 
+                          : 'scale-100 group-hover:scale-110'
                       }`} 
                     />
-                    <span className={`text-[10px] font-bold tracking-tight px-1 text-center truncate w-full ${
-                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                    <span className={`text-[10px] font-semibold tracking-tight px-1 text-center truncate w-full ${
+                      isActive ? brand.activeText : 'text-foreground/85 group-hover:text-foreground'
                     }`}>
                       {net.name}
                     </span>
@@ -195,3 +205,4 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
     </div>
   );
 }
+

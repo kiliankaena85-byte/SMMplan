@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { ApiDashboardClient } from '@/components/dashboard/settings/api/ApiDashboardClient';
 
 export const metadata = {
-  title: 'API-доступ | Smmplan',
+  title: 'API-доступ | SMMplan',
   description: 'Управляйте вашим B2B API-ключом и изучайте стандартизированные интеграционные руководства.',
 };
 
@@ -26,7 +26,7 @@ export default async function ApiSettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">API-доступ</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Интегрируйте возможности Smmplan прямо в ваши CRM, платформы реселлеров или боты.
+          Интегрируйте возможности SMMplan прямо в ваши CRM, платформы реселлеров или боты.
         </p>
       </div>
 

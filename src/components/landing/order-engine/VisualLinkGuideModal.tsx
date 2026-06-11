@@ -70,7 +70,7 @@ export function VisualLinkGuideModal({ isOpen, onClose, initialPlatform, initial
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 350 }}
-          className="bg-card/95 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-[32px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.3)] p-5 sm:p-8 w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
+          className="bg-card/95 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-[32px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.3)] p-5 sm:p-8 w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -735,7 +735,7 @@ function renderFooterWarning(platform: Platform, contentType: ContentType) {
       <div className="flex items-center gap-3">
         <div className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 ${
           type === "warning" 
-            ? "bg-warning-50 dark:bg-warning-950/30 border-warning-200 dark:border-warning-800/50 text-warning" 
+            ? "bg-warning-50 dark:bg-warning-950/30 border-warning-200 dark:border-warning-800/50 text-warning-text" 
             : type === "success"
             ? "bg-success-50 dark:bg-success-950/30 border-success-200 dark:border-success-800/50 text-success"
             : "bg-primary-50 dark:bg-primary-950/30 border-primary-200 dark:border-primary-800/50 text-primary"

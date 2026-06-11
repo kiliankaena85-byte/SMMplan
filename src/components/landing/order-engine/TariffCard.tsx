@@ -3,11 +3,14 @@
 import React from "react";
 import { PublicService } from "@/actions/order/catalog";
 import { CheckCircle2, Clock, Zap } from "lucide-react";
+import { BrandStyle } from "@/utils/brand-styles";
 
 interface TariffCardProps {
   service: PublicService;
   isSelected: boolean;
   onSelect: (srv: PublicService) => void;
+  compact?: boolean;
+  brandStyle?: BrandStyle;
 }
 
 function getBadgeStyle(badge: string) {
@@ -27,8 +30,28 @@ function getBadgeStyle(badge: string) {
   }
 }
 
-export function TariffCard({ service, isSelected, onSelect }: TariffCardProps) {
+export function TariffCard({ service, isSelected, onSelect, compact, brandStyle }: TariffCardProps) {
   const isQuarantined = service.cooldownUntil && new Date(service.cooldownUntil) > new Date();
+
+  // Selected brand classes
+  const isBranded = isSelected && brandStyle;
+  const cardBgAndText = isBranded
+    ? `${brandStyle.activeBg} ${brandStyle.activeShadow} ${brandStyle.activeText} border-transparent scale-[1.01]`
+    : isSelected
+    ? "ring-2 ring-primary/80 border-primary/45 bg-primary/[0.03] shadow-[0_12px_25px_-5px_rgba(var(--primary-rgb),0.1)] md:-translate-y-0.5"
+    : "border-border/50 bg-card hover:border-primary/40 md:hover:-translate-y-0.5 md:hover:shadow-[0_12px_25px_-8px_rgba(0,0,0,0.06)] dark:md:hover:shadow-[0_12px_25px_-8px_rgba(0,0,0,0.25)]";
+
+  const textColorClass = isBranded
+    ? (brandStyle.activeText === "text-black" ? "text-black" : "text-white")
+    : "text-foreground";
+
+  const mutedColorClass = isBranded
+    ? (brandStyle.activeText === "text-black" ? "text-black/70" : "text-white/75")
+    : "text-muted-foreground";
+
+  const checkColorClass = isBranded
+    ? (brandStyle.activeText === "text-black" ? "text-black" : "text-white")
+    : "text-primary";
 
   return (
     <button
@@ -36,11 +59,9 @@ export function TariffCard({ service, isSelected, onSelect }: TariffCardProps) {
       onClick={() => !isQuarantined && onSelect(service)}
       disabled={!!isQuarantined}
       className={`
-        w-full text-left p-4 rounded-2xl border transition-all duration-300
-        ${isSelected
-          ? "ring-2 ring-primary/80 border-primary/45 bg-primary/[0.03] shadow-[0_12px_25px_-5px_rgba(var(--primary-rgb),0.1)] md:-translate-y-0.5"
-          : "border-border/50 bg-card hover:border-primary/40 md:hover:-translate-y-0.5 md:hover:shadow-[0_12px_25px_-8px_rgba(0,0,0,0.06)] dark:md:hover:shadow-[0_12px_25px_-8px_rgba(0,0,0,0.25)]"
-        }
+        w-full text-left rounded-2xl border transition-all duration-300
+        ${compact ? "p-3" : "p-4"}
+        ${cardBgAndText}
         ${isQuarantined ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-[0.99]"}
       `}
     >
@@ -48,24 +69,28 @@ export function TariffCard({ service, isSelected, onSelect }: TariffCardProps) {
         {/* Left: Info */}
         <div className="flex-1 min-w-0">
           {/* Badge + selected indicator */}
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             {isSelected && (
-              <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+              <CheckCircle2 className={`w-4 h-4 shrink-0 ${checkColorClass}`} />
             )}
             {service.badge && (
-              <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${getBadgeStyle(service.badge)}`}>
+              <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                isBranded 
+                  ? "bg-current/20 text-current border-current/20" 
+                  : getBadgeStyle(service.badge)
+              }`}>
                 {service.badge}
               </span>
             )}
           </div>
 
           {/* Name */}
-          <h4 className="font-bold text-foreground text-sm leading-tight mb-1.5">
+          <h4 className={`font-bold text-sm leading-tight mb-1.5 ${textColorClass}`}>
             {service.name}
           </h4>
 
           {/* Meta line */}
-          <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-medium">
+          <div className={`flex items-center gap-3 text-[11px] font-medium ${mutedColorClass}`}>
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {service.speed}
@@ -76,22 +101,24 @@ export function TariffCard({ service, isSelected, onSelect }: TariffCardProps) {
             </span>
           </div>
 
-          {/* Description (truncated on unselected, expanded on selected) */}
-          {service.description && (
-            <p className={`text-[11px] text-muted-foreground/70 mt-2 leading-relaxed whitespace-pre-line transition-all duration-300 ${
-              isSelected ? "" : "line-clamp-2"
-            }`}>
+          {/* Description */}
+          {service.description && (!compact || isSelected) && (
+            <p className={`text-[11px] mt-2 leading-relaxed whitespace-pre-line transition-all duration-300 ${
+              isBranded
+                ? (brandStyle.activeText === "text-black" ? "text-black/70" : "text-white/70")
+                : "text-muted-foreground/70"
+            } ${isSelected ? "" : "line-clamp-2"}`}>
               {service.description}
             </p>
           )}
         </div>
 
         {/* Right: Price */}
-        <div className="text-right shrink-0 pt-1">
-          <div className="font-black text-foreground tabular-nums font-mono text-lg leading-none">
+        <div className="text-right shrink-0 pt-0.5">
+          <div className={`font-black tabular-nums text-lg leading-none ${textColorClass}`}>
             {service.pricePerUnitRub} ₽
           </div>
-          <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
+          <div className={`text-[9px] font-bold uppercase tracking-wider mt-0.5 ${mutedColorClass}`}>
             / шт
           </div>
         </div>
@@ -99,7 +126,7 @@ export function TariffCard({ service, isSelected, onSelect }: TariffCardProps) {
 
       {/* Quarantine warning */}
       {isQuarantined && (
-        <div className="mt-2 text-[10px] font-semibold text-warning bg-warning/10 rounded-lg px-2 py-1">
+        <div className="mt-2 text-[10px] font-semibold text-warning-text bg-warning/10 border border-warning/20 rounded-lg px-2 py-1">
           ⏳ Временно недоступен
         </div>
       )}

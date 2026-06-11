@@ -458,7 +458,28 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       origin = process.env.NEXT_PUBLIC_APP_URL;
     }
     if (origin.includes("0.0.0.0")) origin = origin.replace("0.0.0.0", "localhost");
-    const successUrl = `${origin}/success?orderId=${result.orderId}`;
+    let successUrl = `${origin}/success?orderId=${result.orderId}`;
+
+    // [Phase 3 Surgeon] Generate capability token for sessionless payment return validation
+    let token = '';
+    try {
+      const { SignJWT } = await import('jose');
+      const { getEncodedKey } = await import('@/lib/session');
+      token = await new SignJWT({ 
+        orderId: result.orderId,
+        purpose: 'payment_return' 
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('24h')
+        .sign(getEncodedKey());
+    } catch (e) {
+      console.error('[Checkout] Failed to generate return capability token:', e);
+    }
+
+    if (token) {
+      successUrl += `&token=${token}`;
+    }
 
     try {
       const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
@@ -722,7 +743,27 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
       origin = process.env.NEXT_PUBLIC_APP_URL;
     }
     if (origin.includes("0.0.0.0")) origin = origin.replace("0.0.0.0", "localhost");
-    const successUrl = `${origin}/success?orderId=${order.id}`;
+    let successUrl = `${origin}/success?orderId=${order.id}`;
+
+    let token = '';
+    try {
+      const { SignJWT } = await import('jose');
+      const { getEncodedKey } = await import('@/lib/session');
+      token = await new SignJWT({ 
+        orderId: order.id,
+        purpose: 'payment_return' 
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('24h')
+        .sign(getEncodedKey());
+    } catch (e) {
+      console.error('[RetryCheckout] Failed to generate return capability token:', e);
+    }
+
+    if (token) {
+      successUrl += `&token=${token}`;
+    }
 
     try {
       const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');

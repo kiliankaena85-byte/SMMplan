@@ -1,5 +1,5 @@
 /**
- * Structured logger for Smmplan (Pino-based).
+ * Structured logger for SMMplan (Pino-based).
  *
  * Provides:
  *  - JSON-structured output (compatible with Loki/Promtail)

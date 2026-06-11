@@ -47,7 +47,7 @@ export const createRoleSchema = z.object({
 
 export const globalSettingsSchema = z.object({
   maintenanceMode: z.any().transform((val) => val === 'true' || val === 'on'),
-  siteName: z.string().trim().max(100).optional().default('Smmplan'),
+  siteName: z.string().trim().max(100).optional().default('SMMplan'),
   siteDescription: z.string().trim().max(500).optional().default(''),
   usnScheme: z.enum(['INCOME', 'INCOME_EXPENSES']).optional().default('INCOME_EXPENSES'),
   welcomeMessage: z.string().trim().max(2000).nullable().optional(),

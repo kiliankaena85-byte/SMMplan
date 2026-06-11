@@ -14,11 +14,11 @@ import {
   IconArrowUpRight 
 } from "@tabler/icons-react";
 
-export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
+export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
   return (
     <section aria-labelledby="why-us-heading" className="mx-auto max-w-6xl px-4 py-12 md:py-24">
       <div className="text-center mb-16">
-        <h2 id="why-us-heading" className="text-4xl font-extrabold tracking-normal text-foreground mb-4">
+        <h2 id="why-us-heading" className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-normal text-foreground mb-4">
           Платформа нового поколения
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium">
@@ -30,7 +30,7 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Card 1: Large Span AI Selection */}
-        <div className="md:col-span-2 bg-content1 rounded-[2rem] p-8 relative overflow-hidden group border border-border/50 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-300 min-h-[280px]">
+        <div className="md:col-span-2 bg-content1 rounded-[2rem] p-5 md:p-8 relative overflow-hidden group border border-border/50 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-300 min-h-[280px]">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/15 rounded-full blur-3xl opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 -translate-y-1/2 translate-x-1/2 dark:bg-primary/10" />
           <div className="relative z-10 flex flex-col justify-between md:h-full">
             <div>
@@ -47,7 +47,7 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
         </div>
 
         {/* Card 2: Small Span Transparent Conditions */}
-        <div className="md:col-span-1 bg-content1 rounded-[2rem] p-8 relative overflow-hidden group border border-border/50 dark:border-border/40 hover:shadow-2xl hover:shadow-success/10 transition-all duration-300 min-h-[240px]">
+        <div className="md:col-span-1 bg-content1 rounded-[2rem] p-5 md:p-8 relative overflow-hidden group border border-border/50 dark:border-border/40 hover:shadow-2xl hover:shadow-success/10 transition-all duration-300 min-h-[240px]">
           <div className="relative z-10 flex flex-col md:h-full">
             <div className="w-12 h-12 bg-success/10 rounded-2xl flex items-center justify-center mb-6 text-success group-hover:scale-110 transition-transform">
               <IconShieldCheck className="w-6 h-6" stroke={1.5} />
@@ -60,7 +60,7 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
         </div>
 
         {/* Card 3: Small Span Loyalty */}
-        <div className="md:col-span-1 bg-content1 rounded-[2rem] p-8 relative overflow-hidden group border border-border/50 dark:border-border/40 hover:shadow-2xl hover:shadow-danger/10 transition-all duration-300 min-h-[240px]">
+        <div className="md:col-span-1 bg-content1 rounded-[2rem] p-5 md:p-8 relative overflow-hidden group border border-border/50 dark:border-border/40 hover:shadow-2xl hover:shadow-danger/10 transition-all duration-300 min-h-[240px]">
           <div className="relative z-10 flex flex-col md:h-full justify-between">
             <div>
               <div className="w-12 h-12 bg-danger/10 rounded-2xl flex items-center justify-center mb-6 text-danger group-hover:scale-110 transition-transform">
@@ -75,7 +75,7 @@ export function WhyUs({ companyName = "Smmplan" }: { companyName?: string }) {
         </div>
 
         {/* Card 4: Large B2B Reseller Suite & API Hub Card */}
-        <div className="md:col-span-2 bg-primary dark:bg-background border border-primary/20 text-primary-foreground rounded-[2rem] p-8 pb-10 relative overflow-hidden group shadow-2xl transition-all duration-300 hover:shadow-primary/10 min-h-[380px]">
+        <div className="md:col-span-2 bg-primary dark:bg-background border border-primary/20 text-primary-foreground rounded-[2rem] p-5 pb-8 md:p-8 md:pb-10 relative overflow-hidden group shadow-2xl transition-all duration-300 hover:shadow-primary/10 min-h-[380px]">
           {/* Background Ambient Glow */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-secondary/20 to-primary/20 rounded-full blur-3xl opacity-60 group-hover:opacity-90 group-hover:scale-110 transition-all duration-500 -translate-y-1/3 translate-x-1/3" />
           

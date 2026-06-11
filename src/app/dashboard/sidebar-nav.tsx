@@ -57,7 +57,7 @@ export function SidebarNav({
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-sm">
             S
           </div>
-          <span className="font-bold text-foreground text-base">Smmplan</span>
+          <span className="font-bold text-foreground text-base">SMMplan</span>
         </Link>
       </div>
 

@@ -27,7 +27,7 @@ vi.mock('@/lib/smtp', () => ({
 vi.mock('@/lib/settings', () => ({
   SettingsProvider: {
     getSupportEmailDomain: vi.fn().mockResolvedValue('smmplan.pro'),
-    getContactAndLegalSettings: vi.fn().mockResolvedValue({ COMPANY_NAME: 'Smmplan' })
+    getContactAndLegalSettings: vi.fn().mockResolvedValue({ COMPANY_NAME: 'SMMplan' })
   }
 }));
 

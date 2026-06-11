@@ -43,7 +43,7 @@ class MarketingService {
    * Calculates the final price for an order, applying the maximum available discount
    * between User Volume Tier, User Personal Discount, and Promo Code.
    * 
-   * SAFETY GUARANTEES (ported from Legacy Smmplan):
+   * SAFETY GUARANTEES (ported from Legacy SMMplan):
    * 1. MAX_TOTAL_DISCOUNT cap — скидки не могут превысить 30%
    * 2. Safety Floor — итоговая цена никогда не падает ниже
    *    cost × (1 + 100%) / (1 − 14.5%) ≈ cost × 2.34
@@ -218,7 +218,7 @@ class MarketingService {
         name: s.name,
         type: 'Default',
         category: s.category.name,
-        // Ensure rate matches the Smmplan schema (not cents) formatted strictly to 4 decimals
+        // Ensure rate matches the SMMplan schema (not cents) formatted strictly to 4 decimals
         rate: Number(finalRatePer1000).toFixed(4),
         min: s.minQty.toString(),
         max: s.maxQty.toString(),

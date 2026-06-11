@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Страница не найдена | Smmplan',
+  title: 'Страница не найдена | SMMplan',
 };
 
 export default function NotFound() {

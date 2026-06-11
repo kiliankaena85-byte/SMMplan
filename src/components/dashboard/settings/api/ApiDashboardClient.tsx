@@ -48,7 +48,7 @@ export function ApiDashboardClient({ hasKey }: ApiDashboardClientProps) {
           <div className="px-5 py-4 border-b border-border/40">
             <h2 className="font-extrabold text-foreground text-sm">B2B Reseller API Key</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Используйте API-ключ для заказа услуг Smmplan из ваших собственных систем.
+              Используйте API-ключ для заказа услуг SMMplan из ваших собственных систем.
             </p>
           </div>
           <div className="p-5">
@@ -63,7 +63,7 @@ export function ApiDashboardClient({ hasKey }: ApiDashboardClientProps) {
           <div className="px-5 py-4 border-b border-border/40">
             <h3 className="font-extrabold text-foreground text-sm">Интеграционная документация API v2</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Спецификации, параметры запросов и примеры интеграции с реселлер-платформой Smmplan.
+              Спецификации, параметры запросов и примеры интеграции с реселлер-платформой SMMplan.
             </p>
           </div>
           <div className="p-5">

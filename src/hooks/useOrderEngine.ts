@@ -90,9 +90,9 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   const [customData, setCustomData] = useState("");
   const [mediaGroupUrl, setMediaGroupUrl] = useState("");
   const [promoCode, setPromoCode] = useState("");
-  // BUG-03: Default to true — per ст. 438 ГК РФ, payment = acceptance of public offer.
-  // The text "Нажимая «Оплатить», вы соглашаетесь..." is shown inline instead.
-  const [agreedToTerms, setAgreedToTerms] = useState(true);
+  // BUG-03: Default to false — per ст. 438 ГК РФ & 152-FZ, user must actively agree.
+  // The text "Нажимая «Оплатить», вы соглашаетесь..." is replaced by active checkbox.
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLinkOverridden, setIsLinkOverridden] = useState(false);
   const [isWarningConfirmed, setIsWarningConfirmed] = useState(false);
   const [warningHasError, setWarningHasError] = useState(false);
@@ -126,6 +126,16 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       }));
     } catch { /* sessionStorage unavailable */ }
   }, [url, networkId, categoryId, quantity]);
+
+  // Reset category when URL transitions to filled state (length >= 5) and no service is selected yet
+  const prevUrlRef = useRef("");
+  useEffect(() => {
+    const prevUrl = prevUrlRef.current;
+    if (url.trim().length >= 5 && prevUrl.trim().length < 5 && !selectedServiceRef.current) {
+      setCategoryId("");
+    }
+    prevUrlRef.current = url;
+  }, [url]);
   
   // Drip-feed states
   const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
@@ -268,7 +278,13 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
                     if (f.length > 0) filteredCats = f;
                 }
                 if (filteredCats.length > 0) {
-                   setCategoryId(filteredCats[0].id);
+                   if (url.trim().length >= 5) {
+                      if (!selectedServiceRef.current) {
+                         setCategoryId("");
+                      }
+                   } else {
+                      setCategoryId(filteredCats[0].id);
+                   }
                 }
              }
           }
@@ -304,13 +320,21 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
           if (f.length > 0) filteredCats = f;
         }
         if (filteredCats.length > 0) {
-          if (!categoryId || !catsForNet.some(c => c.id === categoryId)) {
-            setCategoryId(filteredCats[0].id);
+          if (url.trim().length >= 5) {
+            if (!selectedServiceRef.current) {
+              setCategoryId("");
+            } else if (!categoryId || !catsForNet.some(c => c.id === categoryId)) {
+              setCategoryId("");
+            }
+          } else {
+            if (!categoryId || !catsForNet.some(c => c.id === categoryId)) {
+              setCategoryId(filteredCats[0].id);
+            }
           }
         }
       }
     }
-  }, [platform, manualPlatform, catalog, suggestedCategories, categoryId]);
+  }, [platform, manualPlatform, catalog, suggestedCategories, categoryId, url]);
 
   // Handle cascaded selections (Network -> Category) manually
   useEffect(() => {
@@ -326,12 +350,16 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
            const availableCats = matchedCats.length > 0 ? matchedCats : catsForNet;
            if (availableCats.length > 0 && !availableCats.some(c => c.id === categoryId)) {
               if (!selectedService) {
-                 setCategoryId(availableCats[0].id);
+                 if (url.trim().length >= 5) {
+                    setCategoryId("");
+                 } else {
+                    setCategoryId(availableCats[0].id);
+                 }
               }
            }
         }
      }
-  }, [networkId, catalog, categoryId, suggestedCategories, selectedService]);
+  }, [networkId, catalog, categoryId, suggestedCategories, selectedService, url]);
 
   // 3. Load Services when Category changes
   useEffect(() => {
@@ -531,7 +559,7 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
     }
 
     // Override generic URL error with strict targetType error if applicable
-    if (selectedService && activePlatform && currentUrl) {
+    if (selectedService && activePlatform && currentUrl && !isLinkOverridden) {
        const activeCat2 = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
        const targetType = selectedService.targetType === 'POST'
          ? inferTargetTypeFromCategory(activeCat2?.name)

@@ -269,7 +269,7 @@ export function OrderSummaryCard({
           </div>
           <h3 className="text-base font-extrabold text-foreground tracking-tight">Мастер оформления заказа</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Добро пожаловать в интеллектуальную систему заказов Smmplan. Мы упростили процесс до трёх простых шагов.
+            Добро пожаловать в интеллектуальную систему заказов SMMplan. Мы упростили процесс до трёх простых шагов.
           </p>
         </div>
 
@@ -350,7 +350,7 @@ export function OrderSummaryCard({
               </div>
             )}
             {isPrivateChannel && (
-              <div className="bg-warning/10 border border-warning/20 text-warning text-xs font-bold p-3 rounded-lg flex items-start gap-2">
+              <div className="bg-warning/10 border border-warning/20 text-warning-text text-xs font-bold p-3 rounded-lg flex items-start gap-2">
                 <span className="text-base leading-none">⚠️</span>
                 Услуга для закрытых каналов. В поле "Ссылка" указывайте только пригласительную ссылку (t.me/+...).
               </div>

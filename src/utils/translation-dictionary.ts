@@ -1,5 +1,5 @@
 /**
- * Smmplan Translation & Normalization Dictionary
+ * SMMplan Translation & Normalization Dictionary
  * Сгенерировано ИИ (Antigravity) на основе кластеризации 5000+ услуг провайдеров.
  * Обеспечивает строгий детерминированный перевод (без галлюцинаций LLM в продакшене).
  */

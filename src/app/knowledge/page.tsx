@@ -19,16 +19,16 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const activeCategory = params.category || "Все";
   const searchQuery = params.search || "";
   
-  let title = "База знаний & Блог | Smmplan";
-  let description = "Полезные статьи, руководства по продвижению в социальных сетях, лайфхаки и обновления Smmplan.";
+  let title = "База знаний & Блог | SMMplan";
+  let description = "Полезные статьи, руководства по продвижению в социальных сетях, лайфхаки и обновления SMMplan.";
   
   if (activeCategory !== "Все") {
-    title = `Статьи по теме ${activeCategory} | База знаний Smmplan`;
+    title = `Статьи по теме ${activeCategory} | База знаний SMMplan`;
     description = `Инструкции и руководства в категории "${activeCategory}" для эффективной накрутки и продвижения.`;
   }
   
   if (searchQuery) {
-    title = `Поиск: "${searchQuery}" | Блог Smmplan`;
+    title = `Поиск: "${searchQuery}" | Блог SMMplan`;
   }
 
   return {
@@ -62,7 +62,7 @@ export default async function KnowledgePage({ searchParams }: PageProps) {
 
   // Resolve settings and siteName
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "Smmplan";
+  const siteName = settings.SITE_NAME || "SMMplan";
 
   // 1. Fetch articles based on filter and search
   const result = await getArticles(activeCategory, searchQuery);

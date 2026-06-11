@@ -93,7 +93,7 @@ describe.sequential('createGuestTicketAction', () => {
 
     const formData = new FormData();
     formData.append('name', 'Alice Smith');
-    formData.append('email', 'Guest_User@Smmplan.local'); // checks email lowercase normalization
+    formData.append('email', 'Guest_User@SMMplan.local'); // checks email lowercase normalization
     formData.append('message', 'Greetings! Please help me with this offline order check.');
 
     const result = await createGuestTicketAction(formData);

@@ -7,8 +7,8 @@ import { BookOpen, Info, ArrowRight, Sparkles, Send, Instagram, Youtube, HelpCir
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "Каталог услуг & База знаний | Smmplan",
-  description: "Премиальная bento-панель продвижения и обучения Smmplan. Найдите экспертные руководства, проверьте лимиты соцсетей и выберите тарифы накрутки.",
+  title: "Каталог услуг & База знаний | SMMplan",
+  description: "Премиальная bento-панель продвижения и обучения SMMplan. Найдите экспертные руководства, проверьте лимиты соцсетей и выберите тарифы накрутки.",
 };
 
 export default async function ServicesCatalogPage() {

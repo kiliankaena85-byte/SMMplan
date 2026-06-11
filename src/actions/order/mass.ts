@@ -328,7 +328,28 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       origin = process.env.NEXT_PUBLIC_APP_URL;
     }
     if (origin.includes("0.0.0.0")) origin = origin.replace("0.0.0.0", "localhost");
-    const successUrl = `${origin}/success`;
+    let successUrl = `${origin}/success?paymentId=${result.paymentId}`;
+
+    // [Phase 3 Surgeon] Generate capability token for sessionless payment return validation
+    let token = '';
+    try {
+      const { SignJWT } = await import('jose');
+      const { getEncodedKey } = await import('@/lib/session');
+      token = await new SignJWT({ 
+        paymentId: result.paymentId,
+        purpose: 'payment_return' 
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('24h')
+        .sign(getEncodedKey());
+    } catch (e) {
+      console.error('[MassCheckout] Failed to generate return capability token:', e);
+    }
+
+    if (token) {
+      successUrl += `&token=${token}`;
+    }
 
     try {
       const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');

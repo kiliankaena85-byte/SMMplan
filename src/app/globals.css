@@ -138,6 +138,7 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overscroll-behavior-y: contain; /* Prevent pull-to-refresh destroying form state on Android */
     @apply antialiased;
   }
 }
@@ -357,4 +358,52 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%235288c1' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' opacity='0.18'%3E%3Cpath d='M15 15 L28 10 L23 23 L20 18 Z M20 18 L23 10' /%3E%3Cpath d='M80 20 C78 18, 74 18, 72 20 C70 22, 70 26, 72 28 L80 36 L88 28 C90 26, 90 22, 88 20 C86 18, 82 18, 80 20 Z' /%3E%3Cpath d='M25 75 H37 C39 75, 41 77, 41 79 V87 C41 89, 39 91, 37 91 H31 L25 95 V91 C23 91, 21 89, 21 87 V79 C21 77, 23 75, 25 75 Z' /%3E%3Cpath d='M95 70 L97 74 L102 75 L98 78 L99 83 L95 81 L91 83 L92 78 L88 75 L93 74 Z' /%3E%3Cpath d='M56 50 H64 V56 H56 Z M58 50 V47 C58 45, 62 45, 62 47 V50' /%3E%3Ccircle cx='60' cy='100' r='8' /%3E%3Cpath d='M57 99 V98 M63 99 V98 M57 102 C58 104, 62 104, 63 102' /%3E%3Ccircle cx='15' cy='50' r='4' /%3E%3Cpath d='M15 44 V46 M15 54 V56 M9 50 H11 M19 50 H21' /%3E%3C/g%3E%3C/svg%3E") !important;
   background-size: 120px 120px !important;
 }
+
+/* --- Premium Dot Grid Backdrop --- */
+.premium-dot-grid {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.1) 1.5px, transparent 1.5px);
+  background-size: 16px 16px;
+}
+.dark .premium-dot-grid,
+[data-theme*="dark"] .premium-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1.5px, transparent 1.5px);
+}
+
+/* --- Google Shimmer Border Effect --- */
+@keyframes border-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.google-border-shimmer {
+  background: linear-gradient(90deg, #0369a1, #6366f1, #d946ef, #10b981, #0369a1);
+  background-size: 300% 300%;
+  animation: border-shimmer 6s ease infinite;
+}
+
+.dark .google-border-shimmer,
+[data-theme*="dark"] .google-border-shimmer {
+  background: linear-gradient(90deg, #38bdf8, #818cf8, #d946ef, #34d399, #38bdf8);
+  background-size: 300% 300%;
+}
+
+.warning-border-shimmer {
+  background: linear-gradient(90deg, #f43f5e, #f59e0b, #ef4444, #f59e0b, #f43f5e);
+  background-size: 300% 300%;
+  animation: border-shimmer 4s linear infinite;
+}
+
+.dark .warning-border-shimmer,
+[data-theme*="dark"] .warning-border-shimmer {
+  background: linear-gradient(90deg, #fca5a5, #fbbf24, #ef4444, #fbbf24, #fca5a5);
+  background-size: 300% 300%;
+}
+
 

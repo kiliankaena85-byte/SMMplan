@@ -49,7 +49,7 @@ export default function BlockNoteEditor({ initialContent, onChange, readOnly = f
               onChange(JSON.stringify(blocks));
             }
           }}
-          theme="light" // В Smmplan можно связать с текущей темой Next-Themes
+          theme="light" // В SMMplan можно связать с текущей темой Next-Themes
         />
       </div>
     </div>

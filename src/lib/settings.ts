@@ -43,7 +43,7 @@ export class SettingsProvider {
         return await db.systemSettings.upsert({
           where: { id: "global" },
           update: {},
-          create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: "Smmplan", exchangeRateUSD: 95 }
+          create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: "SMMplan", exchangeRateUSD: 95 }
         });
       }
 
@@ -56,14 +56,14 @@ export class SettingsProvider {
           opexMonthly: 0,
           maintenanceMode: false,
           isTestMode: false,
-          siteName: "Smmplan Lite",
+          siteName: "SMMplan",
           siteDescription: "",
           exchangeRateUSD: 95.0,
           contactSupportEmail: "support@smmplan.pro",
           contactPrivacyEmail: "privacy@smmplan.pro",
           contactTelegramBot: "smmplan_support_bot",
           contactTelegramChannel: "smmplan_support",
-          legalCompanyName: "Smmplan Lite",
+          legalCompanyName: "SMMplan",
           legalCompanyInn: "Укажите ИНН",
           legalCompanyOgrnip: "Укажите ОГРНИП",
           legalCompanyAddress: "г. Москва",
@@ -95,7 +95,7 @@ export class SettingsProvider {
         return await db.systemSettings.upsert({
           where: { id: "global" },
           update: {},
-          create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: "Smmplan", exchangeRateUSD: 95 }
+          create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: "SMMplan", exchangeRateUSD: 95 }
         });
       }
       try {
@@ -106,7 +106,7 @@ export class SettingsProvider {
           return await db.systemSettings.upsert({
             where: { id: "global" },
             update: {},
-            create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: "Smmplan", exchangeRateUSD: 95 }
+            create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: "SMMplan", exchangeRateUSD: 95 }
           });
         }
         throw err;
@@ -120,19 +120,19 @@ export class SettingsProvider {
         opexMonthly: 0,
         maintenanceMode: false,
         isTestMode: false,
-        siteName: "Smmplan Lite",
+        siteName: "SMMplan",
         siteDescription: "",
         exchangeRateUSD: 90.0,
         contactSupportEmail: "support@smmplan.pro",
         contactPrivacyEmail: "privacy@smmplan.pro",
         contactTelegramBot: "smmplan_support_bot",
         contactTelegramChannel: "smmplan_support",
-        legalCompanyName: "Smmplan Lite",
+        legalCompanyName: "SMMplan",
         legalCompanyInn: "Укажите ИНН",
         legalCompanyOgrnip: "Укажите ОГРНИП",
         legalCompanyAddress: "г. Москва",
         usnScheme: "INCOME_EXPENSES" as UsnScheme,
-        welcomeMessage: "Добро пожаловать в Smmplan! Ваш персональный кабинет готов к работе.",
+        welcomeMessage: "Добро пожаловать в SMMplan! Ваш персональный кабинет готов к работе.",
         yookassaShopId: null,
         yookassaSecretKey: null,
         yookassaTestShopId: null,
@@ -237,7 +237,7 @@ export class SettingsProvider {
   static async getContactAndLegalSettings() {
     const settings = await this.get();
     return {
-      SITE_NAME: settings.siteName || "Smmplan Lite",
+      SITE_NAME: settings.siteName || "SMMplan",
       SITE_DESCRIPTION: settings.siteDescription || "",
       SUPPORT_EMAIL: settings.contactSupportEmail || "support@smmplan.pro",
       PRIVACY_EMAIL: settings.contactPrivacyEmail || "privacy@smmplan.pro",
@@ -245,7 +245,7 @@ export class SettingsProvider {
       TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || "smmplan_support",
       WHATSAPP: settings.contactWhatsApp || "",
       VK: settings.contactVk || "",
-      COMPANY_NAME: settings.legalCompanyName || "Smmplan Lite",
+      COMPANY_NAME: settings.legalCompanyName || "SMMplan",
       COMPANY_INN: settings.legalCompanyInn || "Укажите ИНН",
       COMPANY_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
       COMPANY_ADDRESS: settings.legalCompanyAddress || "г. Москва",

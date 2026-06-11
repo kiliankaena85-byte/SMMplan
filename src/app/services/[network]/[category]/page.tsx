@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: { params: Promise<{ network: 
   if (!net || !cat) return { title: "Страница не найдена" };
 
   return {
-    title: `Накрутка ${cat.name} в ${net.name} | Дешево и быстро | Smmplan`,
+    title: `Накрутка ${cat.name} в ${net.name} | Дешево и быстро | SMMplan`,
     description: `Лучший сервис для ${cat.name} в ${net.name}. Профессиональное продвижение, мгновенный старт, поштучные заказы и гарантия от списаний.`,
     alternates: {
       canonical: `/services/${network}/${category}`,
@@ -89,7 +89,7 @@ export default async function CategoryServicesPage({ params }: { params: Promise
     "description": `Профессиональные услуги ${currentCategory.name} для ${currentNetwork.name}. Быстрый старт, низкие цены от ${minPrice.toFixed(2)} ₽.`,
     "provider": {
       "@type": "Organization",
-      "name": "Smmplan",
+      "name": "SMMplan",
       "url": "https://smmplan.pro"
     },
     "offers": {
@@ -214,12 +214,12 @@ export default async function CategoryServicesPage({ params }: { params: Promise
           <JsonLd data={productData} />
           
           <h2 className="text-2xl md:text-3xl font-black text-foreground tracking-tight mb-8">
-            Почему стоит заказать {currentCategory.name} {currentNetwork.name} в Smmplan?
+            Почему стоит заказать {currentCategory.name} {currentNetwork.name} в SMMplan?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-muted-foreground">
             <div className="space-y-4">
               <p>
-                Smmplan — это лидирующая розничная платформа для продвижения в социальных сетях. Категория <span className="text-foreground font-bold">{currentCategory.name} {currentNetwork.name}</span> является одной из самых популярных у наших клиентов благодаря оптимальному сочетанию цены и качества.
+                SMMplan — это лидирующая розничная платформа для продвижения в социальных сетях. Категория <span className="text-foreground font-bold">{currentCategory.name} {currentNetwork.name}</span> является одной из самых популярных у наших клиентов благодаря оптимальному сочетанию цены и качества.
               </p>
               <p>
                 Мы агрегируем предложения от крупнейших мировых поставщиков, проводя жесткий отбор по критериям скорости, стабильности и проценту списаний. Это позволяет вам получать услуги профессионального уровня без переплат.

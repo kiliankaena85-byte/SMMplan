@@ -53,7 +53,7 @@ export default async function LegalPage({ params }: PageProps) {
   const address = settings.COMPANY_ADDRESS || 'г. Москва';
   const email = settings.SUPPORT_EMAIL || 'support@smmplan.pro';
   const privacyEmail = settings.PRIVACY_EMAIL || 'privacy@smmplan.pro';
-  const siteName = settings.SITE_NAME || 'Smmplan';
+  const siteName = settings.SITE_NAME || 'SMMplan';
 
   let finalHtml = post.contentHtml || "";
 

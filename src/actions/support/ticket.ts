@@ -332,7 +332,7 @@ export async function requestTelegramBind(formData: FormData) {
       const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
       const magicLink = `${host}/api/support/telegram?forceAuth=true`;
 
-      const messageText = `🎧 <b>Служба поддержки Smmplan</b>\n\nЧтобы мы могли найти ваши заказы и оформить возврат средств на баланс, пожалуйста, подтвердите владение заказом по ссылке: ${magicLink}`;
+      const messageText = `🎧 <b>Служба поддержки SMMplan</b>\n\nЧтобы мы могли найти ваши заказы и оформить возврат средств на баланс, пожалуйста, подтвердите владение заказом по ссылке: ${magicLink}`;
 
       const savedMsg = await ticketService.addMessage(ticketId, 'STAFF', messageText);
 

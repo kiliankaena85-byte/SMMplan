@@ -45,7 +45,7 @@ export default async function AdminKnowledgePage() {
             </h1>
           </div>
           <p className="text-sm text-muted-foreground pl-11">
-            Публикуйте обучающие руководства, статьи по продвижению и новости платформы Smmplan.
+            Публикуйте обучающие руководства, статьи по продвижению и новости платформы SMMplan.
           </p>
         </div>
         

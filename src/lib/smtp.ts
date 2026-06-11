@@ -7,7 +7,7 @@ const log = logger.child({ component: 'SMTP' });
 
 async function getEmailContext() {
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const companyName = settings.COMPANY_NAME || "Smmplan Lite";
+  const companyName = settings.COMPANY_NAME || "SMMplan";
   const supportDomain = await SettingsProvider.getSupportEmailDomain();
   return { companyName, supportDomain };
 }

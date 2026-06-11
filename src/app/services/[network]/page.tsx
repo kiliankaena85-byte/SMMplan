@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ network: 
   if (!net) return { title: "Сеть не найдена" };
 
   return {
-    title: `Накрутка ${net.name} | Купить подписчиков и лайки | Smmplan`,
+    title: `Накрутка ${net.name} | Купить подписчиков и лайки | SMMplan`,
     description: `Премиальное продвижение в ${net.name}. Заказ от 1 штуки, гарантия качества, быстрый старт и удобный сервис.`,
   };
 }

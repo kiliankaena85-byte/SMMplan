@@ -5,7 +5,7 @@ import { BookOpen, Clock, Eye, GraduationCap, ChevronRight, Zap } from 'lucide-r
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Академия SMM & База знаний | Smmplan',
+  title: 'Академия SMM & База знаний | SMMplan',
   description: 'Экспертные руководства, лайфхаки и инструкции по безопасному продвижению в Telegram, Instagram, VK. Узнайте, как копировать ссылки и обходить списания.',
 };
 
@@ -41,7 +41,7 @@ export default async function AcademyPage() {
             <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-sm">
               <Zap className="w-4 h-4 text-primary fill-current" />
             </div>
-            <span className="text-xl font-extrabold tracking-normal text-foreground">Smmplan <span className="text-primary text-xs font-black px-2 py-0.5 rounded bg-primary/10 ml-1.5 uppercase">Академия</span></span>
+            <span className="text-xl font-extrabold tracking-normal text-foreground">SMMplan <span className="text-primary text-xs font-black px-2 py-0.5 rounded bg-primary/10 ml-1.5 uppercase">Академия</span></span>
           </Link>
 
           <Link
@@ -152,7 +152,7 @@ export default async function AcademyPage() {
 
       {/* Footer */}
       <footer className="bg-card border-t border-border/60 py-10 text-center select-none text-xs text-muted-foreground mt-24">
-        <p>© {new Date().getFullYear()} Smmplan Academy. Все права защищены.</p>
+        <p>© {new Date().getFullYear()} SMMplan Academy. Все права защищены.</p>
         <p className="mt-1 text-[10px] text-muted-foreground/60">Экспертные SMM-руководства для физлиц и реселлеров.</p>
       </footer>
     </div>

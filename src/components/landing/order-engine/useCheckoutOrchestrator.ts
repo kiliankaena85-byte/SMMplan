@@ -273,7 +273,22 @@ export function useCheckoutOrchestrator({
       return;
     }
     if (!agreedToTerms) {
-      toast.error("Пожалуйста, ознакомьтесь и согласитесь с условиями Оферты.", { position: 'top-center' });
+      // Per Article 438 Civil Code RF: acceptance of the offer must be an explicit act by the user.
+      // Per 152-FZ: processing of personal data (email) requires explicit consent.
+      toast.error("Пожалуйста, примите условия Оферты и Политики конфиденциальности.", {
+        position: "top-center",
+        duration: 4000,
+      });
+      // Scroll to and highlight the legal checkbox
+      setTimeout(() => {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const checkboxId = isMobile ? "standard-legal-checkbox" : "desktop-legal-checkbox";
+        const checkbox = document.getElementById(checkboxId) || document.getElementById("standard-legal-checkbox");
+        if (checkbox) {
+          checkbox.scrollIntoView({ behavior: "smooth", block: "center" });
+          checkbox.focus();
+        }
+      }, 100);
       return;
     }
 
@@ -321,6 +336,17 @@ export function useCheckoutOrchestrator({
       if (res.success && res.data?.paymentUrl) {
         window.location.href = res.data.paymentUrl;
       } else if (!res.success) {
+        if (res.error?.includes("Telegram-аккаунт") || res.error?.includes("привяжите ваш Telegram-аккаунт")) {
+          toast.error(res.error, {
+            position: 'top-center',
+            duration: 8000,
+            action: {
+              label: 'Привязать',
+              onClick: () => window.location.href = '/dashboard/settings'
+            }
+          });
+          return;
+        }
         if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
           toast.error(
             'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
@@ -348,6 +374,17 @@ export function useCheckoutOrchestrator({
     } catch (e: any) {
       setIsSubmitting(false);
       const errorMessage = e.message || "Ошибка платежного шлюза.";
+      if (errorMessage.includes("Telegram-аккаунт") || errorMessage.includes("привяжите ваш Telegram-аккаунт")) {
+        toast.error(errorMessage, {
+          position: 'top-center',
+          duration: 8000,
+          action: {
+            label: 'Привязать',
+            onClick: () => window.location.href = '/dashboard/settings'
+          }
+        });
+        return;
+      }
       const serviceId = pendingCheckoutParams.serviceId || '';
       const email = pendingCheckoutParams.email || '';
       const quantity = pendingCheckoutParams.quantity || '';

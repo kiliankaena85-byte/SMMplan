@@ -30,7 +30,7 @@ const articleSchema = z.object({
     z.string().min(2, "Имя автора должно состоять минимум из 2 символов").max(100).optional()
   ),
   authorRole: z.preprocess(
-    (val) => (val === "" || val === undefined || val === null) ? "Системный архитектор прокси-сетей Smmplan" : val,
+    (val) => (val === "" || val === undefined || val === null) ? "Системный архитектор прокси-сетей SMMplan" : val,
     z.string().min(2, "Роль автора должна состоять минимум из 2 символов").max(200).optional()
   ),
   priority: z.preprocess(
@@ -184,7 +184,7 @@ export async function getGroupedArticlesForTree() {
 
 /**
  * PUBLIC: Get up to 3 recommended active services matching the article's category.
- * Calculates retail unit pricing strictly matching standard Smmplan markup guidelines:
+ * Calculates retail unit pricing strictly matching standard SMMplan markup guidelines:
  * pricePerUnitRub = applyBeautifulRounding(s.rate * s.markup * usdToRub) / 1000
  */
 export async function getRecommendedServicesForArticle(articleId: string) {

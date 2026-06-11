@@ -40,7 +40,7 @@ vi.mock('@/lib/session', async (importOriginal: any) => {
   };
 });
 
-describe('Smmplan Knowledge Base & SEO Blog Server Actions', () => {
+describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
   let adminUser: any;
   let regularUser: any;
   let network: any;
@@ -191,7 +191,7 @@ describe('Smmplan Knowledge Base & SEO Blog Server Actions', () => {
           title: "Раскрутка каналов в Telegram",
           slug: "raskrutka-kanalov-tg",
           description: "Инструкция как раскрутить канал.",
-          content: "Инструкции и шаги: **Шаг 1**, [Smmplan](https://smmplan.ru).",
+          content: "Инструкции и шаги: **Шаг 1**, [SMMplan](https://smmplan.ru).",
           category: "Подписчики",
           status: "PUBLISHED",
           viewCount: 10
@@ -291,7 +291,7 @@ describe('Smmplan Knowledge Base & SEO Blog Server Actions', () => {
       expect(res.success).toBe(true);
       expect(res.article).toBeDefined();
       expect(res.article?.authorName).toBe("Михаил");
-      expect(res.article?.authorRole).toBe("Системный архитектор прокси-сетей Smmplan");
+      expect(res.article?.authorRole).toBe("Системный архитектор прокси-сетей SMMplan");
     });
 
     it('should allow admin to create and edit articles with custom authorName and authorRole', async () => {
@@ -306,12 +306,12 @@ describe('Smmplan Knowledge Base & SEO Blog Server Actions', () => {
         category: "Подписчики",
         status: "PUBLISHED",
         authorName: "Ольга",
-        authorRole: "Контент-стратег и SEO-специалист Smmplan"
+        authorRole: "Контент-стратег и SEO-специалист SMMplan"
       });
 
       expect(createRes.success).toBe(true);
       expect(createRes.article?.authorName).toBe("Ольга");
-      expect(createRes.article?.authorRole).toBe("Контент-стратег и SEO-специалист Smmplan");
+      expect(createRes.article?.authorRole).toBe("Контент-стратег и SEO-специалист SMMplan");
 
       // 2. Edit/Update custom author
       const updateRes = await updateArticle(createRes.article!.id, {
@@ -322,12 +322,12 @@ describe('Smmplan Knowledge Base & SEO Blog Server Actions', () => {
         category: "Подписчики",
         status: "PUBLISHED",
         authorName: "Дмитрий",
-        authorRole: "Руководитель SMM-отдела Smmplan"
+        authorRole: "Руководитель SMM-отдела SMMplan"
       });
 
       expect(updateRes.success).toBe(true);
       expect(updateRes.article?.authorName).toBe("Дмитрий");
-      expect(updateRes.article?.authorRole).toBe("Руководитель SMM-отдела Smmplan");
+      expect(updateRes.article?.authorRole).toBe("Руководитель SMM-отдела SMMplan");
     });
 
     it('should validate authorName and authorRole length limits', async () => {
@@ -374,7 +374,7 @@ describe('Smmplan Knowledge Base & SEO Blog Server Actions', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         authorName: "Михаил",
-        authorRole: "Системный архитектор прокси-сетей Smmplan"
+        authorRole: "Системный архитектор прокси-сетей SMMplan"
       };
 
       const jsonLd = {
@@ -392,13 +392,13 @@ describe('Smmplan Knowledge Base & SEO Blog Server Actions', () => {
         },
         "publisher": {
           "@type": "Organization",
-          "name": "Smmplan"
+          "name": "SMMplan"
         }
       };
 
       expect(jsonLd.author["@type"]).toBe("Person");
       expect(jsonLd.author.name).toBe("Михаил");
-      expect(jsonLd.author.jobTitle).toBe("Системный архитектор прокси-сетей Smmplan");
+      expect(jsonLd.author.jobTitle).toBe("Системный архитектор прокси-сетей SMMplan");
       
       const escapedJsonLd = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
       expect(escapedJsonLd).not.toContain("<");

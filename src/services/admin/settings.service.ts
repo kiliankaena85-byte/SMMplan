@@ -84,7 +84,7 @@ class SettingsService {
     let settings = await db.systemSettings.findUnique({ where: { id: 'global' } });
     if (!settings) {
       settings = await db.systemSettings.create({
-        data: { id: 'global', taxRate: 6.0, opexMonthly: 0, maintenanceMode: false, siteName: 'Smmplan', siteDescription: '' }
+        data: { id: 'global', taxRate: 6.0, opexMonthly: 0, maintenanceMode: false, siteName: 'SMMplan', siteDescription: '' }
       });
     }
     return settings;

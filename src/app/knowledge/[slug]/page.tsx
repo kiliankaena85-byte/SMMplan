@@ -23,16 +23,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!result.success || !result.article) {
     return {
-      title: "Статья не найдена | Smmplan"
+      title: "Статья не найдена | SMMplan"
     };
   }
 
   const { title, description } = result.article;
   return {
-    title: `${title} | Блог Smmplan`,
+    title: `${title} | Блог SMMplan`,
     description,
     openGraph: {
-      title: `${title} | Smmplan`,
+      title: `${title} | SMMplan`,
       description,
       type: "article"
     }
@@ -190,7 +190,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
 
   // Resolve settings and siteName
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "Smmplan";
+  const siteName = settings.SITE_NAME || "SMMplan";
 
   // Parallel data fetching for conversion recommended services and same category related articles
   const [recommendedServices, relatedResult] = await Promise.all([
@@ -252,7 +252,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     },
     "publisher": {
       "@type": "Organization",
-      "name": "Smmplan"
+      "name": "SMMplan"
     }
   };
 

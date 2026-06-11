@@ -56,7 +56,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
               <Input
                 name="siteName"
                 defaultValue={settings.siteName}
-                placeholder="Smmplan Lite"
+                placeholder="SMMplan"
               />
               <p className="text-[11px] text-muted-foreground">Используется в логотипе, заголовках писем и метатегах (SEO)</p>
             </div>

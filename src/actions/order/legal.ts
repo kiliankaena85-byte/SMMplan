@@ -25,7 +25,7 @@ export async function getLegalDocumentAction(slug: string) {
     const address = settings.COMPANY_ADDRESS || 'г. Москва';
     const email = settings.SUPPORT_EMAIL || 'support@smmplan.pro';
     const privacyEmail = settings.PRIVACY_EMAIL || 'privacy@smmplan.pro';
-    const siteName = settings.SITE_NAME || 'Smmplan';
+    const siteName = settings.SITE_NAME || 'SMMplan';
 
     let finalHtml = post.contentHtml || "";
     finalHtml = finalHtml
@@ -38,7 +38,8 @@ export async function getLegalDocumentAction(slug: string) {
       .replace(/{{SITE_NAME}}/g, siteName);
 
     return { success: true, data: { title: post.title, html: finalHtml } };
-  } catch (e: any) {
-    return { success: false, error: e.message || "Ошибка загрузки документа" };
+  } catch (e) {
+    const err = e as Error;
+    return { success: false, error: err.message || "Ошибка загрузки документа" };
   }
 }

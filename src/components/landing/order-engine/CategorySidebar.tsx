@@ -59,7 +59,7 @@ export function CategorySidebar({ engine }: { engine: OrderEngine }) {
   }, [availableCategories]);
 
   return (
-    <div className="hidden md:flex lg:flex-col flex-row flex-wrap lg:flex-nowrap lg:border-r border-border/50 p-4 lg:p-6 gap-3 bg-content2/50 shrink-0 lg:w-[280px] xl:w-[320px] items-center lg:items-stretch lg:sticky lg:top-24">
+    <div data-testid="category-sidebar" className="hidden md:flex lg:flex-col flex-row flex-wrap lg:flex-nowrap lg:border-r border-border/50 p-4 lg:p-6 gap-3 bg-content2/50 shrink-0 lg:w-[280px] xl:w-[320px] items-center lg:items-stretch lg:sticky lg:top-24">
       {sortedCategories.map(cat => (
         <button
           key={cat.id}
