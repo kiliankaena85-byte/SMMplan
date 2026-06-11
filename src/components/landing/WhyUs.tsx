@@ -22,7 +22,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
           Платформа нового поколения
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium">
-          Более 10 000 клиентов доверяют {companyName} своё продвижение не просто так. Мы переосмыслили B2B опыт накрутки.
+          Более 10 000 клиентов доверяют {companyName} своё продвижение не просто так. Мы переосмыслили B2B опыт продвижения.
         </p>
       </div>
 

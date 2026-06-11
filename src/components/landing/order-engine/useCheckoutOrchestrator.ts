@@ -243,7 +243,7 @@ export function useCheckoutOrchestrator({
 
     if (hasWarnings && !engine.isWarningConfirmed) {
       engine.setWarningHasError(true);
-      toast.error("Пожалуйста, подтвердите согласие с особенностями накрутки (отметьте галочку согласия в предупреждениях).", { 
+      toast.error("Пожалуйста, подтвердите согласие с особенностями продвижения (отметьте галочку согласия в предупреждениях).", { 
         position: 'top-center',
         duration: 5000 
       });

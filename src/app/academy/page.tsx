@@ -81,7 +81,7 @@ export default async function AcademyPage() {
             <div className="text-center space-y-2">
               <h3 className="text-xl font-extrabold text-foreground">Академия наполняется знаниями</h3>
               <p className="text-sm text-muted-foreground max-w-md leading-relaxed mx-auto">
-                Наши SMM-эксперты прямо сейчас готовят руководства по оформлению заказов, обходу алгоритмов списаний Telegram/VK и тонкостям B2B-накрутки. Заглядывайте сюда чаще!
+                Наши SMM-эксперты прямо сейчас готовят руководства по оформлению заказов, обходу алгоритмов списаний Telegram/VK и тонкостям B2B-продвижения. Заглядывайте сюда чаще!
               </p>
             </div>
             <Link
@@ -126,7 +126,7 @@ export default async function AcademyPage() {
                   </h3>
 
                   <p className="text-xs font-semibold text-muted-foreground leading-relaxed mb-6 line-clamp-3">
-                    {lesson.excerpt || 'Подробное методическое руководство по настройке накрутки в социальных сетях.'}
+                    {lesson.excerpt || 'Подробное методическое руководство по настройке продвижения в социальных сетях.'}
                   </p>
 
                   <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground select-none">

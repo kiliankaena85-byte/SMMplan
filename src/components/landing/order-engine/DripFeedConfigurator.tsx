@@ -41,7 +41,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <p className="text-[11px] font-black text-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-primary" /> Плавная накрутка (Drip-Feed)
+            <Activity className="w-3.5 h-3.5 text-primary" /> Плавная продвижение (Drip-Feed)
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
             Распределите выполнение заказа на части, чтобы имитировать естественный рост

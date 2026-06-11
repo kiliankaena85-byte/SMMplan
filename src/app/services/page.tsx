@@ -8,7 +8,7 @@ export const revalidate = 3600;
 
 export const metadata = {
   title: "Каталог услуг & База знаний | SMMplan",
-  description: "Премиальная bento-панель продвижения и обучения SMMplan. Найдите экспертные руководства, проверьте лимиты соцсетей и выберите тарифы накрутки.",
+  description: "Премиальная bento-панель продвижения и обучения SMMplan. Найдите экспертные руководства, проверьте лимиты соцсетей и выберите тарифы продвижения.",
 };
 
 export default async function ServicesCatalogPage() {

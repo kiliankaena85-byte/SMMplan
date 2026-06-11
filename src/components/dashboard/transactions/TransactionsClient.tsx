@@ -330,7 +330,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
           <p className="text-2xl font-black text-foreground tabular-nums">
             {stats.totalSpent.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
           </p>
-          <p className="text-xs text-muted-foreground mt-1.5 font-medium">Списания за услуги накрутки</p>
+          <p className="text-xs text-muted-foreground mt-1.5 font-medium">Списания за услуги продвижения</p>
         </div>
 
         {/* KPI: Refunds */}
@@ -680,7 +680,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
             <div className="text-4xl mb-3">💸</div>
             <h4 className="text-sm font-extrabold text-foreground">История операций пуста</h4>
             <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed mt-1">
-              Здесь будут отображаться пополнения счета, оплаты тарифов накрутки и отмены заказов.
+              Здесь будут отображаться пополнения счета, оплаты тарифов продвижения и отмены заказов.
             </p>
           </div>
         )}

@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: { params: Promise<{ network: 
   if (!net || !cat) return { title: "Страница не найдена" };
 
   return {
-    title: `Накрутка ${cat.name} в ${net.name} | Дешево и быстро | SMMplan`,
+    title: `Продвижение ${cat.name} в ${net.name} | Дешево и быстро | SMMplan`,
     description: `Лучший сервис для ${cat.name} в ${net.name}. Профессиональное продвижение, мгновенный старт, поштучные заказы и гарантия от списаний.`,
     alternates: {
       canonical: `/services/${network}/${category}`,

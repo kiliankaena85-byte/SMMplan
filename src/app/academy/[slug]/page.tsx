@@ -103,7 +103,7 @@ export default async function AcademyArticlePage({ params }: AcademyArticlePageP
             href="/"
             className="flex items-center gap-1.5 text-xs font-extrabold text-primary hover:text-primary-foreground hover:bg-primary/10 border border-primary/20 px-4 py-2 rounded-full transition-all"
           >
-            Заказать накрутку
+            Заказать продвижение
           </Link>
         </div>
       </header>

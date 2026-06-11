@@ -20,10 +20,10 @@ export function DripFeedSettings({
       <button 
         type="button" 
         onClick={() => setEnabled(true)}
-        aria-label="Добавить Drip-feed (Плавная накрутка)"
+        aria-label="Добавить Drip-feed (Плавная продвижение)"
         className="w-full sm:w-auto h-11 flex items-center justify-center text-sm font-medium text-success-text hover:bg-success/20 bg-success/10 px-4 rounded-xl border border-success/20"
       >
-        + Добавить Drip-feed (Плавная накрутка)
+        + Добавить Drip-feed (Плавная продвижение)
       </button>
     );
   }

@@ -286,7 +286,7 @@ export function ArticleForm({ initialData }: ArticleFormProps) {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Например: Как накрутить подписчиков в Telegram безопасно"
+                placeholder="Например: Как продвинуть подписчиков в Telegram безопасно"
                 className="w-full h-11 px-4 rounded-xl border border-border bg-background text-foreground text-sm font-medium focus:outline-none focus:border-primary transition-colors"
                 required
               />

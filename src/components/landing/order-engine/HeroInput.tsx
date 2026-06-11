@@ -73,7 +73,7 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
                 onClick={() => {
                   setEmail(url.trim());
                   setUrl("");
-                  toast.success("Отлично! Мы сохранили ваш Email. Теперь вставьте ссылки на накрутку.");
+                  toast.success("Отлично! Мы сохранили ваш Email. Теперь вставьте ссылки на продвижение.");
                 }}
                 className="bg-primary text-primary-foreground font-bold rounded-xl"
               >

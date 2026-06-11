@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ network: 
   if (!net) return { title: "Сеть не найдена" };
 
   return {
-    title: `Накрутка ${net.name} | Купить подписчиков и лайки | SMMplan`,
+    title: `Продвижение ${net.name} | Купить подписчиков и лайки | SMMplan`,
     description: `Премиальное продвижение в ${net.name}. Заказ от 1 штуки, гарантия качества, быстрый старт и удобный сервис.`,
   };
 }
@@ -257,14 +257,14 @@ export default async function NetworkServicesPage({ params }: { params: Promise<
 
           {renderServiceSection(
             "Лайки, Просмотры & Активность",
-            "Накрутка просмотров на посты/Reels, лайков, реакций и репостов для охвата алгоритмами",
+            "Продвижение просмотров на посты/Reels, лайков, реакций и репостов для охвата алгоритмами",
             <Sparkles className="w-5 h-5" />,
             activityGoal
           )}
 
           {renderServiceSection(
             "Интерактив & Другие услуги",
-            "Специфические услуги накрутки (опросы, Telegram Stars, индивидуальный заказ)",
+            "Специфические услуги продвижения (опросы, Telegram Stars, индивидуальный заказ)",
             <Shield className="w-5 h-5" />,
             customGoal
           )}

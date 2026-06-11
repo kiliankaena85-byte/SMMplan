@@ -11,11 +11,11 @@ export async function generateMetadata() {
   const siteName = settings.SITE_NAME || "SMMplan";
   
   return {
-    title: `Накрутка подписчиков и просмотров в Telegram, Instagram, VK | ${siteName}`,
+    title: `Продвижение подписчиков и просмотров в Telegram, Instagram, VK | ${siteName}`,
     description: settings.SITE_DESCRIPTION || "Оптовая B2B платформа продвижения в соцсетях. Надежно и конфиденциально. Мгновенный старт.",
     openGraph: {
       title: `${siteName} — Продвижение в соцсетях`,
-      description: settings.SITE_DESCRIPTION || "Профессиональная накрутка подписчиков, просмотров, лайков для бизнеса.",
+      description: settings.SITE_DESCRIPTION || "Профессиональная продвижение подписчиков, просмотров, лайков для бизнеса.",
       type: "website",
     },
   };
@@ -80,7 +80,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
       
       {/* Static SEO block visible only to search engines */}
       <section id="services-catalog" className="sr-only">
-        <h1>Накрутка подписчиков и просмотров в соцсетях</h1>
+        <h1>Продвижение подписчиков и просмотров в соцсетях</h1>
         {catalog.map((network) => (
           <div key={network.id}>
             <h2>{network.name}</h2>

@@ -239,7 +239,7 @@ function renderSteps(platform: Platform, contentType: ContentType, device: "mobi
       steps.push(
         {
           title: "Откройте нужный пост/Reels",
-          desc: "Перейдите к публикации, на которую хотите накрутить лайки или просмотры.",
+          desc: "Перейдите к публикации, на которую хотите продвинуть лайки или просмотры.",
           svg: (
             <svg viewBox="0 0 240 180" className="w-full h-full max-h-[130px]" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="50" y="10" width="140" height="160" rx="16" fill="currentColor" className="text-content2 stroke-border/40" strokeWidth="1" />
@@ -586,7 +586,7 @@ function renderSteps(platform: Platform, contentType: ContentType, device: "mobi
       steps.push(
         {
           title: "Найдите нужный комментарий",
-          desc: "Перейдите к обсуждению под постом. Найдите комментарий, на который хотите накрутить лайки.",
+          desc: "Перейдите к обсуждению под постом. Найдите комментарий, на который хотите продвинуть лайки.",
           svg: (
             <svg viewBox="0 0 240 180" className="w-full h-full max-h-[130px]" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="50" y="10" width="140" height="160" rx="16" fill="currentColor" stroke="currentColor" strokeWidth="1" className="text-content2 stroke-border/40" />
@@ -706,7 +706,7 @@ function renderFooterWarning(platform: Platform, contentType: ContentType) {
 
   if (platform === "vk") {
     if (contentType === "post") {
-      warningText = "ВНИМАНИЕ: Если вы скопируете ссылку на изображение во вложении (например, vk.com/photo-XXX_YYY) вместо поста на стене, накрутка лайков на публикацию не сработает! Обязательно кликайте на сам текст записи.";
+      warningText = "ВНИМАНИЕ: Если вы скопируете ссылку на изображение во вложении (например, vk.com/photo-XXX_YYY) вместо поста на стене, продвижение лайков на публикацию не сработает! Обязательно кликайте на сам текст записи.";
       type = "warning";
     } else if (contentType === "comment") {
       warningText = "ДЛЯ НАКРУТКИ НА ОТВЕТ: Ссылка обязана содержать параметр ?reply=XXXX в конце. Наша система автоматически распознает его и накрутит лайки именно на этот комментарий. Не стирайте этот параметр!";
@@ -717,14 +717,14 @@ function renderFooterWarning(platform: Platform, contentType: ContentType) {
     }
   } else if (platform === "telegram") {
     if (contentType === "photo") {
-      warningText = "ДЛЯ АЛЬБОМОВ: Указание ссылки на конкретное фото с параметром ?single позволяет накрутить просмотры именно на этот медиафайл. Убедитесь, что канал публичный.";
+      warningText = "ДЛЯ АЛЬБОМОВ: Указание ссылки на конкретное фото с параметром ?single позволяет продвинуть просмотры именно на этот медиафайл. Убедитесь, что канал публичный.";
       type = "success";
     } else {
-      warningText = "ДЛЯ ЗАКРЫТЫХ КАНАЛОВ: Накрутка подписчиков работает только при указании временной пригласительной ссылки вида t.me/+... Накрутка просмотров постов на закрытые каналы технически невозможна.";
+      warningText = "ДЛЯ ЗАКРЫТЫХ КАНАЛОВ: Продвижение подписчиков работает только при указании временной пригласительной ссылки вида t.me/+... Продвижение просмотров постов на закрытые каналы технически невозможна.";
       type = "warning";
     }
   } else if (platform === "instagram") {
-    warningText = "УБЕДИТЕСЬ, что ваш профиль является открытым (публичным) на время выполнения заказа. Накрутка на приватные (закрытые) аккаунты или истории технически невозможна.";
+    warningText = "УБЕДИТЕСЬ, что ваш профиль является открытым (публичным) на время выполнения заказа. Продвижение на приватные (закрытые) аккаунты или истории технически невозможна.";
     type = "warning";
   }
 

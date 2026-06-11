@@ -170,7 +170,7 @@ export default async function DashboardPage() {
         >
           <div>
             <div className="font-bold text-lg text-foreground tracking-tight mb-0.5 group-hover:text-primary transition-colors">Новый заказ</div>
-            <div className="text-sm text-muted-foreground font-medium">Накрутка подписчиков, просмотров</div>
+            <div className="text-sm text-muted-foreground font-medium">Продвижение подписчиков, просмотров</div>
           </div>
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
             <ShoppingCart className="w-6 h-6" />

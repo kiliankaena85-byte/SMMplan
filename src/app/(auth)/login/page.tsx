@@ -96,7 +96,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
               Продвижение<br />в социальных<br />сетях
             </div>
             <p className="text-primary-foreground/70 text-base leading-relaxed">
-              Быстрая накрутка подписчиков, лайков и просмотров. 
+              Быстрая продвижение подписчиков, лайков и просмотров. 
               Результат в течение нескольких минут.
             </p>
           </div>

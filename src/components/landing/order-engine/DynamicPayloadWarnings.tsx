@@ -117,7 +117,7 @@ export function DynamicPayloadWarnings({ engine, minimalMode }: DynamicPayloadWa
     const targetCat = activeNetwork?.categories.find(c => c.name.toLowerCase().match(/(лайк|просмотр|реакц|репост|коммент)/i));
     if (targetCat) {
       swapSuggestion = {
-        text: "Вы вставили ссылку на публикацию (пост), но выбрали категорию накрутки подписчиков. Хотите переключить на лайки или просмотры?",
+        text: "Вы вставили ссылку на публикацию (пост), но выбрали категорию продвижения подписчиков. Хотите переключить на лайки или просмотры?",
         categoryId: targetCat.id,
         categoryName: targetCat.name
       };
@@ -126,7 +126,7 @@ export function DynamicPayloadWarnings({ engine, minimalMode }: DynamicPayloadWa
     const targetCat = activeNetwork?.categories.find(c => c.name.toLowerCase().match(/(подписчик|фолловер|участник|канал|групп|буст|профиль|друзья)/i));
     if (targetCat) {
       swapSuggestion = {
-        text: "Вы вставили ссылку на профиль/канал, но выбрали категорию накрутки лайков или просмотров. Хотите переключить на подписчиков?",
+        text: "Вы вставили ссылку на профиль/канал, но выбрали категорию продвижения лайков или просмотров. Хотите переключить на подписчиков?",
         categoryId: targetCat.id,
         categoryName: targetCat.name
       };
@@ -248,7 +248,7 @@ export function DynamicPayloadWarnings({ engine, minimalMode }: DynamicPayloadWa
            <Info className="w-5 h-5 shrink-0 mt-0.5 text-warning-text" />
            <div className="text-sm">
              <p className="font-bold">Ссылка на медиафайл VK</p>
-             <p className="mt-1 opacity-90">Чтобы накрутить весь пост, скопируйте ссылку на саму запись (формата <code>vk.com/wall...</code>) вместо фото/видео.</p>
+             <p className="mt-1 opacity-90">Чтобы продвинуть весь пост, скопируйте ссылку на саму запись (формата <code>vk.com/wall...</code>) вместо фото/видео.</p>
            </div>
          </div>
       )}

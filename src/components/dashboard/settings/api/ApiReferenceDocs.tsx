@@ -198,8 +198,8 @@ export function ApiReferenceDocs({ userApiKey }: ApiReferenceDocsProps) {
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed mt-1">
               {activeAction === 'services' && 'Возвращает полный каталог активных услуг, доступных лимитов и тарифов с учетом вашей персональной скидки реселлера.'}
-              {activeAction === 'add' && 'Создает новый заказ в системе накрутки. Сумма заказа рассчитывается автоматически и списывается с баланса вашего API-аккаунта.'}
-              {activeAction === 'status' && 'Query-опрос состояния заказа. Позволяет узнать остаток невыполненной накрутки (remains) и текущий статус выполнения.'}
+              {activeAction === 'add' && 'Создает новый заказ в системе продвижения. Сумма заказа рассчитывается автоматически и списывается с баланса вашего API-аккаунта.'}
+              {activeAction === 'status' && 'Query-опрос состояния заказа. Позволяет узнать остаток невыполненной продвижения (remains) и текущий статус выполнения.'}
               {activeAction === 'balance' && 'Быстрый запрос текущего остатка средств на балансе в рублях РФ.'}
             </p>
           </div>
@@ -252,13 +252,13 @@ export function ApiReferenceDocs({ userApiKey }: ApiReferenceDocsProps) {
                         <td className="py-2.5 px-4 font-mono font-bold text-foreground">link</td>
                         <td className="py-2.5 px-4 text-muted-foreground">string</td>
                         <td className="py-2.5 px-4 text-rose-500 font-bold">Да</td>
-                        <td className="py-2.5 px-4 text-muted-foreground">Ссылка на объект накрутки (профиль, пост, канал).</td>
+                        <td className="py-2.5 px-4 text-muted-foreground">Ссылка на объект продвижения (профиль, пост, канал).</td>
                       </tr>
                       <tr>
                         <td className="py-2.5 px-4 font-mono font-bold text-foreground">quantity</td>
                         <td className="py-2.5 px-4 text-muted-foreground">int</td>
                         <td className="py-2.5 px-4 text-rose-500 font-bold">Да</td>
-                        <td className="py-2.5 px-4 text-muted-foreground">Количество накрутки (в рамках мин/макс лимитов).</td>
+                        <td className="py-2.5 px-4 text-muted-foreground">Количество продвижения (в рамках мин/макс лимитов).</td>
                       </tr>
                     </>
                   )}

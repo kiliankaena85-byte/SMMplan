@@ -24,7 +24,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   
   if (activeCategory !== "Все") {
     title = `Статьи по теме ${activeCategory} | База знаний SMMplan`;
-    description = `Инструкции и руководства в категории "${activeCategory}" для эффективной накрутки и продвижения.`;
+    description = `Инструкции и руководства в категории "${activeCategory}" для эффективной продвижения и продвижения.`;
   }
   
   if (searchQuery) {
