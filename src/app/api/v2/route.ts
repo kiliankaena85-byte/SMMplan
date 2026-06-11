@@ -260,7 +260,44 @@ async function handleCancel(user: User, formData: FormData) {
     return NextResponse.json({ error: 'Missing order parameter' }, { status: 400 });
   }
 
-  return NextResponse.json({ error: 'Cancellation via API is not supported. Contact support.' }, { status: 400 });
+  const ids = ordersStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)).slice(0, 100);
+  
+  // Fetch orders
+  const orders = await db.order.findMany({
+    where: { numericId: { in: ids }, userId: user.id }
+  });
+
+  const resultMap: Record<string, string> = {};
+
+  for (const id of ids) {
+    const order = orders.find(o => o.numericId === id);
+    if (!order) {
+      resultMap[id.toString()] = 'Incorrect order ID';
+      continue;
+    }
+
+    if (order.status === 'PENDING' || order.status === 'AWAITING_PAYMENT') {
+      const cancelResult = await orderService.cancelPendingOrderClient(order.id, user.id);
+      if (cancelResult.success) {
+        resultMap[id.toString()] = 'Cancelled and refunded';
+      } else {
+        resultMap[id.toString()] = cancelResult.error || 'Cancellation failed';
+      }
+    } else {
+      resultMap[id.toString()] = 'Order is already in progress or completed. Contact support.';
+    }
+  }
+
+  // If it's a single order request, standard SMM API returns error/success at root level
+  if (!formData.get('orders') && ids.length === 1) {
+    const resultMsg = resultMap[ids[0].toString()];
+    if (resultMsg === 'Cancelled and refunded') {
+       return NextResponse.json({ success: true, message: resultMsg });
+    }
+    return NextResponse.json({ error: resultMsg }, { status: 400 });
+  }
+
+  return NextResponse.json(resultMap);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
