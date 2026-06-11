@@ -402,7 +402,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             </div>
 
             {/* Sidebar Widgets (Conversion & Pricing) */}
-            <aside className="lg:col-span-1 space-y-6">
+            <aside className="lg:col-span-1 space-y-6 sticky top-24 self-start">
               <div className="bg-card rounded-2xl border border-border/80 p-6 shadow-sm space-y-4">
                 <h2 className="text-lg font-extrabold text-foreground tracking-tight border-b border-border/40 pb-2">
                   Рекомендуемые услуги
@@ -441,8 +441,8 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                         </div>
 
                         <Link
-                          href={`/dashboard/new-order?serviceId=${s.id}`}
-                          className="min-h-[44px] w-full px-4 py-2 bg-primary text-primary-foreground font-bold rounded-full text-xs flex items-center justify-center hover:opacity-95 transition-opacity mt-2 text-center"
+                          href={`/?serviceId=${s.id}`}
+                          className="min-h-[44px] w-full px-4 py-2 bg-primary text-primary-foreground font-bold rounded-full text-xs flex items-center justify-center hover:opacity-95 transition-opacity mt-2 text-center shadow-sm"
                         >
                           Заказать услугу
                         </Link>

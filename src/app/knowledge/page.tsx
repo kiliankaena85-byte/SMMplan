@@ -116,205 +116,141 @@ export default async function KnowledgePage({ searchParams }: PageProps) {
             <SearchAutocomplete initialSearch={searchQuery} activeCategory={activeCategory} />
           </section>
 
-          {/* Responsive Grid Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-            
-            {/* LEFT SIDEBAR: Category Tree Navigation */}
-            <aside className="lg:col-span-1 space-y-6">
-              
-              {/* Desktop & Mobile Category Tree Card */}
-              <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-sm space-y-4">
-                <h2 className="text-sm font-extrabold text-foreground tracking-wider uppercase border-b border-border/40 pb-2 flex items-center gap-2 select-none">
-                  📁 Разделы Базы Знаний
-                </h2>
-                
-                {/* Category Tree Navigation Node List */}
-                <nav className="space-y-2" aria-label="Категории статей">
-                  
-                  {/* 1. Reset / All Articles Link */}
-                  <Link 
-                    href="/knowledge"
-                    className={`w-full min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 transition-all duration-200 hover:bg-muted ${
-                      activeCategory === "Все" 
-                        ? "bg-primary/10 text-primary" 
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-current={activeCategory === "Все" ? "page" : undefined}
-                  >
-                    📚 Все разделы и статьи
-                  </Link>
+          {/* Horizontal Filter Tabs instead of Sidebar */}
+          <div className="mb-10 w-full overflow-x-auto pb-4 hide-scrollbar">
+            <nav className="flex items-center justify-center gap-3 w-max mx-auto px-4" aria-label="Категории статей">
+              <Link 
+                href="/knowledge"
+                className={`min-h-[44px] px-6 py-2.5 rounded-full text-sm font-bold flex items-center justify-center transition-all duration-200 border ${
+                  activeCategory === "Все" 
+                    ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20" 
+                    : "bg-card text-foreground border-border hover:border-primary/50 hover:bg-muted"
+                }`}
+              >
+                Все статьи
+              </Link>
 
-                  {/* 2. Interactive Folders for Target Categories */}
-                  {Object.entries(groupedArticles).map(([catName, catArticles]) => {
-                    const isSelected = activeCategory === catName;
-                    
-                    return (
-                      <details 
-                        key={catName} 
-                        className="group space-y-1"
-                        open={isSelected || catArticles.some(a => a.category === activeCategory)}
-                      >
-                        <summary className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-extrabold flex items-center justify-between cursor-pointer list-none transition-all duration-200 hover:bg-muted select-none text-foreground">
-                          <span className="flex items-center gap-2">
-                            📁 {catName}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground transition-transform duration-200 group-open:rotate-90">
-                            ▶
-                          </span>
-                        </summary>
+              {Object.keys(groupedArticles).map((catName) => {
+                const isSelected = activeCategory === catName;
+                return (
+                  <Link 
+                    key={catName}
+                    href={`/knowledge?category=${encodeURIComponent(catName)}`}
+                    className={`min-h-[44px] px-6 py-2.5 rounded-full text-sm font-bold flex items-center justify-center transition-all duration-200 border ${
+                      isSelected 
+                        ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20" 
+                        : "bg-card text-foreground border-border hover:border-primary/50 hover:bg-muted"
+                    }`}
+                  >
+                    {catName}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* RIGHT SIDE: Main listing column */}
+          <div className="space-y-6 w-full max-w-6xl mx-auto">
+            
+            {/* Active Category Header info */}
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-card border border-border/80 rounded-2xl p-4 shadow-sm select-none">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-sm font-medium">Активный раздел:</span>
+                <span className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">
+                  {activeCategory}
+                </span>
+              </div>
+              
+              <div className="text-xs text-muted-foreground font-medium">
+                Найдено публикаций: <span className="text-foreground font-bold">{articles.length}</span>
+              </div>
+            </div>
+
+            {/* Empty State */}
+            {articles.length === 0 && (
+              <div className="w-full bg-card rounded-2xl border border-border/80 p-12 text-center shadow-sm">
+                <div className="text-4xl mb-4">🔍</div>
+                <h3 className="text-xl font-bold text-foreground mb-2">Статьи не найдены</h3>
+                <p className="text-muted-foreground max-w-md mx-auto text-sm leading-relaxed">
+                  {searchQuery 
+                    ? `По вашему запросу "${searchQuery}" ничего не найдено. Попробуйте изменить параметры поиска или фильтрации.`
+                    : "В данной категории пока нет опубликованных статей. Загляните сюда чуть позже!"}
+                </p>
+                {(searchQuery || activeCategory !== "Все") && (
+                  <Link 
+                    href="/knowledge" 
+                    className="inline-flex items-center justify-center min-h-[44px] mt-6 px-6 bg-primary text-primary-foreground rounded-full font-semibold text-sm hover:opacity-95 active:scale-[0.98] transition-all shadow-sm cursor-pointer"
+                  >
+                    Сбросить все фильтры
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {/* Symmetrical Grid of Articles */}
+            {articles.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {articles.map((article) => {
+                  const dateStr = new Date(article.createdAt).toLocaleDateString("ru-RU", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric"
+                  });
+
+                  return (
+                    <article 
+                      key={article.id} 
+                      className="group bg-card rounded-[1.5rem] border border-border/80 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+                    >
+                      {/* Decorative card header */}
+                      <div className="bg-gradient-to-br from-primary/10 to-transparent h-24 flex items-start p-6 border-b border-border/50 relative overflow-hidden">
+                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                         </div>
+                        <span className="bg-primary text-primary-foreground px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm z-10">
+                          {article.category}
+                        </span>
+                      </div>
+                      
+                      {/* Main content area */}
+                      <div className="p-6 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h2 className="text-lg font-extrabold text-foreground mb-3 tracking-tight line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                            {article.title}
+                          </h2>
+                          <p className="text-muted-foreground text-xs md:text-sm line-clamp-3 mb-6 leading-relaxed">
+                            {article.description}
+                          </p>
+                        </div>
                         
-                        {/* Nested articles links inside tree folder */}
-                        <div className="pl-4 border-l border-border ml-3 space-y-1 pt-1">
+                        {/* Read More & Stats */}
+                        <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-auto">
                           <Link 
-                            href={`/knowledge?category=${encodeURIComponent(catName)}`}
-                            className={`w-full min-h-[44px] px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-200 hover:bg-muted ${
-                              isSelected 
-                                ? "text-primary bg-primary/5" 
-                                : "text-muted-foreground hover:text-foreground"
-                            }`}
+                            href={`/knowledge/${article.slug}`} 
+                            className="text-primary font-bold text-sm min-h-[44px] flex items-center hover:opacity-80 transition-all"
+                            aria-label={`Читать статью: ${article.title}`}
                           >
-                            📄 Смотреть всё ({catArticles.length})
+                            Читать далее &rarr;
                           </Link>
                           
-                          {catArticles.length === 0 ? (
-                            <span className="block px-3 py-2 text-[11px] text-muted-foreground italic">
-                              Нет статей
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
+                            <span className="flex items-center gap-1 select-none">
+                              👁️ {article.viewCount}
                             </span>
-                          ) : (
-                            catArticles.map((art) => (
-                              <Link
-                                key={art.id}
-                                href={`/knowledge/${art.slug}`}
-                                className="w-full min-h-[44px] px-3 py-2 rounded-lg text-xs flex items-center transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted leading-tight"
-                              >
-                                • {art.title}
-                              </Link>
-                            ))
-                          )}
-                        </div>
-                      </details>
-                    );
-                  })}
-                </nav>
-              </div>
-
-              {/* Quick SMM Help (Sidebar helper widget) */}
-              <div className="bg-card rounded-2xl border border-border/80 p-6 shadow-sm text-center space-y-3 hidden lg:block">
-                <div className="text-3xl">🚀</div>
-                <h3 className="text-md font-extrabold text-foreground">Нужна помощь?</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Не можете определиться с выбором услуги или стратегии? Задайте вопрос в круглосуточную поддержку!
-                </p>
-                <Link 
-                  href="/support" 
-                  className="min-h-[44px] inline-flex w-full items-center justify-center px-4 py-2 bg-secondary text-secondary-foreground font-bold rounded-full text-xs hover:opacity-90 active:scale-[0.98] transition-all"
-                >
-                  Написать в саппорт
-                </Link>
-              </div>
-
-            </aside>
-
-            {/* RIGHT SIDE: Main listing column */}
-            <main className="lg:col-span-3 space-y-6">
-              
-              {/* Active Category Header info */}
-              <div className="flex flex-wrap items-center justify-between gap-4 bg-card border border-border/80 rounded-2xl p-4 shadow-sm select-none">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground text-sm font-medium">Активный раздел:</span>
-                  <span className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">
-                    {activeCategory}
-                  </span>
-                </div>
-                
-                <div className="text-xs text-muted-foreground font-medium">
-                  Найдено публикаций: <span className="text-foreground font-bold">{articles.length}</span>
-                </div>
-              </div>
-
-              {/* Empty State */}
-              {articles.length === 0 && (
-                <div className="w-full bg-card rounded-2xl border border-border/80 p-12 text-center shadow-sm">
-                  <div className="text-4xl mb-4">🔍</div>
-                  <h3 className="text-xl font-bold text-foreground mb-2">Статьи не найдены</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto text-sm leading-relaxed">
-                    {searchQuery 
-                      ? `По вашему запросу "${searchQuery}" ничего не найдено. Попробуйте изменить параметры поиска или фильтрации.`
-                      : "В данной категории пока нет опубликованных статей. Загляните сюда чуть позже!"}
-                  </p>
-                  {(searchQuery || activeCategory !== "Все") && (
-                    <Link 
-                      href="/knowledge" 
-                      className="inline-flex items-center justify-center min-h-[44px] mt-6 px-6 bg-primary text-primary-foreground rounded-full font-semibold text-sm hover:opacity-95 active:scale-[0.98] transition-all shadow-sm cursor-pointer"
-                    >
-                      Сбросить все фильтры
-                    </Link>
-                  )}
-                </div>
-              )}
-
-              {/* Symmetrical Grid of Articles */}
-              {articles.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {articles.map((article) => {
-                    const dateStr = new Date(article.createdAt).toLocaleDateString("ru-RU", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric"
-                    });
-
-                    return (
-                      <article 
-                        key={article.id} 
-                        className="bg-card rounded-2xl border border-border/80 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200"
-                      >
-                        {/* Decorative card header */}
-                        <div className="bg-primary/5 h-20 flex items-center px-6 border-b border-border/50">
-                          <span className="bg-primary/10 text-primary px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                            {article.category}
-                          </span>
-                        </div>
-                        
-                        {/* Main content area */}
-                        <div className="p-6 flex-1 flex flex-col justify-between">
-                          <div>
-                            <h2 className="text-lg md:text-xl font-extrabold text-foreground mb-3 tracking-tight line-clamp-2 leading-tight">
-                              {article.title}
-                            </h2>
-                            <p className="text-muted-foreground text-xs md:text-sm line-clamp-3 mb-6 leading-relaxed">
-                              {article.description}
-                            </p>
-                          </div>
-                          
-                          {/* Read More & Stats */}
-                          <div className="flex items-center justify-between pt-4 border-t border-border/40">
-                            <Link 
-                              href={`/knowledge/${article.slug}`} 
-                              className="text-primary font-bold text-sm min-h-[44px] flex items-center hover:opacity-80 active:scale-[0.98] transition-all"
-                              aria-label={`Читать статью: ${article.title}`}
-                            >
-                              Читать далее →
-                            </Link>
-                            
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
-                              <span className="flex items-center gap-1 select-none">
-                                👁️ {article.viewCount}
-                              </span>
-                              <span>•</span>
-                              <time dateTime={article.createdAt.toString()}>
-                                {dateStr}
-                              </time>
-                            </div>
+                            <span>&bull;</span>
+                            <time dateTime={article.createdAt.toString()}>
+                              {dateStr}
+                            </time>
                           </div>
                         </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
-            </main>
-
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </div>
+
         </div>
       </main>
 

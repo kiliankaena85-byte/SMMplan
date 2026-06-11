@@ -64,7 +64,13 @@ function sortCategories(categories: any[]) {
   });
 }
 
-export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmail: string = "") {
+export function useOrderEngine(
+  initialCatalog: PublicNetwork[] = [], 
+  initialEmail: string = "", 
+  initialServiceId: string = "",
+  initialCategoryId: string = "",
+  initialNetworkId: string = ""
+) {
   const sortedInitialCatalog: PublicNetwork[] = useMemo(() => {
     return initialCatalog.map(net => ({
       ...net,
@@ -75,10 +81,10 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
   // Smart defaults: preselect Telegram + Подписчики so user can browse immediately.
   // User chooses their own path: link-first OR browse-first — we don't restrict.
   const defaultNet = sortedInitialCatalog.length > 0 
-    ? (sortedInitialCatalog.find((n: PublicNetwork) => n.slug === 'telegram') || sortedInitialCatalog[0]) 
+    ? (initialNetworkId ? sortedInitialCatalog.find(n => n.id === initialNetworkId) : null) || (sortedInitialCatalog.find((n: PublicNetwork) => n.slug === 'telegram') || sortedInitialCatalog[0]) 
     : null;
   const defaultCat = defaultNet && defaultNet.categories.length > 0 
-    ? (defaultNet.categories.find((c: PublicCategory) => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0]) 
+    ? (initialCategoryId ? defaultNet.categories.find(c => c.id === initialCategoryId) : null) || (defaultNet.categories.find((c: PublicCategory) => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0]) 
     : null;
 
   const [url, setUrl] = useState("");
@@ -224,6 +230,11 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
           // Set defaults if they are still empty
           setNetworkId((current: string) => {
             if (!current && sortedData.length > 0) {
+              if (initialNetworkId) {
+                if (initialCategoryId) setCategoryId(initialCategoryId);
+                return initialNetworkId;
+              }
+
               const defNet = sortedData.find((n: PublicNetwork) => n.slug === 'telegram') || sortedData[0];
               if (defNet) {
                 const defCat = defNet.categories.find((c: PublicCategory) => c.name.toLowerCase().includes('подписчики')) || defNet.categories[0];
@@ -237,8 +248,13 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
           });
         }
       });
+    } else if (catalog.length > 0 && initialNetworkId && !hasFetchedCatalog.current) {
+       hasFetchedCatalog.current = true;
+       // We already have the catalog, try to auto-select from initial properties
+       setNetworkId(initialNetworkId);
+       if (initialCategoryId) setCategoryId(initialCategoryId);
     }
-  }, [catalog.length]);
+  }, [catalog.length, initialNetworkId, initialCategoryId]);
 
   // 2. Analyze URL (Debounced)
   useEffect(() => {
@@ -392,12 +408,21 @@ export function useOrderEngine(initialCatalog: PublicNetwork[] = [], initialEmai
       
       // WAVE 5 UX: Completely disable automatic service pre-selection on category change.
       // The user must explicitly read and click to choose a service card.
-      setSelectedService(null);
+      if (initialServiceId && !selectedServiceRef.current) {
+         const found = sortedSvcs.find(s => s.id === initialServiceId);
+         if (found) {
+            setSelectedService(found);
+         } else {
+            setSelectedService(null);
+         }
+      } else {
+         setSelectedService(null);
+      }
       setIsLoading(false);
     };
 
     loadServices();
-  }, [categoryId]);
+  }, [categoryId, initialServiceId]);
 
   // 4. Update quantity limits when Service changes or initializes
   useEffect(() => {

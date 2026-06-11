@@ -2,7 +2,10 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-const outDir = 'C:/Users/Артём/.gemini/antigravity/brain/f32ad398-9c40-4383-8245-6568e47faf97';
+const outDir = process.env.AUDIT_OUTPUT_DIR || path.join(process.cwd(), 'visual_audit_assets');
+if (!fs.existsSync(outDir)) {
+  fs.mkdirSync(outDir, { recursive: true });
+}
 const reportPath = path.join(outDir, 'visual-audit-report.md');
 const reportJsonPath = path.join(outDir, 'visual-audit-report.json');
 
@@ -25,7 +28,10 @@ async function runScreenshots() {
   try {
     const captureScript = path.join(__dirname, 'capture-all-pages.ts');
     console.log(`Запуск: npx tsx "${captureScript}"`);
-    execSync(`npx tsx "${captureScript}"`, { stdio: 'inherit' });
+    execSync(`npx tsx "${captureScript}"`, { 
+      stdio: 'inherit',
+      env: { ...process.env, AUDIT_OUTPUT_DIR: outDir }
+    });
     console.log('\x1b[32m✓ Скриншоты успешно сгенерированы!\x1b[0m\n');
   } catch (error) {
     console.error('\x1b[31m❌ Ошибка при генерации скриншотов Playwright:\x1b[0m', error);

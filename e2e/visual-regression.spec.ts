@@ -55,11 +55,11 @@ test.describe('Visual Regression QA for Admin Panel', () => {
 
         // Идемпотентный поиск или создание Категории
         let category = await localPrisma.category.findFirst({
-          where: { name: 'Подписчики Telegram', networkId: network.id }
+          where: { name: 'Подписчики', networkId: network.id }
         });
         if (!category) {
           category = await localPrisma.category.create({
-            data: { name: 'Подписчики Telegram', sort: 1, networkId: network.id }
+            data: { name: 'Подписчики', sort: 1, networkId: network.id }
           });
         }
 
@@ -69,7 +69,12 @@ test.describe('Visual Regression QA for Admin Panel', () => {
         });
         if (!provider) {
           provider = await localPrisma.provider.create({
-            data: { name: 'E2E Test Provider', apiUrl: 'http://localhost:3001/api/dev/mock-provider', apiKey: 'test_key' }
+            data: { name: 'E2E Test Provider', apiUrl: 'http://localhost:3001/api/dev/mock-provider', apiKey: process.env.MOCK_PROVIDER_KEY || 'dev_mock_key' }
+          });
+        } else {
+          provider = await localPrisma.provider.update({
+            where: { id: provider.id },
+            data: { apiKey: process.env.MOCK_PROVIDER_KEY || 'dev_mock_key', apiUrl: 'http://localhost:3001/api/dev/mock-provider' }
           });
         }
 
@@ -83,6 +88,7 @@ test.describe('Visual Regression QA for Admin Panel', () => {
               name: 'Telegram Подписчики (Эконом)',
               categoryId: category.id,
               providerId: provider.id,
+              externalId: '1',
               rate: 1.5,
               minQty: 10,
               maxQty: 10000,
@@ -94,6 +100,7 @@ test.describe('Visual Regression QA for Admin Panel', () => {
           await localPrisma.service.update({
             where: { id: service.id },
             data: {
+              externalId: '1',
               rate: 1.5,
               minQty: 10,
               maxQty: 10000,
@@ -113,6 +120,7 @@ test.describe('Visual Regression QA for Admin Panel', () => {
               name: 'E2E Quarantined Service',
               categoryId: category.id,
               providerId: provider.id,
+              externalId: '2',
               rate: 10.0,
               isQuarantined: true,
               pendingRate: 20.0,
@@ -125,6 +133,7 @@ test.describe('Visual Regression QA for Admin Panel', () => {
           await localPrisma.service.update({
             where: { id: quarantinedService.id },
             data: {
+              externalId: '2',
               rate: 10.0,
               isQuarantined: true,
               pendingRate: 20.0,
@@ -336,19 +345,25 @@ test.describe('Visual Regression QA for Admin Panel', () => {
     await showTariffsBtn.click();
     await guestPage.waitForTimeout(2000);
 
+    // Click category "Подписчики" in CategorySidebar
+    const categoryBtn = guestPage.locator('[data-testid="category-sidebar"] button:has-text("Подписчики")').first();
+    await expect(categoryBtn).toBeVisible();
+    await categoryBtn.click();
+    await guestPage.waitForTimeout(1000);
+
     // 4. Click the first Telegram service card in the desktop grid
     const firstServiceCard = guestPage.locator('div.group.w-full.flex.flex-col.p-6').first();
     await expect(firstServiceCard).toBeVisible({ timeout: 15000 });
     await firstServiceCard.click();
     await guestPage.waitForTimeout(1000);
 
-    // 5. Fill quantity in StickyCheckoutBar
-    const qtyInput = guestPage.locator('input[type="number"]').first();
+    // 5. Fill quantity in StickyCheckoutBar (scoped to desktop bar container to avoid hidden mobile fields)
+    const qtyInput = guestPage.locator('div.fixed.bottom-6 input[type="number"]').first();
     await expect(qtyInput).toBeVisible();
     await qtyInput.fill('100');
 
-    // 6. Fill Guest email in StickyCheckoutBar
-    const emailInput = guestPage.locator('input[type="email"]').first();
+    // 6. Fill Guest email in StickyCheckoutBar (scoped to desktop bar container to avoid hidden mobile fields)
+    const emailInput = guestPage.locator('div.fixed.bottom-6 input[type="email"]').first();
     await expect(emailInput).toBeVisible();
     await emailInput.fill('e2e-guest-checkout@test.com');
     await guestPage.waitForTimeout(1000);
@@ -361,6 +376,12 @@ test.describe('Visual Regression QA for Admin Panel', () => {
         guestPage.locator('button:has-text("Оплатить")')
       ]
     });
+
+    // Check the legal consent checkbox to enable the pay button
+    const legalCheckbox = guestPage.locator('input#desktop-legal-checkbox').first();
+    await expect(legalCheckbox).toBeVisible();
+    await legalCheckbox.dispatchEvent('click');
+    await guestPage.waitForTimeout(500);
 
     // 7. Submit order and intercept simulator redirect
     const payBtn = guestPage.locator('div.fixed.bottom-6 button:has-text("Оплатить")').first();
@@ -425,31 +446,47 @@ test.describe('Visual Regression QA for Admin Panel', () => {
       `
     });
 
-    // 3. Вводим ссылку на Telegram пост для активации предупреждения Telegram просмотров
+    // 3. Вводим ссылку на Telegram канал
     const urlInput = mobilePage.locator('input#standard-url-input').first();
     await expect(urlInput).toBeVisible();
-    await urlInput.fill('https://t.me/durov/12');
+    await urlInput.fill('https://t.me/durov');
+    await urlInput.blur();
+    await mobilePage.waitForTimeout(2000);
+
+    // Выбираем категорию "Подписчики"
+    const categoryButton = mobilePage.locator('[data-testid="mobile-wizard"] button:has-text("Подписчики")').first();
+    await expect(categoryButton).toBeVisible();
+    await categoryButton.click();
     await mobilePage.waitForTimeout(1000);
 
-    // 4. Выбираем первый тариф в MobileWizard (так как категория "Просмотры" должна быть выбрана автоматически анализатором ссылок)
+    // 4. Выбираем первый тариф в MobileWizard (это подписчики, т.к. ссылка ведет на канал)
     const tariffButton = mobilePage.locator('div.grid-cols-1 button').first();
     await expect(tariffButton).toBeVisible();
     await tariffButton.click();
     await mobilePage.waitForTimeout(1000);
 
-    // 5. Переходим к шагу 2
-    const nextBtn = mobilePage.locator('button:has-text("Далее")').first();
-    await expect(nextBtn).toBeVisible();
-    await nextBtn.click();
+    // Кликаем по свернутому шагу 1 (содержащему "Ссылка:"), чтобы раскрыть его перед вводом
+    const step1CollapsedBtn = mobilePage.locator('button:has-text("Ссылка:")').first();
+    await expect(step1CollapsedBtn).toBeVisible();
+    await step1CollapsedBtn.click();
+    await mobilePage.waitForTimeout(500);
+
+    // Вводим ссылку на пост для провоцирования ошибки валидации (потому что выбран тариф на подписчиков)
+    await urlInput.fill('https://t.me/durov/12');
+    await urlInput.blur();
     await mobilePage.waitForTimeout(1000);
 
-    // 6. Заполняем email и количество
-    const emailInput = mobilePage.locator('input[type="email"]').first();
+    // Нажимаем Enter в поле ввода, чтобы принудительно перейти к шагу 4
+    await urlInput.press('Enter');
+    await mobilePage.waitForTimeout(1000);
+
+    // 6. Заполняем email и количество (в прогрессивном скролле поля уже видны)
+    const emailInput = mobilePage.locator('input#email-input').first();
     await expect(emailInput).toBeVisible();
     await emailInput.fill('e2e-mobile-warnings@test.com');
 
-    // Убеждаемся, что предупреждение о медиагруппах и чекбокс отображаются на Шаге 2
-    const warningConfirmContainer = mobilePage.locator('div.bg-warning\\/5').first();
+    // Убеждаемся, что предупреждение о медиагруппах и чекбокс отображаются
+    const warningConfirmContainer = mobilePage.locator('div.bg-warning\\/5', { has: mobilePage.locator('input#warning-confirm-checkbox') }).first();
     await expect(warningConfirmContainer).toBeVisible();
 
     // 7. Сначала активируем обход проверки ссылки (так как ссылка на пост, а категория подписчиков)
@@ -458,8 +495,14 @@ test.describe('Visual Regression QA for Admin Panel', () => {
     await overrideBtn.click();
     await mobilePage.waitForTimeout(1000);
 
+    // Check the legal consent checkbox to enable the pay button
+    const legalCheckbox = mobilePage.locator('input#standard-legal-checkbox').first();
+    await expect(legalCheckbox).toBeVisible();
+    await legalCheckbox.click();
+    await mobilePage.waitForTimeout(500);
+
     // 8. Нажимаем кнопку оплаты без активации согласия (чекбокс предупреждения)
-    const payBtn = mobilePage.locator('button:has-text("Оплатить")').first();
+    const payBtn = mobilePage.locator('button:has-text("Заказать")').first();
     await expect(payBtn).toBeVisible();
     await payBtn.click();
     await mobilePage.waitForTimeout(1000);

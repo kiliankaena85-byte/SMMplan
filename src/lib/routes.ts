@@ -13,6 +13,7 @@ export const ROUTES = {
     TERMS: '/legal/terms',
     PRIVACY: '/legal/privacy',
     REFUND: '/legal/refund',
+    COOKIE: '/legal/cookie',
   },
   SUPPORT: '/support',
   FAQ: '/#faq',

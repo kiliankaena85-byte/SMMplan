@@ -118,7 +118,7 @@ export function UrlMatcherWidget({ services }: UrlMatcherWidgetProps) {
                 </div>
 
                 <Link
-                  href={`/dashboard/new-order?serviceId=${s.id}`}
+                  href={`/?serviceId=${s.id}`}
                   className="min-h-[44px] h-11 w-full px-4 py-2 bg-primary text-primary-foreground font-bold rounded-[10px] text-xs flex items-center justify-center hover:opacity-95 transition-opacity mt-1 text-center"
                 >
                   Заказать эту услугу

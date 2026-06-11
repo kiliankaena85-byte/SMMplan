@@ -113,6 +113,29 @@ async function main() {
     fs.cpSync(path.join(process.cwd(), 'public'), path.join(distPath, 'public'), { recursive: true });
     fs.cpSync(path.join(process.cwd(), 'src'), path.join(distPath, 'src'), { recursive: true });
 
+    const standalonePrismaPath = path.join(process.cwd(), '.next/standalone/node_modules/.prisma');
+    if (fs.existsSync(standalonePrismaPath)) {
+      log.info('Копирование бинарников Prisma...');
+      fs.cpSync(standalonePrismaPath, path.join(distPath, 'node_modules/.prisma'), { recursive: true });
+    }
+
+
+    // FIX FOR WINDOWS: Convert backslashes to forward slashes in Next.js manifests so they work on Linux
+    const manifestsToFix = [
+      path.join(distPath, '.next', 'server', 'app-paths-manifest.json'),
+      path.join(distPath, '.next', 'server', 'pages-manifest.json'),
+      path.join(distPath, '.next', 'server', 'middleware-manifest.json'),
+      path.join(distPath, '.next', 'prerender-manifest.json'),
+      path.join(distPath, '.next', 'routes-manifest.json')
+    ];
+    for (const manifestPath of manifestsToFix) {
+      if (fs.existsSync(manifestPath)) {
+        let content = fs.readFileSync(manifestPath, 'utf-8');
+        content = content.replace(/\\\\/g, '/');
+        fs.writeFileSync(manifestPath, content, 'utf-8');
+      }
+    }
+
     // Создание tarball
     log.info('Упаковка архива...');
     execSync(`tar -czf "${archivePath}" -C "${distPath}" .`);

@@ -36,7 +36,10 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 export function SmartLinkLanding({
   initialCatalog,
   initialEmail,
-  contactSettings
+  contactSettings,
+  initialServiceId = "",
+  initialCategoryId = "",
+  initialNetworkId = ""
 }: {
   initialCatalog: PublicNetwork[];
   initialEmail?: string;
@@ -49,9 +52,12 @@ export function SmartLinkLanding({
     LEGAL_OGRNIP?: string;
     LEGAL_ADDRESS?: string;
   };
+  initialServiceId?: string;
+  initialCategoryId?: string;
+  initialNetworkId?: string;
 }) {
   const companyName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "SMMplan";
-  const engine = useOrderEngine(initialCatalog, initialEmail);
+  const engine = useOrderEngine(initialCatalog, initialEmail, initialServiceId, initialCategoryId, initialNetworkId);
   const {
     url, setUrl,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -3,8 +3,13 @@ import { SignJWT } from 'jose';
 import path from 'path';
 import { PrismaClient } from '@prisma/client';
 
+import fs from 'fs';
+
 const prisma = new PrismaClient();
-const outDir = 'C:/Users/Артём/.gemini/antigravity/brain/f32ad398-9c40-4383-8245-6568e47faf97';
+const outDir = process.env.AUDIT_OUTPUT_DIR || path.join(process.cwd(), 'visual_audit_assets');
+if (!fs.existsSync(outDir)) {
+  fs.mkdirSync(outDir, { recursive: true });
+}
 
 async function main() {
   console.log('[1/5] Инициализация авторизации...');

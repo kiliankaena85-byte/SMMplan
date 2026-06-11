@@ -21,7 +21,23 @@ export async function generateMetadata() {
   };
 }
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const params = await searchParams;
+  const initialServiceId = typeof params.serviceId === 'string' ? params.serviceId : undefined;
+  let initialCategoryId: string | undefined = undefined;
+  let initialNetworkId: string | undefined = undefined;
+
+  if (initialServiceId) {
+    const service = await db.service.findUnique({
+      where: { id: initialServiceId },
+      select: { categoryId: true, category: { select: { networkId: true } } }
+    });
+    if (service) {
+      initialCategoryId = service.categoryId;
+      initialNetworkId = service.category.networkId || undefined;
+    }
+  }
+
   const catalogResult = await getPublicCatalogAction();
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
@@ -79,7 +95,14 @@ export default async function Home() {
 
       {/* Interactive App */}
       <main id="main-content" tabIndex={-1} className="outline-none">
-        <SmartLinkLanding initialCatalog={catalog} initialEmail={userEmail} contactSettings={settings} />
+        <SmartLinkLanding 
+          initialCatalog={catalog} 
+          initialEmail={userEmail} 
+          contactSettings={settings} 
+          initialServiceId={initialServiceId} 
+          initialCategoryId={initialCategoryId}
+          initialNetworkId={initialNetworkId}
+        />
       </main>
     </>
   );

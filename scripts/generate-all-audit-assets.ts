@@ -6,8 +6,15 @@ import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
 
 const prisma = new PrismaClient();
-const outDir = 'd:/SMM_plan_2/visual_audit_assets';
+const outDir = process.env.AUDIT_OUTPUT_DIR || 'd:/SMM_plan_2/visual_audit_assets';
 const lhDir = path.join(outDir, 'lighthouse');
+
+if (!fs.existsSync(outDir)) {
+  fs.mkdirSync(outDir, { recursive: true });
+}
+if (!fs.existsSync(lhDir)) {
+  fs.mkdirSync(lhDir, { recursive: true });
+}
 
 const pages = [
   { slug: 'landing', path: '/', auth: false },
@@ -22,9 +29,9 @@ const pages = [
 ];
 
 const breakpoints = [
-  { name: '375px', width: 375, height: 812 },
-  { name: '768px', width: 768, height: 1024 },
-  { name: '1440px', width: 1440, height: 900 }
+  { name: '320px', width: 320, height: 568 },
+  { name: '390px', width: 390, height: 844 },
+  { name: '430px', width: 430, height: 932 }
 ];
 
 async function main() {
