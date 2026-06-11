@@ -150,6 +150,13 @@ telegramWorker.on('failed', (job, err) => { log.error('Telegram notification fai
 paymentSyncWorker.on('failed', (job, err) => { handleDeadLetter('paymentSyncQueue', job, err); });
 refillWorker.on('failed', (job, err) => { handleDeadLetter('refillQueue', job, err); });
 articlePublishWorker.on('failed', (job, err) => { handleDeadLetter('articlePublishQueue', job, err); });
+etaWorker.on('failed', (job, err) => {
+  log.error('[etaWorker] Job failed', {
+    jobId: job?.id,
+    jobName: job?.name,
+    error: err?.message,
+  });
+});
 
 // ── P0.3: Worker heartbeat (Redis key, renewed every 60s) ─────────────────────
 // health endpoint checks for this key; if missing → worker is down

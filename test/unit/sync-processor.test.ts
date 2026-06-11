@@ -24,6 +24,13 @@ vi.mock('@/lib/db', () => {
       findMany: vi.fn().mockResolvedValue([{ id: 'prov-1', apiUrl: 'https://api.provider.com', apiKey: 'encrypted-key' }]),
       update: vi.fn()
     },
+    refill: {
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn()
+    },
+    smartCampaign: {
+      findMany: vi.fn().mockResolvedValue([])
+    },
     $transaction: vi.fn(async (cb) => cb(mockDb))
   };
   return { db: mockDb };

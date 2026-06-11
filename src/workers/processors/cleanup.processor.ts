@@ -159,6 +159,13 @@ export async function runCleanup(): Promise<void> {
     log.error('runCleanup: runInProgressTTLSweep failed', { error: ttlErr.message });
   }
 
+  // ── 6. Orders: Stuck PENDING_CHECK TTL Sweep ────────────────────────────
+  try {
+    await runPendingCheckTTLSweep();
+  } catch (pcErr: any) {
+    log.error('runCleanup: runPendingCheckTTLSweep failed', { error: pcErr.message });
+  }
+
   const durationMs = Date.now() - startedAt;
   log.info('Daily cleanup completed', {
     durationMs,
@@ -440,6 +447,83 @@ export async function runInProgressTTLSweep(): Promise<void> {
     );
   } else {
     log.info('InProgress TTL sweep completed: no stuck orders found');
+  }
+}
+
+/**
+ * PENDING_CHECK TTL Sweep: Finds orders stuck in PENDING_CHECK for >24 hours.
+ * These orders have charged the user's balance but never reached a provider.
+ * Refunds the full amount and marks as ERROR.
+ */
+export async function runPendingCheckTTLSweep(): Promise<void> {
+  const PENDING_CHECK_TTL_HOURS = 24;
+  const threshold = new Date(Date.now() - PENDING_CHECK_TTL_HOURS * 60 * 60 * 1000);
+
+  const stuckOrders = await db.order.findMany({
+    where: {
+      status: 'PENDING_CHECK',
+      createdAt: { lt: threshold }
+    },
+    select: {
+      id: true,
+      numericId: true,
+      userId: true,
+      charge: true,
+    },
+    take: 100
+  });
+
+  if (stuckOrders.length === 0) return;
+
+  const { WalletOps } = await import('@/services/financial/wallet-ops');
+  const { LoyaltyService } = await import('@/services/users/loyalty.service');
+  const { sendAdminAlert } = await import('@/lib/notifications');
+
+  let processedCount = 0;
+
+  for (const order of stuckOrders) {
+    try {
+      await db.$transaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: order.id, status: 'PENDING_CHECK' },
+          data: {
+            status: 'ERROR',
+            error: `Автоотмена: заказ завис в PENDING_CHECK более ${PENDING_CHECK_TTL_HOURS}ч`,
+            updatedAt: new Date()
+          }
+        });
+
+        if (updated.count === 0) return;
+
+        await LoyaltyService.reverseCommission(tx, order.id);
+
+        if (order.charge > 0) {
+          const refundKey = `refund-pending-check-ttl-${order.id}`;
+          const existing = await tx.ledgerEntry.findFirst({ where: { idempotencyKey: refundKey } });
+          if (!existing) {
+            await WalletOps.refund(
+              tx,
+              order.userId,
+              Number(order.charge),
+              `Авто-возврат: заказ #${order.numericId} завис в PENDING_CHECK`,
+              { idempotencyKey: refundKey }
+            );
+          }
+        }
+
+        processedCount++;
+      }, { isolationLevel: 'Serializable' });
+    } catch (err: any) {
+      log.error(`runPendingCheckTTLSweep: failed for order ${order.id}`, { error: err.message });
+    }
+  }
+
+  if (processedCount > 0) {
+    log.info(`PENDING_CHECK TTL sweep completed`, { processedCount });
+    await sendAdminAlert(
+      `⏱️ *pending-check-ttl*\nОчищено зависших PENDING_CHECK заказов: ${processedCount}`,
+      'WARNING'
+    );
   }
 }
 

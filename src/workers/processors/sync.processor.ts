@@ -238,5 +238,47 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     log.error('Failed to execute Orphan Sweeper', { cause: e });
   }
 
+  // Smart Drip 2.5: Auto-compensation tick
+  try {
+    const { SmartFeedbackLoopProcessor } = await import('./smart-feedback-loop.processor');
+    await SmartFeedbackLoopProcessor.runSmartFeedbackLoopTick();
+  } catch (err: any) {
+    log.error('[SyncProcessor] SmartFeedbackLoop tick failed', { error: err.message });
+  }
+
+  // Refill Status Sync: Poll provider for refill completion
+  try {
+    const pendingRefills = await db.refill.findMany({
+      where: { status: 'IN_PROGRESS' },
+      include: {
+        order: {
+          include: { service: { include: { provider: true } } }
+        }
+      },
+      take: 50
+    });
+
+    for (const refill of pendingRefills) {
+      try {
+        const provider = refill.order?.service?.provider;
+        if (!provider || !refill.externalId) continue;
+
+        const client = await providerService.getWorkerProviderInstance(provider);
+        const res = await client.getRefillStatus(refill.externalId);
+
+        if (res && res.status && res.status !== 'In progress' && res.status !== 'Pending') {
+          await db.refill.update({
+            where: { id: refill.id },
+            data: { status: res.status === 'Completed' ? 'COMPLETED' : 'ERROR' }
+          });
+        }
+      } catch (refillErr: any) {
+        log.error(`[SyncProcessor] Refill sync failed for ${refill.id}`, { error: refillErr.message });
+      }
+    }
+  } catch (refillGlobalErr: any) {
+    log.error('[SyncProcessor] Refill sync section failed', { error: refillGlobalErr.message });
+  }
+
   log.info('Finished massive status sync.');
 }

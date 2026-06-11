@@ -65,7 +65,8 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
         method: 'GET',
         headers: {
           'Authorization': authHeader
-        }
+        },
+        signal: AbortSignal.timeout(15000)
       });
 
       if (!response.ok) {
