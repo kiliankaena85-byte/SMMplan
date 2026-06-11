@@ -17,6 +17,7 @@ node_modules
 *.zip
 
 # ── Analysis & report outputs ──
+*.log
 eslint_report.json
 eslint_report.html
 tsc-*.txt

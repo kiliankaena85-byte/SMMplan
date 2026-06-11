@@ -3,7 +3,7 @@ const nextConfig = {
   output: "standalone",
   serverExternalPackages: ["@blocknote/core", "@blocknote/react", "@blocknote/server-util", "bullmq", "ioredis", "sanitize-html"],
 
-  typescript: { ignoreBuildErrors: true },
+  typescript: { ignoreBuildErrors: false },
 
   transpilePackages: ["@base-ui/react"],
 
