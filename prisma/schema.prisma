@@ -49,7 +49,7 @@ model User {
   payments        Payment[]
   tickets         Ticket[]
   auditLogs       AuditLog[]
-  ledgerLogs      LedgerEntry[]   @relation("UserLedger")
+  ledgerLogs      LedgerEntry[]    @relation("UserLedger")
   invoices        Invoice[]
   smartCampaigns  SmartCampaign[]
   promoCodeUsages PromoCodeUsage[]
@@ -69,21 +69,21 @@ model User {
   staffRoleId String?
   staffRole   StaffRole? @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
 
-  b2bConfig   B2bConfig?
+  b2bConfig B2bConfig?
 }
 
 model B2bConfig {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isB2b           Boolean  @default(true)
-  prioritySupport Boolean  @default(true) // Выделение и приоритетная поддержка
-  webhookUrl      String?  // Webhook URL для синхронизации тикетов
-  webhookSecret   String?  // Секретный ключ подписи вебхуков B2B
-  customLimitCents Int?    // Кастомный лимит компенсаций (если null — лимит не применяется!)
+  id               String  @id @default(cuid())
+  userId           String  @unique
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isB2b            Boolean @default(true)
+  prioritySupport  Boolean @default(true) // Выделение и приоритетная поддержка
+  webhookUrl       String? // Webhook URL для синхронизации тикетов
+  webhookSecret    String? // Секретный ключ подписи вебхуков B2B
+  customLimitCents Int? // Кастомный лимит компенсаций (если null — лимит не применяется!)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PromoCode {
@@ -158,17 +158,17 @@ model UrlPattern {
 }
 
 model Category {
-  id        String    @id @default(cuid())
-  name      String
-  slug      String    @unique @default(cuid())
-  networkId String?
-  network   Network?  @relation(fields: [networkId], references: [id], onDelete: Restrict)
+  id             String    @id @default(cuid())
+  name           String
+  slug           String    @unique @default(cuid())
+  networkId      String?
+  network        Network?  @relation(fields: [networkId], references: [id], onDelete: Restrict)
   sort           Int       @default(0)
   requireWarning Boolean   @default(false)
   warningMessage String?
   services       Service[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([networkId])
 }
@@ -237,6 +237,7 @@ model Service {
   @@index([categoryId])
   @@index([providerId])
   @@index([isQuarantined])
+  @@index([externalId])
 }
 
 model Provider {
@@ -297,7 +298,7 @@ model Order {
   // Lifecycle Wait specifics
   waitingUntil DateTime?
 
-  discountCents BigInt      @default(0)
+  discountCents BigInt  @default(0)
   promoCodeId   String?
 
   createdAt DateTime @default(now())
@@ -347,7 +348,7 @@ model Payment {
 
   orderId String? @unique // Legacy pointer, no longer used as the active Prisma relation
 
-  orders Order[]
+  orders         Order[]
   smartCampaigns SmartCampaign[]
   tickets        Ticket[]
 
@@ -493,8 +494,8 @@ model Ticket {
   orderId String?
   order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
-  paymentId        String?
-  payment          Payment?     @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
   firstRespondedAt DateTime? // SLA: First Response Time (FRT)
   resolvedAt       DateTime? // SLA: Time to Resolution (TTR)
@@ -509,6 +510,8 @@ model Ticket {
   @@index([source])
   @@index([orderId])
   @@index([paymentId])
+  @@index([status])
+  @@index([status, createdAt])
 }
 
 model TicketMessage {
@@ -643,6 +646,7 @@ model LedgerEntry {
   @@index([userId])
   @@index([status])
   @@index([adminId])
+  @@index([adminId, createdAt])
 }
 
 model SupportTemplate {
@@ -949,25 +953,25 @@ model ServiceSmartConfig {
   maxChunk          Int      @default(200)
   markup            Float    @default(0.15)
   providersPriority String[] @default([])
-  
-  // Smart Drip 2.5 extensions
-  useInviteBuffer   Boolean  @default(false)
-  autoCompensate    Boolean  @default(true)
-  checkIntervalMins Int      @default(120)
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  // Smart Drip 2.5 extensions
+  useInviteBuffer   Boolean @default(false)
+  autoCompensate    Boolean @default(true)
+  checkIntervalMins Int     @default(120)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SmartChannelMetric {
-  id              String        @id @default(cuid())
-  campaignId      String
-  campaign        SmartCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  recordedAt      DateTime      @default(now())
-  memberCount     Int
-  delta           Int
-  detectedDrops   Int           @default(0)
-  compensatedQty  Int           @default(0)
+  id             String        @id @default(cuid())
+  campaignId     String
+  campaign       SmartCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  recordedAt     DateTime      @default(now())
+  memberCount    Int
+  delta          Int
+  detectedDrops  Int           @default(0)
+  compensatedQty Int           @default(0)
 
   @@index([campaignId])
 }
@@ -991,20 +995,20 @@ model SmartDetectedUser {
 }
 
 model PromoCodeUsage {
-  id            String    @id @default(cuid())
-  promoCodeId   String
-  promoCode     PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orderId       String?   @unique
-  order         Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  
-  discountCents BigInt    // Exact discount given in cents
-  revenueCents  BigInt    // Order payment (order.charge) in cents
-  profitCents   BigInt    // Margin (order.charge - order.providerCost) in cents
-  
-  isSuspicious  Boolean   @default(false)
-  createdAt     DateTime  @default(now())
+  id          String    @id @default(cuid())
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId     String?   @unique
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  discountCents BigInt // Exact discount given in cents
+  revenueCents  BigInt // Order payment (order.charge) in cents
+  profitCents   BigInt // Margin (order.charge - order.providerCost) in cents
+
+  isSuspicious Boolean  @default(false)
+  createdAt    DateTime @default(now())
 
   @@index([promoCodeId])
   @@index([userId])
@@ -1033,4 +1037,3 @@ model Article {
   @@index([category, status])
   @@index([status])
 }
-
