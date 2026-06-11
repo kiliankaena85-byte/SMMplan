@@ -175,12 +175,7 @@ export const WalletOps = {
       throw new WalletInvalidAmountError('Adjustment');
     }
 
-    if (amountCents < 0) {
-      const user = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
-      if (!user || user.balance < Math.abs(amountCents)) {
-        throw new Error(`Insufficient balance for negative adjustment. User has ${user?.balance}, trying to deduct ${Math.abs(amountCents)}.`);
-      }
-    }
+
 
     const { idempotencyKey, adminId } = opts || {};
 
@@ -247,11 +242,18 @@ export const WalletOps = {
         }
       }
 
+      // Read current totalSpent first to cap the decrement
+      const currentUser = await tx.user.findUnique({
+        where: { id: userId },
+        select: { totalSpent: true }
+      });
+      const safeDecrement = Math.min(amountCents, Number(currentUser?.totalSpent ?? 0));
+
       const updatedUser = await tx.user.update({
         where: { id: userId },
         data: {
           balance: { increment: amountCents },
-          totalSpent: { decrement: amountCents }
+          totalSpent: safeDecrement > 0 ? { decrement: safeDecrement } : undefined
         },
         select: { balance: true }
       });

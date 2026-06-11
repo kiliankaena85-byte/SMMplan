@@ -172,13 +172,32 @@ export class PaymentService {
               `Оплата корзины заказов через шлюз`,
               { idempotencyKey: `gateway-credit-${processedPaymentId}` }
             );
-            // Charge each order individually
-            for (const order of basketOrders) {
-               await WalletOps.charge(tx, userId, Number(order.charge),
-                 `Списание за заказ #${order.numericId ?? order.id}`,
-                 { idempotencyKey: `gateway-charge-${order.id}` }
-               );
+
+            // Batch deduct total charge and log ledger entries
+            const totalChargeCents = basketOrders.reduce((sum, order) => sum + Number(order.charge), 0);
+            
+            const updatedUserBatch = await tx.user.updateMany({
+              where: {
+                id: userId,
+                balance: { gte: totalChargeCents }
+              },
+              data: {
+                balance: { decrement: totalChargeCents },
+                totalSpent: { increment: totalChargeCents }
+              }
+            });
+            if (updatedUserBatch.count === 0) {
+              throw new Error('INSUFFICIENT_FUNDS: Недостаточно средств для оплаты корзины');
             }
+
+            const ledgerData = basketOrders.map(order => ({
+              userId,
+              amount: -Number(order.charge),
+              reason: `Списание за заказ #${order.numericId ?? order.id}`,
+              status: 'APPROVED' as const,
+              idempotencyKey: `gateway-charge-${order.id}`
+            }));
+            await tx.ledgerEntry.createMany({ data: ledgerData });
 
         }
 
@@ -189,7 +208,7 @@ export class PaymentService {
             { idempotencyKey: `deposit-${processedPaymentId}` }
           );
         }
-      });
+      }, { isolationLevel: 'Serializable' });
 
       // Invalidate user dashboard cache so they see the new order & spending immediately
       revalidatePath('/dashboard', 'layout');
@@ -314,13 +333,32 @@ export class PaymentService {
               `Оплата корзины заказов через шлюз`,
               { idempotencyKey: `gateway-credit-${paymentId}` }
             );
-            // Charge each order individually
-            for (const order of basketOrders) {
-               await WalletOps.charge(tx, payment.userId, Number(order.charge),
-                 `Списание за заказ #${order.numericId ?? order.id}`,
-                 { idempotencyKey: `gateway-charge-${order.id}` }
-               );
+
+            // Batch deduct total charge and log ledger entries
+            const totalChargeCents = basketOrders.reduce((sum, order) => sum + Number(order.charge), 0);
+            
+            const updatedUserBatch = await tx.user.updateMany({
+              where: {
+                id: payment.userId,
+                balance: { gte: totalChargeCents }
+              },
+              data: {
+                balance: { decrement: totalChargeCents },
+                totalSpent: { increment: totalChargeCents }
+              }
+            });
+            if (updatedUserBatch.count === 0) {
+              throw new Error('INSUFFICIENT_FUNDS: Недостаточно средств для оплаты корзины');
             }
+
+            const ledgerData = basketOrders.map(order => ({
+              userId: payment.userId,
+              amount: -Number(order.charge),
+              reason: `Списание за заказ #${order.numericId ?? order.id}`,
+              status: 'APPROVED' as const,
+              idempotencyKey: `gateway-charge-${order.id}`
+            }));
+            await tx.ledgerEntry.createMany({ data: ledgerData });
 
         }
 

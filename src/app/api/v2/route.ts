@@ -284,7 +284,7 @@ async function handleCancel(user: User, formData: FormData) {
         resultMap[id.toString()] = cancelResult.error || 'Cancellation failed';
       }
     } else {
-      resultMap[id.toString()] = 'Order is already in progress or completed. Contact support.';
+      resultMap[id.toString()] = 'Cancellation via API is not supported. Contact support.';
     }
   }
 

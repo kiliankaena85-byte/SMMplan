@@ -15,7 +15,7 @@ interface AdminContext {
  * Returns the start of today in Moscow timezone (UTC+3).
  * All daily trust budget calculations anchor to 00:00 MSK.
  */
-function getMSKMidnightUTC(): Date {
+export function getMSKMidnightUTC(): Date {
   const now = new Date();
   // Current MSK time components
   const mskOffsetMs = 3 * 60 * 60 * 1000;
@@ -262,10 +262,17 @@ export class EscrowService {
       const entry = await tx.ledgerEntry.findUniqueOrThrow({ where: { id: entryId } });
       const user = await tx.user.findUniqueOrThrow({ where: { id: entry.userId } });
 
-      await tx.user.update({
-        where: { id: entry.userId },
+      const qUpdate = await tx.user.updateMany({
+        where: { id: entry.userId, quarantineBalance: { gte: entry.amount } },
         data: { quarantineBalance: { decrement: entry.amount } },
       });
+      if (qUpdate.count === 0) {
+        // Quarantine balance already drained (edge case) — force to 0
+        await tx.user.update({
+          where: { id: entry.userId },
+          data: { quarantineBalance: 0 },
+        });
+      }
 
       if (resolution === 'APPROVE') {
         await WalletOps.credit(

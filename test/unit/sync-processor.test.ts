@@ -17,15 +17,17 @@ const { mockOrderDb, mockGetMultiOrderStatus, mockProcessRefund, mockGetWorkerPr
   mockGetWorkerProviderInstance: vi.fn(),
 }));
 
-vi.mock('@/lib/db', () => ({
-  db: { 
+vi.mock('@/lib/db', () => {
+  const mockDb = {
     order: mockOrderDb,
     provider: { 
       findMany: vi.fn().mockResolvedValue([{ id: 'prov-1', apiUrl: 'https://api.provider.com', apiKey: 'encrypted-key' }]),
       update: vi.fn()
-    }
-  },
-}));
+    },
+    $transaction: vi.fn(async (cb) => cb(mockDb))
+  };
+  return { db: mockDb };
+});
 
 // Mock providerService (replaces old UniversalProvider mock after Ghost Proxy v2)
 vi.mock('@/services/providers/provider.service', () => ({
@@ -130,7 +132,7 @@ describe('SyncProcessor (QA-2: Order Lifecycle Engineer)', () => {
       where: { id: 'ord-sync-1' }, data: { status: 'CANCELED', remains: 1000 },
     });
     expect(mockProcessRefund).toHaveBeenCalledWith(
-      expect.anything(), expect.stringContaining('Отмена на стороне провайдера')
+      expect.anything(), expect.stringContaining('Отмена на стороне провайдера'), expect.anything()
     );
   });
 
