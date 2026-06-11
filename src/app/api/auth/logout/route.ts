@@ -32,7 +32,12 @@ export async function GET(request: Request) {
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 365, // 1 year
   });
-  const url = new URL('/login', request.url);
+  
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const proto = request.headers.get('x-forwarded-proto') || 'https';
+  const baseUrl = (host && !host.includes('0.0.0.0')) ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro');
+  const url = new URL('/login', baseUrl);
+  
   const response = NextResponse.redirect(url);
   response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
   return response;
@@ -51,7 +56,12 @@ export async function POST(request: Request) {
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 365, // 1 year
   });
-  const url = new URL('/login', request.url);
+  
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const proto = request.headers.get('x-forwarded-proto') || 'https';
+  const baseUrl = (host && !host.includes('0.0.0.0')) ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro');
+  const url = new URL('/login', baseUrl);
+  
   const response = NextResponse.redirect(url);
   response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
   return response;
