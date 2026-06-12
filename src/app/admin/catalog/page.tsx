@@ -28,6 +28,10 @@ type Props = {
     q?: string;
     cursor?: string;
     category?: string;
+    providerId?: string;
+    isActive?: string;
+    providerStatus?: string;
+    externalId?: string;
   }>;
 };
 
@@ -49,6 +53,11 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const search = params.q || '';
   const cursor = params.cursor || undefined;
   const categoryId = params.category || undefined;
+  const providerId = params.providerId || undefined;
+  const isActiveStr = params.isActive || undefined;
+  const isActive = isActiveStr === 'true' ? true : isActiveStr === 'false' ? false : undefined;
+  const providerStatus = params.providerStatus || undefined;
+  const externalId = params.externalId || undefined;
 
   const [
     { items: rawServices, nextCursor, hasMore },
@@ -62,6 +71,10 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
     adminCatalogService.listServices({
       search: search || undefined,
       categoryId,
+      providerId,
+      isActive,
+      providerStatus,
+      externalId,
       cursor,
       pageSize: 50,
     }),
@@ -105,6 +118,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       providerId: s.providerId ?? null,
       requireWarning: raw.requireWarning ?? false,
       warningMessage: raw.warningMessage ?? null,
+      cooldownReason: raw.cooldownReason ?? null,
     };
   });
 
@@ -193,44 +207,28 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
           </div>
         )}
 
-        {/* Search & Bulk Tools */}
-        <Card className="shadow-sm border border-border overflow-hidden">
-          <CardContent className="p-0">
-            <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
-              {/* Search Form */}
-              <form className="flex-1 flex items-center p-3 gap-2">
-                {categoryId && <input type="hidden" name="category" value={categoryId} />}
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    name="q"
-                    defaultValue={search}
-                    placeholder="Поиск по названию или ID..."
-                    className="w-full pl-9 pr-4 py-2 text-sm border-none bg-transparent outline-none placeholder:text-muted-foreground"
-                  />
-                  <ShoppingCart className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                </div>
-                <Button type="submit" intent="outline" size="sm">Найти</Button>
+        {/* Bulk Tools Panel */}
+        {canEditFinance && (
+          <Card className="shadow-sm border border-border overflow-hidden bg-card/50">
+            <CardContent className="p-3">
+              <form action={bulkUpdateMarkupAction} className="flex flex-wrap items-center gap-3">
+                {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-tight">Массовое обновление наценки:</span>
+                <input 
+                  type="number" step="0.1" name="markup" required 
+                  placeholder="Множитель" 
+                  className="w-24 px-3 py-1.5 text-xs font-mono border border-border rounded-xl bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                />
+                <SubmitButton size="sm" variant={categoryId ? "default" : "outline"} confirmMessage={categoryId ? "Применить маржу к выбранной категории?" : "ВНИМАНИЕ: Это изменит наценку ДЛЯ ВСЕХ УСЛУГ В БАЗЕ. Продолжить?"}>
+                  Применить
+                </SubmitButton>
+                <p className="text-[10px] text-muted-foreground ml-auto hidden sm:block">
+                  {categoryId ? "Изменит маржу только для текущей категории" : "Изменит маржу для всех услуг в базе данных"}
+                </p>
               </form>
-
-              {/* Bulk Markup Tool */}
-              {canEditFinance && (
-                <form action={bulkUpdateMarkupAction} className="md:w-auto flex items-center p-3 gap-3 bg-muted/50/50">
-                  {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-tight hidden lg:inline">Массовая маржа:</span>
-                  <input 
-                    type="number" step="0.1" name="markup" required 
-                    placeholder="Множитель" 
-                    className="w-24 px-2 py-1.5 text-xs font-mono border border-border rounded-md outline-none focus:ring-2 focus:ring-indigo-600/20"
-                  />
-                  <SubmitButton size="sm" variant={categoryId ? "default" : "outline"} confirmMessage={categoryId ? "Применить маржу к выбранной категории?" : "ВНИМАНИЕ: Это изменит наценку ДЛЯ ВСЕХ УСЛУГ В БАЗЕ. Продолжить?"}>
-                    Применить
-                  </SubmitButton>
-                </form>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <CatalogTable 
           services={services} 

@@ -59,6 +59,10 @@ class AdminCatalogService {
     cursor?: string;
     search?: string;
     categoryId?: string;
+    providerId?: string;
+    isActive?: boolean;
+    providerStatus?: string;
+    externalId?: string;
     pageSize?: number;
   }): Promise<PaginatedResult<CatalogRow>> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,6 +70,29 @@ class AdminCatalogService {
 
     if (params.categoryId) {
       where.categoryId = params.categoryId;
+    }
+
+    if (params.providerId) {
+      where.providerId = params.providerId === 'none' ? null : params.providerId;
+    }
+
+    if (params.isActive !== undefined) {
+      where.isActive = params.isActive;
+    }
+
+    if (params.providerStatus) {
+      if (params.providerStatus === 'active') {
+        where.providerId = { not: null };
+        where.cooldownReason = null;
+      } else if (params.providerStatus === 'zombie') {
+        where.cooldownReason = { in: ['ZOMBIE_AUTO_DISABLED', 'ZOMBIE_ARCHIVED'] };
+      } else if (params.providerStatus === 'manual') {
+        where.providerId = null;
+      }
+    }
+
+    if (params.externalId?.trim()) {
+      where.externalId = params.externalId.trim();
     }
 
     if (params.search?.trim()) {
