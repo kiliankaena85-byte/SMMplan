@@ -63,9 +63,9 @@ export class ServiceAuditEngine {
 
   /**
    * Audits a service, cleans advertising/contacts, and auto-corrects markup to 5.0 if it's below 5.0.
-   * Updates the database directly and writes a SERVICE_AUTO_FIX audit log.
+   * Returns an array of Prisma operations to be executed in a transaction, and writes a SERVICE_AUTO_FIX audit log.
    */
-  static async auditAndFixService(
+  static auditAndFixService(
     service: {
       id: string;
       name: string;
@@ -107,28 +107,26 @@ export class ServiceAuditEngine {
     const priceChanged = newPrice !== originalPrice;
     const markupChanged = newMarkup !== originalMarkup;
 
+    const payloads: unknown[] = [];
+
     if (nameChanged || descriptionChanged || priceChanged || markupChanged) {
-      await db.service.update({
-        where: { id: service.id },
-        data: {
-          name: cleanedName,
-          description: cleanedDescription,
-          markup: newMarkup,
-          pricePer1000Cents: newPrice,
-          isQuarantined: false,
-          quarantineReason: null,
-          quarantinedAt: null,
-        },
-      });
+      payloads.push(
+        db.service.update({
+          where: { id: service.id },
+          data: {
+            name: cleanedName,
+            description: cleanedDescription,
+            markup: newMarkup,
+            pricePer1000Cents: newPrice,
+          },
+        })
+      );
 
       // Update in-memory service object so calling methods see the fixed values
       service.name = cleanedName;
       service.description = cleanedDescription;
       service.markup = newMarkup;
       service.pricePer1000Cents = newPrice;
-      service.isQuarantined = false;
-      service.quarantineReason = null;
-      service.quarantinedAt = null;
 
       // Prepare diffs for AdminAuditLog
       const oldValue: Record<string, string | number | null> = {};
@@ -152,18 +150,22 @@ export class ServiceAuditEngine {
       }
 
       if (db.adminAuditLog) {
-        await db.adminAuditLog.create({
-          data: {
-            adminId: "system",
-            adminEmail: "system@smmplan.pro",
-            action: "SERVICE_AUTO_FIX",
-            target: service.id,
-            targetType: "SERVICE",
-            oldValue: JSON.stringify(oldValue),
-            newValue: JSON.stringify(newValue),
-          },
-        });
+        payloads.push(
+          db.adminAuditLog.create({
+            data: {
+              adminId: "system",
+              adminEmail: "system@smmplan.pro",
+              action: "SERVICE_AUTO_FIX",
+              target: service.id,
+              targetType: "SERVICE",
+              oldValue: JSON.stringify(oldValue),
+              newValue: JSON.stringify(newValue),
+            },
+          })
+        );
       }
     }
+    
+    return payloads;
   }
 }
