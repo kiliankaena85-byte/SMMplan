@@ -1,4 +1,11 @@
 /** @type {import('next').NextConfig} */
+console.log("=== NEXT BUILD ENV ===", { 
+  NODE_ENV: process.env.NODE_ENV, 
+  APP_ENV: process.env.APP_ENV, 
+  NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV, 
+  DATABASE_URL: process.env.DATABASE_URL 
+});
+
 const nextConfig = {
   output: "standalone",
   serverExternalPackages: ["@blocknote/core", "@blocknote/react", "@blocknote/server-util", "bullmq", "ioredis", "sanitize-html"],

@@ -9,7 +9,7 @@ async function main() {
 
   try {
     console.log(`🔍 Querying GraphRAG for: "${query}"...`);
-    const res = await fetch("http://localhost:8100/api/search", {
+    const res = await fetch("http://127.0.0.1:8100/api/search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

@@ -84,12 +84,46 @@ async function main() {
 
   // 3. Локальный билд Next.js
   log.info('2/6 Сборка Next.js приложения...');
+  
+  const envPath = path.join(process.cwd(), '.env');
+  const envBackupPath = path.join(process.cwd(), '.env.tmp_build_backup');
+  let envRenamed = false;
+  
   try {
-    execSync('npm run build', { stdio: 'inherit', env: { ...process.env, DISABLE_REDIS_CACHE: '1' } });
+    if (fs.existsSync(envPath)) {
+      log.info('Временное скрытие файла .env для чистой сборки...');
+      fs.renameSync(envPath, envBackupPath);
+      envRenamed = true;
+    }
+    
+    const nextPath = path.join(process.cwd(), '.next');
+    if (fs.existsSync(nextPath)) {
+      log.info('Очистка старого кэша Next.js сборки...');
+      fs.rmSync(nextPath, { recursive: true, force: true });
+    }
+    execSync('npm run build', { 
+      stdio: 'inherit', 
+      env: { 
+        ...process.env, 
+        DISABLE_REDIS_CACHE: '1',
+        APP_ENV: 'production',
+        NEXT_PUBLIC_APP_ENV: 'production',
+        DATABASE_URL: 'postgresql://db:5432/smmplan_lite?schema=public'
+      } 
+    });
     log.success('Сборка Next.js выполнена успешно.');
   } catch (err) {
     log.error('Сборка Next.js завершилась с ошибкой.');
+    if (envRenamed && fs.existsSync(envBackupPath)) {
+      fs.renameSync(envBackupPath, envPath);
+      envRenamed = false;
+    }
     process.exit(1);
+  } finally {
+    if (envRenamed && fs.existsSync(envBackupPath)) {
+      log.info('Восстановление локального файла .env...');
+      fs.renameSync(envBackupPath, envPath);
+    }
   }
 
   // 4. Подготовка архива патча

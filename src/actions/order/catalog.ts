@@ -79,7 +79,7 @@ export async function getPublicCatalogAction() {
       { revalidate: 60, tags: ['catalog'] }
     );
 
-    const rawNetworks = process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_APP_ENV === 'test'
+    const rawNetworks = SettingsProvider.isTestEnvironment()
       ? await db.network.findMany({
           where: {
             isActive: true,
@@ -143,7 +143,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
     );
 
     const [services, usdToRub] = await Promise.all([
-      process.env.NODE_ENV === 'test' || process.env.NEXT_PUBLIC_APP_ENV === 'test'
+      SettingsProvider.isTestEnvironment()
         ? db.service.findMany({
             where: { categoryId: categoryId, isActive: true },
             include: { smartConfig: true },

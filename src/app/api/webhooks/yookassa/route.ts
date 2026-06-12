@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     if (ip) {
       const isLocalhost = ip === '::1' || ip === '127.0.0.1' || ip.startsWith('127.0.0.');
 
-      console.info(`[YooKassa Webhook Debug] ip: ${ip}, rawIp: ${rawIp}, isLocalhost: ${isLocalhost}, isTestMode: ${isTestMode}, NODE_ENV: ${process.env.NODE_ENV}, APP_ENV: ${process.env.NEXT_PUBLIC_APP_ENV}`);
+      console.info(`[YooKassa Webhook Debug] ip: ${ip}, rawIp: ${rawIp}, isLocalhost: ${isLocalhost}, isTestMode: ${isTestMode}, NODE_ENV: ${process.env.NODE_ENV}, APP_ENV: ${process.env.APP_ENV}`);
 
       const allowedPrefixes = ['185.75.120.', '185.75.121.', '185.75.122.', '185.75.123.', '185.75.124.', '185.75.125.', '185.75.126.', '185.75.127.', '37.110.12.', '37.110.13.', '37.110.14.', '37.110.15.', '37.110.16.', '37.110.17.', '37.110.18.', '37.110.19.'];
       const isAllowedIp = allowedPrefixes.some(prefix => ip.startsWith(prefix)) || 

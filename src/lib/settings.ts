@@ -31,9 +31,14 @@ export interface DecryptedEmailSettings {
  */
 export class SettingsProvider {
   static isTestEnvironment(): boolean {
-    return process.env.NODE_ENV === 'test' || 
-           process.env.NEXT_PUBLIC_APP_ENV === 'test' || 
-           process.env.DATABASE_URL?.includes('smmplan_test') === true;
+    if (typeof process === 'undefined') return false;
+    const nodeEnv = process.env.NODE_ENV;
+    const appEnv = process.env.APP_ENV;
+    const dbUrl = process.env.DATABASE_URL;
+
+    return nodeEnv === 'test' || 
+           appEnv === 'test' || 
+           dbUrl?.includes('smmplan_test') === true;
   }
 
   /**

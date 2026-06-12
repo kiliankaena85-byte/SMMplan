@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/session';
 import { revalidateTag } from 'next/cache';
 import { db } from '@/lib/db';
+import { SettingsProvider } from '@/lib/settings';
 
 export async function GET(req: NextRequest) {
   // SD-04 SECURITY FIX: Completely disable in production to prevent session token leakage.
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   }
 
   let session: Awaited<ReturnType<typeof verifySession>> = null;
-  const isTest = process.env.NEXT_PUBLIC_APP_ENV === 'test';
+  const isTest = SettingsProvider.isTestEnvironment();
   if (!isTest) {
     session = await verifySession();
     if (!session) {

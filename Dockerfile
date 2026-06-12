@@ -23,6 +23,7 @@ COPY . .
 # Environment variables must be set at build time for Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DISABLE_REDIS_CACHE=1
+ENV APP_ENV=production
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
 # Generate prisma client and build next.js
@@ -46,6 +47,7 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV APP_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN apk add --no-cache openssl tini
