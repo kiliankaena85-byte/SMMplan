@@ -16,6 +16,8 @@ if ($LASTEXITCODE -ne 0) { throw "SCP transfer failed!" }
 
 Write-Host "3. Building and deploying on server..." -ForegroundColor Yellow
 $remoteCommands = "
+echo 'Cleaning up old files...';
+rm -rf $ServerPath/src $ServerPath/components $ServerPath/app $ServerPath/.next $ServerPath/prisma;
 echo 'Extracting source code...';
 mkdir -p $ServerPath;
 tar -xzf /tmp/src_archive.tar.gz -C $ServerPath;
