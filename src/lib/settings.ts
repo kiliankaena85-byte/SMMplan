@@ -3,12 +3,16 @@ import { SystemSettings, UsnScheme } from "@prisma/client";
 import { VaultService } from "./vault";
 import { unstable_cache, revalidateTag } from "next/cache";
 
+let localSettingsCache: { data: SystemSettings; expiresAt: number } | null = null;
+const CACHE_TTL_MS = 60 * 1000; // 1 minute cache for workers
+
 export interface DecryptedPaymentSecrets {
   yookassaShopId: string | null;
   yookassaSecretKey: string | null;
   cryptoBotToken: string | null;
   robokassaLogin: string | null;
   robokassaPassword: string | null;
+  robokassaWebhookPassword: string | null;
 }
 
 export interface DecryptedEmailSettings {
@@ -103,11 +107,24 @@ export class SettingsProvider {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         if (err.message?.includes('incrementalCache') || err.message?.includes('Invariant')) {
-          return await db.systemSettings.upsert({
-            where: { id: "global" },
-            update: {},
-            create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: "SMMplan", exchangeRateUSD: 95 }
-          });
+          // Check local memory cache first
+          const now = Date.now();
+          if (localSettingsCache && localSettingsCache.expiresAt > now) {
+            return localSettingsCache.data;
+          }
+
+          // Fallback to read-only DB query first
+          let settings = await db.systemSettings.findUnique({ where: { id: "global" } });
+          if (!settings) {
+            settings = await db.systemSettings.upsert({
+              where: { id: "global" },
+              update: {},
+              create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: "SMMplan", exchangeRateUSD: 95 }
+            });
+          }
+
+          localSettingsCache = { data: settings, expiresAt: now + CACHE_TTL_MS };
+          return settings;
         }
         throw err;
       }
@@ -120,14 +137,14 @@ export class SettingsProvider {
         opexMonthly: 0,
         maintenanceMode: false,
         isTestMode: false,
-        siteName: "SMMplan",
+        siteName: "Smmplan Lite",
         siteDescription: "",
         exchangeRateUSD: 90.0,
         contactSupportEmail: "support@smmplan.pro",
         contactPrivacyEmail: "privacy@smmplan.pro",
         contactTelegramBot: "smmplan_support_bot",
         contactTelegramChannel: "smmplan_support",
-        legalCompanyName: "SMMplan",
+        legalCompanyName: "Smmplan Lite",
         legalCompanyInn: "Укажите ИНН",
         legalCompanyOgrnip: "Укажите ОГРНИП",
         legalCompanyAddress: "г. Москва",
@@ -190,7 +207,8 @@ export class SettingsProvider {
       yookassaSecretKey: secretKeyRaw ? VaultService.decrypt(secretKeyRaw) : null,
       cryptoBotToken: settings.cryptoBotToken ? VaultService.decrypt(settings.cryptoBotToken) : null,
       robokassaLogin: settings.robokassaLogin ?? null,
-      robokassaPassword: settings.robokassaPassword ? VaultService.decrypt(settings.robokassaPassword) : null
+      robokassaPassword: settings.robokassaPassword ? VaultService.decrypt(settings.robokassaPassword) : null,
+      robokassaWebhookPassword: settings.robokassaWebhookPassword ? VaultService.decrypt(settings.robokassaWebhookPassword) : null
     };
   }
 
@@ -277,6 +295,20 @@ export class SettingsProvider {
     }
     const settings = await this.get();
     return settings.isTestMode;
+  }
+
+  static async isMaintenanceMode(): Promise<boolean> {
+    try {
+      const { redis } = await import('./redis');
+      const cachedVal = await redis.get('settings:maintenanceMode');
+      if (cachedVal !== null) {
+        return cachedVal === 'true';
+      }
+    } catch (err) {
+      console.warn('[SettingsProvider] Redis is unavailable in isMaintenanceMode:', err instanceof Error ? err.message : String(err));
+    }
+    const settings = await this.get();
+    return settings.maintenanceMode;
   }
 
   static async setExchangeRateUSD(rate: number) {

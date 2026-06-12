@@ -50,7 +50,7 @@ export async function transferReferralBalanceAction() {
         amount: transferAmount,
         reason: `Перевод реферального баланса на основной`,
         status: 'APPROVED',
-        idempotencyKey: `referral-transfer-${session.userId}-${transferAmount}`
+        idempotencyKey: `referral-transfer-${session.userId}-${transferAmount}-${Date.now()}`
       }
     });
   }, { isolationLevel: 'Serializable' });

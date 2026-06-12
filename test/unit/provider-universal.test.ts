@@ -30,8 +30,8 @@ describe('UniversalProvider - WAF Bypass & V2 Standard', () => {
         // Either it returns an empty object if 9999999 is totally rejected, or an error string
         // Many panels return {"9999999": "Incorrect order ID"}
         if (result[key]) {
-            if (result[key].error) {
-                expect(result[key].error).toContain('Incorrect');
+            if (typeof result[key] !== 'string' && (result[key] as any).error) {
+                expect((result[key] as any).error).toContain('Incorrect');
             } else if (typeof result[key] === 'string') {
                 expect(result[key]).toContain('Incorrect');
             } else {

@@ -1,4 +1,4 @@
-import { enforcePageRole } from "@/lib/server/rbac";
+import { enforceSectionAccess } from "@/lib/server/rbac";
 import CMSForm from "@/components/admin/cms/CMSForm";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function NewCmsPage() {
-  await enforcePageRole(["ADMIN", "OWNER"]);
+  await enforceSectionAccess('settings');
 
   return (
     <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6">

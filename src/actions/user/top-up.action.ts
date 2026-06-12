@@ -2,8 +2,9 @@
 
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
-import { SettingsManager } from "@/lib/settings";
 import { headers } from "next/headers";
+import { getBaseUrlAsync } from "@/utils/get-base-url";
+import { SettingsManager } from "@/lib/settings";
 import { getClientIp } from "@/utils/ip";
 import { RateLimitService } from "@/services/core/rate-limit.service";
 
@@ -65,7 +66,7 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
       // BUG-008 FIX: Передаём type:'deposit' + userId для корректной обработки в webhook
       payload: JSON.stringify({ paymentId: payment.id, userId: session.userId, type: 'deposit' }),
       paid_btn_name: 'openChannel',
-      paid_btn_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/add-funds?success=1`
+      paid_btn_url: `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`
     };
 
     const resp = await fetch(`https://${process.env.NODE_ENV === 'production' ? 'pay' : 'testnet-pay'}.crypt.bot/api/createInvoice`, {
@@ -128,7 +129,7 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
 
     const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
     const gatewaySvc = PaymentGatewayFactory.getGateway('robokassa');
-    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/add-funds?success=1`;
+    const successUrl = `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`;
     const gatewayResult = await gatewaySvc.createPayment({
       paymentId: payment.id,
       userId: session.userId,
@@ -183,7 +184,7 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
   }
 
   const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-  const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/add-funds?success=1`;
+  const successUrl = `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`;
 
   const payload = {
     amount: { value: amountRub.toFixed(2), currency: "RUB" },

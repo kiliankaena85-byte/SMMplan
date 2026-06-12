@@ -61,10 +61,6 @@ export class RateLimitService {
       }
 
       // 2. Fallback to Postgres (if Redis is down or not configured)
-      db.rateLimit.deleteMany({
-        where: { expiresAt: { lte: now } }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }).catch((e: any) => console.error("RateLimit cleanup error:", e));
 
       const existingRecord = await db.rateLimit.findUnique({
         where: { ip_endpoint: { ip, endpoint } }
@@ -161,10 +157,6 @@ export class RateLimitService {
       }
 
       // 2. Fallback to Postgres
-      db.rateLimit.deleteMany({
-        where: { expiresAt: { lte: now } }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }).catch((e: any) => console.error("RateLimit cleanup error:", e));
 
       // We'll store it as ip: 'CUSTOM_KEY', endpoint: key
       const ip = "CUSTOM_KEY";

@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 
 vi.mock('@/lib/db', () => ({
   db: {
+    $queryRaw: vi.fn(),
     payment: {
       groupBy: vi.fn(),
       aggregate: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('@/lib/db', () => ({
 describe('AccountingService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(db.$queryRaw).mockResolvedValue([{ total: BigInt(0) }]);
   });
 
   it('calculates standard tax rate (6%) when annual revenue is below 20M RUB', async () => {

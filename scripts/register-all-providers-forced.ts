@@ -5,37 +5,37 @@ const PROVIDERS = [
   {
     name: 'Vexboost',
     slug: 'vexboost',
-    apiUrl: 'https://vexboost.com/api/v2',
+    apiUrl: 'https://vexboost.ru/api/v2/',
     apiKey: 'XIXeUVGftzSXwAg8pbBJERcJpMmrg9qujHHM3y95xYvB3Q9VMnAHGYtpGnta',
   },
   {
     name: 'Soc-Proof',
     slug: 'soc-proof',
-    apiUrl: 'https://soc-proof.su/api/v2',
+    apiUrl: 'https://soc-proof.su/api/v2/',
     apiKey: 'a465d4013f1265153a2ca12bdd3cad06',
   },
   {
     name: 'Stream-Promotion',
     slug: 'stream-promotion',
-    apiUrl: 'https://stream-promotion.ru/api/v2',
+    apiUrl: 'https://stream-promotion.ru/api/v2/',
     apiKey: 'fGOsh7PtBk3Ckyq3UmqH6HVNYTC2gGTH',
   },
   {
     name: 'SMMPrime',
     slug: 'smmprime',
-    apiUrl: 'https://smmprime.com/api/v2',
+    apiUrl: 'https://smmprime.com/api/v2/',
     apiKey: '6833e1ceef531d34e7442d492b8e1021',
   },
   {
     name: 'SMMPanelUS',
     slug: 'smmpanelus',
-    apiUrl: 'https://smmpanelus.com/api/v2',
+    apiUrl: 'https://smmpanelus.com/api/v2/',
     apiKey: '48a6494eb16406d1226dce68f30d631d',
   },
   {
     name: 'Telegram.Shop',
     slug: 'telegram-shop',
-    apiUrl: 'https://telegram.shop/api/v2',
+    apiUrl: 'https://telegram.shop/api/v2/',
     apiKey: 'abcd6e54ff5b77a11dc8077074445e04',
   },
 ];

@@ -70,7 +70,7 @@ describe('ServiceAuditEngine Unit Tests', () => {
 
       const exchangeRate = 100.0;
 
-      await ServiceAuditEngine.auditAndFixService(mockService, mockExternal, exchangeRate);
+      await ServiceAuditEngine.auditAndFixService(mockService as any, mockExternal, exchangeRate);
 
       expect(mockService.markup).toBe(5.0);
       expect(mockService.pricePer1000Cents).toBeGreaterThan(350);
@@ -108,7 +108,7 @@ describe('ServiceAuditEngine Unit Tests', () => {
         rate: '1.0',
       };
 
-      await ServiceAuditEngine.auditAndFixService(mockService, mockExternal, 100.0);
+      await ServiceAuditEngine.auditAndFixService(mockService as any, mockExternal, 100.0);
 
       expect(db.service.update).toHaveBeenCalledWith({
         where: { id: 'srv-2' },
@@ -146,7 +146,7 @@ describe('ServiceAuditEngine Unit Tests', () => {
         rate: '1.0',
       };
 
-      await ServiceAuditEngine.auditAndFixService(mockService, mockExternal, 100.0);
+      await ServiceAuditEngine.auditAndFixService(mockService as any, mockExternal, 100.0);
 
       expect(db.service.update).not.toHaveBeenCalled();
       expect(db.adminAuditLog.create).not.toHaveBeenCalled();

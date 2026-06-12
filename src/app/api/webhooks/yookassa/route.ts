@@ -8,7 +8,8 @@ const MAX_BODY_SIZE = 1024 * 64; // 64KB
 export async function POST(req: NextRequest) {
   try {
     const { getClientIp } = await import('@/utils/ip');
-    const ip = await getClientIp();
+    const rawIp = await getClientIp();
+    const ip = rawIp.replace(/^::ffff:/, '');
 
     const { SettingsProvider } = await import('@/lib/settings');
     const isTestMode = await SettingsProvider.isTestMode();
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
     if (ip) {
       const isLocalhost = ip === '::1' || ip === '127.0.0.1' || ip.startsWith('127.0.0.');
 
-      console.info(`[YooKassa Webhook Debug] ip: ${ip}, isLocalhost: ${isLocalhost}, isTestMode: ${isTestMode}, NODE_ENV: ${process.env.NODE_ENV}, APP_ENV: ${process.env.NEXT_PUBLIC_APP_ENV}`);
+      console.info(`[YooKassa Webhook Debug] ip: ${ip}, rawIp: ${rawIp}, isLocalhost: ${isLocalhost}, isTestMode: ${isTestMode}, NODE_ENV: ${process.env.NODE_ENV}, APP_ENV: ${process.env.NEXT_PUBLIC_APP_ENV}`);
 
       const allowedPrefixes = ['185.75.120.', '185.75.121.', '185.75.122.', '185.75.123.', '185.75.124.', '185.75.125.', '185.75.126.', '185.75.127.', '37.110.12.', '37.110.13.', '37.110.14.', '37.110.15.', '37.110.16.', '37.110.17.', '37.110.18.', '37.110.19.'];
       const isAllowedIp = allowedPrefixes.some(prefix => ip.startsWith(prefix)) || 
@@ -32,22 +33,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    let webhookSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
-    if (!webhookSecret) {
-      // Only allow hardcoded secret during actual unit tests, not development/preview
-      if (process.env.NODE_ENV === 'test') {
-        webhookSecret = 'test_webhook_secret_key_123456';
-      } else {
-        console.error('[CRITICAL][ACTION REQUIRED] YOOKASSA_WEBHOOK_SECRET is not set. Webhook disabled.');
-        return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
-      }
-    }
-
     const providedSignature = req.headers.get('x-sha256-signature') || req.headers.get('digest');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let rawBody: Record<string, any>;
 
     if (providedSignature) {
+      let webhookSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
+      if (!webhookSecret) {
+        // Only allow hardcoded secret during actual unit tests, not development/preview
+        if (process.env.NODE_ENV === 'test') {
+          webhookSecret = 'test_webhook_secret_key_123456';
+        } else {
+          console.error('[CRITICAL] YOOKASSA_WEBHOOK_SECRET is not set, but signature header is present.');
+          return NextResponse.json({ error: 'Webhook signature validation not configured' }, { status: 500 });
+        }
+      }
+
       const rawText = await req.text();
       if (rawText.length > MAX_BODY_SIZE) {
         console.warn('[Webhook] Oversized payload rejected');

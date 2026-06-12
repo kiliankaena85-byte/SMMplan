@@ -44,12 +44,14 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
           }
         });
         log.info(`Stale non-YooKassa payment ${payment.id} expired successfully.`);
-      } catch (err: any) {
-        log.error(`Failed to expire stale payment ${payment.id}: ${err.message}`);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        log.error(`Failed to expire stale payment ${payment.id}: ${errMsg}`);
       }
     }
-  } catch (err: any) {
-    log.error(`Error during stale payments cleanup: ${err.message}`);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    log.error(`Error during stale payments cleanup: ${errMsg}`);
   }
 
   // 2. Fetch pending YooKassa payments

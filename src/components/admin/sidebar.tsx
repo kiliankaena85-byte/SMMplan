@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CommandMenu } from '@/components/admin/command-menu';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { 
   Home, Users, Package, RefreshCw, ShoppingCart, 
   MessageSquare, CreditCard, Link as LinkIcon, Gift, FileText, Settings,
@@ -45,7 +46,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
     <aside 
       className={cn(
         "relative z-20 h-screen flex-shrink-0 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] group hidden md:flex flex-col",
-        "bg-[#24303F] border-r border-[#2F3C4C]/80 shadow-[0_4px_30px_rgba(0,0,0,0.05)]",
+        "bg-card/95 backdrop-blur-md border-r border-border shadow-[4px_0_24px_rgba(0,0,0,0.02)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.2)]",
         collapsed ? "w-16" : "w-[280px]"
       )}
     >
@@ -54,7 +55,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
         <button 
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
-          className="flex items-center justify-center w-8 h-8 rounded-[10px] bg-[#24303F] border border-[#2F3C4C] text-[#707579] hover:text-[#FFFFFF] hover:bg-[#2F3C4C] transition-all duration-300 transform hover:scale-105"
+          className="flex items-center justify-center w-8 h-8 rounded-[10px] bg-background/80 backdrop-blur-sm border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-300 transform hover:scale-105 shadow-sm"
         >
           {collapsed ? <PanelLeftOpen className="w-4 h-4 ml-0.5" /> : <PanelLeftClose className="w-4 h-4 mr-0.5" />}
         </button>
@@ -63,17 +64,17 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
       {/* Header Profile Area */}
       <div className={cn("pt-8 pb-6 px-6 transition-all duration-300 relative", collapsed ? "opacity-0 invisible h-0 p-0" : "opacity-100")}>
         {/* Subtle glow behind logo */}
-        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[#3390EC]/5 to-transparent pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
         
-        <h2 className="text-xl font-extrabold tracking-tight mb-1 text-[#FFFFFF]">
+        <h2 className="text-xl font-extrabold tracking-tight mb-1 text-foreground">
           SMMplan
         </h2>
-        <p className="text-[11px] text-[#707579] font-medium truncate mb-3 tracking-wide">{userEmail}</p>
+        <p className="text-[11px] text-muted-foreground font-medium truncate mb-3 tracking-wide">{userEmail}</p>
         <div className="flex items-center gap-2">
           <span className={cn(
-            "inline-flex items-center px-2.5 py-1 text-[10px] rounded-[10px] uppercase font-bold tracking-wider shadow-sm border border-[#2F3C4C]/60 bg-[#2F3C4C]/30 text-[#FFFFFF]"
+            "inline-flex items-center px-2.5 py-1 text-[10px] rounded-[10px] uppercase font-bold tracking-wider shadow-sm border border-border bg-muted/30 text-foreground"
           )}>
-            <div className="w-1.5 h-1.5 rounded-full bg-[#3390EC] mr-1.5 animate-pulse" />
+            <div className="w-1.5 h-1.5 rounded-full bg-primary mr-1.5 animate-pulse" />
             {roleInfo.label}
           </span>
         </div>
@@ -90,7 +91,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
         {navigation.map((section, sIdx) => (
           <div key={section.group} className="space-y-1.5">
             {!collapsed && (
-              <h3 className="px-3 mb-2 text-[10px] font-extrabold text-[#707579]/70 uppercase tracking-[0.2em] transition-all duration-500 animate-in fade-in slide-in-from-left-2">
+              <h3 className="px-3 mb-2 text-[10px] font-extrabold text-muted-foreground/70 uppercase tracking-[0.2em] transition-all duration-500 animate-in fade-in slide-in-from-left-2">
                 {section.group}
               </h3>
             )}
@@ -106,49 +107,52 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                   className={cn(
                     "relative flex items-center px-3 text-sm font-medium rounded-[10px] transition-all duration-200 whitespace-nowrap overflow-hidden group h-12",
                     isActive 
-                      ? "bg-[#3390EC] text-[#FFFFFF] font-semibold shadow-sm shadow-[#3390EC]/10" 
-                      : "text-[#707579] hover:bg-[#2F3C4C] hover:text-[#FFFFFF]",
+                      ? "bg-primary text-primary-foreground font-semibold shadow-sm shadow-primary/10" 
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     collapsed && "justify-center px-0 w-12 h-12 mx-auto"
                   )}
                 >
                   <span className={cn(
                     "transition-transform duration-300 group-hover:scale-110", 
                     collapsed ? "" : "mr-3 w-5 text-center flex justify-center",
-                    isActive ? "text-[#FFFFFF]" : "text-[#707579] group-hover:text-[#FFFFFF]"
+                    isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
                   )}>
                     <IconComponent className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
                   </span>
                   {!collapsed && <span className="tracking-wide transition-all">{tab.label}</span>}
                   
                   {!collapsed && tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="ml-auto mr-1 px-1.5 py-0.5 rounded-md bg-destructive text-[10px] font-bold text-destructive-foreground shadow-sm shadow-destructive/50">
-                      {tab.badge}
-                    </span>
+                    <StatusBadge 
+                      status="OPEN" 
+                      label="" 
+                      count={tab.badge} 
+                      className="ml-auto mr-1 bg-destructive/10 text-destructive border-destructive/20 shadow-sm"
+                    />
                   )}
                   {collapsed && tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-destructive border border-[#24303F]" />
+                    <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-destructive border border-card shadow-sm" />
                   )}
                   
                   {/* Hover Glow Behind */}
                   {!isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#3390EC]/0 via-[#3390EC]/0 to-[#3390EC]/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-[10px]" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-[10px]" />
                   )}
                 </Link>
               );
             })}
             {!collapsed && sIdx < navigation.length - 1 && (
-              <div className="h-px bg-[#2F3C4C]/60 mx-3 mt-4 mb-2" />
+              <div className="h-px bg-border mx-3 mt-4 mb-2" />
             )}
           </div>
         ))}
 
-        <div className="pt-4 mt-2 border-t border-[#2F3C4C]/80 mx-2">
+        <div className="pt-4 mt-2 border-t border-border mx-2">
           <Link
             href="/dashboard/new-order"
             title={collapsed ? "В кабинет клиента" : undefined}
             aria-label="В кабинет клиента"
             className={cn(
-              "flex items-center px-4 text-sm font-medium rounded-[10px] text-[#707579] hover:bg-[#2F3C4C] hover:text-[#FFFFFF] transition-all duration-200 whitespace-nowrap border border-transparent hover:border-[#2F3C4C]/60 group h-12",
+              "flex items-center px-4 text-sm font-medium rounded-[10px] text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 whitespace-nowrap border border-transparent hover:border-border group h-12",
               collapsed && "justify-center px-0 w-12 h-12 mx-auto"
             )}
           >

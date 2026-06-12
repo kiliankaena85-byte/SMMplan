@@ -15,10 +15,11 @@ import { ReferrersTable } from './client-referrers-table';
 export const dynamic = 'force-dynamic';
 
 export default async function MarketingPage() {
-  const [promos, stats, rawTopReferrers] = await Promise.all([
+  const [promos, stats, rawTopReferrers, chartData] = await Promise.all([
     adminMarketingService.listPromoCodes(),
     adminMarketingService.getReferralStats(),
     adminMarketingService.listTopReferrers(),
+    adminMarketingService.getReferralChartData(),
   ]);
 
   const topReferrers = rawTopReferrers.map(r => ({
@@ -98,11 +99,11 @@ export default async function MarketingPage() {
                   <CardHeader className="border-b border-border/50/50 bg-muted/50/50 rounded-t-2xl pb-4">
                     <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-success" />
-                      Экономика программы
+                      Экономика программы (последние 6 мес.)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    <ReferralEconomicsChart paidOut={Number(stats.totalPaidOut)} pending={Number(stats.totalPending)} />
+                    <ReferralEconomicsChart data={chartData} />
                   </CardContent>
                </Card>
 

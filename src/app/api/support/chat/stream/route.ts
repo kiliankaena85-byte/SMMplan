@@ -33,7 +33,8 @@ export async function GET(req: NextRequest) {
     }
     const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     userId = payload.userId as string;
-  } catch {
+  } catch (err) {
+    console.warn('[SSE] Unauthorized access attempt:', err);
     return new Response('Unauthorized', { status: 401 });
   }
 

@@ -46,10 +46,10 @@ export const createRoleSchema = z.object({
 });
 
 export const globalSettingsSchema = z.object({
-  maintenanceMode: z.any().transform((val) => val === 'true' || val === 'on'),
-  siteName: z.string().trim().max(100).optional().default('SMMplan'),
-  siteDescription: z.string().trim().max(500).optional().default(''),
-  usnScheme: z.enum(['INCOME', 'INCOME_EXPENSES']).optional().default('INCOME_EXPENSES'),
+  maintenanceMode: z.any().transform((val) => val === 'true' || val === 'on').optional(),
+  siteName: z.string().trim().max(100).optional(),
+  siteDescription: z.string().trim().max(500).optional(),
+  usnScheme: z.enum(['INCOME', 'INCOME_EXPENSES']).optional(),
   welcomeMessage: z.string().trim().max(2000).nullable().optional(),
   yookassaShopId: z.string().trim().max(150).nullable().optional(),
   yookassaSecretKey: z.string().trim().max(300).nullable().optional(),
@@ -57,10 +57,10 @@ export const globalSettingsSchema = z.object({
   yookassaTestSecretKey: z.string().trim().max(300).nullable().optional(),
   cryptoBotToken: z.string().trim().max(300).nullable().optional(),
   exchangeRateUSD: z.coerce.number().min(50).max(300).optional(),
-  emailProvider: z.string().trim().max(100).optional().default('SMTP'),
+  emailProvider: z.string().trim().max(100).optional(),
   resendApiKey: z.string().trim().max(300).nullable().optional(),
   smtpHost: z.string().trim().max(250).nullable().optional(),
-  smtpPort: z.coerce.number().int().min(1).max(65535).optional().default(465),
+  smtpPort: z.coerce.number().int().min(1).max(65535).optional(),
   smtpUser: z.string().trim().max(250).nullable().optional(),
   smtpPassword: z.string().trim().max(300).nullable().optional(),
   supportEmailDomain: z.string().trim().max(150).nullable().optional(),
@@ -77,6 +77,7 @@ export const globalSettingsSchema = z.object({
   legalCompanyAddress: z.string().trim().max(1000).nullable().optional(),
   robokassaLogin: z.string().trim().max(150).nullable().optional(),
   robokassaPassword: z.string().trim().max(300).nullable().optional(),
+  robokassaWebhookPassword: z.string().trim().max(300).nullable().optional(),
 });
 
 // Orders

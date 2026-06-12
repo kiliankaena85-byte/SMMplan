@@ -4,7 +4,7 @@
  * Standards: ISTQB §4.2.1 (Equivalence Partitioning), ISO 25010 §6.3.1
  * Coverage: Platform detection, Category detection, Geo, Warranty, Privacy
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // Mock the sanitizer dependency
 vi.mock('@/utils/description-sanitizer', () => ({

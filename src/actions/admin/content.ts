@@ -1,14 +1,13 @@
 "use server";
 
 import { db as prisma } from "@/lib/db";
-import { enforcePageRole } from "@/lib/server/rbac";
+import { requireStaffPermission } from "@/lib/server/rbac";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 const contentSchema = z.object({
   title: z.string().min(3, "Заголовок должен быть длиннее 3 символов"),
   slug: z.string().min(2, "Slug обязателен").refine((val) => {
-    // Защита системных маршрутов (Скрытый риск №3)
     const reservedWords = ["api", "admin", "auth", "_next", "static", "dashboard", "orders", "draft"];
     return !reservedWords.includes(val.toLowerCase());
   }, "Этот URL зарезервирован системой"),
@@ -22,43 +21,40 @@ const contentSchema = z.object({
 });
 
 export async function createContent(formData: FormData) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const admin = await enforcePageRole(["ADMIN", "OWNER"]);
+  return requireStaffPermission('settings', 'edit', async () => {
+    const data = {
+      title: formData.get("title") as string,
+      slug: formData.get("slug") as string,
+      type: formData.get("type") as "PAGE" | "ACADEMY_LESSON" | "GLOSSARY_TERM" | "NEWS_POST",
+      categoryId: formData.get("categoryId") as string || null,
+    };
 
-  const data = {
-    title: formData.get("title") as string,
-    slug: formData.get("slug") as string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    type: formData.get("type") as any,
-    categoryId: formData.get("categoryId") as string || null,
-  };
-
-  const parsed = contentSchema.safeParse(data);
-  if (!parsed.success) {
-    return { success: false, errors: parsed.error.flatten().fieldErrors };
-  }
-
-  try {
-    const item = await prisma.contentItem.create({
-      data: {
-        ...parsed.data,
-        authorName: "Администратор", // Записываем автора из сессии
-      },
-    });
-
-    revalidateTag("cms-list", {});
-    return { success: true, item };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    if (error.code === "P2002") {
-      return { success: false, error: "Статья с таким URL (slug) уже существует." };
+    const parsed = contentSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false as const, errors: parsed.error.flatten().fieldErrors };
     }
-    return { success: false, error: "Ошибка базы данных" };
-  }
+
+    try {
+      const item = await prisma.contentItem.create({
+        data: {
+          ...parsed.data,
+          authorName: "Администратор", 
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)("cms-list");
+      return { success: true as const, item };
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err.code === "P2002") {
+        return { success: false as const, error: "Статья с таким URL (slug) уже существует." };
+      }
+      return { success: false as const, error: "Ошибка базы данных" };
+    }
+  });
 }
 
-// SD-12 SECURITY FIX: Runtime validation schema for content updates.
-// TypeScript types are erased at runtime — only Zod prevents field injection.
 const contentUpdateSchema = z.object({
   title: z.string().min(3).optional(),
   slug: z.string().min(2).refine((val) => {
@@ -72,91 +68,87 @@ const contentUpdateSchema = z.object({
   isPublished: z.boolean().optional(),
   metaTitle: z.string().nullable().optional(),
   metaDescription: z.string().nullable().optional(),
-}).strict(); // .strict() rejects any fields not in the schema (e.g., id, authorName, publishedAt)
+}).strict(); 
 
 export async function updateContent(id: string, updateData: Partial<z.infer<typeof contentSchema>>) {
-  await enforcePageRole(["ADMIN", "OWNER"]);
+  return requireStaffPermission('settings', 'edit', async () => {
+    const parsed = contentUpdateSchema.safeParse(updateData);
+    if (!parsed.success) {
+      return { success: false as const, error: "Невалидные данные для обновления", errors: parsed.error.flatten().fieldErrors };
+    }
 
-  // SD-12 FIX: Validate updateData through Zod before passing to Prisma
-  const parsed = contentUpdateSchema.safeParse(updateData);
-  if (!parsed.success) {
-    return { success: false, error: "Невалидные данные для обновления", errors: parsed.error.flatten().fieldErrors };
-  }
+    try {
+      const item = await prisma.contentItem.update({
+        where: { id },
+        data: parsed.data,
+      });
 
-  try {
-    // Внимание: Здесь мы сохраняем ТОЛЬКО JSON (Премортем Сценарий №5)
-    // HTML генерация происходит строго в отдельной функции publishContent
-    // Это спасает БД от блокировок при частых автосохранениях
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)(`article-${item.slug}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)("cms-list");
 
-    const item = await prisma.contentItem.update({
-      where: { id },
-      data: parsed.data, // Now guaranteed to only contain allowed fields
-    });
-
-    // Гранулярный сброс кэша (Скрытый риск №2)
-    revalidateTag(`article-${item.slug}`, {});
-    revalidateTag("cms-list", {});
-
-    return { success: true, item };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
-    return { success: false, error: "Ошибка при обновлении статьи" };
-  }
+      return { success: true as const, item };
+    } catch {
+      return { success: false as const, error: "Ошибка при обновлении статьи" };
+    }
+  });
 }
 
 export async function publishContent(id: string) {
-  await enforcePageRole(["ADMIN", "OWNER"]);
+  return requireStaffPermission('settings', 'edit', async () => {
+    try {
+      const item = await prisma.contentItem.findUnique({ where: { id } });
+      if (!item || !item.contentJson) {
+        return { success: false as const, error: "Статья не найдена или пустая" };
+      }
 
-  try {
-    const item = await prisma.contentItem.findUnique({ where: { id } });
-    if (!item || !item.contentJson) {
-      return { success: false, error: "Статья не найдена или пустая" };
+      const { ServerBlockNoteEditor } = await import("@blocknote/server-util");
+      
+      const editor = ServerBlockNoteEditor.create();
+      const blocks = JSON.parse(item.contentJson);
+      const contentHtml = await editor.blocksToHTMLLossy(blocks);
+
+      const updated = await prisma.contentItem.update({
+        where: { id },
+        data: {
+          contentHtml,
+          isPublished: true,
+          publishedAt: item.publishedAt || new Date(),
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)(`article-${item.slug}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)("cms-list");
+
+      return { success: true as const, item: updated };
+    } catch (error) {
+      console.error("Publish error:", error);
+      return { success: false as const, error: "Ошибка при генерации HTML или публикации" };
     }
-
-    // SSR Конвертация (Фаза 2: Защита от XSS и тяжелого клиента)
-    // Динамический импорт, чтобы ServerBlockNoteEditor не тянул зависимости в Edge Runtimes
-    const { ServerBlockNoteEditor } = await import("@blocknote/server-util");
-    
-    const editor = ServerBlockNoteEditor.create();
-    const blocks = JSON.parse(item.contentJson);
-    const contentHtml = await editor.blocksToHTMLLossy(blocks);
-
-    const updated = await prisma.contentItem.update({
-      where: { id },
-      data: {
-        contentHtml,
-        isPublished: true,
-        publishedAt: item.publishedAt || new Date(),
-      },
-    });
-
-    revalidateTag(`article-${item.slug}`, {});
-    revalidateTag("cms-list", {});
-
-    return { success: true, item: updated };
-  } catch (error) {
-    console.error("Publish error:", error);
-    return { success: false, error: "Ошибка при генерации HTML или публикации" };
-  }
+  });
 }
 
 export async function unpublishContent(id: string) {
-  await enforcePageRole(["ADMIN", "OWNER"]);
+  return requireStaffPermission('settings', 'edit', async () => {
+    try {
+      const updated = await prisma.contentItem.update({
+        where: { id },
+        data: {
+          isPublished: false,
+        },
+      });
 
-  try {
-    const updated = await prisma.contentItem.update({
-      where: { id },
-      data: {
-        isPublished: false,
-      },
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)(`article-${updated.slug}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)("cms-list");
 
-    revalidateTag(`article-${updated.slug}`, {});
-    revalidateTag("cms-list", {});
-
-    return { success: true, item: updated };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
-    return { success: false, error: "Ошибка при снятии с публикации" };
-  }
+      return { success: true as const, item: updated };
+    } catch {
+      return { success: false as const, error: "Ошибка при снятии с публикации" };
+    }
+  });
 }

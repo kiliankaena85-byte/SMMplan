@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useTransition, useState } from 'react';
 import { toast } from 'sonner';
 import { cancelOrderAction } from '@/actions/admin/orders';
-import { X, Edit2, Zap, Timer, Snail, Turtle } from 'lucide-react';
+import { X, Edit2, Zap, Timer, Snail, Turtle, ArrowUpDown } from 'lucide-react';
 import { formatEta } from '@/utils/format-eta';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 
@@ -102,8 +102,12 @@ function RowActions({ order }: { order: OrderColumn }) {
 
     startTransition(async () => {
       try {
-        await cancelOrderAction(fd);
-        toast.success(`🚫 Заказ #${order.numericId} отменён`);
+        const res = await cancelOrderAction(fd);
+        if (res && 'success' in res && !res.success) {
+          toast.error(res.error || 'Ошибка отмены заказа');
+        } else {
+          toast.success(`🚫 Заказ #${order.numericId} отменён`);
+        }
       } catch (e) {
         toast.error((e as Error).message ?? 'Ошибка');
       }
@@ -121,7 +125,7 @@ function RowActions({ order }: { order: OrderColumn }) {
       </Link>
       <button
         onClick={() => setConfirmOpen(true)}
-        disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL'].includes(order.status)}
+        disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL', 'IN_PROGRESS', 'ERROR'].includes(order.status)}
         className="inline-flex items-center justify-center p-1.5 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 transition-colors disabled:opacity-40"
         title="Отменить заказ"
       >
@@ -210,7 +214,15 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   },
   {
     accessorKey: 'numericId',
-    header: 'Заказ',
+    header: ({ column }) => (
+      <button
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        className="flex items-center gap-1 hover:text-foreground transition-colors"
+      >
+        Заказ
+        <ArrowUpDown className="w-3.5 h-3.5 ml-1" />
+      </button>
+    ),
     cell: ({ row }) => {
       const dateStr = new Date(row.original.createdAt).toLocaleString('ru-RU', { 
         day: '2-digit', month: '2-digit', year: '2-digit',
@@ -226,7 +238,15 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   },
   {
     accessorKey: 'user.email',
-    header: 'Клиент',
+    header: ({ column }) => (
+      <button
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        className="flex items-center gap-1 hover:text-foreground transition-colors"
+      >
+        Клиент
+        <ArrowUpDown className="w-3.5 h-3.5 ml-1" />
+      </button>
+    ),
     cell: ({ row }) => {
       const email = row.original.user.email;
       return (
@@ -317,7 +337,17 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   },
   {
     accessorKey: 'charge',
-    header: () => <div className="text-right">Цена</div>,
+    header: ({ column }) => (
+      <div className="flex justify-end">
+        <button
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          className="flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          Цена
+          <ArrowUpDown className="w-3.5 h-3.5 ml-1" />
+        </button>
+      </div>
+    ),
     cell: ({ row }) => (
       <div className="text-xs font-semibold whitespace-nowrap text-foreground tabular-nums text-right">
         {(row.original.charge / 100).toFixed(2)} ₽
@@ -326,7 +356,15 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   },
   {
     accessorKey: 'status',
-    header: 'Статус',
+    header: ({ column }) => (
+      <button
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        className="flex items-center gap-1 hover:text-foreground transition-colors"
+      >
+        Статус
+        <ArrowUpDown className="w-3.5 h-3.5 ml-1" />
+      </button>
+    ),
     cell: ({ row }) => {
       const order = row.original;
       const status = order.status;

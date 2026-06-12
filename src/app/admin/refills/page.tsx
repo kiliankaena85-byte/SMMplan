@@ -20,7 +20,10 @@ type Props = {
   searchParams: Promise<{ status?: string }>;
 };
 
+import { enforceSectionAccess } from '@/lib/server/rbac';
+
 export default async function AdminRefillsPage({ searchParams }: Props) {
+  await enforceSectionAccess('orders');
   const params = await searchParams;
   const statusFilter = params.status || 'ALL';
 

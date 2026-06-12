@@ -1,5 +1,5 @@
 import { db as prisma } from "@/lib/db";
-import { enforcePageRole } from "@/lib/server/rbac";
+import { enforceSectionAccess } from "@/lib/server/rbac";
 import Link from "next/link";
 import { CMSTable } from "@/components/admin/cms/CMSTable";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function AdminCmsPage() {
-  await enforcePageRole(["ADMIN", "OWNER"]);
+  await enforceSectionAccess('settings');
 
   const items = await prisma.contentItem.findMany({
     orderBy: { createdAt: "desc" },

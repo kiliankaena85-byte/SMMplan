@@ -218,7 +218,8 @@ export function ArticleForm({ initialData }: ArticleFormProps) {
     };
 
     try {
-      const res = isEdit 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res: any = isEdit 
         ? await updateArticle(initialData!.id, payload)
         : await createArticle(payload);
 

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { getBaseUrlAsync } from '@/utils/get-base-url';
 import { SettingsManager } from '@/lib/settings';
 import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
 
@@ -36,10 +37,9 @@ export class UnifiedPaymentService {
           gateway
         }
       });
-
       const { SettingsProvider } = await import('@/lib/settings');
       const supportDomain = await SettingsProvider.getSupportEmailDomain();
-      const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`}/dashboard`;
+      const successUrl = `${await getBaseUrlAsync(supportDomain)}/dashboard`;
 
       // 2. Generate Payment Link using standard Gateway Factory
       const gatewaySvc = PaymentGatewayFactory.getGateway(gateway);

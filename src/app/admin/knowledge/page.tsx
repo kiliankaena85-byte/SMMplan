@@ -1,4 +1,4 @@
-import { enforcePageRole } from "@/lib/server/rbac";
+import { enforceSectionAccess } from "@/lib/server/rbac";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ export const metadata = {
 
 export default async function AdminKnowledgePage() {
   // 1. Strict access guard
-  await enforcePageRole(["ADMIN", "OWNER"]);
+  await enforceSectionAccess('settings');
 
   // 2. Fetch all articles
   const articles = await db.article.findMany({

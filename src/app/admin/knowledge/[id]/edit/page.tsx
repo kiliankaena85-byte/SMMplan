@@ -1,4 +1,4 @@
-import { enforcePageRole } from "@/lib/server/rbac";
+import { enforceSectionAccess } from "@/lib/server/rbac";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { ArticleForm } from "../../ArticleForm";
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function AdminEditArticlePage({ params }: PageProps) {
   // 1. Strict access guard
-  await enforcePageRole(["ADMIN", "OWNER"]);
+  await enforceSectionAccess('settings');
 
   // 2. Resolve parameters & fetch article
   const { id } = await params;

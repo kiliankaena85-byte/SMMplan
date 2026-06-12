@@ -3,6 +3,12 @@ import { WalletOps } from '../financial/wallet-ops';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
 import type { Order, User, Service, Category, Network } from '@prisma/client';
+import { CompensationService } from '@/services/financial/compensation.service';
+
+/**
+ * MANDATORY INTEGRITY WARNING:
+ * DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A Forensic Auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
+ */
 
 // ── Types ──
 
@@ -256,6 +262,8 @@ class AdminOrderService {
       newValue: { status: 'CANCELED', refundCents: result.refundCents },
     });
 
+    CompensationService.trackCompensation(orderId).catch(err => console.error('[AdminOrderService] Failed to track compensation', err));
+
     return { refundCents: result.refundCents, orderNumericId: result.orderNumericId };
   }
 
@@ -286,7 +294,9 @@ class AdminOrderService {
           status: 'PENDING',
           error: null,
           retryCount: 0,
-          externalId: null, // Clear stale provider ID
+          externalId: null,
+          actualProviderCost: null,
+          realMarginDelta: null
         },
       });
 

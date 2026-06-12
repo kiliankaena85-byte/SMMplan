@@ -8,7 +8,7 @@
  */
 
 import * as React from 'react';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useOptimistic } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/ui/data-table';
 import { columns, OrderColumn } from './columns';
@@ -64,10 +64,12 @@ function OrderDrawer({
   order,
   onClose,
   canSeeRates = true,
+  addOptimisticUpdate,
 }: {
   order: OrderColumn | null;
   onClose: () => void;
   canSeeRates?: boolean;
+  addOptimisticUpdate: (update: { id: string, status: string, remains?: number }) => void;
 }) {
   const [selectedStatus, setSelectedStatus] = useState(order?.status ?? '');
   const [remains, setRemains] = useState(order?.remains ?? 0);
@@ -95,17 +97,22 @@ function OrderDrawer({
   function handleSetStatus() {
     if (!order) return;
     startTransition(async () => {
-      const r = await setOrderStatusAction(
-        order.id,
-        selectedStatus as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'PARTIAL' | 'CANCELED' | 'ERROR',
-        selectedStatus === 'PARTIAL' ? remains : undefined
-      );
-      if (r.success) {
-        const refund = r.refundCents > 0 ? ` Возврат: ${(r.refundCents / 100).toFixed(2)} ₽` : '';
-        toast.success(`✅ Статус #${r.numericId} изменён.${refund}`);
-        onClose();
-      } else {
-        toast.error(r.error ?? 'Ошибка');
+      addOptimisticUpdate({ id: order.id, status: selectedStatus, remains: selectedStatus === 'PARTIAL' ? remains : undefined });
+      try {
+        const r = await setOrderStatusAction(
+          order.id,
+          selectedStatus as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'PARTIAL' | 'CANCELED' | 'ERROR',
+          selectedStatus === 'PARTIAL' ? remains : undefined
+        );
+        if (r.success) {
+          const refund = r.refundCents > 0 ? ` Возврат: ${(r.refundCents / 100).toFixed(2)} ₽` : '';
+          toast.success(`ОК: Статус #${r.numericId} изменен.${refund}`);
+          onClose();
+        } else {
+          toast.error(r.error || 'Ошибка изменения статуса');
+        }
+      } catch (e) {
+        toast.error((e as Error).message || 'Ошибка изменения статуса');
       }
     });
   }
@@ -113,13 +120,18 @@ function OrderDrawer({
   function handleForceComplete() {
     if (!order) return;
     startTransition(async () => {
-      const r = await forceCompleteOrderAction(order.id);
-      if (r.success) {
-        const refund = r.refundCents > 0 ? ` Возврат: ${(r.refundCents / 100).toFixed(2)} ₽` : '';
-        toast.success(`✅ Заказ #${r.numericId} завершён.${refund}`);
-        onClose();
-      } else {
-        toast.error('Ошибка завершения');
+      addOptimisticUpdate({ id: order.id, status: 'COMPLETED' });
+      try {
+        const r = await forceCompleteOrderAction(order.id);
+        if (r.success) {
+          const refund = r.refundCents > 0 ? ` Возврат: ${(r.refundCents / 100).toFixed(2)} ₽` : '';
+          toast.success(`ОК: Заказ #${r.numericId} завершен.${refund}`);
+          onClose();
+        } else {
+          toast.error(r.error || 'Ошибка завершения');
+        }
+      } catch (e) {
+        toast.error((e as Error).message || 'Ошибка завершения');
       }
     });
   }
@@ -144,20 +156,30 @@ function OrderDrawer({
 
     if (confirmAction === 'cancel') {
       startTransition(async () => {
+        addOptimisticUpdate({ id: order.id, status: 'CANCELED' });
         try {
-          await cancelOrderAction(fd);
-          toast.success(`🚫 Заказ #${order.numericId} отменён`);
-          onClose();
+          const r = await cancelOrderAction(fd);
+          if (r.success) {
+            toast.success(`Успех: Заказ #${order.numericId} отменен`);
+            onClose();
+          } else {
+            toast.error(r.error || 'Ошибка отмены');
+          }
         } catch (e) {
           toast.error((e as Error).message ?? 'Ошибка');
         }
       });
     } else if (confirmAction === 'restart') {
       startTransition(async () => {
+        addOptimisticUpdate({ id: order.id, status: 'PENDING' });
         try {
-          await restartOrderAction(fd);
-          toast.success(`♻️ Заказ #${order.numericId} перезапущен`);
-          onClose();
+          const r = await restartOrderAction(fd);
+          if (r.success) {
+            toast.success(`Успех: Заказ #${order.numericId} перезапущен`);
+            onClose();
+          } else {
+            toast.error(r.error || 'Ошибка перезапуска');
+          }
         } catch (e) {
           toast.error((e as Error).message ?? 'Ошибка');
         }
@@ -171,11 +193,13 @@ function OrderDrawer({
       try {
         const preview = await getFailoverPreview(order.id);
         if (preview.success) {
-          setFailoverPreview(preview);
           if (preview.routes.length > 0) {
             setSelectedRouteId(preview.routes[0].routeId);
           }
+          setFailoverPreview(preview);
           setIsFailoverModalOpen(true);
+        } else {
+          toast.error(('error' in preview ? preview.error : undefined) || 'Ошибка получения маршрутов');
         }
       } catch (e) {
         toast.error((e as Error).message ?? 'Ошибка загрузки маршрутов');
@@ -187,10 +211,14 @@ function OrderDrawer({
     if (!order || !selectedRouteId) return;
     startTransition(async () => {
       try {
-        await manualRerouteOrder(order.id, selectedRouteId);
-        toast.success(`♻️ Заказ #${order.numericId} перезапущен через нового провайдера`);
-        setIsFailoverModalOpen(false);
-        onClose();
+        const r = await manualRerouteOrder(order.id, selectedRouteId);
+        if (r.success) {
+          toast.success(`Успех: Заказ #${order.numericId} переведен на резервный маршрут`);
+          setIsFailoverModalOpen(false);
+          onClose();
+        } else {
+          toast.error(r.error || 'Ошибка перевода заказа');
+        }
       } catch (e) {
         toast.error((e as Error).message ?? 'Ошибка при перезапуске');
       }
@@ -363,7 +391,7 @@ function OrderDrawer({
             </button>
             <button
               onClick={handleCancel}
-              disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL'].includes(order.status)}
+              disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL', 'IN_PROGRESS', 'ERROR'].includes(order.status)}
               aria-label="Отменить заказ"
               className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-rose-300 bg-destructive/10 text-rose-700 hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40"
             >
@@ -509,14 +537,26 @@ function OrderDrawer({
 
 // ── Main Component ──────────────────────────────────────────────────────────
 export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
+  const [optimisticData, addOptimisticUpdate] = useOptimistic(
+    data,
+    (state, update: { id: string, status: string, remains?: number }) => {
+      return state.map(order => 
+        order.id === update.id 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? { ...order, status: update.status as any, remains: update.remains ?? order.remains } 
+          : order
+      );
+    }
+  );
+
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
   const editOrderId = searchParams.get('edit_order_id');
   const selectedOrder = React.useMemo(
-    () => data.find(o => o.id === editOrderId) ?? null,
-    [data, editOrderId]
+    () => optimisticData.find(o => o.id === editOrderId) ?? null,
+    [optimisticData, editOrderId]
   );
 
   const [isPendingBulk, startBulkTransition] = useTransition();
@@ -541,14 +581,21 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
     setBulkConfirmOpen(false);
     const ids = bulkSelectedRows.map(r => (r.original as OrderColumn).id);
     startBulkTransition(async () => {
-      const r = await bulkCancelOrdersAction(ids);
-      if (r.success) {
-        const refund = r.totalRefundCents > 0
-          ? `, возврат ${(r.totalRefundCents / 100).toFixed(2)} ₽`
-          : '';
-        toast.success(`🚫 Отменено ${r.cancelledCount} заказов${refund}`);
-      } else {
-        toast.error(r.error ?? 'Ошибка пакетной отмены');
+      ids.forEach(id => addOptimisticUpdate({ id, status: 'CANCELED' }));
+      try {
+        const r = await bulkCancelOrdersAction(ids);
+        if (r.success) {
+          const refund = r.totalRefundCents > 0
+            ? `, возврат ${(r.totalRefundCents / 100).toFixed(2)} ₽`
+            : '';
+          if (r.cancelledCount < ids.length) {
+            toast.warning(`Отменено ${r.cancelledCount} из ${ids.length} заказов. Остальные не подлежат отмене.${refund}`);
+          } else {
+            toast.success(`🚫 Отменено ${r.cancelledCount} заказов${refund}`);
+          }
+        }
+      } catch (e) {
+        toast.error((e as Error).message || 'Ошибка пакетной отмены');
       }
     });
   }
@@ -557,7 +604,7 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
     <div className="relative">
       <DataTable
         columns={memoColumns}
-        data={data}
+        data={optimisticData}
         searchKey="user_email"
         searchPlaceholder="Фильтр по email на этой странице..."
         hideClientPagination={true}
@@ -604,7 +651,12 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
       />
 
       {/* Order detail drawer */}
-      <OrderDrawer order={selectedOrder} onClose={closeDrawer} canSeeRates={canSeeRates} />
+      <OrderDrawer 
+        order={selectedOrder} 
+        onClose={closeDrawer} 
+        canSeeRates={canSeeRates} 
+        addOptimisticUpdate={addOptimisticUpdate}
+      />
 
       <ConfirmModal
         isOpen={bulkConfirmOpen}

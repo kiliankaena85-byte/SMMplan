@@ -16,31 +16,23 @@ import { useRouter } from 'next/navigation';
 import { Table } from '@heroui/react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Trash2, AlertCircle, ShoppingCart, Pencil, Plus, Loader2 } from 'lucide-react';
+import { Trash2, ShoppingCart, Pencil, Plus, Loader2 } from 'lucide-react';
 import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import {
-  batchToggleServicesAction,
-  batchSetMarkupAction,
-  updateServiceMarkupAction,
   toggleServiceActiveAction,
-  batchReassignServicesCategoryAction,
 } from '@/actions/admin/catalog/batch';
 import { createServiceAction, updateServiceAction } from '@/actions/admin/catalog/services';
 import { softDeleteServiceAction } from '@/actions/admin/catalog/soft-delete';
 import {
-  TOTAL_MANDATORY_DEDUCTIONS,
-  SAFETY_FLOOR_MARKUP,
   applyBeautifulRounding,
 } from '@/lib/financial-constants';
-import { PriceHistoryButton } from './price-history-modal';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
   DialogDescription,
@@ -53,346 +45,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
+import { BatchActionBar } from './catalog/batch-action-bar';
+import { InlinePriceCell } from './catalog/inline-price-cell';
 
-function calcRetailPrice(rate: number, markup: number, usdToRub: number) {
-  return applyBeautifulRounding(rate * markup * usdToRub);
-}
-
-// ─── Sub-component: Reassign Category Modal ────────────────────────────────
-function ReassignCategoryModal({
-  selectedIds,
-  categories,
-  onSuccess,
-  isPending,
-  startTransition,
-}: {
-  selectedIds: string[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories: any[];
-  onSuccess: () => void;
-  isPending: boolean;
-  startTransition: (cb: () => void) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [targetCategoryId, setTargetCategoryId] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const filteredCategories = categories.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  function handleConfirm() {
-    if (!targetCategoryId) {
-      toast.error("Выберите целевую категорию");
-      return;
-    }
-    startTransition(async () => {
-      const res = await batchReassignServicesCategoryAction(selectedIds, targetCategoryId);
-      if (res.success) {
-        toast.success(`Успешно перенесено ${res.count} услуг`);
-        setOpen(false);
-        onSuccess();
-      } else {
-        toast.error(res.error || "Произошла ошибка при переносе");
-      }
-    });
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={
-        <button
-          type="button"
-          disabled={isPending}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-        >
-          📁 Перенести в категорию
-        </button>
-      } />
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto w-full p-6 bg-card border border-border rounded-xl">
-        <DialogHeader>
-          <DialogTitle className="text-base font-bold text-foreground">Перенос услуг ({selectedIds.length} шт.)</DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Выберите категорию, в которую будут перенесены выбранные услуги.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <input
-            type="text"
-            placeholder="Поиск категории..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-          />
-
-          <div className="space-y-1">
-            <span className="block text-xs font-semibold text-muted-foreground uppercase">Категория</span>
-            <Select value={targetCategoryId} onValueChange={(val) => setTargetCategoryId(val || '')}>
-              <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground cursor-pointer focus:ring-2 focus:ring-primary/20">
-                <SelectValue placeholder="-- Выберите категорию --">
-                  {(value: string) => filteredCategories.find(c => c.id === value)?.name ?? value}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="w-full">
-                {filteredCategories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id} label={cat.name} className="cursor-pointer">
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <DialogFooter className="flex justify-end gap-2 pt-2 border-t border-border/50">
-          <DialogClose render={<Button intent="outline" size="sm" type="button">Отмена</Button>} />
-          <Button
-            intent="primary"
-            size="sm"
-            onClick={handleConfirm}
-            disabled={isPending || !targetCategoryId}
-            className="cursor-pointer"
-          >
-            Подтвердить перенос
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Sub-component: Batch Action Bar ───────────────────────────────────────
-function BatchActionBar({
-  selectedIds,
-  onClear,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  usdToRub,
-  canEditFinance,
-  categories,
-}: {
-  selectedIds: string[];
-  onClear: () => void;
-  usdToRub: number;
-  canEditFinance: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories: any[];
-}) {
-  const [isPending, startTransition] = useTransition();
-  const [markupPercentInput, setMarkupPercentInput] = useState('');
-
-  const minPercent = ((SAFETY_MULTIPLIER - 1) * 100).toFixed(0);
-
-  function handleEnable() {
-    startTransition(async () => {
-      const r = await batchToggleServicesAction(selectedIds, true);
-      if (r.success) { toast.success(`✅ Включено ${r.count} услуг`); onClear(); }
-      else toast.error(r.error ?? 'Ошибка');
-    });
-  }
-
-  function handleDisable() {
-    startTransition(async () => {
-      const r = await batchToggleServicesAction(selectedIds, false);
-      if (r.success) { toast.success(`🚫 Отключено ${r.count} услуг`); onClear(); }
-      else toast.error(r.error ?? 'Ошибка');
-    });
-  }
-
-  function handleSetMarkup() {
-    const percent = parseFloat(markupPercentInput);
-    const m = (percent / 100) + 1;
-    if (isNaN(m) || m < SAFETY_MULTIPLIER) {
-      toast.error(`Минимальная наценка: +${minPercent}%`);
-      return;
-    }
-    startTransition(async () => {
-      const r = await batchSetMarkupAction(selectedIds, m);
-      if (r.success) { toast.success(`💰 Наценка +${percent}% для ${r.count} услуг`); onClear(); }
-      else toast.error(r.error ?? 'Ошибка');
-    });
-  }
-
-  return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-primary/5 border border-primary/20 rounded-xl mb-4 animate-in slide-in-from-top-2 duration-300">
-      <span className="text-sm font-semibold text-primary">{selectedIds.length} выбрано</span>
-      <div className="flex-1 h-px bg-border" />
-      <button
-        onClick={handleEnable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-emerald-500/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-      >✅ Включить</button>
-      <button
-        onClick={handleDisable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/15 text-destructive border border-rose-500/30 hover:bg-destructive/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-      >🚫 Отключить</button>
-
-      <ReassignCategoryModal
-        selectedIds={selectedIds}
-        categories={categories}
-        onSuccess={onClear}
-        isPending={isPending}
-        startTransition={startTransition}
-      />
-
-      {canEditFinance && (
-        <div className="flex items-center gap-1 group relative">
-          <span className="text-xs font-medium text-muted-foreground">+</span>
-          <input
-            type="number" step="1" placeholder={`Наценка в % (мин ${minPercent})`}
-            value={markupPercentInput} onChange={e => setMarkupPercentInput(e.target.value)}
-            className="w-44 px-2 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-          />
-          <span className="text-xs font-medium text-muted-foreground">%</span>
-          
-          {/* Preview Tooltip */}
-          {parseFloat(markupPercentInput) > 0 && (
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-1 rounded-md shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
-              Пример: при закупе 100₽ клиент заплатит {(100 * ((parseFloat(markupPercentInput) / 100) + 1)).toFixed(0)}₽
-            </div>
-          )}
-
-          <button
-            onClick={handleSetMarkup} disabled={isPending}
-            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-          >Применить наценку</button>
-        </div>
-      )}
-      <button
-        onClick={onClear}
-        className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
-      >✕ Сбросить</button>
-    </div>
-  );
-}
-
-// ─── Sub-component: Inline Price Cell ──────────────────────────────────────
-function InlinePriceCell({ service, usdToRub, canEditFinance }: { service: CatalogServiceDTO, usdToRub: number, canEditFinance: boolean }) {
-  const [markup, setMarkup] = useState(service.markup);
-  // localPrice reflects what the user sees/edits in RUB
-  const [localPrice, setLocalPrice] = useState(calcRetailPrice(service.rate, service.markup, usdToRub));
-  const [isPending, startTransition] = useTransition();
-
-  const isBelowSafety = markup < SAFETY_MULTIPLIER;
-  const providerCostRub = service.rate * usdToRub;
-
-  function handlePriceChange(val: string) {
-    const newPrice = parseFloat(val) || 0;
-    setLocalPrice(newPrice);
-    
-    // Auto-calculate markup for internal logic
-    if (providerCostRub > 0) {
-      const newMarkup = newPrice / providerCostRub;
-      setMarkup(newMarkup);
-    }
-  }
-
-  function handlePercentChange(val: string) {
-    const newPercent = parseFloat(val) || 0;
-    const newMarkup = (newPercent / 100) + 1;
-    setMarkup(newMarkup);
-    setLocalPrice(calcRetailPrice(service.rate, newMarkup, usdToRub));
-  }
-
-  async function save() {
-    // Round for beauty before final calculation
-    const roundedPrice = applyBeautifulRounding(localPrice);
-    const finalMarkup = roundedPrice / providerCostRub;
-
-    if (roundedPrice === calcRetailPrice(service.rate, service.markup, usdToRub)) return;
-    
-    // HARD BLOCK: Financial Integrity Guard
-    if (finalMarkup < SAFETY_MULTIPLIER) {
-      toast.error(
-        <div className="flex flex-col gap-1">
-          <span className="font-bold text-destructive flex items-center gap-1"><AlertCircle className="w-4 h-4" /> Ошибка маржинальности</span>
-          <span>Цена <b>{roundedPrice} ₽</b> (+{((finalMarkup - 1) * 100).toFixed(0)}%) ниже порога безубыточности <b>+{((SAFETY_MULTIPLIER - 1) * 100).toFixed(0)}%</b>.</span>
-        </div>
-      );
-      // Revert UI
-      setMarkup(service.markup);
-      setLocalPrice(calcRetailPrice(service.rate, service.markup, usdToRub));
-      return;
-    }
-
-    startTransition(async () => {
-      const r = await updateServiceMarkupAction(service.id, finalMarkup);
-      if (!r.success) {
-        toast.error(r.error ?? 'Ошибка сохранения');
-        setMarkup(service.markup);
-        setLocalPrice(calcRetailPrice(service.rate, service.markup, usdToRub));
-      } else {
-        toast.success(
-          <div className="flex flex-col">
-            <span className="font-bold">Цена обновлена</span>
-            <span className="text-[11px] opacity-80">Установлено: {roundedPrice} ₽ (+{((finalMarkup - 1) * 100).toFixed(0)}%)</span>
-          </div>
-        );
-        setLocalPrice(roundedPrice);
-        setMarkup(finalMarkup);
-      }
-    });
-  }
-
-  return (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex items-center gap-3">
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[10px] uppercase text-muted-foreground/80 font-bold tracking-wider">Цена (₽)</span>
-          <div className="relative group">
-            <input
-              type="number"
-              value={localPrice}
-              onChange={e => handlePriceChange(e.target.value)}
-              onBlur={save}
-              onKeyDown={e => e.key === 'Enter' && save()}
-              disabled={isPending || !canEditFinance}
-              className={`w-28 px-3 py-2 text-sm h-10 font-mono font-bold rounded-xl border outline-none transition-all duration-200 tabular-nums
-                ${isBelowSafety
-                  ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
-                } disabled:opacity-50 ${!canEditFinance && 'bg-muted border-transparent text-muted-foreground'}`}
-            />
-          </div>
-        </div>
-        
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[10px] uppercase text-muted-foreground/80 font-bold tracking-wider">Наценка (%)</span>
-          <div className="relative group">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground pointer-events-none">+</span>
-            <input
-              type="number"
-              value={markup > 0 ? ((markup - 1) * 100).toFixed(0) : "0"}
-              onChange={e => handlePercentChange(e.target.value)}
-              onBlur={save}
-              onKeyDown={e => e.key === 'Enter' && save()}
-              disabled={isPending || !canEditFinance}
-              className={`w-28 pl-6 pr-6 py-2 text-sm h-10 font-mono font-bold rounded-xl border outline-none transition-all duration-200 tabular-nums
-                ${isBelowSafety
-                  ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
-                } disabled:opacity-50 ${!canEditFinance && 'bg-muted border-transparent text-muted-foreground'}`}
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground pointer-events-none">%</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2.5">
-         <span className="text-[10px] px-2 py-1 rounded-md bg-success/10 text-emerald-600 font-bold border border-emerald-500/20">
-           Прибыль: {(localPrice - providerCostRub).toFixed(2)} ₽
-         </span>
-         {isBelowSafety && (
-          <span className="text-[10px] px-2 py-1 rounded-md bg-destructive/20 text-destructive font-bold border border-destructive/30 animate-pulse">
-            УБЫТОК
-          </span>
-        )}
-        <PriceHistoryButton serviceId={service.id} />
-      </div>
-    </div>
-  );
-}
-
+// ─── Sub-component: Status Toggle ──────────────────────────────────────────
 // ─── Sub-component: Status Toggle ──────────────────────────────────────────
 function StatusToggle({ service }: { service: CatalogServiceDTO }) {
   const [isActive, setIsActive] = useState(service.isActive);
@@ -1015,7 +671,7 @@ export function CatalogTable({
       </div>
 
       {selected.size > 0 && canEdit && (
-        <BatchActionBar selectedIds={selectedIds} onClear={() => setSelected(new Set())} usdToRub={usdToRub} canEditFinance={canEditFinance} categories={categories} />
+        <BatchActionBar selectedIds={selectedIds} onClear={() => setSelected(new Set())} canEditFinance={canEditFinance} categories={categories} />
       )}
 
       <div className="rounded-xl border border-default-200 bg-card shadow-sm overflow-hidden">

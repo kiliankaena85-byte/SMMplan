@@ -87,6 +87,10 @@ class SettingsService {
         data: { id: 'global', taxRate: 6.0, opexMonthly: 0, maintenanceMode: false, siteName: 'SMMplan', siteDescription: '' }
       });
     }
+    const { SettingsProvider } = await import('@/lib/settings');
+    if (SettingsProvider.isTestEnvironment()) {
+      settings.isTestMode = true;
+    }
     return settings;
   }
 

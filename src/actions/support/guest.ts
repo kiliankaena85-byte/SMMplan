@@ -65,23 +65,24 @@ export async function createGuestTicketAction(formData: FormData) {
       }
     });
 
-    // 5. Create Ticket with Source = EMAIL
-    const ticket = await db.ticket.create({
-      data: {
-        userId: user.id,
-        subject: `Вопрос от гостя: ${name}`,
-        source: "EMAIL",
-        status: "OPEN"
-      }
-    });
+    // 5. Create Ticket and Initial Message atomically
+    await db.$transaction(async (tx) => {
+      const ticket = await tx.ticket.create({
+        data: {
+          userId: user.id,
+          subject: `Вопрос от гостя: ${name}`,
+          source: "EMAIL",
+          status: "OPEN"
+        }
+      });
 
-    // 6. Add the initial message
-    await db.ticketMessage.create({
-      data: {
-        ticketId: ticket.id,
-        sender: "USER",
-        text: message
-      }
+      await tx.ticketMessage.create({
+        data: {
+          ticketId: ticket.id,
+          sender: "USER",
+          text: message
+        }
+      });
     });
 
     return { success: true };

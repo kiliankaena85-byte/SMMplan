@@ -41,6 +41,12 @@ vi.mock('../../../services/core/order.service', () => ({
   }
 }));
 
+vi.mock('../../../services/financial/compensation.service', () => ({
+  CompensationService: {
+    trackCompensation: vi.fn().mockResolvedValue(undefined)
+  }
+}));
+
 describe('Sync Processor', () => {
   const mockJob = { name: 'sync-all' } as any;
 

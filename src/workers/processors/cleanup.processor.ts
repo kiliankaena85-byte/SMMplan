@@ -11,6 +11,12 @@
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { CompensationService } from '@/services/financial/compensation.service';
+
+/**
+ * MANDATORY INTEGRITY WARNING:
+ * DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A Forensic Auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
+ */
 
 const log = logger.child({ component: 'CleanupProcessor' });
 
@@ -154,16 +160,17 @@ export async function runCleanup(): Promise<void> {
   // ── 5. Orders: Stuck IN_PROGRESS TTL Sweep ────────────────────────────────
   try {
     await runInProgressTTLSweep();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (ttlErr: any) {
-    log.error('runCleanup: runInProgressTTLSweep failed', { error: ttlErr.message });
+  } catch (ttlErr) {
+    const errMsg = ttlErr instanceof Error ? ttlErr.message : String(ttlErr);
+    log.error('runCleanup: runInProgressTTLSweep failed', { error: errMsg });
   }
 
   // ── 6. Orders: Stuck PENDING_CHECK TTL Sweep ────────────────────────────
   try {
     await runPendingCheckTTLSweep();
-  } catch (pcErr: any) {
-    log.error('runCleanup: runPendingCheckTTLSweep failed', { error: pcErr.message });
+  } catch (pcErr) {
+    const errMsg = pcErr instanceof Error ? pcErr.message : String(pcErr);
+    log.error('runCleanup: runPendingCheckTTLSweep failed', { error: errMsg });
   }
 
   const durationMs = Date.now() - startedAt;
@@ -428,6 +435,8 @@ export async function runInProgressTTLSweep(): Promise<void> {
             `• ID: \`${order.id}\` (#${order.numericId}), Юзер: \`${order.userId}\`, Выполнено: ${delivered}/${quantity}, Статус: \`${targetStatus}\`, Возврат: ${refundRub} ₽`
           );
         }, { isolationLevel: 'Serializable' });
+
+        CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on TTL sweep', { orderId: order.id, error: err.message }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (orderErr: any) {
         log.error(`runInProgressTTLSweep: failed to sweep order ${order.id}`, { error: orderErr.message });
@@ -513,8 +522,11 @@ export async function runPendingCheckTTLSweep(): Promise<void> {
 
         processedCount++;
       }, { isolationLevel: 'Serializable' });
-    } catch (err: any) {
-      log.error(`runPendingCheckTTLSweep: failed for order ${order.id}`, { error: err.message });
+
+      CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on pending check TTL sweep', { orderId: order.id, error: err.message }));
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      log.error(`runPendingCheckTTLSweep: failed for order ${order.id}`, { error: errMsg });
     }
   }
 

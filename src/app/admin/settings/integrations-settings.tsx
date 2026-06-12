@@ -161,7 +161,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
             {/* Robokassa */}
             <div className="space-y-4">
               <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Robokassa (Fiat)</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Идентификатор магазина (Merchant Login)</Label>
                   <Input
@@ -171,11 +171,19 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пароль 2 (для Webhook / ResultURL)</Label>
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пароль 1 (для инициализации оплаты)</Label>
                   <Input
                     name="robokassaPassword"
                     type="password"
                     placeholder={settings.robokassaPassword ? '••••••••••••••••' : 'Не настроено'}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пароль 2 (для Webhook / ResultURL)</Label>
+                  <Input
+                    name="robokassaWebhookPassword"
+                    type="password"
+                    placeholder={settings.robokassaWebhookPassword ? '••••••••••••••••' : 'Не настроено'}
                   />
                 </div>
               </div>

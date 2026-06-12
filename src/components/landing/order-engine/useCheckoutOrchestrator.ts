@@ -230,8 +230,9 @@ export function useCheckoutOrchestrator({
         if (!linkResult.success) {
           validationWarningActive = true;
         }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-empty
-      } catch (e) {}
+      } catch (e) {
+        console.warn('Link validation warning check failed:', e);
+      }
     }
 
     const hasDbWarnings = !!(

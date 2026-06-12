@@ -47,7 +47,6 @@ const ADMIN_NAVIGATION = [
     items: [
       { href: '/admin/settings',        icon: 'Settings',   label: 'Настройки',     section: 'settings' },
       { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фичи',          section: 'features' },
-      { href: '/admin/system/queues',   icon: 'Activity',   label: 'Очереди',       section: 'queues' },
     ]
   }
 ];
@@ -85,6 +84,24 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     }
   });
 
+  // Map UI sections to StaffRole permissions
+  const SECTION_MAP: Record<string, string> = {
+    'dashboard': 'orders',
+    'orders': 'orders',
+    'refills': 'orders',
+    'tickets': 'orders',
+    'clients': 'finance',
+    'finance': 'finance',
+    'marketing': 'finance',
+    'catalog': 'catalog',
+    'quarantine': 'catalog',
+    'providers': 'catalog',
+    'pages': 'settings',
+    'settings': 'settings',
+    'features': 'settings',
+    'queues': 'settings',
+  };
+
   // Filter navigation based on RBAC
   const navigation = ADMIN_NAVIGATION.map(group => ({
     ...group,
@@ -96,8 +113,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     }).filter(item => {
       if (user.role === 'OWNER') return true;
       if (!user.staffRole) return false;
+      const requiredPerm = SECTION_MAP[item.section] || item.section;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return user.staffRole.permissions.some((p: any) => p.section === item.section && p.canView);
+      return user.staffRole.permissions.some((p: any) => p.section === requiredPerm && p.canView);
     })
   })).filter(group => group.items.length > 0);
 

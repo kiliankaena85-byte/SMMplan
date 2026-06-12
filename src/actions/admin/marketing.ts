@@ -11,7 +11,7 @@ const promoCodeSchema = z.object({
   code: z.string().min(1).max(12).toUpperCase().regex(/^[A-Z0-9_-]+$/, "Разрешены только буквы, цифры, дефис и подчеркивание"),
   type: z.enum(['DISCOUNT', 'VOUCHER']),
   discountPercent: z.coerce.number().min(0, "Процент скидки не может быть отрицательным").max(90, "Максимальная скидка 90%").optional().default(0),
-  amount: z.coerce.number().int().min(0, "Сумма не может быть отрицательной").max(500000, "Максимальная сумма ваучера 500,000 копеек (5,000 ₽)").optional().default(0),
+  amount: z.coerce.number().min(0, "Сумма не может быть отрицательной").max(5000, "Максимальная сумма ваучера 5,000 ₽").optional().default(0),
   maxUses: z.coerce.number().int().min(1, "Максимальное количество использований должно быть не менее 1").max(1000000, "Превышен лимит использований (1 млн)").optional().default(1),
   expiresAt: z.string().optional().transform(v => v ? new Date(v) : null),
   description: z.string().optional(),
@@ -31,7 +31,7 @@ const promoCodeSchema = z.object({
 });
 
 export async function createPromoCode(formData: FormData) {
-  return requireStaffPermission('marketing', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const payload = Object.fromEntries(formData.entries());
     
     // Convert isSuspicious checkbox/select value safely if passed
@@ -68,12 +68,13 @@ export async function createPromoCode(formData: FormData) {
     } = parsed.data;
 
     const budgetCents = Math.round(budget * 100);
+    const amountCents = Math.round(amount * 100);
 
     await adminMarketingService.createPromoCode({
       code,
       type,
       discountPercent,
-      amount,
+      amount: amountCents,
       maxUses,
       expiresAt,
       description,
@@ -111,7 +112,7 @@ export async function createPromoCode(formData: FormData) {
 }
 
 export async function togglePromoCode(id: string, isActive: boolean) {
-  return requireStaffPermission('marketing', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const promo = await db.promoCode.findUnique({ where: { id } });
     if (!promo) return { success: false as const, error: 'Промокод не найден' };
 
@@ -131,7 +132,7 @@ export async function togglePromoCode(id: string, isActive: boolean) {
 }
 
 export async function deletePromoCode(id: string) {
-  return requireStaffPermission('marketing', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const promo = await db.promoCode.findUnique({ where: { id } });
     if (!promo) return { success: false as const, error: 'Промокод не найден' };
 
@@ -156,7 +157,7 @@ const referralPayoutSchema = z.object({
 });
 
 export async function processReferralPayout(userId: string, amount: number) {
-  return requireStaffPermission('marketing', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = referralPayoutSchema.safeParse({ userId, amount });
     if (!parsed.success) {
       return { 

@@ -1,8 +1,8 @@
 import { verifySession } from '@/lib/session';
+import { getBaseUrlAsync } from '@/utils/get-base-url';
 import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { ReferralUi } from './referral-ui';
-import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,10 +46,8 @@ export default async function ReferralsPage() {
   }
 
   // Build referral link server-side using request headers (no hydration mismatch)
-  const headersList = await headers();
-  const host = headersList.get('host') || process.env.NEXT_PUBLIC_APP_URL || 'localhost:3000';
-  const proto = host.includes('localhost') ? 'http' : 'https';
-  const referralLink = `${proto}://${host}/?ref=${user.referralCode}`;
+  const origin = await getBaseUrlAsync();
+  const referralLink = `${origin}/?ref=${user.referralCode}`;
 
   const earnedRub = (user.referralBalance ?? 0) / 100;
   const referralsCount = user._count?.referrals ?? 0;

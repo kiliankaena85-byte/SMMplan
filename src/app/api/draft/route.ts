@@ -34,5 +34,11 @@ export async function GET(request: Request) {
   draft.enable();
 
   // Редирект на страницу со статьей
-  redirect(`/p/${post.slug}`);
+  if (post.type === 'ACADEMY_LESSON') {
+    redirect(`/academy/${post.slug}`);
+  } else if (post.type === 'PAGE' && ['terms', 'privacy', 'refund', 'cookie'].includes(post.slug)) {
+    redirect(`/legal/${post.slug}`);
+  } else {
+    redirect(`/p/${post.slug}`);
+  }
 }

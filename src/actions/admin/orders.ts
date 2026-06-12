@@ -20,6 +20,12 @@ import { orderIdSchema } from '@/validators/admin.validators';
 import { ordersQueue } from '@/lib/queue-manager';
 import { SettingsManager } from '@/lib/settings';
 import { redis } from '@/lib/redis';
+import { CompensationService } from '@/services/financial/compensation.service';
+
+/**
+ * MANDATORY INTEGRITY WARNING:
+ * DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A Forensic Auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
+ */
 
 // ── Types & Schemas ──
 
@@ -112,9 +118,10 @@ export async function setOrderStatusAction(
       const TERMINAL_REFUNDED_STATUSES = ['COMPLETED', 'CANCELED', 'ERROR'];
 
       let refundCents = 0;
-      if (['CANCELED', 'ERROR'].includes(newStatus) && !TERMINAL_REFUNDED_STATUSES.includes(oldStatus)) {
+      if (['CANCELED', 'ERROR', 'COMPLETED'].includes(newStatus) && !TERMINAL_REFUNDED_STATUSES.includes(oldStatus)) {
         if (['PENDING', 'AWAITING_PAYMENT', 'PENDING_CHECK'].includes(oldStatus)) {
-          refundCents = Number(order.charge);
+          // Marking a pending order as COMPLETED means it was manually fulfilled. No refund.
+          refundCents = newStatus === 'COMPLETED' ? 0 : Number(order.charge);
         } else {
           refundCents = calculatePartialRefund(order);
         }
@@ -156,6 +163,7 @@ export async function setOrderStatusAction(
     });
 
     revalidatePath('/admin/orders');
+    CompensationService.trackCompensation(validatedOrderId).catch(err => console.error('[AdminOrders] Failed to track compensation', err));
     return { success: true as const, refundCents: result.refundCents, numericId: result.numericId };
   });
 }
@@ -203,6 +211,8 @@ export async function forceCompleteOrderAction(orderId: string) {
       targetType: 'ORDER',
       newValue: { refund: result.refundCents },
     });
+
+    CompensationService.trackCompensation(orderId).catch(err => console.error('[Orders] Failed to track compensation', err));
 
     revalidatePath('/admin/orders');
     return { success: true as const, refundCents: result.refundCents, numericId: result.numericId };
@@ -255,6 +265,8 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
             totalRefunded += refundCents;
             count++;
           }, { isolationLevel: 'Serializable' });
+
+          CompensationService.trackCompensation(order.id).catch(err => console.error('[Orders] Failed to track compensation', err));
         } catch (e) {
           console.error(`[bulkCancelOrdersAction] Failed to cancel order ${order.id}:`, e);
           // We continue to the next order rather than failing the entire batch

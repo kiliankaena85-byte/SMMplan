@@ -1,7 +1,7 @@
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
+import { getBaseUrlAsync } from '@/utils/get-base-url';
 import Link from 'next/link';
 import { ShoppingCart, Wallet, Users, TrendingUp, ArrowRight, Clock } from 'lucide-react';
 import { formatBalance } from '@/lib/utils';
@@ -64,10 +64,7 @@ export default async function DashboardPage() {
   if (!user) redirect('/login');
 
   // P3.4: Use server-side headers() — no hydration mismatch
-  const headersList = await headers();
-  const host = headersList.get('host') || process.env.NEXT_PUBLIC_APP_URL || 'localhost:3000';
-  const proto = host.includes('localhost') ? 'http' : 'https';
-  const origin = `${proto}://${host}`;
+  const origin = await getBaseUrlAsync();
 
   const activeOrders = await db.order.count({
     where: { userId: session.userId, status: { in: ['IN_PROGRESS', 'PENDING', 'PROVISIONING'] } },

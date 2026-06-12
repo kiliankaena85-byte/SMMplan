@@ -22,6 +22,18 @@ vi.mock('resend', () => {
   };
 });
 
+// Mock featureFlagService globally to avoid database/redis checks during testing and enable features by default
+vi.mock('@/services/system/feature-flag.service', () => {
+  return {
+    featureFlagService: {
+      isEnabled: vi.fn().mockResolvedValue(true),
+      getState: vi.fn().mockResolvedValue('ON'),
+      setState: vi.fn().mockResolvedValue({}),
+      listAll: vi.fn().mockResolvedValue([]),
+    }
+  };
+});
+
 // Mock ioredis globally to prevent attempting actual Redis connections during tests
 vi.mock('ioredis', () => {
   class MockRedis {

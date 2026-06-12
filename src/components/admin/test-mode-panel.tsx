@@ -7,13 +7,14 @@ import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface TestModePanelProps {
   initialIsTestMode: boolean;
+  isTestEnvironment?: boolean;
 }
 
 /**
  * Interactive Test Mode control panel.
  * Allows admin to toggle Ghost Proxy and clear test data.
  */
-export function TestModePanel({ initialIsTestMode }: TestModePanelProps) {
+export function TestModePanel({ initialIsTestMode, isTestEnvironment = false }: TestModePanelProps) {
   const [isTestMode, setIsTestMode] = useState(initialIsTestMode);
   const [isPending, startTransition] = useTransition();
   const [clearPending, startClearTransition] = useTransition();
@@ -21,6 +22,7 @@ export function TestModePanel({ initialIsTestMode }: TestModePanelProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   function handleToggle() {
+    if (isTestEnvironment) return;
     const newValue = !isTestMode;
     startTransition(async () => {
       const result = await adminToggleTestMode(newValue);
@@ -73,12 +75,12 @@ export function TestModePanel({ initialIsTestMode }: TestModePanelProps) {
 
         <button
           onClick={handleToggle}
-          disabled={isPending}
+          disabled={isPending || isTestEnvironment}
           className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
             isTestMode 
               ? 'bg-warning focus:ring-amber-500' 
               : 'bg-success focus:ring-emerald-500'
-          } ${isPending ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+          } ${isPending || isTestEnvironment ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
           <span
             className={`inline-block h-6 w-6 transform rounded-full bg-background shadow-md transition-transform duration-300 ${
@@ -87,6 +89,15 @@ export function TestModePanel({ initialIsTestMode }: TestModePanelProps) {
           />
         </button>
       </div>
+
+      {isTestEnvironment && (
+        <div className="mt-3 text-xs bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 px-3.5 py-2 rounded-lg flex items-center gap-2">
+          <span>⚠️</span>
+          <span>
+            <strong>Тестовый режим принудительно включен</strong> окружением сервера (.env / имя БД). Изменения заблокированы.
+          </span>
+        </div>
+      )}
 
       {isTestMode && (
         <div className="mt-4 pt-4 border-t border-amber-300/50 flex items-center justify-between">

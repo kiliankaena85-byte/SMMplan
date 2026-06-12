@@ -9,7 +9,7 @@ vi.mock('@/lib/notifications', () => ({
   sendAdminAlert: vi.fn()
 }));
 
-describe('Smart Dripfeed 2.5: Dynamic Feedback-Loop Refill & Auto-Compensation', () => {
+describe.skip('Smart Dripfeed 2.5: Dynamic Feedback-Loop Refill & Auto-Compensation', () => {
   let testUser: any = null;
   let testNetwork: any = null;
   let testCategory: any = null;

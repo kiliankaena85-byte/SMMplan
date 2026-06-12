@@ -46,7 +46,7 @@ export async function updateClientDiscountAction(
   discount: number,
   endsAt?: string
 ) {
-  return requireStaffPermission('CLIENTS', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = discountSchema.safeParse({ userId, discount, endsAt });
     if (!parsed.success) {
       return { success: false as const, error: `Максимальная скидка ${MAX_DISCOUNT}%` };
@@ -84,7 +84,7 @@ export async function updateClientDiscountAction(
 
 /** Update internal admin note for a client */
 export async function updateClientNoteAction(userId: string, note: string) {
-  return requireStaffPermission('CLIENTS', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = noteSchema.safeParse({ userId, note });
     if (!parsed.success) {
       return { success: false as const, error: 'Заметка слишком длинная (макс 2000 символов)' };
@@ -115,7 +115,7 @@ export async function updateClientNoteAction(userId: string, note: string) {
 /** Fetch full client profile for the detail page */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getClientProfileAction(userId: string) {
-  return requireStaffPermission('CLIENTS', 'view', async () => {
+  return requireStaffPermission('finance', 'view', async () => {
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {

@@ -190,7 +190,8 @@ class AdminCatalogService {
       const provider = await providerService.getDefaultProvider();
       const services = await provider.getServices();
       return services as ProviderExternalService[];
-    } catch {
+    } catch (err) {
+      console.warn('[CatalogService] getProviderServices failed:', err);
       return [];
     }
   }
@@ -225,8 +226,9 @@ class AdminCatalogService {
     let priceUpdatedSilent = 0;
     let marginFloorBreaches = 0;
 
-    const usdToRub = await SettingsProvider.getExchangeRateUSD();
-    const QUARANTINE_THRESHOLD = 0.2; // 20% price increase tolerance
+    const settings = await SettingsProvider.get();
+    const usdToRub = settings.exchangeRateUSD || 95.0;
+    const QUARANTINE_THRESHOLD = settings.quarantineThreshold || 0.2;
     const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
     const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
 
@@ -268,7 +270,11 @@ class AdminCatalogService {
         }
 
         // Clean name/description and fix markup/price if needed
-        await ServiceAuditEngine.auditAndFixService(s, liveExt, exchangeRate);
+        const auditPayloads = ServiceAuditEngine.auditAndFixService(s, liveExt, exchangeRate);
+        if (auditPayloads.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await db.$transaction(auditPayloads as any);
+        }
 
         if (!s.isActive && s.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
           // Check Price Spike before resurrecting
@@ -413,7 +419,7 @@ class AdminCatalogService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let shadowServices: any[] = [];
     if (cached) {
-      try { shadowServices = JSON.parse(cached); } catch { /* ignore */ }
+      try { shadowServices = JSON.parse(cached); } catch (err) { console.warn('[CatalogService] shadow parse failed:', err); }
     }
 
     const toImportShadow = shadowServices.filter(s => externalIds.includes(s.service.toString()));
@@ -597,7 +603,9 @@ class AdminCatalogService {
       throw new Error('Наценка должна быть в диапазоне 1.0–151.0 или 0 (автокалькуляция)');
     }
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {
+      isQuarantined: false
+    };
     if (filter.categoryId) {
       where.categoryId = filter.categoryId;
     }

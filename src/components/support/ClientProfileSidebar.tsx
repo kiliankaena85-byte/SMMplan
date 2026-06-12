@@ -200,7 +200,7 @@ export default function ClientProfileSidebar({
                           setEmailVal('');
                         }
                       })}
-                      className="flex-1 py-1 bg-success hover:bg-success/90 text-white rounded font-bold transition-colors text-center"
+                      className="flex-1 py-1 bg-success hover:bg-success/90 text-success-foreground rounded font-bold transition-colors text-center"
                     >
                       Слить
                     </button>

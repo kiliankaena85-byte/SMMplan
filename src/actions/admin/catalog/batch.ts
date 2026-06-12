@@ -15,11 +15,10 @@ import { db } from '@/lib/db';
 import { auditAdmin } from '@/lib/admin-audit';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
-import { SAFETY_FLOOR_MARKUP, TOTAL_MANDATORY_DEDUCTIONS, applyBeautifulRounding } from '@/lib/financial-constants';
+import { applyBeautifulRounding } from '@/lib/financial-constants';
 import { SettingsProvider } from '@/lib/settings';
 
-// Minimum allowed markup — Safety Floor (covers taxes + 100% margin)
-const MIN_MARKUP = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
+const MIN_MARKUP = 1.0;
 
 const batchIdsSchema = z.array(z.string().min(1)).min(1).max(500);
 const markupSchema = z.number().min(MIN_MARKUP).max(150);
@@ -84,7 +83,7 @@ export async function batchSetMarkupAction(
     // so we iterate or use a raw query. For 500 items, iteration is safe.
     const services = await db.service.findMany({
       where: { id: { in: ids.data } },
-      select: { id: true, rate: true }
+      select: { id: true, rate: true, providerCurrency: true }
     });
 
     await db.$transaction(
@@ -92,7 +91,7 @@ export async function batchSetMarkupAction(
         where: { id: s.id },
         data: { 
           markup: m,
-          pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * m * usdToRub) * 100)
+          pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * m * (s.providerCurrency === 'RUB' ? 1 : usdToRub)) * 100)
         }
       }))
     );
@@ -134,7 +133,7 @@ export async function updateServiceMarkupAction(
 
     const service = await db.service.findUnique({
       where: { id: serviceId },
-      select: { markup: true, rate: true },
+      select: { markup: true, rate: true, providerCurrency: true },
     });
 
     if (!service) return { success: false as const, error: 'Service not found' };
@@ -143,7 +142,7 @@ export async function updateServiceMarkupAction(
       where: { id: serviceId },
       data: { 
         markup: m,
-        pricePer1000Cents: Math.round(applyBeautifulRounding(service.rate * m * usdToRub) * 100)
+        pricePer1000Cents: Math.round(applyBeautifulRounding(service.rate * m * (service.providerCurrency === 'RUB' ? 1 : usdToRub)) * 100)
       },
     });
 

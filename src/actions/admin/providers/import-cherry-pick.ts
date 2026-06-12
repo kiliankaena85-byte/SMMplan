@@ -36,7 +36,7 @@ export async function fetchPaginatedExternalServices(
     page: number,
     pageSize: number
 ) {
-    return requireStaffPermission('PROVIDERS', 'view', async () => {
+    return requireStaffPermission('catalog', 'view', async () => {
         try {
             const cacheKey = `provider:${providerId}:catalog`;
             let cachedStr: string | null = null;
@@ -248,7 +248,7 @@ export async function fetchPaginatedExternalServices(
 }
 
 export async function fetchExternalServices(providerId?: string, forceRefresh = false) {
-  return requireStaffPermission('PROVIDERS', 'view', async () => {
+  return requireStaffPermission('catalog', 'view', async () => {
      let providerDbRecord;
      if (providerId) {
         providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
@@ -368,7 +368,7 @@ export async function importSelectedServices(
   providerId: string,
   categoryIdMap?: Record<string, string>
 ) {
-    return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
+    return requireStaffPermission('catalog', 'edit', async (admin) => {
         try {
             const parsed = importServicesSchema.safeParse({ externalIds, categoryId, defaultMarkup, providerId, categoryIdMap });
             if (!parsed.success) {

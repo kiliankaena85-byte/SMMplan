@@ -15,7 +15,10 @@ type Props = {
   }>;
 };
 
+import { enforceSectionAccess } from '@/lib/server/rbac';
+
 export default async function AdminTicketsPage({ searchParams }: Props) {
+  await enforceSectionAccess('orders');
   const params = await searchParams;
   const search = params.q || '';
   const statusFilter = params.status || 'ALL';

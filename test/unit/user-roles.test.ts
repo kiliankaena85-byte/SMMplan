@@ -9,6 +9,9 @@ vi.mock('@/lib/server/rbac', () => ({
   requireStaffPermission: vi.fn(async (section: string, mode: string, callback: any) => {
     return callback(mockAdminUser);
   }),
+  requireOwnerPermission: vi.fn(async (callback: any) => {
+    return callback(mockAdminUser);
+  }),
 }));
 
 vi.mock('@/lib/db', () => ({

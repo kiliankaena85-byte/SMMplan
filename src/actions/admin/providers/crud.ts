@@ -60,7 +60,7 @@ export async function createProvider(rawData: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapping?: any;
 }) {
-  return requireStaffPermission('providers', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const data = providerSchema.parse(rawData);
 
     // Encrypt the API key before saving!
@@ -104,7 +104,7 @@ export async function updateProvider(rawId: string, rawData: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapping?: any;
 }) {
-  return requireStaffPermission('providers', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     
     // Create an update schema dynamically to allow empty apikey
@@ -147,7 +147,7 @@ export async function updateProvider(rawId: string, rawData: {
 }
 
 export async function checkProviderConnection(rawId: string) {
-    return requireStaffPermission('providers', 'view', async () => {
+    return requireStaffPermission('catalog', 'view', async () => {
         try {
             const id = idSchema.parse(rawId);
             const providerRecord = await db.provider.findUnique({ where: { id } });
@@ -178,7 +178,7 @@ export async function checkProviderConnection(rawId: string) {
 }
 
 export async function getGlobalProviderLiquidity() {
-    return requireStaffPermission('providers', 'view', async () => {
+    return requireStaffPermission('catalog', 'view', async () => {
         try {
             const providers = await db.provider.findMany({ where: { isActive: true } });
             
@@ -255,7 +255,7 @@ export async function getGlobalProviderLiquidity() {
  * Triggers a manual synchronization of the provider's catalog to find deleted/reappeared services.
  */
 export async function syncProviderCatalogAction(rawId: string) {
-    return requireStaffPermission('providers', 'edit', async (admin) => {
+    return requireStaffPermission('catalog', 'edit', async (admin) => {
         try {
             const id = idSchema.parse(rawId);
             const { adminCatalogService } = await import('@/services/admin/catalog.service');
@@ -275,7 +275,7 @@ export async function syncProviderCatalogAction(rawId: string) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMethod: 'GET'|'POST', contentType: 'form'|'json', authConfig: any, providerId?: string) {
-    return requireStaffPermission('providers', 'edit', async () => {
+    return requireStaffPermission('catalog', 'edit', async () => {
         try {
             let finalApiKey = apiKey;
             if (!finalApiKey && providerId) {

@@ -2,10 +2,12 @@ import { getSmartCampaigns, getServiceConfigs, getSmartGlobalStatus } from '@/ac
 import { Cpu } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { SmartDripClient } from './smart-client';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SmartDripAdminPage() {
+  await enforceSectionAccess('catalog');
   const [campaignsResult, servicesResult, globalStatusResult] = await Promise.all([
     getSmartCampaigns(1, 100),
     getServiceConfigs(),

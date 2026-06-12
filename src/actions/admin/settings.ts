@@ -1,6 +1,6 @@
 'use server';
 
-import { requireStaffPermission } from '@/lib/server/rbac';
+import { requireStaffPermission, requireOwnerPermission } from '@/lib/server/rbac';
 import { roleSchema, globalSettingsSchema } from '@/validators/admin.validators';
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
@@ -13,7 +13,7 @@ import { getClientIp } from '@/utils/ip';
 
 // ── User Role Update ──
 export async function updateUserRole(formData: FormData) {
-  const result = await requireStaffPermission("settings", "edit", async (admin) => {
+  const result = await requireOwnerPermission(async (admin) => {
     const parsed = roleSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Некорректные данные' };
     const { userId: targetUserId, role: newRole, staffRoleId } = parsed.data;
@@ -79,6 +79,7 @@ export async function updateGlobalSettings(formData: FormData) {
       cryptoBotToken: rawCryptoBotToken,
       robokassaLogin,
       robokassaPassword: rawRobokassaPassword,
+      robokassaWebhookPassword: rawRobokassaWebhookPassword,
       exchangeRateUSD,
       emailProvider,
       resendApiKey: rawResendApiKey,
@@ -103,23 +104,24 @@ export async function updateGlobalSettings(formData: FormData) {
     const oldSettings = await db.systemSettings.findUnique({ where: { id: 'global' } });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dataToUpdate: any = { 
-      maintenanceMode, 
-      siteName, 
-      siteDescription,
-      usnScheme,
-      contactSupportEmail,
-      contactPrivacyEmail,
-      contactTelegramBot,
-      contactTelegramChannel,
-      contactWhatsApp,
-      contactVk,
-      legalCompanyName,
-      legalCompanyInn,
-      legalCompanyOgrnip,
-      legalCompanyAddress
-    };
-    if (welcomeMessage !== null) dataToUpdate.welcomeMessage = welcomeMessage;
+    const dataToUpdate: any = {};
+    if (formData.has('_isGeneralSettings')) {
+      dataToUpdate.maintenanceMode = formData.has('maintenanceMode');
+    }
+    if (formData.has('siteName')) dataToUpdate.siteName = siteName;
+    if (formData.has('siteDescription')) dataToUpdate.siteDescription = siteDescription;
+    if (formData.has('usnScheme')) dataToUpdate.usnScheme = usnScheme;
+    if (formData.has('contactSupportEmail')) dataToUpdate.contactSupportEmail = contactSupportEmail;
+    if (formData.has('contactPrivacyEmail')) dataToUpdate.contactPrivacyEmail = contactPrivacyEmail;
+    if (formData.has('contactTelegramBot')) dataToUpdate.contactTelegramBot = contactTelegramBot;
+    if (formData.has('contactTelegramChannel')) dataToUpdate.contactTelegramChannel = contactTelegramChannel;
+    if (formData.has('contactWhatsApp')) dataToUpdate.contactWhatsApp = contactWhatsApp;
+    if (formData.has('contactVk')) dataToUpdate.contactVk = contactVk;
+    if (formData.has('legalCompanyName')) dataToUpdate.legalCompanyName = legalCompanyName;
+    if (formData.has('legalCompanyInn')) dataToUpdate.legalCompanyInn = legalCompanyInn;
+    if (formData.has('legalCompanyOgrnip')) dataToUpdate.legalCompanyOgrnip = legalCompanyOgrnip;
+    if (formData.has('legalCompanyAddress')) dataToUpdate.legalCompanyAddress = legalCompanyAddress;
+    if (formData.has('welcomeMessage') && welcomeMessage !== null) dataToUpdate.welcomeMessage = welcomeMessage;
     
     let isRateChanged = false;
     if (exchangeRateUSD !== undefined && exchangeRateUSD >= 0) {
@@ -130,24 +132,25 @@ export async function updateGlobalSettings(formData: FormData) {
     }
 
     // Only update secrets if they are provided (prevent overwriting with empty)
-    if (yookassaShopId) dataToUpdate.yookassaShopId = yookassaShopId;
+    if (formData.has('yookassaShopId')) dataToUpdate.yookassaShopId = yookassaShopId;
     if (rawYookassaSecret) dataToUpdate.yookassaSecretKey = VaultService.encrypt(rawYookassaSecret);
-    if (yookassaTestShopId) dataToUpdate.yookassaTestShopId = yookassaTestShopId;
+    if (formData.has('yookassaTestShopId')) dataToUpdate.yookassaTestShopId = yookassaTestShopId;
     if (rawYookassaTestSecret) dataToUpdate.yookassaTestSecretKey = VaultService.encrypt(rawYookassaTestSecret);
     if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
-    if (robokassaLogin) dataToUpdate.robokassaLogin = robokassaLogin;
+    if (formData.has('robokassaLogin')) dataToUpdate.robokassaLogin = robokassaLogin;
     if (rawRobokassaPassword) dataToUpdate.robokassaPassword = VaultService.encrypt(rawRobokassaPassword);
+    if (rawRobokassaWebhookPassword) dataToUpdate.robokassaWebhookPassword = VaultService.encrypt(rawRobokassaWebhookPassword);
 
     // Email / SMTP settings
-    if (emailProvider !== undefined) dataToUpdate.emailProvider = emailProvider;
+    if (formData.has('emailProvider') && emailProvider !== undefined) dataToUpdate.emailProvider = emailProvider;
     if (rawResendApiKey && rawResendApiKey.trim() !== '') {
       dataToUpdate.resendApiKey = VaultService.encrypt(rawResendApiKey.trim());
     }
-    if (smtpHost !== null) dataToUpdate.smtpHost = smtpHost;
-    if (smtpPort !== undefined) dataToUpdate.smtpPort = smtpPort;
-    if (smtpUser !== null) dataToUpdate.smtpUser = smtpUser;
+    if (formData.has('smtpHost') && smtpHost !== null) dataToUpdate.smtpHost = smtpHost;
+    if (formData.has('smtpPort') && smtpPort !== undefined) dataToUpdate.smtpPort = smtpPort;
+    if (formData.has('smtpUser') && smtpUser !== null) dataToUpdate.smtpUser = smtpUser;
     if (rawSmtpPassword) dataToUpdate.smtpPassword = VaultService.encrypt(rawSmtpPassword);
-    if (supportEmailDomain !== null) dataToUpdate.supportEmailDomain = supportEmailDomain;
+    if (formData.has('supportEmailDomain') && supportEmailDomain !== null) dataToUpdate.supportEmailDomain = supportEmailDomain;
     if (rawInboundSecret) dataToUpdate.inboundEmailWebhookSecret = VaultService.encrypt(rawInboundSecret);
 
     await settingsService.updateSystemSettings(dataToUpdate);
@@ -191,87 +194,3 @@ export async function updateGlobalSettings(formData: FormData) {
   }
 }
 
-// ── COP Usability Simulator ──
-const flows: Record<string, { clicks: number; cognitiveLoad: number; steps: Array<{ name: string; clicks: number; cognitiveLoad: number }>; rating: 'PREMIUM' | 'ACCEPTABLE' | 'HIGH' }> = {
-  CLIENT_ORDER: {
-    clicks: 6,
-    cognitiveLoad: 6,
-    steps: [
-      { name: "Переход на страницу заказа", clicks: 1, cognitiveLoad: 1 },
-      { name: "Выбор категории и услуги", clicks: 2, cognitiveLoad: 2 },
-      { name: "Ввод ссылки для накрутки", clicks: 1, cognitiveLoad: 1 },
-      { name: "Ввод количества", clicks: 1, cognitiveLoad: 1 },
-      { name: "Нажатие кнопки 'Создать заказ'", clicks: 1, cognitiveLoad: 1 }
-    ],
-    rating: 'PREMIUM'
-  },
-  SUPPORT_TICKET: {
-    clicks: 7,
-    cognitiveLoad: 8,
-    steps: [
-      { name: "Переход в раздел поддержки", clicks: 1, cognitiveLoad: 1 },
-      { name: "Нажатие 'Новый тикет'", clicks: 1, cognitiveLoad: 1 },
-      { name: "Выбор темы и категории проблемы", clicks: 2, cognitiveLoad: 2 },
-      { name: "Заполнение темы и текста сообщения", clicks: 2, cognitiveLoad: 3 },
-      { name: "Отправка тикета", clicks: 1, cognitiveLoad: 1 }
-    ],
-    rating: 'ACCEPTABLE'
-  },
-  ROLE_CHANGE: {
-    clicks: 7,
-    cognitiveLoad: 7,
-    steps: [
-      { name: "Переход в настройки системы", clicks: 1, cognitiveLoad: 1 },
-      { name: "Выбор вкладки 'Команда'", clicks: 1, cognitiveLoad: 1 },
-      { name: "Поиск нужного сотрудника", clicks: 2, cognitiveLoad: 2 },
-      { name: "Выбор новой роли в выпадающем списке", clicks: 2, cognitiveLoad: 2 },
-      { name: "Сохранение изменений / подтверждение", clicks: 1, cognitiveLoad: 1 }
-    ],
-    rating: 'ACCEPTABLE'
-  }
-};
-
-export async function runCopSimulation(flowType: string) {
-  const result = await requireStaffPermission("settings", "edit", async (admin) => {
-    if (!['CLIENT_ORDER', 'SUPPORT_TICKET', 'ROLE_CHANGE'].includes(flowType)) {
-      return { success: false as const, error: 'Некорректный тип сценария' };
-    }
-
-    const flow = flows[flowType];
-    const targetSizeWeight = 1.0;
-    const frictionScore = (flow.clicks * 1.5) + (flow.cognitiveLoad * 2.0) - (targetSizeWeight * 0.5);
-
-    let rating: 'PREMIUM' | 'ACCEPTABLE' | 'HIGH' = 'HIGH';
-    if (frictionScore <= 21) {
-      rating = 'PREMIUM';
-    } else if (frictionScore <= 27) {
-      rating = 'ACCEPTABLE';
-    }
-
-    const ipAddress = await getClientIp();
-
-    await auditAdminAwaitable({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: 'COP_SIMULATION',
-      target: flowType,
-      targetType: 'SYSTEM',
-      oldValue: {},
-      newValue: { frictionScore, rating, clicks: flow.clicks, cognitiveLoad: flow.cognitiveLoad },
-      ipAddress
-    });
-
-    return {
-      success: true as const,
-      frictionScore,
-      rating,
-      steps: flow.steps
-    };
-  });
-
-  if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    throw new Error(result.error);
-  }
-
-  return result;
-}

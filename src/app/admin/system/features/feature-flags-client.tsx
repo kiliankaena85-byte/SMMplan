@@ -31,11 +31,8 @@ const STATE_CONFIG: Record<FlagState, { label: string; badge: string; next: Flag
 };
 
 const GROUPS = [
-  { label: '📦 Заказы',       keys: ['drip_feed', 'refills', 'order_cancel'] },
-  { label: '💳 Оплата',       keys: ['maintenance_mode'] },
-  { label: '📢 Маркетинг',    keys: ['referral_program', 'promo_codes', 'loyalty_program', 'email_campaigns', 'push_notifications', 'live_activity_feed'] },
-  { label: '🤖 Интеграции',   keys: ['telegram_bot', 'email_notifications', 'client_api'] },
-  { label: '🚀 Продвинутое',  keys: ['service_packages', 'smart_upsell'] },
+  { label: '📦 Заказы',       keys: ['drip_feed'] },
+  { label: '📢 Маркетинг',    keys: ['promo_codes'] },
 ] as const;
 
 export function FeatureFlagsClient({ initialFlags }: Props) {

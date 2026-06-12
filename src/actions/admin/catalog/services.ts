@@ -53,6 +53,7 @@ export async function createServiceAction(rawData: any) {
     }
 
     // Verify provider exists if provided
+    let providerCurrency = 'USD';
     if (data.providerId) {
       const provider = await db.provider.findUnique({
         where: { id: data.providerId }
@@ -60,6 +61,7 @@ export async function createServiceAction(rawData: any) {
       if (!provider) {
         return { success: false as const, error: 'Указанный провайдер SMM не найден' };
       }
+      providerCurrency = provider.balanceCurrency;
     }
 
     // Infer targetType if not provided
@@ -70,7 +72,8 @@ export async function createServiceAction(rawData: any) {
 
     // Calculate pricePer1000Cents dynamically using CBR exchange rate
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
-    const pricePer1000Cents = Math.round(applyBeautifulRounding(data.rate * data.markup * usdToRub) * 100);
+    const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
+    const pricePer1000Cents = Math.round(applyBeautifulRounding(data.rate * data.markup * exchangeRate) * 100);
 
     // Atomically create the service
     const service = await db.$transaction(async (tx) => {
@@ -95,6 +98,7 @@ export async function createServiceAction(rawData: any) {
           isActive: data.isActive,
           requireWarning: data.requireWarning,
           warningMessage: data.warningMessage,
+          providerCurrency,
           pricePer1000Cents
         }
       });
@@ -160,6 +164,7 @@ export async function updateServiceAction(id: string, rawData: any) {
     }
 
     // Verify provider exists if provided
+    let providerCurrency = service.providerCurrency;
     if (data.providerId) {
       const provider = await db.provider.findUnique({
         where: { id: data.providerId }
@@ -167,6 +172,7 @@ export async function updateServiceAction(id: string, rawData: any) {
       if (!provider) {
         return { success: false as const, error: 'Указанный провайдер SMM не найден' };
       }
+      providerCurrency = provider.balanceCurrency;
     }
 
     // Infer targetType if not provided
@@ -177,7 +183,8 @@ export async function updateServiceAction(id: string, rawData: any) {
 
     // Recalculate pricePer1000Cents dynamically using CBR exchange rate
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
-    const pricePer1000Cents = Math.round(applyBeautifulRounding(data.rate * data.markup * usdToRub) * 100);
+    const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
+    const pricePer1000Cents = Math.round(applyBeautifulRounding(data.rate * data.markup * exchangeRate) * 100);
 
     // Atomically update the service
     const updatedService = await db.$transaction(async (tx) => {
@@ -203,6 +210,7 @@ export async function updateServiceAction(id: string, rawData: any) {
           isActive: data.isActive,
           requireWarning: data.requireWarning,
           warningMessage: data.warningMessage,
+          providerCurrency,
           pricePer1000Cents
         }
       });

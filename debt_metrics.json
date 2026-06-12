@@ -1,0 +1,162 @@
+﻿{
+    "forbidden5":  0,
+    "forbidden3":  0,
+    "forbidden1":  0,
+    "forbidden4":  23,
+    "forbidden2":  0,
+    "emptyFilesCount":  21,
+    "testFilesCount":  42,
+    "totalLines":  71896,
+    "TS_any":  42,
+    "totalSourceFiles":  506,
+    "orphanScripts":  [
+                          {
+                              "Name":  "full-run.ts"
+                          },
+                          {
+                              "Name":  "ai-cherry-pick.ts"
+                          },
+                          {
+                              "Name":  "analyze-categories.ts"
+                          },
+                          {
+                              "Name":  "analyze-service-names.ts"
+                          },
+                          {
+                              "Name":  "check-premium.ts"
+                          },
+                          {
+                              "Name":  "cleanup-service-names.ts"
+                          },
+                          {
+                              "Name":  "fix-catalog.ts"
+                          },
+                          {
+                              "Name":  "fix-import.ts"
+                          },
+                          {
+                              "Name":  "fix-taxonomy-meta.ts"
+                          },
+                          {
+                              "Name":  "full-catalog-dump.ts"
+                          },
+                          {
+                              "Name":  "gen-admin-token.ts"
+                          },
+                          {
+                              "Name":  "gen-art-token.ts"
+                          },
+                          {
+                              "Name":  "isolate-autoservices.ts"
+                          },
+                          {
+                              "Name":  "migrate-basket-relations.ts"
+                          },
+                          {
+                              "Name":  "pull-one.ts"
+                          },
+                          {
+                              "Name":  "qa-simulator-p2.ts"
+                          },
+                          {
+                              "Name":  "qa-simulator.ts"
+                          },
+                          {
+                              "Name":  "seed-rbac.ts"
+                          },
+                          {
+                              "Name":  "show-tree.ts"
+                          },
+                          {
+                              "Name":  "smart-importer.ts"
+                          },
+                          {
+                              "Name":  "test-cbr.ts"
+                          }
+                      ],
+    "filesOver300":  57,
+    "churn":  [
+                  {
+                      "Name":  "prisma/schema.prisma",
+                      "Count":  26
+                  },
+                  {
+                      "Name":  "src/hooks/useOrderEngine.ts",
+                      "Count":  18
+                  },
+                  {
+                      "Name":  "src/components/landing/SmartLinkLanding.tsx",
+                      "Count":  18
+                  },
+                  {
+                      "Name":  "src/actions/order/checkout.ts",
+                      "Count":  17
+                  },
+                  {
+                      "Name":  "src/components/support/ChatWindow.tsx",
+                      "Count":  16
+                  },
+                  {
+                      "Name":  "src/workers/processors/cleanup.processor.ts",
+                      "Count":  16
+                  },
+                  {
+                      "Name":  "src/lib/smtp.ts",
+                      "Count":  14
+                  },
+                  {
+                      "Name":  "src/services/financial/payment.service.ts",
+                      "Count":  14
+                  },
+                  {
+                      "Name":  "e2e/playwright/.auth/user.json",
+                      "Count":  14
+                  },
+                  {
+                      "Name":  "src/workers/index.ts",
+                      "Count":  14
+                  },
+                  {
+                      "Name":  "src/components/landing/MegaFooter.tsx",
+                      "Count":  14
+                  },
+                  {
+                      "Name":  "src/workers/processors/order.processor.ts",
+                      "Count":  14
+                  },
+                  {
+                      "Name":  "next.config.mjs",
+                      "Count":  13
+                  },
+                  {
+                      "Name":  "src/components/landing/WhyUs.tsx",
+                      "Count":  13
+                  },
+                  {
+                      "Name":  "src/components/landing/order-engine/StickyCheckoutBar.tsx",
+                      "Count":  13
+                  },
+                  {
+                      "Name":  "src/services/financial/wallet-ops.ts",
+                      "Count":  13
+                  },
+                  {
+                      "Name":  "src/services/financial/payment-gateway.service.ts",
+                      "Count":  13
+                  },
+                  {
+                      "Name":  "src/services/core/order.service.ts",
+                      "Count":  13
+                  },
+                  {
+                      "Name":  "src/lib/queue-manager.ts",
+                      "Count":  12
+                  },
+                  {
+                      "Name":  "next-env.d.ts",
+                      "Count":  12
+                  }
+              ],
+    "componentsOver150":  38,
+    "TS_ignore":  0
+}

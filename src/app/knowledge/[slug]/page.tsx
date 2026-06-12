@@ -220,7 +220,8 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   const usdToRub = await SettingsProvider.getExchangeRateUSD();
   
   const mappedServicesForWidget = allCategoryServices.map(s => {
-    const pricePerUnitRub = applyBeautifulRounding(s.rate * s.markup * usdToRub) / 1000;
+    const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+    const pricePerUnitRub = applyBeautifulRounding(s.rate * s.markup * exchangeRate) / 1000;
     return {
       id: s.id,
       name: s.name,
@@ -243,8 +244,8 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     "headline": article.title,
     "description": article.description,
     "articleBody": article.content,
-    "datePublished": article.createdAt.toString(),
-    "dateModified": article.updatedAt.toString(),
+    "datePublished": article.createdAt.toISOString(),
+    "dateModified": article.updatedAt.toISOString(),
     "author": {
       "@type": "Person",
       "name": article.authorName,

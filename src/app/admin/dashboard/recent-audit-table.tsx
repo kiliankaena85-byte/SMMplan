@@ -40,7 +40,7 @@ export function RecentAuditTable({ logs }: { logs: Log[] }) {
 
   return (
     <div className="w-full">
-      <Table>
+      <Table aria-label="Журнал безопасности">
         <Table.ScrollContainer>
           <Table.Content aria-label="Журнал безопасности (Audit Log)">
             <Table.Header>

@@ -2,12 +2,13 @@ import nodemailer from 'nodemailer';
 import { SettingsProvider } from '@/lib/settings';
 import { Resend } from 'resend';
 import { logger } from '@/lib/logger';
+import { getBaseUrlAsync, getBaseUrlSync } from '@/utils/get-base-url';
 
 const log = logger.child({ component: 'SMTP' });
 
 async function getEmailContext() {
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const companyName = settings.COMPANY_NAME || "SMMplan";
+  const companyName = settings.SITE_NAME || settings.COMPANY_NAME || "SMMplan";
   const supportDomain = await SettingsProvider.getSupportEmailDomain();
   return { companyName, supportDomain };
 }
@@ -90,7 +91,7 @@ async function dispatch(result: TransporterResult, options: DispatchOptions) {
 
 export async function sendMagicLink(email: string, token: string) {
   const { companyName } = await getEmailContext();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = await getBaseUrlAsync();
   const link = `${baseUrl}/api/auth/verify?token=${token}`;
 
   if (process.env.NODE_ENV !== 'production') {
@@ -201,7 +202,7 @@ export async function sendOrderCompletedMail(email: string, orderId: string, ser
       <h2 style="color: #10b981;">Заказ #<span>${orderId}</span> выполнен! ✅</h2>
       <p style="color: #71717a; line-height: 1.5;">Ваш заказ на услугу <strong>${serviceName}</strong> был успешно выполнен.</p>
       <div style="margin-top: 32px; text-align: center;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
+        <a href="${getBaseUrlSync(supportDomain)}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
           Посмотреть мои заказы
         </a>
       </div>
@@ -218,7 +219,7 @@ export async function sendOrderPaidMail(email: string, orderId: string, serviceN
       <h2 style="color: #10b981;">Заказ #<span>${orderId}</span> оплачен и взят в работу! 🚀</h2>
       <p style="color: #71717a; line-height: 1.5;">Ваш заказ на услугу <strong>${serviceName}</strong> успешно оплачен.</p>
       <div style="margin-top: 32px; text-align: center;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
+        <a href="${getBaseUrlSync(supportDomain)}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
           Посмотреть мои заказы
         </a>
       </div>
@@ -235,8 +236,8 @@ export async function sendOrderCanceledMail(email: string, orderId: string, serv
       <h2 style="color: #ef4444;">Заказ #<span>${orderId}</span> отменен ❌</h2>
       <p style="color: #71717a; line-height: 1.5;">Ваш заказ на услугу <strong>${serviceName}</strong> был отменен. Средства возвращены на ваш баланс.</p>
       <div style="margin-top: 32px; text-align: center;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
-          Посмотреть детали
+        <a href="${getBaseUrlSync(supportDomain)}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
+          Посмотреть мои заказы
         </a>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { verifySession, createSession } from '@/lib/session';
 import { marketingService } from '@/services/marketing.service';
+import { getBaseUrlSync } from "@/utils/get-base-url";
 import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
 import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
@@ -320,14 +321,9 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
 
     let paymentUrl: string | undefined;
     let remoteGatewayId: string | undefined;
-    let host = reqHeaders.get("host") || "localhost:3000";
-    if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
+    const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-    let origin = `${protocol}://${host}`;
-    if (process.env.NEXT_PUBLIC_APP_URL) {
-      origin = process.env.NEXT_PUBLIC_APP_URL;
-    }
-    if (origin.includes("0.0.0.0")) origin = origin.replace("0.0.0.0", "localhost");
+    const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?paymentId=${result.paymentId}`;
 
     // [Phase 3 Surgeon] Generate capability token for sessionless payment return validation

@@ -13,7 +13,7 @@ type PageType = {
 export function PagesTable({ pages }: { pages: PageType[] }) {
   return (
     <>
-      <Table>
+      <Table aria-label="Таблица страниц">
         <Table.ScrollContainer>
           <Table.Content aria-label="CMS Pages">
             <Table.Header>

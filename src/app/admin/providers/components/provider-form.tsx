@@ -652,8 +652,8 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
 
                 {/* Правая колонка - Live Preview */}
                 <div className="xl:col-span-1">
-                  <div className="bg-[#1e1e1e] rounded-xl border border-border overflow-hidden sticky top-6">
-                    <div className="bg-[#2d2d2d] px-4 py-2 border-b border-border flex items-center gap-2">
+                  <div className="bg-card rounded-xl border border-border overflow-hidden sticky top-6">
+                    <div className="bg-muted px-4 py-2 border-b border-border flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-destructive"></div>
                       <div className="w-2.5 h-2.5 rounded-full bg-warning"></div>
                       <div className="w-2.5 h-2.5 rounded-full bg-success"></div>

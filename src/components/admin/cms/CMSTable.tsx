@@ -34,7 +34,7 @@ export function CMSTable({ items }: { items: CMSItem[] }) {
 
   return (
     <div className="rounded-md border">
-      <Table>
+      <Table aria-label="CMS контент">
         <TableHeader>
           <TableRow>
             <TableHead>ЗАГОЛОВОК</TableHead>

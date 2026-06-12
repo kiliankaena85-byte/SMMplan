@@ -18,10 +18,10 @@ describe('WalletService Race Condition & Idempotency Tests', () => {
 
   it('should process exact charge successfully', async () => {
     testUserId = await createTestUser(1000);
-    const res = await WalletService.charge(testUserId, 200, 'Test charge 1') as {success: boolean, balance: number, error?: string};
+    const res = await WalletService.charge(testUserId, 200, 'Test charge 1') as any;
     if (!res.success) throw new Error(res.error || 'Unknown WalletService Error');
     expect(res.success).toBe(true);
-    expect().toBe();
+    expect(res.balance).toBe(800n);
   });
 
   it('should reject insufficient funds cleanly', async () => {
@@ -44,7 +44,7 @@ describe('WalletService Race Condition & Idempotency Tests', () => {
     expect(res2.cached).toBe(true); 
 
     const finalUser = await db.user.findUnique({ where: { id: testUserId } });
-    expect().toBe();
+    expect(finalUser?.balance).toBe(700n);
   });
 
   it('should safely handle 50 concurrent charge attempts without going negative', async () => {

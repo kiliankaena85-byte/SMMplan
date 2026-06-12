@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getBaseUrlSync } from '@/utils/get-base-url';
 import { jwtVerify } from 'jose';
 
 import { getEncodedKey } from '@/lib/session';
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
   
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
   const proto = request.headers.get('x-forwarded-proto') || 'https';
-  const baseUrl = (host && !host.includes('0.0.0.0')) ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro');
+  const baseUrl = getBaseUrlSync(host, proto);
   const url = new URL('/login', baseUrl);
   
   const response = NextResponse.redirect(url);
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
   
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
   const proto = request.headers.get('x-forwarded-proto') || 'https';
-  const baseUrl = (host && !host.includes('0.0.0.0')) ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro');
+  const baseUrl = getBaseUrlSync(host, proto);
   const url = new URL('/login', baseUrl);
   
   const response = NextResponse.redirect(url);

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Sparkles, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateSmartReplyAction } from '@/actions/support/ticket';
-import { getArticles } from '@/actions/knowledge';
+
 import { Message } from './useChatMessages';
 import { ChatTemplateManager } from './ChatTemplateManager';
 import { incrementTemplateUsage } from '@/actions/support/template';
@@ -32,7 +32,6 @@ export function ChatInput({
   clientEmail,
   initialOrders,
   initialTemplates,
-  messages,
   onSendMessage,
   setMessages,
   replyingTo,
@@ -49,8 +48,7 @@ export function ChatInput({
   const [isAiPending, startAiTransition] = useTransition();
 
   const [suggestedArticle, setSuggestedArticle] = useState<{ title: string; slug: string } | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [operatorSuggestedArticles, setOperatorSuggestedArticles] = useState<any[]>([]);
+
 
   const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false);
   const [activeTemplateIndex, setActiveTemplateIndex] = useState(0);
@@ -137,32 +135,7 @@ export function ChatInput({
     return () => clearTimeout(timer);
   }, [text, isStaff]);
 
-  useEffect(() => {
-    if (!isStaff) return;
-    
-    getArticles().then(res => {
-      if (res.success && res.articles) {
-        const clientMsgs = messages.filter(m => m.sender === 'USER');
-        const lastClientText = clientMsgs.length > 0 ? clientMsgs[clientMsgs.length - 1].text.toLowerCase() : '';
-        
-        let filtered = res.articles;
-        if (lastClientText) {
-          filtered = res.articles.filter((art: { title: string, description: string }) => {
-            const titleMatches = art.title.toLowerCase().split(/\s+/).some((word: string) => word.length > 3 && lastClientText.includes(word));
-            const descMatches = art.description.toLowerCase().split(/\s+/).some((word: string) => word.length > 3 && lastClientText.includes(word));
-            return titleMatches || descMatches;
-          });
-        }
-        
-        if (filtered.length === 0) {
-          filtered = res.articles.slice(0, 3);
-        } else {
-          filtered = filtered.slice(0, 3);
-        }
-        setOperatorSuggestedArticles(filtered);
-      }
-    }).catch(console.error);
-  }, [isStaff, messages]);
+
 
   useEffect(() => {
     setTemplatesList(prev => {
@@ -545,47 +518,7 @@ export function ChatInput({
           )}
         </AnimatePresence>
 
-        {isStaff && operatorSuggestedArticles.length > 0 && (
-          <div className="flex flex-col gap-2 mb-2 p-2 bg-muted/30 border border-border rounded-2xl select-none">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1 flex items-center gap-1">
-              📎 Рекомендованные статьи базы знаний:
-            </span>
-            <div className="flex flex-col gap-2">
-              {operatorSuggestedArticles.map((art: { id: string; title: string; slug: string }) => (
-                <div 
-                  key={art.id} 
-                  className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl border border-border bg-card shadow-sm"
-                >
-                  <a
-                    href={`/knowledge/${art.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-bold text-foreground hover:text-primary hover:underline transition-colors px-2 py-1 flex-1 min-w-[200px]"
-                  >
-                    {art.title}
-                  </a>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const mdLink = ` [Статья: ${art.title}](/knowledge/${art.slug}) `;
-                      setText(prev => prev + mdLink);
-                      try {
-                        await navigator.clipboard.writeText(mdLink);
-                      } catch (err) {
-                        console.error('Failed to copy to clipboard', err);
-                      }
-                      toast.success('Ссылка на статью прикреплена и скопирована');
-                    }}
-                    className="min-h-[44px] h-11 px-4 text-xs font-bold bg-primary/5 hover:bg-primary/10 border border-primary/20 text-primary rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer"
-                    title="Прикрепить ссылку на статью к ответу и скопировать в буфер обмена"
-                  >
-                    <span>📎 Прикрепить статью</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         <div className="flex gap-1.5 w-full items-end">
           <input

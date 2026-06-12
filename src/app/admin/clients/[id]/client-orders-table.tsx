@@ -25,7 +25,7 @@ type OrderType = {
 export function ClientOrdersTable({ orders }: { orders: OrderType[] }) {
   return (
     <>
-      <Table>
+      <Table aria-label="Таблица заказов клиента">
         <Table.ScrollContainer>
           <Table.Content aria-label="Заказы клиента">
             <Table.Header>

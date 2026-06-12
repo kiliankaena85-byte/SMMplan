@@ -15,7 +15,7 @@ import { getClientIp } from '@/utils/ip';
 import { getEncodedKey } from '@/lib/session';
 
 export async function updateBalanceAction(formData: FormData) {
-  return requireStaffPermission('clients', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const payload = Object.fromEntries(formData.entries());
     const parsed = updateBalanceSchema.safeParse(payload);
     
@@ -56,7 +56,7 @@ export async function updateBalanceAction(formData: FormData) {
 }
 
 export async function banUserAction(formData: FormData) {
-  return requireStaffPermission('clients', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = userIdSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Missing userId' };
     
@@ -84,7 +84,7 @@ export async function banUserAction(formData: FormData) {
 }
 
 export async function unbanUserAction(formData: FormData) {
-  return requireStaffPermission('clients', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = userIdSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Missing userId' };
     
@@ -117,7 +117,7 @@ export async function unbanUserAction(formData: FormData) {
  */
 export async function loginAsAction(formData: FormData) {
   // Use 'clients' section but check roles manually as well for extreme safety
-  return requireStaffPermission('clients', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = userIdSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Missing userId' };
     

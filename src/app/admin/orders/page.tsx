@@ -43,7 +43,10 @@ type Props = {
   }>;
 };
 
+import { enforceSectionAccess } from '@/lib/server/rbac';
+
 export default async function AdminOrdersPage({ searchParams }: Props) {
+  await enforceSectionAccess('orders');
   const session = await verifySession();
   const user = session ? await db.user.findUnique({ 
     where: { id: session.userId },

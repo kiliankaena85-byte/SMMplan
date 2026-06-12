@@ -69,7 +69,15 @@ export async function proxy(req: Request) {
   }
   
   const ref = url.searchParams.get('ref');
-  const response = NextResponse.next();
+  
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-pathname', url.pathname);
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 
   if (ref) {
     response.cookies.set('ref', ref, {

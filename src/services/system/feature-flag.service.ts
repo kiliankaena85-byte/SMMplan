@@ -29,20 +29,7 @@ export interface FeatureFlagDTO {
 /** Predefined flags — single source of truth for seed & UI */
 const PREDEFINED_FLAGS = [
   { key: 'drip_feed',          label: 'Drip-Feed',              description: 'Постепенная накрутка (капельная)' },
-  { key: 'refills',            label: 'Рефиллы',                description: 'Повторное выполнение при отписках' },
-  { key: 'referral_program',   label: 'Реферальная программа',  description: 'Реферальные ссылки и комиссии' },
   { key: 'promo_codes',        label: 'Промокоды',              description: 'Скидочные и ваучерные коды' },
-  { key: 'loyalty_program',    label: 'Программа лояльности',   description: 'Уровни: Бронза → Платина' },
-  { key: 'telegram_bot',       label: 'Telegram-бот',           description: 'Приём заказов через бота' },
-  { key: 'email_notifications',label: 'Email-уведомления',      description: 'Автоматические письма клиентам' },
-  { key: 'email_campaigns',    label: 'Email-рассылки',         description: 'Массовые письма по сегментам' },
-  { key: 'push_notifications', label: 'Push-уведомления',       description: 'Всплывающие сообщения на сайте' },
-  { key: 'client_api',         label: 'API для клиентов',       description: 'Внешний API для реселлеров' },
-  { key: 'service_packages',   label: 'Пакеты услуг',           description: 'Комбинированные наборы услуг' },
-  { key: 'smart_upsell',       label: 'Smart Upsell',           description: 'Рекомендации после заказа' },
-  { key: 'live_activity_feed', label: 'Live Activity Feed',      description: 'Виджет последних заказов на сайте' },
-  { key: 'order_cancel',       label: 'Отмена заказов',         description: 'Кнопка отмены для клиентов' },
-  { key: 'maintenance_mode',   label: 'Режим обслуживания',     description: 'Сайт закрыт для клиентов' },
 ] as const;
 
 export type FlagKey = (typeof PREDEFINED_FLAGS)[number]['key'];

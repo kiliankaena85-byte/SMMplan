@@ -39,8 +39,8 @@ export async function requireStaffPermission<T>(
       return { success: false, error: "Forbidden: User not found" };
     }
 
-    // OWNER bypass
-    if (user.role === 'OWNER') {
+    // OWNER & ADMIN bypass
+    if (user.role === 'OWNER' || user.role === 'ADMIN') {
         return await action(user, user.staffRole);
     }
 
@@ -122,6 +122,49 @@ export async function enforcePageRole(allowedRoles: string[]) {
 
   if (!user || !allowedRoles.includes(user.role)) {
     // We seamlessly redirect unauthorized (SUPPORT) roles to their home workspace
+    redirect('/admin/orders');
+  }
+
+  return user;
+}
+
+/**
+ * Validates the user's granular StaffRole permissions for a specific section.
+ * Meant to be executed in Server Components.
+ */
+export async function enforceSectionAccess(section: string) {
+  const userId = await getSessionUserId();
+  
+  if (!userId) {
+    redirect('/login');
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    include: {
+      staffRole: {
+        include: { permissions: true }
+      }
+    }
+  });
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  // OWNER & ADMIN bypass
+  if (user.role === 'OWNER' || user.role === 'ADMIN') {
+    return user;
+  }
+
+  if (!user.staffRole) {
+    redirect('/admin/orders');
+  }
+
+  const normalizedSection = section.toUpperCase();
+  const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === normalizedSection);
+
+  if (!permission || (!permission.canView && !permission.canEdit)) {
     redirect('/admin/orders');
   }
 

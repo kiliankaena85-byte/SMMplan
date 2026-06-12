@@ -1,5 +1,5 @@
 import { db as prisma } from "@/lib/db";
-import { enforcePageRole } from "@/lib/server/rbac";
+import { enforceSectionAccess } from "@/lib/server/rbac";
 import CMSForm from "@/components/admin/cms/CMSForm";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ interface EditPageProps {
 }
 
 export default async function EditCmsPage({ params }: EditPageProps) {
-  await enforcePageRole(["ADMIN", "OWNER"]);
+  await enforceSectionAccess('settings');
   const resolvedParams = await params;
 
   const item = await prisma.contentItem.findUnique({

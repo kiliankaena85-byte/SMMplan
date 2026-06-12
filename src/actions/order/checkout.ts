@@ -16,7 +16,9 @@ import { WalletOps, WalletInsufficientFundsError, WalletUserNotFoundError, Walle
 import crypto from 'crypto';
 import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
 import { handleServerError } from '@/utils/error-handler';
-import { sendOrderPaidMail } from '@/lib/smtp';
+import { sendOrderPaidMail } from "@/lib/smtp";
+import { getBaseUrlSync } from "@/utils/get-base-url";
+import { featureFlagService } from "@/services/system/feature-flag.service";
 
 /**
  * Calculates price for display on the order form (no auth required).
@@ -91,6 +93,21 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
     const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays } = data;
     const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
+
+    // Feature Flags Validation
+    if (promoCodeStr) {
+      const isPromoEnabled = await featureFlagService.isEnabled('promo_codes');
+      if (!isPromoEnabled) {
+        throw new Error("Использование промокодов временно отключено");
+      }
+    }
+
+    if (isSmartDrip || runs || interval) {
+      const isDripEnabled = await featureFlagService.isEnabled('drip_feed');
+      if (!isDripEnabled) {
+        throw new Error("Функция Drip-feed временно отключена");
+      }
+    }
 
     if (isSmartDrip) {
       if (runs || interval) {
@@ -445,19 +462,14 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       }
 
       return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId, secondOrderId };
-    });
+    }, { isolationLevel: 'Serializable' });
 
     // 6. Generate payment URL (gateway-specific API calls)
     let paymentUrl: string | undefined;
     let remoteGatewayId: string | undefined;
-    let host = reqHeaders.get("host") || "localhost:3000";
-    if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
+    const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-    let origin = `${protocol}://${host}`;
-    if (process.env.NEXT_PUBLIC_APP_URL) {
-      origin = process.env.NEXT_PUBLIC_APP_URL;
-    }
-    if (origin.includes("0.0.0.0")) origin = origin.replace("0.0.0.0", "localhost");
+    const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?orderId=${result.orderId}`;
 
     // [Phase 3 Surgeon] Generate capability token for sessionless payment return validation
@@ -731,18 +743,13 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
       });
 
       return { paymentId: newPayment.id };
-    });
+    }, { isolationLevel: 'Serializable' });
 
     let paymentUrl: string | undefined;
     let remoteGatewayId: string | undefined;
-    let host = reqHeaders.get("host") || "localhost:3000";
-    if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
+    const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-    let origin = `${protocol}://${host}`;
-    if (process.env.NEXT_PUBLIC_APP_URL) {
-      origin = process.env.NEXT_PUBLIC_APP_URL;
-    }
-    if (origin.includes("0.0.0.0")) origin = origin.replace("0.0.0.0", "localhost");
+    const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?orderId=${order.id}`;
 
     let token = '';

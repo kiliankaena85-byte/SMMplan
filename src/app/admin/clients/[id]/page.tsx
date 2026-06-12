@@ -7,6 +7,7 @@ import { SubmitButton } from '@/components/admin/submit-button';
 import { ActionForm } from '@/components/admin/action-form';
 import { ClientOrdersTable } from './client-orders-table';
 import { formatBalance } from '@/lib/utils';
+import { verifySession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,20 @@ const ROLE_BADGE: Record<string, string> = {
 
 type Props = { params: Promise<{ id: string }> };
 
+import { enforceSectionAccess } from '@/lib/server/rbac';
+
 export default async function ClientDetailPage({ params }: Props) {
+  await enforceSectionAccess('finance');
+  const session = await verifySession();
+  const currentUser = session ? await db.user.findUnique({ 
+    where: { id: session.userId },
+    select: { id: true, role: true }
+  }) : null;
+
+  const isOwner = currentUser?.role === 'OWNER';
+  const isSupport = currentUser?.role === 'SUPPORT';
+  const canSeeFinances = isOwner || !isSupport;
+
   const { id } = await params;
 
   const user = await db.user.findUnique({
@@ -170,10 +184,10 @@ export default async function ClientDetailPage({ params }: Props) {
       {/* Stats strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Баланс', value: formatBalance(user.balance), accent: 'text-foreground', note: user.quarantineBalance > 0 ? `🔒 ${formatBalance(user.quarantineBalance)} эскроу` : null },
-          { label: 'LTV', value: formatBalance(user.totalSpent), accent: 'text-success', note: null },
+          { label: 'Баланс', value: canSeeFinances ? formatBalance(user.balance) : '🔒 *** ₽', accent: 'text-foreground', note: (canSeeFinances && user.quarantineBalance > 0) ? `🔒 ${formatBalance(user.quarantineBalance)} эскроу` : null },
+          { label: 'LTV', value: canSeeFinances ? formatBalance(user.totalSpent) : '🔒 *** ₽', accent: 'text-success', note: null },
           { label: 'Заказов', value: ordersCount.toString(), accent: 'text-foreground', note: `${ticketsCount} тикетов` },
-          { label: 'Реф. баланс', value: formatBalance(user.referralBalance), accent: 'text-violet-600', note: user.referralCode ? `Код: ${user.referralCode}` : 'Нет кода' },
+          { label: 'Реф. баланс', value: canSeeFinances ? formatBalance(user.referralBalance) : '🔒 *** ₽', accent: 'text-violet-600', note: user.referralCode ? `Код: ${user.referralCode}` : 'Нет кода' },
         ].map(s => (
           <div key={s.label} className="bg-card border border-border rounded-xl p-4">
             <div className="text-xs text-muted-foreground mb-1">{s.label}</div>
@@ -187,23 +201,25 @@ export default async function ClientDetailPage({ params }: Props) {
       <ClientDetailClient user={dto} />
 
       {/* Balance Adjustment Block */}
-      <div className="bg-card border border-border rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-foreground mb-3">💰 Корректировка баланса</h3>
-        <ActionForm action={updateBalanceAction} className="space-y-3 max-w-sm">
-          <input type="hidden" name="userId" value={user.id} />
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Сумма (в копейках, − для списания)</label>
-            <input type="number" name="amount" placeholder="10000 = 100₽" required className="w-full h-9 text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Причина / Комментарий</label>
-            <input name="reason" placeholder="Например: Бонус за регистрацию" required className="w-full h-9 text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
-          </div>
-          <SubmitButton className="w-full h-9 text-sm gap-1.5" confirmMessage="Вы уверены, что хотите изменить баланс клиента?">
-            Применить изменение
-          </SubmitButton>
-        </ActionForm>
-      </div>
+      {canSeeFinances && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">💰 Корректировка баланса</h3>
+          <ActionForm action={updateBalanceAction} className="space-y-3 max-w-sm">
+            <input type="hidden" name="userId" value={user.id} />
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Сумма (в копейках, − для списания)</label>
+              <input type="number" name="amount" placeholder="10000 = 100₽" required className="w-full h-9 text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Причина / Комментарий</label>
+              <input name="reason" placeholder="Например: Бонус за регистрацию" required className="w-full h-9 text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
+            </div>
+            <SubmitButton className="w-full h-9 text-sm gap-1.5" confirmMessage="Вы уверены, что хотите изменить баланс клиента?">
+              Применить изменение
+            </SubmitButton>
+          </ActionForm>
+        </div>
+      )}
 
       {/* Recent orders */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">

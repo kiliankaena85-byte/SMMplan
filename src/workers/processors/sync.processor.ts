@@ -7,6 +7,7 @@ import { WalletService } from '../../services/financial/wallet.service';
 import { RefundPolicyService } from '../../services/financial/refund-policy.service';
 import { sendOrderCompletedMail } from '../../lib/smtp';
 import { logger } from '../../lib/logger';
+import { CompensationService } from '../../services/financial/compensation.service';
 
 const log = logger.child({ component: 'SyncProcessor' });
 export default async function syncProcessor(job: Job<SyncJobPayload>) {
@@ -111,12 +112,14 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           if (allCompleted && order.currentRun >= (order.runs || 1)) {
               await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });
               sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(err => log.error('Failed to send completion email', { cause: err }));
+              CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on completed dripfeed', { cause: err }));
           } else if (anyCanceled) {
               // Canceled mini-run -> We mark generic Drip-Feed as Partial
               await db.$transaction(async (tx) => {
                 const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: totalRemainsText } });
                 await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, undefined, tx);
               });
+              CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on partial dripfeed', { cause: err }));
           }
 
         } else {
@@ -132,6 +135,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
                     const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: 'Орфан-заказ: провайдер удалил заказ' } });
                     await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Орфан-заказ: провайдер удалил заказ)', tx);
                   });
+                  CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on orphan ERROR order', { cause: err }));
               }
               continue;
           }
@@ -147,6 +151,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
                 const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: s } });
                 await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Ошибка синхронизации или истек таймер)', tx);
               });
+              CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on string ERROR order', { cause: err }));
               continue;
           }
 
@@ -159,6 +164,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
               const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELED', remains: parsedRemains } });
               await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Отмена на стороне провайдера)', tx);
             });
+            CompensationService.trackCompensation(order.id, s.charge).catch(err => log.error('Failed to track compensation on CANCELED order', { cause: err }));
             
             // WAVE 4.1: TRIGGER B (SILENT FAILURE QUARANTINE)
             const { QuarantineService } = await import('@/services/providers/quarantine.service');
@@ -170,10 +176,12 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
               const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: parsedRemains } });
               await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, undefined, tx);
             });
+            CompensationService.trackCompensation(order.id, s.charge).catch(err => log.error('Failed to track compensation on PARTIAL order', { cause: err }));
           } 
           else if (['COMPLETED'].includes(providerStatus)) {
             await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });
             sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(err => log.error('Failed to send completion email', { cause: err }));
+            CompensationService.trackCompensation(order.id, s.charge).catch(err => log.error('Failed to track compensation on COMPLETED order', { cause: err }));
           }
           // PENDING / PROCESSING etc -> just update remains
           else {
@@ -242,8 +250,9 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
   try {
     const { SmartFeedbackLoopProcessor } = await import('./smart-feedback-loop.processor');
     await SmartFeedbackLoopProcessor.runSmartFeedbackLoopTick();
-  } catch (err: any) {
-    log.error('[SyncProcessor] SmartFeedbackLoop tick failed', { error: err.message });
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    log.error('[SyncProcessor] SmartFeedbackLoop tick failed', { error: errMsg });
   }
 
   // Refill Status Sync: Poll provider for refill completion
@@ -272,12 +281,14 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
             data: { status: res.status === 'Completed' ? 'COMPLETED' : 'ERROR' }
           });
         }
-      } catch (refillErr: any) {
-        log.error(`[SyncProcessor] Refill sync failed for ${refill.id}`, { error: refillErr.message });
+      } catch (refillErr) {
+        const errMsg = refillErr instanceof Error ? refillErr.message : String(refillErr);
+        log.error(`[SyncProcessor] Refill sync failed for ${refill.id}`, { error: errMsg });
       }
     }
-  } catch (refillGlobalErr: any) {
-    log.error('[SyncProcessor] Refill sync section failed', { error: refillGlobalErr.message });
+  } catch (refillGlobalErr) {
+    const errMsg = refillGlobalErr instanceof Error ? refillGlobalErr.message : String(refillGlobalErr);
+    log.error('[SyncProcessor] Refill sync section failed', { error: errMsg });
   }
 
   log.info('Finished massive status sync.');

@@ -1,7 +1,8 @@
 "use server";
 
 import { db as prisma } from "@/lib/db";
-import { enforcePageRole } from "@/lib/server/rbac";
+import { requireStaffPermission } from "@/lib/server/rbac";
+import { verifySession } from "@/lib/session";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
 import { revalidatePath } from "next/cache";
@@ -42,8 +43,17 @@ const articleSchema = z.object({
 // Admin Check helper for view detail protection
 async function isAdmin() {
   try {
-    const admin = await enforcePageRole(["ADMIN", "OWNER"]);
-    return !!admin;
+    const sessionUser = await verifySession();
+    if (!sessionUser) return false;
+    const user = await prisma.user.findUnique({
+      where: { id: sessionUser.userId },
+      include: { staffRole: { include: { permissions: true } } }
+    });
+    if (!user) return false;
+    if (user.role === 'OWNER' || user.role === 'ADMIN') return true;
+    if (!user.staffRole) return false;
+    const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === 'SETTINGS');
+    return !!(permission && (permission.canView || permission.canEdit));
   } catch {
     return false;
   }
@@ -215,7 +225,8 @@ export async function getRecommendedServicesForArticle(articleId: string) {
     });
 
     return services.map(s => {
-      const pricePerUnitRub = applyBeautifulRounding(s.rate * s.markup * usdToRub) / 1000;
+      const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+      const pricePerUnitRub = applyBeautifulRounding(s.rate * s.markup * exchangeRate) / 1000;
       return {
         id: s.id,
         name: s.name,
@@ -233,39 +244,39 @@ export async function getRecommendedServicesForArticle(articleId: string) {
  * ADMIN: Get all articles (DRAFT & PUBLISHED) for the list view table.
  */
 export async function getAllArticlesAdmin() {
-  await enforcePageRole(["ADMIN", "OWNER"]);
-
-  try {
-    const articles = await prisma.article.findMany({
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-    return { success: true, articles };
-  } catch (error) {
-    console.error("Failed to fetch admin articles list:", error);
-    return { success: false, articles: [], error: "Ошибка при получении списка статей" };
-  }
+  return requireStaffPermission('settings', 'view', async () => {
+    try {
+      const articles = await prisma.article.findMany({
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
+      return { success: true, articles };
+    } catch (error) {
+      console.error("Failed to fetch admin articles list:", error);
+      return { success: false, articles: [], error: "Ошибка при получении списка статей" };
+    }
+  });
 }
 
 /**
  * ADMIN: Fetch article by ID for editing.
  */
 export async function getArticleById(id: string) {
-  await enforcePageRole(["ADMIN", "OWNER"]);
-
-  try {
-    const article = await prisma.article.findUnique({
-      where: { id }
-    });
-    if (!article) {
-      return { success: false, error: "Статья не найдена" };
+  return requireStaffPermission('settings', 'view', async () => {
+    try {
+      const article = await prisma.article.findUnique({
+        where: { id }
+      });
+      if (!article) {
+        return { success: false, error: "Статья не найдена" };
+      }
+      return { success: true, article };
+    } catch (error) {
+      console.error("Failed to get article by id:", error);
+      return { success: false, error: "Ошибка при получении статьи" };
     }
-    return { success: true, article };
-  } catch (error) {
-    console.error("Failed to get article by id:", error);
-    return { success: false, error: "Ошибка при получении статьи" };
-  }
+  });
 }
 
 /**
@@ -282,35 +293,35 @@ export async function createArticle(data: {
   authorRole?: string;
   priority?: number;
 }) {
-  await enforcePageRole(["ADMIN", "OWNER"]);
-
-  const parsed = articleSchema.safeParse(data);
-  if (!parsed.success) {
-    return { 
-      success: false, 
-      error: "Некорректно заполнены поля формы", 
-      errors: parsed.error.flatten().fieldErrors 
-    };
-  }
-
-  try {
-    const article = await prisma.article.create({
-      data: parsed.data
-    });
-
-    revalidatePath("/knowledge");
-    revalidatePath(`/knowledge/${article.slug}`);
-    revalidatePath("/admin/knowledge");
-
-    return { success: true, article };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error("Failed to create article:", error);
-    if (error.code === "P2002") {
-      return { success: false, error: "Статья с таким адресом (slug) уже существует" };
+  return requireStaffPermission('settings', 'edit', async () => {
+    const parsed = articleSchema.safeParse(data);
+    if (!parsed.success) {
+      return { 
+        success: false, 
+        error: "Некорректно заполнены поля формы", 
+        errors: parsed.error.flatten().fieldErrors 
+      };
     }
-    return { success: false, error: "Не удалось сохранить статью в базе данных" };
-  }
+
+    try {
+      const article = await prisma.article.create({
+        data: parsed.data
+      });
+
+      revalidatePath("/knowledge");
+      revalidatePath(`/knowledge/${article.slug}`);
+      revalidatePath("/admin/knowledge");
+
+      return { success: true, article };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Failed to create article:", error);
+      if (error.code === "P2002") {
+        return { success: false, error: "Статья с таким адресом (slug) уже существует" };
+      }
+      return { success: false, error: "Не удалось сохранить статью в базе данных" };
+    }
+  });
 }
 
 /**
@@ -327,63 +338,63 @@ export async function updateArticle(id: string, data: {
   authorRole?: string;
   priority?: number;
 }) {
-  await enforcePageRole(["ADMIN", "OWNER"]);
-
-  const parsed = articleSchema.safeParse(data);
-  if (!parsed.success) {
-    return { 
-      success: false, 
-      error: "Некорректно заполнены поля формы", 
-      errors: parsed.error.flatten().fieldErrors 
-    };
-  }
-
-  try {
-    const oldArticle = await prisma.article.findUnique({
-      where: { id }
-    });
-
-    const article = await prisma.article.update({
-      where: { id },
-      data: parsed.data
-    });
-
-    revalidatePath("/knowledge");
-    revalidatePath(`/knowledge/${article.slug}`);
-    if (oldArticle && oldArticle.slug !== article.slug) {
-      revalidatePath(`/knowledge/${oldArticle.slug}`);
+  return requireStaffPermission('settings', 'edit', async () => {
+    const parsed = articleSchema.safeParse(data);
+    if (!parsed.success) {
+      return { 
+        success: false, 
+        error: "Некорректно заполнены поля формы", 
+        errors: parsed.error.flatten().fieldErrors 
+      };
     }
-    revalidatePath("/admin/knowledge");
 
-    return { success: true, article };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error("Failed to update article:", error);
-    if (error.code === "P2002") {
-      return { success: false, error: "Статья с таким адресом (slug) уже существует" };
+    try {
+      const oldArticle = await prisma.article.findUnique({
+        where: { id }
+      });
+
+      const article = await prisma.article.update({
+        where: { id },
+        data: parsed.data
+      });
+
+      revalidatePath("/knowledge");
+      revalidatePath(`/knowledge/${article.slug}`);
+      if (oldArticle && oldArticle.slug !== article.slug) {
+        revalidatePath(`/knowledge/${oldArticle.slug}`);
+      }
+      revalidatePath("/admin/knowledge");
+
+      return { success: true, article };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Failed to update article:", error);
+      if (error.code === "P2002") {
+        return { success: false, error: "Статья с таким адресом (slug) уже существует" };
+      }
+      return { success: false, error: "Не удалось сохранить изменения в базе данных" };
     }
-    return { success: false, error: "Не удалось сохранить изменения в базе данных" };
-  }
+  });
 }
 
 /**
  * ADMIN: Delete article by ID.
  */
 export async function deleteArticle(id: string) {
-  await enforcePageRole(["ADMIN", "OWNER"]);
+  return requireStaffPermission('settings', 'edit', async () => {
+    try {
+      const article = await prisma.article.delete({
+        where: { id }
+      });
 
-  try {
-    const article = await prisma.article.delete({
-      where: { id }
-    });
+      revalidatePath("/knowledge");
+      revalidatePath(`/knowledge/${article.slug}`);
+      revalidatePath("/admin/knowledge");
 
-    revalidatePath("/knowledge");
-    revalidatePath(`/knowledge/${article.slug}`);
-    revalidatePath("/admin/knowledge");
-
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to delete article:", error);
-    return { success: false, error: "Не удалось удалить статью из базы данных" };
-  }
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to delete article:", error);
+      return { success: false, error: "Не удалось удалить статью из базы данных" };
+    }
+  });
 }

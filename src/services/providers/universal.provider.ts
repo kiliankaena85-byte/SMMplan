@@ -151,6 +151,20 @@ export class UniversalProvider implements BaseProvider {
              await new Promise(resolve => setTimeout(resolve, backoff));
              continue;
           }
+          
+          const text = await response.text();
+          let parsedError: string | null = null;
+          try {
+            const data = JSON.parse(text);
+            if (data && typeof data === 'object' && 'error' in data) {
+              parsedError = String(data.error);
+            }
+          } catch {
+            // Ignore JSON parse error, fall back to default HTTP error
+          }
+          if (parsedError) {
+             throw new Error(parsedError);
+          }
           throw new Error(`Provider HTTP Error: ${response.status}`);
         }
 

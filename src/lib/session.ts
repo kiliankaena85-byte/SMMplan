@@ -35,8 +35,14 @@ export async function createSession(userId: string, canResetPassword: boolean = 
     }
   });
 
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { role: true }
+  });
+  const role = user?.role || 'USER';
+
   // Шифруем ID сессии в JWT
-  const sessionToken = await new SignJWT({ sessionId: session.id, userId, canResetPassword })
+  const sessionToken = await new SignJWT({ sessionId: session.id, userId, canResetPassword, role })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -62,7 +68,7 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   return { sessionToken, expiresAt };
 }
 
-export async function verifySession() {
+export async function verifySession(): Promise<{ userId: string; canResetPassword?: boolean; role?: string } | null> {
   const reqHeaders = await headers();
   const rawIp = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || '';
   // Very basic localhost sanity check if headers are present
@@ -89,7 +95,7 @@ export async function verifySession() {
       if (process.env.NODE_ENV === 'development') {
         console.info("[verifySession] devUser found:", !!devUser);
       }
-      if (devUser) return { userId: devUser.id, canResetPassword: false };
+      if (devUser) return { userId: devUser.id, canResetPassword: false, role: devUser.role };
     }
     return null;
   }
@@ -156,7 +162,8 @@ export async function verifySession() {
 
     return { 
       userId: user.id,
-      canResetPassword: payload.canResetPassword === true
+      canResetPassword: payload.canResetPassword === true,
+      role: user.role
     };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
@@ -172,8 +179,22 @@ export async function verifySession() {
       if (process.env.NODE_ENV === 'development') {
         console.info("[verifySession] devUser found:", !!devUser);
       }
-      if (devUser) return { userId: devUser.id };
+      if (devUser) return { userId: devUser.id, role: devUser.role };
     }
+    return null;
+  }
+}
+
+/**
+ * Decrypts JWT session token in an Edge-safe manner (no DB calls).
+ */
+export async function decryptSessionToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, getEncodedKey(), {
+      algorithms: ['HS256'],
+    });
+    return payload as { sessionId: string; userId: string; role: string; canResetPassword?: boolean };
+  } catch {
     return null;
   }
 }

@@ -74,7 +74,7 @@ class AccountingService {
     }
 
     // 3. Calculate COGS (Provider Costs for confirmed part)
-    let cogs = 0;
+    let cogs: number;
     if (startDate && endDate) {
       const cogsResult = await db.$queryRaw<[{ total: bigint | null }]>`
         SELECT SUM(

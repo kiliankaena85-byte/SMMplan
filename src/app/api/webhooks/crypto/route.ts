@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
         const parsed = JSON.parse(invoice.payload);
         paymentId = parsed.paymentId;
         metadataType = parsed.type;
-      } catch {
+      } catch (err) {
+        console.warn('[Crypto Webhook] JSON parse failed, falling back to raw payload:', err);
         // Legacy format: payload is just the paymentId string
         paymentId = invoice.payload;
       }

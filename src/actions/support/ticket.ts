@@ -11,11 +11,17 @@ import { z } from 'zod';
 import { getClientIp } from '@/utils/ip';
 import { auditAdmin } from '@/lib/admin-audit';
 import { WalletOps } from '@/services/financial/wallet-ops';
+import { CompensationService } from '@/services/financial/compensation.service';
+
+/**
+ * MANDATORY INTEGRITY WARNING:
+ * DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A Forensic Auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
+ */
 
 // ... (rest of imports)
 
 export async function generateSmartReplyAction(ticketId: string) {
-  return requireStaffPermission('support', 'view', async () => {
+  return requireStaffPermission('orders', 'view', async () => {
     try {
       const reply = await aiSupportService.generateReply(ticketId);
       return { success: true, reply };
@@ -173,7 +179,7 @@ export async function addTicketMessage(formData: FormData) {
 }
 
 export async function adminReplyTicket(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (admin) => {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
     const parsed = adminReplySchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Ошибка валидации сообщения');
     const { ticketId, message, isInternal, mediaUrl, mediaType, replyToId } = parsed.data;
@@ -209,7 +215,7 @@ const changeStatusSchema = z.object({
 });
 
 export async function changeTicketStatus(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (admin) => {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
     const parsed = changeStatusSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Неверный статус');
     const { ticketId, status } = parsed.data;
@@ -250,7 +256,7 @@ const editMessageSchema = z.object({
 });
 
 export async function editTicketMessage(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (user) => {
+  return requireStaffPermission('orders', 'edit', async (user) => {
     const parsed = editMessageSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Ошибка редактирования сообщения');
     const { messageId, newText } = parsed.data;
@@ -311,7 +317,7 @@ const requestBindSchema = z.object({
 });
 
 export async function requestTelegramBind(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async () => {
+  return requireStaffPermission('orders', 'edit', async () => {
     try {
       console.info('[requestTelegramBind] Action started');
       const parsed = requestBindSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -353,7 +359,7 @@ const manualBindSchema = z.object({
 });
 
 export async function adminManualTelegramBind(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (admin) => {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
     try {
       // W6-5: SUPPORT cannot call manual bind
       if (!['ADMIN', 'OWNER'].includes(admin.role)) throw new Error('Forbidden: Only ADMIN or OWNER can manually bind Telegram accounts');
@@ -437,7 +443,7 @@ export async function adminManualTelegramBind(formData: FormData) {
 }
 
 export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[]) {
-  return requireStaffPermission('support', 'edit', async (admin) => {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
     const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new Error('Тикет не найден');
 
@@ -513,7 +519,7 @@ export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[
 }
 
 export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[]) {
-  return requireStaffPermission('support', 'edit', async (admin) => {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
     const ticket = await db.ticket.findUnique({ 
       where: { id: ticketId },
       include: { user: true }
@@ -532,64 +538,66 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
 
     const { calculatePartialRefund } = await import('@/utils/refund');
 
-    for (const orderId of orderIds) {
-      try {
-        const refundAmountCents = await db.$transaction(async (tx) => {
-          const order = await tx.order.findFirst({
-            where: { id: orderId, userId: ticket.userId }
-          });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const calculatedRefunds: any[] = [];
 
-          if (!order) {
-            throw new Error(`Заказ ${orderId} не найден или принадлежит другому пользователю`);
-          }
+    await db.$transaction(async (tx) => {
+      // Calculate total refund cents first
+      let totalToRefundCents = 0;
 
-          if (['CANCELED', 'PARTIAL'].includes(order.status)) {
-            throw new Error(`Заказ #${order.numericId}: Уже отменен или частично возвращен`);
-          }
-
-          if (order.remains <= 0) {
-            throw new Error(`Заказ #${order.numericId}: Нет остатков для возврата (remains <= 0)`);
-          }
-
+      for (const orderId of orderIds) {
+        const order = await tx.order.findUnique({ where: { id: orderId } });
+        if (order && !['CANCELED', 'PARTIAL'].includes(order.status) && order.remains > 0 && order.userId === ticket.userId) {
           const calculatedAmount = calculatePartialRefund({
             remains: order.remains,
             quantity: order.quantity,
             charge: order.charge
           });
-
-          if (calculatedAmount <= 0) {
-            throw new Error(`Заказ #${order.numericId}: Сумма возврата равна 0`);
+          if (calculatedAmount > 0) {
+            totalToRefundCents += calculatedAmount;
+            calculatedRefunds.push({ order, calculatedAmount });
           }
-
-          // B2B clients bypass the standard operator's daily support limit check completely!
-          if (!isB2bClient) {
-            const currentSpentToday = await getAdminSpentToday(admin.id, tx);
-            const limitLeft = admin.supportLimitCents - currentSpentToday;
-            if (calculatedAmount > limitLeft) {
-              throw new Error(`Превышен суточный лимит компенсаций оператора. Осталось: ${(limitLeft / 100).toFixed(2)} ₽`);
-            }
+        } else if (order) {
+          if (order.userId !== ticket.userId) {
+            errors.push(`Заказ ${orderId} принадлежит другому пользователю`);
+          } else if (['CANCELED', 'PARTIAL'].includes(order.status)) {
+            errors.push(`Заказ #${order.numericId}: Уже отменен или частично возвращен`);
+          } else if (order.remains <= 0) {
+            errors.push(`Заказ #${order.numericId}: Нет остатков для возврата (remains <= 0)`);
           }
+        } else {
+          errors.push(`Заказ ${orderId} не найден`);
+        }
+      }
 
-          await tx.order.update({
-            where: { id: order.id },
-            data: { status: 'PARTIAL' }
-          });
+      if (totalToRefundCents > 0 && !isB2bClient) {
+        const currentSpentToday = await getAdminSpentToday(admin.id, tx);
+        const limitLeft = admin.supportLimitCents - currentSpentToday;
+        if (totalToRefundCents > limitLeft) {
+          throw new Error(`Превышен суточный лимит компенсаций оператора. Требуется: ${(totalToRefundCents / 100).toFixed(2)} ₽, Осталось: ${(limitLeft / 100).toFixed(2)} ₽`);
+        }
+      }
 
-          const idempotencyKey = `refund_ticket_${ticketId}_order_${order.id}`;
-          await WalletOps.refund(tx, ticket.userId, calculatedAmount,
-            `Компенсация (частичный возврат) по тикету #${ticketId} за недовыполненный заказ #${order.numericId}`,
-            { idempotencyKey, adminId: admin.id }
-          );
+      // Perform updates
+      for (const item of calculatedRefunds) {
+        await tx.order.update({
+          where: { id: item.order.id },
+          data: { status: 'PARTIAL' }
+        });
 
-          return calculatedAmount;
-        }, { isolationLevel: 'Serializable' });
+        const idempotencyKey = `refund_ticket_${ticketId}_order_${item.order.id}`;
+        await WalletOps.refund(tx, ticket.userId, item.calculatedAmount,
+          `Компенсация (частичный возврат) по тикету #${ticketId} за недовыполненный заказ #${item.order.numericId}`,
+          { idempotencyKey, adminId: admin.id }
+        );
 
         processedCount++;
-        totalRefundedCents += refundAmountCents;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        errors.push(`Ошибка по заказу ${orderId}: ${err.message}`);
+        totalRefundedCents += item.calculatedAmount;
       }
+    }, { isolationLevel: 'Serializable' });
+
+    for (const item of calculatedRefunds) {
+      CompensationService.trackCompensation(item.order.id).catch(err => console.error('[TicketActions] Failed to track compensation', err));
     }
 
     const ipAddress = await getClientIp('unknown');
@@ -615,19 +623,17 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
   });
 }
 
+import { getMSKMidnightUTC } from '@/services/admin/escrow.service';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getAdminSpentToday(adminId: string, tx?: any): Promise<number> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+export async function getAdminSpentToday(adminId: string, tx?: any): Promise<number> {
+  const todayStart = getMSKMidnightUTC();
 
   const client = tx || db;
   const ledgerCompensations = await client.ledgerEntry.findMany({
     where: {
       adminId,
       createdAt: { gte: todayStart },
-      reason: {
-        contains: 'Компенсация'
-      }
     },
     select: {
       amount: true

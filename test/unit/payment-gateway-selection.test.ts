@@ -45,7 +45,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    (process.env as any).NODE_ENV = originalNodeEnv;
     vi.restoreAllMocks();
   });
 
@@ -61,7 +61,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
       });
 
       // Mock production node env
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
@@ -85,7 +85,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         }
       });
 
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
@@ -108,7 +108,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         }
       });
 
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
@@ -149,7 +149,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         }
       });
 
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
@@ -188,7 +188,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         }
       });
 
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
@@ -207,7 +207,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         }
       });
 
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
@@ -226,7 +226,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         }
       });
 
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
@@ -248,7 +248,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         }
       });
 
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
@@ -269,7 +269,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         }
       });
 
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
@@ -290,7 +290,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         }
       });
 
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       vi.spyOn(SettingsProvider, 'isTestEnvironment').mockReturnValue(false);
       vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 

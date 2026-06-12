@@ -4,6 +4,12 @@ import { providerService } from "@/services/providers/provider.service";
 import { RefundPolicyService } from "@/services/financial/refund-policy.service";
 import { sendOrderCompletedMail } from "@/lib/smtp";
 import { QuarantineService } from "@/services/providers/quarantine.service";
+import { CompensationService } from "@/services/financial/compensation.service";
+
+/**
+ * MANDATORY INTEGRITY WARNING:
+ * DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A Forensic Auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
+ */
 
 /**
  * PUSH Webhook for Provider Sync (Zero-Trust Signal Pattern)
@@ -35,8 +41,9 @@ export async function POST(req: Request) {
     let body;
     try {
       body = await req.json();
-    } catch {
-      // If it's x-www-form-urlencoded
+    } catch (err) {
+      // If it's not JSON, assume x-www-form-urlencoded
+      console.warn('[Webhook] Failed to parse JSON, falling back to formData:', err);
       const formData = await req.formData();
       body = Object.fromEntries(formData.entries());
     }
@@ -108,13 +115,19 @@ export async function POST(req: Request) {
       // Trigger Quarantine Check (Silent Failures)
       QuarantineService.evaluateTriggerB(order.serviceId).catch(console.error);
       
+      CompensationService.trackCompensation(order.id, s.charge).catch(err => console.error('[Webhook] Failed to track compensation', err));
+      
     } else if (['PARTIAL'].includes(providerStatus)) {
       const updated = await db.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: parsedRemains } });
       await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) });
       
+      CompensationService.trackCompensation(order.id, s.charge).catch(err => console.error('[Webhook] Failed to track compensation', err));
+      
     } else if (['COMPLETED'].includes(providerStatus)) {
       await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });
       sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(console.error);
+      
+      CompensationService.trackCompensation(order.id, s.charge).catch(err => console.error('[Webhook] Failed to track compensation', err));
       
     } else {
       await db.order.update({ where: { id: order.id }, data: { remains: parsedRemains } });

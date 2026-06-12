@@ -85,7 +85,7 @@ export function TemplateCommandPalette({
   return (
     <div
       ref={containerRef}
-      className="absolute bottom-full left-0 right-0 z-50 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200"
+      className="absolute bottom-full left-0 w-80 md:w-96 z-50 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200"
       aria-label="Палитра шаблонов"
     >
       <Command

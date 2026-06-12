@@ -18,7 +18,7 @@ const swapSchema = z.object({
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getServiceRoutes(serviceId: string) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return requireStaffPermission('services', 'view', async (admin) => {
+  return requireStaffPermission('catalog', 'view', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
       include: { provider: true }
@@ -38,7 +38,7 @@ async function getServiceRoutes(serviceId: string) {
 
 export async function previewHotSwap(serviceId: string, newRouteId: string) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return requireStaffPermission('services', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
       include: { provider: true }
@@ -79,7 +79,7 @@ export async function previewHotSwap(serviceId: string, newRouteId: string) {
 }
 
 export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
-  return requireStaffPermission('services', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const parsed = swapSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(parsed.error.errors[0].message);
@@ -94,12 +94,38 @@ export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
       if (!service) throw new Error("Услуга не найдена");
 
       const targetRoute = await tx.serviceRoute.findUnique({
-        where: { id: newRouteId }
+        where: { id: newRouteId },
+        include: { provider: true }
       });
       if (!targetRoute) throw new Error("Маршрут не найден");
       if (!targetRoute.isActive) throw new Error("Целевой маршрут отключен");
 
       const oldProviderId = service.providerId;
+
+      // Fetch new rate from redis catalog to prevent arbitrage
+      const cacheKey = `provider:${targetRoute.providerId}:catalog`;
+      const cachedStr = await redis.get(cacheKey);
+      let newRate = service.rate;
+      if (cachedStr) {
+        try {
+          const services = JSON.parse(cachedStr);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const s = services.find((x: any) => String(x.service) === String(targetRoute.providerServiceId));
+          if (s && parseFloat(s.rate) > 0) {
+            newRate = parseFloat(s.rate);
+          }
+        } catch {
+          // Ignore JSON parsing errors
+        }
+      }
+
+      const usdToRub = await SettingsProvider.getExchangeRateUSD();
+      const newProviderCurrency = targetRoute.provider?.balanceCurrency || 'USD';
+      const exchangeRate = newProviderCurrency === 'RUB' ? 1.0 : usdToRub;
+      const SAFETY_FLOOR_MARKUP = 1.5; // fallback
+      const newPricePer1000Cents = Math.round(
+        applyBeautifulRounding(newRate * Math.max(service.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
+      );
 
       await tx.serviceRoute.updateMany({
         where: { serviceId, isPrimary: true },
@@ -115,7 +141,10 @@ export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
         where: { id: serviceId },
         data: {
           providerId: targetRoute.providerId,
-          externalId: targetRoute.providerServiceId
+          externalId: targetRoute.providerServiceId,
+          rate: newRate,
+          pricePer1000Cents: newPricePer1000Cents,
+          providerCurrency: newProviderCurrency
         }
       });
 
@@ -144,7 +173,7 @@ const addRouteSchema = z.object({
 });
 
 export async function addServiceRoute(input: z.infer<typeof addRouteSchema>) {
-  return requireStaffPermission('services', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const parsed = addRouteSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(parsed.error.errors[0].message);
@@ -204,7 +233,7 @@ export async function addServiceRoute(input: z.infer<typeof addRouteSchema>) {
 }
 
 export async function toggleRouteStatus(routeId: string) {
-  return requireStaffPermission('services', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     let serviceId = '';
     await db.$transaction(async (tx) => {
       const route = await tx.serviceRoute.findUnique({ where: { id: routeId } });
@@ -246,7 +275,7 @@ export async function toggleRouteStatus(routeId: string) {
 
 export async function changeRoutePriority(routeId: string, direction: 'up' | 'down') {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return requireStaffPermission('services', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     let serviceId = '';
     await db.$transaction(async (tx) => {
       const route = await tx.serviceRoute.findUnique({ where: { id: routeId } });
@@ -282,7 +311,7 @@ export async function changeRoutePriority(routeId: string, direction: 'up' | 'do
 }
 
 export async function deleteServiceRoute(routeId: string) {
-  return requireStaffPermission('services', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     let serviceId = '';
     await db.$transaction(async (tx) => {
       const route = await tx.serviceRoute.findUnique({ where: { id: routeId } });
@@ -324,7 +353,7 @@ export async function deleteServiceRoute(routeId: string) {
 
 export async function getProviderComparisonData(serviceId: string) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return requireStaffPermission('services', 'view', async (admin) => {
+  return requireStaffPermission('catalog', 'view', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
       include: { category: true, provider: true }

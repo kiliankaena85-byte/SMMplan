@@ -41,7 +41,7 @@ If the user needs a refund, explain that support can issue compensations up to 5
       return response;
     } catch (err) {
       console.error('[AI Support] Generation failed:', err);
-      return "Извините, не удалось сгенерировать ответ автоматически.";
+      throw new Error("Не удалось сгенерировать ответ автоматически.", { cause: err });
     }
   }
 
@@ -49,7 +49,7 @@ If the user needs a refund, explain that support can issue compensations up to 5
      const apiKey = process.env.GEMINI_API_KEY;
      if (!apiKey) return "AI API Key missing";
 
-     const model = 'gemini-3.5-flash';
+     const model = 'gemini-3-flash';
      const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
      const url = `${baseUrl}/v1beta/models/${model}:generateContent`;
      
@@ -74,7 +74,8 @@ If the user needs a refund, explain that support can issue compensations up to 5
          system_instruction: { parts: [{ text: systemInstruction }] },
          contents
        }),
-       dispatcher
+       dispatcher,
+       signal: AbortSignal.timeout(30000)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
      } as any);
 

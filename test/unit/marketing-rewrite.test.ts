@@ -284,9 +284,9 @@ describe('Marketing Description Rewriter Script', () => {
     expect(auditSpy).not.toHaveBeenCalled();
 
     // Verify console log for dry-run diff
-    const logCalls = consoleLogSpy.mock.calls.map(call => call[0]);
-    expect(logCalls.some(log => log.includes('[DRY-RUN] Proposed updates for Service ID: service-3'))).toBe(true);
-    expect(logCalls.some(log => log.includes('Name: "Old Service Name 3" -> "New Optimized Name"'))).toBe(true);
+    const logCalls = consoleLogSpy.mock.calls.map((call: any) => call[0]);
+    expect(logCalls.some((log: any) => log.includes('[DRY-RUN] Proposed updates for Service ID: service-3'))).toBe(true);
+    expect(logCalls.some((log: any) => log.includes('Name: "Old Service Name 3" -> "New Optimized Name"'))).toBe(true);
   });
 
   it('skips update if Gemini output matches current local service name and description', async () => {

@@ -216,7 +216,7 @@ class SupportBotService {
           await ctx.reply('⚠️ Прием медиафайлов временно ограничен (сработал антиспам). Опишите проблему текстом.');
           return null;
        }
-    } catch { /* ignore */ }
+    } catch (err) { console.warn('[SupportBot] Notification failed:', err); }
 
     try {
       const fileLink = await ctx.telegram.getFileLink(fileId);

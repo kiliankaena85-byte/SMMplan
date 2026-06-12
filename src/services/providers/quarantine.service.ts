@@ -198,11 +198,11 @@ export class QuarantineService {
     /**
      * Loss Prevention: check if the calculated retail cost pricePerUnitRub is less than the purchase cost in rubles.
      */
-    static isLossBreach(newRate: number, markup: number, usdToRub: number): boolean {
-        const pricePer1kRub = newRate * markup * usdToRub;
+    static isLossBreach(newRate: number, markup: number, exchangeRate: number): boolean {
+        const pricePer1kRub = newRate * markup * exchangeRate;
         const pricePer1kRubRounded = applyBeautifulRounding(pricePer1kRub);
         const pricePerUnitRub = pricePer1kRubRounded / 1000;
-        const purchaseCostPerUnitRub = (newRate * usdToRub) / 1000;
+        const purchaseCostPerUnitRub = (newRate * exchangeRate) / 1000;
         return pricePerUnitRub < purchaseCostPerUnitRub;
     }
 }

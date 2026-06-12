@@ -45,6 +45,37 @@ async function main() {
   const isRubProvider = dbProvider.balanceCurrency === 'RUB';
 
   console.log(`Provider: ${dbProvider.name} | Currency: ${dbProvider.balanceCurrency} | Cross-rate: ${usdToRub}`);
+  
+  // Wave 6: Perform pre-sync credentials check
+  try {
+    console.log("Checking Vexboost credentials and balance...");
+    const balanceInfo = await provider.getBalance();
+    console.log(`Connection successful! Balance: ${balanceInfo.balance} ${balanceInfo.currency}`);
+  } catch (err: any) {
+    const errMsg = err.message || String(err);
+    console.error(`\n❌ [API ERROR] Vexboost verification failed: ${errMsg}`);
+    
+    // Check for specific auth/inactive errors
+    if (errMsg.includes("user_inactive") || errMsg.includes("key") || errMsg.includes("invalid") || errMsg.includes("auth")) {
+      console.error("👉 [CRITICAL ALERT] The API key or user account is currently INACTIVE or INVALID.");
+      console.error("👉 Please update your Vexboost credentials inside the Admin Panel.");
+    } else {
+      console.error("👉 Please verify your network connection, proxy settings, or endpoint URL.");
+    }
+
+    // Update error statistics in the database
+    await db.provider.update({
+      where: { id: dbProvider.id },
+      data: {
+        lastErrorAt: new Date(),
+        errorCount5m: { increment: 1 }
+      }
+    });
+
+    console.log("\nSync aborted due to provider verification failure. Existing database services are preserved.");
+    return;
+  }
+
   const apiServices = await provider.getServices();
   console.log(`Fetched ${apiServices.length} services from Vexboost API.`);
 

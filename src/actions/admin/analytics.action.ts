@@ -5,7 +5,7 @@ import { analyticsService } from '@/services/admin/analytics.service'
 import { requireStaffPermission } from '@/lib/server/rbac'
 
 export async function getFunnelAnalyticsAction(days: number) {
-  return requireStaffPermission('analytics', 'view', async () => {
+  return requireStaffPermission('orders', 'view', async () => {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
 
@@ -28,30 +28,19 @@ export async function getFunnelAnalyticsAction(days: number) {
     ])
 
     // Optional: Top 5 Services by Clicks (for funnel)
-    const serviceEvents = await db.analyticsEvent.findMany({
-      where: { 
-        event: 'SERVICE_SELECTED', 
-        createdAt: { gte: cutoff } 
-      },
-      select: { metadata: true }
-    })
+    const topServicesRaw = await db.$queryRaw<{name: string, clicks: number}[]>`
+      SELECT "metadata"->>'serviceName' as name, COUNT(*)::int as clicks
+      FROM "AnalyticsEvent"
+      WHERE event = 'SERVICE_SELECTED' AND "createdAt" >= ${cutoff}
+      GROUP BY "metadata"->>'serviceName'
+      ORDER BY clicks DESC
+      LIMIT 5
+    `
 
-    const countMap: Record<string, number> = {}
-    
-    serviceEvents.forEach(e => {
-      if (e.metadata && typeof e.metadata === 'object' && !Array.isArray(e.metadata)) {
-        const metadata = e.metadata as { serviceName?: string };
-        const name = metadata.serviceName;
-        if (name && typeof name === 'string') {
-          countMap[name] = (countMap[name] || 0) + 1
-        }
-      }
-    })
-
-    const topServices = Object.entries(countMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, clicks]) => ({ name, clicks }))
+    const topServices = topServicesRaw.map(row => ({
+      name: row.name,
+      clicks: Number(row.clicks)
+    }))
 
     return {
       funnel: {

@@ -51,6 +51,7 @@ vi.mock('@/lib/redis-lock', () => ({
 
 vi.mock('@/lib/settings', () => ({
   SettingsManager: {
+    get: vi.fn().mockResolvedValue({ exchangeRateUSD: 100, quarantineThreshold: 0.20 }),
     getExchangeRateUSD: vi.fn().mockResolvedValue(100),
     setExchangeRateUSD: vi.fn().mockResolvedValue(undefined)
   }
@@ -71,6 +72,15 @@ vi.mock('@/lib/notifications', () => ({
 vi.mock('@/services/providers/provider.service', () => ({
   providerService: {
     getProviderInstance: vi.fn().mockResolvedValue(mockProviderInstance)
+  }
+}));
+
+vi.mock('@/services/admin/audit-engine', () => ({
+  ServiceAuditEngine: {
+    auditAndFixService: vi.fn().mockImplementation((service, external, exchangeRate) => {
+      // No-op to prevent auto-fixing low markups during pricing sync tests
+      return [];
+    })
   }
 }));
 
@@ -202,7 +212,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
 
       mockDb.service.update.mockResolvedValueOnce({});
 
-      const result = await adminSyncProviderCatalog();
+      const result = (await adminSyncProviderCatalog()) as any;
 
       expect(result.success).toBe(true);
       expect(result.stats?.updatedCount).toBe(1);
@@ -218,7 +228,6 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
           minQty: 10,
           maxQty: 10000,
           lastSeenAt: expect.any(Date),
-          isActive: true,
           isQuarantined: false,
           quarantineReason: null
         }
@@ -238,7 +247,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
 
       mockDb.service.update.mockResolvedValueOnce({});
 
-      const result = await adminSyncProviderCatalog();
+      const result = (await adminSyncProviderCatalog()) as any;
 
       expect(result.success).toBe(true);
       expect(result.stats?.updatedCount).toBe(0);
@@ -248,7 +257,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
         where: { id: 'srv-1' },
         data: {
           isQuarantined: true,
-          quarantineReason: "Ценовой скачок у провайдера (>10%)",
+          quarantineReason: "Ценовой скачок у провайдера (> 20%)",
           isActive: false,
           pendingRate: 1.3,
           quarantinedAt: expect.any(Date)
@@ -275,7 +284,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
       mockDb.service.update.mockResolvedValueOnce({});
       mockDb.routingAuditLog.create.mockResolvedValueOnce({});
 
-      const result = await adminSyncProviderCatalog();
+      const result = (await adminSyncProviderCatalog()) as any;
 
       expect(result.success).toBe(true);
       expect(result.stats?.disabledCount).toBe(1); // Deactivated due to loss

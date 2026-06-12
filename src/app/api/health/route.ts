@@ -24,7 +24,8 @@ export async function GET(req: Request) {
     await db.$queryRaw`SELECT 1`;
     dbLatencyMs = Date.now() - dbStart;
     dbStatus = 'connected';
-  } catch {
+  } catch (err) {
+    console.warn('[HealthCheck] DB check failed:', err);
     // dbStatus remains 'error'
   }
 
@@ -36,7 +37,8 @@ export async function GET(req: Request) {
     await redis.ping();
     redisLatencyMs = Date.now() - redisStart;
     redisStatus = 'connected';
-  } catch {
+  } catch (err) {
+    console.warn('[HealthCheck] Redis check failed:', err);
     // redisStatus remains 'error'
   }
 
@@ -50,7 +52,8 @@ export async function GET(req: Request) {
         workerLastSeenMs = Date.now() - parseInt(heartbeat, 10);
         workerStatus = workerLastSeenMs < WORKER_STALE_THRESHOLD_MS ? 'alive' : 'stale';
       }
-    } catch {
+    } catch (err) {
+      console.warn('[HealthCheck] Worker heartbeat check failed:', err);
       // workerStatus remains 'missing'
     }
   }
@@ -60,7 +63,8 @@ export async function GET(req: Request) {
   if (redisStatus === 'connected') {
     try {
       queueDepth = await ordersQueue.getWaitingCount();
-    } catch {
+    } catch (err) {
+      console.warn('[HealthCheck] Queue depth check failed:', err);
       // non-critical, leave as null
     }
   }

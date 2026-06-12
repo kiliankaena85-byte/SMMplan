@@ -42,6 +42,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
 
   return (
     <form action={formAction} className="space-y-6 pb-24">
+      <input type="hidden" name="_isGeneralSettings" value="1" />
       {/* 1. Core Settings */}
       <Card className="rounded-2xl border-border shadow-sm bg-card backdrop-blur-xl">
         <div className="p-8 space-y-6">

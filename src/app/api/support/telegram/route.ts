@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBaseUrlAsync } from '@/utils/get-base-url';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import crypto from 'crypto';
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
 
   if (!botUsername) {
     console.error('[TelegramSupport] TELEGRAM_SUPPORT_BOT not configured in settings');
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
+    const appUrl = await getBaseUrlAsync();
     return NextResponse.redirect(`${appUrl}/dashboard`);
   }
 
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
     if (!session || !session.userId) {
       if (forceAuth) {
         // Требуем обязательной авторизации (Level 2 Protocol)
-        const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
+        const host = await getBaseUrlAsync();
         const callbackUrl = encodeURIComponent('/api/support/telegram?forceAuth=true');
         return NextResponse.redirect(`${host}/auth?callbackUrl=${callbackUrl}`);
       }

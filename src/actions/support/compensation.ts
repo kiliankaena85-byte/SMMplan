@@ -8,6 +8,8 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { getClientIp } from '@/utils/ip';
 
+import { getAdminSpentToday } from './ticket';
+
 const compensationSchema = z.object({
   ticketId: z.string().min(1),
   costRub: z.number().positive().max(50000), // W4-3 FIX: Upper limit
@@ -16,7 +18,7 @@ const compensationSchema = z.object({
 });
 
 export async function logManualCompensation(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (user) => {
+  return requireStaffPermission('orders', 'edit', async (user) => {
 
   const parsed = compensationSchema.safeParse({
     ticketId: formData.get('ticketId'),
@@ -34,8 +36,12 @@ export async function logManualCompensation(formData: FormData) {
 
   // OWNER has infinite limit effectively. For others, check limits.
   const isOwner = user.role === 'OWNER';
-  if (!isOwner && user.supportLimitCents < costCents) {
-    throw new Error('Недостаточно лимита доверия');
+  if (!isOwner) {
+    const currentSpentToday = await getAdminSpentToday(user.id);
+    const limitLeft = user.supportLimitCents - currentSpentToday;
+    if (limitLeft < costCents) {
+      throw new Error(`Недостаточно лимита доверия на сегодня. Доступно: ${(limitLeft / 100).toFixed(2)} ₽`);
+    }
   }
 
   const ticket = await db.ticket.findUnique({
@@ -54,13 +60,11 @@ export async function logManualCompensation(formData: FormData) {
 
   // Perform operations in a transaction
   await db.$transaction(async (tx) => {
-    // 1. Deduct limit if not owner
+    // 1. Check limit dynamically inside tx if not owner to prevent concurrent bypass
     if (!isOwner) {
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: { supportLimitCents: { decrement: costCents } }
-      });
-      if (updatedUser.supportLimitCents < 0) {
+      const currentSpentToday = await getAdminSpentToday(user.id, tx);
+      const limitLeft = user.supportLimitCents - currentSpentToday;
+      if (limitLeft < costCents) {
         throw new Error('Недостаточно лимита доверия. Обнаружена конкурентная транзакция.');
       }
     }

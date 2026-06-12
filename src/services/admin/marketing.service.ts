@@ -82,6 +82,44 @@ export const adminMarketingService = {
     };
   },
 
+  async getReferralChartData() {
+    // Fetch last 6 months of paid commissions
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const commissions = await db.commission.findMany({
+      where: { 
+        status: 'PAID',
+        updatedAt: { gte: sixMonthsAgo }
+      },
+      select: { amount: true, updatedAt: true },
+    });
+
+    const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+    const monthlyData: Record<string, number> = {};
+    
+    // Initialize last 6 months with 0
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      monthlyData[months[d.getMonth()]] = 0;
+    }
+
+    for (const commission of commissions) {
+      const month = months[commission.updatedAt.getMonth()];
+      if (monthlyData[month] !== undefined) {
+        monthlyData[month] += Number(commission.amount);
+      }
+    }
+
+    return Object.keys(monthlyData).map(month => ({
+      name: month,
+      total: monthlyData[month] / 100
+    }));
+  },
+
   async listTopReferrers() {
     // Find users with the highest referral balance or most referrals
     return db.user.findMany({
@@ -140,7 +178,7 @@ export const adminMarketingService = {
           amount: amountToPayCents,
           reason: `Выплата реферального баланса (admin payout)`,
           status: 'APPROVED',
-          idempotencyKey: `referral-payout-${userId}`
+          idempotencyKey: `referral-payout-${userId}-${Date.now()}`
         },
       });
 

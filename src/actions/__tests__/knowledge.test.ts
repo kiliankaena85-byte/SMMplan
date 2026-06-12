@@ -109,27 +109,31 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
     it('should prevent guest users from creating articles', async () => {
       vi.mocked(verifySession).mockResolvedValue(null);
 
-      await expect(createArticle({
+      const res = await createArticle({
         title: "Новая тестовая статья",
         slug: "new-test-article",
         description: "Краткое описание новой тестовой статьи.",
         content: "Это содержимое новой тестовой статьи для проверки.",
         category: "Подписчики",
         status: "PUBLISHED"
-      })).rejects.toThrow();
+      });
+      expect(res.success).toBe(false);
+      expect((res as any).error).toBe("Unauthorized access");
     });
 
     it('should prevent standard users from creating articles', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: regularUser.id });
 
-      await expect(createArticle({
+      const res = await createArticle({
         title: "Новая тестовая статья",
         slug: "new-test-article",
         description: "Краткое описание новой тестовой статьи.",
         content: "Это содержимое новой тестовой статьи для проверки.",
         category: "Подписчики",
         status: "PUBLISHED"
-      })).rejects.toThrow();
+      });
+      expect(res.success).toBe(false);
+      expect((res as any).error).toBe("Forbidden: Administrator/Staff context required");
     });
   });
 
@@ -145,7 +149,7 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
         content: "Содержимое статьи на много слов для тестов.",
         category: "Подписчики",
         status: "PUBLISHED"
-      });
+      }) as any;
 
       expect(createRes.success).toBe(true);
       expect(createRes.article).toBeDefined();
@@ -159,7 +163,7 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
         content: "",
         category: "",
         status: "PUBLISHED"
-      });
+      }) as any;
 
       expect(badCreateRes.success).toBe(false);
       expect(badCreateRes.errors).toBeDefined();
@@ -172,7 +176,7 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
         content: "Новое содержимое статьи.",
         category: "Лайки",
         status: "DRAFT"
-      });
+      }) as any;
 
       expect(updateRes.success).toBe(true);
       expect(updateRes.article?.title).toBe("Безопасное продвижение v2");
@@ -286,7 +290,7 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
         content: "Содержимое тестовой статьи.",
         category: "Подписчики",
         status: "PUBLISHED"
-      });
+      }) as any;
 
       expect(res.success).toBe(true);
       expect(res.article).toBeDefined();
@@ -307,7 +311,7 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
         status: "PUBLISHED",
         authorName: "Ольга",
         authorRole: "Контент-стратег и SEO-специалист SMMplan"
-      });
+      }) as any;
 
       expect(createRes.success).toBe(true);
       expect(createRes.article?.authorName).toBe("Ольга");
@@ -323,7 +327,7 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
         status: "PUBLISHED",
         authorName: "Дмитрий",
         authorRole: "Руководитель SMM-отдела SMMplan"
-      });
+      }) as any;
 
       expect(updateRes.success).toBe(true);
       expect(updateRes.article?.authorName).toBe("Дмитрий");
@@ -342,7 +346,7 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
         status: "PUBLISHED",
         authorName: "A", // too short (min 2)
         authorRole: "B"  // too short (min 2)
-      });
+      }) as any;
 
       expect(res.success).toBe(false);
       expect(res.errors?.authorName).toContain("Имя автора должно состоять минимум из 2 символов");

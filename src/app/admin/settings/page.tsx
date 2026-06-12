@@ -1,17 +1,18 @@
 import { settingsService } from '@/services/admin/settings.service';
 import { db } from '@/lib/db';
-import { Settings, Shield, Globe, Link as LinkIcon, Users, History, MessageSquare } from 'lucide-react';
+import { Settings, Globe, Link as LinkIcon, Users, History, MessageSquare } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { TestModePanel } from '@/components/admin/test-mode-panel';
 import { GeneralSettings } from './general-settings';
 import { IntegrationsSettings } from './integrations-settings';
 import { TeamManagement } from './team-management';
-import { CopSimulator } from './cop-simulator';
+
 import { SupportTemplatesSettings } from './support-templates';
 import { DataTable } from '@/components/ui/data-table';
 import { columns as auditColumns } from './audit-columns';
 import Link from 'next/link';
-import { enforcePageRole } from '@/lib/server/rbac';
+import { enforceSectionAccess } from '@/lib/server/rbac';
+import { SettingsProvider } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export default async function AdminSettingsPage({
 }: {
   searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
-  const admin = await enforcePageRole(['OWNER', 'ADMIN']);
+  const admin = await enforceSectionAccess('settings');
   
   const params = await searchParams;
   const activeTab = params.tab || 'system';
@@ -52,10 +53,8 @@ export default async function AdminSettingsPage({
     { id: 'integrations', label: 'Интеграции', icon: LinkIcon },
     { id: 'team', label: 'Команда', icon: Users },
     { id: 'templates', label: 'Шаблоны', icon: MessageSquare },
-    { id: 'cop', label: 'COP Симулятор', icon: Shield },
     { id: 'audit', label: 'Аудит', icon: History },
   ];
-
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-background min-h-full pb-10">
       <AdminPageHeader
@@ -86,7 +85,7 @@ export default async function AdminSettingsPage({
         {/* ── TAB 1: SYSTEM ── */}
         {activeTab === 'system' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
-            <TestModePanel initialIsTestMode={sanitizedSettings.isTestMode} />
+            <TestModePanel initialIsTestMode={sanitizedSettings.isTestMode} isTestEnvironment={SettingsProvider.isTestEnvironment()} />
             <GeneralSettings settings={sanitizedSettings} />
           </div>
         )}
@@ -118,12 +117,6 @@ export default async function AdminSettingsPage({
           </div>
         )}
 
-        {/* ── TAB 3.5: COP SIMULATION ── */}
-        {activeTab === 'cop' && (
-          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
-            <CopSimulator />
-          </div>
-        )}
 
         {/* ── TAB 4: AUDIT ── */}
         {activeTab === 'audit' && (

@@ -28,7 +28,7 @@ async function main() {
     update: {},
     create: {
       name: 'Vexboost',
-      apiUrl: 'https://vexboost.com/api/v2',
+      apiUrl: 'https://vexboost.ru/api/v2/',
       apiKey: process.env.VEXBOOST_API_KEY || 'dummy_key',
       isActive: true
     }

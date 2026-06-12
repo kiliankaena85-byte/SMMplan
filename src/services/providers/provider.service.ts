@@ -1,5 +1,6 @@
 import { Provider } from '@prisma/client';
 import { BaseProvider } from './base-provider';
+import { getBaseUrlAsync } from '@/utils/get-base-url';
 import { db } from '@/lib/db';
 import { SettingsManager } from '@/lib/settings';
 import { UniversalProvider } from './universal.provider';
@@ -40,7 +41,7 @@ export class ProviderService {
       if (!mockKey) {
         throw new Error('MOCK_PROVIDER_KEY is not set. Configure it in .env to use test mode.');
       }
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = await getBaseUrlAsync();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, mockKey, config.metadata as any);
     }

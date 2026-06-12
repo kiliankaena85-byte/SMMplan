@@ -47,10 +47,10 @@ export async function POST(req: NextRequest) {
 
     // 2. Fetch system secrets
     const secrets = await SettingsProvider.getPaymentSecrets();
-    const password = secrets.robokassaPassword;
+    const password = secrets.robokassaWebhookPassword;
 
     if (!password) {
-      console.error('[CRITICAL] RobokassaPassword2 is not configured in settings.');
+      console.error('[CRITICAL] RobokassaWebhookPassword (Password#2) is not configured in settings.');
       return NextResponse.json({ error: 'Gateway unconfigured' }, { status: 500 });
     }
 

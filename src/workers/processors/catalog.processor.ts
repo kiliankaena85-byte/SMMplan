@@ -48,8 +48,9 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
         try {
           const { applyPostSyncRules } = await import('@/services/providers/post-sync-rules');
           await applyPostSyncRules();
-        } catch (postSyncErr: any) {
-          console.error('[CatalogProcessor] applyPostSyncRules failed:', postSyncErr.message);
+        } catch (postSyncErr) {
+          const errMsg = postSyncErr instanceof Error ? postSyncErr.message : String(postSyncErr);
+          console.error('[CatalogProcessor] applyPostSyncRules failed:', errMsg);
         }
         break;
       }

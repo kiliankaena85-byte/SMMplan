@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { getBaseUrlAsync } from '@/utils/get-base-url';
 import { SettingsManager } from '@/lib/settings';
 import { WalletOps } from './wallet-ops';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -47,7 +48,7 @@ class YooKassaGateway extends BasePaymentGateway {
 
     if (isE2ETest || isDummyKeys) {
       return {
-        paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+        paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
@@ -103,7 +104,8 @@ class YooKassaGateway extends BasePaymentGateway {
         'Authorization': authHeader,
         'Idempotence-Key': idempKey
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000)
     });
 
     if (!resp.ok) {
@@ -128,7 +130,8 @@ class YooKassaGateway extends BasePaymentGateway {
       const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
       const resp = await fetch(`https://api.yookassa.ru/v3/payments/${gatewayId}`, {
         method: 'GET',
-        headers: { 'Authorization': authHeader }
+        headers: { 'Authorization': authHeader },
+        signal: AbortSignal.timeout(15000)
       });
 
       if (!resp.ok) return false;
@@ -155,7 +158,7 @@ class CryptoBotGateway extends BasePaymentGateway {
 
     if (isE2ETest || isDummyKeys) {
       return {
-        paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+        paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
@@ -181,7 +184,8 @@ class CryptoBotGateway extends BasePaymentGateway {
         description: params.description,
         hidden_message: hiddenMessage,
         payload: params.paymentId
-      })
+      }),
+      signal: AbortSignal.timeout(15000)
     });
 
     if (!resp.ok) {
@@ -208,7 +212,8 @@ class CryptoBotGateway extends BasePaymentGateway {
         method: 'GET',
         headers: {
           'Crypto-Pay-API-Token': cryptoToken
-        }
+        },
+        signal: AbortSignal.timeout(15000)
       });
 
       if (!resp.ok) return false;
@@ -348,7 +353,7 @@ class RobokassaGateway extends BasePaymentGateway {
 
     if (isE2ETest || isDummyKeys) {
       return {
-        paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+        paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
@@ -406,7 +411,7 @@ class RobokassaGateway extends BasePaymentGateway {
 class MockGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     return {
-      paymentUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+      paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
       remoteGatewayId: `mock_${Date.now()}`
     };
   }

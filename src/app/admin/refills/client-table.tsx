@@ -28,7 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
 export function RefillsTable({ refills }: { refills: RefillProps[] }) {
   return (
     <>
-      <Table>
+      <Table aria-label="Таблица докруток">
         <Table.ScrollContainer>
           <Table.Content aria-label="Заявки на докрутку (Refills)">
             <Table.Header>

@@ -1,4 +1,5 @@
 import { getPublicCatalogAction } from "@/actions/order/catalog";
+import { getBaseUrlAsync } from "@/utils/get-base-url";
 import { SmartLinkLanding } from "@/components/landing/SmartLinkLanding";
 import { SettingsProvider } from "@/lib/settings";
 import { verifySession } from "@/lib/session";
@@ -43,8 +44,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   
   const settings = await SettingsProvider.getContactAndLegalSettings();
   const siteName = settings.SITE_NAME || "SMMplan";
-  const supportDomain = await SettingsProvider.getSupportEmailDomain();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${supportDomain}`;
+  const baseUrl = await getBaseUrlAsync();
 
   // Resolve user session and email
   const session = await verifySession();

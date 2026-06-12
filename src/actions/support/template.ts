@@ -22,7 +22,7 @@ const templateSchema = z.object({
 });
 
 export async function getTemplates() {
-  return requireStaffPermission('support', 'view', async () => {
+  return requireStaffPermission('orders', 'view', async () => {
     return db.supportTemplate.findMany({
       orderBy: { sort: 'asc' }
     });
@@ -30,7 +30,7 @@ export async function getTemplates() {
 }
 
 export async function incrementTemplateUsage(id: string) {
-  return requireStaffPermission('support', 'view', async () => {
+  return requireStaffPermission('orders', 'view', async () => {
     try {
       await db.supportTemplate.update({
         where: { id },
@@ -45,7 +45,7 @@ export async function incrementTemplateUsage(id: string) {
 }
 
 export async function upsertTemplate(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (admin) => {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
 
   const parsed = templateSchema.safeParse({
     id: formData.get('id') || undefined,
@@ -120,7 +120,7 @@ export async function upsertTemplate(formData: FormData) {
 }
 
 export async function deleteTemplate(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (admin) => {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
 
   const id = formData.get('id') as string;
   if (!id) throw new Error('No id provided');

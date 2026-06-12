@@ -30,13 +30,73 @@ export const metadata: Metadata = {
     follow: true,
   },
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL
-      ? `https://${process.env.NEXT_PUBLIC_APP_URL}`
-      : 'http://localhost:3000'
+    process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL
+      ? (process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL)?.startsWith('http')
+        ? (process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL)!
+        : `https://${process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL}`
+      : 'https://smmplan.pro'
   ),
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+import { headers } from 'next/headers';
+import { SettingsProvider } from '@/lib/settings';
+import { verifySession } from '@/lib/session';
+import { db } from '@/lib/db';
+import { MaintenanceScreen } from '@/components/ui/MaintenanceScreen';
+import { MaintenanceGuardian } from '@/components/providers/MaintenanceGuardian';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const reqHeaders = await headers();
+  const pathname = reqHeaders.get('x-pathname') || '';
+  
+  const normalized = pathname.toLowerCase();
+  const isExcluded = 
+    normalized.startsWith('/admin') ||
+    normalized.startsWith('/api') ||
+    normalized === '/login' ||
+    normalized.startsWith('/_next') ||
+    normalized.includes('.');
+
+  const settings = await SettingsProvider.get();
+  const isMaintenanceMode = settings.maintenanceMode;
+  
+  let isStaff = false;
+  
+  if (isMaintenanceMode) {
+    const session = await verifySession();
+    if (session) {
+      const user = await db.user.findUnique({
+        where: { id: session.userId },
+        select: { role: true }
+      });
+      if (user && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(user.role)) {
+        isStaff = true;
+      }
+    }
+  }
+
+  const showMaintenance = isMaintenanceMode && !isStaff && !isExcluded;
+
+  if (showMaintenance) {
+    return (
+      <html lang="ru" suppressHydrationWarning>
+        <head>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+          <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        </head>
+        <body className="font-sans antialiased bg-background text-foreground" suppressHydrationWarning>
+          <MaintenanceScreen
+            siteName={settings.siteName || 'SMMplan'}
+            supportTelegram={settings.contactTelegramBot || 'smmplan_support_bot'}
+            supportEmail={settings.contactSupportEmail || 'support@smmplan.pro'}
+          />
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="ru" suppressHydrationWarning>
       <head>
@@ -51,7 +111,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <Providers>
           <NetworkAwareProvider>
-            {children}
+            <MaintenanceGuardian
+              initialIsMaintenance={isMaintenanceMode && !isStaff}
+              siteName={settings.siteName || 'SMMplan'}
+              supportTelegram={settings.contactTelegramBot || 'smmplan_support_bot'}
+              supportEmail={settings.contactSupportEmail || 'support@smmplan.pro'}
+            >
+              {children}
+            </MaintenanceGuardian>
           </NetworkAwareProvider>
         </Providers>
         <Toaster

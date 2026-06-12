@@ -283,6 +283,8 @@ model Order {
   charge            BigInt // price paid by user in Cents
   providerCost      BigInt // exact cost from provider in Cents
   error             String? // Error message from provider API
+  actualProviderCost BigInt?
+  realMarginDelta    BigInt?
   retryCount        Int         @default(0) // Safe API Backoff mechanism
   isTest            Boolean     @default(false) // Isolation flag for mock environment
   email             String? // Contact email for guest / notification
@@ -446,6 +448,7 @@ model SystemSettings {
   // Robokassa (encrypted)
   robokassaLogin    String?
   robokassaPassword String?
+  robokassaWebhookPassword String?
 
   updatedAt DateTime @updatedAt
 

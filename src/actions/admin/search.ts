@@ -13,7 +13,7 @@ export type SearchHit = {
 
 export async function globalOmniSearch(query: string): Promise<SearchHit[]> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const result = await requireStaffPermission('DASHBOARD', 'view', async (admin) => {
+  const result = await requireStaffPermission('orders', 'view', async (admin) => {
     if (!query || query.length < 2) return [];
 
     const hits: SearchHit[] = [];

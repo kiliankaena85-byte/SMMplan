@@ -116,6 +116,13 @@ bot.start(async (ctx: any) => {
               data: { userId: webUserId }
             });
             
+            // Merge other relational tables
+            await tx.order.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
+            await tx.payment.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
+            await tx.ledgerEntry.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
+            await tx.invoice.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
+            await tx.auditLog.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
+            
             // Delete temp user if it's a pure bot stub
             if (tempUser.email.startsWith('tg_')) {
               // Delete dependencies first if needed, but tickets are moved, sessions deleted by cascade

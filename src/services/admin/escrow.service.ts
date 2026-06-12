@@ -173,10 +173,10 @@ export class EscrowService {
   ) {
     const user = await tx.user.findUniqueOrThrow({ where: { id: targetUserId } });
 
-    // Add funds to the quarantine bubble instead of main balance
+    // Add absolute funds to the quarantine bubble instead of main balance
     await tx.user.update({
       where: { id: targetUserId },
-      data: { quarantineBalance: { increment: amountCents } },
+      data: { quarantineBalance: { increment: Math.abs(amountCents) } },
     });
 
     await tx.ledgerEntry.create({
@@ -197,7 +197,7 @@ export class EscrowService {
       targetType: 'USER',
       oldValue: { quarantineBalance: user.quarantineBalance },
       newValue: { 
-        quarantineBalance: Number(user.quarantineBalance) + amountCents, 
+        quarantineBalance: Number(user.quarantineBalance) + Math.abs(amountCents), 
         delta: amountCents, 
         reason, 
         status: 'QUARANTINE' 
@@ -262,9 +262,11 @@ export class EscrowService {
       const entry = await tx.ledgerEntry.findUniqueOrThrow({ where: { id: entryId } });
       const user = await tx.user.findUniqueOrThrow({ where: { id: entry.userId } });
 
+      const absAmount = Math.abs(Number(entry.amount));
+
       const qUpdate = await tx.user.updateMany({
-        where: { id: entry.userId, quarantineBalance: { gte: entry.amount } },
-        data: { quarantineBalance: { decrement: entry.amount } },
+        where: { id: entry.userId, quarantineBalance: { gte: absAmount } },
+        data: { quarantineBalance: { decrement: absAmount } },
       });
       if (qUpdate.count === 0) {
         // Quarantine balance already drained (edge case) — force to 0
@@ -275,13 +277,24 @@ export class EscrowService {
       }
 
       if (resolution === 'APPROVE') {
-        await WalletOps.credit(
-          tx,
-          entry.userId,
-          Number(entry.amount),
-          `Разблокировка средств из карантина: ${entry.reason}`,
-          { idempotencyKey: `approve_quarantine_${entryId}`, adminId: owner.id }
-        );
+        const amount = Number(entry.amount);
+        if (amount < 0) {
+          await WalletOps.charge(
+            tx,
+            entry.userId,
+            Math.abs(amount),
+            `Разблокировка средств из карантина (списание): ${entry.reason}`,
+            { idempotencyKey: `approve_quarantine_${entryId}`, adminId: owner.id }
+          );
+        } else {
+          await WalletOps.adminAdjust(
+            tx,
+            entry.userId,
+            amount,
+            `Разблокировка средств из карантина: ${entry.reason}`,
+            { idempotencyKey: `approve_quarantine_${entryId}`, adminId: owner.id }
+          );
+        }
       }
 
       await tx.adminAuditLog.create({
@@ -294,8 +307,8 @@ export class EscrowService {
           oldValue: JSON.stringify({ status: 'QUARANTINE', userQuarantine: user.quarantineBalance.toString(), userBalance: user.balance.toString() }),
           newValue: JSON.stringify({
             status: resolution,
-            userQuarantine: (user.quarantineBalance - entry.amount).toString(),
-            userBalance: resolution === 'APPROVE' ? (user.balance + entry.amount).toString() : user.balance.toString(),
+            userQuarantine: (user.quarantineBalance - BigInt(absAmount)).toString(),
+            userBalance: resolution === 'APPROVE' ? (user.balance + BigInt(entry.amount)).toString() : user.balance.toString(),
           }),
           ipAddress: ip
         }

@@ -5,8 +5,14 @@ import { SettingsProvider } from '../../lib/settings';
 import { WalletService } from '../financial/wallet.service';
 import { WalletOps } from '../financial/wallet-ops';
 import { calculatePartialRefund } from '@/utils/refund';
+import { CompensationService } from '@/services/financial/compensation.service';
 
 import { ordersQueue } from '../../workers/queues';
+
+/**
+ * MANDATORY INTEGRITY WARNING:
+ * DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A Forensic Auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
+ */
 
 type CreateOrderInput = {
   serviceId: string;
@@ -385,6 +391,7 @@ class OrderService {
         }
       }
 
+      CompensationService.trackCompensation(orderId).catch(err => console.error('[OrderService] Failed to track compensation', err));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e.message);
@@ -471,7 +478,7 @@ class OrderService {
             `Ошибка провайдера: ${reason}`,
             'CRITICAL'
           );
-        } catch { /* non-fatal */ }
+        } catch (err) { console.warn('[OrderService] Telegram notification failed:', err); }
 
         // Email notification to client
         if (txResult.email) {
@@ -482,9 +489,11 @@ class OrderService {
               txResult.numericId.toString(),
               txResult.serviceName
             );
-          } catch { /* non-fatal */ }
+          } catch (err) { console.warn('[OrderService] Auto-status refund notification failed:', err); }
         }
       }
+
+      CompensationService.trackCompensation(orderId).catch(err => console.error('[OrderService] Failed to track compensation', err));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error(`[OrderService] failOrderTerminalFast failed for ${orderId}:`, e.message);
@@ -495,7 +504,7 @@ class OrderService {
           `🚨 failOrderTerminalFast CRITICAL ERROR\n\norderId: ${orderId}\nreason: ${reason}\nerror: ${e.message}`,
           'CRITICAL'
         );
-      } catch { /* absolute last resort */ }
+      } catch (err) { console.error('[OrderService] Sync fail recovery failed:', err); }
     }
   }
 }

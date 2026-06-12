@@ -35,7 +35,8 @@ export class PaymentService {
             const authHeader = 'Basic ' + Buffer.from(`${secrets.yookassaShopId}:${secrets.yookassaSecretKey}`).toString('base64');
             try {
                 const response = await fetch(`https://api.yookassa.ru/v3/payments/${gatewayId}`, {
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Authorization': authHeader },
+                    signal: AbortSignal.timeout(15000)
                 });
                 
                 if (response.ok) {

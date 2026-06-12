@@ -6,6 +6,7 @@
  * MIGRATED TO SMMPLAN LITE CORE (April 2026)
  */
 import { Scenes, Markup } from 'telegraf';
+import { getBaseUrlSync } from '@/utils/get-base-url';
 import { db } from '@/lib/db';
 
 export const REFERRAL_WIZARD = 'referral-wizard';
@@ -43,7 +44,7 @@ export const referralWizard = new Scenes.WizardScene(
       user.referralCode = newCode;
     }
 
-    const host = process.env.NEXT_PUBLIC_APP_URL || 'https://smmplan.pro';
+    const host = getBaseUrlSync();
     const link = `${host}/?ref=${user.referralCode}`;
     const earned = (user.referralBalance ?? 0) / 100;
     const refsCount = user._count?.referrals ?? 0;

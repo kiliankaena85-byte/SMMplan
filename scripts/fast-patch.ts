@@ -118,6 +118,9 @@ async function main() {
     if (fs.existsSync(path.join(process.cwd(), 'scripts'))) {
       fs.cpSync(path.join(process.cwd(), 'scripts'), path.join(distPath, 'scripts'), { recursive: true });
     }
+    if (fs.existsSync(path.join(process.cwd(), 'prisma'))) {
+      fs.cpSync(path.join(process.cwd(), 'prisma'), path.join(distPath, 'prisma'), { recursive: true });
+    }
 
     const standalonePrismaPath = path.join(process.cwd(), '.next/standalone/node_modules/.prisma');
     if (fs.existsSync(standalonePrismaPath) && process.platform !== 'win32') {
@@ -177,11 +180,13 @@ async function main() {
     `rm -f /tmp/smmplan_patch.tar.gz`,
     `echo "Копирование файлов в контейнеры..."`,
     `docker cp /tmp/smmplan_patch/. ${target.containers.app}:/app/`,
-    `docker exec -u root ${target.containers.app} chown -R nextjs:nodejs /app/server.js /app/cache-handler.js /app/.next /app/public /app/src || true`,
+    `docker exec -u root ${target.containers.app} chown -R nextjs:nodejs /app/server.js /app/cache-handler.js /app/.next /app/public /app/src /app/prisma || true`,
     `docker cp /tmp/smmplan_patch/src/. ${target.containers.worker}:/app/src/`,
     `docker exec -u root ${target.containers.worker} chown -R nextjs:nodejs /app/src`,
     `docker cp /tmp/smmplan_patch/src/. ${target.containers.bot}:/app/src/`,
     `docker exec -u root ${target.containers.bot} chown -R nextjs:nodejs /app/src`,
+    `echo "Запуск миграций базы данных..."`,
+    `docker exec -u 0 ${target.containers.app} npx prisma migrate deploy`,
     `echo "Перезапуск контейнеров..."`,
     `docker restart ${target.containers.app}`,
     `docker restart ${target.containers.worker}`,

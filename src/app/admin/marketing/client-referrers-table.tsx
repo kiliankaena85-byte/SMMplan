@@ -14,7 +14,7 @@ type ReferrerType = {
 export function ReferrersTable({ referrers }: { referrers: ReferrerType[] }) {
   return (
     <>
-      <Table>
+      <Table aria-label="Таблица рефералов">
         <Table.ScrollContainer>
           <Table.Content aria-label="Топ рефоводов">
             <Table.Header>
