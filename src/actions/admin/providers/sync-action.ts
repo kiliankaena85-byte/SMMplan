@@ -19,14 +19,16 @@ import { MutexManager } from "@/lib/redis-lock";
 import { ServiceAuditEngine } from "@/services/admin/audit-engine";
 
 export async function adminSyncProviderCatalog() {
-  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     return MutexManager.withLock('catalog-sync', 60000, 100, async () => {
       try {
         const pDbRecord = await db.provider.findFirst({ where: { isActive: true } });
         if (!pDbRecord) return { success: false, error: "No primary provider found." };
         
         const provider = await providerService.getProviderInstance(pDbRecord);
-        const usdToRub = await SettingsManager.getExchangeRateUSD();
+        const settings = await SettingsManager.get();
+        const usdToRub = settings.exchangeRateUSD || 95.0;
+        const quarantineThreshold = settings.quarantineThreshold || 0.20;
 
         // 1. Fetch External Shadow Catalog (O(1) Network Request)
         const apiServices = await provider.getServices();
@@ -108,7 +110,8 @@ export async function adminSyncProviderCatalog() {
           }
 
           const serviceExchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
-          await ServiceAuditEngine.auditAndFixService(myService, external, serviceExchangeRate);
+          const auditPayloads = ServiceAuditEngine.auditAndFixService(myService, external, serviceExchangeRate);
+          updatesBatch.push(...auditPayloads);
 
           const newCostCents = newRate * serviceExchangeRate * 100;
           const actualMarkup = newCostCents > 0 ? (myService.pricePer1000Cents / newCostCents) : myService.markup;
@@ -148,11 +151,11 @@ export async function adminSyncProviderCatalog() {
           if (oldRate > 0 && newRate > oldRate) {
             const increaseRatio = newRate / oldRate;
 
-            if (increaseRatio > 1.10) { // Скачок > 10%
+            if (increaseRatio > (1.0 + quarantineThreshold)) { // Скачок > порога
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const updateData: any = {
                 isQuarantined: true,
-                quarantineReason: "Ценовой скачок у провайдера (>10%)",
+                quarantineReason: `Ценовой скачок у провайдера (> ${(quarantineThreshold * 100).toFixed(0)}%)`,
                 isActive: false,
                 pendingRate: newRate,
                 quarantinedAt: new Date()
@@ -168,7 +171,7 @@ export async function adminSyncProviderCatalog() {
               );
               
               const currencySymbol = providerCurrency === 'RUB' ? '₽' : '$';
-              const alertMsg = `🚨 [Elastic Quarantine] Услуга ${myService.id} ушла в карантин из-за ценового скачка >10% (${currencySymbol}${oldRate.toFixed(4)} -> ${currencySymbol}${newRate.toFixed(4)}).`;
+              const alertMsg = `🚨 [Elastic Quarantine] Услуга ${myService.id} ушла в карантин из-за ценового скачка > ${(quarantineThreshold * 100).toFixed(0)}% (${currencySymbol}${oldRate.toFixed(4)} -> ${currencySymbol}${newRate.toFixed(4)}).`;
               console.warn(alertMsg);
               const { sendAdminAlert } = await import('@/lib/notifications');
               await sendAdminAlert(alertMsg, 'WARNING');
@@ -176,7 +179,7 @@ export async function adminSyncProviderCatalog() {
               disabledCount++;
               continue;
             } else {
-              // Рост <= 10%. Берем процент на себя (абсорбируем), снижая markup
+              // Рост <= порога. Берем процент на себя (абсорбируем), снижая markup
               const serviceExchangeRateLocal = providerCurrency === 'RUB' ? 1.0 : usdToRub;
               const newCostCentsLocal = newRate * serviceExchangeRateLocal * 100;
               if (newCostCentsLocal > 0) {
@@ -240,10 +243,11 @@ export async function adminSyncProviderCatalog() {
               minQty: minInt,
               maxQty: maxInt,
               lastSeenAt: new Date(),
-              isActive: true,
-              isQuarantined: false,
-              quarantineReason: null
             };
+            if (!myService.isQuarantined) {
+              updateData.isQuarantined = false;
+              updateData.quarantineReason = null;
+            }
             if (markupChanged) {
               updateData.markup = myService.markup;
             }
@@ -293,9 +297,8 @@ export async function adminSyncProviderCatalog() {
   });
 }
 
-/** Approve quarantined service — apply pendingRate */
 export async function approveQuarantinedService(serviceId: string) {
-  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
       select: { 
@@ -308,20 +311,21 @@ export async function approveQuarantinedService(serviceId: string) {
       },
     });
 
-    if (!service?.isQuarantined || service.pendingRate === null) {
+    if (!service?.isQuarantined) {
       return { success: false, error: "Service not in quarantine" };
     }
 
     const usdToRub = await SettingsManager.getExchangeRateUSD();
     const exchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+    const targetRate = service.pendingRate !== null ? service.pendingRate : service.rate;
     const newPricePer1000Cents = Math.round(
-      applyBeautifulRounding(service.pendingRate * Math.max(service.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
+      applyBeautifulRounding(targetRate * Math.max(service.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
     );
 
     await db.service.update({
       where: { id: serviceId },
       data: {
-        rate: service.pendingRate,
+        rate: targetRate,
         pricePer1000Cents: newPricePer1000Cents,
         isQuarantined: false,
         pendingRate: null,
@@ -337,7 +341,7 @@ export async function approveQuarantinedService(serviceId: string) {
       target: serviceId,
       targetType: "SERVICE",
       oldValue: { rate: service.rate },
-      newValue: { rate: service.pendingRate, pricePer1000Cents: newPricePer1000Cents },
+      newValue: { rate: targetRate, pricePer1000Cents: newPricePer1000Cents },
     });
 
     return { success: true };
@@ -346,7 +350,7 @@ export async function approveQuarantinedService(serviceId: string) {
 
 /** Reject quarantined service — keep current rate */
 export async function rejectQuarantinedService(serviceId: string) {
-  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     await db.service.update({
       where: { id: serviceId },
       data: { isQuarantined: false, pendingRate: null, quarantineReason: null, quarantinedAt: null },
@@ -366,27 +370,26 @@ export async function rejectQuarantinedService(serviceId: string) {
 
 /** Bulk approve all quarantined */
 export async function approveAllQuarantined() {
-  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const quarantined = await db.service.findMany({
-      where: { isQuarantined: true, pendingRate: { not: null } },
-      select: { id: true, pendingRate: true, markup: true, providerCurrency: true },
+      where: { isQuarantined: true },
+      select: { id: true, rate: true, pendingRate: true, markup: true, providerCurrency: true },
     });
 
     const usdToRub = await SettingsManager.getExchangeRateUSD();
 
     await db.$transaction(async (tx) => {
       for (const s of quarantined) {
-        if (s.pendingRate === null) continue;
-
+        const targetRate = s.pendingRate !== null ? s.pendingRate : s.rate;
         const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
         const newPricePer1000Cents = Math.round(
-          applyBeautifulRounding(s.pendingRate * Math.max(s.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
+          applyBeautifulRounding(targetRate * Math.max(s.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
         );
 
         await tx.service.update({
           where: { id: s.id },
           data: {
-            rate: s.pendingRate,
+            rate: targetRate,
             pricePer1000Cents: newPricePer1000Cents,
             isQuarantined: false,
             pendingRate: null,
@@ -412,10 +415,10 @@ export async function approveAllQuarantined() {
 
 /** Archive zombie service */
 export async function archiveZombieService(serviceId: string) {
-  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
-      select: { id: true, name: true, isActive: true },
+      select: { id: true, name: true, isActive: true, cooldownReason: true },
     });
 
     if (!service) return { success: false, error: "Service not found" };
@@ -427,6 +430,7 @@ export async function archiveZombieService(serviceId: string) {
       data: {
         isActive: false,
         name: newName,
+        cooldownReason: 'ZOMBIE_ARCHIVED',
       },
     });
 
@@ -436,8 +440,8 @@ export async function archiveZombieService(serviceId: string) {
       action: "SERVICE_ARCHIVE_ZOMBIE",
       target: serviceId,
       targetType: "SERVICE",
-      oldValue: { name: service.name, isActive: service.isActive },
-      newValue: { name: newName, isActive: false },
+      oldValue: { name: service.name, isActive: service.isActive, cooldownReason: service.cooldownReason },
+      newValue: { name: newName, isActive: false, cooldownReason: 'ZOMBIE_ARCHIVED' },
     });
 
     return { success: true };
@@ -446,7 +450,7 @@ export async function archiveZombieService(serviceId: string) {
 
 /** Lift API block early */
 export async function liftApiBlock(serviceId: string) {
-  return requireStaffPermission('PROVIDERS', 'edit', async (admin) => {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
     const service = await db.service.findUnique({
       where: { id: serviceId },
       select: { id: true }
