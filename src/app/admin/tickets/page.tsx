@@ -16,6 +16,7 @@ type Props = {
 };
 
 import { enforceSectionAccess } from '@/lib/server/rbac';
+import { getMSKMidnightUTC } from '@/services/admin/escrow.service';
 
 export default async function AdminTicketsPage({ searchParams }: Props) {
   await enforceSectionAccess('orders');
@@ -57,16 +58,12 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
       supportLimitCents = admin.supportLimitCents;
     }
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const todayStart = getMSKMidnightUTC();
 
     const ledgerCompensations = await db.ledgerEntry.findMany({
       where: {
         adminId: session.userId,
-        createdAt: { gte: todayStart },
-        reason: {
-          contains: 'Компенсация'
-        }
+        createdAt: { gte: todayStart }
       },
       select: {
         amount: true
