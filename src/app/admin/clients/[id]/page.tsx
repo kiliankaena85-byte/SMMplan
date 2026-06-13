@@ -104,9 +104,6 @@ export default async function ClientDetailPage({ params }: Props) {
     id: user.id,
     email: user.email,
     role: user.role,
-    balance: user.balance,
-    quarantineBalance: user.quarantineBalance,
-    totalSpent: user.totalSpent,
     personalDiscount: user.personalDiscount,
     discountEndsAt: user.discountEndsAt?.toISOString() ?? null,
     adminNote: user.adminNote ?? '',
@@ -114,10 +111,15 @@ export default async function ClientDetailPage({ params }: Props) {
     adminNoteUpdatedBy: user.adminNoteUpdatedBy ?? null,
     telegramId: user.telegramId ?? null,
     referralCode: user.referralCode ?? null,
-    referralBalance: user.referralBalance,
     createdAt: user.createdAt.toISOString(),
     ordersCount,
     ticketsCount,
+    ...(canSeeFinances ? {
+      balance: user.balance,
+      quarantineBalance: user.quarantineBalance,
+      totalSpent: user.totalSpent,
+      referralBalance: user.referralBalance,
+    } : {}),
   };
 
   const roleBadge = ROLE_BADGE[user.role] ?? 'bg-muted text-foreground';

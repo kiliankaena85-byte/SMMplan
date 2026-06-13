@@ -111,7 +111,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       }
       return item;
     }).filter(item => {
-      if (user.role === 'OWNER') return true;
+      if (user.role === 'OWNER' || user.role === 'ADMIN') return true;
       if (!user.staffRole) return false;
       const requiredPerm = SECTION_MAP[item.section] || item.section;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -103,10 +103,10 @@ function RowActions({ order }: { order: OrderColumn }) {
     startTransition(async () => {
       try {
         const res = await cancelOrderAction(fd);
-        if (res && 'success' in res && !res.success) {
-          toast.error(res.error || 'Ошибка отмены заказа');
-        } else {
+        if (res && res.success) {
           toast.success(`🚫 Заказ #${order.numericId} отменён`);
+        } else {
+          toast.error(res?.error || 'Ошибка отмены заказа');
         }
       } catch (e) {
         toast.error((e as Error).message ?? 'Ошибка');

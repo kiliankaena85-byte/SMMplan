@@ -158,14 +158,20 @@ export async function enforceSectionAccess(section: string) {
   }
 
   if (!user.staffRole) {
-    redirect('/admin/orders');
+    redirect('/dashboard/new-order');
   }
 
   const normalizedSection = section.toUpperCase();
   const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === normalizedSection);
 
   if (!permission || (!permission.canView && !permission.canEdit)) {
-    redirect('/admin/orders');
+    const fallbackPermission = user.staffRole.permissions.find(p => p.canView || p.canEdit);
+    if (fallbackPermission) {
+      const sec = fallbackPermission.section.toLowerCase();
+      redirect(`/admin/${sec}`);
+    } else {
+      redirect('/dashboard/new-order');
+    }
   }
 
   return user;

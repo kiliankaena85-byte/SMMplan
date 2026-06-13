@@ -278,23 +278,13 @@ export class EscrowService {
 
       if (resolution === 'APPROVE') {
         const amount = Number(entry.amount);
-        if (amount < 0) {
-          await WalletOps.charge(
-            tx,
-            entry.userId,
-            Math.abs(amount),
-            `Разблокировка средств из карантина (списание): ${entry.reason}`,
-            { idempotencyKey: `approve_quarantine_${entryId}`, adminId: owner.id }
-          );
-        } else {
-          await WalletOps.adminAdjust(
-            tx,
-            entry.userId,
-            amount,
-            `Разблокировка средств из карантина: ${entry.reason}`,
-            { idempotencyKey: `approve_quarantine_${entryId}`, adminId: owner.id }
-          );
-        }
+        await WalletOps.adminAdjust(
+          tx,
+          entry.userId,
+          amount,
+          `Разблокировка средств из карантина: ${entry.reason}`,
+          { idempotencyKey: `approve_quarantine_${entryId}`, adminId: owner.id }
+        );
       }
 
       await tx.adminAuditLog.create({

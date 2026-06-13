@@ -1,9 +1,11 @@
 import { getFeatureFlags } from '@/actions/admin/feature-flags';
 import { FeatureFlagsClient } from './feature-flags-client';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export const dynamic = 'force-dynamic';
 
 export default async function FeatureFlagsPage() {
+  await enforceSectionAccess('settings');
   const result = await getFeatureFlags();
   const flags = result.success ? result.data : [];
 
