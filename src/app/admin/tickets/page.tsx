@@ -96,14 +96,16 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
   const templates = Array.isArray(templatesResult) ? templatesResult : [];
 
   return (
-    <div className="flex-grow flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-      <AdminTabbedHeader
-        icon={MessageSquare}
-        title="Тикеты поддержки"
-        tabs={OPERATIONS_TABS}
-        onboardingKey="tickets"
-        onboarding={ONBOARDING_CONFIGS.tickets}
-      />
+    <div className="absolute inset-0 flex flex-col overflow-hidden bg-background">
+      <div className="px-4 md:px-8 lg:px-12 pt-4 md:pt-8 shrink-0 bg-background">
+        <AdminTabbedHeader
+          icon={MessageSquare}
+          title="Тикеты поддержки"
+          tabs={OPERATIONS_TABS}
+          onboardingKey="tickets"
+          onboarding={ONBOARDING_CONFIGS.tickets}
+        />
+      </div>
       <div className="flex-1 overflow-hidden relative">
         <UnifiedTicketsWorkspace 
           tickets={ticketsResult.items}

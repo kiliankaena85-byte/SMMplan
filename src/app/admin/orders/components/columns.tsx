@@ -213,6 +213,12 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     enableHiding: false,
   },
   {
+    id: 'user_email',
+    accessorFn: (row) => row.user.email,
+    header: 'Email',
+    enableHiding: false,
+  },
+  {
     accessorKey: 'numericId',
     id: 'order',
     header: ({ column }) => (

@@ -292,7 +292,7 @@ export function OrderClient({ data, canSeeRates = true }: { data: OrderColumn[];
         searchKey="user_email"
         searchPlaceholder="Фильтр по email на этой странице..."
         hideClientPagination={true}
-        initialColumnVisibility={{ select: false }}
+        initialColumnVisibility={{ select: false, user_email: false }}
         renderMobileView={renderMobileView}
         renderToolbar={(table) => {
           const selectedRows = table.getFilteredSelectedRowModel().rows;

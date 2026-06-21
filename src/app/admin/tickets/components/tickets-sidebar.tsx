@@ -148,8 +148,12 @@ export function TicketsSidebar({
                 : 'bg-card border-border/50 text-foreground hover:bg-muted/50'
             }`}
           >
-            <span className="text-[10px] font-bold text-rose-500 dark:text-rose-400">Крит. ожидание</span>
-            <span className="text-base font-black font-mono mt-0.5 tabular-nums">{stats.criticalOpen || 0}</span>
+            <span className={`text-[10px] font-bold ${
+              stats.criticalOpen > 0 ? 'text-rose-500 dark:text-rose-400' : 'text-muted-foreground'
+            }`}>Крит. ожидание</span>
+            <span className={`text-base font-black font-mono mt-0.5 tabular-nums ${
+              stats.criticalOpen > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground'
+            }`}>{stats.criticalOpen || 0}</span>
           </button>
 
           {/* Card 3: Pending (В работе) */}

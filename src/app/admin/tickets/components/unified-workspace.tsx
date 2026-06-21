@@ -296,7 +296,7 @@ export function UnifiedTicketsWorkspace({
   };
 
   return (
-    <div className="tickets-workspace flex flex-1 overflow-hidden h-[100dvh] max-h-[100dvh] bg-background text-foreground">
+    <div className="tickets-workspace flex flex-1 overflow-hidden h-full max-h-full bg-background text-foreground">
       {/* ── LEFT PANEL: Tickets List (Hide on mobile if ticket is active) ── */}
       <TicketsSidebar
         isMobile={isMobile}
