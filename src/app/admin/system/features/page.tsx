@@ -13,7 +13,7 @@ export default async function FeatureFlagsPage() {
   const flags = result.success ? result.data : [];
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out bg-background min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out min-h-full pb-10">
       <AdminTabbedHeader
         icon={ToggleLeft}
         title="Управление фичами (Feature Flags)"

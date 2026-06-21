@@ -59,7 +59,7 @@ export default async function AdminSettingsPage({
     { id: 'audit', label: 'Аудит', icon: History },
   ];
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-background min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       <AdminTabbedHeader
         icon={Settings}
         title="Настройки системы"

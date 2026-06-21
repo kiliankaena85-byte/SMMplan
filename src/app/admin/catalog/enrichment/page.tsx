@@ -26,7 +26,7 @@ export default async function CatalogEnrichmentPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6 p-6 w-full animate-in fade-in duration-500 bg-muted/50/50 min-h-full">
+    <div className="flex flex-col gap-6 p-6 w-full animate-in fade-in duration-500 min-h-full">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
           <Link href="/admin" className="hover:text-foreground transition-colors">Админ-панель</Link>

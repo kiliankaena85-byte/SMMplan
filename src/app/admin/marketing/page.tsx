@@ -31,7 +31,7 @@ export default async function MarketingPage() {
   }));
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       <AdminTabbedHeader
         icon={Gift}
         title="Маркетинг"
@@ -61,7 +61,7 @@ export default async function MarketingPage() {
           <div className="space-y-6">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="rounded-2xl border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
+              <Card className="rounded-2xl border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
                 <CardContent className="p-6 flex items-center gap-4">
                   <div className="p-3 bg-success/20 text-success rounded-xl">
                     <TrendingUp className="w-6 h-6" />
@@ -73,7 +73,7 @@ export default async function MarketingPage() {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-2xl border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
+              <Card className="rounded-2xl border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
                 <CardContent className="p-6 flex items-center gap-4">
                   <div className="p-3 bg-warning/20 text-warning rounded-xl">
                     <Wallet className="w-6 h-6" />
@@ -85,7 +85,7 @@ export default async function MarketingPage() {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-2xl border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
+              <Card className="rounded-2xl border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
                 <CardContent className="p-6 flex items-center gap-4">
                   <div className="p-3 bg-sky-100 text-sky-600 rounded-xl">
                     <Users className="w-6 h-6" />
@@ -99,8 +99,8 @@ export default async function MarketingPage() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-               <Card className="rounded-2xl border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
-                  <CardHeader className="border-b border-border/50/50 bg-muted/50/50 rounded-t-2xl pb-4">
+               <Card className="rounded-2xl border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
+                  <CardHeader className="border-b border-border/50 bg-muted/50 rounded-t-2xl pb-4">
                     <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-success" />
                       Экономика программы (последние 6 мес.)
@@ -111,8 +111,8 @@ export default async function MarketingPage() {
                   </CardContent>
                </Card>
 
-               <Card className="rounded-2xl border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
-                  <CardHeader className="border-b border-border/50/50 bg-muted/50/50 rounded-t-2xl pb-4">
+               <Card className="rounded-2xl border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
+                  <CardHeader className="border-b border-border/50 bg-muted/50 rounded-t-2xl pb-4">
                     <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                       <Users className="w-4 h-4 text-sky-500" />
                       Аудит рефоводов

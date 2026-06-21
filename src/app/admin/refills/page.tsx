@@ -61,7 +61,7 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
   const completedCount = await db.refill.count({ where: { status: 'COMPLETED' } });
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       <AdminTabbedHeader
         icon={RefreshCw}
         title="Докрутки (Refills)"

@@ -145,7 +145,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       </aside>
 
       {/* Floating Main Content Area */}
-      <div className="flex-1 max-h-screen overflow-hidden p-0 md:py-3 md:pr-3 z-10 relative flex flex-col">
+      <div className="flex-1 max-h-screen overflow-hidden p-0 md:p-4 z-10 relative flex flex-col">
         {/* Global Test Mode Warning Banner */}
         {isTestMode && (
           <div className="mb-3 mx-4 md:mx-0 rounded-2xl bg-muted border border-border text-foreground px-4 py-3 flex items-center justify-between shadow-sm relative overflow-hidden">

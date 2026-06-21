@@ -839,7 +839,13 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
           <div className="flex items-center gap-2">
             <Select value={bulkCategory} onValueChange={(val) => setBulkCategory(val || "")}>
               <SelectTrigger className="w-[260px] h-9 bg-background/50 shadow-sm border-primary/20 text-xs transition-colors hover:border-primary/40 focus:ring-1 focus:ring-primary/20">
-                <SelectValue placeholder="Массовое назначение категории..." />
+                <SelectValue placeholder="Массовое назначение категории...">
+                  {(value: string) => {
+                    if (!value) return "Массовое назначение категории...";
+                    const cat = categories.find((c) => c.id === value);
+                    return cat ? `${cat.network.name} • ${cat.name}` : value;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="max-h-[300px] bg-popover text-popover-foreground border border-border shadow-md rounded-[8px]">
                 {categories.map((c) => (

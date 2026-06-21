@@ -20,7 +20,7 @@ export default async function SmartDripAdminPage() {
   const globalDisabled = globalStatusResult.success ? globalStatusResult.disabled : false;
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       <AdminTabbedHeader
         icon={Cpu}
         title="Умный Dripfeed 2.0"

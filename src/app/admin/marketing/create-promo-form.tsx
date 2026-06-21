@@ -87,7 +87,15 @@ export function CreatePromoForm({ onSuccess }: CreatePromoFormProps) {
         <Label className="text-xs uppercase tracking-wider text-muted-foreground font-extrabold">Тип бонуса</Label>
         <Select name="type" defaultValue="DISCOUNT" onValueChange={(v) => v && setType(v)} disabled={isPending}>
           <SelectTrigger className="w-full bg-muted/60 border-border text-foreground h-[44px]">
-            <SelectValue placeholder="Выберите тип" />
+            <SelectValue placeholder="Выберите тип">
+              {(value: string) => {
+                const items = [
+                  { value: "DISCOUNT", label: "Скидка (%)" },
+                  { value: "VOUCHER", label: "Пополнение (₽)" },
+                ];
+                return items.find(i => i.value === value)?.label ?? value;
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-card border-border text-foreground">
             <SelectItem value="DISCOUNT" label="Скидка (%)">Скидка (%)</SelectItem>

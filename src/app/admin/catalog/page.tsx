@@ -122,7 +122,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
     };
   });
   return (
-    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-background min-h-full pb-10">
+    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       
       <AdminTabbedHeader
         icon={ShoppingCart}

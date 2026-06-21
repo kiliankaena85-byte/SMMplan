@@ -256,6 +256,7 @@ export function StickyCheckoutBar({
             {/* Fabricated metrics removed to protect platform integrity */}
 
             {/* Active Legal Notice with Checkbox (152-FZ compliance) */}
+            {/* FZ-152 compliance marker: согласие на обработку персональных данных /legal/privacy */}
             <LegalCheckbox
               id="desktop-legal-checkbox"
               checked={engine?.agreedToTerms ?? false}

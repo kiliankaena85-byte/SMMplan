@@ -13,7 +13,7 @@ export default async function AdminPagesList() {
   const pages = await db.page.findMany({ orderBy: { updatedAt: 'desc' } });
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out bg-background min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out min-h-full pb-10">
       <AdminTabbedHeader
         icon={FileText}
         title="CMS Страницы"

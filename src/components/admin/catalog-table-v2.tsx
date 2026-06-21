@@ -1286,7 +1286,7 @@ export function CatalogTable({
                       disabled={!canEdit}
                     />
                   </Table.Column>
-                  <Table.Column key="serviceNetwork" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 min-w-[240px]">Услуга / Сеть</Table.Column>
+                  <Table.Column key="serviceNetwork" isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 min-w-[240px]">Услуга / Сеть</Table.Column>
                   <Table.Column key="category" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3">Категория</Table.Column>
                   <Table.Column key="rate" className={`text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-right px-4 py-3 ${!canSeeRates ? "hidden" : ""}`}>Закупка</Table.Column>
                   <Table.Column key="markup" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-center">Наценка (%)</Table.Column>

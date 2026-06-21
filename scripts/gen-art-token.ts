@@ -14,10 +14,11 @@ async function run() {
   }
   
   const token = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
   await db.authToken.create({
     data: {
       userId: u.id,
-      token,
+      token: hashedToken,
       expiresAt: new Date(Date.now() + 60 * 60 * 1000)
     }
   });

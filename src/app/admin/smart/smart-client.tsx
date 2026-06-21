@@ -295,7 +295,7 @@ export function SmartDripClient({
     <div className="w-full space-y-6">
       {/* Global Status Banner / Info */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <Card className="lg:col-span-3 rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
+        <Card className="lg:col-span-3 rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
           <CardContent className="p-6 flex items-center justify-between gap-6 flex-wrap md:flex-nowrap">
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-2xl ${globalDisabled ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'}`}>
@@ -328,7 +328,7 @@ export function SmartDripClient({
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
+        <Card className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
           <CardContent className="p-6 flex items-center gap-4 h-full">
             <div className="p-3 bg-primary/10 text-primary rounded-xl">
               <Layers className="w-6 h-6" />
@@ -370,8 +370,8 @@ export function SmartDripClient({
 
       {/* 💼 CAMPAIGNS TAB */}
       {activeTab === 'campaigns' && (
-        <Card className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
-          <CardHeader className="border-b border-border/50/50 bg-muted/50/50 rounded-t-2xl pb-4">
+        <Card className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
+          <CardHeader className="border-b border-border/50 bg-muted/50 rounded-t-2xl pb-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest">Кампании Умного Dripfeed</CardTitle>
@@ -521,8 +521,8 @@ export function SmartDripClient({
 
       {/* ⚙️ CONFIGS TAB */}
       {activeTab === 'configs' && (
-        <Card className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
-          <CardHeader className="border-b border-border/50/50 bg-muted/50/50 rounded-t-2xl pb-4">
+        <Card className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
+          <CardHeader className="border-b border-border/50 bg-muted/50 rounded-t-2xl pb-4">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest">Услуги и Тарифы Dripfeed</CardTitle>
@@ -701,8 +701,8 @@ export function SmartDripClient({
       {/* 🛡️ SETTINGS TAB */}
       {activeTab === 'settings' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl">
-            <CardHeader className="border-b border-border/50/50 bg-muted/50/50 rounded-t-2xl pb-4">
+          <Card className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
+            <CardHeader className="border-b border-border/50 bg-muted/50 rounded-t-2xl pb-4">
               <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-warning animate-pulse" />
                 Экстренные меры / Kill-Switch

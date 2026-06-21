@@ -92,7 +92,7 @@ export default async function QuarantinePage() {
   const totalAnomalies = priceSpikes.length + zombieItems.length + apiErrors.length;
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out bg-background min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out min-h-full pb-10">
       <AdminTabbedHeader
         icon={AlertTriangle}
         title="Карантин цен и аномалий"

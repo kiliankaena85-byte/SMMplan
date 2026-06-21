@@ -262,7 +262,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
         
         <Table aria-label="Routes table" className="w-full">
           <Table.Header>
-            <Table.Column id="provider">ПРОВАЙДЕР</Table.Column>
+            <Table.Column id="provider" isRowHeader>ПРОВАЙДЕР</Table.Column>
             <Table.Column id="external_id">EXTERNAL ID</Table.Column>
             <Table.Column id="priority">ПРИОРИТЕТ</Table.Column>
             <Table.Column id="status">СТАТУС</Table.Column>

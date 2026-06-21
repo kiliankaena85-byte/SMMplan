@@ -98,7 +98,12 @@ function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult;
       <div className="flex justify-between items-center gap-4">
         <Select defaultValue={period} onValueChange={applyPeriod}>
           <SelectTrigger className="w-[180px]" size="sm">
-            <SelectValue placeholder="Период" />
+            <SelectValue placeholder="Период">
+              {(value: string) => {
+                if (!value) return null;
+                return PERIOD_OPTIONS.find(p => p.value === value)?.label ?? value;
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {PERIOD_OPTIONS.map(p => (
@@ -108,7 +113,7 @@ function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult;
         </Select>
       </div>
 
-      <div className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
+      <div className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
         <div className="p-0">
           <DataTable 
             columns={columns} 
@@ -172,7 +177,7 @@ function BalanceCorrectionTab() {
 
   return (
     <div className="max-w-xl mx-auto py-4">
-      <div className="rounded-2xl border border-border/50/50 shadow-xl bg-background/60 backdrop-blur-xl p-8 space-y-6">
+      <div className="rounded-2xl border border-border/50 shadow-xl bg-background/60 backdrop-blur-xl p-8 space-y-6">
         <div className="flex items-center gap-4 mb-2">
           <div className="p-3 bg-sky-100 text-sky-600 rounded-2xl">
             <Wallet className="w-6 h-6" />
@@ -276,7 +281,12 @@ function PaymentsTab({ initial, period: initPeriod }: { initial: PaymentsPageRes
       <div className="flex justify-between items-center gap-4">
         <Select defaultValue={period} onValueChange={applyPeriod}>
           <SelectTrigger className="w-[180px]" size="sm">
-            <SelectValue placeholder="Период" />
+            <SelectValue placeholder="Период">
+              {(value: string) => {
+                if (!value) return null;
+                return PERIOD_OPTIONS.find(p => p.value === value)?.label ?? value;
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {PERIOD_OPTIONS.map(p => (
@@ -286,7 +296,7 @@ function PaymentsTab({ initial, period: initPeriod }: { initial: PaymentsPageRes
         </Select>
       </div>
 
-      <div className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
+      <div className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
         <div className="p-0">
           <DataTable 
             columns={paymentColumns} 

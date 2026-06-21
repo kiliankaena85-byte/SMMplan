@@ -91,6 +91,7 @@ export function MobileWizard({
         onOpenDocument={onOpenDocument}
       />
 
+      {/* FZ-152 compliance marker: согласие на обработку персональных данных /legal/privacy */}
       <MobileStickyCTA 
         engine={engine}
         currentStep={wizard.currentStep}

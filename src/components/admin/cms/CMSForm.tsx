@@ -121,7 +121,17 @@ export default function CMSForm({ initialData }: CMSFormProps) {
               <Label>Тип контента</Label>
               <Select value={type} onValueChange={(val) => setType(val || "PAGE")}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Выберите тип" />
+                  <SelectValue placeholder="Выберите тип">
+                    {(value: string) => {
+                      const items = [
+                        { value: "PAGE", label: "Статическая страница" },
+                        { value: "ACADEMY_LESSON", label: "Урок Академии" },
+                        { value: "GLOSSARY_TERM", label: "Термин Глоссария" },
+                        { value: "NEWS_POST", label: "Новость" },
+                      ];
+                      return items.find(i => i.value === value)?.label ?? value;
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PAGE" label="Статическая страница">Статическая страница</SelectItem>

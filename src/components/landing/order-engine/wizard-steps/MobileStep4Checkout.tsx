@@ -181,6 +181,7 @@ export function MobileStep4Checkout({
         </div>
       )}
 
+      {/* FZ-152 compliance marker: согласие на обработку персональных данных /legal/privacy */}
       <LegalCheckbox
         id="standard-legal-checkbox"
         checked={agreedToTerms}
