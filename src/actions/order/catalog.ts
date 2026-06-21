@@ -7,6 +7,39 @@ import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
 import { unstable_cache } from "next/cache";
 
+const getCachedNetworks = unstable_cache(
+  async () => {
+    return await db.network.findMany({
+      where: {
+        isActive: true,
+        categories: { some: { services: { some: { isActive: true } } } }
+      },
+      include: {
+        categories: {
+          where: { services: { some: { isActive: true } } },
+          orderBy: { name: 'asc' }
+        }
+      },
+      orderBy: { sort: 'asc' }
+    });
+  },
+  ['public-catalog-networks'],
+  { revalidate: 60, tags: ['catalog'] }
+);
+
+const getCachedServices = (catId: string) => unstable_cache(
+  async () => {
+    return await db.service.findMany({
+      where: { categoryId: catId, isActive: true },
+      include: { smartConfig: true },
+      orderBy: { rate: 'asc' },
+      take: 100
+    });
+  },
+  ['public-services-by-category', catId],
+  { revalidate: 60, tags: ['catalog', 'services'] }
+)();
+
 export type PublicService = {
   id: string;
   numericId: number;
@@ -59,25 +92,6 @@ export type PublicNetwork = {
 
 export async function getPublicCatalogAction() {
   try {
-    const getCachedNetworks = unstable_cache(
-      async () => {
-        return await db.network.findMany({
-          where: {
-            isActive: true,
-            categories: { some: { services: { some: { isActive: true } } } }
-          },
-          include: {
-            categories: {
-              where: { services: { some: { isActive: true } } },
-              orderBy: { name: 'asc' }
-            }
-          },
-          orderBy: { sort: 'asc' }
-        });
-      },
-      ['public-catalog-networks'],
-      { revalidate: 60, tags: ['catalog'] }
-    );
 
     const rawNetworks = SettingsProvider.isTestEnvironment()
       ? await db.network.findMany({
@@ -129,18 +143,6 @@ export async function getPublicCatalogAction() {
 
 export async function getServicesByCategoryAction(categoryId: string): Promise<PublicService[]> {
   try {
-    const getCachedServices = unstable_cache(
-      async (catId: string) => {
-        return await db.service.findMany({
-          where: { categoryId: catId, isActive: true },
-          include: { smartConfig: true },
-          orderBy: { rate: 'asc' },
-          take: 100
-        });
-      },
-      ['public-services-by-category', categoryId],
-      { revalidate: 60, tags: ['catalog', 'services'] }
-    );
 
     const [services, usdToRub] = await Promise.all([
       SettingsProvider.isTestEnvironment()
@@ -184,7 +186,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           customDataType: s.customDataType,
           customDataLabel: s.customDataLabel,
           features: s.features,
-          cooldownUntil: s.cooldownUntil ? s.cooldownUntil.toISOString() : null,
+          cooldownUntil: s.cooldownUntil && !isNaN(new Date(s.cooldownUntil).getTime()) ? new Date(s.cooldownUntil).toISOString() : null,
           smartConfig: s.smartConfig ? {
             isEnabled: s.smartConfig.isEnabled,
             isTestMode: s.smartConfig.isTestMode,

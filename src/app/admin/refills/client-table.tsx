@@ -2,6 +2,9 @@
 
 import { Table } from '@/components/admin/hero-ui';
 import Link from 'next/link';
+import { restartRefillAction, updateRefillStatusAction } from '@/actions/admin/refills';
+import { ActionForm } from '@/components/admin/action-form';
+import { SubmitButton } from '@/components/admin/submit-button';
 
 type RefillProps = {
   id: string;
@@ -38,6 +41,7 @@ export function RefillsTable({ refills }: { refills: RefillProps[] }) {
               <Table.Column>УСЛУГА</Table.Column>
               <Table.Column className="text-right">СТАТУС</Table.Column>
               <Table.Column className="text-right">ДАТА</Table.Column>
+              <Table.Column className="text-right">ДЕЙСТВИЯ</Table.Column>
             </Table.Header>
             <Table.Body renderEmptyState={() => "Нет заявок на докрутку"}>
               {refills.map(r => (
@@ -69,6 +73,36 @@ export function RefillsTable({ refills }: { refills: RefillProps[] }) {
                     <span className="text-[11px] text-muted-foreground font-medium">
                       {new Date(r.createdAt).toLocaleDateString('ru-RU')}
                     </span>
+                  </Table.Cell>
+                  <Table.Cell className="text-right">
+                    <div className="flex justify-end items-center gap-1.5">
+                      {r.status !== 'COMPLETED' && (
+                        <ActionForm action={restartRefillAction} className="inline-block">
+                          <input type="hidden" name="refillId" value={r.id} />
+                          <SubmitButton variant="outline" className="text-[10px] h-7 px-2 rounded-lg active:scale-95 transition-all">
+                            🔄 Перезапустить
+                          </SubmitButton>
+                        </ActionForm>
+                      )}
+                      {['PENDING', 'IN_PROGRESS', 'ERROR'].includes(r.status) && (
+                        <>
+                          <ActionForm action={updateRefillStatusAction} className="inline-block">
+                            <input type="hidden" name="refillId" value={r.id} />
+                            <input type="hidden" name="status" value="COMPLETED" />
+                            <SubmitButton variant="outline" className="text-[10px] h-7 px-2 text-emerald-700 border-emerald-200 hover:bg-success/10 rounded-lg active:scale-95 transition-all">
+                              ✅ Выполнить
+                            </SubmitButton>
+                          </ActionForm>
+                          <ActionForm action={updateRefillStatusAction} className="inline-block">
+                            <input type="hidden" name="refillId" value={r.id} />
+                            <input type="hidden" name="status" value="REJECTED" />
+                            <SubmitButton variant="outline" className="text-[10px] h-7 px-2 text-destructive border-rose-200 hover:bg-destructive/10 rounded-lg active:scale-95 transition-all">
+                              🚫 Отклонить
+                            </SubmitButton>
+                          </ActionForm>
+                        </>
+                      )}
+                    </div>
                   </Table.Cell>
                 </Table.Row>
               ))}

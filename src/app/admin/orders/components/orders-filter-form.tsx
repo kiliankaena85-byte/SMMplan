@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const STATUS_OPTIONS = [
   { value: 'ALL',              label: 'Все статусы' },
+  { value: 'ACTIVE',           label: 'Активные 🔥' },
+  { value: 'PROBLEMATIC',      label: 'Проблемные ⚠️' },
+  { value: 'COMPLETED_ALL',    label: 'Выполненные ✅' },
   { value: 'PENDING',           label: 'В очереди' },
   { value: 'IN_PROGRESS',       label: 'В работе' },
   { value: 'COMPLETED',         label: 'Выполнен' },
@@ -88,8 +91,53 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
     router.push(pathname);
   };
 
+    const QUICK_FILTERS = [
+      { value: 'ALL', label: 'Все' },
+      { value: 'ACTIVE', label: 'Активные 🔥' },
+      { value: 'PROBLEMATIC', label: 'Проблемные ⚠️' },
+      { value: 'COMPLETED_ALL', label: 'Выполненные ✅' },
+      { value: 'PENDING', label: 'В очереди' },
+      { value: 'IN_PROGRESS', label: 'В работе' },
+      { value: 'COMPLETED', label: 'Выполнены' },
+      { value: 'PARTIAL', label: 'Частичные' },
+      { value: 'CANCELED', label: 'Отменены' },
+      { value: 'ERROR', label: 'Ошибки' },
+      { value: 'AWAITING_PAYMENT', label: 'Ожидают' },
+    ];
+
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Quick Filters Pill Bar */}
+        <div className="flex flex-wrap gap-1.5 items-center pb-3 border-b border-border/80">
+          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mr-2 select-none">Быстрый фильтр:</span>
+          {QUICK_FILTERS.map((f) => {
+            const isActive = currentStatus === f.value;
+            return (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (f.value === 'ALL') {
+                    params.delete('status');
+                  } else {
+                    params.set('status', f.value);
+                  }
+                  params.delete('cursor'); // Reset cursor on filter change
+                  router.push(`${pathname}?${params.toString()}`);
+                }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all duration-200 cursor-pointer select-none active:scale-95
+                  ${isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm font-black'
+                    : 'bg-background/50 text-foreground border-border/80 hover:bg-muted/60 hover:border-border'
+                  }`}
+              >
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* 3-Field Primary Search Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-3 items-end">
           {/* Email клиента */}
@@ -100,7 +148,7 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
               name="clientEmail"
               defaultValue={currentClientEmail}
               placeholder="📧 Email (например: client@example.com)"
-              className="w-full px-4 h-11 text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
+              className="w-full px-4 h-11 text-sm bg-background/50 border border-border/60 shadow-sm rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
             />
           </div>
   
@@ -112,7 +160,7 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
               defaultValue={currentNetworkSlug}
               onChange={handleSelectChange}
               aria-label="Фильтр по соцсети"
-              className="w-full px-3 h-11 text-sm border border-border rounded-xl bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
+              className="w-full px-3 h-11 text-sm border border-border/60 shadow-sm rounded-xl bg-background/50 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
             >
               <option value="ALL">🌐 Все соцсети</option>
               {networks.map(n => (
@@ -131,7 +179,7 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
               name="serviceName"
               defaultValue={currentServiceName}
               placeholder="🔍 Поиск (пример: подписчики -bot)"
-              className="w-full px-4 h-11 text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
+              className="w-full px-4 h-11 text-sm bg-background/50 border border-border/60 shadow-sm rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200"
             />
           </div>
 
@@ -143,7 +191,7 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
               defaultValue={currentStatus}
               onChange={handleSelectChange}
               aria-label="Фильтр по статусу заказа"
-              className="w-full px-3 h-11 text-sm border border-border rounded-xl bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
+              className="w-full px-3 h-11 text-sm border border-border/60 shadow-sm rounded-xl bg-background/50 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-200 cursor-pointer"
             >
               {STATUS_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
@@ -164,8 +212,8 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
                 className={`flex items-center justify-center gap-1.5 px-4 h-11 text-xs font-semibold border rounded-xl transition-all duration-200 cursor-pointer flex-1
                   ${showAdvanced 
                     ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/15' 
-                    : 'bg-background text-foreground border-border hover:bg-muted/50'
-                  }`}
+                    : 'bg-background text-foreground border-border/60 shadow-sm hover:bg-muted/50'
+                  } active:scale-95`}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 Фильтры
@@ -174,7 +222,7 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
   
               <button
                 type="submit"
-                className="px-6 h-11 text-xs font-bold text-primary-foreground bg-primary hover:opacity-90 active:opacity-95 shadow-sm rounded-xl transition-all duration-200 cursor-pointer flex-1"
+                className="px-6 h-11 text-xs font-bold text-primary-foreground bg-primary hover:opacity-90 active:scale-95 shadow-sm rounded-xl transition-all duration-200 cursor-pointer flex-1"
               >
                 Найти
               </button>

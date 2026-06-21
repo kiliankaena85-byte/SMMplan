@@ -47,6 +47,7 @@ const liveChatMessageSchema = z.object({
  * Broadcasts to SSE stream for real-time delivery to operator.
  */
 export async function sendLiveChatMessage(formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') throw new Error("Некорректные данные формы");
   const session = await verifySession();
   if (!session) throw new Error('Unauthorized');
 
@@ -116,6 +117,7 @@ const adminReplySchema = z.object({
 }).refine(data => data.message || data.mediaUrl, "Either message or mediaUrl must be provided");
 
 export async function createTicket(formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') throw new Error("Некорректные данные формы");
   const session = await verifySession();
   if (!session) throw new Error('Unauthorized');
 
@@ -138,6 +140,7 @@ export async function createTicket(formData: FormData) {
 }
 
 export async function addTicketMessage(formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') throw new Error("Некорректные данные формы");
   const session = await verifySession();
   if (!session) throw new Error('Unauthorized');
 

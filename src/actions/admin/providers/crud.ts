@@ -41,11 +41,11 @@ const apiMappingSchema = z.object({
 });
 
 const providerSchema = z.object({
-  name: z.string().min(1).max(255),
-  apiUrl: z.string().url("Must be a valid URL"),
-  apiKey: z.string(),
+  name: z.string().min(1, "Название панели обязательно").max(255),
+  apiUrl: z.string().url("Некорректный формат URL (укажите полный адрес с https://)"),
+  apiKey: z.string().min(1, "API-ключ обязателен"),
   isActive: z.boolean().default(false),
-  balanceCurrency: z.string().length(3, "Use 3-letter ISO code like USD").toUpperCase(),
+  balanceCurrency: z.string().length(3, "Код валюты должен состоять ровно из 3 букв (например, USD)").toUpperCase(),
   mapping: apiMappingSchema.nullable().optional(),
 });
 
@@ -61,37 +61,49 @@ export async function createProvider(rawData: {
   mapping?: any;
 }) {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
-    const data = providerSchema.parse(rawData);
-
-    // Encrypt the API key before saving!
-    const encryptedKey = VaultService.encrypt(data.apiKey);
-    
-    // Prepare metadata json
-    const metadata = {
-       mapping: data.mapping || null
-    };
-
-    const provider = await db.provider.create({
-      data: {
-        name: data.name,
-        apiUrl: data.apiUrl,
-        apiKey: encryptedKey,
-        isActive: data.isActive,
-        balanceCurrency: data.balanceCurrency,
-        metadata: metadata,
+    try {
+      const parsed = providerSchema.safeParse(rawData);
+      if (!parsed.success) {
+        return { 
+          success: false as const, 
+          errors: parsed.error.flatten().fieldErrors 
+        };
       }
-    });
+      const data = parsed.data;
 
-    auditAdmin({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: "PROVIDER_CREATE",
-      target: provider.id,
-      targetType: "PROVIDER",
-      newValue: { name: provider.name, apiUrl: provider.apiUrl }
-    });
+      // Encrypt the API key before saving!
+      const encryptedKey = VaultService.encrypt(data.apiKey);
+      
+      // Prepare metadata json
+      const metadata = {
+         mapping: data.mapping || null
+      };
 
-    return { success: true, error: undefined, providerId: provider.id };
+      const provider = await db.provider.create({
+        data: {
+          name: data.name,
+          apiUrl: data.apiUrl,
+          apiKey: encryptedKey,
+          isActive: data.isActive,
+          balanceCurrency: data.balanceCurrency,
+          metadata: metadata,
+        }
+      });
+
+      auditAdmin({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "PROVIDER_CREATE",
+        target: provider.id,
+        targetType: "PROVIDER",
+        newValue: { name: provider.name, apiUrl: provider.apiUrl }
+      });
+
+      return { success: true as const, error: undefined, providerId: provider.id };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return { success: false as const, error: errorMsg || 'Ошибка сервера при создании провайдера' };
+    }
   });
 }
 
@@ -105,44 +117,56 @@ export async function updateProvider(rawId: string, rawData: {
   mapping?: any;
 }) {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
-    const id = idSchema.parse(rawId);
-    
-    // Create an update schema dynamically to allow empty apikey
-    const updateSchema = providerSchema.extend({
-      apiKey: z.string().optional()
-    });
-    const data = updateSchema.parse(rawData);
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateData: any = {
-      name: data.name,
-      apiUrl: data.apiUrl,
-      isActive: data.isActive,
-      balanceCurrency: data.balanceCurrency,
-      metadata: {
-         mapping: data.mapping || null
+    try {
+      const id = idSchema.parse(rawId);
+      
+      // Create an update schema dynamically to allow empty apikey
+      const updateSchema = providerSchema.extend({
+        apiKey: z.string().optional()
+      });
+      const parsed = updateSchema.safeParse(rawData);
+      if (!parsed.success) {
+        return { 
+          success: false as const, 
+          errors: parsed.error.flatten().fieldErrors 
+        };
       }
-    };
+      const data = parsed.data;
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateData: any = {
+        name: data.name,
+        apiUrl: data.apiUrl,
+        isActive: data.isActive,
+        balanceCurrency: data.balanceCurrency,
+        metadata: {
+           mapping: data.mapping || null
+        }
+      };
 
-    if (data.apiKey && data.apiKey.trim() !== "") {
-       updateData.apiKey = VaultService.encrypt(data.apiKey);
+      if (data.apiKey && data.apiKey.trim() !== "") {
+         updateData.apiKey = VaultService.encrypt(data.apiKey);
+      }
+
+      const provider = await db.provider.update({
+        where: { id },
+        data: updateData
+      });
+
+      auditAdmin({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "PROVIDER_UPDATE",
+        target: provider.id,
+        targetType: "PROVIDER",
+        newValue: { name: provider.name, isActive: provider.isActive }
+      });
+
+      return { success: true as const, error: undefined };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return { success: false as const, error: errorMsg || 'Ошибка сервера при обновлении провайдера' };
     }
-
-    const provider = await db.provider.update({
-      where: { id },
-      data: updateData
-    });
-
-    auditAdmin({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: "PROVIDER_UPDATE",
-      target: provider.id,
-      targetType: "PROVIDER",
-      newValue: { name: provider.name, isActive: provider.isActive }
-    });
-
-    return { success: true, error: undefined };
   });
 }
 

@@ -47,11 +47,11 @@ export type OrderColumn = {
 
 // ── Speed Class Visual Config ──
 
-const SPEED_CLASS_META: Record<string, { label: string; color: string; icon: React.ReactNode; window: string }> = {
-  FAST:       { label: 'Быстрый',         color: 'text-emerald-600', icon: <Zap className="w-3 h-3" />,    window: '2ч' },
-  MEDIUM:     { label: 'Средний',          color: 'text-sky-600',     icon: <Timer className="w-3 h-3" />,  window: '24ч' },
-  SLOW:       { label: 'Медленный',        color: 'text-amber-600',   icon: <Turtle className="w-3 h-3" />, window: '72ч' },
-  ULTRA_SLOW: { label: 'Очень медленный',  color: 'text-rose-600',    icon: <Snail className="w-3 h-3" />,  window: '7д' },
+export const SPEED_CLASS_META: Record<string, { label: string; color: string; icon: React.ReactNode; window: string }> = {
+  FAST:       { label: 'Быстрый',         color: 'text-emerald-600 dark:text-emerald-400', icon: <Zap className="w-3 h-3" />,    window: '2ч' },
+  MEDIUM:     { label: 'Средний',          color: 'text-sky-600 dark:text-sky-400',     icon: <Timer className="w-3 h-3" />,  window: '24ч' },
+  SLOW:       { label: 'Медленный',        color: 'text-amber-600 dark:text-amber-400',   icon: <Turtle className="w-3 h-3" />, window: '72ч' },
+  ULTRA_SLOW: { label: 'Очень медленный',  color: 'text-rose-600 dark:text-rose-400',    icon: <Snail className="w-3 h-3" />,  window: '7д' },
 };
 
 /** Format "time ago" from ISO date string */
@@ -68,7 +68,7 @@ function timeAgo(iso: string): string {
 
 // ── Status Config ──
 
-const STATUS_STYLES: Record<string, "default" | "primary" | "secondary" | "success" | "warning" | "danger"> = {
+export const STATUS_STYLES: Record<string, "default" | "primary" | "secondary" | "success" | "warning" | "danger"> = {
   AWAITING_PAYMENT: 'warning',
   PENDING: 'default',
   IN_PROGRESS: 'primary',
@@ -78,7 +78,7 @@ const STATUS_STYLES: Record<string, "default" | "primary" | "secondary" | "succe
   ERROR: 'danger',
 };
 
-const STATUS_LABELS: Record<string, string> = {
+export const STATUS_LABELS: Record<string, string> = {
   ALL: 'Все',
   AWAITING_PAYMENT: 'Ожидает',
   PENDING: 'В очереди',
@@ -91,7 +91,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 // ── Sub-Components ──
 
-function RowActions({ order }: { order: OrderColumn }) {
+export function RowActions({ order }: { order: OrderColumn }) {
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -159,20 +159,20 @@ function EtaTooltipContent({ service }: { service: OrderColumn['service'] }) {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-        <span className="text-muted-foreground">Медиана (P50)</span>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono tracking-tight">
+        <span className="text-muted-foreground font-sans tracking-normal">Медиана (P50)</span>
         <span className="font-semibold text-foreground tabular-nums text-right">
           {formatEta(service.etaP50Seconds!)}
         </span>
         
-        <span className="text-muted-foreground">Максимум (P90)</span>
+        <span className="text-muted-foreground font-sans tracking-normal">Максимум (P90)</span>
         <span className="font-semibold text-foreground tabular-nums text-right">
           {service.etaP90Seconds ? formatEta(service.etaP90Seconds) : '—'}
         </span>
         
-        <span className="text-muted-foreground">Выборка</span>
+        <span className="text-muted-foreground font-sans tracking-normal">Выборка</span>
         <span className="font-medium text-foreground tabular-nums text-right">
-          {service.etaSampleCount} заказов
+          {service.etaSampleCount} <span className="font-sans tracking-normal">зак.</span>
         </span>
       </div>
 
@@ -194,7 +194,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     header: ({ table }) => (
       <input
         type="checkbox"
-        className="w-4 h-4 rounded border-border text-primary focus:ring-indigo-600"
+        className="w-4 h-4 rounded border-border text-primary focus:ring-indigo-600 cursor-pointer"
         checked={table.getIsAllPageRowsSelected()}
         onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
         aria-label="Select all"
@@ -203,7 +203,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     cell: ({ row }) => (
       <input
         type="checkbox"
-        className="w-4 h-4 rounded border-border text-primary focus:ring-indigo-600"
+        className="w-4 h-4 rounded border-border text-primary focus:ring-indigo-600 cursor-pointer"
         checked={row.getIsSelected()}
         onChange={(e) => row.toggleSelected(e.target.checked)}
         aria-label="Select row"
@@ -214,115 +214,133 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   },
   {
     accessorKey: 'numericId',
+    id: 'order',
     header: ({ column }) => (
       <button
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        className="flex items-center gap-1 hover:text-foreground transition-colors"
+        className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs"
       >
-        Заказ
-        <ArrowUpDown className="w-3.5 h-3.5 ml-1" />
+        ЗАКАЗ
+        <ArrowUpDown className="w-3 h-3 ml-1" />
       </button>
     ),
     cell: ({ row }) => {
-      const dateStr = new Date(row.original.createdAt).toLocaleString('ru-RU', { 
-        day: '2-digit', month: '2-digit', year: '2-digit',
+      const order = row.original;
+      const email = order.user.email;
+      const dateStr = new Date(order.createdAt).toLocaleString('ru-RU', { 
+        year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit'
-      }).replace(',', '');
+      });
       return (
-        <div className="flex flex-col text-xs leading-snug">
-          <div className="font-bold text-foreground tabular-nums tracking-tight">#{row.original.numericId}</div>
-          <div className="text-muted-foreground text-[10px] tabular-nums mt-0.5">{dateStr}</div>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: 'user.email',
-    header: ({ column }) => (
-      <button
-        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        className="flex items-center gap-1 hover:text-foreground transition-colors"
-      >
-        Клиент
-        <ArrowUpDown className="w-3.5 h-3.5 ml-1" />
-      </button>
-    ),
-    cell: ({ row }) => {
-      const email = row.original.user.email;
-      return (
-        <div className="max-w-[120px] break-all whitespace-normal leading-snug">
+        <div className="flex flex-col text-xs leading-normal py-1 space-y-0.5 min-w-[125px]">
+          <span className="font-bold text-foreground tabular-nums text-xs">
+            #{order.numericId}
+          </span>
           <Link
             href={`/admin/clients?q=${encodeURIComponent(email)}`}
-            className="text-sky-600 hover:text-sky-800 hover:underline text-xs font-medium"
+            className="text-sky-600 hover:text-sky-800 hover:underline text-xs font-semibold truncate max-w-[150px]"
+            title={email}
+            onClick={(e) => e.stopPropagation()}
           >
             {email}
           </Link>
+          <span className="text-[10px] text-muted-foreground tabular-nums select-none">
+            {dateStr}
+          </span>
         </div>
       );
     },
   },
   {
     id: 'info',
-    header: 'Услуга и Информация',
+    header: 'УСЛУГА И ССЫЛКА',
     cell: ({ row }) => {
       const order = row.original;
       return (
-        <div className="flex flex-col text-[12px] leading-snug text-foreground py-0.5 max-w-[280px] whitespace-normal break-words">
-          <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">
-            {order.service.category.network?.name || '—'} · {order.service.category.name}
+        <div className="flex flex-col text-xs leading-relaxed text-foreground py-1 max-w-[320px] sm:max-w-[360px] md:max-w-[400px] whitespace-normal break-words space-y-0.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="px-1.5 py-0.5 rounded bg-muted font-bold text-foreground text-[10px] uppercase select-none tracking-wide">
+              {order.service.category.network?.name || '—'}
+            </span>
+            <span className="font-semibold text-muted-foreground text-[11px]">
+              {order.service.category.name}
+            </span>
           </div>
-          <div className="font-semibold text-foreground text-xs leading-tight mb-1" title={order.service.name}>
+          <div className="font-bold text-foreground leading-snug">
             {order.service.name}
           </div>
-          
-          <div className="text-[11px] text-muted-foreground mt-0.5">
-            Кол-во: <span className="font-bold text-foreground tabular-nums">{(order.quantity).toLocaleString('ru-RU')}</span>
-            {order.remains > 0 && (
-              <> · Остаток: <span className="font-bold text-amber-600 tabular-nums">{(order.remains).toLocaleString('ru-RU')}</span></>
-            )}
-          </div>
-
-          <div className="text-[11px] text-muted-foreground mt-1 flex items-start gap-1">
-            <span className="shrink-0 font-medium">Ссылка:</span>
-            <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline break-all leading-normal" onClick={e => e.stopPropagation()}>
+          <div className="flex items-start gap-1">
+            <span className="text-muted-foreground shrink-0 select-none">Ссылка:</span>{' '}
+            <a
+              href={order.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sky-600 hover:underline break-all font-mono text-[11px]"
+              onClick={(e) => e.stopPropagation()}
+            >
               {order.link}
             </a>
           </div>
-          
-          <details className="mt-1 group">
-            <summary className="text-sky-600 hover:text-sky-800 cursor-pointer text-[11px] select-none list-none inline-flex items-center transition-colors font-medium">
+          <details className="mt-1.5 group">
+            <summary className="text-sky-600 hover:text-sky-800 cursor-pointer text-[10px] select-none list-none inline-flex items-center transition-colors font-semibold">
               <span className="group-open:hidden">Показать детали</span>
               <span className="hidden group-open:inline">Скрыть детали</span>
             </summary>
-            <div className="mt-1.5 pt-1.5 border-t border-border/50 text-xs text-foreground space-y-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Провайдер:</span>
-                <span className="font-medium">{order.providerName || '—'}</span>
+            <div className="mt-1 pt-1 border-t border-border/80 text-xs text-foreground space-y-1">
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground select-none">Провайдер:</span>
+                <span className="font-semibold text-foreground">{order.providerName || '—'}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground select-none">Цена за 1 шт:</span>
+                <span className="font-mono text-foreground tabular-nums">
+                  {(order.quantity > 0 ? (order.charge / 100) / order.quantity : 0).toFixed(4)} ₽
+                </span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground select-none">Цена за 1к:</span>
+                <span className="font-mono text-foreground tabular-nums">
+                  {(order.quantity > 0 ? ((order.charge / 100) / order.quantity) * 1000 : 0).toFixed(2)} ₽
+                </span>
               </div>
               {canSeeRates && (
                 <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ID у провайдера:</span>
-                    <span className="font-mono">{order.externalId ? `#${order.externalId}` : '—'}</span>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground select-none">ID у провайдера:</span>
+                    <span className="font-mono text-foreground">{order.externalId || '—'}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Себестоимость:</span>
-                    <span className="tabular-nums">{(order.providerCost / 100).toFixed(2)} ₽</span>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground select-none">Себестоимость:</span>
+                    <span className="tabular-nums tracking-tight font-semibold text-foreground font-mono">
+                      {(order.providerCost / 100).toFixed(2)} ₽
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground select-none">Себестоимость за 1 шт:</span>
+                    <span className="font-mono text-foreground tabular-nums">
+                      {(order.quantity > 0 ? (order.providerCost / 100) / order.quantity : 0).toFixed(4)} ₽
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground select-none">Себестоимость за 1к:</span>
+                    <span className="font-mono text-foreground tabular-nums">
+                      {(order.quantity > 0 ? ((order.providerCost / 100) / order.quantity) * 1000 : 0).toFixed(2)} ₽
+                    </span>
                   </div>
                 </>
               )}
               {order.error && (
-                <div className="flex flex-col mt-1.5 bg-destructive/5 border border-destructive/20 rounded p-1.5">
-                  <span className="text-[10px] uppercase font-bold text-destructive">Ошибка провайдера:</span>
-                  <span className="text-destructive break-words font-mono mt-0.5 leading-tight">{order.error}</span>
+                <div className="flex flex-col mt-1 bg-destructive/5 border border-destructive/20 rounded p-1.5">
+                  <span className="text-[9px] uppercase font-bold text-destructive select-none">Ошибка провайдера:</span>
+                  <span className="text-destructive break-words font-mono mt-0.5 leading-tight text-[10px]">{order.error}</span>
                 </div>
               )}
               {order.isDripFeed && order.dripExternalIds && order.dripExternalIds.length > 0 && (
-                <div className="flex flex-col mt-1.5">
-                  <span className="text-muted-foreground">История запусков (Drip):</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
+                <div className="flex flex-col mt-1">
+                  <span className="text-muted-foreground font-semibold text-[10px] select-none">Drip запуски:</span>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
                     {order.dripExternalIds.map((id, idx) => (
-                      <span key={idx} className="bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                      <span key={idx} className="bg-purple-100/60 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20 px-1 py-0.5 rounded text-[9px] font-mono">
                         #{id}
                       </span>
                     ))}
@@ -336,33 +354,87 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     },
   },
   {
+    accessorKey: 'quantity',
+    id: 'quantity',
+    header: () => (
+      <div className="text-right font-bold text-foreground text-xs">
+        КОЛ-ВО
+      </div>
+    ),
+    cell: ({ row }) => {
+      const quantity = row.original.quantity;
+      return (
+        <div className="text-right font-mono tabular-nums text-xs font-semibold py-1">
+          {quantity.toLocaleString('ru-RU')}
+        </div>
+      );
+    }
+  },
+  {
+    accessorKey: 'remains',
+    id: 'remains',
+    header: () => (
+      <div className="text-right font-bold text-foreground text-xs">
+        ОСТАТОК
+      </div>
+    ),
+    cell: ({ row }) => {
+      const remains = row.original.remains;
+      return (
+        <div className={`text-right font-mono tabular-nums text-xs font-semibold py-1 ${remains > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+          {remains.toLocaleString('ru-RU')}
+        </div>
+      );
+    }
+  },
+  {
     accessorKey: 'charge',
+
     header: ({ column }) => (
       <div className="flex justify-end">
         <button
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="flex items-center gap-1 hover:text-foreground transition-colors"
+          className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs"
         >
-          Цена
-          <ArrowUpDown className="w-3.5 h-3.5 ml-1" />
+          СТОИМОСТЬ
+          <ArrowUpDown className="w-3 h-3 ml-1" />
         </button>
       </div>
     ),
-    cell: ({ row }) => (
-      <div className="text-xs font-semibold whitespace-nowrap text-foreground tabular-nums text-right">
-        {(row.original.charge / 100).toFixed(2)} ₽
-      </div>
-    ),
+    cell: ({ row }) => {
+      const order = row.original;
+      const charge = order.charge;
+      const cost = order.providerCost;
+      const margin = charge - cost;
+      const marginPercent = charge > 0 ? Math.round((margin / charge) * 100) : 0;
+      const isPositive = margin >= 0;
+ 
+      return (
+        <div className="flex flex-col items-end text-xs leading-normal py-1 font-semibold text-right min-w-[90px] font-mono">
+          <div className="font-bold text-foreground tabular-nums tracking-tight text-sm">{(charge / 100).toFixed(2)} <span className="font-sans text-xs">₽</span></div>
+          {canSeeRates && (
+            <div className="text-muted-foreground text-[10px] mt-0.5 font-normal select-none tabular-nums tracking-tight">
+              Закупка: {(cost / 100).toFixed(2)} <span className="font-sans">₽</span>
+            </div>
+          )}
+          {canSeeRates && (
+            <div className={`text-[10px] font-bold mt-0.5 select-none tabular-nums tracking-tight ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              Маржа: {marginPercent}% ({(margin / 100).toFixed(2)} <span className="font-sans">₽</span>)
+            </div>
+          )}
+        </div>
+      );
+    },
   },
   {
     accessorKey: 'status',
     header: ({ column }) => (
       <button
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        className="flex items-center gap-1 hover:text-foreground transition-colors"
+        className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs"
       >
-        Статус
-        <ArrowUpDown className="w-3.5 h-3.5 ml-1" />
+        СТАТУС
+        <ArrowUpDown className="w-3 h-3 ml-1" />
       </button>
     ),
     cell: ({ row }) => {
@@ -371,81 +443,58 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
       const style = STATUS_STYLES[status] || 'default';
       
       const classes: Record<string, string> = {
-        success: 'bg-success/20 text-emerald-700 border-emerald-200',
-        warning: 'bg-warning/20 text-amber-700 border-amber-200',
-        danger: 'bg-destructive/20 text-rose-700 border-destructive/30',
-        primary: 'bg-sky-100 text-sky-700 border-sky-200',
-        default: 'bg-muted text-muted-foreground border-border',
+        success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+        warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+        danger: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+        primary: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
+        default: 'bg-muted text-muted-foreground border-border/80',
       };
-
+ 
+      const s = order.service;
+      const showEta = s.etaP50Seconds && s.etaSampleCount && s.etaSampleCount >= 2;
+      const meta = showEta ? (SPEED_CLASS_META[s.etaSpeedClass ?? ''] ?? SPEED_CLASS_META.MEDIUM) : null;
+ 
       return (
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <Badge className={`font-semibold text-[10px] uppercase ${classes[style] || classes.default}`}>
-            {STATUS_LABELS[status] || status}
-          </Badge>
-          {order.isDripFeed && (
-            <span className="text-[10px] text-purple-600 font-medium">
-              Drip ({order.currentRun}/{order.runs})
-            </span>
+        <div className="flex flex-col gap-1 py-1 whitespace-nowrap min-w-[110px]">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge className={`font-black text-[10px] uppercase border px-2 py-0.5 rounded-md ${classes[style] || classes.default}`}>
+              {STATUS_LABELS[status] || status}
+            </Badge>
+            {order.isDripFeed && (
+              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded-md">
+                Drip ({order.currentRun}/{order.runs})
+              </span>
+            )}
+          </div>
+          
+          {showEta && meta && (
+            <div className="relative group/eta">
+              <div className="flex items-center gap-1 font-semibold text-[11px] cursor-help">
+                <span className={meta.color}>
+                  {meta.icon}
+                </span>
+                <span className="text-muted-foreground group-hover/eta:text-primary transition-colors">
+                  ≈ {formatEta(s.etaP50Seconds!)}
+                </span>
+              </div>
+ 
+              {/* Tooltip */}
+              <div className="absolute right-0 top-full mt-1.5 z-50 invisible opacity-0 group-hover/eta:visible group-hover/eta:opacity-100 transition-all duration-200 pointer-events-none">
+                <div className="bg-card border border-border/80 rounded-lg shadow-xl p-2.5 min-w-[190px]">
+                  <EtaTooltipContent service={s} />
+                  {/* Arrow */}
+                  <div className="absolute bottom-full right-4 w-3 h-3 bg-card border-t border-l border-border/80 rotate-[45deg] translate-y-1.5" />
+                </div>
+              </div>
+            </div>
           )}
         </div>
       );
     },
   },
   {
-    id: 'eta',
-    header: 'ETA',
-    cell: ({ row }) => {
-      const s = row.original.service;
-      
-      // No data state
-      if (!s.etaP50Seconds || !s.etaSampleCount || s.etaSampleCount < 2) {
-        return (
-          <span
-            className="text-xs text-muted-foreground whitespace-nowrap cursor-help"
-            title="Недостаточно данных для расчёта ETA"
-          >
-            —
-          </span>
-        );
-      }
-
-      const meta = SPEED_CLASS_META[s.etaSpeedClass ?? ''] ?? SPEED_CLASS_META.MEDIUM;
-
-      return (
-        <div className="relative group/eta">
-          {/* Main ETA display */}
-          <div className="flex flex-col text-xs whitespace-nowrap cursor-help">
-            <div className="flex items-center gap-1 font-medium">
-              <span className={`transition-colors ${meta.color}`}>
-                {meta.icon}
-              </span>
-              <span className="text-foreground group-hover/eta:text-primary transition-colors">
-                ≈ {formatEta(s.etaP50Seconds)}
-              </span>
-            </div>
-            {s.etaP90Seconds && (
-              <span className="text-muted-foreground text-[10px]">
-                до {formatEta(s.etaP90Seconds)}
-              </span>
-            )}
-          </div>
-
-          {/* Hover tooltip */}
-          <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 z-50 invisible opacity-0 group-hover/eta:visible group-hover/eta:opacity-100 transition-all duration-200 pointer-events-none">
-            <div className="bg-card border border-border rounded-lg shadow-xl p-2.5 min-w-[190px]">
-              <EtaTooltipContent service={s} />
-              {/* Arrow */}
-              <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-card border-r border-b border-border rotate-[-45deg]" />
-            </div>
-          </div>
-        </div>
-      );
-    },
-  },
-  {
     id: 'actions',
-    header: 'Действия',
+    header: 'ДЕЙСТВИЯ',
     cell: ({ row }) => <RowActions order={row.original} />
   },
 ];

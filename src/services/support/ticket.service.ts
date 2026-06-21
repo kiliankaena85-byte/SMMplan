@@ -5,6 +5,18 @@ import { SettingsProvider } from '@/lib/settings';
 import { TicketSource, TicketStatus, MessageSender } from '@prisma/client';
 import { getMimeType } from '@/lib/mime';
 
+export interface AddMessageOptions {
+  ticketId: string;
+  sender: MessageSender;
+  text: string;
+  mediaUrl?: string;
+  mediaType?: string;
+  replyToId?: string;
+  incomingTelegramMsgId?: string;
+  attachments?: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }>;
+  orderId?: string;
+}
+
 class TicketService {
   async getOrCreateTicket(userId: string, subject: string, source: TicketSource = 'WEB') {
     return await db.$transaction(async (tx) => {
@@ -23,18 +35,50 @@ class TicketService {
     });
   }
 
-  // TODO(Phase 2): Refactor addMessage to take a single options object instead of positional parameters to avoid parameter smell
+  /**
+   * Add a message to a ticket.
+   * Supports both options-object signature and legacy positional parameters.
+   */
   async addMessage(
-    ticketId: string, 
-    sender: MessageSender, 
-    text: string, 
-    mediaUrl?: string, 
-    mediaType?: string, 
-    replyToId?: string, 
-    incomingTelegramMsgId?: string,
-    attachments?: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }>,
-    orderId?: string
+    optionsOrTicketId: string | AddMessageOptions,
+    legacySender?: MessageSender,
+    legacyText?: string,
+    legacyMediaUrl?: string,
+    legacyMediaType?: string,
+    legacyReplyToId?: string,
+    legacyIncomingTelegramMsgId?: string,
+    legacyAttachments?: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }>,
+    legacyOrderId?: string
   ) {
+    let opts: AddMessageOptions;
+    if (typeof optionsOrTicketId === 'string') {
+      opts = {
+        ticketId: optionsOrTicketId,
+        sender: legacySender!,
+        text: legacyText!,
+        mediaUrl: legacyMediaUrl,
+        mediaType: legacyMediaType,
+        replyToId: legacyReplyToId,
+        incomingTelegramMsgId: legacyIncomingTelegramMsgId,
+        attachments: legacyAttachments,
+        orderId: legacyOrderId,
+      };
+    } else {
+      opts = optionsOrTicketId;
+    }
+
+    const {
+      ticketId,
+      sender,
+      text,
+      mediaUrl,
+      mediaType,
+      replyToId,
+      incomingTelegramMsgId,
+      attachments,
+      orderId
+    } = opts;
+
     let telegramMsgId: string | undefined = incomingTelegramMsgId;
     
     // Fetch ticket and user info beforehand for Telegram sending
@@ -60,8 +104,8 @@ class TicketService {
       });
     }
 
-    const legacyMediaUrl = mediaUrl || attachmentsToCreate[0]?.url || null;
-    const legacyMediaType = mediaType || attachmentsToCreate[0]?.type || null;
+    const resolvedMediaUrl = mediaUrl || attachmentsToCreate[0]?.url || null;
+    const resolvedMediaType = mediaType || attachmentsToCreate[0]?.type || null;
 
     if (sender === 'STAFF' && ticketToUpdate.user.telegramId) {
       try {
@@ -78,8 +122,8 @@ class TicketService {
           ticketToUpdate.user.telegramId, 
           text, 
           replyToTgMsgId,
-          legacyMediaUrl || undefined,
-          legacyMediaType || undefined
+          resolvedMediaUrl || undefined,
+          resolvedMediaType || undefined
         );
         if (tgId) telegramMsgId = tgId;
       } catch (e) {
@@ -92,8 +136,8 @@ class TicketService {
         ticketId, 
         sender, 
         text, 
-        mediaUrl: legacyMediaUrl, 
-        mediaType: legacyMediaType, 
+        mediaUrl: resolvedMediaUrl, 
+        mediaType: resolvedMediaType, 
         replyToId, 
         telegramMsgId,
         orderId: orderId || null,

@@ -160,6 +160,19 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
                     </div>
                   </div>
 
+                  {gateway !== 'balance' && calculation.totalRub !== undefined && calculation.totalRub > 0 && calculation.totalRub < 10 && (
+                    <div className="p-4 rounded-2xl bg-warning/10 border border-warning/20 text-warning-text text-xs leading-relaxed space-y-2 animate-in fade-in duration-300">
+                      <div className="font-bold flex items-center gap-1.5 text-warning-text">
+                        <span>💡</span> Минимальный платеж эквайринга — 10 ₽
+                      </div>
+                      <div>
+                        Платежные системы технически не принимают оплату картой менее 10 ₽. 
+                        Мы выставим счет на <strong>10 ₽</strong>: 
+                        из них <strong>{calculation.totalRub} ₽</strong> пойдет на этот заказ, а сдача <strong>{(10 - calculation.totalRub).toFixed(2)} ₽</strong> будет зачислена на ваш баланс для будущих тестов.
+                      </div>
+                    </div>
+                  )}
+
                   <SubmitButton className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-14 rounded-xl text-lg shadow-[0_8px_20px_rgb(0,0,0,0.1)] transition-all">
                     Оплатить {(calculation.totalRub ?? 0).toLocaleString('ru-RU')} ₽
                   </SubmitButton>

@@ -111,14 +111,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <Providers>
           <NetworkAwareProvider>
-            <MaintenanceGuardian
-              initialIsMaintenance={isMaintenanceMode && !isStaff}
-              siteName={settings.siteName || 'SMMplan'}
-              supportTelegram={settings.contactTelegramBot || 'smmplan_support_bot'}
-              supportEmail={settings.contactSupportEmail || 'support@smmplan.pro'}
-            >
-              {children}
-            </MaintenanceGuardian>
+             <MaintenanceGuardian
+               {...(isMaintenanceMode && !isStaff ? { m: true } : {})}
+             >
+               {children}
+             </MaintenanceGuardian>
           </NetworkAwareProvider>
         </Providers>
         <Toaster

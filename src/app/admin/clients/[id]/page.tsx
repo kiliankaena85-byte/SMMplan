@@ -22,12 +22,12 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const ROLE_BADGE: Record<string, string> = {
-  OWNER:   'bg-primary/20 text-indigo-800',
-  ADMIN:   'bg-sky-100 text-sky-800',
-  MANAGER: 'bg-success/20 text-emerald-800',
-  SUPPORT: 'bg-muted text-foreground',
-  USER:    'bg-muted text-foreground',
-  BANNED:  'bg-destructive/20 text-rose-800',
+  OWNER:   'bg-primary/10 text-indigo-800 border border-indigo-200 shadow-sm tracking-tight',
+  ADMIN:   'bg-sky-50 text-sky-800 border border-sky-200 shadow-sm tracking-tight',
+  MANAGER: 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-sm tracking-tight',
+  SUPPORT: 'bg-muted/50 text-muted-foreground border border-border/60 shadow-sm tracking-tight',
+  USER:    'bg-muted/50 text-foreground border border-border/60 shadow-sm tracking-tight',
+  BANNED:  'bg-rose-50 text-rose-800 border border-rose-200 shadow-sm tracking-tight',
 };
 
 type Props = { params: Promise<{ id: string }> };
@@ -143,9 +143,9 @@ export default async function ClientDetailPage({ params }: Props) {
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            ID: <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">{user.id}</code>
-            <span className="mx-2">·</span>
-            Зарегистрирован {new Date(user.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+            ID: <code className="font-mono tracking-tight text-xs bg-muted/50 border border-border/40 shadow-sm px-1.5 py-0.5 rounded">{user.id}</code>
+            <span className="mx-2 text-border">·</span>
+            <span className="tabular-nums tracking-tight">Зарегистрирован {new Date(user.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </p>
         </div>
 
@@ -153,7 +153,7 @@ export default async function ClientDetailPage({ params }: Props) {
         <div className="flex gap-2 flex-wrap">
           <ActionForm action={loginAsAction}>
             <input type="hidden" name="userId" value={user.id} />
-            <SubmitButton variant="outline" className="text-xs h-9 gap-1.5">
+            <SubmitButton variant="outline" className="text-xs h-9 gap-1.5 shadow-sm active:scale-95 transition-all">
               🔑 Войти как клиент
             </SubmitButton>
           </ActionForm>
@@ -162,7 +162,7 @@ export default async function ClientDetailPage({ params }: Props) {
               <input type="hidden" name="userId" value={user.id} />
               <SubmitButton
                 variant="outline"
-                className="text-xs h-9 text-emerald-700 border-emerald-300 hover:bg-success/10"
+                className="text-xs h-9 text-emerald-700 border-emerald-300 hover:bg-success/10 shadow-sm active:scale-95 transition-all"
                 confirmMessage="Снять блокировку?"
               >
                 ✅ Разбанить
@@ -173,7 +173,7 @@ export default async function ClientDetailPage({ params }: Props) {
               <input type="hidden" name="userId" value={user.id} />
               <SubmitButton
                 variant="outline"
-                className="text-xs h-9 text-destructive border-rose-300 hover:bg-destructive/10"
+                className="text-xs h-9 text-destructive border-rose-300 hover:bg-destructive/10 shadow-sm active:scale-95 transition-all"
                 confirmMessage="Забанить клиента? Он потеряет доступ к сервису."
               >
                 🚫 Забанить
@@ -191,10 +191,10 @@ export default async function ClientDetailPage({ params }: Props) {
           { label: 'Заказов', value: ordersCount.toString(), accent: 'text-foreground', note: `${ticketsCount} тикетов` },
           { label: 'Реф. баланс', value: canSeeFinances ? formatBalance(user.referralBalance) : '🔒 *** ₽', accent: 'text-violet-600', note: user.referralCode ? `Код: ${user.referralCode}` : 'Нет кода' },
         ].map(s => (
-          <div key={s.label} className="bg-card border border-border rounded-xl p-4">
-            <div className="text-xs text-muted-foreground mb-1">{s.label}</div>
-            <div className={`text-xl font-bold tabular-nums ${s.accent}`}>{s.value}</div>
-            {s.note && <div className="text-xs text-muted-foreground mt-1">{s.note}</div>}
+          <div key={s.label} className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 transition-all hover:shadow-md hover:border-border">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">{s.label}</div>
+            <div className={`text-xl font-bold tabular-nums tracking-tight font-mono ${s.accent}`}>{s.value}</div>
+            {s.note && <div className="text-[10px] text-muted-foreground mt-1.5 font-medium">{s.note}</div>}
           </div>
         ))}
       </div>
@@ -204,19 +204,22 @@ export default async function ClientDetailPage({ params }: Props) {
 
       {/* Balance Adjustment Block */}
       {canSeeFinances && (
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">💰 Корректировка баланса</h3>
-          <ActionForm action={updateBalanceAction} className="space-y-3 max-w-sm">
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-6 ring-1 ring-border/5">
+          <h3 className="text-sm font-bold tracking-tight text-foreground mb-4 flex items-center gap-2">
+            <span className="bg-primary/10 text-primary p-1 rounded-md">💰</span>
+            Корректировка баланса
+          </h3>
+          <ActionForm action={updateBalanceAction} className="space-y-4 max-w-sm">
             <input type="hidden" name="userId" value={user.id} />
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Сумма (в копейках, − для списания)</label>
-              <input type="number" name="amount" placeholder="10000 = 100₽" required className="w-full h-9 text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
+              <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">Сумма (в копейках, − для списания)</label>
+              <input type="number" name="amount" placeholder="10000 = 100₽" required className="w-full h-10 text-sm px-3 py-2 rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground font-mono tabular-nums tracking-tight placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Причина / Комментарий</label>
-              <input name="reason" placeholder="Например: Бонус за регистрацию" required className="w-full h-9 text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
+              <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">Причина / Комментарий</label>
+              <input name="reason" placeholder="Например: Бонус за регистрацию" required className="w-full h-10 text-sm px-3 py-2 rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
             </div>
-            <SubmitButton className="w-full h-9 text-sm gap-1.5" confirmMessage="Вы уверены, что хотите изменить баланс клиента?">
+            <SubmitButton className="w-full h-10 text-sm gap-1.5 shadow-sm active:scale-95 transition-all" confirmMessage="Вы уверены, что хотите изменить баланс клиента?">
               Применить изменение
             </SubmitButton>
           </ActionForm>
@@ -224,14 +227,14 @@ export default async function ClientDetailPage({ params }: Props) {
       )}
 
       {/* Recent orders */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground">Последние заказы</h2>
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden ring-1 ring-border/5 flex flex-col">
+        <div className="px-5 py-4 border-b border-border/60 bg-muted/20">
+          <h2 className="text-sm font-bold tracking-tight text-foreground">Последние заказы</h2>
         </div>
         <ClientOrdersTable orders={orders} />
         {ordersCount > 15 && (
-          <div className="px-4 py-3 border-t border-border">
-            <Link href={`/admin/orders?userId=${user.id}`} className="text-xs text-primary hover:underline">
+          <div className="px-5 py-3 border-t border-border/60 bg-muted/10">
+            <Link href={`/admin/orders?userId=${user.id}`} className="text-xs font-semibold text-primary hover:underline transition-colors">
               Показать все {ordersCount} заказов →
             </Link>
           </div>

@@ -403,7 +403,7 @@ export function ChatInput({
       </AnimatePresence>
 
       {isStaff && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 mb-2">
           <div className="flex items-center gap-1.5">
             <ChatTemplateManager 
               templatesList={templatesList}
@@ -455,13 +455,13 @@ export function ChatInput({
               initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
               animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
               exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-              className="flex items-center justify-between bg-primary-50 border-l-4 border-primary px-3 py-1.5 rounded-lg mb-1"
+              className="flex items-center justify-between bg-primary/10 border-l-4 border-primary px-3 py-1.5 rounded-lg mb-1"
             >
               <div>
-                <div className="text-[10px] font-bold text-primary-700 uppercase tracking-wider">Ответ для {replyingTo.sender}</div>
+                <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Ответ для {replyingTo.sender}</div>
                 <div className="text-xs text-foreground/80 line-clamp-1">{replyingTo.text || 'Медиа сообщение'}</div>
               </div>
-              <button type="button" onClick={() => setReplyingTo(null)} className="w-11 h-11 flex items-center justify-center text-primary-400 hover:text-primary-700 font-bold ml-2 transition-colors cursor-pointer" aria-label="Отменить ответ">✕</button>
+              <button type="button" onClick={() => setReplyingTo(null)} className="w-11 h-11 flex items-center justify-center text-primary/70 hover:text-primary font-bold ml-2 transition-colors cursor-pointer" aria-label="Отменить ответ">✕</button>
             </motion.div>
           )}
           {selectedOrder && (
@@ -470,13 +470,13 @@ export function ChatInput({
               initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
               animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
               exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-              className="flex items-center justify-between bg-indigo-50 border-l-4 border-indigo-500 px-3 py-1.5 rounded-lg mb-1 shadow-sm"
+              className="flex items-center justify-between bg-primary/10 border-l-4 border-primary px-3 py-1.5 rounded-lg mb-1 shadow-sm"
             >
               <div className="flex items-center gap-2">
-                <span className="text-indigo-700 font-bold text-xs shrink-0">📦 Заказ #{selectedOrder.numericId}</span>
+                <span className="text-primary font-bold text-xs shrink-0">📦 Заказ #{selectedOrder.numericId}</span>
                 <span className="text-xs text-foreground/80 line-clamp-1">— {selectedOrder.serviceName} ({selectedOrder.charge} ₽)</span>
               </div>
-              <button type="button" onClick={() => setSelectedOrder(null)} className="h-11 w-11 flex items-center justify-center p-1 text-indigo-400 hover:text-indigo-700 font-bold ml-2 transition-colors" aria-label="Удалить привязку заказа">✕</button>
+              <button type="button" onClick={() => setSelectedOrder(null)} className="h-11 w-11 flex items-center justify-center p-1 text-primary/70 hover:text-primary font-bold ml-2 transition-colors" aria-label="Удалить привязку заказа">✕</button>
             </motion.div>
           )}
         </AnimatePresence>

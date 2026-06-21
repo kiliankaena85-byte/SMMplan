@@ -308,7 +308,7 @@ export function LoginForm() {
                 id="register-password"
                 type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="Создайте пароль (мин. 6 символов)"
+                placeholder="Создайте пароль (мин. 8 символов)"
                 value={registerPassword}
                 onChange={(e) => setRegisterPassword(e.target.value)}
                 className={`${inputCls} pl-10 pr-10`}
@@ -327,7 +327,7 @@ export function LoginForm() {
 
           <button
             type="submit"
-            disabled={registerPending || !registerEmail || registerPassword.length < 6}
+            disabled={registerPending || !registerEmail || registerPassword.length < 8}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all duration-200 shadow-sm cursor-pointer font-bold"
           >
             {registerPending ? (

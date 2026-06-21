@@ -1,5 +1,0 @@
-﻿в—‡ injected env (9) from .env.test // tip: в—€ secrets for agents [www.dotenvx.com]
-
-Running 9 tests using 1 worker
-
-в—‡ injected env (0) from .env.test // tip: вЊ custom filepath { path: '/custom/path/.env' }

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { cn } from '@/lib/utils';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -33,6 +34,7 @@ interface DataTableProps<TData, TValue> {
   renderToolbar?: (table: ReactTable<TData>) => React.ReactNode;
   hideClientPagination?: boolean;
   initialColumnVisibility?: VisibilityState;
+  renderMobileView?: (table: ReactTable<TData>) => React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -43,6 +45,7 @@ export function DataTable<TData, TValue>({
   renderToolbar,
   hideClientPagination = false,
   initialColumnVisibility = {},
+  renderMobileView,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -105,11 +108,11 @@ export function DataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="rounded-xl border border-border overflow-hidden bg-card shadow-sm">
+      <div className={cn("rounded-xl border border-border/60 overflow-hidden bg-card shadow-md ring-1 ring-border/5", renderMobileView ? "hidden lg:block" : "")}>
         <Table className="h-full w-full">
           <Table.ScrollContainer>
             <Table.Content aria-label="Data Table" className="w-full">
-              <Table.Header className="bg-muted/30">
+              <Table.Header className="bg-muted/40">
                 {table.getFlatHeaders().map((header, index) => (
                   <Table.Column isRowHeader={index === 0} key={header.id} className="py-4 px-6 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     {header.isPlaceholder
@@ -147,6 +150,18 @@ export function DataTable<TData, TValue>({
           </div>
         )}
       </div>
+
+      {renderMobileView && (
+        <div className="block lg:hidden space-y-4">
+          {table.getRowModel().rows?.length ? (
+            renderMobileView(table)
+          ) : (
+            <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-sm">
+              Нет результатов.
+            </div>
+          )}
+        </div>
+      )}
       {!hideClientPagination && (
         <div className="flex items-center justify-between space-x-2 py-4">
           <div className="flex-1 text-sm text-muted-foreground">

@@ -177,5 +177,20 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
+### Phase 999.13: Email Security and Corporate Mailbox Setup (BACKLOG)
+
+**Goal:** [Captured for future planning] Настройка безопасной почты на корпоративном домене support@smmplan.pro через Яндекс 360 для бизнеса и прописывание записей MX, SPF, DKIM, DMARC, CAA на REG.RU для исключения email-спуфинга и попадания писем в спам.
+**Requirements:**
+- Зарегистрировать организацию в Яндекс 360 для бизнеса.
+- Подтвердить владение доменом `smmplan.pro`.
+- Настроить DNS-записи (MX, SPF, DKIM, DMARC, CAA) в панели REG.RU.
+- Создать почтовый ящик `support@smmplan.pro` и включить SMTP/IMAP.
+- Сгенерировать пароль приложения и обновить SMTP-переменные в `.env` файле на продакшене.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
+
+
 
 

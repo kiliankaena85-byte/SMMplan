@@ -37,9 +37,9 @@ export function ClientTable({ data, children }: ClientTableProps) {
       <DataTable columns={columns} data={data} searchKey="email" searchPlaceholder="Фильтр таблицы..." />
       
       <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto sm:max-w-none bg-muted/50">
+        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto sm:max-w-none bg-background/95 backdrop-blur-md border-l border-border/50 shadow-2xl p-6">
           <SheetHeader className="mb-6">
-            <SheetTitle>Профиль Клиента</SheetTitle>
+            <SheetTitle className="text-xl tracking-tight">Профиль Клиента</SheetTitle>
           </SheetHeader>
           <div className="mt-4">
             {children}

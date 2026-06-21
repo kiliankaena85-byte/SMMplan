@@ -1,5 +1,4 @@
 import { adminOrderService } from '@/services/admin/order.service';
-import { Card, CardHeader, CardContent } from '@/components/admin/hero-ui';
 import { Package, Download, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin/page-header';
@@ -184,21 +183,20 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         </Link>
       </div>
 
-      {/* Search + Filters */}
-      <Card>
-        <CardContent className="pt-6">
+      {/* Search + Filters & Orders Table Container */}
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 overflow-hidden flex flex-col">
+        {/* Top Filters Section */}
+        <div className="p-6 border-b border-border/40 bg-muted/10">
           <OrdersFilterForm networks={networks} />
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Orders Table */}
-      <Card>
-        <CardHeader>
-          <h3 className="text-lg font-bold">
-            Результаты{query ? ` по запросу "${query}"` : ''} ({orders.length}{hasMore ? '+' : ''})
-          </h3>
-        </CardHeader>
-        <CardContent>
+        {/* Table Section */}
+        <div className="flex-1 p-6 pt-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-foreground">
+              Результаты{query ? ` по запросу "${query}"` : ''} <span className="text-muted-foreground ml-1 font-medium text-sm">({orders.length}{hasMore ? '+' : ''})</span>
+            </h3>
+          </div>
           <OrderClient 
             canSeeRates={canSeeRates}
             data={orders.map(o => ({
@@ -257,8 +255,8 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import { enforceSectionAccess } from "@/lib/server/rbac";
 import { db } from "@/lib/db";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DeleteArticleButton } from "./DeleteArticleButton";
-import { BookOpen, Eye, Plus, ArrowLeft } from "lucide-react";
+import { BookOpen, Eye } from "lucide-react";
+import { AdminTabbedHeader } from "@/components/admin/tabbed-header";
+import { SYSTEM_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
 
 export const dynamic = "force-dynamic";
 
@@ -27,37 +28,20 @@ export default async function AdminKnowledgePage() {
   const totalViews = articles.reduce((sum, a) => sum + a.viewCount, 0);
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out p-6 bg-background min-h-full pb-10">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/40 pb-5">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Link 
-              href="/admin/dashboard" 
-              className="text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg"
-              title="Назад в панель управления"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-2xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-primary" />
-              База знаний & Блог
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground pl-11">
-            Публикуйте обучающие руководства, статьи по продвижению и новости платформы SMMplan.
-          </p>
-        </div>
-        
-        <div className="flex items-center pl-11 sm:pl-0">
-          <Button asChild intent="primary" size="default" className="min-h-[44px] rounded-xl font-bold flex items-center gap-2 shadow-sm">
-            <Link href="/admin/knowledge/create">
-              <Plus className="w-4 h-4" />
-              Создать статью
-            </Link>
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out bg-background min-h-full pb-10">
+      <AdminTabbedHeader
+        icon={BookOpen}
+        title="База знаний & Блог"
+        description="Публикуйте обучающие руководства, статьи по продвижению и новости платформы SMMplan."
+        action={(
+          <Link href="/admin/knowledge/create" className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-primary-foreground bg-primary shadow-sm rounded-lg hover:opacity-90 transition-all">
+            + Создать Статью
+          </Link>
+        )}
+        tabs={SYSTEM_TABS}
+        onboardingKey="knowledge"
+        onboarding={ONBOARDING_CONFIGS.knowledge}
+      />
 
       {/* Metrics Widgets block */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">

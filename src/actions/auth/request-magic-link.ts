@@ -16,6 +16,9 @@ const schema = z.object({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function requestMagicLink(prevState: any, formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') {
+    return { error: "Некорректные данные формы", success: false };
+  }
   const parsed = schema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message, success: false };

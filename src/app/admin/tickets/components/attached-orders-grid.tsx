@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { Loader2, RefreshCw, Undo2 } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import figmaStyles from '@/utils/figma-styles.json';
 import { Button } from '@/components/ui/button';
 import { 
@@ -21,16 +20,6 @@ export interface AttachedOrdersGridProps {
 export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOrdersGridProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  const isDark = mounted ? (theme?.includes('dark') || theme === 'dark') : true;
-
-  const cardBg = isDark
-    ? figmaStyles.colors.miniAppCardBackground.dark
-    : figmaStyles.colors.miniAppCardBackground.light;
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -164,14 +153,9 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
                   onClick={() => handleSelectRow(o.id)}
                   className={`relative p-3.5 border rounded-xl cursor-pointer transition-all duration-200 ${
                     isSelected 
-                      ? 'border-primary shadow-sm' 
-                      : 'border-border hover:border-border/80'
+                      ? 'border-primary shadow-sm bg-primary/10' 
+                      : 'border-border hover:border-border/80 bg-card'
                   }`}
-                  style={{
-                    backgroundColor: isSelected 
-                      ? (isDark ? '#2b5278/20' : '#2481cc/10')
-                      : cardBg
-                  }}
                 >
                   <div className="flex items-start gap-3">
                     {/* Checkbox Area expanded to at least 44x44px touch target */}
@@ -199,7 +183,7 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
                         <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border shrink-0 ${
                           o.status === 'COMPLETED' ? 'bg-success/10 text-success border-emerald-500/20' :
                           o.status === 'IN_PROGRESS' ? 'bg-primary/10 text-primary border-primary/20' :
-                          o.status === 'PENDING' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                          o.status === 'PENDING' ? 'bg-warning/10 text-warning-text border-warning/20' :
                           'bg-muted text-foreground border-border'
                         }`}>
                           {o.status === 'COMPLETED' ? 'Выполнен' :

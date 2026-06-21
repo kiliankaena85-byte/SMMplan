@@ -1,5 +1,8 @@
 import { db } from '@/lib/db';
 import { QuarantineClient } from './quarantine-client';
+import { AlertTriangle } from 'lucide-react';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,9 +43,9 @@ export default async function QuarantinePage() {
     currentRate: s.rate,
     pendingRate: s.pendingRate,
     quarantineReason: s.quarantineReason ?? s.cooldownReason ?? '',
-    quarantinedAt: s.quarantinedAt?.toISOString() ?? '',
+    quarantinedAt: s.quarantinedAt && !isNaN(new Date(s.quarantinedAt).getTime()) ? new Date(s.quarantinedAt).toISOString() : '',
     externalId: s.externalId ?? '',
-    cooldownUntil: s.cooldownUntil?.toISOString() ?? null,
+    cooldownUntil: s.cooldownUntil && !isNaN(new Date(s.cooldownUntil).getTime()) ? new Date(s.cooldownUntil).toISOString() : null,
   });
 
   const priceSpikes = quarantined.map(mapToDto);
@@ -89,20 +92,24 @@ export default async function QuarantinePage() {
   const totalAnomalies = priceSpikes.length + zombieItems.length + apiErrors.length;
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-          ⚠️ Центр аномалий
-          {totalAnomalies > 0 && (
-            <span className="ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/15 text-warning border border-amber-500/30">
-              {totalAnomalies}
-            </span>
-          )}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Карантин цен, зомби-услуги и сбои API провайдеров. Требуется внимание администратора.
-        </p>
-      </div>
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out bg-background min-h-full pb-10">
+      <AdminTabbedHeader
+        icon={AlertTriangle}
+        title="Карантин цен и аномалий"
+        description={
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground font-medium text-xs">
+            <span>Карантин цен, зомби-услуги и сбои API провайдеров.</span>
+            {totalAnomalies > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-amber-500/20 animate-pulse">
+                Аномалий: {totalAnomalies}
+              </span>
+            )}
+          </div>
+        }
+        tabs={CATALOG_TABS}
+        onboardingKey="quarantine"
+        onboarding={ONBOARDING_CONFIGS.quarantine}
+      />
       <QuarantineClient 
         initialPriceSpikes={priceSpikes} 
         initialZombies={zombieItems} 

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { ShoppingCart, Wallet, Users, TrendingUp, ArrowRight, Clock } from 'lucide-react';
 import { formatBalance } from '@/lib/utils';
 
+import { PaymentAutoSync } from '@/components/orders/PaymentAutoSync';
+
 export const dynamic = 'force-dynamic';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -70,8 +72,13 @@ export default async function DashboardPage() {
     where: { userId: session.userId, status: { in: ['IN_PROGRESS', 'PENDING', 'PROVISIONING'] } },
   });
 
+  const hasPendingPayments = await db.payment.count({
+    where: { userId: session.userId, status: 'PENDING', gateway: 'yookassa' }
+  }) > 0;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {hasPendingPayments && <PaymentAutoSync />}
       {/* Greeting */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">

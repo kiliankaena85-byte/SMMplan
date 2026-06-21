@@ -2,7 +2,8 @@ import { accountingService } from '@/services/financial/accounting.service';
 import { escrowService } from '@/services/admin/escrow.service';
 import { getLedgerAction } from '@/actions/admin/finance/ledger';
 import { getPaymentsAction } from '@/actions/admin/finance/payments';
-import { AdminPageHeader } from '@/components/admin/page-header';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { FinanceClient } from './finance-client';
 import { QuarantineList } from './quarantine-list';
 import { FinanceSettingsForm } from './finance-settings-form';
@@ -101,10 +102,13 @@ export default async function FinanceDashboard({ searchParams }: Props) {
 
   return (
     <div className="space-y-8 pb-10">
-      <AdminPageHeader
+      <AdminTabbedHeader
         icon={Wallet}
         title="Финансовый учёт"
         description="Метрики эффективности, балансы и история транзакций"
+        tabs={FINANCE_TABS}
+        onboardingKey="finance"
+        onboarding={ONBOARDING_CONFIGS.finance}
       />
 
       <QuarantineList entries={quarantineList} />
@@ -112,7 +116,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       {/* ── KPI Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {KPI.map(k => (
-          <div key={k.label} className="rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
+          <div key={k.label} className="rounded-[24px] border border-border/50 shadow-sm bg-card/60 backdrop-blur-md overflow-hidden ring-1 ring-border/5">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className={`p-2.5 rounded-xl ${k.color} text-primary-foreground shadow-lg`}>
@@ -134,7 +138,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
 
       {/* ── Breakdown & Settings ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-2xl border border-border/50/50 shadow-sm bg-background/60 backdrop-blur-xl overflow-hidden">
+        <div className="lg:col-span-2 rounded-[24px] border border-border/50 shadow-sm bg-card/60 backdrop-blur-md overflow-hidden ring-1 ring-border/5">
           <div className="p-8">
             <div className="flex items-center gap-3 mb-8">
               <div className="p-2 bg-primary/20 text-primary rounded-lg">

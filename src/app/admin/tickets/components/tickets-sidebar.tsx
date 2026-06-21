@@ -2,6 +2,7 @@ import React from 'react';
 import { Headphones, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { formatEta } from '@/utils/format-eta';
 
 const formatTicketDate = (dateStr: string) => {
   try {
@@ -70,6 +71,10 @@ export interface TicketsSidebarProps {
   handleSearchSubmit: (e: React.FormEvent) => void;
   currentStatus: string;
   handleStatusFilter: (status: string) => void;
+  currentSource: string;
+  handleSourceFilter: (source: string) => void;
+  currentIsB2b: boolean;
+  handleB2bToggle: (isB2b: boolean) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tickets: any[];
   handleSelectTicket: (id: string) => void;
@@ -87,6 +92,10 @@ export function TicketsSidebar({
   handleSearchSubmit,
   currentStatus,
   handleStatusFilter,
+  currentSource,
+  handleSourceFilter,
+  currentIsB2b,
+  handleB2bToggle,
   tickets,
   handleSelectTicket,
   totalPages,
@@ -102,7 +111,7 @@ export function TicketsSidebar({
       className="w-full lg:w-[380px] xl:w-[420px] shrink-0 border-r border-border flex flex-col h-full select-none bg-background/50"
     >
       {/* List Header */}
-      <div className="p-4 border-b border-border space-y-3 bg-card text-card-foreground">
+      <div className="p-4 border-b border-border/50 space-y-3 bg-card/60 backdrop-blur-md text-card-foreground">
         <div className="flex items-center justify-between">
           <h1 className="font-black text-base flex items-center gap-2">
             <Headphones className="w-5 h-5 text-primary" />
@@ -111,6 +120,51 @@ export function TicketsSidebar({
           <div className="text-xs font-bold text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">
             {stats.open} открытых
           </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-3 gap-2">
+          {/* Card 1: Open (Без ответа) */}
+          <button
+            type="button"
+            onClick={() => handleStatusFilter('OPEN')}
+            className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all duration-200 cursor-pointer min-h-[58px] ${
+              currentStatus === 'OPEN'
+                ? 'bg-primary text-primary-foreground border-primary shadow-sm font-black'
+                : 'bg-card border-border/50 text-foreground hover:bg-muted/50'
+            }`}
+          >
+            <span className={`text-[10px] font-bold ${currentStatus === 'OPEN' ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>Без ответа</span>
+            <span className="text-base font-black font-mono mt-0.5 tabular-nums">{stats.open}</span>
+          </button>
+
+          {/* Card 2: Critical Wait (Крит. ожидание) */}
+          <button
+            type="button"
+            onClick={() => handleStatusFilter('OPEN')}
+            className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all duration-200 cursor-pointer min-h-[58px] ${
+              stats.criticalOpen > 0
+                ? 'border-rose-500/40 bg-rose-500/5 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10'
+                : 'bg-card border-border/50 text-foreground hover:bg-muted/50'
+            }`}
+          >
+            <span className="text-[10px] font-bold text-rose-500 dark:text-rose-400">Крит. ожидание</span>
+            <span className="text-base font-black font-mono mt-0.5 tabular-nums">{stats.criticalOpen || 0}</span>
+          </button>
+
+          {/* Card 3: Pending (В работе) */}
+          <button
+            type="button"
+            onClick={() => handleStatusFilter('PENDING')}
+            className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all duration-200 cursor-pointer min-h-[58px] ${
+              currentStatus === 'PENDING'
+                ? 'bg-primary text-primary-foreground border-primary shadow-sm font-black'
+                : 'bg-card border-border/50 text-foreground hover:bg-muted/50'
+            }`}
+          >
+            <span className={`text-[10px] font-bold ${currentStatus === 'PENDING' ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>В работе</span>
+            <span className="text-base font-black font-mono mt-0.5 tabular-nums">{stats.pending}</span>
+          </button>
         </div>
 
         {/* Search */}
@@ -125,27 +179,82 @@ export function TicketsSidebar({
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground/60" />
         </form>
 
-        {/* Status Pills */}
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+        {/* SLA stats */}
+        {stats?.avgFRTMin !== undefined && (stats.avgFRTMin > 0 || stats.avgTTRMin > 0) && (
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-bold px-1 py-0.5 border-b border-border/20 pb-1">
+            {stats.avgFRTMin > 0 && (
+              <span className="flex items-center gap-1">⚡ Ответ: <span className="text-foreground">{formatEta(stats.avgFRTMin * 60)}</span></span>
+            )}
+            {stats.avgTTRMin > 0 && (
+              <span className="flex items-center gap-1">✅ Закрытие: <span className="text-foreground">{formatEta(stats.avgTTRMin * 60)}</span></span>
+            )}
+          </div>
+        )}
+
+        {/* Status & B2B Filter Row */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Status Pills */}
+          <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none flex-grow">
+            {[
+              { label: 'Все', value: 'ALL' },
+              { label: 'Открытые', value: 'OPEN' },
+              { label: 'Ожидают', value: 'PENDING' },
+              { label: 'Закрытые', value: 'CLOSED' }
+            ].map((pill) => {
+              const isActive = currentStatus === pill.value;
+              return (
+                <button
+                  key={pill.value}
+                  type="button"
+                  onClick={() => handleStatusFilter(pill.value)}
+                  className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer min-h-[36px] flex items-center justify-center ${
+                    isActive 
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                      : 'bg-muted text-foreground hover:bg-muted-foreground/10'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* B2B Filter Toggle */}
+          <button
+            type="button"
+            onClick={() => handleB2bToggle(!currentIsB2b)}
+            className={`px-2.5 py-1.5 text-[10px] font-black rounded-lg transition-all border whitespace-nowrap cursor-pointer select-none uppercase shrink-0 min-h-[36px] flex items-center justify-center ${
+              currentIsB2b
+                ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                : 'bg-muted text-foreground border-border hover:bg-muted-foreground/10'
+            }`}
+          >
+            B2B
+          </button>
+        </div>
+
+        {/* Source Filter Group */}
+        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none pt-2.5 border-t border-border/40">
           {[
-            { label: 'Все', value: 'ALL' },
-            { label: 'Открытые', value: 'OPEN' },
-            { label: 'Ожидают', value: 'PENDING' },
-            { label: 'Закрытые', value: 'CLOSED' }
-          ].map((pill) => {
-            const isActive = currentStatus === pill.value;
+            { label: 'Все сети', value: 'ALL' },
+            { label: 'Telegram', value: 'TELEGRAM' },
+            { label: 'Email', value: 'EMAIL' },
+            { label: 'VK', value: 'VK' },
+            { label: 'Web', value: 'WEB' }
+          ].map((src) => {
+            const isActive = currentSource === src.value;
             return (
               <button
-                key={pill.value}
+                key={src.value}
                 type="button"
-                onClick={() => handleStatusFilter(pill.value)}
-                className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-colors whitespace-nowrap min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer ${
+                onClick={() => handleSourceFilter(src.value)}
+                className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors whitespace-nowrap cursor-pointer border min-h-[30px] flex items-center justify-center ${
                   isActive 
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                    : 'bg-muted text-foreground hover:bg-muted-foreground/10'
+                    ? 'bg-secondary text-secondary-foreground border-secondary font-black' 
+                    : 'bg-background/80 text-muted-foreground hover:text-foreground border-border/50'
                 }`}
               >
-                {pill.label}
+                {src.label}
               </button>
             );
           })}
@@ -166,7 +275,7 @@ export function TicketsSidebar({
               className={`mx-1 my-0.5 p-3 rounded-xl cursor-pointer transition-all duration-200 flex flex-col select-none border-l-4 ${
                 isActive 
                   ? 'bg-secondary/40 text-secondary-foreground border-l-primary' 
-                  : 'bg-card text-foreground border-l-transparent hover:bg-muted/40'
+                  : 'bg-card/60 backdrop-blur-md text-foreground border-l-transparent hover:bg-muted/40'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -228,7 +337,7 @@ export function TicketsSidebar({
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="p-3 border-t border-border flex items-center justify-between shrink-0 bg-card select-none">
+        <div className="p-3 border-t border-border/50 flex items-center justify-between shrink-0 bg-card/60 backdrop-blur-md select-none">
           <Button
             intent="outline"
             size="sm"

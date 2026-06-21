@@ -1,6 +1,7 @@
 import { getSmartCampaigns, getServiceConfigs, getSmartGlobalStatus } from '@/actions/admin/smart';
 import { Cpu } from 'lucide-react';
-import { AdminPageHeader } from '@/components/admin/page-header';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { SmartDripClient } from './smart-client';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 
@@ -20,10 +21,13 @@ export default async function SmartDripAdminPage() {
 
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
-      <AdminPageHeader
+      <AdminTabbedHeader
         icon={Cpu}
         title="Умный Dripfeed 2.0"
         description="Управление постепенной раздачей, чанковыми распределениями и контролем качества"
+        tabs={CATALOG_TABS}
+        onboardingKey="smart"
+        onboarding={ONBOARDING_CONFIGS.smart}
       />
 
       <SmartDripClient

@@ -14,11 +14,7 @@ import { headers } from 'next/headers';
 export async function getClientIp(fallback: string = '127.0.0.1'): Promise<string> {
   try {
     const reqHeaders = await headers();
-    return (
-      reqHeaders.get('x-real-ip') ||
-      reqHeaders.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      fallback
-    );
+    return reqHeaders.get('x-real-ip') || fallback;
   } catch {
     return fallback;
   }

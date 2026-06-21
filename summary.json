@@ -1,9 +1,0 @@
-﻿{
-    "eslintErr":  0,
-    "auditMod":  1,
-    "auditLow":  0,
-    "eslintWarn":  0,
-    "auditHigh":  0,
-    "auditCrit":  0,
-    "buildOut":  "  Running TypeScript ...\r\nnode.exe : Failed to type check.\r\nD:\\npm-global\\npm.ps1:24 знак:5\r\n+     \u0026 \"node$exe\"  \"$basedir/node_modules/npm/bin/npm-cli.js\" $args\r\n+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (Failed to type check.:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n\r\n./scripts/analytics/sec-query.ts:64:21\r\nType error: BigInt literals are not available when targeting lower than ES2020.\r\n\r\n  \u001b[90m62 |\u001b[0m   \u001b[36mconst\u001b[0m largeCredits = \u001b[36mawait\u001b[0m prisma.ledgerEntry.findMany({\r\n  \u001b[90m63 |\u001b[0m     where: { \r\n\u001b[31m\u001b[1m\u003e\u001b[0m \u001b[90m64 |\u001b[0m       amount: { gt: \u001b[35m1000000\u001b[0mn }, \u001b[90m// \u003e 10,000 RUB\u001b[0m\r\n  \u001b[90m   |\u001b[0m                     \u001b[31m\u001b[1m^\u001b[0m\r\n  \u001b[90m65 |\u001b[0m       createdAt: { gte: startOfPeriod }\r\n  \u001b[90m66 |\u001b[0m     }\r\n  \u001b[90m67 |\u001b[0m   });\r\nNext.js build worker exited with code: 1 and signal: null\r\n"
-}

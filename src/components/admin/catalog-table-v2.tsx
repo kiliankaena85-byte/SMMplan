@@ -16,7 +16,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Table } from '@heroui/react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Trash2, ShoppingCart, Pencil, Plus, Loader2, AlertCircle } from 'lucide-react';
+import { Trash2, ShoppingCart, Pencil, Plus, Loader2, AlertCircle, Search } from 'lucide-react';
 import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import {
@@ -32,14 +32,14 @@ import {
 } from '@/lib/financial-constants';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-  DialogDescription,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+  SheetClose,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -49,12 +49,27 @@ import {
 } from '@/components/ui/select';
 
 import { BatchActionBar } from './catalog/batch-action-bar';
-import { InlinePriceCell } from './catalog/inline-price-cell';
-
+import { ProviderServiceSearchModal } from './catalog/provider-service-search-modal';
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
-function calcRetailPrice(rate: number, markup: number, usdToRub: number) {
-  return applyBeautifulRounding(rate * markup * usdToRub);
+function calcDisplayPrice(rate: number, markup: number, usdToRub: number, curr: 'RUB' | 'USD', vol: 'UNIT' | '1K') {
+  if (vol === '1K') {
+    const rawPrice = curr === 'USD' ? rate * markup : rate * markup * usdToRub;
+    return curr === 'RUB' ? applyBeautifulRounding(rawPrice) : parseFloat(rawPrice.toFixed(4));
+  } else {
+    const rawPrice = curr === 'USD' ? (rate * markup) / 1000 : (rate * markup * usdToRub) / 1000;
+    return curr === 'RUB' 
+      ? applyBeautifulRounding(rawPrice * 1000) / 1000 
+      : parseFloat(rawPrice.toFixed(6));
+  }
+}
+
+function calcDisplayCost(rate: number, usdToRub: number, curr: 'RUB' | 'USD', vol: 'UNIT' | '1K') {
+  if (vol === '1K') {
+    return curr === 'USD' ? rate : rate * usdToRub;
+  } else {
+    return curr === 'USD' ? rate / 1000 : (rate * usdToRub) / 1000;
+  }
 }
 
 function getNetworkBadgeClass(slug: string | null) {
@@ -148,8 +163,8 @@ function ArchiveButton({ service }: { service: CatalogServiceDTO }) {
   );
 }
 
-// ─── Sub-component: Service Form Dialog ──────────────────────────────────
-function ServiceFormDialog({
+// ─── Sub-component: Service Form Sheet ──────────────────────────────────
+function ServiceFormSheet({
   service,
   categories,
   providers,
@@ -192,6 +207,21 @@ function ServiceFormDialog({
   const [isActive, setIsActive] = useState(service?.isActive ?? true);
   const [requireWarning, setRequireWarning] = useState(service?.requireWarning ?? false);
   const [warningMessage, setWarningMessage] = useState(service?.warningMessage || "");
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleServiceSelect = (selectedService: any) => {
+    setExternalId(String(selectedService.service));
+    if (!name || name === (service?.name || "")) {
+      setName(selectedService.name || "");
+    }
+    const originalRate = selectedService.pricePerUnitProcurementUsd ? selectedService.pricePerUnitProcurementUsd * 1000 : parseFloat(selectedService.rate || "0");
+    if (!isNaN(originalRate)) {
+      setRate(String(originalRate));
+    }
+    if (selectedService.min) setMinQty(String(selectedService.min));
+    if (selectedService.max) setMaxQty(String(selectedService.max));
+  };
 
   const targetTypeItems = [
     { id: "none", name: "Автоматически по категории" },
@@ -260,14 +290,21 @@ function ServiceFormDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto w-full p-6 bg-card border border-border shadow-2xl rounded-xl animate-in duration-200">
-        <DialogHeader className="mb-4">
-          <DialogTitle className="text-lg font-bold text-foreground">{title}</DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
+    <>
+      <ProviderServiceSearchModal 
+        isOpen={isSearchModalOpen} 
+        onOpenChange={setIsSearchModalOpen} 
+        providerId={providerId} 
+        onSelect={handleServiceSelect} 
+      />
+      <Sheet open={isOpen} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl p-6 md:p-8 bg-card border-l border-border/40 shadow-2xl flex flex-col gap-0 overflow-y-auto">
+        <SheetHeader className="mb-6 px-0 pt-0">
+          <SheetTitle className="text-xl tracking-tight font-extrabold text-foreground">{title}</SheetTitle>
+          <SheetDescription className="text-xs text-muted-foreground">
             Заполните все необходимые параметры услуги.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section 1: Основные данные */}
@@ -351,13 +388,27 @@ function ServiceFormDialog({
 
               <div className="space-y-1">
                 <label className="block text-xs font-semibold text-muted-foreground">Внешний ID (External ID)</label>
-                <input
-                  type="text"
-                  placeholder="Опционально (например: 1422)"
-                  value={externalId}
-                  onChange={e => setExternalId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Опционально (например: 1422)"
+                    value={externalId}
+                    onChange={e => setExternalId(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                  />
+                  {providerId !== "none" && providerId !== "" && (
+                    <Button 
+                      type="button" 
+                      intent="outline" 
+                      size="sm" 
+                      onClick={() => setIsSearchModalOpen(true)}
+                      className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Search className="w-4 h-4 mr-1.5" />
+                      Поиск
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -551,22 +602,23 @@ function ServiceFormDialog({
             )}
           </div>
 
-          <DialogFooter className="pt-4 border-t border-border flex justify-end gap-2">
-            <DialogClose render={<Button intent="outline" size="sm" type="button">Отмена</Button>} />
+          <SheetFooter className="pt-6 mt-8 border-t border-border/40 flex justify-end gap-3 px-0 pb-0">
+            <SheetClose render={<Button intent="outline" size="sm" type="button" className="transition-all active:scale-[0.98]">Отмена</Button>} />
             <Button
               type="submit"
               intent="primary"
               size="sm"
               disabled={isPending}
-              className="flex items-center gap-1 bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 cursor-pointer"
+              className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 ease-out-cubic active:scale-[0.98] shadow-sm shadow-primary/20"
             >
               {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Сохранить услугу
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
+    </>
   );
 }
 
@@ -595,7 +647,7 @@ export function CreateServiceModal({
         Создать услугу
       </Button>
       {open && (
-        <ServiceFormDialog
+        <ServiceFormSheet
           categories={categories}
           providers={providers}
           isOpen={open}
@@ -634,7 +686,7 @@ export function EditServiceModal({
         <Pencil className="w-4 h-4" />
       </button>
       {open && (
-        <ServiceFormDialog
+        <ServiceFormSheet
           service={service}
           categories={categories}
           providers={providers}
@@ -658,7 +710,9 @@ function CatalogTableRow({
   onToggle, 
   categories, 
   providers,
-  router
+  router,
+  currency,
+  volume
 }: {
   service: CatalogServiceDTO;
   usdToRub: number;
@@ -673,27 +727,45 @@ function CatalogTableRow({
   providers: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   router: any;
+  currency: 'RUB' | 'USD';
+  volume: 'UNIT' | '1K';
 }) {
   const [markup, setMarkup] = useState(s.markup);
-  const [localPrice, setLocalPrice] = useState(calcRetailPrice(s.rate, s.markup, usdToRub));
+  const [localPrice, setLocalPrice] = useState(calcDisplayPrice(s.rate, s.markup, usdToRub, currency, volume));
   const [isPending, startTransition] = useTransition();
 
   const isBelowSafety = markup < SAFETY_MULTIPLIER;
-  const providerCostRub = s.rate * usdToRub;
 
-  // Sync state if service rate or markup changed from parent / bulk update
+  // Sync state if service rate or markup changed from parent / bulk update, or currency / volume changed
   const [prevService, setPrevService] = useState(s);
-  if (s.markup !== prevService.markup || s.rate !== prevService.rate) {
+  const [prevCurrency, setPrevCurrency] = useState(currency);
+  const [prevVolume, setPrevVolume] = useState(volume);
+
+  if (s.markup !== prevService.markup || s.rate !== prevService.rate || currency !== prevCurrency || volume !== prevVolume) {
     setPrevService(s);
+    setPrevCurrency(currency);
+    setPrevVolume(volume);
     setMarkup(s.markup);
-    setLocalPrice(calcRetailPrice(s.rate, s.markup, usdToRub));
+    setLocalPrice(calcDisplayPrice(s.rate, s.markup, usdToRub, currency, volume));
   }
 
   function handlePriceChange(val: string) {
     const newPrice = parseFloat(val) || 0;
     setLocalPrice(newPrice);
-    if (providerCostRub > 0) {
-      setMarkup(newPrice / providerCostRub);
+    
+    // Auto-recalculate markup in memory
+    if (currency === 'RUB') {
+      const providerCostRub = s.rate * usdToRub;
+      const pricePer1kRub = volume === '1K' ? newPrice : newPrice * 1000;
+      if (providerCostRub > 0) {
+        setMarkup(pricePer1kRub / providerCostRub);
+      }
+    } else { // USD
+      const providerCostUsd = s.rate;
+      const pricePer1kUsd = volume === '1K' ? newPrice : newPrice * 1000;
+      if (providerCostUsd > 0) {
+        setMarkup(pricePer1kUsd / providerCostUsd);
+      }
     }
   }
 
@@ -701,25 +773,49 @@ function CatalogTableRow({
     const newPercent = parseFloat(val) || 0;
     const newMarkup = (newPercent / 100) + 1;
     setMarkup(newMarkup);
-    setLocalPrice(calcRetailPrice(s.rate, newMarkup, usdToRub));
+    setLocalPrice(calcDisplayPrice(s.rate, newMarkup, usdToRub, currency, volume));
   }
 
   async function save() {
-    const roundedPrice = applyBeautifulRounding(localPrice);
-    const finalMarkup = roundedPrice / providerCostRub;
+    const providerCostRub = s.rate * usdToRub;
+    const providerCostUsd = s.rate;
 
-    if (roundedPrice === calcRetailPrice(s.rate, s.markup, usdToRub)) return;
-    
+    let finalMarkup = s.markup;
+
+    if (currency === 'RUB') {
+      const pricePer1kRub = volume === '1K' ? localPrice : localPrice * 1000;
+      const roundedPricePer1kRub = applyBeautifulRounding(pricePer1kRub);
+      if (providerCostRub > 0) {
+        finalMarkup = roundedPricePer1kRub / providerCostRub;
+      }
+    } else { // USD
+      const pricePer1kUsd = volume === '1K' ? localPrice : localPrice * 1000;
+      if (providerCostUsd > 0) {
+        finalMarkup = pricePer1kUsd / providerCostUsd;
+      }
+    }
+
+    // Check if markup actually changed
+    const currentDisplayPrice = calcDisplayPrice(s.rate, s.markup, usdToRub, currency, volume);
+    if (localPrice === currentDisplayPrice) return;
+
     // HARD BLOCK: Financial Integrity Guard
     if (finalMarkup < SAFETY_MULTIPLIER) {
+      const minPrice = calcDisplayPrice(s.rate, SAFETY_MULTIPLIER, usdToRub, currency, volume);
+      const unitLabel = volume === '1K' ? 'за 1000 шт' : 'за 1 шт';
+      const curSign = currency === 'RUB' ? '₽' : '$';
       toast.error(
-        <div className="flex flex-col gap-1">
-          <span className="font-bold text-destructive flex items-center gap-1"><AlertCircle className="w-4 h-4" /> Ошибка маржинальности</span>
-          <span>Цена <b>{roundedPrice} ₽</b> (+{((finalMarkup - 1) * 100).toFixed(0)}%) ниже порога безубыточности <b>+{((SAFETY_MULTIPLIER - 1) * 100).toFixed(0)}%</b>.</span>
+        <div className="flex flex-col gap-1 text-xs">
+          <span className="font-bold text-destructive flex items-center gap-1">
+            <AlertCircle className="w-4 h-4" /> Ошибка маржинальности
+          </span>
+          <span>
+            Цена <b>{localPrice} {curSign} ({unitLabel})</b> ниже порога безубыточности. Минимальная цена: <b>{minPrice} {curSign}</b>.
+          </span>
         </div>
       );
       setMarkup(s.markup);
-      setLocalPrice(calcRetailPrice(s.rate, s.markup, usdToRub));
+      setLocalPrice(calcDisplayPrice(s.rate, s.markup, usdToRub, currency, volume));
       return;
     }
 
@@ -728,15 +824,18 @@ function CatalogTableRow({
       if (!r.success) {
         toast.error(r.error ?? 'Ошибка сохранения');
         setMarkup(s.markup);
-        setLocalPrice(calcRetailPrice(s.rate, s.markup, usdToRub));
+        setLocalPrice(calcDisplayPrice(s.rate, s.markup, usdToRub, currency, volume));
       } else {
+        const displayNewPrice = calcDisplayPrice(s.rate, finalMarkup, usdToRub, currency, volume);
+        const curSign = currency === 'RUB' ? '₽' : '$';
+        const unitLabel = volume === '1K' ? 'за 1000 шт' : 'за 1 шт';
         toast.success(
-          <div className="flex flex-col">
+          <div className="flex flex-col text-xs">
             <span className="font-bold">Цена обновлена</span>
-            <span className="text-[11px] opacity-80">Установлено: {roundedPrice} ₽ (+{((finalMarkup - 1) * 100).toFixed(0)}%)</span>
+            <span className="opacity-80">Установлено: {displayNewPrice} {curSign} ({unitLabel}) (+{((finalMarkup - 1) * 100).toFixed(0)}%)</span>
           </div>
         );
-        setLocalPrice(roundedPrice);
+        setLocalPrice(displayNewPrice);
         setMarkup(finalMarkup);
       }
     });
@@ -759,7 +858,7 @@ function CatalogTableRow({
   return (
     <Table.Row
       key={s.id}
-      className={`group transition-all duration-200 ${
+      className={`group transition-all duration-200 border-b border-border/80 ${
         isChecked
           ? 'bg-primary/5'
           : !s.isActive
@@ -767,62 +866,78 @@ function CatalogTableRow({
           : 'hover:bg-muted/30'
       }`}
     >
+      {/* 1. Checkbox */}
       <Table.Cell className={canEdit ? "py-4 px-4" : "hidden"}>
         <input
           type="checkbox" checked={isChecked}
           onChange={onToggle}
-          className="rounded border-default-300 text-primary focus:ring-primary cursor-pointer"
+          className="rounded border-border text-primary focus:ring-primary cursor-pointer w-4 h-4"
           disabled={!canEdit}
         />
       </Table.Cell>
+
+      {/* 2. Услуга / Сеть */}
       <Table.Cell className="py-4 px-4">
-        <span className="font-mono text-xs text-muted-foreground">
-          #{s.numericId}
-        </span>
-      </Table.Cell>
-      <Table.Cell className="py-4 px-4">
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getNetworkBadgeClass(s.networkSlug)}`}>
-          {s.networkName || '—'}
-        </span>
-      </Table.Cell>
-      <Table.Cell className="py-4 px-4 text-xs font-semibold text-foreground max-w-[200px] truncate">
-        <span title={s.categoryName || ''}>{s.categoryName}</span>
-      </Table.Cell>
-      <Table.Cell className="py-4 px-4">
-        <div className="flex flex-col py-1 space-y-1 max-w-[280px]">
-          <span className="font-bold text-foreground text-xs leading-tight" title={s.name}>
-            {s.name}
-          </span>
-          {s.isQuarantined && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-warning/15 text-warning-text font-bold border border-warning/20 whitespace-nowrap self-start">
-              ⚠️ КАРАНТИН
+        <div className="flex items-start gap-3">
+          <div className="flex flex-col gap-1.5 items-start shrink-0">
+            <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${getNetworkBadgeClass(s.networkSlug)}`}>
+              {s.networkName || '—'}
             </span>
-          )}
-          {s.providerId && s.externalId && (
-            <span className="text-[10px] text-muted-foreground font-mono">
-              Ext: #{s.externalId} ({providers.find(p => p.id === s.providerId)?.name || 'API'})
+            <span className="font-mono text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/30">
+              #{s.numericId}
             </span>
-          )}
+          </div>
+          <div className="flex flex-col space-y-1 max-w-[340px]">
+            <span className="font-black text-foreground text-xs leading-tight flex flex-wrap items-center gap-1.5">
+              {s.name}
+              {s.isQuarantined && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-warning/10 text-warning font-black border border-warning/20 whitespace-nowrap animate-pulse">
+                  ⚠️ КАРАНТИН
+                </span>
+              )}
+            </span>
+            <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] font-bold text-muted-foreground leading-none">
+              {s.providerId && s.externalId && (
+                <span className="font-mono">
+                  API: #{s.externalId} ({providers.find(p => p.id === s.providerId)?.name || 'API'})
+                </span>
+              )}
+              <span className="text-primary uppercase tracking-tight">
+                [{s.networkName || 'Тариф'}]
+              </span>
+            </div>
+          </div>
         </div>
       </Table.Cell>
+
+      {/* 3. Категория */}
+      <Table.Cell className="py-4 px-4 text-xs font-bold text-foreground">
+        <span className="bg-background border border-border/80 px-2.5 py-1 rounded-lg shadow-sm block w-fit" title={s.categoryName || ''}>
+          {s.categoryName}
+        </span>
+      </Table.Cell>
+
+      {/* 4. Закупка */}
       <Table.Cell className={`py-4 px-4 text-right ${!canSeeRates ? "hidden" : ""}`}>
         {canSeeRates ? (
           <div className="flex flex-col items-end">
-            <span className="font-mono text-xs font-semibold text-foreground">
-              ${s.rate.toFixed(4)}
+            <span className="font-mono text-xs font-black text-foreground tabular-nums tracking-tight">
+              {currency === 'USD' ? '$' : ''}
+              {calcDisplayCost(s.rate, usdToRub, currency, volume).toFixed(currency === 'USD' ? (volume === '1K' ? 4 : 6) : (volume === '1K' ? 2 : 4))}
+              {currency === 'RUB' ? ' ₽' : ''}
             </span>
-            <span className="text-[10px] text-muted-foreground/80 font-medium font-mono">
-              ≈ {providerCostRub.toFixed(2)} ₽
+            <span className="text-[9px] text-muted-foreground/60 font-bold font-mono uppercase tracking-tighter mt-0.5">
+              {volume === '1K' ? 'за 1к шт' : 'за 1 шт'}
             </span>
           </div>
         ) : <span className="sr-only">Rate hidden</span>}
       </Table.Cell>
       
-      {/* Наценка в процентах (%) */}
+      {/* 5. Наценка (%) */}
       <Table.Cell className="py-4 px-4">
         {canEditFinance && s.providerId ? (
-          <div className="relative flex items-center justify-center w-28">
-            <span className="absolute left-2 text-[10px] text-muted-foreground pointer-events-none">+</span>
+          <div className="relative flex items-center justify-center w-28 mx-auto">
+            <span className="absolute left-2 text-[10px] text-muted-foreground pointer-events-none font-bold">+</span>
             <input
               type="number"
               value={markup > 0 ? ((markup - 1) * 100).toFixed(0) : "0"}
@@ -830,65 +945,64 @@ function CatalogTableRow({
               onBlur={save}
               onKeyDown={e => e.key === 'Enter' && save()}
               disabled={isPending || !canEditFinance}
-              className={`w-20 pl-4 pr-1 py-1.5 text-xs font-mono rounded-lg border outline-none transition-all duration-200 tabular-nums text-center
+              className={`w-20 pl-4 pr-1.5 py-1 text-xs font-mono font-bold rounded-lg border outline-none transition-all duration-200 tabular-nums text-center
                 ${isBelowSafety
-                  ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
+                  ? 'border-rose-400 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
+                  : 'border-border/80 bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
                 } disabled:opacity-50`}
             />
-            <span className="ml-1 text-[10px] text-muted-foreground font-semibold">%</span>
+            <span className="ml-1 text-[10px] text-muted-foreground font-black">%</span>
           </div>
         ) : (
-          <div className="text-xs font-mono text-center text-muted-foreground w-28 py-1.5">
+          <div className="text-xs font-mono font-bold text-center text-muted-foreground w-28 mx-auto py-1">
             {s.providerId ? `+${((markup - 1) * 100).toFixed(0)}%` : '—'}
           </div>
         )}
       </Table.Cell>
 
-      {/* Розничная цена (₽) */}
+      {/* 6. Розничная цена */}
       <Table.Cell className="py-4 px-4">
         {canEdit ? (
-          <div className="flex items-center w-28">
+          <div className="flex items-center justify-end w-28 ml-auto">
             <input
               type="number"
+              step={volume === '1K' ? '1' : '0.0001'}
               value={localPrice}
               onChange={e => handlePriceChange(e.target.value)}
               onBlur={save}
               onKeyDown={e => e.key === 'Enter' && save()}
               disabled={isPending || !canEditFinance}
-              className={`w-20 px-2 py-1.5 text-xs font-mono font-bold rounded-lg border outline-none transition-all duration-200 tabular-nums text-right
+              className={`w-20 px-2 py-1 text-xs font-mono font-black rounded-lg border outline-none transition-all duration-200 tabular-nums text-right
                 ${isBelowSafety
-                  ? 'border-rose-300 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
+                  ? 'border-rose-400 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
+                  : 'border-border/80 bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
                 } disabled:opacity-50`}
             />
-            <span className="ml-1 text-xs text-muted-foreground font-semibold">₽</span>
+            <span className="ml-1 text-xs text-muted-foreground font-bold">{currency === 'RUB' ? '₽' : '$'}</span>
           </div>
         ) : (
-          <div className="text-xs font-mono font-bold text-foreground bg-muted/30 px-2.5 py-1.5 rounded-lg border border-border/40 inline-block tabular-nums w-24 text-right">
-            {applyBeautifulRounding(s.rate * s.markup * usdToRub).toLocaleString('ru-RU')} ₽
+          <div className="text-xs font-mono font-black text-foreground bg-muted/30 px-2.5 py-1 rounded-lg border border-border/40 inline-block tabular-nums w-24 text-right">
+            {localPrice} {currency === 'RUB' ? '₽' : '$'}
           </div>
         )}
       </Table.Cell>
       
-      <Table.Cell className="py-4 px-4 text-right hidden lg:table-cell">
-        <span className="text-xs font-mono font-semibold text-muted-foreground bg-muted/60 px-2 py-1 rounded-lg border border-border/30">
-          {s.ordersCount.toLocaleString('ru-RU')}
-        </span>
-      </Table.Cell>
+      {/* 7. Статус / Доступность */}
       <Table.Cell className="py-4 px-4 text-center">
-        {canEdit ? <StatusToggle service={s} /> : (
-          <span className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider ${s.isActive ? 'bg-success/15 text-success border border-emerald-500/10' : 'bg-muted text-muted-foreground border border-border/30'}`}>
-            {s.isActive ? 'Вкл' : 'Выкл'}
+        <div className="flex flex-col items-center gap-1.5 justify-center">
+          {canEdit ? <StatusToggle service={s} /> : (
+            <span className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider ${s.isActive ? 'bg-success/15 text-success border border-emerald-500/10' : 'bg-muted text-muted-foreground border border-border/30'}`}>
+              {s.isActive ? 'Вкл' : 'Выкл'}
+            </span>
+          )}
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border uppercase tracking-wider ${providerStatusColor}`}>
+            {providerStatusLabel}
           </span>
-        )}
+        </div>
       </Table.Cell>
-      <Table.Cell className="py-4 px-4 text-center">
-        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${providerStatusColor}`}>
-          {providerStatusLabel}
-        </span>
-      </Table.Cell>
-      <Table.Cell className={canEdit ? "py-4 px-4" : "hidden"}>
+
+      {/* 8. Действия */}
+      <Table.Cell className={canEdit ? "py-4 px-4 text-right" : "hidden"}>
         {canEdit ? (
           <div className="flex items-center gap-1.5 justify-end">
             <EditServiceModal service={s} categories={categories} providers={providers} onSuccess={() => router.refresh()} />
@@ -924,8 +1038,9 @@ export function CatalogTable({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Selected items state
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [currency, setCurrency] = useState<'RUB' | 'USD'>('RUB');
+  const [volume, setVolume] = useState<'UNIT' | '1K'>('1K');
 
   const allIds = services.map(s => s.id);
   const allSelected = selected.size === allIds.length && allIds.length > 0;
@@ -993,13 +1108,13 @@ export function CatalogTable({
   return (
     <div className="space-y-6">
       {/* Redesigned Premium Filters Bar */}
-      <div className="bg-card border border-border p-4 rounded-2xl shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 p-5 rounded-2xl shadow-sm ring-1 ring-border/5 space-y-4">
+        <div className="flex items-center justify-between border-b border-border/50 pb-3">
           <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Фильтры каталога</h3>
           {(currentSearch || currentExternalId || currentProviderId !== 'all' || currentIsActive !== 'all' || currentProviderStatus !== 'all') && (
             <button 
               onClick={resetFilters} 
-              className="text-[11px] font-bold text-destructive hover:underline transition-all duration-200 cursor-pointer"
+              className="text-[11px] font-bold text-destructive hover:underline transition-all duration-200 cursor-pointer active:scale-95"
             >
               Сбросить фильтры
             </button>
@@ -1106,20 +1221,58 @@ export function CatalogTable({
         </div>
       </div>
 
-      <div className="flex justify-between items-center gap-4 py-1">
-        <div className="text-sm text-muted-foreground">
-          Показано услуг: <span className="font-semibold text-foreground">{services.length}</span>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-muted/30 border border-border/80 rounded-2xl shadow-sm">
+        <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider shrink-0">
+          Показано услуг: <span className="font-black text-foreground text-sm tabular-nums">{services.length}</span>
         </div>
-        {canEdit && (
-          <CreateServiceModal categories={categories} providers={providers} onSuccess={() => router.refresh()} />
-        )}
+
+        {/* Price display controls */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2 bg-background border border-border/80 p-1 rounded-xl shadow-sm">
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-tight px-2">Валюта:</span>
+            <button
+              onClick={() => setCurrency('RUB')}
+              className={`px-3 py-1 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${currency === 'RUB' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              ₽ (RUB)
+            </button>
+            <button
+              onClick={() => setCurrency('USD')}
+              className={`px-3 py-1 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${currency === 'USD' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              $ (USD)
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 bg-background border border-border/80 p-1 rounded-xl shadow-sm">
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-tight px-2">Объем:</span>
+            <button
+              onClick={() => setVolume('UNIT')}
+              className={`px-3 py-1 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${volume === 'UNIT' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              за 1 шт
+            </button>
+            <button
+              onClick={() => setVolume('1K')}
+              className={`px-3 py-1 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${volume === '1K' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              за 1000 шт
+            </button>
+          </div>
+        </div>
+
+        <div className="shrink-0">
+          {canEdit && (
+            <CreateServiceModal categories={categories} providers={providers} onSuccess={() => router.refresh()} />
+          )}
+        </div>
       </div>
 
       {selected.size > 0 && canEdit && (
         <BatchActionBar selectedIds={selectedIds} onClear={() => setSelected(new Set())} canEditFinance={canEditFinance} categories={categories} />
       )}
 
-      <div className="rounded-xl border border-default-200 bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table className="w-full text-sm text-left">
             <Table.ScrollContainer>
@@ -1129,20 +1282,16 @@ export function CatalogTable({
                     <input
                       type="checkbox" checked={allSelected}
                       onChange={toggleAll}
-                      className="rounded border-default-300 text-primary focus:ring-primary cursor-pointer"
+                      className="rounded border-border text-primary focus:ring-primary cursor-pointer w-4 h-4"
                       disabled={!canEdit}
                     />
                   </Table.Column>
-                  <Table.Column isRowHeader key="id" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-4 py-3">ID</Table.Column>
-                  <Table.Column key="network" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-4 py-3">Сеть</Table.Column>
-                  <Table.Column key="category" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-4 py-3">Категория</Table.Column>
-                  <Table.Column key="name" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider min-w-[200px] w-full px-4 py-3">Название услуги</Table.Column>
-                  <Table.Column key="rate" className={`text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-right px-4 py-3 ${!canSeeRates ? "hidden" : ""}`}>Закуп ($)</Table.Column>
-                  <Table.Column key="markup" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-4 py-3 text-center">Наценка (%)</Table.Column>
-                  <Table.Column key="price" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-4 py-3">Цена (₽)</Table.Column>
-                  <Table.Column key="orders" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-right hidden lg:table-cell px-4 py-3">Заказы</Table.Column>
-                  <Table.Column key="status" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-center px-4 py-3">Сайт</Table.Column>
-                  <Table.Column key="providerStatus" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-center px-4 py-3">Провайдер</Table.Column>
+                  <Table.Column key="serviceNetwork" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 min-w-[240px]">Услуга / Сеть</Table.Column>
+                  <Table.Column key="category" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3">Категория</Table.Column>
+                  <Table.Column key="rate" className={`text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-right px-4 py-3 ${!canSeeRates ? "hidden" : ""}`}>Закупка</Table.Column>
+                  <Table.Column key="markup" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-center">Наценка (%)</Table.Column>
+                  <Table.Column key="price" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-right">Розничная цена</Table.Column>
+                  <Table.Column key="status" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-center px-4 py-3">Статус</Table.Column>
                   <Table.Column key="actions" className={canEdit ? "w-12 px-4 py-3 text-right" : "hidden"}><span className="sr-only">Actions</span></Table.Column>
                 </Table.Header>
                 <Table.Body renderEmptyState={() => (
@@ -1164,6 +1313,8 @@ export function CatalogTable({
                       categories={categories}
                       providers={providers}
                       router={router}
+                      currency={currency}
+                      volume={volume}
                     />
                   ))}
                 </Table.Body>

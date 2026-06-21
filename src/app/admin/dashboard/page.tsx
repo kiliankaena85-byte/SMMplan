@@ -10,27 +10,77 @@ import { OrdersChart } from './orders-chart';
 import { Check, Clock, ChevronDown, Bell, Search, Settings, Home, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/admin/hero-ui';
-import { AdminPageHeader } from '@/components/admin/page-header';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { OPERATIONS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { RecentAuditTable } from './recent-audit-table';
 import { ProviderLiquidityWidget } from './ProviderLiquidityWidget';
+import { PeriodSelector } from './PeriodSelector';
+import { formatEta } from '@/utils/format-eta';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const session = await verifySession();
   const user = session ? await db.user.findUnique({ where: { id: session.userId } }) : null;
 
+  const resolvedSearchParams = await searchParams;
+  const period = resolvedSearchParams.period || 'all';
+
+  // Calculate start and end date boundaries in local timezone
+  const now = new Date();
+  let startDate: Date;
+  let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  let step: 'hour' | 'day' | 'week' | 'month';
+
+  if (period === 'today') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    step = 'hour';
+  } else if (period === 'yesterday') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+    step = 'hour';
+  } else if (period === '7d') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7, 0, 0, 0, 0);
+    step = 'day';
+  } else if (period === '30d') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30, 0, 0, 0, 0);
+    step = 'day';
+  } else {
+    // all time
+    const oldestOrder = await db.order.findFirst({ orderBy: { createdAt: 'asc' } });
+    startDate = oldestOrder ? oldestOrder.createdAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    
+    const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 3) {
+      step = 'hour';
+    } else if (diffDays <= 60) {
+      step = 'day';
+    } else if (diffDays <= 365) {
+      step = 'week';
+    } else {
+      step = 'month';
+    }
+  }
+
+  const filterStart = period === 'all' ? undefined : startDate;
+  const filterEnd = period === 'all' ? undefined : endDate;
+
   const [metrics, orderStats, userStats, ticketStats, catalogStats, recentAudit, timeseries] = await Promise.all([
-    accountingService.getMetrics(),
-    adminOrderService.getOrderStats(),
-    adminUserService.getUserStats(),
-    adminTicketService.getTicketStats(),
-    adminCatalogService.getCatalogStats(),
+    accountingService.getMetrics(filterStart, filterEnd),
+    adminOrderService.getOrderStats(filterStart, filterEnd),
+    adminUserService.getUserStats(filterStart, filterEnd),
+    adminTicketService.getTicketStats(filterStart, filterEnd),
+    adminCatalogService.getCatalogStats(filterStart, filterEnd),
     db.adminAuditLog.findMany({
+      where: filterStart && filterEnd ? { createdAt: { gte: filterStart, lte: filterEnd } } : {},
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
-    adminOrderService.getOrdersTimeseries(30),
+    adminOrderService.getOrdersTimeseries(startDate, endDate, step),
   ]);
 
   const revenueGross = metrics.revenueGross;
@@ -51,33 +101,23 @@ export default async function AdminDashboardPage() {
   const netPosition = Number(revenueGross) - Number(totalLiability);
   const netPositionStr = (netPosition / 100).toLocaleString('ru-RU');
 
-  // Real database calculations for YooKassa 3% gross payment commissions
-  const yookassaGross = await db.payment.aggregate({
-    _sum: { amount: true },
-    where: {
-      gateway: 'yookassa',
-      status: 'SUCCEEDED'
-    }
-  }).then(res => Number(res._sum.amount || 0));
-  const checkoutCommission = Math.round(yookassaGross * 0.03);
-
-  // Cumulative sebiстоимость (providerCost) of successful orders
-  const cumulativeProviderCost = await db.order.aggregate({
-    _sum: { providerCost: true },
-    where: {
-      status: { in: ['COMPLETED', 'PARTIAL', 'IN_PROGRESS', 'PROVISIONING', 'CANCELING'] }
-    }
-  }).then(res => Number(res._sum.providerCost || 0));
+  // Real database calculations from metrics service
+  const checkoutCommission = metrics.gatewayFees;
+  const cumulativeProviderCost = metrics.cogs;
 
   const profitMargin = metrics.revenueNet > 0 ? (metrics.profitNet / metrics.revenueNet) * 100 : 0;
   
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-background min-h-full pb-10">
       
-      <AdminPageHeader
+      <AdminTabbedHeader
         icon={Home}
         title={`Доброе утро, ${user?.email?.split('@')[0] || 'Администратор'}`}
         description="Отслеживайте финансовые потоки, заказы и нагрузку платформы."
+        tabs={OPERATIONS_TABS}
+        onboardingKey="dashboard"
+        onboarding={ONBOARDING_CONFIGS.dashboard}
+        action={<PeriodSelector period={period} />}
       />
 
       <SystemHealthBanner />
@@ -104,7 +144,7 @@ export default async function AdminDashboardPage() {
           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-warning to-warning opacity-80" />
           <div className="flex justify-between items-start mb-3">
             <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Комиссии кассы</span>
-            <span className="text-warning text-xs font-bold bg-warning/10 px-2 py-0.5 rounded-full shadow-sm">3% YooKassa</span>
+            <span className="text-warning text-xs font-bold bg-warning/10 px-2 py-0.5 rounded-full shadow-sm">Шлюзы</span>
           </div>
           <div className="text-2xl font-black text-foreground tabular-nums tracking-tight">
             {(checkoutCommission / 100).toLocaleString('ru-RU')} ₽
@@ -272,7 +312,15 @@ export default async function AdminDashboardPage() {
          {/* Orders Dynamics Chart */}
          <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-6 lg:p-7 shadow-sm border border-border/50 transition-all duration-300 hover:shadow-lg">
            <div className="flex justify-between items-start mb-1">
-             <h3 className="font-bold text-foreground">Динамика заказов (30 дней)</h3>
+             <h3 className="font-bold text-foreground">
+               Динамика заказов {
+                 period === 'today' ? '(Сегодня)' :
+                 period === 'yesterday' ? '(Вчера)' :
+                 period === '7d' ? '(7 дней)' :
+                 period === '30d' ? '(30 дней)' :
+                 '(Все время)'
+               }
+             </h3>
            </div>
            <p className="text-xs text-muted-foreground font-medium mb-2">Срез по Выполненным, Отмененным и Неоплаченным заказам</p>
            <div className="mt-4">
@@ -382,9 +430,28 @@ export default async function AdminDashboardPage() {
                </h3>
                {tStats.open > 0 && <span className="text-[10px] font-bold text-danger bg-danger/10 px-2 py-1 rounded-md shadow-sm">{tStats.open} в очереди</span>}
              </div>
-             <div className="flex flex-col bg-background/50 backdrop-blur-sm rounded-xl p-4 border border-border/50 group-hover:border-primary/20 transition-colors">
-                <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">Всего обращений</div>
-                <div className="font-mono text-2xl font-black tracking-tight text-foreground">{tStats.total}</div>
+             <div className="flex flex-col bg-background/50 backdrop-blur-sm rounded-xl p-4 border border-border/50 group-hover:border-primary/20 transition-colors space-y-3">
+                <div className="flex justify-between items-baseline">
+                  <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Всего обращений</div>
+                  <div className="font-mono text-2xl font-black tracking-tight text-foreground">{tStats.total}</div>
+                </div>
+
+                {(tStats.avgFRTMin > 0 || tStats.avgTTRMin > 0) && (
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/30">
+                    <div>
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mb-0.5">Первый ответ</div>
+                      <div className="font-mono text-xs font-black text-foreground">
+                        {tStats.avgFRTMin > 0 ? formatEta(tStats.avgFRTMin * 60) : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground mb-0.5">Решение</div>
+                      <div className="font-mono text-xs font-black text-foreground">
+                        {tStats.avgTTRMin > 0 ? formatEta(tStats.avgTTRMin * 60) : '—'}
+                      </div>
+                    </div>
+                  </div>
+                )}
              </div>
            </Link>
 

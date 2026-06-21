@@ -1,5 +1,6 @@
 'use server';
 
+import crypto from 'crypto';
 import { requireStaffPermission, requireOwnerPermission } from '@/lib/server/rbac';
 import { roleSchema, globalSettingsSchema } from '@/validators/admin.validators';
 import { db } from '@/lib/db';
@@ -62,12 +63,19 @@ export async function updateUserRole(formData: FormData) {
 
 // ── System Settings Update ──
 export async function updateGlobalSettings(formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') {
+    return { success: false, errors: { _form: ["Некорректные данные формы"] } };
+  }
   const result = await requireStaffPermission("settings", "edit", async (user) => {
     const parsed = globalSettingsSchema.safeParse(Object.fromEntries(formData.entries()));
-    if (!parsed.success) throw new Error('Validation failed');
+    if (!parsed.success) {
+      return { 
+        success: false as const, 
+        errors: parsed.error.flatten().fieldErrors 
+      };
+    }
     
     const {
-      maintenanceMode,
       siteName,
       siteDescription,
       usnScheme,
@@ -99,6 +107,13 @@ export async function updateGlobalSettings(formData: FormData) {
       legalCompanyInn,
       legalCompanyOgrnip,
       legalCompanyAddress,
+      taxRate,
+      opexMonthly,
+      quarantineThreshold,
+      globalMarkup,
+      safetyFloor,
+      siteLogoUrl,
+      siteFaviconUrl,
     } = parsed.data;
 
     const oldSettings = await db.systemSettings.findUnique({ where: { id: 'global' } });
@@ -123,6 +138,23 @@ export async function updateGlobalSettings(formData: FormData) {
     if (formData.has('legalCompanyAddress')) dataToUpdate.legalCompanyAddress = legalCompanyAddress;
     if (formData.has('welcomeMessage') && welcomeMessage !== null) dataToUpdate.welcomeMessage = welcomeMessage;
     
+    // Finance & Taxes
+    if (formData.has('taxRate') && taxRate !== undefined) dataToUpdate.taxRate = taxRate;
+    if (formData.has('opexMonthly') && opexMonthly !== undefined) {
+      dataToUpdate.opexMonthly = Math.round(opexMonthly * 100);
+    }
+    
+    // Branding
+    if (formData.has('siteLogoUrl')) dataToUpdate.siteLogoUrl = siteLogoUrl;
+    if (formData.has('siteFaviconUrl')) dataToUpdate.siteFaviconUrl = siteFaviconUrl;
+
+    // Catalog & Pricing
+    if (formData.has('globalMarkup') && globalMarkup !== undefined) dataToUpdate.globalMarkup = globalMarkup;
+    if (formData.has('safetyFloor') && safetyFloor !== undefined) dataToUpdate.safetyFloor = safetyFloor;
+    if (formData.has('quarantineThreshold') && quarantineThreshold !== undefined) {
+      dataToUpdate.quarantineThreshold = quarantineThreshold / 100;
+    }
+
     let isRateChanged = false;
     if (exchangeRateUSD !== undefined && exchangeRateUSD >= 0) {
       if (oldSettings?.exchangeRateUSD !== exchangeRateUSD) {
@@ -131,27 +163,31 @@ export async function updateGlobalSettings(formData: FormData) {
       }
     }
 
-    // Only update secrets if they are provided (prevent overwriting with empty)
+    // Helper to prevent overwriting secrets with placeholders
+    const isPlaceholder = (val?: string | null) => !val || val.trim() === '' || val.includes('•••');
+
+    // Only update secrets if they are provided (prevent overwriting with empty or placeholders)
     if (formData.has('yookassaShopId')) dataToUpdate.yookassaShopId = yookassaShopId;
-    if (rawYookassaSecret) dataToUpdate.yookassaSecretKey = VaultService.encrypt(rawYookassaSecret);
+    if (rawYookassaSecret && !isPlaceholder(rawYookassaSecret)) dataToUpdate.yookassaSecretKey = VaultService.encrypt(rawYookassaSecret);
     if (formData.has('yookassaTestShopId')) dataToUpdate.yookassaTestShopId = yookassaTestShopId;
-    if (rawYookassaTestSecret) dataToUpdate.yookassaTestSecretKey = VaultService.encrypt(rawYookassaTestSecret);
-    if (rawCryptoBotToken) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
+    if (rawYookassaTestSecret && !isPlaceholder(rawYookassaTestSecret)) dataToUpdate.yookassaTestSecretKey = VaultService.encrypt(rawYookassaTestSecret);
+    if (rawCryptoBotToken && !isPlaceholder(rawCryptoBotToken)) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
+    
     if (formData.has('robokassaLogin')) dataToUpdate.robokassaLogin = robokassaLogin;
-    if (rawRobokassaPassword) dataToUpdate.robokassaPassword = VaultService.encrypt(rawRobokassaPassword);
-    if (rawRobokassaWebhookPassword) dataToUpdate.robokassaWebhookPassword = VaultService.encrypt(rawRobokassaWebhookPassword);
+    if (rawRobokassaPassword && !isPlaceholder(rawRobokassaPassword)) dataToUpdate.robokassaPassword = VaultService.encrypt(rawRobokassaPassword);
+    if (rawRobokassaWebhookPassword && !isPlaceholder(rawRobokassaWebhookPassword)) dataToUpdate.robokassaWebhookPassword = VaultService.encrypt(rawRobokassaWebhookPassword);
 
     // Email / SMTP settings
     if (formData.has('emailProvider') && emailProvider !== undefined) dataToUpdate.emailProvider = emailProvider;
-    if (rawResendApiKey && rawResendApiKey.trim() !== '') {
+    if (rawResendApiKey && !isPlaceholder(rawResendApiKey)) {
       dataToUpdate.resendApiKey = VaultService.encrypt(rawResendApiKey.trim());
     }
     if (formData.has('smtpHost') && smtpHost !== null) dataToUpdate.smtpHost = smtpHost;
     if (formData.has('smtpPort') && smtpPort !== undefined) dataToUpdate.smtpPort = smtpPort;
     if (formData.has('smtpUser') && smtpUser !== null) dataToUpdate.smtpUser = smtpUser;
-    if (rawSmtpPassword) dataToUpdate.smtpPassword = VaultService.encrypt(rawSmtpPassword);
+    if (rawSmtpPassword && !isPlaceholder(rawSmtpPassword)) dataToUpdate.smtpPassword = VaultService.encrypt(rawSmtpPassword);
     if (formData.has('supportEmailDomain') && supportEmailDomain !== null) dataToUpdate.supportEmailDomain = supportEmailDomain;
-    if (rawInboundSecret) dataToUpdate.inboundEmailWebhookSecret = VaultService.encrypt(rawInboundSecret);
+    if (rawInboundSecret && !isPlaceholder(rawInboundSecret)) dataToUpdate.inboundEmailWebhookSecret = VaultService.encrypt(rawInboundSecret);
 
     await settingsService.updateSystemSettings(dataToUpdate);
 
@@ -166,14 +202,31 @@ export async function updateGlobalSettings(formData: FormData) {
 
     const ipAddress = await getClientIp();
 
+    const sensitiveKeys = ['yookassaSecretKey', 'yookassaTestSecretKey', 'cryptoBotToken', 'robokassaPassword', 'robokassaWebhookPassword', 'resendApiKey', 'smtpPassword', 'inboundEmailWebhookSecret'];
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const safeDataToUpdate: any = { ...dataToUpdate };
+    for (const key of sensitiveKeys) {
+      if (safeDataToUpdate[key]) safeDataToUpdate[key] = '***';
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const oldValueToLog: any = {};
+    for (const key of Object.keys(safeDataToUpdate)) {
+      if (oldSettings && key in oldSettings) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        oldValueToLog[key] = sensitiveKeys.includes(key) ? '***' : (oldSettings as any)[key];
+      }
+    }
+
     auditAdmin({
       adminId: user.id,
       adminEmail: user.email,
       action: 'SYSTEM_SETTINGS_UPDATE',
       target: 'global',
       targetType: 'SETTINGS',
-      oldValue: { siteName: oldSettings?.siteName, maintenanceMode: oldSettings?.maintenanceMode },
-      newValue: { siteName, maintenanceMode },
+      oldValue: oldValueToLog,
+      newValue: safeDataToUpdate,
       ipAddress
     });
 
@@ -186,11 +239,53 @@ export async function updateGlobalSettings(formData: FormData) {
       console.error('[SettingsAction] Warning: Failed to invalidate cache tag:', cacheErr);
       // We don't throw here to avoid failing the action if Redis cache is temporarily down
     }
-    return true;
+    return { success: true as const };
+  });
+
+  if (result && typeof result === 'object' && 'success' in result && !result.success) {
+    if ('errors' in result) {
+      return result;
+    }
+    throw new Error('error' in result ? (result as Record<string, unknown>).error as string : 'Unknown error');
+  }
+  return result;
+}
+
+// ── Generate Inbound Mail Webhook Secret ──
+export async function generateInboundSecretAction() {
+  const result = await requireStaffPermission("settings", "edit", async (admin) => {
+    const rawSecret = crypto.randomBytes(32).toString('hex');
+    const encryptedSecret = VaultService.encrypt(rawSecret);
+
+    await settingsService.updateSystemSettings({
+      inboundEmailWebhookSecret: encryptedSecret
+    });
+
+    const ipAddress = await getClientIp();
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'INBOUND_SECRET_GENERATE',
+      target: 'global',
+      targetType: 'SETTINGS',
+      ipAddress
+    });
+
+    try {
+      const { revalidateTag } = await import('next/cache');
+      revalidateTag('settings', {});
+      revalidatePath('/admin/settings');
+    } catch (cacheErr) {
+      console.error('[SettingsAction] Warning: Failed to invalidate cache tag:', cacheErr);
+    }
+
+    return { success: true as const, secret: rawSecret };
   });
 
   if (result && typeof result === 'object' && 'success' in result && !result.success) {
     throw new Error(result.error);
   }
+  return result;
 }
 

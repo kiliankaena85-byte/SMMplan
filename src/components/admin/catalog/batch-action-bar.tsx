@@ -6,6 +6,7 @@ import {
   batchToggleServicesAction,
   batchSetMarkupAction,
   batchReassignServicesCategoryAction,
+  batchResetMarkupAction,
 } from '@/actions/admin/catalog/batch';
 import {
   TOTAL_MANDATORY_DEDUCTIONS,
@@ -182,6 +183,14 @@ export function BatchActionBar({
     });
   }
 
+  function handleResetMarkup() {
+    startTransition(async () => {
+      const r = await batchResetMarkupAction(selectedIds);
+      if (r.success) { toast.success(`⚡ Сброшена наценка для ${r.count} услуг по лестнице цен`); onClear(); }
+      else toast.error(r.error ?? 'Ошибка');
+    });
+  }
+
   return (
     <div className="flex items-center gap-3 px-4 py-3 bg-primary/5 border border-primary/20 rounded-xl mb-4 animate-in slide-in-from-top-2 duration-300">
       <span className="text-sm font-semibold text-primary">{selectedIds.length} выбрано</span>
@@ -194,6 +203,10 @@ export function BatchActionBar({
         onClick={handleDisable} disabled={isPending}
         className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/15 text-destructive border border-rose-500/30 hover:bg-destructive/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
       >🚫 Отключить</button>
+      <button
+        onClick={handleResetMarkup} disabled={isPending}
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-warning/15 text-warning border border-amber-500/30 hover:bg-warning/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+      >⚡ Сбросить наценку</button>
 
       <ReassignCategoryModal
         selectedIds={selectedIds}

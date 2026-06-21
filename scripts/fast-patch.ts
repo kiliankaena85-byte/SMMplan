@@ -146,6 +146,11 @@ async function main() {
       fs.cpSync(path.join(process.cwd(), 'cache-handler.js'), path.join(distPath, 'cache-handler.js'));
     }
     fs.cpSync(path.join(process.cwd(), '.next/standalone/.next'), path.join(distPath, '.next'), { recursive: true });
+    // Remove node_modules from .next to prevent Windows/Linux symlink conflicts during docker cp
+    const nestedNodeModules = path.join(distPath, '.next', 'node_modules');
+    if (fs.existsSync(nestedNodeModules)) {
+      fs.rmSync(nestedNodeModules, { recursive: true, force: true });
+    }
     fs.cpSync(path.join(process.cwd(), '.next/static'), path.join(distPath, '.next/static'), { recursive: true });
     fs.cpSync(path.join(process.cwd(), 'public'), path.join(distPath, 'public'), { recursive: true });
     fs.cpSync(path.join(process.cwd(), 'src'), path.join(distPath, 'src'), { recursive: true });
@@ -213,6 +218,7 @@ async function main() {
     `tar -xzf /tmp/smmplan_patch.tar.gz -C /tmp/smmplan_patch`,
     `rm -f /tmp/smmplan_patch.tar.gz`,
     `echo "Копирование файлов в контейнеры..."`,
+    `docker exec -u root ${target.containers.app} rm -rf /app/.next/server /app/.next/static`,
     `docker cp /tmp/smmplan_patch/. ${target.containers.app}:/app/`,
     `docker exec -u root ${target.containers.app} chown -R nextjs:nodejs /app/server.js /app/cache-handler.js /app/.next /app/public /app/src /app/prisma || true`,
     `docker cp /tmp/smmplan_patch/src/. ${target.containers.worker}:/app/src/`,

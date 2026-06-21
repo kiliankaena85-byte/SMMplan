@@ -80,7 +80,7 @@ export async function GET(req: Request) {
     // Returning 'unhealthy' or 'degraded' to the public leaks internal state
     // and aids reconnaissance by external actors.
     return NextResponse.json(
-      { status: 'ok', timestamp: new Date().toISOString() },
+      { status: 'ok' },
       { status: 200 }
     );
   }

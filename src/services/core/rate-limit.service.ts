@@ -21,9 +21,11 @@ export class RateLimitService {
     failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
   ): Promise<boolean> {
     try {
-      const { SettingsProvider } = await import('@/lib/settings');
-      if ((SettingsProvider.isTestEnvironment() || await SettingsProvider.isTestMode()) && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') {
-        return true;
+      if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
+        const { SettingsProvider } = await import('@/lib/settings');
+        if (SettingsProvider.isTestEnvironment() && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') {
+          return true;
+        }
       }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
@@ -116,9 +118,11 @@ export class RateLimitService {
     failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
   ): Promise<boolean> {
     try {
-      const { SettingsProvider } = await import('@/lib/settings');
-      if ((SettingsProvider.isTestEnvironment() || await SettingsProvider.isTestMode()) && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') {
-        return true;
+      if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
+        const { SettingsProvider } = await import('@/lib/settings');
+        if (SettingsProvider.isTestEnvironment() && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') {
+          return true;
+        }
       }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {

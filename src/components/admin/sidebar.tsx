@@ -46,7 +46,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
     <aside 
       className={cn(
         "relative z-20 h-screen flex-shrink-0 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] group hidden md:flex flex-col",
-        "bg-card/95 backdrop-blur-md border-r border-border shadow-[4px_0_24px_rgba(0,0,0,0.02)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.2)]",
+        "bg-background/40 backdrop-blur-xl border-r border-border/40 shadow-[4px_0_24px_rgba(0,0,0,0.02)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.1)]",
         collapsed ? "w-16" : "w-[280px]"
       )}
     >
@@ -55,7 +55,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
         <button 
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
-          className="flex items-center justify-center w-8 h-8 rounded-[10px] bg-background/80 backdrop-blur-sm border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-300 transform hover:scale-105 shadow-sm"
+          className="flex items-center justify-center w-8 h-8 rounded-[10px] bg-card/80 backdrop-blur-md border border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-300 active:scale-95 shadow-sm"
         >
           {collapsed ? <PanelLeftOpen className="w-4 h-4 ml-0.5" /> : <PanelLeftClose className="w-4 h-4 mr-0.5" />}
         </button>
@@ -107,15 +107,15 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                   className={cn(
                     "relative flex items-center px-3 text-sm font-medium rounded-[10px] transition-all duration-200 whitespace-nowrap overflow-hidden group h-12",
                     isActive 
-                      ? "bg-primary text-primary-foreground font-semibold shadow-sm shadow-primary/10" 
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      ? "bg-primary/10 text-primary font-bold shadow-sm shadow-primary/5" 
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                     collapsed && "justify-center px-0 w-12 h-12 mx-auto"
                   )}
                 >
                   <span className={cn(
                     "transition-transform duration-300 group-hover:scale-110", 
                     collapsed ? "" : "mr-3 w-5 text-center flex justify-center",
-                    isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
+                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                   )}>
                     <IconComponent className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
                   </span>
@@ -141,12 +141,12 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
               );
             })}
             {!collapsed && sIdx < navigation.length - 1 && (
-              <div className="h-px bg-border mx-3 mt-4 mb-2" />
+              <div className="h-px bg-border/40 mx-3 mt-4 mb-2" />
             )}
           </div>
         ))}
 
-        <div className="pt-4 mt-2 border-t border-border mx-2">
+        <div className="pt-4 mt-2 border-t border-border/40 mx-2">
           <Link
             href="/dashboard/new-order"
             title={collapsed ? "В кабинет клиента" : undefined}

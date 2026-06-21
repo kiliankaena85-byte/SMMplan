@@ -330,7 +330,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground font-medium pt-2 border-t border-border/40">
                     <span>{article.authorName}</span>
                     <span>•</span>
-                    <time dateTime={article.createdAt.toString()}>{dateStr}</time>
+                    <time dateTime={article.createdAt.toISOString()}>{dateStr}</time>
                     <span>•</span>
                     <span>👁️ {article.viewCount} просмотров</span>
                   </div>

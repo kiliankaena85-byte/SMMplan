@@ -121,9 +121,9 @@ export function MassConfirmEmailModal({
         )}
 
         <div className="flex items-center justify-between gap-4 mt-6">
-          <div className="text-right flex-1">
+          <div className="text-right flex-1 flex flex-col justify-end h-full">
             <p className="text-xs text-muted-foreground font-bold uppercase">Итого к оплате</p>
-            <p className="text-2xl font-black text-foreground tabular-nums">{totalPriceFormatted} ₽</p>
+            <p className="text-2xl font-black text-foreground tabular-nums leading-none mt-1">{totalPriceFormatted} ₽</p>
           </div>
           <Button
             onClick={handleConfirm}
@@ -139,6 +139,15 @@ export function MassConfirmEmailModal({
             )}
           </Button>
         </div>
+
+        {Number(totalPriceFormatted) > 0 && Number(totalPriceFormatted) < 10 && (
+          <div className="mt-4 p-3 rounded-xl bg-warning/10 border border-warning/20 text-warning-text text-[11px] leading-relaxed animate-in fade-in">
+            <div className="font-bold flex items-center gap-1 mb-1">
+              <span>💡</span> Минимальный платеж — 10 ₽
+            </div>
+            Технически эквайринг не принимает менее 10 ₽. Из них <strong>{totalPriceFormatted} ₽</strong> пойдет за заказ, а сдача <strong>{(10 - Number(totalPriceFormatted)).toFixed(2)} ₽</strong> будет зачислена на баланс вашего нового аккаунта.
+          </div>
+        )}
 
         <div className="flex items-center justify-center gap-2 mt-5 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
           <span>Карты РФ</span>

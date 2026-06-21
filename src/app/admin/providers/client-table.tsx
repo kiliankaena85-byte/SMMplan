@@ -17,7 +17,7 @@ import { SyncProviderButton } from "./components/sync-provider-button";
 export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) {
   return (
     <div className="w-full">
-      <div className="rounded-2xl border border-border shadow-sm bg-card backdrop-blur-xl overflow-hidden p-0">
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 overflow-hidden p-0">
         <Table className="table-fixed w-full" aria-label="Список SMM-провайдеров">
           <TableHeader>
             <TableRow>
@@ -134,7 +134,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                       <SyncProviderButton providerId={provider.id} />
                       <Link
                         href={`/admin/providers/${provider.id}`}
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-all duration-200 shadow-sm inline-block"
+                        className="px-3 py-1.5 text-xs font-bold rounded-xl border border-border/60 bg-background/50 backdrop-blur-sm text-foreground hover:bg-muted/80 transition-all duration-200 shadow-sm inline-block active:scale-95"
                       >
                         Настроить
                       </Link>

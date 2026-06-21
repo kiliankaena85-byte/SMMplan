@@ -77,6 +77,16 @@ export async function fetchPaginatedExternalServices(
                 select: { id: true, externalId: true }
             });
             const existingMap = new Map(existingServices.map((s: {id: string, externalId: string | null}) => [s.externalId, s.id]));
+            // Extract unique provider categories with count BEFORE filtering
+            const providerCategoriesMap = new Map<string, number>();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            allServices.forEach((s: any) => {
+                const cat = s.category || 'Без категории';
+                providerCategoriesMap.set(cat, (providerCategoriesMap.get(cat) || 0) + 1);
+            });
+            const providerCategories = Array.from(providerCategoriesMap.entries())
+                .map(([name, count]) => ({ name, count }))
+                .sort((a, b) => a.name.localeCompare(b.name));
 
             // Apply all filters EXCEPT platform filter first to get platform counts:
             let filteredForCounting = allServices;
@@ -86,6 +96,12 @@ export async function fetchPaginatedExternalServices(
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 filteredForCounting = filteredForCounting.filter((s: any) => 
                      s.metrics?.category === catFilter
+                );
+            }
+            if (filters.providerCategory && filters.providerCategory !== 'ALL') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                filteredForCounting = filteredForCounting.filter((s: any) => 
+                     (s.category || 'Без категории') === filters.providerCategory
                 );
             }
             if (filters.geo && filters.geo !== 'ALL') {
@@ -99,7 +115,7 @@ export async function fetchPaginatedExternalServices(
                      if (filters.velocity === 'FAST') return v >= 50;
                      if (filters.velocity === 'SLOW') return v <= 10;
                      return v > 10 && v < 50;
-                });
+                 });
             }
             if (filters.hasRefill) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,16 +132,45 @@ export async function fetchPaginatedExternalServices(
                     return !isNaN(min) && min > 0 && min <= 100;
                 });
             }
-            if (filters.search) {
-                const q = filters.search.toLowerCase();
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => 
-                    s.name.toLowerCase().includes(q) || String(s.service) === q
-                );
+            if (filters.minPrice !== undefined && filters.minPrice !== '') {
+                const minP = parseFloat(filters.minPrice);
+                if (!isNaN(minP)) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    filteredForCounting = filteredForCounting.filter((s: any) => (s.rateRub || 0) >= minP);
+                }
             }
-            if (filters.hideImported) {
+            if (filters.maxPrice !== undefined && filters.maxPrice !== '') {
+                const maxP = parseFloat(filters.maxPrice);
+                if (!isNaN(maxP)) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    filteredForCounting = filteredForCounting.filter((s: any) => (s.rateRub || 0) <= maxP);
+                }
+            }
+            if (filters.search) {
+                const q = filters.search.toLowerCase().trim();
+                const terms = q.split(/\s+/).filter(Boolean);
+                if (terms.length > 0) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    filteredForCounting = filteredForCounting.filter((s: any) => {
+                        const sName = (s.name || '').toLowerCase();
+                        const sCat = (s.category || '').toLowerCase();
+                        const sId = String(s.service);
+                        return terms.every((term: string) => 
+                            sName.includes(term) || 
+                            sCat.includes(term) || 
+                            sId.includes(term)
+                        );
+                    });
+                }
+            }
+            
+            const importStatus = filters.importStatus || (filters.hideImported ? 'NOT_IMPORTED' : 'ALL');
+            if (importStatus === 'NOT_IMPORTED') {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 filteredForCounting = filteredForCounting.filter((s: any) => !existingMap.has(String(s.service)));
+            } else if (importStatus === 'IMPORTED') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                filteredForCounting = filteredForCounting.filter((s: any) => existingMap.has(String(s.service)));
             }
 
             // Compute platform counts based on the filtered list
@@ -231,6 +276,7 @@ export async function fetchPaginatedExternalServices(
                 success: true,
                 data: paginated,
                 platformCounts,
+                providerCategories,
                 pagination: {
                     total,
                     totalPages,
@@ -356,7 +402,9 @@ export async function fetchExternalServices(providerId?: string, forceRefresh = 
 const importServicesSchema = z.object({
   externalIds: z.array(z.string().min(1)).min(1, "Выберите хотя бы одну услугу"),
   categoryId: z.string().min(1, "Категория обязательна"),
-  defaultMarkup: z.coerce.number().min(1.0, "Наценка не может быть менее 1.0 (0%)").max(10.0, "Максимальная наценка - 10.0 (900%)"),
+  defaultMarkup: z.coerce.number().refine(val => val === 0 || (val >= 1.0 && val <= 10.0), {
+    message: "Наценка должна быть 0 (автокалькуляция) или от 1.0 (0%) до 10.0 (900%)"
+  }),
   providerId: z.string().min(1, "ID провайдера обязателен"),
   categoryIdMap: z.record(z.string()).optional(),
 });

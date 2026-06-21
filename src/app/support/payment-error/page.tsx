@@ -16,6 +16,7 @@ import Link from 'next/link';
 interface PageProps {
   searchParams: Promise<{
     error?: string;
+    code?: string;
     serviceId?: string;
     gateway?: string;
     email?: string;
@@ -37,12 +38,27 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const settings = await SettingsProvider.getContactAndLegalSettings();
 
-  const errorText = params.error || 'Произошла непредвиденная ошибка при обработке платежа шлюзом.';
+  const rawError = params.error || '';
+  const code = params.code || '';
   const gatewayName = params.gateway || 'yookassa';
   const serviceId = params.serviceId;
   const email = params.email || '';
   const quantity = params.quantity || '';
   const url = params.url || '';
+
+  // Safe mapping of predefined error codes
+  const errorMap: Record<string, string> = {
+    'insufficient_funds': 'Недостаточно средств на карте или счете.',
+    'declined_by_bank': 'Транзакция отклонена вашим банком. Попробуйте другую карту.',
+    '3ds_failed': 'Не пройдена аутентификация 3D-Secure (не введен код из СМС).',
+    'gateway_timeout': 'Время ожидания ответа от платежного шлюза истекло.',
+    'limit_exceeded': 'Превышен лимит по карте или операции.',
+  };
+
+  // VULN-024, VULN-028 Mitigation: Never display raw gateway errors to the user.
+  // We only display the mapped safe error string, or a generic fallback.
+  const displayError = errorMap[code] || 'Произошла непредвиденная ошибка при обработке платежа шлюзом. Транзакция отклонена.';
+  const technicalErrorCode = code || (rawError ? 'UNKNOWN_GATEWAY_ERROR' : 'NONE');
 
   // Safe database query to fetch service name
   let serviceName = '';
@@ -60,22 +76,19 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
     }
   }
 
-  // Construct structured diagnostic block to copy
+  // Construct structured diagnostic block to copy (includes generic info, not raw PII leak)
   const diagnosticText = 
     `--- ДИАГНОСТИКА ПЛАТЕЖА ---\n` +
     `• Услуга: ${serviceName || 'Массовый заказ / Смешанный'}\n` +
     `• Шлюз: ${gatewayName.toUpperCase()}\n` +
-    `• Email: ${email || 'Не указан'}\n` +
-    `• Количество: ${quantity || 'Не указано'}\n` +
-    `• Ссылка: ${url || 'Не указана'}\n` +
-    `• Ошибка: ${errorText}\n` +
+    `• Код ошибки: ${technicalErrorCode}\n` +
     `--------------------------`;
 
   // Pre-fill support form message
   const defaultSupportMessage = 
     `Здравствуйте!\n\n` +
     `Не удалось завершить оплату через шлюз ${gatewayName.toUpperCase()}.\n` +
-    `Ошибка: "${errorText}"\n` +
+    `Код ошибки: "${technicalErrorCode}"\n` +
     (serviceName ? `Выбранная услуга: ${serviceName}\n` : '') +
     (quantity ? `Количество: ${quantity} шт.\n` : '') +
     (url ? `Ссылка на страницу: ${url}\n` : '') +
@@ -107,7 +120,7 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
             <div className="space-y-1">
               <span className="text-[10px] font-bold text-destructive uppercase tracking-widest pl-0.5">Сообщение об ошибке:</span>
               <p className="text-sm font-semibold text-foreground italic">
-                "{errorText}"
+                "{displayError}"
               </p>
             </div>
             <div className="shrink-0 flex items-center gap-2">
@@ -211,7 +224,7 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
             defaultMessage={defaultSupportMessage}
             isPaymentError={true}
             serviceId={serviceId}
-            errorText={errorText}
+            errorText={technicalErrorCode}
             gateway={gatewayName}
             quantity={quantity}
             url={url}

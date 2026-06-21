@@ -62,14 +62,16 @@ describe('Cherry-Pick Service Import & Shadow Catalog Tests', () => {
 
   beforeEach(async () => {
     // 1. Clean database tables
-    await db.order.deleteMany();
-    await db.serviceRoute.deleteMany();
-    await db.routingAuditLog.deleteMany();
-    await db.service.deleteMany();
-    await db.category.deleteMany();
-    await db.network.deleteMany();
-    await db.provider.deleteMany();
-    await db.user.deleteMany();
+    await db.ledgerEntry.deleteMany().catch(() => {});
+    await db.payment.deleteMany().catch(() => {});
+    await db.order.deleteMany().catch(() => {});
+    await db.serviceRoute.deleteMany().catch(() => {});
+    await db.routingAuditLog.deleteMany().catch(() => {});
+    await db.service.deleteMany().catch(() => {});
+    await db.category.deleteMany().catch(() => {});
+    await db.network.deleteMany().catch(() => {});
+    await db.provider.deleteMany().catch(() => {});
+    await db.user.deleteMany().catch(() => {});
 
     // 2. Setup systemSettings with exchange rates
     await db.systemSettings.upsert({
@@ -252,5 +254,48 @@ describe('Cherry-Pick Service Import & Shadow Catalog Tests', () => {
     // Price per 1k in cents: 0.60 USD * 3.0 markup * 100 exchange rate = 180.00 RUB -> 18000 cents
     expect(importedService?.pricePer1000Cents).toBe(18000);
     expect(importedService?.targetType).toBe('CHANNEL'); // Normalized from smart analyzer metrics!
+  });
+
+  it('should support partial ID searching in shadow services', async () => {
+    vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
+
+    const mockShadowCatalog = [
+      {
+        service: '101',
+        name: 'Telegram Subscribers Fast',
+        rate: '0.50',
+        min: '10',
+        max: '5000',
+        category: 'Telegram Subscribers',
+        cleanName: 'Subscribers Fast',
+        metrics: { platform: 'Telegram', category: 'SUBSCRIBERS', targetType: 'CHANNEL', anomalyScore: 0.1 }
+      },
+      {
+        service: '202',
+        name: 'Instagram Likes HQ',
+        rate: '0.15',
+        min: '50',
+        max: '2000',
+        category: 'Instagram Likes',
+        cleanName: 'Likes HQ',
+        metrics: { platform: 'Instagram', category: 'LIKES', targetType: 'POST', anomalyScore: 0.0 }
+      }
+    ];
+
+    vi.mocked(redis.get).mockResolvedValue(JSON.stringify(mockShadowCatalog));
+
+    // Search for partial ID '10' -> matches '101'
+    const result1 = await fetchPaginatedExternalServices(providerA.id, { search: '10' }, 1, 10);
+    expect(result1.success).toBe(true);
+    const paginated1 = result1 as { success: true; data: any[] };
+    expect(paginated1.data.length).toBe(1);
+    expect(paginated1.data[0].service).toBe('101');
+
+    // Search for common digit '2' -> matches '202'
+    const result2 = await fetchPaginatedExternalServices(providerA.id, { search: '2' }, 1, 10);
+    expect(result2.success).toBe(true);
+    const paginated2 = result2 as { success: true; data: any[] };
+    expect(paginated2.data.length).toBe(1);
+    expect(paginated2.data[0].service).toBe('202');
   });
 });

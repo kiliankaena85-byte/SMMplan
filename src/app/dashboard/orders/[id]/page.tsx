@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Clock, LayoutDashboard } from 'lucide-react';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
-import { OrderProgressBar } from '@/components/orders/OrderProgressBar';
+import { OrderProgressBar } from '@/components/orders/OrderProgressBar';import { PaymentAutoSync } from '@/components/orders/PaymentAutoSync';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,8 +59,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const color = STATUS_COLOR[order.status] || STATUS_COLOR.CANCELED;
   const label = STATUS_LABEL[order.status] || order.status;
 
+  const needsSync = order.status === 'AWAITING_PAYMENT' && order.payment?.gateway === 'yookassa' && order.payment?.status === 'PENDING';
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto">
+      {needsSync && <PaymentAutoSync />}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link 

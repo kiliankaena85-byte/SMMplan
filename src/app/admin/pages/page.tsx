@@ -3,6 +3,9 @@ import Link from 'next/link';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Button } from '@/components/ui/button';
 import { PagesTable } from './client-table';
+import { FileText } from 'lucide-react';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { SYSTEM_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,16 +13,20 @@ export default async function AdminPagesList() {
   const pages = await db.page.findMany({ orderBy: { updatedAt: 'desc' } });
 
   return (
-    <div className="space-y-6 w-full">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">CMS Pages</h1>
-          <p className="text-muted-foreground">Manage textual content for the public website.</p>
-        </div>
-        <Link href="/admin/pages/new" className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">
-          Create New Page
-        </Link>
-      </div>
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out bg-background min-h-full pb-10">
+      <AdminTabbedHeader
+        icon={FileText}
+        title="CMS Страницы"
+        description="Управление текстовым контентом публичного сайта (оферта, контакты)."
+        action={(
+          <Link href="/admin/pages/new" className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-primary-foreground bg-primary shadow-sm rounded-lg hover:opacity-90 transition-all">
+            + Создать Страницу
+          </Link>
+        )}
+        tabs={SYSTEM_TABS}
+        onboardingKey="pages"
+        onboarding={ONBOARDING_CONFIGS.pages}
+      />
 
       <div className="rounded-2xl shadow-sm bg-card overflow-hidden">
         <PagesTable pages={pages} />

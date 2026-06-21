@@ -12,6 +12,9 @@ const guestTicketSchema = z.object({
 });
 
 export async function createGuestTicketAction(formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') {
+    return { success: false, error: "Некорректные данные формы" };
+  }
   try {
     // 1. Zod input validation first
     const parsed = guestTicketSchema.safeParse(Object.fromEntries(formData.entries()));

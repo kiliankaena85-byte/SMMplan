@@ -34,7 +34,7 @@ export const columns: ColumnDef<ClientColumn>[] = [
       return (
         <Link
           href={`/admin/clients/${u.id}`}
-          className="text-primary hover:underline font-mono font-medium text-xs transition-colors"
+          className="text-primary hover:text-primary/80 font-mono font-medium text-[13px] transition-colors hover:underline underline-offset-4"
         >
           {u.email}
         </Link>
@@ -46,9 +46,9 @@ export const columns: ColumnDef<ClientColumn>[] = [
     header: 'Роль',
     cell: ({ row }) => {
       const u = row.original;
-      const roleInfo = ROLE_LABELS[u.role] || { label: u.role, color: 'bg-muted text-foreground border-transparent' };
+      const roleInfo = ROLE_LABELS[u.role] || { label: u.role, color: 'bg-muted/50 text-foreground border-border/50' };
       return (
-        <Badge intent="outline" className={`shadow-none font-medium px-2 py-0.5 text-xs uppercase tracking-wider ${roleInfo.color}`}>
+        <Badge intent="outline" className={`shadow-sm font-bold px-2 py-0.5 text-[10px] uppercase tracking-wider ${roleInfo.color}`}>
           {roleInfo.label}
         </Badge>
       );
@@ -60,11 +60,11 @@ export const columns: ColumnDef<ClientColumn>[] = [
     cell: ({ row }) => {
       const u = row.original;
       return (
-        <div className="font-semibold text-xs tabular-nums tracking-tight text-right">
-          {(Number(u.balance) / 100).toFixed(2)} ₽
+        <div className="font-bold text-[13px] font-mono tabular-nums tracking-tight text-right text-foreground">
+          {(Number(u.balance) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
           {Number(u.quarantineBalance) > 0 && (
-            <span className="block text-xs text-warning font-medium whitespace-nowrap mt-0.5">
-              🔒 {(Number(u.quarantineBalance) / 100).toFixed(2)} ₽
+            <span className="block text-[11px] text-warning font-medium whitespace-nowrap mt-0.5 opacity-90">
+              🔒 {(Number(u.quarantineBalance) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
             </span>
           )}
         </div>
@@ -75,14 +75,14 @@ export const columns: ColumnDef<ClientColumn>[] = [
     accessorKey: 'totalSpent',
     header: () => <div className="text-right">LTV (Прибыль)</div>,
     cell: ({ row }) => {
-      return <div className="text-xs font-medium tabular-nums tracking-tight text-right">{(Number(row.original.totalSpent) / 100).toLocaleString('ru-RU')} ₽</div>;
+      return <div className="text-[13px] font-bold font-mono tabular-nums tracking-tight text-right text-foreground">{(Number(row.original.totalSpent) / 100).toLocaleString('ru-RU')} ₽</div>;
     },
   },
   {
     accessorKey: '_count.orders',
     header: () => <div className="text-right">Заказы</div>,
     cell: ({ row }) => {
-      return <div className="text-xs tabular-nums tracking-tight text-right">{row.original._count.orders.toLocaleString('ru-RU')}</div>;
+      return <div className="text-[13px] font-bold font-mono tabular-nums tracking-tight text-right text-foreground">{row.original._count.orders.toLocaleString('ru-RU')}</div>;
     },
   },
   {
@@ -91,7 +91,7 @@ export const columns: ColumnDef<ClientColumn>[] = [
     cell: ({ row }) => {
       const tier = row.original.tier;
       return (
-        <Badge intent="outline" className={`shadow-none px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${tier.color}`}>
+        <Badge intent="outline" className={`shadow-sm px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${tier.color}`}>
           {tier.name}
         </Badge>
       );

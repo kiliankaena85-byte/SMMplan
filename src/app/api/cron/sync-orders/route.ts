@@ -7,9 +7,9 @@ export const revalidate = 0;
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
-  const secret = authHeader?.replace('Bearer ', '');
+  const cronSecret = process.env.CRON_SECRET;
 
-  if (secret !== process.env.CRON_SECRET) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     console.warn('[SyncOrdersCron] Unauthorized access attempt blocked');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

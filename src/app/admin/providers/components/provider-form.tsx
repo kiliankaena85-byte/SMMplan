@@ -30,6 +30,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
   const [checkLoading, setCheckLoading] = useState(false);
   const [inferLoading, setInferLoading] = useState(false);
   const [inferredSchema, setInferredSchema] = useState<{ catalogKeys: string[]; balanceKeys: string[]; itemsPath: string; } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   const isInitiallyCustom = !!initialData?.mapping;
 
@@ -141,10 +142,12 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
   async function handleSave() {
     try {
       setLoading(true);
-
+      setFieldErrors({});
 
       if (!initialData && !formData.apiKey) {
-        throw new Error('API Ключ обязателен при создании провайдера.');
+        setFieldErrors(prev => ({ ...prev, apiKey: ['API Ключ обязателен при создании провайдера.'] }));
+        toast.error('Проверьте заполнение обязательных полей.');
+        return;
       }
 
       let mappingPayload = null;
@@ -185,6 +188,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
         try {
            mappingPayload = JSON.parse(jsonText);
         } catch {
+           setFieldErrors(prev => ({ ...prev, jsonMapping: ['JSON маппинг имеет неверный формат. Проверьте синтаксис.'] }));
            throw new Error("JSON маппинг имеет неверный формат. Проверьте синтаксис.");
         }
       }
@@ -198,12 +202,37 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
         mapping:         mappingPayload
       };
 
+      let res;
       if (initialData) {
-        await updateProvider(initialData.id, payload);
+        res = await updateProvider(initialData.id, payload);
+      } else {
+        res = await createProvider(payload);
+      }
+
+      if (res && !res.success) {
+        if ('errors' in res && res.errors) {
+          setFieldErrors(res.errors as Record<string, string[]>);
+          toast.error('Ошибка валидации данных провайдера. Проверьте заполненные поля.');
+          
+          // Auto scroll to first error field
+          const firstErrorField = Object.keys(res.errors)[0];
+          if (firstErrorField) {
+            const element = document.getElementsByName(firstErrorField)[0] || document.getElementById(`provider-${firstErrorField}`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              (element as HTMLElement).focus();
+            }
+          }
+        } else if ('error' in res && res.error) {
+          toast.error(res.error);
+        }
+        return;
+      }
+
+      if (initialData) {
         toast.success('Настройки провайдера сохранены.');
         router.refresh();
       } else {
-        await createProvider(payload);
         toast.success('Провайдер успешно добавлен.');
         router.push('/admin/providers');
       }
@@ -285,7 +314,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+    <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-border/5">
       {inferredSchema && (
         <>
           <datalist id="catalog-keys">
@@ -349,9 +378,12 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               value={formData.name}
               onChange={handleChange}
               placeholder="Например: VexBoost"
-              className={inputCls}
+              className={`${inputCls} ${fieldErrors.name ? 'border-destructive focus:ring-destructive/20' : ''}`}
               aria-label="Название провайдера"
             />
+            {fieldErrors.name && (
+              <p className="text-xs font-bold text-destructive mt-1">{fieldErrors.name[0]}</p>
+            )}
           </div>
 
           {/* Currency */}
@@ -364,12 +396,15 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               name="balanceCurrency"
               value={formData.balanceCurrency}
               onChange={handleChange}
-              className={inputCls}
+              className={`${inputCls} ${fieldErrors.balanceCurrency ? 'border-destructive focus:ring-destructive/20' : ''}`}
             >
               <option value="USD">USD ($)</option>
               <option value="RUB">RUB (₽)</option>
               <option value="EUR">EUR (€)</option>
             </select>
+            {fieldErrors.balanceCurrency && (
+              <p className="text-xs font-bold text-destructive mt-1">{fieldErrors.balanceCurrency[0]}</p>
+            )}
           </div>
 
           {/* API URL */}
@@ -382,9 +417,12 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               placeholder="https://example.com/api/v2"
               value={formData.apiUrl}
               onChange={handleChange}
-              className={`${inputCls} font-mono`}
+              className={`${inputCls} font-mono ${fieldErrors.apiUrl ? 'border-destructive focus:ring-destructive/20' : ''}`}
               aria-label="API URL провайдера"
             />
+            {fieldErrors.apiUrl && (
+              <p className="text-xs font-bold text-destructive mt-1">{fieldErrors.apiUrl[0]}</p>
+            )}
           </div>
 
           {/* API Key */}
@@ -406,9 +444,12 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               value={formData.apiKey}
               onChange={handleChange}
               autoComplete="new-password"
-              className={`${inputCls} font-mono border-amber-300 bg-background/80`}
+              className={`${inputCls} font-mono border-amber-300 bg-background/80 ${fieldErrors.apiKey ? 'border-destructive focus:ring-destructive/20' : ''}`}
               aria-label="API ключ провайдера"
             />
+            {fieldErrors.apiKey && (
+              <p className="text-xs font-bold text-destructive mt-1">{fieldErrors.apiKey[0]}</p>
+            )}
           </div>
 
           {/* Technical Settings Section - Conditionally rendered */}
@@ -652,7 +693,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
 
                 {/* Правая колонка - Live Preview */}
                 <div className="xl:col-span-1">
-                  <div className="bg-card rounded-xl border border-border overflow-hidden sticky top-6">
+                  <div className="bg-card/60 backdrop-blur-md rounded-[24px] border border-border/50 overflow-hidden sticky top-6 shadow-sm ring-1 ring-border/5">
                     <div className="bg-muted px-4 py-2 border-b border-border flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-destructive"></div>
                       <div className="w-2.5 h-2.5 rounded-full bg-warning"></div>

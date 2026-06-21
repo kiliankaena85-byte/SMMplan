@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { UsnScheme } from '@prisma/client';
 
 class SettingsService {
   // ── User Management ──
@@ -100,18 +101,19 @@ class SettingsService {
     maintenanceMode?: boolean;
     siteName?: string;
     siteDescription?: string;
-    welcomeMessage?: string;
-    yookassaShopId?: string;
-    yookassaSecretKey?: string;
-    yookassaTestShopId?: string;
-    yookassaTestSecretKey?: string;
-    cryptoBotToken?: string;
+    welcomeMessage?: string | null;
+    yookassaShopId?: string | null;
+    yookassaSecretKey?: string | null;
+    yookassaTestShopId?: string | null;
+    yookassaTestSecretKey?: string | null;
+    cryptoBotToken?: string | null;
     exchangeRateUSD?: number;
     smtpHost?: string | null;
     smtpPort?: number;
     smtpUser?: string | null;
     smtpPassword?: string | null;
     supportEmailDomain?: string | null;
+    inboundEmailWebhookSecret?: string | null;
     contactSupportEmail?: string | null;
     contactPrivacyEmail?: string | null;
     contactTelegramBot?: string | null;
@@ -122,6 +124,17 @@ class SettingsService {
     legalCompanyInn?: string | null;
     legalCompanyOgrnip?: string | null;
     legalCompanyAddress?: string | null;
+    quarantineThreshold?: number;
+    globalMarkup?: number;
+    safetyFloor?: number;
+    siteLogoUrl?: string | null;
+    siteFaviconUrl?: string | null;
+    robokassaLogin?: string | null;
+    robokassaPassword?: string | null;
+    robokassaWebhookPassword?: string | null;
+    emailProvider?: string;
+    resendApiKey?: string | null;
+    usnScheme?: UsnScheme;
   }) {
     return db.systemSettings.upsert({
       where: { id: 'global' },

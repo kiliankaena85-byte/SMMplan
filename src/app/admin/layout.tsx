@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { CommandPalette } from '@/components/admin/command-palette';
 import { SettingsManager } from '@/lib/settings';
+import { AdminThemeForcer } from '@/components/admin/theme-forcer';
 
 // RBAC: Allowed roles for admin panel access
 const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
@@ -123,9 +124,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const isTestMode = await SettingsManager.isTestMode();
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground">
+    <div className="h-screen w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground">
       {/* Soft Ambient Background */}
-      <div className="absolute inset-0 bg-background pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20 pointer-events-none z-0" />
 
       <AdminSidebar 
         userEmail={user.email}
@@ -144,10 +145,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       </aside>
 
       {/* Floating Main Content Area */}
-      <div className="flex-1 max-h-screen overflow-hidden p-2 md:p-4 z-10 relative flex flex-col">
+      <div className="flex-1 max-h-screen overflow-hidden p-0 md:py-3 md:pr-3 z-10 relative flex flex-col">
         {/* Global Test Mode Warning Banner */}
         {isTestMode && (
-          <div className="mb-2 rounded-xl bg-muted border border-border text-foreground px-4 py-2.5 flex items-center justify-between shadow-sm relative overflow-hidden">
+          <div className="mb-3 mx-4 md:mx-0 rounded-2xl bg-muted border border-border text-foreground px-4 py-3 flex items-center justify-between shadow-sm relative overflow-hidden">
             <div className="flex items-center gap-3 relative z-10">
               <div className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -158,19 +159,20 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 <span className="text-muted-foreground text-xs">Заказы не отправляются провайдерам. Ghost Proxy перехватывает трафик.</span>
               </div>
             </div>
-            <Link href="/admin/settings?tab=system" className="text-xs font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-3 py-1.5 rounded-lg transition-all duration-200 relative z-10">
+            <Link href="/admin/settings?tab=system" className="text-xs font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-3 py-1.5 rounded-lg transition-all duration-200 relative z-10 active:scale-[0.98]">
               Настройки →
             </Link>
           </div>
         )}
-        <main id="main-content" tabIndex={-1} className="flex-1 w-full overflow-x-hidden overflow-y-auto scrollbar-hide relative transition-all duration-300 bg-background outline-none">
-          <div className="min-h-full w-full p-4 md:p-8 lg:p-10">
+        <main id="main-content" tabIndex={-1} className="flex-1 w-full overflow-x-hidden overflow-y-auto scrollbar-hide relative transition-all duration-300 bg-card md:rounded-[24px] md:border md:border-border/40 md:shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] outline-none">
+          <div className="min-h-full w-full p-4 md:p-8 lg:p-12">
             {children}
           </div>
         </main>
       </div>
 
       <CommandPalette />
+      <AdminThemeForcer />
       <Toaster position="top-right" richColors closeButton className="mt-4 mr-4" />
     </div>
   );

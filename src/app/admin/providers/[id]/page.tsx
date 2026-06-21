@@ -25,7 +25,7 @@ export default async function EditProviderPage({
       <div className="flex items-center gap-3">
         <Link
           href="/admin/providers"
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200"
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200 active:scale-95 w-fit"
           aria-label="Назад к списку провайдеров"
         >
           <ArrowLeft className="w-4 h-4" />

@@ -188,14 +188,22 @@ class AdminUserService {
   /**
    * Get aggregate user stats for the header.
    */
-  async getUserStats() {
+  async getUserStats(startDate?: Date, endDate?: Date) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+    if (startDate && endDate) {
+      where.createdAt = { gte: startDate, lte: endDate };
+    }
     const [total, active, banned] = await Promise.all([
-      db.user.count(),
-      db.user.count({ where: { role: { not: 'BANNED' } } }),
-      db.user.count({ where: { role: 'BANNED' } }),
+      db.user.count({ where }),
+      db.user.count({ where: { ...where, role: { not: 'BANNED' } } }),
+      db.user.count({ where: { ...where, role: 'BANNED' } }),
     ]);
 
-    const totalBalance = await db.user.aggregate({ _sum: { balance: true } });
+    const totalBalance = await db.user.aggregate({
+      _sum: { balance: true },
+      where
+    });
 
     return {
       total,

@@ -24,6 +24,9 @@ const changePasswordSchema = z.object({
 });
 
 export async function setPasswordAction(formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') {
+    return { success: false, error: "Некорректные данные формы" };
+  }
   const session = await verifySession();
   if (!session) {
     return { success: false, error: 'Пожалуйста, войдите в аккаунт' };
@@ -68,6 +71,9 @@ export async function setPasswordAction(formData: FormData) {
 }
 
 export async function changePasswordAction(formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') {
+    return { success: false, error: "Некорректные данные формы" };
+  }
   const session = await verifySession();
   if (!session) {
     return { success: false, error: 'Пожалуйста, войдите в аккаунт' };

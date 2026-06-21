@@ -1,9 +1,0 @@
-﻿◇ injected env (0) from .env.test // tip: ⌘ suppress logs { quiet: true }
-
-Running 9 tests using 1 worker
-
-◇ injected env (0) from .env.test // tip: ◈ encrypted .env [www.dotenvx.com]
-  ok 1 [setup] › e2e\auth.setup.ts:11:6 › authenticate (469ms)
-◇ injected env (0) from .env.test // tip: ⌘ suppress logs { quiet: true }
-  x  2 [chromium] › e2e\user-flow.spec.ts:348:9 › Milestone 4: Playwright E2E User Flow Tests › Magic Link authentication › should request magic link, create AuthToken in DB, and verify successfully via callback (7.4s)
-◇ injected env (0) from .env.test // tip: ⌁ auth for agents [www.vestauth.com]

@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { updateGlobalSettings } from '@/actions/admin/settings';
+import { updateGlobalSettings, generateInboundSecretAction } from '@/actions/admin/settings';
 import { toast } from 'sonner';
 import { useActionState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Key } from 'lucide-react';
 
 interface IntegrationsSettingsProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,26 +18,65 @@ interface IntegrationsSettingsProps {
 
 export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
   const [state, formAction, isPending] = useActionState(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async (prevState: any, formData: FormData) => {
+    async (prevState: unknown, formData: FormData) => {
       try {
-        await updateGlobalSettings(formData);
+        const res = await updateGlobalSettings(formData);
+        if (res && typeof res === 'object' && 'success' in res && !res.success) {
+          return res;
+        }
         return { success: true };
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
-        return { success: false, error: 'Ошибка при обновлении интеграций' };
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        return { success: false, error: errorMsg || 'Ошибка при обновлении интеграций' };
       }
     },
     null
   );
 
+  const formState = state as { success?: boolean; error?: string; errors?: Record<string, string[]> } | null;
+
   useEffect(() => {
-    if (state?.success) {
+    if (formState?.success) {
       toast.success('Настройки интеграций обновлены');
-    } else if (state?.error) {
-      toast.error(state.error);
+    } else if (formState?.error) {
+      toast.error(formState.error);
+    } else if (formState?.errors) {
+      toast.error('Ошибка валидации данных. Проверьте правильность введенных ключей и доменов.');
+      // Auto scroll to first error field
+      const firstErrorField = Object.keys(formState.errors)[0];
+      if (firstErrorField) {
+        const element = document.getElementsByName(firstErrorField)[0];
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          (element as HTMLElement).focus();
+        }
+      }
     }
-  }, [state]);
+  }, [formState]);
+
+  // Webhook Secret States
+  const [inboundSecret, setInboundSecret] = React.useState(settings.inboundEmailWebhookSecret || '');
+  const [showSecret, setShowSecret] = React.useState(false);
+  const [generatingSecret, setGeneratingSecret] = React.useState(false);
+
+  const handleGenerateSecret = async () => {
+    setGeneratingSecret(true);
+    try {
+      const res = await generateInboundSecretAction();
+      if (res && res.success && res.secret) {
+        setInboundSecret(res.secret);
+        setShowSecret(true); // Automatically show secret so admin can copy it immediately
+        toast.success('Секретный ключ вебхука входящей почты сгенерирован!');
+      } else {
+        throw new Error('Не удалось сгенерировать секрет');
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      toast.error(errorMsg || 'Ошибка генерации секрета');
+    } finally {
+      setGeneratingSecret(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -253,7 +292,11 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                     type="number"
                     defaultValue={settings.smtpPort || 465}
                     placeholder="465"
+                    className={formState?.errors?.smtpPort ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
+                  {formState?.errors?.smtpPort && (
+                    <p className="text-xs font-bold text-destructive mt-1">{formState.errors.smtpPort[0]}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пользователь (Email)</Label>
@@ -274,23 +317,70 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               </div>
             </div>
 
+            {/* Inbound Mail webhooks */}
             <div className="space-y-4">
               <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Прием писем (Inbound)</div>
-              <div className="max-w-md space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email Домен (для тикетов)</Label>
-                <Input
-                  name="supportEmailDomain"
-                  defaultValue={settings.supportEmailDomain || ''}
-                  placeholder="smmplan.pro"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Используется для генерации адреса <code>support+ticketId@домен</code>
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email Домен (для тикетов)</Label>
+                  <Input
+                    name="supportEmailDomain"
+                    defaultValue={settings.supportEmailDomain || ''}
+                    placeholder="smmplan.pro"
+                    className={formState?.errors?.supportEmailDomain ? 'border-destructive focus-visible:ring-destructive' : ''}
+                  />
+                  {formState?.errors?.supportEmailDomain && (
+                    <p className="text-xs font-bold text-destructive mt-1">{formState.errors.supportEmailDomain[0]}</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Используется для генерации адреса <code>support+ticketId@домен</code>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Секретный ключ вебхука</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        name="inboundEmailWebhookSecret"
+                        type={showSecret ? 'text' : 'password'}
+                        value={inboundSecret}
+                        onChange={(e) => setInboundSecret(e.target.value)}
+                        placeholder="Не настроено"
+                        className="pr-10 font-mono text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecret(!showSecret)}
+                        className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <Button
+                      type="button"
+                      disabled={generatingSecret}
+                      onClick={handleGenerateSecret}
+                      intent="outline"
+                      className="font-bold text-xs gap-1"
+                    >
+                      {generatingSecret ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Key className="w-3.5 h-3.5" />
+                      )}
+                      Сгенерировать
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Используется для валидации входящих вебхуков писем от почтового шлюза.
+                  </p>
+                </div>
               </div>
             </div>
 
             <div className="pt-4 border-t border-border flex justify-between items-center">
-              <p className="text-[10px] text-muted-foreground">Если поля пустые, используются настройки из .env (fallback)</p>
+              <p className="text-[10px] text-muted-foreground">Если поля SMTP пустые, используются настройки из .env (fallback)</p>
               <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md">
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Сохранить настройки почты

@@ -11,532 +11,19 @@ import * as React from 'react';
 import { useState, useTransition, useOptimistic } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/ui/data-table';
-import { columns, OrderColumn } from './columns';
+import { Table as ReactTable, Row } from '@tanstack/react-table';
+import { columns, OrderColumn, RowActions, STATUS_LABELS, STATUS_STYLES, SPEED_CLASS_META } from './columns';
+import Link from 'next/link';
+import { formatEta } from '@/utils/format-eta';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { XCircle, CheckCircle, RotateCcw, X } from 'lucide-react';
+import { XCircle } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
-import {
-  cancelOrderAction,
-  restartOrderAction,
-  setOrderStatusAction,
-  forceCompleteOrderAction,
-  bulkCancelOrdersAction,
-  getFailoverPreview,
-  manualRerouteOrder,
-} from '@/actions/admin/orders';
+import { bulkCancelOrdersAction } from '@/actions/admin/orders';
+import { OrderDrawer } from '@/components/admin/OrderDrawer';
 
-
-const STATUS_OPTIONS = [
-  { value: 'PENDING',           label: 'В очереди' },
-  { value: 'IN_PROGRESS',       label: 'В работе' },
-  { value: 'COMPLETED',         label: 'Выполнен' },
-  { value: 'PARTIAL',           label: 'Частичный' },
-  { value: 'CANCELED',          label: 'Отменён' },
-  { value: 'ERROR',             label: 'Ошибка' },
-  { value: 'AWAITING_PAYMENT',  label: 'Ожидает оплату' },
-] as const;
-
-interface OrderClientProps {
-  data: OrderColumn[];
-  canSeeRates?: boolean;
-}
-
-interface FailoverRoute {
-  routeId: string;
-  providerName: string;
-  newCostCents: number;
-  marginCents: number;
-  marginPercent: number;
-  isMarginPositive: boolean;
-}
-
-interface FailoverPreviewData {
-  success: boolean;
-  clientPaidCents: number;
-  currentBalance: number;
-  routes: FailoverRoute[];
-}
-
-// ── Sub: Order Drawer ───────────────────────────────────────────────────────
-function OrderDrawer({
-  order,
-  onClose,
-  canSeeRates = true,
-  addOptimisticUpdate,
-}: {
-  order: OrderColumn | null;
-  onClose: () => void;
-  canSeeRates?: boolean;
-  addOptimisticUpdate: (update: { id: string, status: string, remains?: number }) => void;
-}) {
-  const [selectedStatus, setSelectedStatus] = useState(order?.status ?? '');
-  const [remains, setRemains] = useState(order?.remains ?? 0);
-  const [failoverPreview, setFailoverPreview] = useState<FailoverPreviewData | null>(null);
-  const [isFailoverModalOpen, setIsFailoverModalOpen] = useState(false);
-  const [selectedRouteId, setSelectedRouteId] = useState<string>('');
-  const [isPending, startTransition] = useTransition();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<'cancel' | 'restart' | null>(null);
-
-  const activeRoute = selectedRouteId
-    ? failoverPreview?.routes.find(r => r.routeId === selectedRouteId)
-    : null;
-
-  React.useEffect(() => {
-    setSelectedStatus(order?.status ?? '');
-    setRemains(order?.remains ?? 0);
-    setIsFailoverModalOpen(false);
-    setConfirmOpen(false);
-    setConfirmAction(null);
-  }, [order]);
-
-  if (!order) return null;
-
-  function handleSetStatus() {
-    if (!order) return;
-    startTransition(async () => {
-      addOptimisticUpdate({ id: order.id, status: selectedStatus, remains: selectedStatus === 'PARTIAL' ? remains : undefined });
-      try {
-        const r = await setOrderStatusAction(
-          order.id,
-          selectedStatus as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'PARTIAL' | 'CANCELED' | 'ERROR',
-          selectedStatus === 'PARTIAL' ? remains : undefined
-        );
-        if (r.success) {
-          const refund = r.refundCents > 0 ? ` Возврат: ${(r.refundCents / 100).toFixed(2)} ₽` : '';
-          toast.success(`ОК: Статус #${r.numericId} изменен.${refund}`);
-          onClose();
-        } else {
-          toast.error(r.error || 'Ошибка изменения статуса');
-        }
-      } catch (e) {
-        toast.error((e as Error).message || 'Ошибка изменения статуса');
-      }
-    });
-  }
-
-  function handleForceComplete() {
-    if (!order) return;
-    startTransition(async () => {
-      addOptimisticUpdate({ id: order.id, status: 'COMPLETED' });
-      try {
-        const r = await forceCompleteOrderAction(order.id);
-        if (r.success) {
-          const refund = r.refundCents > 0 ? ` Возврат: ${(r.refundCents / 100).toFixed(2)} ₽` : '';
-          toast.success(`ОК: Заказ #${r.numericId} завершен.${refund}`);
-          onClose();
-        } else {
-          toast.error(r.error || 'Ошибка завершения');
-        }
-      } catch (e) {
-        toast.error((e as Error).message || 'Ошибка завершения');
-      }
-    });
-  }
-
-  function handleCancel() {
-    if (!order) return;
-    setConfirmAction('cancel');
-    setConfirmOpen(true);
-  }
-
-  function handleRestart() {
-    if (!order) return;
-    setConfirmAction('restart');
-    setConfirmOpen(true);
-  }
-
-  function executeConfirm() {
-    if (!order || !confirmAction) return;
-    setConfirmOpen(false);
-    const fd = new FormData();
-    fd.append('orderId', order.id);
-
-    if (confirmAction === 'cancel') {
-      startTransition(async () => {
-        addOptimisticUpdate({ id: order.id, status: 'CANCELED' });
-        try {
-          const r = await cancelOrderAction(fd);
-          if (r.success) {
-            toast.success(`Успех: Заказ #${order.numericId} отменен`);
-            onClose();
-          } else {
-            toast.error(r.error || 'Ошибка отмены');
-          }
-        } catch (e) {
-          toast.error((e as Error).message ?? 'Ошибка');
-        }
-      });
-    } else if (confirmAction === 'restart') {
-      startTransition(async () => {
-        addOptimisticUpdate({ id: order.id, status: 'PENDING' });
-        try {
-          const r = await restartOrderAction(fd);
-          if (r.success) {
-            toast.success(`Успех: Заказ #${order.numericId} перезапущен`);
-            onClose();
-          } else {
-            toast.error(r.error || 'Ошибка перезапуска');
-          }
-        } catch (e) {
-          toast.error((e as Error).message ?? 'Ошибка');
-        }
-      });
-    }
-  }
-
-  function handleFailoverClick() {
-    if (!order) return;
-    startTransition(async () => {
-      try {
-        const preview = await getFailoverPreview(order.id);
-        if (preview.success) {
-          if (preview.routes.length > 0) {
-            setSelectedRouteId(preview.routes[0].routeId);
-          }
-          setFailoverPreview(preview);
-          setIsFailoverModalOpen(true);
-        } else {
-          toast.error(('error' in preview ? preview.error : undefined) || 'Ошибка получения маршрутов');
-        }
-      } catch (e) {
-        toast.error((e as Error).message ?? 'Ошибка загрузки маршрутов');
-      }
-    });
-  }
-
-  function handleConfirmFailover() {
-    if (!order || !selectedRouteId) return;
-    startTransition(async () => {
-      try {
-        const r = await manualRerouteOrder(order.id, selectedRouteId);
-        if (r.success) {
-          toast.success(`Успех: Заказ #${order.numericId} переведен на резервный маршрут`);
-          setIsFailoverModalOpen(false);
-          onClose();
-        } else {
-          toast.error(r.error || 'Ошибка перевода заказа');
-        }
-      } catch (e) {
-        toast.error((e as Error).message ?? 'Ошибка при перезапуске');
-      }
-    });
-  }
-
-  return (
-    <div
-      className={`fixed inset-0 z-50 flex items-start justify-end transition-all duration-300 ${order ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-    >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-foreground/30 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Panel */}
-      <div className="relative w-full max-w-xl h-full bg-background border-l border-border shadow-2xl overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-background border-b border-border px-6 py-4 flex items-center justify-between z-10">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">
-              Заказ <span className="text-muted-foreground">#{order.numericId}</span>
-            </h2>
-            <p className="text-xs text-muted-foreground">{order.user.email}</p>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Закрыть панель заказа"
-            className="p-2 rounded-full hover:bg-muted transition-all duration-200"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* Info Grid */}
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            {[
-              { label: 'Услуга', value: order.service.name },
-              { label: 'Категория', value: order.service.category.name },
-              { label: 'Соцсеть', value: order.service.category.network?.name ?? '—' },
-              { label: 'Количество', value: order.quantity.toLocaleString('ru-RU') },
-              { label: 'Сумма', value: `${(order.charge / 100).toFixed(2)} ₽` },
-              { label: 'Остаток', value: order.remains.toLocaleString('ru-RU') },
-              { label: 'Провайдер', value: order.providerName ?? '—' },
-              { label: 'ID у провайдера', value: order.externalId ? `#${order.externalId}` : '—' },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-muted/30 rounded-xl p-3">
-                <div className="text-xs text-muted-foreground mb-1">{label}</div>
-                <div className="text-sm font-medium text-foreground truncate" title={value}>{value}</div>
-              </div>
-            ))}
-            {canSeeRates && (
-               <div className="bg-warning/10 border border-amber-100 rounded-xl p-3">
-                 <div className="text-[10px] text-warning uppercase font-bold mb-1">Себестоимость</div>
-                 <div className="text-sm font-mono font-bold text-amber-900">{(order.providerCost / 100).toFixed(2)} ₽</div>
-               </div>
-            )}
-          </div>
-
-          {/* Link */}
-          <div className="bg-muted/30 rounded-xl p-3">
-            <div className="text-xs text-muted-foreground mb-1">Ссылка</div>
-            <a href={order.link} target="_blank" rel="noopener noreferrer"
-              className="text-primary hover:underline text-xs font-mono break-all transition-colors">
-              {order.link}
-            </a>
-          </div>
-
-          {/* Timeline / Dates */}
-          <div className="bg-muted/30 rounded-xl p-4 space-y-3">
-            <h4 className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground">Хронология заказа</h4>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-muted-foreground">Создан:</span>
-                <span className="font-mono font-medium text-foreground">
-                  {order.createdAt ? new Date(order.createdAt).toLocaleString('ru-RU') : '—'}
-                </span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-muted-foreground">Изменен:</span>
-                <span className="font-mono font-medium text-foreground">
-                  {order.updatedAt ? new Date(order.updatedAt).toLocaleString('ru-RU') : '—'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Error / Provider Comment */}
-          {order.error && (
-            <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3">
-              <div className="text-xs text-destructive font-bold uppercase tracking-wider mb-1">⚠️ Ошибка / Ответ провайдера</div>
-              <div className="text-xs text-rose-700 font-mono break-all">{order.error}</div>
-            </div>
-          )}
-
-          {/* Status control */}
-          <div className="bg-card border border-border rounded-xl p-4 space-y-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground">🎛️ Управление статусом</h3>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Новый статус</label>
-                <select
-                  value={selectedStatus}
-                  onChange={e => setSelectedStatus(e.target.value)}
-                  aria-label="Выбор нового статуса заказа"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:border-primary transition-all duration-200"
-                >
-                  {STATUS_OPTIONS.map(s => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedStatus === 'PARTIAL' && (
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">
-                    Остаток (remains) — сколько НЕ доставлено
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={order.quantity}
-                    value={remains}
-                    onChange={e => setRemains(parseInt(e.target.value) || 0)}
-                    aria-label="Остаток недоставленных единиц"
-                    className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:border-primary transition-all duration-200"
-                  />
-                  {remains > 0 && (
-                    <p className="text-xs text-warning mt-1 font-medium">
-                      Возврат: {((remains / order.quantity) * order.charge / 100).toFixed(2)} ₽
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <button
-                onClick={handleSetStatus}
-                disabled={isPending || (selectedStatus === order.status && selectedStatus !== 'PARTIAL')}
-                aria-label="Применить новый статус"
-                className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50"
-              >
-                {isPending ? 'Применяется...' : 'Применить статус'}
-              </button>
-            </div>
-          </div>
-
-          {/* Quick action buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={handleForceComplete}
-              disabled={isPending || order.status === 'COMPLETED'}
-              aria-label="Принудительно завершить заказ"
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-emerald-300 bg-success/10 text-emerald-700 hover:bg-success/20 transition-all duration-200 disabled:opacity-40"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Завершить
-            </button>
-            <button
-              onClick={handleRestart}
-              disabled={isPending || order.status !== 'ERROR'}
-              aria-label="Перезапустить заказ"
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all duration-200 disabled:opacity-40"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Перезапустить
-            </button>
-            <button
-              onClick={handleCancel}
-              disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL', 'IN_PROGRESS', 'ERROR'].includes(order.status)}
-              aria-label="Отменить заказ"
-              className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-rose-300 bg-destructive/10 text-rose-700 hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40"
-            >
-              <XCircle className="w-4 h-4" />
-              Отменить заказ
-            </button>
-            {['ERROR', 'CANCELED'].includes(order.status) && (
-              <button
-                onClick={handleFailoverClick}
-                disabled={isPending}
-                aria-label="Ручной перезапуск (Failover)"
-                className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all duration-200 disabled:opacity-40"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Failover (Сменить провайдера)
-              </button>
-            )}
-          </div>
-
-          {/* DripFeed info */}
-          {order.isDripFeed && (
-            <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 text-xs">
-              <div className="font-semibold text-violet-700 mb-1">📅 Drip-Feed</div>
-              <div className="text-violet-600">
-                Запуски: {order.currentRun} / {order.runs} ·
-                Интервал: {order.interval} мин
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Failover Margin Preview Modal */}
-      {isFailoverModalOpen && failoverPreview && (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-foreground/30 backdrop-blur-sm p-4">
-          <div className="bg-background w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-border">
-            <div className="px-6 py-4 border-b border-border bg-muted/30">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                ⚠️ Ручной перезапуск #{order.numericId}
-              </h3>
-            </div>
-            <div className="p-6 space-y-5">
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Выберите резервного провайдера:</label>
-                {failoverPreview.routes.length === 0 ? (
-                  <div className="text-sm text-destructive font-medium">Нет доступных резервных маршрутов</div>
-                ) : (
-                  <select
-                    value={selectedRouteId}
-                    onChange={e => setSelectedRouteId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background outline-none focus:border-primary"
-                  >
-                    {failoverPreview.routes.map((r) => (
-                      <option key={r.routeId} value={r.routeId}>
-                        {r.providerName} (Закупка: {(r.newCostCents / 100).toFixed(2)} ₽)
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {activeRoute && (
-                <div className="bg-muted/30 p-4 rounded-xl border border-border space-y-2 text-sm">
-                  <div className="font-bold mb-2">📊 Анализ маржи:</div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Баланс клиента:</span>
-                    <span className={failoverPreview.currentBalance < failoverPreview.clientPaidCents ? "text-destructive font-bold" : ""}>
-                      {(failoverPreview.currentBalance / 100).toFixed(2)} ₽
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Клиент заплатил:</span>
-                    <span>{(failoverPreview.clientPaidCents / 100).toFixed(2)} ₽</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Резервный провайдер:</span>
-                    <span>{(activeRoute.newCostCents / 100).toFixed(2)} ₽</span>
-                  </div>
-                  <div className="h-px bg-border my-2" />
-                  <div className="flex justify-between font-bold">
-                    <span>Новая маржа:</span>
-                    <span className={activeRoute.isMarginPositive ? 'text-success' : 'text-destructive'}>
-                      {(activeRoute.marginCents / 100).toFixed(2)} ₽ 
-                      ({activeRoute.marginPercent}%) 
-                      {activeRoute.isMarginPositive ? ' ✅' : ' 🔴'}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {failoverPreview.currentBalance < failoverPreview.clientPaidCents && (
-                <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-lg flex items-start gap-2">
-                  <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <div>
-                    У клиента недостаточно средств на балансе для повторного списания (нужно {(failoverPreview.clientPaidCents / 100).toFixed(2)} ₽). Failover невозможен.
-                  </div>
-                </div>
-              )}
-
-              {order.error && (
-                <div className="bg-warning/10 border border-warning/20 text-warning-foreground text-sm p-3 rounded-lg">
-                  <span className="font-bold text-warning-foreground">⚠️ Причина ошибки:</span> "{order.error}"<br/>
-                  <span className="text-muted-foreground mt-1 block">Убедитесь, что ссылка корректна перед перезапуском.</span>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setIsFailoverModalOpen(false)}
-                  className="flex-1 px-4 py-2 border border-border bg-background rounded-lg text-sm font-medium hover:bg-muted"
-                >
-                  Отменить
-                </button>
-                <button
-                  onClick={handleConfirmFailover}
-                  disabled={isPending || failoverPreview.routes.length === 0 || failoverPreview.currentBalance < failoverPreview.clientPaidCents}
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {isPending ? 'Запуск...' : 'Подтвердить'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      <ConfirmModal
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={executeConfirm}
-        title={confirmAction === 'cancel' ? 'Отмена заказа' : 'Перезапуск заказа'}
-        isDanger={confirmAction === 'cancel'}
-        confirmText={confirmAction === 'cancel' ? 'Отменить заказ' : 'Перезапустить'}
-      >
-        {confirmAction === 'cancel' ? (
-          <>Вы действительно хотите отменить заказ <strong>#{order.numericId}</strong>? При наличии остатка клиент получит возврат.</>
-        ) : (
-          <>Вы действительно хотите перезапустить заказ <strong>#{order.numericId}</strong>? Будет повторно списано <strong>{(order.charge / 100).toFixed(2)} ₽</strong>.</>
-        )}
-      </ConfirmModal>
-    </div>
-  );
-}
-
-// ── Main Component ──────────────────────────────────────────────────────────
-export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
+export function OrderClient({ data, canSeeRates = true }: { data: OrderColumn[]; canSeeRates?: boolean }) {
   const [optimisticData, addOptimisticUpdate] = useOptimistic(
     data,
     (state, update: { id: string, status: string, remains?: number }) => {
@@ -600,6 +87,203 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
     });
   }
 
+  const renderMobileView = (table: ReactTable<OrderColumn>) => {
+    return (
+      <div className="space-y-4">
+        {table.getRowModel().rows.map((row: Row<OrderColumn>) => {
+          const order = row.original;
+          const style = STATUS_STYLES[order.status] || 'default';
+          
+          const classes: Record<string, string> = {
+            success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+            warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+            danger: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+            primary: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
+            default: 'bg-muted text-muted-foreground border-border/80',
+          };
+
+          const s = order.service;
+          const showEta = s.etaP50Seconds && s.etaSampleCount && s.etaSampleCount >= 2;
+          const meta = showEta ? (SPEED_CLASS_META[s.etaSpeedClass ?? ''] ?? SPEED_CLASS_META.MEDIUM) : null;
+          
+          const dateStr = new Date(order.createdAt).toLocaleString('ru-RU', { 
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+          });
+
+          return (
+            <div key={row.id} className="bg-card border border-border/80 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 space-y-3">
+              {/* Card Header: Checkbox + ID + Date & Status Badge + Quick Actions */}
+              <div className="flex items-start justify-between gap-3 pb-3 border-b border-border/50">
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 mt-0.5 rounded border-border text-primary focus:ring-indigo-600 cursor-pointer"
+                    checked={row.getIsSelected()}
+                    onChange={(e) => row.toggleSelected(e.target.checked)}
+                    aria-label={`Выбрать заказ #${order.numericId}`}
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-black text-sm text-foreground">
+                      #{order.numericId}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums select-none mt-0.5">
+                      {dateStr}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge className={`font-black text-[9px] uppercase border px-1.5 py-0.5 rounded-md ${classes[style] || classes.default}`}>
+                      {STATUS_LABELS[order.status] || order.status}
+                    </Badge>
+                    {order.isDripFeed && (
+                      <span className="text-[9px] text-purple-600 dark:text-purple-400 font-black bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded-md">
+                        Drip ({order.currentRun}/{order.runs})
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center ml-1 shrink-0">
+                    <RowActions order={order} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Body: User email and Service details */}
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-muted-foreground select-none">Покупатель:</span>
+                  <Link
+                    href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
+                    className="text-sky-600 hover:underline font-bold"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {order.user.email}
+                  </Link>
+                </div>
+
+                <div className="space-y-1 bg-muted/20 p-2.5 rounded-lg border border-border/40">
+                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                    <span className="px-1.5 py-0.5 rounded bg-muted font-black text-foreground text-[9px] uppercase tracking-wide">
+                      {s.category.network?.name || '—'}
+                    </span>
+                    <span className="font-semibold text-muted-foreground text-[10px]">
+                      {s.category.name}
+                    </span>
+                  </div>
+                  <div className="font-bold text-foreground leading-snug">
+                    {s.name}
+                  </div>
+                  <div className="flex items-start gap-1 pt-1 border-t border-border/30 mt-1">
+                    <span className="text-muted-foreground shrink-0 select-none">Ссылка:</span>
+                    <a
+                      href={order.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sky-600 hover:underline break-all font-mono text-[10px] flex-1 leading-normal"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {order.link}
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center py-1">
+                  <div>
+                    <span className="text-muted-foreground select-none">Кол-во:</span>{' '}
+                    <span className="font-bold text-foreground tabular-nums">
+                      {order.quantity.toLocaleString('ru-RU')}
+                    </span>
+                    {order.remains > 0 && (
+                      <>
+                        {' '}<span className="text-muted-foreground select-none">/ Остаток:</span>{' '}
+                        <span className="font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+                          {order.remains.toLocaleString('ru-RU')}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {showEta && meta && (
+                    <div className="flex items-center gap-1 font-semibold text-[10px]">
+                      <span className={meta.color}>{meta.icon}</span>
+                      <span className="text-muted-foreground">≈ {formatEta(s.etaP50Seconds!)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Collapsible details toggle */}
+              <details className="mt-1 group">
+                <summary className="text-sky-600 hover:text-sky-800 cursor-pointer text-[10px] select-none list-none inline-flex items-center transition-colors font-semibold">
+                  <span className="group-open:hidden">Показать детали</span>
+                  <span className="hidden group-open:inline">Скрыть детали</span>
+                </summary>
+                <div className="mt-2 pt-2 border-t border-border/80 text-[11px] text-foreground space-y-1.5">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground select-none">Провайдер:</span>
+                    <span className="font-semibold text-foreground">{order.providerName || '—'}</span>
+                  </div>
+                  {canSeeRates && (
+                    <>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground select-none">ID у провайдера:</span>
+                        <span className="font-mono text-foreground">{order.externalId || '—'}</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground select-none">Себестоимость:</span>
+                        <span className="tabular-nums font-semibold text-foreground">
+                          {(order.providerCost / 100).toFixed(2)} ₽
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  {order.error && (
+                    <div className="flex flex-col mt-1 bg-destructive/5 border border-destructive/20 rounded p-2">
+                      <span className="text-[9px] uppercase font-bold text-destructive select-none">Ошибка провайдера:</span>
+                      <span className="text-destructive break-words font-mono mt-0.5 leading-tight text-[10px]">{order.error}</span>
+                    </div>
+                  )}
+                  {order.isDripFeed && order.dripExternalIds && order.dripExternalIds.length > 0 && (
+                    <div className="flex flex-col mt-1">
+                      <span className="text-muted-foreground font-semibold text-[9px] select-none">Drip запуски:</span>
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {order.dripExternalIds.map((id, idx) => (
+                          <span key={idx} className="bg-purple-100/60 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20 px-1 py-0.5 rounded text-[9px] font-mono">
+                            #{id}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </details>
+
+              {/* Card Footer: Prices & Margin */}
+              <div className="flex justify-between items-center pt-2.5 border-t border-border/50 text-xs">
+                <div>
+                  <span className="text-muted-foreground select-none text-[10px] uppercase font-black tracking-wider block">Стоимость</span>
+                  <span className="font-bold text-sm text-foreground tabular-nums">
+                    {(order.charge / 100).toFixed(2)} ₽
+                  </span>
+                </div>
+                {canSeeRates && (
+                  <div className="text-right">
+                    <span className="text-muted-foreground select-none text-[10px] uppercase font-black tracking-wider block">Чистая маржа</span>
+                    <span className={`font-bold text-xs tabular-nums ${order.charge - order.providerCost >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {order.charge > 0 ? Math.round(((order.charge - order.providerCost) / order.charge) * 100) : 0}% 
+                      {' '}({((order.charge - order.providerCost) / 100).toFixed(2)} ₽)
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="relative">
       <DataTable
@@ -608,7 +292,8 @@ export function OrderClient({ data, canSeeRates = true }: OrderClientProps) {
         searchKey="user_email"
         searchPlaceholder="Фильтр по email на этой странице..."
         hideClientPagination={true}
-        initialColumnVisibility={{ select: false, eta: false }}
+        initialColumnVisibility={{ select: false }}
+        renderMobileView={renderMobileView}
         renderToolbar={(table) => {
           const selectedRows = table.getFilteredSelectedRowModel().rows;
           if (selectedRows.length === 0) return null;

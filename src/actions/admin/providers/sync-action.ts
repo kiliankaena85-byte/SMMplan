@@ -43,6 +43,7 @@ export async function adminSyncProviderCatalog() {
           where: { externalId: { not: null } },
           select: {
             id: true,
+            numericId: true,
             externalId: true,
             rate: true,
             markup: true,
@@ -77,11 +78,29 @@ export async function adminSyncProviderCatalog() {
                   where: { id: myService.id },
                   data: { 
                     isActive: false, 
-                    isQuarantined: true, 
-                    quarantineReason: 'ZOMBIE: Удалено провайдером из API' 
+                    isQuarantined: false,
+                    cooldownReason: 'ZOMBIE_AUTO_DISABLED',
+                    cooldownUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+                    quarantineReason: null
                   }
                 })
               );
+
+              updatesBatch.push(
+                db.routingAuditLog.create({
+                  data: {
+                    serviceId: myService.id,
+                    adminId: admin.id,
+                    action: 'ZOMBIE_AUTO_DISABLED',
+                    reason: 'Услуга удалена провайдером из API'
+                  }
+                })
+              );
+
+              const alertMsg = `🧟 [Zombie Eraser] Услуга #${myService.numericId} - "${myService.name}" автоматически отключена, так как она была удалена провайдером из API.`;
+              const { sendAdminAlert } = await import('@/lib/notifications');
+              await sendAdminAlert(alertMsg, 'WARNING');
+
               disabledCount++;
             }
             continue;
@@ -93,7 +112,31 @@ export async function adminSyncProviderCatalog() {
             continue;
           }
 
-          const newRate = parseFloat(external.rate) || 0;
+          const rawRate = parseFloat(external.rate);
+          if (isNaN(rawRate) || rawRate <= 0) {
+            if (!myService.isQuarantined && myService.isActive) {
+              updatesBatch.push(
+                db.service.update({
+                  where: { id: myService.id },
+                  data: {
+                    isQuarantined: true,
+                    quarantineReason: `Invalid Provider Rate: ${external.rate}. Парсинг вернул NaN или <= 0.`,
+                    quarantinedAt: new Date(),
+                    pendingRate: null
+                  }
+                })
+              );
+              const alertMsg = `🚨 [Invalid Rate] Услуга ${myService.id} ушла в карантин из-за некорректной цены провайдера: ${external.rate}.`;
+              console.warn(alertMsg);
+              const { sendAdminAlert } = await import('@/lib/notifications');
+              await sendAdminAlert(alertMsg);
+              disabledCount++;
+            } else {
+              unchangedCount++;
+            }
+            continue;
+          }
+          const newRate = rawRate;
           const providerCurrency = pDbRecord.balanceCurrency || 'USD';
           let oldRate = myService.rate;
 
@@ -147,7 +190,7 @@ export async function adminSyncProviderCatalog() {
 
           let markupChanged = false;
 
-          // Check for Elastic Quarantine or Price Absorption
+          // Check for Elastic Quarantine
           if (oldRate > 0 && newRate > oldRate) {
             const increaseRatio = newRate / oldRate;
 
@@ -183,8 +226,12 @@ export async function adminSyncProviderCatalog() {
               const serviceExchangeRateLocal = providerCurrency === 'RUB' ? 1.0 : usdToRub;
               const newCostCentsLocal = newRate * serviceExchangeRateLocal * 100;
               if (newCostCentsLocal > 0) {
-                myService.markup = myService.pricePer1000Cents / newCostCentsLocal;
-                markupChanged = true;
+                const targetRetailCents = myService.pricePer1000Cents; // сохраняем старую розничную цену
+                const newMarkup = targetRetailCents / newCostCentsLocal;
+                if (newMarkup >= SAFETY_FLOOR_MARKUP) {
+                  myService.markup = newMarkup;
+                  markupChanged = true;
+                }
               }
             }
           }
@@ -318,6 +365,11 @@ export async function approveQuarantinedService(serviceId: string) {
     const usdToRub = await SettingsManager.getExchangeRateUSD();
     const exchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
     const targetRate = service.pendingRate !== null ? service.pendingRate : service.rate;
+    
+    if (targetRate <= 0) {
+      return { success: false, error: "Cannot approve quarantine: target rate is invalid (<= 0)" };
+    }
+
     const newPricePer1000Cents = Math.round(
       applyBeautifulRounding(targetRate * Math.max(service.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
     );
@@ -381,6 +433,9 @@ export async function approveAllQuarantined() {
     await db.$transaction(async (tx) => {
       for (const s of quarantined) {
         const targetRate = s.pendingRate !== null ? s.pendingRate : s.rate;
+        if (targetRate <= 0) {
+          continue;
+        }
         const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
         const newPricePer1000Cents = Math.round(
           applyBeautifulRounding(targetRate * Math.max(s.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100

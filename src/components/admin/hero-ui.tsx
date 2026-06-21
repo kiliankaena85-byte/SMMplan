@@ -15,21 +15,21 @@ export { Button } from "@/components/ui/button";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 const TableColumn = ({ children, className, isRowHeader }: any) => (
-  <TableHead className={cn("text-warm-text/80 font-bold border-b border-warm-border/60 bg-warm-zinc/20 py-4 px-6", className)}>{children}</TableHead>
+  <TableHead className={cn("text-muted-foreground font-bold border-b border-border/80 bg-muted/30 py-4 px-6 text-xs uppercase tracking-wider", className)}>{children}</TableHead>
 );
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableHeaderComponent = ({ children }: any) => (
   <TableHeader>
-    <TableRow className="hover:bg-transparent border-b border-warm-border/60">{children}</TableRow>
+    <TableRow className="hover:bg-transparent border-b border-border/80">{children}</TableRow>
   </TableHeader>
 );
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableCellComponent = ({ children, className }: any) => (
-  <TableCell className={cn("text-warm-text/90 border-b border-warm-border/30 align-middle py-5 px-6", className)}>{children}</TableCell>
+  <TableCell className={cn("text-foreground border-b border-border/50 align-middle py-5 px-6", className)}>{children}</TableCell>
 );
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableRowComponent = ({ children, className }: any) => (
-  <TableRow className={cn("hover:bg-warm-zinc/40 even:bg-warm-zinc/15 border-b border-warm-border/30 transition-all duration-150", className)}>{children}</TableRow>
+  <TableRow className={cn("hover:bg-muted/50 even:bg-muted/20 border-b border-border/50 transition-all duration-150 group", className)}>{children}</TableRow>
 );
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TableBodyComponent = ({ children, emptyContent, renderEmptyState }: any) => {

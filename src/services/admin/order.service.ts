@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { calculatePartialRefund } from '@/utils/refund';
 import { WalletOps } from '../financial/wallet-ops';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
@@ -76,7 +77,15 @@ class AdminOrderService {
     }
 
     if (status && status !== 'ALL') {
-      where.status = status;
+      if (status === 'ACTIVE') {
+        where.status = { in: ['PENDING', 'IN_PROGRESS'] };
+      } else if (status === 'PROBLEMATIC') {
+        where.status = { in: ['ERROR', 'AWAITING_PAYMENT'] };
+      } else if (status === 'COMPLETED_ALL') {
+        where.status = { in: ['COMPLETED', 'PARTIAL'] };
+      } else {
+        where.status = status;
+      }
     }
 
     if (clientEmail && clientEmail.trim()) {
@@ -228,14 +237,13 @@ class AdminOrderService {
         include: { user: true },
       });
 
-      if (['COMPLETED', 'CANCELED', 'IN_PROGRESS', 'PARTIAL', 'ERROR'].includes(order.status)) {
-        throw new Error(`Order ${order.numericId} is already in state ${order.status}. Reseller platforms cannot cancel orders that have been sent to the upstream provider.`);
+      if (['COMPLETED', 'CANCELED'].includes(order.status)) {
+        throw new Error(`Order ${order.numericId} is already in state ${order.status} and cannot be canceled.`);
       }
 
-      let refundCents = 0;
-      if (['AWAITING_PAYMENT', 'PENDING', 'PENDING_CHECK'].includes(order.status)) {
-         refundCents = Number(order.charge); // For PENDING / AWAITING / PENDING_CHECK
-      }
+      const refundCents = ['AWAITING_PAYMENT', 'PENDING', 'PENDING_CHECK'].includes(order.status)
+        ? Number(order.charge)
+        : calculatePartialRefund(order);
 
       await tx.order.update({
         where: { id: orderId },
@@ -319,53 +327,132 @@ class AdminOrderService {
   /**
    * Get order statistics for dashboard widgets.
    */
-  async getOrderStats() {
+  async getOrderStats(startDate?: Date, endDate?: Date) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+    if (startDate && endDate) {
+      where.createdAt = { gte: startDate, lte: endDate };
+    }
     const [total, pending, inProgress, completed, error] = await Promise.all([
-      db.order.count(),
-      db.order.count({ where: { status: 'PENDING' } }),
-      db.order.count({ where: { status: 'IN_PROGRESS' } }),
-      db.order.count({ where: { status: 'COMPLETED' } }),
-      db.order.count({ where: { status: 'ERROR' } }),
+      db.order.count({ where }),
+      db.order.count({ where: { ...where, status: 'PENDING' } }),
+      db.order.count({ where: { ...where, status: 'IN_PROGRESS' } }),
+      db.order.count({ where: { ...where, status: 'COMPLETED' } }),
+      db.order.count({ where: { ...where, status: 'ERROR' } }),
     ]);
 
     return { total, pending, inProgress, completed, error };
   }
 
   /**
-   * Retrieves daily order counts for the past N days to build the Orders Dynamics Chart.
+   * Retrieves order counts grouped by hour/day/week/month to build the Orders Dynamics Chart.
    */
-  async getOrdersTimeseries(days: number = 30) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    startDate.setHours(0, 0, 0, 0);
+  async getOrdersTimeseries(startDate: Date, endDate: Date, step: 'hour' | 'day' | 'week' | 'month') {
+    let rawData: { date: Date; status: string; count: number }[];
+    
+    if (step === 'hour') {
+      rawData = await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
+        SELECT 
+          DATE_TRUNC('hour', "createdAt") as date, 
+          status, 
+          COUNT(*)::int as count 
+        FROM "Order"
+        WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+          AND status IN ('COMPLETED', 'CANCELED', 'AWAITING_PAYMENT')
+        GROUP BY DATE_TRUNC('hour', "createdAt"), status
+        ORDER BY date ASC
+      `;
+    } else if (step === 'week') {
+      rawData = await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
+        SELECT 
+          DATE_TRUNC('week', "createdAt") as date, 
+          status, 
+          COUNT(*)::int as count 
+        FROM "Order"
+        WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+          AND status IN ('COMPLETED', 'CANCELED', 'AWAITING_PAYMENT')
+        GROUP BY DATE_TRUNC('week', "createdAt"), status
+        ORDER BY date ASC
+      `;
+    } else if (step === 'month') {
+      rawData = await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
+        SELECT 
+          DATE_TRUNC('month', "createdAt") as date, 
+          status, 
+          COUNT(*)::int as count 
+        FROM "Order"
+        WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+          AND status IN ('COMPLETED', 'CANCELED', 'AWAITING_PAYMENT')
+        GROUP BY DATE_TRUNC('month', "createdAt"), status
+        ORDER BY date ASC
+      `;
+    } else {
+      rawData = await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
+        SELECT 
+          DATE_TRUNC('day', "createdAt") as date, 
+          status, 
+          COUNT(*)::int as count 
+        FROM "Order"
+        WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+          AND status IN ('COMPLETED', 'CANCELED', 'AWAITING_PAYMENT')
+        GROUP BY DATE_TRUNC('day', "createdAt"), status
+        ORDER BY date ASC
+      `;
+    }
 
-    // Grouping by precise Day Truncation in PostgreSQL
-    const rawData = await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
-      SELECT 
-        DATE_TRUNC('day', "createdAt") as date, 
-        status, 
-        COUNT(*)::int as count 
-      FROM "Order"
-      WHERE "createdAt" >= ${startDate}
-        AND status IN ('COMPLETED', 'CANCELED', 'AWAITING_PAYMENT')
-      GROUP BY DATE_TRUNC('day', "createdAt"), status
-      ORDER BY date ASC
-    `;
-
-    // Scaffold empty days array to prevent chart visual gaps
+    // Scaffold empty intervals array to prevent chart visual gaps
     type ChartRow = { dateStr: string; completed: number; canceled: number; unpaid: number };
     const result: ChartRow[] = [];
     
-    for (let i = days; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
-      result.push({ dateStr, completed: 0, canceled: 0, unpaid: 0 });
+    if (step === 'hour') {
+      const current = new Date(startDate);
+      current.setMinutes(0, 0, 0);
+      while (current <= endDate) {
+        const dateStr = current.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        result.push({ dateStr, completed: 0, canceled: 0, unpaid: 0 });
+        current.setHours(current.getHours() + 1);
+      }
+    } else if (step === 'day') {
+      const current = new Date(startDate);
+      current.setHours(0, 0, 0, 0);
+      while (current <= endDate) {
+        const dateStr = current.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+        result.push({ dateStr, completed: 0, canceled: 0, unpaid: 0 });
+        current.setDate(current.getDate() + 1);
+      }
+    } else if (step === 'week') {
+      const current = new Date(startDate);
+      const day = current.getDay();
+      const diff = current.getDate() - day + (day === 0 ? -6 : 1); // Get Monday
+      current.setDate(diff);
+      current.setHours(0, 0, 0, 0);
+      while (current <= endDate) {
+        const dateStr = current.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+        result.push({ dateStr, completed: 0, canceled: 0, unpaid: 0 });
+        current.setDate(current.getDate() + 7);
+      }
+    } else if (step === 'month') {
+      const current = new Date(startDate);
+      current.setDate(1);
+      current.setHours(0, 0, 0, 0);
+      while (current <= endDate) {
+        const dateStr = current.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' });
+        result.push({ dateStr, completed: 0, canceled: 0, unpaid: 0 });
+        current.setMonth(current.getMonth() + 1);
+      }
     }
 
     // Map DB results directly into the right scaffolded date string
     for (const row of rawData) {
-      const dStr = new Date(row.date).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+      let dStr = '';
+      const rDate = new Date(row.date);
+      if (step === 'hour') {
+        dStr = rDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      } else if (step === 'day' || step === 'week') {
+        dStr = rDate.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+      } else if (step === 'month') {
+        dStr = rDate.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' });
+      }
       const match = result.find(r => r.dateStr === dStr);
       if (match) {
         if (row.status === 'COMPLETED') match.completed = Number(row.count);

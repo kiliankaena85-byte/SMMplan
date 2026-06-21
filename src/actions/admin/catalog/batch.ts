@@ -15,7 +15,7 @@ import { db } from '@/lib/db';
 import { auditAdmin } from '@/lib/admin-audit';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
-import { applyBeautifulRounding } from '@/lib/financial-constants';
+import { applyBeautifulRounding, applyPricingLadder, SAFETY_FLOOR_MARKUP } from '@/lib/financial-constants';
 import { SettingsProvider } from '@/lib/settings';
 
 const MIN_MARKUP = 1.0;
@@ -238,6 +238,62 @@ export async function batchReassignServicesCategoryAction(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('services');
     return { success: true as const, count: updateResult.count };
+  });
+}
+
+/** Bulk reset markup of selected services based on the pricing ladder */
+export async function batchResetMarkupAction(
+  serviceIds: string[]
+) {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
+    const ids = batchIdsSchema.safeParse(serviceIds);
+    if (!ids.success) {
+      return { success: false as const, error: 'Invalid service IDs' };
+    }
+
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+
+    const services = await db.service.findMany({
+      where: { id: { in: ids.data } },
+      select: { id: true, rate: true, providerCurrency: true }
+    });
+
+    const updates = services.map(s => {
+      const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+      const retailFromLadder = applyPricingLadder(s.rate * exchangeRate);
+      let calculatedMarkup = s.rate > 0 ? Math.round((retailFromLadder / (s.rate * exchangeRate)) * 100) / 100 : 3.0;
+      
+      // Safety Floor Check
+      if (calculatedMarkup < SAFETY_FLOOR_MARKUP) {
+        calculatedMarkup = SAFETY_FLOOR_MARKUP;
+      }
+
+      return db.service.update({
+        where: { id: s.id },
+        data: { 
+          markup: calculatedMarkup,
+          pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * calculatedMarkup * exchangeRate) * 100)
+        }
+      });
+    });
+
+    await db.$transaction(updates);
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'BATCH_MARKUP_RESET',
+      target: ids.data.join(','),
+      targetType: 'SERVICE',
+      newValue: { count: ids.data.length },
+    });
+
+    revalidatePath('/admin/catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (revalidateTag as any)('catalog');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (revalidateTag as any)('services');
+    return { success: true as const, count: ids.data.length };
   });
 }
 

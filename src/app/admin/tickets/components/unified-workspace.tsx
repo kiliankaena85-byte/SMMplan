@@ -9,7 +9,6 @@ import {
   ExternalLink, 
   Mail, 
   Wallet, 
-  Loader2, 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   MessageSquare, 
   ChevronLeft,
@@ -28,6 +27,9 @@ import { Drawer } from '@heroui/react';
 import { Button } from '@/components/ui/button';
 import figmaStyles from '@/utils/figma-styles.json';
 import { useTheme } from 'next-themes';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { OrderDrawer } from '@/components/admin/OrderDrawer';
+
 
 
 // Helper inline hook for responsive query matches
@@ -64,7 +66,10 @@ interface UnifiedTicketsWorkspaceProps {
   supportLimitCents: number;
   supportSpentTodayCents?: number;
   currentStatus: string;
+  currentSource: string;
+  currentIsB2b: boolean;
   currentSearch: string;
+  canSeeRates?: boolean;
 }
 
 import { TicketsSidebar } from './tickets-sidebar';
@@ -79,7 +84,10 @@ export function UnifiedTicketsWorkspace({
   supportLimitCents,
   supportSpentTodayCents = 0,
   currentStatus,
-  currentSearch
+  currentSource,
+  currentIsB2b,
+  currentSearch,
+  canSeeRates = true
 }: UnifiedTicketsWorkspaceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,11 +97,16 @@ export function UnifiedTicketsWorkspace({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [searchVal, setSearchVal] = useState(currentSearch);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'cancel' | 'restart' | null>(null);
   const [isPending, startTransition] = useTransition();
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== 'undefined' && window.innerWidth >= 1280) {
+      setShowProfile(true);
+    }
   }, []);
   const isDark = mounted ? (theme?.includes('dark') || theme === 'dark') : true;
 
@@ -172,6 +185,28 @@ export function UnifiedTicketsWorkspace({
     router.push(`/admin/tickets?${params.toString()}`);
   };
 
+  const handleSourceFilter = (source: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (source === 'ALL') {
+      params.delete('source');
+    } else {
+      params.set('source', source);
+    }
+    params.delete('page'); // Reset pagination on filter change
+    router.push(`/admin/tickets?${params.toString()}`);
+  };
+
+  const handleB2bToggle = (isB2b: boolean) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (isB2b) {
+      params.set('isB2b', 'true');
+    } else {
+      params.delete('isB2b');
+    }
+    params.delete('page'); // Reset pagination on filter change
+    router.push(`/admin/tickets?${params.toString()}`);
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams(searchParams.toString());
@@ -214,33 +249,41 @@ export function UnifiedTicketsWorkspace({
 
   // 5. Order Action Handlers
   const handleCancelOrder = () => {
-    if (!selectedOrder) return;
-    startTransition(async () => {
-      const fd = new FormData();
-      fd.set('orderId', selectedOrder.id);
-      const res = await cancelOrderAction(fd);
-      if (res.success) {
-        toast.success('Заказ отменен успешно');
-        setIsOrderDrawerOpen(false);
-        router.refresh();
-      } else {
-        toast.error(res.error || 'Ошибка отмены заказа');
-      }
-    });
+    if (!activeTicket?.order) return;
+    setConfirmAction('cancel');
+    setConfirmOpen(true);
   };
 
   const handleRestartOrder = () => {
-    if (!selectedOrder) return;
+    if (!activeTicket?.order) return;
+    setConfirmAction('restart');
+    setConfirmOpen(true);
+  };
+
+  const executeConfirm = () => {
+    if (!activeTicket?.order || !confirmAction) return;
+    setConfirmOpen(false);
+    
     startTransition(async () => {
       const fd = new FormData();
-      fd.set('orderId', selectedOrder.id);
-      const res = await restartOrderAction(fd);
-      if (res.success) {
-        toast.success('Заказ перезапущен успешно');
-        setIsOrderDrawerOpen(false);
-        router.refresh();
-      } else {
-        toast.error(res.error || 'Ошибка перезапуска заказа');
+      fd.set('orderId', activeTicket.order.id);
+      
+      if (confirmAction === 'cancel') {
+        const res = await cancelOrderAction(fd);
+        if (res.success) {
+          toast.success('Заказ отменен успешно');
+          router.refresh();
+        } else {
+          toast.error(res.error || 'Ошибка отмены заказа');
+        }
+      } else if (confirmAction === 'restart') {
+        const res = await restartOrderAction(fd);
+        if (res.success) {
+          toast.success('Заказ перезапущен успешно');
+          router.refresh();
+        } else {
+          toast.error(res.error || 'Ошибка перезапуска заказа');
+        }
       }
     });
   };
@@ -264,6 +307,10 @@ export function UnifiedTicketsWorkspace({
         handleSearchSubmit={handleSearchSubmit}
         currentStatus={currentStatus}
         handleStatusFilter={handleStatusFilter}
+        currentSource={currentSource}
+        handleSourceFilter={handleSourceFilter}
+        currentIsB2b={currentIsB2b}
+        handleB2bToggle={handleB2bToggle}
         tickets={tickets}
         handleSelectTicket={handleSelectTicket}
         totalPages={totalPages}
@@ -279,7 +326,7 @@ export function UnifiedTicketsWorkspace({
               {/* Main Chat Panel Container */}
               <div className="flex-1 flex flex-col h-full overflow-hidden">
                 {/* Header block */}
-                <div className="p-4 border-b border-border flex justify-between items-center shrink-0 bg-card text-card-foreground">
+                <div className="p-4 border-b border-border/50 flex justify-between items-center shrink-0 bg-card/60 backdrop-blur-md text-card-foreground">
                   <div className="flex items-center gap-3 min-w-0">
                     {isMobile && (
                       <Button
@@ -385,7 +432,7 @@ export function UnifiedTicketsWorkspace({
 
                 {/* Attached Order Banner */}
                 {activeTicket.order && (
-                  <div className="p-3 border-b border-border bg-card shrink-0 select-none">
+                  <div className="p-3 border-b border-border/50 bg-card/60 backdrop-blur-md shrink-0 select-none">
                     <div 
                       onClick={() => handleOpenOrderDrawer(activeTicket.order)}
                       className="bg-primary/5 border border-primary/10 rounded-xl p-3 flex items-center justify-between gap-3 shadow-sm cursor-pointer hover:bg-primary/10 transition-colors"
@@ -499,7 +546,7 @@ export function UnifiedTicketsWorkspace({
 
               {/* ── RIGHT PANEL: Collapsible Client Profile (Desktop side display) ── */}
               {!isMobile && showProfile && (
-                <div className="w-[340px] shrink-0 border-l border-border h-full bg-card overflow-y-auto animate-in slide-in-from-right duration-300">
+                <div className="w-[340px] shrink-0 border-l border-border/50 h-full bg-card/60 backdrop-blur-md overflow-y-auto animate-in slide-in-from-right duration-300">
                   <ClientProfileSidebar 
                     ticketId={activeTicket.id}
                     supportLimitCents={supportLimitCents}
@@ -522,9 +569,9 @@ export function UnifiedTicketsWorkspace({
               {/* ── RIGHT PANEL: Collapsible Client Profile (Mobile slide-over Drawer) ── */}
               {isMobile && (
                 <Drawer isOpen={showProfile} onOpenChange={setShowProfile}>
-                  <Drawer.Content placement="right" className="max-w-[340px] w-full h-full bg-card p-0">
+                  <Drawer.Content placement="right" className="max-w-[340px] w-full h-full bg-card/90 backdrop-blur-xl p-0">
                     {() => (
-                      <Drawer.Body className="p-0 overflow-y-auto bg-card">
+                      <Drawer.Body className="p-0 overflow-y-auto bg-transparent">
                         <ClientProfileSidebar 
                           ticketId={activeTicket.id}
                           supportLimitCents={supportLimitCents}
@@ -548,111 +595,32 @@ export function UnifiedTicketsWorkspace({
               )}
 
               {/* ── ORDER DETAILS & ACTIONS DRAWER (Mobile and Desktop) ── */}
-              {selectedOrder && (
-                <Drawer isOpen={isOrderDrawerOpen} onOpenChange={setIsOrderDrawerOpen}>
-                  <Drawer.Content placement={isMobile ? "bottom" : "right"} className={isMobile ? "max-h-[80dvh] rounded-t-3xl pb-[env(safe-area-inset-bottom)] bg-card" : "max-w-[400px] w-full h-full bg-card p-0"}>
-                    {() => (
-                      <>
-                        {isMobile && (
-                          <div className="w-full flex justify-center pt-3 pb-1 touch-none">
-                            <div className="w-12 h-1.5 bg-muted rounded-full" />
-                          </div>
-                        )}
-                        <Drawer.Header className="px-6 py-4 shrink-0 border-b border-border">
-                          <h2 className="text-base font-black text-foreground">Заказ #{selectedOrder.numericId}</h2>
-                          <div className="text-[10px] text-muted-foreground font-bold mt-0.5">
-                            Создан: {new Date(selectedOrder.createdAt).toLocaleString('ru-RU')}
-                          </div>
-                        </Drawer.Header>
-                        <Drawer.Body className="px-6 py-4 overflow-y-auto overscroll-contain space-y-4 bg-card">
-                          <div className="bg-muted/30 border border-border p-4 rounded-2xl">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <div className="text-[9px] uppercase font-bold text-muted-foreground mb-0.5">Статус</div>
-                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${
-                                  selectedOrder.status === 'COMPLETED' ? 'bg-success/10 text-success border-emerald-500/20' :
-                                  selectedOrder.status === 'IN_PROGRESS' ? 'bg-primary/10 text-primary border-primary/20' :
-                                  'bg-muted text-foreground border-border'
-                                }`}>
-                                  {selectedOrder.status === 'COMPLETED' ? 'Выполнен' :
-                                   selectedOrder.status === 'IN_PROGRESS' ? 'В работе' :
-                                   selectedOrder.status === 'PENDING' ? 'В очереди' : selectedOrder.status}
-                                </span>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-[9px] uppercase font-bold text-muted-foreground mb-0.5">Цена</div>
-                                <div className="text-sm font-black text-foreground">
-                                  {(Number(selectedOrder.charge) / 100).toFixed(2)} ₽
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+              <OrderDrawer
+                order={isOrderDrawerOpen ? selectedOrder : null}
+                onClose={() => {
+                  setIsOrderDrawerOpen(false);
+                  setSelectedOrder(null);
+                }}
+                canSeeRates={canSeeRates}
+                onSuccess={() => {
+                  router.refresh();
+                }}
+              />
 
-                          <div>
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Название услуги</span>
-                            <div className="text-xs font-semibold text-foreground leading-normal">{selectedOrder.serviceName || selectedOrder.service?.name}</div>
-                          </div>
-
-                          {selectedOrder.link && (
-                            <div>
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Ссылка заказа</span>
-                              <a 
-                                href={selectedOrder.link} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="text-xs font-bold text-primary flex items-center gap-1 hover:underline break-all"
-                              >
-                                {selectedOrder.link}
-                                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                              </a>
-                            </div>
-                          )}
-
-                          {selectedOrder.externalId && (
-                            <div>
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Внешний ID (Провайдер)</span>
-                              <code className="text-xs font-mono bg-muted px-2 py-1 rounded border border-border">{selectedOrder.externalId}</code>
-                            </div>
-                          )}
-
-                          <div className="flex flex-col gap-2 pt-3">
-                            {['PENDING', 'AWAITING_PAYMENT', 'IN_PROGRESS', 'ERROR'].includes(selectedOrder.status) && (
-                              <Button
-                                intent="destructive"
-                                onClick={handleCancelOrder}
-                                disabled={isPending}
-                                className="w-full min-h-[44px] flex items-center justify-center text-xs font-bold cursor-pointer bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                              >
-                                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Отменить заказ'}
-                              </Button>
-                            )}
-                            {['CANCELED', 'ERROR'].includes(selectedOrder.status) && (
-                              <Button
-                                intent="primary"
-                                onClick={handleRestartOrder}
-                                disabled={isPending}
-                                className="w-full min-h-[44px] flex items-center justify-center text-xs font-bold cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground"
-                              >
-                                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Перезапустить заказ'}
-                              </Button>
-                            )}
-                            {selectedOrder.externalId && (
-                              <Button
-                                intent="outline"
-                                onClick={handleProviderSupportBridge}
-                                className="w-full min-h-[44px] flex items-center justify-center text-xs font-bold gap-1.5 cursor-pointer border-border text-foreground hover:bg-muted"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                                <span>В тикеты провайдера</span>
-                              </Button>
-                            )}
-                          </div>
-                        </Drawer.Body>
-                      </>
-                    )}
-                  </Drawer.Content>
-                </Drawer>
-              )}
+              <ConfirmModal
+                isOpen={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+                onConfirm={executeConfirm}
+                title={confirmAction === 'cancel' ? 'Отмена заказа' : 'Перезапуск заказа'}
+                isDanger={confirmAction === 'cancel'}
+                confirmText={confirmAction === 'cancel' ? 'Отменить заказ' : 'Перезапустить'}
+              >
+                {confirmAction === 'cancel' ? (
+                  <>Вы действительно хотите отменить заказ <strong>#{activeTicket?.order?.numericId}</strong>? При наличии остатка клиент получит возврат.</>
+                ) : (
+                  <>Вы действительно хотите перезапустить заказ <strong>#{activeTicket?.order?.numericId}</strong>? Будет повторно списано <strong>{activeTicket?.order?.charge ? (Number(activeTicket.order.charge) / 100).toFixed(2) : '—'} ₽</strong>.</>
+                )}
+              </ConfirmModal>
             </div>
           ) : (
             // ── PREMIUM EMPTY STATE ──

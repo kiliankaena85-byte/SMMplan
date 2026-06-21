@@ -1,7 +1,8 @@
 import { adminMarketingService } from '@/services/admin/marketing.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Gift, TrendingUp, Users, Wallet } from 'lucide-react';
-import { AdminPageHeader } from '@/components/admin/page-header';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { MarketingTabs } from './client-tabs';
 import { ReferralEconomicsChart } from './referral-chart';
 import { PromoCodeTable } from './promocode-table';
@@ -31,10 +32,13 @@ export default async function MarketingPage() {
 
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-muted/50/50 min-h-full pb-10">
-      <AdminPageHeader
+      <AdminTabbedHeader
         icon={Gift}
         title="Маркетинг"
         description="Управление промокодами и аналитика партнерской программы"
+        tabs={FINANCE_TABS}
+        onboardingKey="marketing"
+        onboarding={ONBOARDING_CONFIGS.marketing}
       />
 
       <MarketingTabs

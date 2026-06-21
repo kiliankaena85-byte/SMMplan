@@ -3,6 +3,9 @@ import { getTemplates } from '@/actions/support/template';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { UnifiedTicketsWorkspace } from './components/unified-workspace';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { OPERATIONS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { MessageSquare } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +13,8 @@ type Props = {
   searchParams: Promise<{
     q?: string;
     status?: string;
+    source?: string;
+    isB2b?: string;
     page?: string;
     ticketId?: string;
   }>;
@@ -23,6 +28,8 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
   const params = await searchParams;
   const search = params.q || '';
   const statusFilter = params.status || 'ALL';
+  const sourceFilter = params.source || 'ALL';
+  const isB2bFilter = params.isB2b === 'true';
   const currentPage = Math.max(1, parseInt(params.page || '1', 10));
   const activeTicketId = params.ticketId || null;
 
@@ -31,6 +38,8 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
     adminTicketService.listTickets({
       search: search || undefined,
       status: statusFilter,
+      source: sourceFilter,
+      isB2b: isB2bFilter,
       pageSize: 20, // compact size for two-panel scrollbars
       page: currentPage,
     }),
@@ -48,6 +57,14 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
   if (activeTicketId) {
     activeTicket = await adminTicketService.getTicketDetails(activeTicketId);
   }
+
+  const user = session ? await db.user.findUnique({
+    where: { id: session.userId },
+    include: { staffRole: { include: { permissions: true } } }
+  }) : null;
+
+  const isOwner = user?.role === 'OWNER';
+  const canSeeRates = isOwner || (user?.role !== 'SUPPORT');
 
   if (session?.userId) {
     const admin = await db.user.findUnique({
@@ -80,18 +97,30 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
 
   return (
     <div className="flex-grow flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-      <UnifiedTicketsWorkspace 
-        tickets={ticketsResult.items}
-        totalPages={ticketsResult.totalPages}
-        currentPage={currentPage}
-        stats={stats}
-        activeTicket={activeTicket}
-        templates={templates}
-        supportLimitCents={supportLimitCents}
-        supportSpentTodayCents={supportSpentTodayCents}
-        currentStatus={statusFilter}
-        currentSearch={search}
+      <AdminTabbedHeader
+        icon={MessageSquare}
+        title="Тикеты поддержки"
+        tabs={OPERATIONS_TABS}
+        onboardingKey="tickets"
+        onboarding={ONBOARDING_CONFIGS.tickets}
       />
+      <div className="flex-1 overflow-hidden relative">
+        <UnifiedTicketsWorkspace 
+          tickets={ticketsResult.items}
+          totalPages={ticketsResult.totalPages}
+          currentPage={currentPage}
+          stats={stats}
+          activeTicket={activeTicket}
+          templates={templates}
+          supportLimitCents={supportLimitCents}
+          supportSpentTodayCents={supportSpentTodayCents}
+          currentStatus={statusFilter}
+          currentSource={sourceFilter}
+          currentIsB2b={isB2bFilter}
+          currentSearch={search}
+          canSeeRates={canSeeRates}
+        />
+      </div>
     </div>
   );
 }

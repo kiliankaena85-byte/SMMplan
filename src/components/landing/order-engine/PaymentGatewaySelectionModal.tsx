@@ -115,11 +115,22 @@ export function PaymentGatewaySelectionModal({
           </div>
 
           {/* Amount Box */}
-          <div className="bg-default-100 rounded-2xl p-4 flex justify-between items-center mb-6 border border-border/50 shadow-inner">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">К оплате:</span>
-            <span className="text-2xl font-black text-foreground tabular-nums">
-              {totalPriceFormatted} <span className="text-primary ml-0.5">₽</span>
-            </span>
+          <div className="bg-default-100 rounded-2xl p-4 flex flex-col justify-center mb-6 border border-border/50 shadow-inner overflow-hidden">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">К оплате:</span>
+              <span className="text-2xl font-black text-foreground tabular-nums">
+                {totalPriceFormatted} <span className="text-primary ml-0.5">₽</span>
+              </span>
+            </div>
+            
+            {Number(totalPriceFormatted) > 0 && Number(totalPriceFormatted) < 10 && (
+              <div className="mt-4 p-3 rounded-xl bg-warning/10 border border-warning/20 text-warning-text text-[11px] leading-relaxed animate-in fade-in">
+                <div className="font-bold flex items-center gap-1 mb-1">
+                  <span>💡</span> Минимальный платеж — 10 ₽
+                </div>
+                Технически эквайринг не принимает менее 10 ₽. Из них <strong>{totalPriceFormatted} ₽</strong> пойдет за заказ, а сдача <strong>{(10 - Number(totalPriceFormatted)).toFixed(2)} ₽</strong> будет зачислена на баланс автоматически созданного аккаунта.
+              </div>
+            )}
           </div>
 
           {/* Payment Methods Grid */}

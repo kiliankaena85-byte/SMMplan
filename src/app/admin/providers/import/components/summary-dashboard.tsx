@@ -68,9 +68,12 @@ export function SummaryDashboard({
   ];
 
   return (
-    <div className="bg-card border border-border rounded-[12px] p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.08)] space-y-5">
+    <div className="relative overflow-hidden bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] p-6 shadow-sm space-y-6 ring-1 ring-border/5">
+      {/* Premium Backdrop Pattern */}
+      <div className="absolute inset-0 z-0 opacity-70 premium-dot-grid pointer-events-none" />
+
       {/* Provider Name + Resync */}
-      <div className="flex items-center justify-between">
+      <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
             <Package className="w-4.5 h-4.5 text-primary" />
@@ -93,11 +96,11 @@ export function SummaryDashboard({
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-3">
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className={`${stat.bg} rounded-[10px] px-4 py-3 border border-border/50`}
+            className={`${stat.bg} rounded-[10px] px-4 py-3 border border-border/50 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200`}
           >
             <div className={`flex items-center gap-1.5 ${stat.color} mb-1`}>
               {stat.icon}
@@ -113,7 +116,7 @@ export function SummaryDashboard({
       </div>
 
       {/* Action Bar */}
-      <div className="flex flex-wrap items-end gap-4 pt-2 border-t border-border/50">
+      <div className="relative z-10 flex flex-wrap items-end gap-4 pt-2 border-t border-border/50">
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-0.5">
             Наценка (%)

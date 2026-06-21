@@ -1,9 +1,11 @@
 import { settingsService } from '@/services/admin/settings.service';
 import { db } from '@/lib/db';
-import { Settings, Globe, Link as LinkIcon, Users, History, MessageSquare } from 'lucide-react';
-import { AdminPageHeader } from '@/components/admin/page-header';
+import { Settings, Globe, Link as LinkIcon, Users, History, MessageSquare, Database } from 'lucide-react';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { SYSTEM_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { TestModePanel } from '@/components/admin/test-mode-panel';
 import { GeneralSettings } from './general-settings';
+import { CatalogSettings } from './catalog-settings';
 import { IntegrationsSettings } from './integrations-settings';
 import { TeamManagement } from './team-management';
 
@@ -50,6 +52,7 @@ export default async function AdminSettingsPage({
 
   const tabs = [
     { id: 'system', label: 'Система', icon: Globe },
+    { id: 'catalog', label: 'Каталог', icon: Database },
     { id: 'integrations', label: 'Интеграции', icon: LinkIcon },
     { id: 'team', label: 'Команда', icon: Users },
     { id: 'templates', label: 'Шаблоны', icon: MessageSquare },
@@ -57,10 +60,13 @@ export default async function AdminSettingsPage({
   ];
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 bg-background min-h-full pb-10">
-      <AdminPageHeader
+      <AdminTabbedHeader
         icon={Settings}
         title="Настройки системы"
         description="Глобальная конфигурация платформы, безопасность и персонал."
+        tabs={SYSTEM_TABS}
+        onboardingKey="settings"
+        onboarding={ONBOARDING_CONFIGS.settings}
       />
 
       {/* ── Custom URL-based Tabs ── */}
@@ -87,6 +93,13 @@ export default async function AdminSettingsPage({
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
             <TestModePanel initialIsTestMode={sanitizedSettings.isTestMode} isTestEnvironment={SettingsProvider.isTestEnvironment()} />
             <GeneralSettings settings={sanitizedSettings} />
+          </div>
+        )}
+
+        {/* ── TAB 1.5: CATALOG ── */}
+        {activeTab === 'catalog' && (
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+            <CatalogSettings settings={sanitizedSettings} />
           </div>
         )}
 

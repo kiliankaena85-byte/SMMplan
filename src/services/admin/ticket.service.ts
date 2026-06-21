@@ -24,6 +24,7 @@ type TicketSearchParams = {
   source?: string;
   search?: string;
   pageSize?: number;
+  isB2b?: boolean;
 };
 
 // ── Service ──
@@ -42,12 +43,43 @@ class AdminTicketService {
     if (params.source && params.source !== 'ALL') {
       where.source = params.source;
     }
+    if (params.isB2b) {
+      where.user = {
+        b2bConfig: {
+          isB2b: true
+        }
+      };
+    }
     if (params.search?.trim()) {
       const q = params.search.trim();
-      where.OR = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const orConditions: any[] = [
         { subject: { contains: q, mode: 'insensitive' } },
         { user: { email: { contains: q, mode: 'insensitive' } } },
+        { messages: { some: { text: { contains: q, mode: 'insensitive' } } } }
       ];
+
+      // Exact ticket ID search if length matches CUID/UUID
+      if (q.length >= 10) {
+        orConditions.push({ id: q });
+      }
+
+      // Exact order UUID/CUID if pasted
+      if (q.length > 20) {
+        orConditions.push({ orderId: q });
+      }
+
+      // Linked order numeric ID if integer
+      const numId = parseInt(q, 10);
+      if (!isNaN(numId) && String(numId) === q) {
+        orConditions.push({
+          order: {
+            numericId: numId
+          }
+        });
+      }
+
+      where.OR = orConditions;
     }
 
     const pageSize = params.pageSize || 50;
@@ -119,16 +151,72 @@ class AdminTicketService {
   }
 
   /**
-   * Ticket statistics for the header.
+   * Ticket statistics for the header, including support SLA metrics.
    */
-  async getTicketStats() {
-    const [total, open, pending, closed] = await Promise.all([
-      db.ticket.count(),
-      db.ticket.count({ where: { status: 'OPEN' } }),
-      db.ticket.count({ where: { status: 'PENDING' } }),
-      db.ticket.count({ where: { status: 'CLOSED' } }),
+  async getTicketStats(startDate?: Date, endDate?: Date) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+    if (startDate && endDate) {
+      where.createdAt = { gte: startDate, lte: endDate };
+    }
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const [total, open, pending, closed, criticalOpen] = await Promise.all([
+      db.ticket.count({ where }),
+      db.ticket.count({ where: { ...where, status: 'OPEN' } }),
+      db.ticket.count({ where: { ...where, status: 'PENDING' } }),
+      db.ticket.count({ where: { ...where, status: 'CLOSED' } }),
+      db.ticket.count({
+        where: {
+          ...where,
+          status: 'OPEN',
+          updatedAt: { lte: fifteenMinsAgo }
+        }
+      })
     ]);
-    return { total, open, pending, closed };
+
+    // Calculate support SLA metrics
+    const resolvedTickets = await db.ticket.findMany({
+      where: {
+        ...where,
+        status: 'CLOSED',
+        resolvedAt: { not: null },
+      },
+      select: {
+        createdAt: true,
+        resolvedAt: true,
+      }
+    });
+
+    const respondedTickets = await db.ticket.findMany({
+      where: {
+        ...where,
+        firstRespondedAt: { not: null },
+      },
+      select: {
+        createdAt: true,
+        firstRespondedAt: true
+      }
+    });
+
+    let avgFRTMin = 0;
+    if (respondedTickets.length > 0) {
+      const totalFRT = respondedTickets.reduce((acc, t) => {
+        const diff = Math.max(0, t.firstRespondedAt!.getTime() - t.createdAt.getTime());
+        return acc + diff;
+      }, 0);
+      avgFRTMin = Math.round(totalFRT / respondedTickets.length / 60000);
+    }
+
+    let avgTTRMin = 0;
+    if (resolvedTickets.length > 0) {
+      const totalTTR = resolvedTickets.reduce((acc, t) => {
+        const diff = Math.max(0, t.resolvedAt!.getTime() - t.createdAt.getTime());
+        return acc + diff;
+      }, 0);
+      avgTTRMin = Math.round(totalTTR / resolvedTickets.length / 60000);
+    }
+
+    return { total, open, pending, closed, criticalOpen, avgFRTMin, avgTTRMin };
   }
 
   /**

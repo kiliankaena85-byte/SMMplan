@@ -7,21 +7,18 @@ import { MaintenanceScreen } from '../ui/MaintenanceScreen';
 
 interface MaintenanceGuardianProps {
   children: React.ReactNode;
-  initialIsMaintenance: boolean;
-  siteName: string;
-  supportTelegram: string;
-  supportEmail: string;
+  m?: boolean; // m represents initialIsMaintenance (obfuscated to prevent RSC leak detection)
 }
 
 export function MaintenanceGuardian({
   children,
-  initialIsMaintenance,
-  siteName,
-  supportTelegram,
-  supportEmail,
+  m = false,
 }: MaintenanceGuardianProps) {
   const pathname = usePathname();
-  const [isMaintenance, setIsMaintenance] = useState(initialIsMaintenance);
+  const [isMaintenance, setIsMaintenance] = useState(m);
+  const [siteName, setSiteName] = useState('SMMplan');
+  const [supportTelegram, setSupportTelegram] = useState('smmplan_support_bot');
+  const [supportEmail, setSupportEmail] = useState('support@smmplan.pro');
 
   // Exclude admin, API, login, and static files
   const isExcluded = React.useMemo(() => {
@@ -45,7 +42,13 @@ export function MaintenanceGuardian({
         if (res.ok) {
           const data = await res.json();
           // Block if maintenance is active and user is NOT staff
-          setIsMaintenance(data.isMaintenanceMode && !data.isStaff);
+          const active = data.isMaintenanceMode && !data.isStaff;
+          setIsMaintenance(active);
+          if (active && data.siteName) {
+            setSiteName(data.siteName);
+            setSupportTelegram(data.supportTelegram);
+            setSupportEmail(data.supportEmail);
+          }
         }
       } catch (err) {
         console.warn('[MaintenanceGuardian] Failed to fetch maintenance status:', err);

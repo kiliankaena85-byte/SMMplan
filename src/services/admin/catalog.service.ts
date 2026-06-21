@@ -275,6 +275,18 @@ class AdminCatalogService {
               cooldownUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
             }
           });
+
+          await db.routingAuditLog.create({
+            data: {
+              serviceId: s.id,
+              action: 'ZOMBIE_AUTO_DISABLED',
+              reason: 'Услуга удалена провайдером из API'
+            }
+          });
+
+          const alertMsg = `🧟 [Zombie Eraser] Услуга #${s.numericId} - "${s.name}" автоматически отключена, так как она была удалена провайдером из API.`;
+          await sendAdminAlert(alertMsg, 'WARNING');
+
           zombiesDisabled++;
         }
       } else {
@@ -607,11 +619,16 @@ class AdminCatalogService {
   /**
    * Catalog stats for the header.
    */
-  async getCatalogStats() {
+  async getCatalogStats(startDate?: Date, endDate?: Date) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+    if (startDate && endDate) {
+      where.createdAt = { gte: startDate, lte: endDate };
+    }
     const [totalServices, activeServices, categories] = await Promise.all([
-      db.service.count(),
-      db.service.count({ where: { isActive: true } }),
-      db.category.count(),
+      db.service.count({ where }),
+      db.service.count({ where: { ...where, isActive: true } }),
+      db.category.count({ where }),
     ]);
 
     return { totalServices, activeServices, categories };

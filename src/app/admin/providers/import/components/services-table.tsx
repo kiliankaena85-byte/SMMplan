@@ -28,7 +28,9 @@ interface ServicesTableProps {
   selectedCategories: Record<string, string>;
   onCategoryChange: (serviceId: string, categoryId: string) => void;
   autoMappedCategories: Record<string, string>;
+  aiConfidence?: Record<string, boolean>;
   showCategoryColumn?: boolean;
+  validationErrors?: Set<string>;
 }
 
 const platformMap: Record<string, { name: string; color: string; icon: string }> = {
@@ -66,7 +68,9 @@ export function ServicesTable({
   onCategoryChange,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   autoMappedCategories = {},
+  aiConfidence = {},
   showCategoryColumn = false,
+  validationErrors = new Set<string>(),
 }: ServicesTableProps) {
   const handleSort = (field: string) => {
     let newSort = "none";
@@ -90,75 +94,88 @@ export function ServicesTable({
   const isCheckboxDisabled = importableIds.length === 0;
 
   // Dynamic column count
-  const colSpan = showCategoryColumn ? 6 : 5;
+  // Dynamic grid template columns based on category column visibility
+  // On mobile: 1 column. On desktop: 4 or 5 columns
+  const gridTemplate = showCategoryColumn 
+    ? "grid-cols-[40px_minmax(0,1.5fr)_minmax(0,1.5fr)_150px_200px_80px]" 
+    : "grid-cols-[40px_minmax(0,1.5fr)_minmax(0,1.5fr)_150px_80px]";
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-card border border-border rounded-[12px] shadow-[0px_1px_3px_rgba(0,0,0,0.08)] overflow-hidden">
-      <div className="overflow-x-auto flex-1 w-full">
-        <table className="min-w-[700px] w-full table-fixed">
-          <thead className="bg-muted sticky top-0 z-10 select-none">
-            <tr className="border-b border-border">
-              <th className="px-4 py-3.5 text-left w-12">
-                <input
-                  type="checkbox"
-                  onChange={toggleAll}
-                  checked={isAllPageSelected}
-                  disabled={isCheckboxDisabled}
-                  className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                />
-              </th>
-              <th
-                className="w-[30%] px-4 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-widest text-left cursor-pointer hover:bg-muted-foreground/5 group transition-all duration-200"
-                onClick={() => handleSort("name")}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span>Услуга</span>
-                  {getSortIcon("name")}
-                </div>
-              </th>
-              <th
-                className="w-[20%] px-4 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-widest text-left cursor-pointer hover:bg-muted-foreground/5 group transition-all duration-200"
-                onClick={() => handleSort("platform")}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span>Платформа и теги</span>
-                  {getSortIcon("platform")}
-                </div>
-              </th>
-              <th
-                className="w-[18%] px-4 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-widest text-left cursor-pointer hover:bg-muted-foreground/5 group transition-all duration-200"
-                onClick={() => handleSort("price")}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span>Стоимость</span>
-                  {getSortIcon("price")}
-                </div>
-              </th>
-              {showCategoryColumn && (
-                <th className="w-[22%] px-4 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-widest text-left">
-                  Категория на сайте
-                </th>
-              )}
-              <th className="w-[10%] px-4 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-widest text-left">
-                Статус
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-card">
+    <div className="flex-1 flex flex-col min-w-0 bg-card border border-border/60 ring-1 ring-border/5 rounded-xl shadow-sm overflow-hidden">
+      <div className="flex-1 w-full overflow-hidden">
+        {/* Desktop Header */}
+        <div className={`hidden lg:grid ${gridTemplate} gap-4 bg-muted/30 border-b border-border/60 sticky top-0 z-10 select-none items-center backdrop-blur-sm`}>
+          <div className="px-4 py-3 pl-6">
+            <input
+              type="checkbox"
+              onChange={toggleAll}
+              checked={isAllPageSelected}
+              disabled={isCheckboxDisabled}
+              className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            />
+          </div>
+          <div
+            className="py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest cursor-pointer hover:text-foreground transition-all duration-200"
+            onClick={() => handleSort("name")}
+          >
+            <div className="flex items-center gap-1.5">
+              <span>Услуга</span>
+              {getSortIcon("name")}
+            </div>
+          </div>
+          <div
+            className="py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest cursor-pointer hover:text-foreground transition-all duration-200"
+            onClick={() => handleSort("platform")}
+          >
+            <div className="flex items-center gap-1.5">
+              <span>Платформа и теги</span>
+              {getSortIcon("platform")}
+            </div>
+          </div>
+          <div
+            className="py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest cursor-pointer hover:text-foreground transition-all duration-200"
+            onClick={() => handleSort("price")}
+          >
+            <div className="flex items-center gap-1.5">
+              <span>Стоимость</span>
+              {getSortIcon("price")}
+            </div>
+          </div>
+          {showCategoryColumn && (
+            <div className="py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              Категория
+            </div>
+          )}
+          <div className="py-3 pr-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            Статус
+          </div>
+        </div>
+        
+        {/* Mobile Select All */}
+        <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-muted/30">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              onChange={toggleAll}
+              checked={isAllPageSelected}
+              disabled={isCheckboxDisabled}
+              className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+            />
+            <span className="text-sm font-semibold text-foreground">Выбрать все на странице</span>
+          </label>
+        </div>
+
+        <div className="bg-card flex flex-col divide-y divide-border">
             {loading ? (
-              <tr>
-                <td colSpan={colSpan} className="px-4 py-16 text-center text-sm text-muted-foreground">
-                  <div className="flex justify-center items-center gap-2">
-                    <span className="animate-spin text-xl">⏳</span> Загрузка каталога...
-                  </div>
-                </td>
-              </tr>
+              <div className="p-16 text-center text-sm text-muted-foreground">
+                <div className="flex justify-center items-center gap-2">
+                  <span className="animate-spin text-xl">⏳</span> Загрузка каталога...
+                </div>
+              </div>
             ) : services.length === 0 ? (
-              <tr>
-                <td colSpan={colSpan} className="px-4 py-16 text-center text-sm text-muted-foreground">
-                  Услуги по заданным критериям не найдены.
-                </td>
-              </tr>
+              <div className="p-16 text-center text-sm text-muted-foreground">
+                Услуги по заданным критериям не найдены.
+              </div>
             ) : (
               services.map((s) => {
                 const metrics = s.metrics || {};
@@ -176,45 +193,184 @@ export function ServicesTable({
                 };
 
                 return (
-                  <tr
+                  <div
                     key={s.service}
                     onClick={handleRowClick}
-                    className={`transition-all duration-200 cursor-pointer ${
+                    className={`transition-colors duration-200 cursor-pointer p-4 lg:p-0 border-b border-border/40 last:border-0 ${
                       s.alreadyImported
                         ? "bg-slate-50/60 dark:bg-slate-900/40 opacity-75 cursor-not-allowed"
                         : isFreeProcurement
                         ? "bg-destructive/5 hover:bg-destructive/10"
                         : isSelected
                         ? "bg-primary/5 hover:bg-primary/10"
-                        : "hover:bg-muted/40"
+                        : "hover:bg-muted/30 even:bg-muted/10"
                     }`}
                   >
-                    {/* Checkbox */}
-                    <td className="px-4 py-3.5">
-                      <input
-                        type="checkbox"
-                        disabled={isDisabled}
-                        checked={isSelected}
-                        onChange={() => toggleSelection(String(s.service))}
-                        className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                      />
-                    </td>
+                    {/* Desktop Layout */}
+                    <div className={`hidden lg:grid ${gridTemplate} gap-4 items-center min-h-[72px]`}>
+                      <div className="px-4 pl-6">
+                        <input
+                          type="checkbox"
+                          disabled={isDisabled}
+                          checked={isSelected}
+                          onChange={() => toggleSelection(String(s.service))}
+                          className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                        />
+                      </div>
 
-                    {/* Service Name */}
-                    <td className="px-4 py-3.5">
-                      <div className="flex flex-col gap-0.5 max-w-sm">
-                        <span className="text-sm font-semibold text-foreground truncate" title={s.cleanName || s.name}>
+                      <div className="flex flex-col gap-0.5 py-3 pr-2 min-w-0">
+                        <span className="text-sm font-semibold text-foreground truncate block w-full" title={s.cleanName || s.name}>
                           {s.cleanName || s.name}
                         </span>
-                        <span className="text-[10px] text-muted-foreground font-medium truncate" title={`#${s.service} • ${s.name}`}>
+                        <span className="text-[10px] text-muted-foreground font-medium truncate block w-full" title={`#${s.service} • ${s.name}`}>
                           #{s.service} • {s.name}
                         </span>
                       </div>
-                    </td>
 
-                    {/* Platform + Tags */}
-                    <td className="px-4 py-3.5">
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1 py-3 pr-2">
+                        {metrics.platform && (() => {
+                          const pData = getPlatformDisplay(metrics.platform);
+                          return (
+                            <span className={`${pData.color} px-2 py-0.5 rounded-[6px] text-[10px] font-semibold border flex items-center gap-1 select-none whitespace-nowrap`}>
+                              <span>{pData.icon}</span>
+                              <span>{pData.name}</span>
+                            </span>
+                          );
+                        })()}
+                        {metrics.geo && (
+                          <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap">
+                            {metrics.geo}
+                          </span>
+                        )}
+                        {(s.refill || metrics.warranty > 0) && (
+                          <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap" title="Гарантия">
+                            ♻️ {metrics.warranty || 30}D
+                          </span>
+                        )}
+                        {hasAnomaly && (
+                          <span className="bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap" title={`Anomaly: ${metrics.anomalyScore}`}>
+                            ⚠️ {metrics.anomalyScore}
+                          </span>
+                        )}
+                        {parseInt(s.min, 10) > 0 && (
+                          <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap" title="Минимальный заказ">
+                            от {s.min} шт
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-0.5 py-3 pr-2 font-mono min-w-0">
+                        <span className="text-foreground font-bold text-xs truncate block w-full tabular-nums tracking-tight">
+                          {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitRetail)} ₽
+                          <span className="text-[10px] text-muted-foreground font-sans ml-1 font-medium select-none tracking-normal">розн.</span>
+                        </span>
+                        <span className="text-muted-foreground font-medium text-[10px] truncate block w-full tabular-nums tracking-tight">
+                          {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitProcurement)} ₽
+                          <span className="font-sans ml-0.5 select-none tracking-normal">закуп.</span>
+                        </span>
+                        {isFreeProcurement && (
+                          <span className="text-[10px] text-destructive font-bold bg-destructive/10 border border-destructive/20 px-1.5 py-0.5 rounded-[4px] w-fit mt-1">
+                            ОШИБКА: 0 ₽
+                          </span>
+                        )}
+                      </div>
+
+                      {showCategoryColumn && (
+                        <div className="py-3 pr-2 min-w-0">
+                          {s.alreadyImported ? (
+                            <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-slate-100 dark:bg-slate-800/50 px-2 py-1.5 rounded-[8px] border border-border w-fit max-w-full truncate">
+                              📦 Импортировано
+                            </span>
+                          ) : (
+                            <div className="flex flex-col gap-1 w-full min-w-0">
+                              <Select
+                                value={selectedCategories[String(s.service)] || ""}
+                                onValueChange={(val) => onCategoryChange(String(s.service), val || "")}
+                              >
+                                <SelectTrigger size="sm" className={`w-full bg-background text-xs rounded-[8px] border h-9 py-1 px-2 ${validationErrors.has(String(s.service)) ? 'border-destructive ring-1 ring-destructive' : 'border-border'}`}>
+                                  <SelectValue placeholder="Выберите">
+                                    {(value: string) => {
+                                      if (!value) return "Выберите";
+                                      const cat = categories.find((c) => c.id === value);
+                                      return cat ? `${cat.network.name} • ${cat.name}` : value;
+                                    }}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover text-popover-foreground border border-border rounded-[8px] max-h-60 w-[220px]">
+                                  {categories.map((c) => (
+                                    <SelectItem key={c.id} value={c.id} className="text-xs cursor-pointer">
+                                      {c.network.name} • {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {aiConfidence[String(s.service)] ? (
+                                <span className="text-[10px] font-semibold text-success mt-1 block select-none">
+                                  🪄 Автоопределение ИИ
+                                </span>
+                              ) : validationErrors.has(String(s.service)) ? (
+                                <span className="text-[10px] font-bold text-destructive mt-1 block select-none">
+                                  ❌ Необходима категория
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-warning mt-1 block select-none">
+                                  ⚠️ Выберите вручную
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="py-3 pr-4">
+                        {s.alreadyImported ? (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-[6px] border border-border font-semibold select-none">
+                            📦
+                          </span>
+                        ) : isFreeProcurement ? (
+                          <span className="text-[10px] text-destructive bg-destructive/10 px-2 py-1 rounded-[6px] border border-destructive/20 font-bold select-none">
+                            ❌
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-success bg-success/10 px-2 py-1 rounded-[6px] border border-success/20 font-bold select-none">
+                            ✅
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Mobile Layout */}
+                    <div className="lg:hidden flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            disabled={isDisabled}
+                            checked={isSelected}
+                            onChange={() => toggleSelection(String(s.service))}
+                            className="mt-1 rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                          />
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-semibold text-foreground line-clamp-2">
+                              {s.cleanName || s.name}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-medium line-clamp-1">
+                              #{s.service} • {s.name}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="shrink-0">
+                          {s.alreadyImported ? (
+                            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-[6px] border border-border font-semibold select-none">📦</span>
+                          ) : isFreeProcurement ? (
+                            <span className="text-[10px] text-destructive bg-destructive/10 px-2 py-1 rounded-[6px] border border-destructive/20 font-bold select-none">❌</span>
+                          ) : (
+                            <span className="text-[10px] text-success bg-success/10 px-2 py-1 rounded-[6px] border border-success/20 font-bold select-none">✅</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 ml-7">
                         {metrics.platform && (() => {
                           const pData = getPlatformDisplay(metrics.platform);
                           return (
@@ -224,103 +380,68 @@ export function ServicesTable({
                             </span>
                           );
                         })()}
-                        {metrics.geo && (
-                          <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">
-                            {metrics.geo}
-                          </span>
-                        )}
-                        {(s.refill || metrics.warranty > 0) && (
-                          <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none" title="Гарантия">
-                            ♻️ {metrics.warranty || 30}D
-                          </span>
-                        )}
-                        {hasAnomaly && (
-                          <span className="bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none" title={`Anomaly: ${metrics.anomalyScore}`}>
-                            ⚠️ {metrics.anomalyScore}
-                          </span>
-                        )}
-                        {parseInt(s.min, 10) > 0 && (
-                          <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none" title="Минимальный заказ">
-                            от {s.min} шт
-                          </span>
-                        )}
+                        {metrics.geo && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">{metrics.geo}</span>}
+                        {(s.refill || metrics.warranty > 0) && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">♻️ {metrics.warranty || 30}D</span>}
+                        {hasAnomaly && <span className="bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">⚠️ {metrics.anomalyScore}</span>}
+                        {parseInt(s.min, 10) > 0 && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">от {s.min} шт</span>}
                       </div>
-                    </td>
 
-                    {/* Price */}
-                    <td className="px-4 py-3.5 text-sm font-mono">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-foreground font-bold text-xs">
-                          {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitRetail)} ₽
-                          <span className="text-[10px] text-muted-foreground font-sans ml-1 font-medium select-none">розн.</span>
-                        </span>
-                        <span className="text-muted-foreground font-medium text-[10px]">
-                          {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitProcurement)} ₽
-                          <span className="font-sans ml-0.5 select-none">закуп.</span>
-                        </span>
-                        {isFreeProcurement && (
-                          <span className="text-[10px] text-destructive font-bold bg-destructive/10 border border-destructive/20 px-1.5 py-0.5 rounded-[4px] w-fit mt-1">
-                            ОШИБКА: 0 ₽
+                      <div className="flex justify-between items-end ml-7 pt-2 border-t border-border/40 mt-2">
+                        <div className="flex flex-col font-mono">
+                          <span className="text-foreground font-bold text-sm tabular-nums tracking-tight">
+                            {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitRetail)} ₽
+                            <span className="text-[10px] text-muted-foreground font-sans ml-1 font-medium tracking-normal">розница</span>
                           </span>
-                        )}
+                          <span className="text-muted-foreground font-medium text-[11px] tabular-nums tracking-tight">
+                            {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitProcurement)} ₽
+                            <span className="font-sans ml-0.5 tracking-normal">закупка</span>
+                          </span>
+                        </div>
                       </div>
-                    </td>
 
-                    {/* Category (conditional) */}
-                    {showCategoryColumn && (
-                      <td className="px-4 py-3.5">
-                        {s.alreadyImported ? (
-                          <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-slate-100 dark:bg-slate-800/50 px-2 py-1.5 rounded-[8px] border border-border w-fit max-w-[180px] truncate">
-                            📦 Импортировано
-                          </span>
-                        ) : (
-                          <Select
-                            value={selectedCategories[String(s.service)] || ""}
-                            onValueChange={(val) => onCategoryChange(String(s.service), val || "")}
-                          >
-                            <SelectTrigger size="sm" className="w-full bg-background text-xs rounded-[8px] border border-border h-9 py-1 px-2">
-                              <SelectValue placeholder="Выберите">
-                                {(value: string) => {
-                                  if (!value) return "Выберите";
-                                  const cat = categories.find((c) => c.id === value);
-                                  return cat ? `${cat.network.name} • ${cat.name}` : value;
-                                }}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover text-popover-foreground border border-border rounded-[8px] max-h-60 w-[220px]">
-                              {categories.map((c) => (
-                                <SelectItem key={c.id} value={c.id} className="text-xs cursor-pointer">
-                                  {c.network.name} • {c.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </td>
-                    )}
-
-                    {/* Status */}
-                    <td className="px-4 py-3.5">
-                      {s.alreadyImported ? (
-                        <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-[6px] border border-border font-semibold select-none">
-                          📦
-                        </span>
-                      ) : isFreeProcurement ? (
-                        <span className="text-[10px] text-destructive bg-destructive/10 px-2 py-1 rounded-[6px] border border-destructive/20 font-bold select-none">
-                          ❌
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-success bg-success/10 px-2 py-1 rounded-[6px] border border-success/20 font-bold select-none">
-                          ✅
-                        </span>
+                      {showCategoryColumn && (
+                        <div className="ml-7 pt-2">
+                          {s.alreadyImported ? (
+                            <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-slate-100 dark:bg-slate-800/50 px-2 py-1.5 rounded-[8px] border border-border w-fit">
+                              📦 Уже импортировано
+                            </span>
+                          ) : (
+                            <div className="flex flex-col gap-1 w-full">
+                              <Select value={selectedCategories[String(s.service)] || ""} onValueChange={(val) => onCategoryChange(String(s.service), val || "")}>
+                                <SelectTrigger size="sm" className={`w-full bg-background text-xs rounded-[8px] border h-10 px-3 ${validationErrors.has(String(s.service)) ? 'border-destructive ring-1 ring-destructive' : 'border-border'}`}>
+                                  <SelectValue placeholder="Выберите категорию">
+                                    {(value: string) => {
+                                      if (!value) return "Выберите категорию";
+                                      const cat = categories.find((c) => c.id === value);
+                                      return cat ? `${cat.network.name} • ${cat.name}` : value;
+                                    }}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover text-popover-foreground border border-border rounded-[8px] max-h-60 w-[90vw] max-w-[400px]">
+                                  {categories.map((c) => (
+                                    <SelectItem key={c.id} value={c.id} className="text-xs cursor-pointer py-2">
+                                      {c.network.name} • {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {aiConfidence[String(s.service)] ? (
+                                <span className="text-[10px] font-semibold text-success mt-1">🪄 Автоопределение ИИ</span>
+                              ) : validationErrors.has(String(s.service)) ? (
+                                <span className="text-[10px] font-bold text-destructive mt-1">❌ Ошибка: Выберите категорию</span>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-warning mt-1">⚠️ Выберите вручную</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )}
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 );
               })
             )}
-          </tbody>
-        </table>
+          </div>
       </div>
 
       {/* Pagination Footer */}
@@ -337,17 +458,17 @@ export function ServicesTable({
               <button
                 onClick={() => setFilters({ ...filters, page: Math.max(1, pagination.page - 1) })}
                 disabled={pagination.page === 1}
-                className="relative inline-flex items-center px-3 py-2 bg-card text-xs font-semibold text-muted-foreground hover:bg-muted disabled:opacity-50 transition-all select-none border-r border-border cursor-pointer"
+                className="relative inline-flex items-center px-3 py-2 bg-card text-xs font-semibold text-muted-foreground hover:bg-muted disabled:opacity-50 transition-all duration-200 select-none border-r border-border/60 cursor-pointer active:scale-95"
               >
                 ← Пред.
               </button>
-              <span className="relative inline-flex items-center px-4 py-2 bg-card text-xs font-bold text-foreground select-none border-r border-border tabular-nums">
+              <span className="relative inline-flex items-center px-4 py-2 bg-card text-xs font-bold text-foreground select-none border-r border-border/60 tabular-nums">
                 {pagination.page} / {pagination.totalPages}
               </span>
               <button
                 onClick={() => setFilters({ ...filters, page: Math.min(pagination.totalPages, pagination.page + 1) })}
                 disabled={pagination.page === pagination.totalPages}
-                className="relative inline-flex items-center px-3 py-2 bg-card text-xs font-semibold text-muted-foreground hover:bg-muted disabled:opacity-50 transition-all select-none cursor-pointer"
+                className="relative inline-flex items-center px-3 py-2 bg-card text-xs font-semibold text-muted-foreground hover:bg-muted disabled:opacity-50 transition-all duration-200 select-none cursor-pointer active:scale-95"
               >
                 След. →
               </button>

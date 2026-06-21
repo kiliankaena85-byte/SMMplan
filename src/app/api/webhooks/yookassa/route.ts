@@ -14,6 +14,19 @@ export async function POST(req: NextRequest) {
     const { SettingsProvider } = await import('@/lib/settings');
     const isTestMode = await SettingsProvider.isTestMode();
 
+    // VULN-025 Mitigation: Enforce webhook secret via query parameter to prevent IP spoofing/SSRF
+    const secret = req.nextUrl.searchParams.get('secret');
+    const expectedSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
+
+    if (process.env.NODE_ENV === 'production') {
+      if (!secret || secret !== expectedSecret) {
+        console.error(`[YooKassa Webhook] BLOCKED: Missing or invalid secret parameter from IP ${ip}`);
+        await db.securityEvent.create({ data: { event: 'INVALID_WEBHOOK_SECRET', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
+        // Return generic error to obscure the actual check failure
+        return NextResponse.json({ error: 'Unauthorized IP' }, { status: 403 });
+      }
+    }
+
     // --- SECURITY GUARD: Yookassa Official IP Range Validation ---
     // P1: Сверка IP-адреса с официальными подсетями YooKassa
     if (ip) {

@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, Search, SlidersHorizontal } from "lucide-react";
+import { Download, Search, SlidersHorizontal, RotateCcw } from "lucide-react";
 
 /* ── AI Auto-Mapping ── */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,46 +26,82 @@ const autoMapCategory = (s: any, categories: any[]) => {
   const category = (s.metrics?.category || "").toUpperCase();
   const serviceName = (s.name || "").toLowerCase();
 
-  const target = categories.find((c) => {
+  // 1. Filter categories for this platform
+  const platformCategories = categories.filter(c => {
     const netSlug = c.network?.slug?.toUpperCase() || "";
-    const catSlug = c.slug?.toUpperCase() || "";
-    const catName = (c.name || "").toLowerCase();
-
-    if (netSlug === platform) {
-      if (category === "SUBSCRIBERS" && (catSlug.includes("SUB") || catSlug.includes("MEMBER") || catSlug.includes("CHANNEL") || catSlug.includes("GROUP") || catName.includes("подпис") || catName.includes("участ"))) return true;
-      if (category === "LIKES" && (catSlug.includes("LIKE") || catSlug.includes("HEART") || catName.includes("лайк"))) return true;
-      if (category === "VIEWS" && (catSlug.includes("VIEW") || catSlug.includes("PLAY") || catName.includes("просм"))) return true;
-      if (category === "REPOSTS" && (catSlug.includes("REPOST") || catSlug.includes("SHARE") || catName.includes("репост"))) return true;
-      if (category === "REACTIONS" && (catSlug.includes("REACT") || catSlug.includes("EMOJI") || catName.includes("реакц"))) return true;
-      if (category === "COMMENTS" && (catSlug.includes("COMMENT") || catSlug.includes("REPLY") || catName.includes("коммен"))) return true;
-      if (category === "STORIES" && (catSlug.includes("STORY") || catSlug.includes("STORIES") || catName.includes("сторис"))) return true;
-    }
-    return false;
+    return netSlug === platform;
   });
-  if (target) return { id: target.id, confident: true };
 
-  const nameTarget = categories.find((c) => {
-    const netSlug = c.network?.slug?.toUpperCase() || "";
+  const targetCategories = platformCategories.length > 0 ? platformCategories : categories;
+
+  // Keyword dictionary for mapping types
+  const keywords = {
+    SUBSCRIBERS: ['sub', 'member', 'channel', 'group', 'joiner', 'follower', 'подпис', 'участ', 'друг', 'фолловер', 'читател', 'инвайт', 'буст', 'boost'],
+    LIKES: ['like', 'heart', 'favorite', 'upvote', 'лайк', 'нравится', 'сердеч', 'клас'],
+    VIEWS: ['view', 'play', 'impression', 'reach', 'просм', 'показ', 'глаз', 'видео', 'стат'],
+    REPOSTS: ['repost', 'share', 'retweet', 'репост', 'подели'],
+    REACTIONS: ['react', 'emoji', 'fire', 'thumb', 'реакц', 'эмод'],
+    COMMENTS: ['comment', 'reply', 'custom comment', 'коммен', 'отзыв'],
+    STORIES: ['story', 'stories', 'сторис']
+  };
+
+  // Find the best category by scoring
+  let bestCategory = null;
+  let maxScore = -1;
+
+  for (const c of targetCategories) {
+    const catSlug = (c.slug || "").toUpperCase();
     const catName = (c.name || "").toLowerCase();
-    if (netSlug === platform) {
-      if (serviceName.includes("sub") || serviceName.includes("member") || serviceName.includes("подпис") || serviceName.includes("участ")) {
-        return catName.includes("подпис") || catName.includes("участ") || c.slug.includes("sub");
-      }
-      if (serviceName.includes("like") || serviceName.includes("лайк")) {
-        return catName.includes("лайк") || c.slug.includes("like");
-      }
-      if (serviceName.includes("view") || serviceName.includes("просм")) {
-        return catName.includes("просм") || c.slug.includes("view");
+    let score = 0;
+
+    // A. Direct metric category match (highest weight)
+    if (category && keywords[category as keyof typeof keywords]) {
+      const words = keywords[category as keyof typeof keywords];
+      const matchesCat = words.some(w => catSlug.includes(w.toUpperCase()) || catName.includes(w));
+      if (matchesCat) {
+        score += 25;
       }
     }
-    return false;
-  });
-  if (nameTarget) return { id: nameTarget.id, confident: true };
 
-  const fallbackNet = categories.find((c) => (c.network?.slug || "").toUpperCase() === platform);
-  if (fallbackNet) return { id: fallbackNet.id, confident: false };
+    // B. Keyword intersection scoring
+    for (const [, words] of Object.entries(keywords)) {
+      const serviceMatches = words.some(w => serviceName.includes(w));
+      if (serviceMatches) {
+        const catMatches = words.some(w => catSlug.includes(w.toUpperCase()) || catName.includes(w));
+        if (catMatches) {
+          score += 15;
+        }
+        
+        // Count matching words
+        words.forEach((w: string) => {
+          if (serviceName.includes(w) && (catName.includes(w) || catSlug.includes(w.toUpperCase()))) {
+            score += 5;
+          }
+        });
+      }
+    }
 
-  return { id: categories[0]?.id || "", confident: false };
+    // C. Word-by-word exact overlap scoring
+    const nameWords = serviceName.split(/[\s_\-+.#()/]+/);
+    const catWords = catName.split(/[\s_\-+.#()/]+/);
+    nameWords.forEach((nw: string) => {
+      if (nw.length > 2 && catWords.includes(nw)) {
+        score += 10;
+      }
+    });
+
+    if (score > maxScore) {
+      maxScore = score;
+      bestCategory = c;
+    }
+  }
+
+  if (bestCategory && maxScore >= 10) {
+    return { id: bestCategory.id, confident: true };
+  }
+
+  // No confident match - return empty string to force manual mapping (prevent silent fallback)
+  return { id: "", confident: false };
 };
 
 /* ── Platform Tabs ── */
@@ -79,6 +115,24 @@ const PLATFORM_TABS = [
   { id: "other", name: "Другие", icon: "⚙️" },
 ];
 
+const DEFAULT_FILTERS = {
+  page: 1,
+  pageSize: 50,
+  platform: "ALL",
+  geo: "ALL",
+  velocity: "ALL",
+  hasRefill: false,
+  hasAnomaly: false,
+  importStatus: "NOT_IMPORTED",
+  search: "",
+  sortBy: "none",
+  category: "ALL",
+  retailReady: false,
+  providerCategory: "ALL",
+  minPrice: "",
+  maxPrice: "",
+};
+
 /* ── Main Component ── */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ImportWizard({ categories, providers }: { categories: any[]; providers: any[] }) {
@@ -87,6 +141,9 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
 
   // Core state
   const [providerId, setProviderId] = useState<string>(providers[0]?.id || "");
+  const [missingCategoryIds, setMissingCategoryIds] = useState<Set<string>>(new Set());
+  // Bulk assigner state
+  const [bulkCategory, setBulkCategory] = useState<string>("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,31 +158,36 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
   const [autoMappedCategories, setAutoMappedCategories] = useState<Record<string, string>>({});
   const [aiConfidence, setAiConfidence] = useState<Record<string, boolean>>({});
   const [markup, setMarkup] = useState<string>("50");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [targetCategory, setTargetCategory] = useState<string>(categories[0]?.id || "");
 
   // Filters
   const [activeTab, setActiveTab] = useState<"ready" | "attention">("ready");
-  const [filters, setFilters] = useState({
-    page: 1,
-    pageSize: 50,
-    platform: "ALL",
-    geo: "ALL",
-    velocity: "ALL",
-    hasRefill: false,
-    hasAnomaly: false,
-    hideImported: true,
-    search: "",
-    sortBy: "none",
-    category: "ALL",
-    retailReady: false,
-  });
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
   const [localSearch, setLocalSearch] = useState("");
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, pageSize: 50 });
   const [platformCounts, setPlatformCounts] = useState<Record<string, number>>({});
+  const [providerCategories, setProviderCategories] = useState<{ name: string; count: number }[]>([]);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Check if any filters are active (excluding page/pageSize)
+  const isFiltersActive = useMemo(() => {
+    return (
+      filters.platform !== "ALL" ||
+      filters.geo !== "ALL" ||
+      filters.velocity !== "ALL" ||
+      filters.hasRefill !== false ||
+      filters.hasAnomaly !== false ||
+      filters.importStatus !== "NOT_IMPORTED" ||
+      filters.search !== "" ||
+      filters.sortBy !== "none" ||
+      filters.category !== "ALL" ||
+      filters.retailReady !== false ||
+      filters.providerCategory !== "ALL" ||
+      filters.minPrice !== "" ||
+      filters.maxPrice !== ""
+    );
+  }, [filters]);
 
   // Debounced search
   useEffect(() => {
@@ -175,6 +237,7 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
           setServices([]);
           setPagination({ page: 1, totalPages: 1, total: 0, pageSize: 50 });
           setPlatformCounts({});
+          setProviderCategories([]);
           return;
         }
         throw new Error(res.error || "Ошибка загрузки");
@@ -183,6 +246,7 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
       setServices(res.data || []);
       setPagination(res.pagination);
       if (res.platformCounts) setPlatformCounts(res.platformCounts);
+      if (res.providerCategories) setProviderCategories(res.providerCategories);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setError(e.message);
@@ -238,6 +302,24 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
 
   const onCategoryChange = (serviceId: string, categoryId: string) => {
     setSelectedCategories((prev) => ({ ...prev, [serviceId]: categoryId }));
+    if (missingCategoryIds.has(serviceId)) {
+      setMissingCategoryIds((prev) => {
+        const next = new Set(prev);
+        next.delete(serviceId);
+        return next;
+      });
+    }
+  };
+
+  const handleBulkAssign = () => {
+    if (!bulkCategory) return;
+    const nextCategories = { ...selectedCategories };
+    selectedIds.forEach((id) => {
+      nextCategories[id] = bulkCategory;
+    });
+    setSelectedCategories(nextCategories);
+    setMissingCategoryIds(new Set());
+    setBulkCategory(""); // reset
   };
 
   // Computed: split services into ready / needs attention
@@ -262,8 +344,6 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
 
   // Summary stats
   const summaryStats = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const totalInCache = pagination.total + (services.filter((s) => s.alreadyImported).length || 0);
     return {
       totalInCache: platformCounts.ALL || pagination.total,
       newServices: pagination.total,
@@ -271,7 +351,7 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
       needsAttention: attentionServices.length,
       alreadyImported: (platformCounts.ALL || 0) - pagination.total,
     };
-  }, [pagination, readyServices, attentionServices, platformCounts, services]);
+  }, [pagination, readyServices, attentionServices, platformCounts]);
 
   // Platform breakdown for confirmation
   const platformBreakdown = useMemo(() => {
@@ -291,11 +371,31 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
   const handleBatchImport = async () => {
     if (selectedIds.size === 0) return setError("Выберите хотя бы 1 услугу");
     setShowConfirmModal(false);
+
+    const missing = new Set<string>();
+    selectedIds.forEach((id) => {
+      if (!selectedCategories[id]) missing.add(id);
+    });
+    if (missing.size > 0) {
+      setMissingCategoryIds(missing);
+      return setError(`Для ${missing.size} выбранных услуг не выбрана категория. Назначьте категорию или используйте массовое применение.`);
+    }
+    setMissingCategoryIds(new Set());
+
     try {
       setError(null);
       setSuccess(null);
       const idsArray = Array.from(selectedIds);
       const total = idsArray.length;
+      
+      // Strict validation: check for missing categories
+      const missingCategories = idsArray.filter((id) => !selectedCategories[id]);
+      if (missingCategories.length > 0) {
+        return setError(
+          `Для ${missingCategories.length} выбранных услуг не указана категория. Используйте массовое назначение или выберите категорию вручную.`
+        );
+      }
+
       setImportProgress({ current: 0, total });
 
       const BATCH_SIZE = 50;
@@ -305,11 +405,15 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
         const chunk = idsArray.slice(i, i + BATCH_SIZE);
         const chunkMap: Record<string, string> = {};
         chunk.forEach((id) => {
-          chunkMap[id] = selectedCategories[id] || targetCategory;
+          chunkMap[id] = selectedCategories[id];
         });
         const percentVal = parseFloat(markup);
         const multiplier = isNaN(percentVal) || percentVal <= 0 ? 0 : 1 + percentVal / 100;
-        const res = await importSelectedServices(chunk, targetCategory, multiplier, providerId, chunkMap);
+        
+        // Pass the first mapped category as the mandatory categoryId, since all are overridden by chunkMap
+        const fallbackCategoryId = chunkMap[chunk[0]];
+        const res = await importSelectedServices(chunk, fallbackCategoryId, multiplier, providerId, chunkMap);
+        
         if (res && !res.success) {
           throw new Error(
             `Ошибка на услугах ${i + 1}-${Math.min(i + BATCH_SIZE, total)} из ${total}. ` +
@@ -345,7 +449,7 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
     return (
       <div className="space-y-6">
         {/* Provider Selector */}
-        <div className="bg-card border border-border rounded-[12px] p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.08)]">
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-sm ring-1 ring-border/5">
           <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-0.5">
             Провайдер
           </label>
@@ -375,12 +479,15 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
         )}
 
         {/* Sync CTA */}
-        <div className="flex flex-col items-center justify-center py-20 bg-card border border-border rounded-[12px] shadow-[0px_1px_3px_rgba(0,0,0,0.08)]">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-5">
+        <div className="relative overflow-hidden flex flex-col items-center justify-center py-20 bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl shadow-sm ring-1 ring-border/5">
+          {/* Premium Backdrop Pattern */}
+          <div className="absolute inset-0 z-0 opacity-70 premium-dot-grid pointer-events-none" />
+          
+          <div className="relative z-10 w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-5 shadow-inner">
             <Download className="w-7 h-7 text-primary" />
           </div>
-          <h3 className="text-lg font-bold mb-2 text-foreground">Каталог провайдера пуст</h3>
-          <p className="text-muted-foreground text-sm max-w-md text-center mb-6 px-4 leading-relaxed">
+          <h3 className="relative z-10 text-lg font-bold mb-2 text-foreground">Каталог провайдера пуст</h3>
+          <p className="relative z-10 text-muted-foreground text-sm max-w-md text-center mb-6 px-4 leading-relaxed">
             Загрузите полный каталог услуг от{" "}
             <span className="font-semibold text-foreground">{currentProvider?.name || "провайдера"}</span>{" "}
             для просмотра и импорта. Это займет несколько секунд.
@@ -388,7 +495,7 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
           <button
             onClick={handleForceSync}
             disabled={syncing}
-            className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-8 py-3 rounded-[10px] shadow-sm disabled:opacity-50 transition-all duration-200 flex items-center gap-2.5 cursor-pointer text-sm"
+            className="relative z-10 bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-8 py-3 rounded-[10px] shadow-sm disabled:opacity-50 transition-all duration-200 flex items-center gap-2.5 cursor-pointer text-sm hover:-translate-y-0.5 active:scale-95"
           >
             {syncing ? (
               <>
@@ -404,36 +511,39 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
       </div>
     );
   }
-
+ 
   // ─── Step 2: Main Workspace ───
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const displayServices = activeTab === "ready" ? readyServices : attentionServices;
-
+ 
   return (
     <div className="space-y-5">
       {/* Provider Selector (compact) */}
       {providers.length > 1 && (
-        <div className="bg-card border border-border rounded-[12px] p-4 shadow-[0px_1px_3px_rgba(0,0,0,0.08)]">
-          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-0.5">
-            Провайдер
-          </label>
-          <Select value={providerId} onValueChange={(val) => { setProviderId(val || ""); setSelectedIds(new Set()); }}>
-            <SelectTrigger size="default" className="w-full max-w-sm h-10 bg-background text-sm rounded-[8px] border border-border">
-              <SelectValue>
-                {(value: string) => {
-                  if (!value) return "Выберите провайдера";
-                  return providers.find((p) => p.id === value)?.name ?? value;
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="bg-popover text-popover-foreground border border-border rounded-[8px]">
-              {providers.map((p) => (
-                <SelectItem key={p.id} value={p.id} className="text-sm cursor-pointer">
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="relative overflow-hidden bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-4 shadow-sm ring-1 ring-border/5">
+          {/* Premium Backdrop Pattern */}
+          <div className="absolute inset-0 z-0 opacity-40 premium-dot-grid pointer-events-none" />
+          <div className="relative z-10">
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-0.5">
+              Провайдер
+            </label>
+            <Select value={providerId} onValueChange={(val) => { setProviderId(val || ""); setSelectedIds(new Set()); }}>
+              <SelectTrigger size="default" className="w-full max-w-sm h-10 bg-background text-sm rounded-[8px] border border-border">
+                <SelectValue>
+                  {(value: string) => {
+                    if (!value) return "Выберите провайдера";
+                    return providers.find((p) => p.id === value)?.name ?? value;
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-popover text-popover-foreground border border-border rounded-[8px]">
+                {providers.map((p) => (
+                  <SelectItem key={p.id} value={p.id} className="text-sm cursor-pointer">
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       )}
 
@@ -468,33 +578,33 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
       )}
 
       {/* Ready / Attention Tabs */}
-      <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-[10px] w-fit">
+      <div className="flex items-center gap-1.5 bg-muted/40 p-1.5 rounded-[14px] w-fit border border-border/40">
         <button
           onClick={() => setActiveTab("ready")}
-          className={`px-4 py-2 rounded-[8px] text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-[10px] text-sm font-bold transition-all duration-300 cursor-pointer flex items-center gap-2 active:scale-[0.98] ${
             activeTab === "ready"
-              ? "bg-card text-foreground shadow-sm border border-border/50"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-card text-foreground shadow-sm border border-border/60"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
           }`}
         >
           ✅ Готовые к импорту
-          <span className={`text-xs px-1.5 py-0.5 rounded-full tabular-nums ${
-            activeTab === "ready" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+          <span className={`text-xs px-2 py-0.5 rounded-full tabular-nums font-bold ${
+            activeTab === "ready" ? "bg-success/15 text-success-600 dark:text-success-400" : "bg-muted text-muted-foreground"
           }`}>
             {readyServices.length}
           </span>
         </button>
         <button
           onClick={() => setActiveTab("attention")}
-          className={`px-4 py-2 rounded-[8px] text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-[10px] text-sm font-bold transition-all duration-300 cursor-pointer flex items-center gap-2 active:scale-[0.98] ${
             activeTab === "attention"
-              ? "bg-card text-foreground shadow-sm border border-border/50"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-card text-foreground shadow-sm border border-border/60"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
           }`}
         >
           ⚠️ Требуют настройки
-          <span className={`text-xs px-1.5 py-0.5 rounded-full tabular-nums ${
-            activeTab === "attention" ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"
+          <span className={`text-xs px-2 py-0.5 rounded-full tabular-nums font-bold ${
+            activeTab === "attention" ? "bg-warning/15 text-warning-600 dark:text-warning-400" : "bg-muted text-muted-foreground"
           }`}>
             {attentionServices.length}
           </span>
@@ -532,7 +642,7 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
           })}
         </div>
 
-        {/* Search + Filter Toggle */}
+        {/* Search + Filter Toggle + Reset */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -560,54 +670,87 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Фильтры
           </button>
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={filters.hideImported}
-              onChange={(e) => setFilters((prev) => ({ ...prev, hideImported: e.target.checked, page: 1 }))}
-              className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-            />
-            <span className="text-xs font-medium text-muted-foreground">Скрыть импортированные</span>
-          </label>
+          
+          {isFiltersActive && (
+            <button
+              onClick={() => {
+                setLocalSearch("");
+                setFilters({ ...DEFAULT_FILTERS });
+              }}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-[8px] text-xs font-semibold border border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive/10 transition-all duration-200 cursor-pointer animate-in fade-in zoom-in-95 duration-200"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Сбросить
+            </button>
+          )}
         </div>
 
         {/* Expanded Filters */}
         {showFilters && (
-          <div className="bg-muted/30 border border-border rounded-[10px] p-4 grid grid-cols-2 md:grid-cols-4 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-1 duration-200 shadow-sm ring-1 ring-border/5">
             <div>
-              <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Категория</label>
+              <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Категория на сайте</label>
               <select
                 value={filters.category || "ALL"}
                 onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value, page: 1 }))}
-                className="w-full text-xs border border-border rounded-[6px] p-2 bg-background"
+                className="w-full text-xs border border-border rounded-[6px] p-2 bg-background focus:ring-1 focus:ring-primary outline-none"
               >
                 <option value="ALL">Все типы</option>
-                <option value="SUBSCRIBERS">Подписчики</option>
-                <option value="LIKES">Лайки</option>
-                <option value="VIEWS">Просмотры</option>
-                <option value="COMMENTS">Комментарии</option>
-                <option value="REACTIONS">Реакции</option>
+                <option value="SUBSCRIBERS">Подписчики / Участники</option>
+                <option value="LIKES">Лайки / Нравится</option>
+                <option value="VIEWS">Просмотры / Охват</option>
+                <option value="REPOSTS">Репосты / Поделиться</option>
+                <option value="REACTIONS">Реакции / Эмодзи</option>
+                <option value="COMMENTS">Комментарии / Отзывы</option>
+                <option value="POLLS">Голоса / Опросы</option>
+                <option value="STORIES">Сториз / Истории</option>
+                <option value="BOOSTS">Бусты (Levels)</option>
+                <option value="BOTS">Роботы / Боты</option>
+                <option value="REFERRALS">Рефералы</option>
+                <option value="FRIENDS">Заявки в друзья</option>
+                <option value="PLAYS">Прослушивания</option>
+                <option value="TRAFFIC">Трафик / Посещения</option>
+                <option value="STARS">Звезды (Stars)</option>
+                <option value="PREMIUM">Premium</option>
+                <option value="OTHER">Другое</option>
               </select>
             </div>
+            
             <div>
-              <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Регион</label>
+              <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Категория провайдера</label>
               <select
-                value={filters.geo || "ALL"}
-                onChange={(e) => setFilters((prev) => ({ ...prev, geo: e.target.value, page: 1 }))}
-                className="w-full text-xs border border-border rounded-[6px] p-2 bg-background"
+                value={filters.providerCategory || "ALL"}
+                onChange={(e) => setFilters((prev) => ({ ...prev, providerCategory: e.target.value, page: 1 }))}
+                className="w-full text-xs border border-border rounded-[6px] p-2 bg-background focus:ring-1 focus:ring-primary outline-none max-w-full"
               >
-                <option value="ALL">Весь мир</option>
-                <option value="RU">Россия</option>
-                <option value="USA">США</option>
-                <option value="KZ">Казахстан</option>
+                <option value="ALL">Все категории ({providerCategories.reduce((acc, curr) => acc + curr.count, 0)})</option>
+                {providerCategories.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name} ({c.count})
+                  </option>
+                ))}
               </select>
             </div>
+
+            <div>
+              <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Статус импорта</label>
+              <select
+                value={filters.importStatus || "ALL"}
+                onChange={(e) => setFilters((prev) => ({ ...prev, importStatus: e.target.value, page: 1 }))}
+                className="w-full text-xs border border-border rounded-[6px] p-2 bg-background focus:ring-1 focus:ring-primary outline-none"
+              >
+                <option value="ALL">Все услуги</option>
+                <option value="NOT_IMPORTED">Только новые</option>
+                <option value="IMPORTED">Только импортированные</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Сортировка</label>
               <select
                 value={filters.sortBy || "none"}
                 onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value, page: 1 }))}
-                className="w-full text-xs border border-border rounded-[6px] p-2 bg-background"
+                className="w-full text-xs border border-border rounded-[6px] p-2 bg-background focus:ring-1 focus:ring-primary outline-none"
               >
                 <option value="none">По умолчанию</option>
                 <option value="price_asc">Цена: дешевые</option>
@@ -616,33 +759,111 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
                 <option value="min_asc">Мин. заказ: ↑</option>
               </select>
             </div>
-            <div className="space-y-2 pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
+
+            <div>
+              <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Цена закупки (₽)</label>
+              <div className="flex items-center gap-1.5">
                 <input
-                  type="checkbox"
-                  checked={filters.hasRefill}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, hasRefill: e.target.checked, page: 1 }))}
-                  className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                  type="number"
+                  placeholder="от"
+                  value={filters.minPrice}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, minPrice: e.target.value, page: 1 }))}
+                  className="w-full text-xs border border-border rounded-[6px] p-2 bg-background focus:ring-1 focus:ring-primary outline-none"
                 />
-                <span className="text-xs text-muted-foreground">♻️ С гарантией</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <span className="text-muted-foreground text-xs">—</span>
                 <input
-                  type="checkbox"
-                  checked={filters.retailReady}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, retailReady: e.target.checked, page: 1 }))}
-                  className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                  type="number"
+                  placeholder="до"
+                  value={filters.maxPrice}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, maxPrice: e.target.value, page: 1 }))}
+                  className="w-full text-xs border border-border rounded-[6px] p-2 bg-background focus:ring-1 focus:ring-primary outline-none"
                 />
-                <span className="text-xs text-muted-foreground">🛍️ Для розницы</span>
-              </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wider">Регион</label>
+              <select
+                value={filters.geo || "ALL"}
+                onChange={(e) => setFilters((prev) => ({ ...prev, geo: e.target.value, page: 1 }))}
+                className="w-full text-xs border border-border rounded-[6px] p-2 bg-background focus:ring-1 focus:ring-primary outline-none"
+              >
+                <option value="ALL">Весь мир</option>
+                <option value="RU">Россия</option>
+                <option value="USA">США</option>
+                <option value="KZ">Казахстан</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5 pt-2 col-span-2">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={filters.hasRefill}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, hasRefill: e.target.checked, page: 1 }))}
+                    className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                  />
+                  <span className="text-xs text-muted-foreground font-semibold">♻️ С гарантией</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={filters.retailReady}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, retailReady: e.target.checked, page: 1 }))}
+                    className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                  />
+                  <span className="text-xs text-muted-foreground font-semibold">🛍️ Для розницы (min ≤ 100)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={filters.hasAnomaly}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, hasAnomaly: e.target.checked, page: 1 }))}
+                    className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                  />
+                  <span className="text-xs text-muted-foreground font-semibold">🔸 С аномалиями</span>
+                </label>
+              </div>
             </div>
           </div>
         )}
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-200 shadow-sm ring-1 ring-primary/10">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold tracking-tight text-primary">Выбрано услуг: {selectedIds.size}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={bulkCategory} onValueChange={(val) => setBulkCategory(val || "")}>
+              <SelectTrigger className="w-[260px] h-9 bg-background/50 shadow-sm border-primary/20 text-xs transition-colors hover:border-primary/40 focus:ring-1 focus:ring-primary/20">
+                <SelectValue placeholder="Массовое назначение категории..." />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px] bg-popover text-popover-foreground border border-border shadow-md rounded-[8px]">
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id} className="text-xs cursor-pointer focus:bg-primary/10">
+                    {c.network.name} • {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={handleBulkAssign}
+              disabled={!bulkCategory}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 h-9 rounded-xl text-xs font-bold disabled:opacity-50 transition-all shadow-sm active:scale-95 disabled:active:scale-100 cursor-pointer"
+            >
+              Применить ко всем
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Services Table */}
       <ServicesTable
-        services={services}
+        services={displayServices}
+        validationErrors={missingCategoryIds}
         selectedIds={selectedIds}
         toggleSelection={toggleSelection}
         toggleAll={toggleAll}
@@ -655,7 +876,8 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
         selectedCategories={selectedCategories}
         onCategoryChange={onCategoryChange}
         autoMappedCategories={autoMappedCategories}
-        showCategoryColumn={activeTab === "attention"}
+        aiConfidence={aiConfidence}
+        showCategoryColumn={true}
       />
 
       {/* Confirmation Modal */}

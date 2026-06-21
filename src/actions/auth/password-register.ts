@@ -13,10 +13,13 @@ const log = logger.child({ component: 'PasswordRegister' });
 
 const schema = z.object({
   email: z.string().email("Введите корректный email"),
-  password: z.string().min(6, "Пароль должен быть не менее 6 символов"),
+  password: z.string().min(8, "Пароль должен быть не менее 8 символов"),
 });
 
 export async function registerWithPasswordAction(prevState: unknown, formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') {
+    return { error: "Некорректные данные формы", success: false };
+  }
   const parsed = schema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message, success: false };

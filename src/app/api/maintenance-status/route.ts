@@ -19,5 +19,16 @@ export async function GET() {
     }
   }
 
+  if (isMaintenanceMode) {
+    const contactSettings = await SettingsProvider.getContactAndLegalSettings();
+    return NextResponse.json({
+      isMaintenanceMode,
+      isStaff,
+      siteName: contactSettings.SITE_NAME || "SMMplan",
+      supportTelegram: contactSettings.TELEGRAM_SUPPORT_BOT || "smmplan_support_bot",
+      supportEmail: contactSettings.SUPPORT_EMAIL || "support@smmplan.pro",
+    });
+  }
+
   return NextResponse.json({ isMaintenanceMode, isStaff });
 }

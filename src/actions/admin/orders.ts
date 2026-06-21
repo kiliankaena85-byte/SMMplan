@@ -115,7 +115,7 @@ export async function setOrderStatusAction(
       const oldStatus = order.status;
       const newStatus = validatedStatus;
 
-      const TERMINAL_REFUNDED_STATUSES = ['COMPLETED', 'CANCELED', 'ERROR'];
+      const TERMINAL_REFUNDED_STATUSES = ['COMPLETED', 'CANCELED', 'ERROR', 'PARTIAL'];
 
       let refundCents = 0;
       if (['CANCELED', 'ERROR', 'COMPLETED'].includes(newStatus) && !TERMINAL_REFUNDED_STATUSES.includes(oldStatus)) {
@@ -473,4 +473,67 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
     return { success: true as const, numericId: result.numericId };
   });
 }
+
+export async function getOrderDetailsAction(orderId: string) {
+  return requireStaffPermission('orders', 'view', async () => {
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: { select: { email: true } },
+        provider: { select: { name: true } },
+        service: {
+          select: {
+            name: true,
+            etaP50Seconds: true,
+            etaP90Seconds: true,
+            etaSampleCount: true,
+            etaSpeedClass: true,
+            etaUpdatedAt: true,
+            category: {
+              select: {
+                name: true,
+                network: { select: { name: true } }
+              }
+            }
+          }
+        }
+      }
+    });
+    if (!order) return null;
+    return {
+      id: order.id,
+      numericId: order.numericId,
+      externalId: order.externalId ?? null,
+      link: order.link,
+      quantity: order.quantity,
+      remains: order.remains,
+      status: order.status,
+      charge: Number(order.charge),
+      providerCost: Number(order.providerCost ?? 0),
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      isDripFeed: order.isDripFeed,
+      dripExternalIds: order.dripExternalIds,
+      runs: order.runs ?? null,
+      interval: order.interval ?? null,
+      currentRun: order.currentRun,
+      error: order.error ?? null,
+      user: { email: order.user.email },
+      providerName: order.provider?.name ?? null,
+      service: {
+        name: order.service.name,
+        etaP50Seconds: order.service.etaP50Seconds,
+        etaP90Seconds: order.service.etaP90Seconds,
+        etaSampleCount: order.service.etaSampleCount,
+        etaSpeedClass: order.service.etaSpeedClass,
+        etaUpdatedAt: order.service.etaUpdatedAt ? order.service.etaUpdatedAt.toISOString() : null,
+        category: {
+          name: order.service.category.name,
+          network: order.service.category.network ? { name: order.service.category.network.name } : null
+        }
+      }
+    };
+  });
+}
+
 

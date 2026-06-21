@@ -34,17 +34,17 @@ export type ClientProfileData = {
 };
 
 const ORDER_STATUS_MAP: Record<string, { label: string, color: string }> = {
-  IN_PROGRESS: { label: 'В работе', color: 'text-primary bg-indigo-50' },
-  PENDING: { label: 'Ожидание', color: 'text-warning-text bg-warning/10' },
-  COMPLETED: { label: 'Выполнен', color: 'text-success-text bg-success/10' },
-  CANCELED: { label: 'Отменен', color: 'text-slate-500 bg-slate-50' },
-  ERROR: { label: 'Ошибка', color: 'text-rose-600 bg-rose-50' },
+  IN_PROGRESS: { label: 'В работе', color: 'text-primary bg-primary/10 border border-primary/20' },
+  PENDING: { label: 'Ожидание', color: 'text-warning-text bg-warning/10 border border-warning/20' },
+  COMPLETED: { label: 'Выполнен', color: 'text-success-text bg-success/10 border border-success/20' },
+  CANCELED: { label: 'Отменен', color: 'text-muted-foreground bg-muted border border-border' },
+  ERROR: { label: 'Ошибка', color: 'text-destructive-text bg-destructive/10 border border-destructive/20' },
 };
 
 const PAYMENT_STATUS_MAP: Record<string, { label: string, color: string }> = {
-  SUCCEEDED: { label: 'Успешно', color: 'text-success-text bg-success/10' },
-  PENDING: { label: 'Ожидание', color: 'text-warning-text bg-warning/10' },
-  CANCELED: { label: 'Отмена', color: 'text-slate-500 bg-slate-50' },
+  SUCCEEDED: { label: 'Успешно', color: 'text-success-text bg-success/10 border border-success/20' },
+  PENDING: { label: 'Ожидание', color: 'text-warning-text bg-warning/10 border border-warning/20' },
+  CANCELED: { label: 'Отмена', color: 'text-muted-foreground bg-muted border border-border' },
 };
 
 import { requestTelegramBind, adminManualTelegramBind } from '@/actions/support/ticket';
@@ -138,7 +138,7 @@ export default function ClientProfileSidebar({
                     onChange={(e) => setEmailVal(e.target.value)}
                     disabled={isPending}
                     placeholder="email@client.ru" 
-                    className="flex-1 bg-card border border-amber-500/30 rounded px-2 py-1 outline-none text-slate-800 text-[11px]" 
+                    className="flex-1 bg-card border border-warning/30 rounded px-2 py-1 outline-none text-foreground text-[11px]" 
                   />
                   <button 
                     id="manual-bind-submit"
@@ -171,7 +171,7 @@ export default function ClientProfileSidebar({
               ) : (
                 <div className="mt-1 bg-warning/20 border border-warning/40 rounded p-2 text-[10px]">
                   <p className="font-bold text-warning-text mb-1">Подтвердите слияние:</p>
-                  <ul className="list-disc pl-3 mb-2 text-slate-700 space-y-0.5">
+                  <ul className="list-disc pl-3 mb-2 text-muted-foreground space-y-0.5">
                     <li>Врем. заказов: <b>{previewData.tempUserOrders}</b></li>
                     <li>Цель: <b>{previewData.targetEmail}</b></li>
                     <li>Баланс цели: <b>{previewData.targetBalance} ₽</b></li>
@@ -180,7 +180,7 @@ export default function ClientProfileSidebar({
                     <button
                       disabled={isPending}
                       onClick={() => setPreviewData(null)}
-                      className="flex-1 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold transition-colors text-center"
+                      className="flex-1 py-1 bg-muted hover:bg-muted/80 text-foreground rounded font-semibold transition-colors text-center"
                     >
                       Отмена
                     </button>
@@ -255,37 +255,37 @@ export default function ClientProfileSidebar({
         {/* Последние заказы */}
         <div>
            <div className="flex items-center justify-between mb-3 px-1">
-             <h4 className="text-xs font-bold uppercase text-slate-500 flex items-center gap-1.5">
+             <h4 className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5">
                <ShoppingCart className="w-3.5 h-3.5" /> Заказы (последние 3)
              </h4>
            </div>
            
            <div className="space-y-2">
              {user.orders.map(order => {
-               const st = ORDER_STATUS_MAP[order.status] || { label: order.status, color: 'text-slate-500 bg-slate-50' };
+               const st = ORDER_STATUS_MAP[order.status] || { label: order.status, color: 'text-muted-foreground bg-muted border border-border' };
                return (
-                 <div key={order.id} className="bg-card border border-slate-100 rounded-xl p-3 shadow-sm flex flex-col gap-2">
+                 <div key={order.id} className="bg-card border border-border rounded-xl p-3 shadow-sm flex flex-col gap-2">
                    <div className="flex justify-between items-start">
-                     <span className="text-[10px] font-mono text-slate-400">#{order.id.slice(-6)}</span>
+                     <span className="text-[10px] font-mono text-muted-foreground/80">#{order.id.slice(-6)}</span>
                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${st.color}`}>
                        {st.label}
                      </span>
                    </div>
-                   <div className="text-xs font-medium text-slate-800 line-clamp-2 leading-tight">
+                   <div className="text-xs font-medium text-foreground line-clamp-2 leading-tight">
                      {order.service.name}
                    </div>
                    <div className="flex justify-between items-center mt-1">
-                     <span className="text-[10px] text-slate-500">{order.quantity} шт.</span>
-                     <span className="text-[10px] font-bold text-slate-700">{formatBalance(order.charge)}</span>
+                     <span className="text-[10px] text-muted-foreground">{order.quantity} шт.</span>
+                     <span className="text-[10px] font-bold text-foreground">{formatBalance(order.charge)}</span>
                    </div>
                  </div>
                );
              })}
-             {user.orders.length === 0 && <div className="text-xs text-slate-400 text-center py-2">Нет заказов</div>}
+             {user.orders.length === 0 && <div className="text-xs text-muted-foreground/80 text-center py-2">Нет заказов</div>}
            </div>
 
            {user.orders.length > 0 && (
-             <Link href={`/admin/orders?userId=${user.id}`} className="block mt-2 text-[11px] text-center font-bold text-indigo-500 hover:text-primary transition-colors">
+             <Link href={`/admin/orders?userId=${user.id}`} className="block mt-2 text-[11px] text-center font-bold text-primary hover:text-primary/80 transition-colors">
                Смотреть все заказы →
              </Link>
            )}
@@ -294,34 +294,34 @@ export default function ClientProfileSidebar({
         {/* Последние транзакции */}
         <div>
            <div className="flex items-center justify-between mb-3 px-1">
-             <h4 className="text-xs font-bold uppercase text-slate-500 flex items-center gap-1.5">
+             <h4 className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5">
                <CreditCard className="w-3.5 h-3.5" /> Транзакции
              </h4>
            </div>
            
            <div className="space-y-2">
              {user.payments.map(payment => {
-               const st = PAYMENT_STATUS_MAP[payment.status] || { label: payment.status, color: 'text-slate-500 bg-slate-50' };
+               const st = PAYMENT_STATUS_MAP[payment.status] || { label: payment.status, color: 'text-muted-foreground bg-muted border border-border' };
                return (
-                 <div key={payment.id} className="bg-card border border-slate-100 rounded-xl p-3 shadow-sm flex items-center justify-between gap-2">
+                 <div key={payment.id} className="bg-card border border-border rounded-xl p-3 shadow-sm flex items-center justify-between gap-2">
                    <div>
-                     <div className="text-xs font-bold text-slate-800">
+                     <div className="text-xs font-bold text-foreground">
                        {payment.gateway === 'cryptobot' ? `${(payment.amount / 100).toLocaleString('ru-RU')} USDT` : formatBalance(payment.amount)}
                      </div>
-                     <div className="text-[10px] text-slate-400 mt-0.5 capitalize">{payment.gateway.replace('yookassa', 'Ru Карта')}</div>
+                     <div className="text-[10px] text-muted-foreground/80 mt-0.5 capitalize">{payment.gateway.replace('yookassa', 'Ru Карта')}</div>
                    </div>
                    <div className="text-right">
                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${st.color}`}>
                        {st.label}
                      </span>
-                     <div className="text-[9px] text-slate-400 mt-1">
+                     <div className="text-[9px] text-muted-foreground/80 mt-1">
                        <ClientDate date={payment.createdAt} format="date-short" />
                      </div>
                    </div>
                  </div>
                );
              })}
-             {user.payments.length === 0 && <div className="text-xs text-slate-400 text-center py-2">Нет пополнений</div>}
+             {user.payments.length === 0 && <div className="text-xs text-muted-foreground/80 text-center py-2">Нет пополнений</div>}
            </div>
         </div>
 
