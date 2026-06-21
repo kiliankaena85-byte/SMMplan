@@ -6,7 +6,7 @@ param (
 Write-Host "Starting Hybrid Deployment..." -ForegroundColor Cyan
 
 Write-Host "1. Building Docker image locally..." -ForegroundColor Yellow
-docker buildx build --platform linux/amd64 -t smmplan_lite_prod_app:latest .
+docker buildx build --platform linux/amd64 -t smmplan_lite_prod_app:latest --build-arg HTTP_PROXY=http://host.docker.internal:7897 --build-arg HTTPS_PROXY=http://host.docker.internal:7897 .
 if ($LASTEXITCODE -ne 0) { throw "Build failed!" }
 
 Write-Host "2. Packaging and compressing image..." -ForegroundColor Yellow

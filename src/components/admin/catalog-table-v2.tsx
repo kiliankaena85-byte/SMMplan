@@ -172,6 +172,7 @@ function ServiceFormSheet({
   onOpenChange,
   title,
   onSuccess,
+  usdToRub,
 }: {
   service?: CatalogServiceDTO;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -182,8 +183,12 @@ function ServiceFormSheet({
   onOpenChange: (open: boolean) => void;
   title: string;
   onSuccess: () => void;
+  usdToRub: number;
 }) {
   const [isPending, startTransition] = useTransition();
+
+  // Active Tab state
+  const [activeTab, setActiveTab] = useState<'general' | 'pricing' | 'validation' | 'parameters'>('general');
 
   // Form states
   const [name, setName] = useState(service?.name || "");
@@ -192,6 +197,15 @@ function ServiceFormSheet({
   const [providerId, setProviderId] = useState(service?.providerId || "none");
   const [rate, setRate] = useState(service?.rate !== undefined ? String(service.rate) : "0.0");
   const [markup, setMarkup] = useState(service?.markup !== undefined ? String(service.markup) : "3.0");
+  
+  // Calculate initial retail price
+  const usdToRubVal = usdToRub || 90.0;
+  const initialRate = service?.rate !== undefined ? service.rate : 0.0;
+  const initialMarkup = service?.markup !== undefined ? service.markup : 3.0;
+  const isRubProvider = service?.providerId && providers.find(p => p.id === service.providerId)?.balanceCurrency === 'RUB';
+  const initialExchangeRate = isRubProvider ? 1.0 : usdToRubVal;
+  const [retailPrice, setRetailPrice] = useState(String(initialRate * initialMarkup * initialExchangeRate));
+
   const [minQty, setMinQty] = useState(service?.minQty !== undefined ? String(service.minQty) : "10");
   const [maxQty, setMaxQty] = useState(service?.maxQty !== undefined ? String(service.maxQty) : "100000");
   const [externalId, setExternalId] = useState(service?.externalId || "");
@@ -209,6 +223,37 @@ function ServiceFormSheet({
   const [warningMessage, setWarningMessage] = useState(service?.warningMessage || "");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
+  // Price calculator logic
+  const handleRateChange = (val: string) => {
+    setRate(val);
+    const r = parseFloat(val) || 0;
+    const m = parseFloat(markup) || 0;
+    const isRub = providerId !== "none" && providers.find(p => p.id === providerId)?.balanceCurrency === "RUB";
+    const exRate = isRub ? 1.0 : usdToRubVal;
+    setRetailPrice(String(r * m * exRate));
+  };
+
+  const handleMarkupChange = (val: string) => {
+    setMarkup(val);
+    const m = parseFloat(val) || 0;
+    const r = parseFloat(rate) || 0;
+    const isRub = providerId !== "none" && providers.find(p => p.id === providerId)?.balanceCurrency === "RUB";
+    const exRate = isRub ? 1.0 : usdToRubVal;
+    setRetailPrice(String(r * m * exRate));
+  };
+
+  const handleRetailPriceChange = (val: string) => {
+    setRetailPrice(val);
+    const rp = parseFloat(val) || 0;
+    const r = parseFloat(rate) || 0;
+    const isRub = providerId !== "none" && providers.find(p => p.id === providerId)?.balanceCurrency === "RUB";
+    const exRate = isRub ? 1.0 : usdToRubVal;
+    const cost = r * exRate;
+    if (cost > 0) {
+      setMarkup(String(rp / cost));
+    }
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleServiceSelect = (selectedService: any) => {
     setExternalId(String(selectedService.service));
@@ -218,6 +263,10 @@ function ServiceFormSheet({
     const originalRate = selectedService.pricePerUnitProcurementUsd ? selectedService.pricePerUnitProcurementUsd * 1000 : parseFloat(selectedService.rate || "0");
     if (!isNaN(originalRate)) {
       setRate(String(originalRate));
+      const m = parseFloat(markup) || 3.0;
+      const isRub = providerId !== "none" && providers.find(p => p.id === providerId)?.balanceCurrency === "RUB";
+      const exRate = isRub ? 1.0 : usdToRubVal;
+      setRetailPrice(String(originalRate * m * exRate));
     }
     if (selectedService.min) setMinQty(String(selectedService.min));
     if (selectedService.max) setMaxQty(String(selectedService.max));
@@ -228,6 +277,9 @@ function ServiceFormSheet({
     { id: "CHANNEL", name: "CHANNEL (Канал / Профиль)" },
     { id: "POST", name: "POST (Пост / Публикация)" },
     { id: "STORY", name: "STORY (История / Сториз)" },
+    { id: "COMMENT", name: "COMMENT (Комментарий)" },
+    { id: "POLL", name: "POLL (Опрос / Голосование)" },
+    { id: "TELEGRAM_BOT", name: "TELEGRAM_BOT (Реферальный бот)" },
     { id: "CUSTOM", name: "CUSTOM (Кастомная ссылка)" }
   ];
 
@@ -306,310 +358,378 @@ function ServiceFormSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1: Основные данные */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
-              Основная информация
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Название услуги</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Например: INSTAGRAM | Лайки (Быстрые)"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                />
-              </div>
+        {/* Вкладки (Tabs) */}
+        <div className="flex border-b border-border/50 mb-6 overflow-x-auto gap-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('general')}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+              activeTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Основное
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('pricing')}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+              activeTab === 'pricing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Цены & Провайдер
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('validation')}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+              activeTab === 'validation' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Валидация ссылок
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('parameters')}
+            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+              activeTab === 'parameters' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Параметры & Опции
+          </button>
+        </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Категория</label>
-                <Select value={categoryId} onValueChange={(val) => setCategoryId(val || '')}>
-                  <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
-                    <SelectValue placeholder="-- Выберите категорию --">
-                      {(value: string) => categories.find(c => c.id === value)?.name ?? value}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="w-full">
-                    {categories.map(c => (
-                      <SelectItem key={c.id} value={c.id} label={c.name} className="cursor-pointer">
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6 flex-1 flex flex-col justify-between">
+          <div className="space-y-6">
+            {/* Вкладка 1: Основные данные */}
+            {activeTab === 'general' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
+                  Основная информация
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Название услуги</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Например: INSTAGRAM | Лайки (Быстрые)"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                    />
+                  </div>
 
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-muted-foreground">Описание услуги</label>
-              <textarea
-                placeholder="Укажите подробности выполнения услуги для клиентов..."
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-              />
-            </div>
-          </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Категория</label>
+                    <Select value={categoryId} onValueChange={(val) => setCategoryId(val || '')}>
+                      <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
+                        <SelectValue placeholder="-- Выберите категорию --">
+                          {(value: string) => categories.find(c => c.id === value)?.name ?? value}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="w-full">
+                        {categories.map(c => (
+                          <SelectItem key={c.id} value={c.id} label={c.name} className="cursor-pointer">
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-          {/* Section 2: Провайдер */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
-              Связь с SMM-провайдером
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Провайдер</label>
-                <Select value={providerId} onValueChange={(val) => setProviderId(val || '')}>
-                  <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
-                    <SelectValue placeholder="Без провайдера (вручную)">
-                      {(value: string) => {
-                        if (!value || value === "none") return "Без провайдера (вручную)";
-                        return providers.find(p => p.id === value)?.name ?? value;
-                      }}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="w-full">
-                    <SelectItem value="none" label="Без провайдера (вручную)" className="cursor-pointer text-muted-foreground">
-                      Без провайдера (вручную)
-                    </SelectItem>
-                    {providers.map(p => (
-                      <SelectItem key={p.id} value={p.id} label={p.name} className="cursor-pointer">
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Внешний ID (External ID)</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Опционально (например: 1422)"
-                    value={externalId}
-                    onChange={e => setExternalId(e.target.value)}
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-muted-foreground">Описание услуги</label>
+                  <textarea
+                    placeholder="Укажите подробности выполнения услуги для клиентов..."
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    rows={6}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                   />
-                  {providerId !== "none" && providerId !== "" && (
-                    <Button 
-                      type="button" 
-                      intent="outline" 
-                      size="sm" 
-                      onClick={() => setIsSearchModalOpen(true)}
-                      className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <Search className="w-4 h-4 mr-1.5" />
-                      Поиск
-                    </Button>
-                  )}
                 </div>
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Section 3: Финансы и Количества */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
-              Параметры и Финансы
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Закупка ($ / 1k)</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  required
-                  placeholder="0.00"
-                  value={rate}
-                  onChange={e => setRate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
-                />
-              </div>
+            {/* Вкладка 2: Провайдер и Цены */}
+            {activeTab === 'pricing' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
+                  Связь с SMM-провайдером
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Провайдер</label>
+                    <Select value={providerId} onValueChange={(val) => setProviderId(val || '')}>
+                      <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
+                        <SelectValue placeholder="Без провайдера (вручную)">
+                          {(value: string) => {
+                            if (!value || value === "none") return "Без провайдера (вручную)";
+                            return providers.find(p => p.id === value)?.name ?? value;
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="w-full">
+                        <SelectItem value="none" label="Без провайдера (вручную)" className="cursor-pointer text-muted-foreground">
+                          Без провайдера (вручную)
+                        </SelectItem>
+                        {providers.map(p => (
+                          <SelectItem key={p.id} value={p.id} label={p.name} className="cursor-pointer">
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Множитель наценки</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="1.0"
-                  required
-                  placeholder="3.0"
-                  value={markup}
-                  onChange={e => setMarkup(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
-                />
-              </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Внешний ID (External ID)</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Опционально (например: 1422)"
+                        value={externalId}
+                        onChange={e => setExternalId(e.target.value)}
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                      />
+                      {providerId !== "none" && providerId !== "" && (
+                        <Button 
+                          type="button" 
+                          intent="outline" 
+                          size="sm" 
+                          onClick={() => setIsSearchModalOpen(true)}
+                          className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                        >
+                          <Search className="w-4 h-4 mr-1.5" />
+                          Поиск
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Мин. кол-во</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  placeholder="10"
-                  value={minQty}
-                  onChange={e => setMinQty(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
-                />
-              </div>
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1 pt-4">
+                  Калькулятор цен (за 1000 шт)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Закупка ($ / 1k)</label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      required
+                      placeholder="0.00"
+                      value={rate}
+                      onChange={e => handleRateChange(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
+                    />
+                  </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Макс. кол-во</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  placeholder="100000"
-                  value={maxQty}
-                  onChange={e => setMaxQty(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
-                />
-              </div>
-            </div>
-          </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Множитель наценки</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="1.0"
+                      required
+                      placeholder="3.0"
+                      value={markup}
+                      onChange={e => handleMarkupChange(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
+                    />
+                  </div>
 
-          {/* Section 4: Настройки ссылки */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
-              Ссылка и кастомные данные
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Тип ожидаемой ссылки</label>
-                <Select value={targetType} onValueChange={(val) => setTargetType(val || '')}>
-                  <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
-                    <SelectValue placeholder="Автоматически по категории">
-                      {(value: string) => {
-                        if (!value || value === "none") return "Автоматически по категории";
-                        return targetTypeItems.find(t => t.id === value)?.name ?? value;
-                      }}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="w-full">
-                    {targetTypeItems.map(t => (
-                      <SelectItem key={t.id} value={t.id} label={t.name} className="cursor-pointer">
-                        {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground">Дополнительные поля</label>
-                <Select value={customDataType} onValueChange={(val) => setCustomDataType(val || '')}>
-                  <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
-                    <SelectValue placeholder="NONE (Нет дополнительных полей)">
-                      {(value: string) => {
-                        if (!value) return "NONE (Нет дополнительных полей)";
-                        return customDataTypeItems.find(c => c.id === value)?.name ?? value;
-                      }}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="w-full">
-                    {customDataTypeItems.map(c => (
-                      <SelectItem key={c.id} value={c.id} label={c.name} className="cursor-pointer">
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {customDataType !== "NONE" && (
-              <div className="space-y-1 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <label className="block text-xs font-semibold text-muted-foreground">
-                  Кастомная подсказка для поля (Опционально)
-                </label>
-                <input
-                  type="text"
-                  maxLength={100}
-                  placeholder={
-                    customDataType === "TEXTAREA" 
-                      ? "Например: Ваши комментарии (по одному в строке)" 
-                      : "Например: Номер варианта ответа"
-                  }
-                  value={customDataLabel}
-                  onChange={e => setCustomDataLabel(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Свой заголовок-подсказка, который увидит пользователь при заполнении заказа (макс. 100 символов).
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-primary">Розничная цена (₽ / 1k)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      placeholder="0.00"
+                      value={retailPrice}
+                      onChange={e => handleRetailPriceChange(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-primary/40 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono font-bold"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">
+                  Калькулятор автоматически синхронизирует поля. Изменение Розничной цены пересчитает Множитель, и наоборот, с учетом курса USD: <b>{usdToRubVal.toFixed(2)} ₽</b>.
                 </p>
               </div>
             )}
-          </div>
 
-          {/* Section 5: Флаги */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
-              Опции и Флаги
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                <Checkbox checked={isActive} onCheckedChange={(val) => setIsActive(!!val)} />
-                <span className="text-xs font-medium text-foreground select-none">Активна на сайте</span>
-              </label>
+            {/* Вкладка 3: Настройки ссылки и Валидация */}
+            {activeTab === 'validation' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
+                  Ссылка и кастомные данные
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Тип ожидаемой ссылки</label>
+                    <Select value={targetType} onValueChange={(val) => setTargetType(val || '')}>
+                      <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
+                        <SelectValue placeholder="Автоматически по категории">
+                          {(value: string) => {
+                            if (!value || value === "none") return "Автоматически по категории";
+                            return targetTypeItems.find(t => t.id === value)?.name ?? value;
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="w-full">
+                        {targetTypeItems.map(t => (
+                          <SelectItem key={t.id} value={t.id} label={t.name} className="cursor-pointer">
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                <Checkbox checked={isMediaGroupAware} onCheckedChange={(val) => setIsMediaGroupAware(!!val)} />
-                <span className="text-xs font-medium text-foreground select-none">Медиагруппы (VK/TG)</span>
-              </label>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Дополнительные поля</label>
+                    <Select value={customDataType} onValueChange={(val) => setCustomDataType(val || '')}>
+                      <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
+                        <SelectValue placeholder="NONE (Нет дополнительных полей)">
+                          {(value: string) => {
+                            if (!value) return "NONE (Нет дополнительных полей)";
+                            return customDataTypeItems.find(c => c.id === value)?.name ?? value;
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="w-full">
+                        {customDataTypeItems.map(c => (
+                          <SelectItem key={c.id} value={c.id} label={c.name} className="cursor-pointer">
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                <Checkbox checked={isDripFeedEnabled} onCheckedChange={(val) => setIsDripFeedEnabled(!!val)} />
-                <span className="text-xs font-medium text-foreground select-none">Поддержка Drip-Feed</span>
-              </label>
+                {customDataType !== "NONE" && (
+                  <div className="space-y-1 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <label className="block text-xs font-semibold text-muted-foreground">
+                      Кастомная подсказка для поля (Опционально)
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={100}
+                      placeholder={
+                        customDataType === "TEXTAREA" 
+                          ? "Например: Ваши комментарии (по одному в строке)" 
+                          : "Например: Номер варианта ответа"
+                      }
+                      value={customDataLabel}
+                      onChange={e => setCustomDataLabel(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                    />
+                  </div>
+                )}
 
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                <Checkbox checked={isRefillEnabled} onCheckedChange={(val) => setIsRefillEnabled(!!val)} />
-                <span className="text-xs font-medium text-foreground select-none">Возможен долив (Refill)</span>
-              </label>
+                <div className="space-y-3 pt-4">
+                  <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200 w-max select-none">
+                    <Checkbox checked={requireWarning} onCheckedChange={(val) => setRequireWarning(!!val)} />
+                    <span className="text-xs font-medium text-foreground">Показывать предупреждение при заказе</span>
+                  </label>
 
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                <Checkbox checked={isCancelEnabled} onCheckedChange={(val) => setIsCancelEnabled(!!val)} />
-                <span className="text-xs font-medium text-foreground select-none">Возможна отмена (Cancel)</span>
-              </label>
+                  {requireWarning && (
+                    <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <label className="block text-xs font-semibold text-muted-foreground">
+                        Текст интерактивного предупреждения
+                      </label>
+                      <input
+                        type="text"
+                        required={requireWarning}
+                        placeholder="Например: В посте несколько фото, просмотры будут идти только на последнее..."
+                        value={warningMessage}
+                        onChange={e => setWarningMessage(e.target.value)}
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                <Checkbox checked={requireWarning} onCheckedChange={(val) => setRequireWarning(!!val)} />
-                <span className="text-xs font-medium text-foreground select-none">Показывать предупреждение</span>
-              </label>
-            </div>
+            {/* Вкладка 4: Параметры и Лимиты */}
+            {activeTab === 'parameters' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1">
+                  Лимиты количеств
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Мин. кол-во</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      placeholder="10"
+                      value={minQty}
+                      onChange={e => setMinQty(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
+                    />
+                  </div>
 
-            {requireWarning && (
-              <div className="space-y-1 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <label className="block text-xs font-semibold text-muted-foreground">
-                  Текст интерактивного предупреждения
-                </label>
-                <input
-                  type="text"
-                  required={requireWarning}
-                  placeholder="Например: В посте несколько фото, просмотры будут идти только на последнее..."
-                  value={warningMessage}
-                  onChange={e => setWarningMessage(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                />
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">Макс. кол-во</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      placeholder="100000"
+                      value={maxQty}
+                      onChange={e => setMaxQty(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider border-b border-border/50 pb-1 pt-4">
+                  Опции и Флаги выполнения
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-border hover:bg-muted/50 transition-all duration-200 select-none">
+                    <Checkbox checked={isActive} onCheckedChange={(val) => setIsActive(!!val)} />
+                    <span className="text-xs font-semibold text-foreground">Активна на сайте</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-border hover:bg-muted/50 transition-all duration-200 select-none">
+                    <Checkbox checked={isMediaGroupAware} onCheckedChange={(val) => setIsMediaGroupAware(!!val)} />
+                    <span className="text-xs font-semibold text-foreground">Медиагруппы (VK/TG)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-border hover:bg-muted/50 transition-all duration-200 select-none">
+                    <Checkbox checked={isDripFeedEnabled} onCheckedChange={(val) => setIsDripFeedEnabled(!!val)} />
+                    <span className="text-xs font-semibold text-foreground">Поддержка Drip-Feed</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-border hover:bg-muted/50 transition-all duration-200 select-none">
+                    <Checkbox checked={isRefillEnabled} onCheckedChange={(val) => setIsRefillEnabled(!!val)} />
+                    <span className="text-xs font-semibold text-foreground">Возможен долив (Refill)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-border hover:bg-muted/50 transition-all duration-200 select-none">
+                    <Checkbox checked={isCancelEnabled} onCheckedChange={(val) => setIsCancelEnabled(!!val)} />
+                    <span className="text-xs font-semibold text-foreground">Возможна отмена (Cancel)</span>
+                  </label>
+                </div>
               </div>
             )}
           </div>
 
           <SheetFooter className="pt-6 mt-8 border-t border-border/40 flex justify-end gap-3 px-0 pb-0">
-            <SheetClose render={<Button intent="outline" size="sm" type="button" className="transition-all active:scale-[0.98]">Отмена</Button>} />
+            <SheetClose render={<Button intent="outline" size="sm" type="button" className="transition-all active:scale-[0.98] cursor-pointer">Отмена</Button>} />
             <Button
               type="submit"
               intent="primary"
               size="sm"
               disabled={isPending}
-              className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 ease-out-cubic active:scale-[0.98] shadow-sm shadow-primary/20"
+              className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 ease-out-cubic active:scale-[0.98] shadow-sm shadow-primary/20 cursor-pointer"
             >
               {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Сохранить услугу
@@ -626,12 +746,14 @@ export function CreateServiceModal({
   categories,
   providers,
   onSuccess,
+  usdToRub,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   providers: any[];
   onSuccess: () => void;
+  usdToRub: number;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -654,6 +776,7 @@ export function CreateServiceModal({
           onOpenChange={setOpen}
           title="Создание новой услуги"
           onSuccess={onSuccess}
+          usdToRub={usdToRub}
         />
       )}
     </>
@@ -665,6 +788,7 @@ export function EditServiceModal({
   categories,
   providers,
   onSuccess,
+  usdToRub,
 }: {
   service: CatalogServiceDTO;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -672,6 +796,7 @@ export function EditServiceModal({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   providers: any[];
   onSuccess: () => void;
+  usdToRub: number;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -694,6 +819,7 @@ export function EditServiceModal({
           onOpenChange={setOpen}
           title={`Редактирование услуги #${service.numericId}`}
           onSuccess={onSuccess}
+          usdToRub={usdToRub}
         />
       )}
     </>
@@ -1005,7 +1131,7 @@ function CatalogTableRow({
       <Table.Cell className={canEdit ? "py-4 px-4 text-right" : "hidden"}>
         {canEdit ? (
           <div className="flex items-center gap-1.5 justify-end">
-            <EditServiceModal service={s} categories={categories} providers={providers} onSuccess={() => router.refresh()} />
+            <EditServiceModal service={s} categories={categories} providers={providers} onSuccess={() => router.refresh()} usdToRub={usdToRub} />
             <ArchiveButton service={s} />
           </div>
         ) : <span className="sr-only">Actions hidden</span>}
@@ -1037,6 +1163,31 @@ export function CatalogTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const currentSortBy = searchParams.get('sortBy') || '';
+  const currentSortOrder = searchParams.get('sortOrder') || '';
+
+  function handleSortClick(field: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (currentSortBy === field) {
+      if (currentSortOrder === 'asc') {
+        params.set('sortOrder', 'desc');
+      } else {
+        params.delete('sortBy');
+        params.delete('sortOrder');
+      }
+    } else {
+      params.set('sortBy', field);
+      params.set('sortOrder', 'asc');
+    }
+    params.delete('cursor'); // Reset pagination
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
+  function getSortIcon(field: string) {
+    if (currentSortBy !== field) return null;
+    return currentSortOrder === 'asc' ? ' ▲' : ' ▼';
+  }
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [currency, setCurrency] = useState<'RUB' | 'USD'>('RUB');
@@ -1263,7 +1414,7 @@ export function CatalogTable({
 
         <div className="shrink-0">
           {canEdit && (
-            <CreateServiceModal categories={categories} providers={providers} onSuccess={() => router.refresh()} />
+            <CreateServiceModal categories={categories} providers={providers} onSuccess={() => router.refresh()} usdToRub={usdToRub} />
           )}
         </div>
       </div>
@@ -1286,11 +1437,27 @@ export function CatalogTable({
                       disabled={!canEdit}
                     />
                   </Table.Column>
-                  <Table.Column key="serviceNetwork" isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 min-w-[240px]">Услуга / Сеть</Table.Column>
+                  <Table.Column key="serviceNetwork" isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 min-w-[240px]">
+                    <button type="button" onClick={() => handleSortClick('name')} className="hover:text-primary transition-colors inline-flex items-center gap-0.5 font-extrabold uppercase cursor-pointer">
+                      Услуга / Сеть {getSortIcon('name')}
+                    </button>
+                  </Table.Column>
                   <Table.Column key="category" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3">Категория</Table.Column>
-                  <Table.Column key="rate" className={`text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-right px-4 py-3 ${!canSeeRates ? "hidden" : ""}`}>Закупка</Table.Column>
-                  <Table.Column key="markup" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-center">Наценка (%)</Table.Column>
-                  <Table.Column key="price" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-right">Розничная цена</Table.Column>
+                  <Table.Column key="rate" className={`text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-right ${!canSeeRates ? "hidden" : ""}`}>
+                    <button type="button" onClick={() => handleSortClick('rate')} className="hover:text-primary transition-colors inline-flex items-center gap-0.5 font-extrabold uppercase ml-auto cursor-pointer">
+                      Закупка {getSortIcon('rate')}
+                    </button>
+                  </Table.Column>
+                  <Table.Column key="markup" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-center">
+                    <button type="button" onClick={() => handleSortClick('markup')} className="hover:text-primary transition-colors inline-flex items-center gap-0.5 font-extrabold uppercase mx-auto cursor-pointer">
+                      Наценка (%) {getSortIcon('markup')}
+                    </button>
+                  </Table.Column>
+                  <Table.Column key="price" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-right">
+                    <button type="button" onClick={() => handleSortClick('price')} className="hover:text-primary transition-colors inline-flex items-center gap-0.5 font-extrabold uppercase ml-auto cursor-pointer">
+                      Розничная цена {getSortIcon('price')}
+                    </button>
+                  </Table.Column>
                   <Table.Column key="status" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-center px-4 py-3">Статус</Table.Column>
                   <Table.Column key="actions" className={canEdit ? "w-12 px-4 py-3 text-right" : "hidden"}><span className="sr-only">Actions</span></Table.Column>
                 </Table.Header>

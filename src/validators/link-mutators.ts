@@ -74,6 +74,13 @@ const cleanTelegramUrl = (url: string, targetType: string): string => {
   }
   try {
     const urlObj = new URL(cleaned);
+    if (targetType === 'TELEGRAM_BOT') {
+      const start = urlObj.searchParams.get('start');
+      urlObj.search = '';
+      if (start) {
+        urlObj.searchParams.set('start', start);
+      }
+    }
     return urlObj.toString();
   } catch {
     return cleaned;
@@ -104,7 +111,13 @@ const cleanYoutubeUrl = (url: string, targetType: string): string => {
       const urlObj = new URL(cleaned);
       if (urlObj.hostname.includes('youtube.com') && urlObj.pathname === '/watch') {
           const v = urlObj.searchParams.get('v');
-          if (v) return `https://www.youtube.com/watch?v=${v}`;
+          if (v) {
+            if (targetType === 'COMMENT') {
+              const lc = urlObj.searchParams.get('lc');
+              return `https://www.youtube.com/watch?v=${v}${lc ? `&lc=${lc}` : ''}`;
+            }
+            return `https://www.youtube.com/watch?v=${v}`;
+          }
       }
   } catch { /* ignore */ }
   return cleaned;
@@ -159,6 +172,15 @@ export const getLinkValidator = (platform: string, targetType: string) => {
                     .refine(val => !val.includes('/c/'), "Невозможно заказать услугу в закрытый чат (ссылка содержит /c/). Сделайте канал публичным.")
                     .and(z.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/[\w-]+\/\d+\/?(?:\?.*)?$/i, "Укажите ссылку на конкретный пост (например, https://t.me/durov/123)"));
             }
+            if (targetType === 'TELEGRAM_BOT') {
+                 return z.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/[\w-]+_bot(?:\?start=[\w-]+)?$/i, "Укажите ссылку на Telegram-бота (например, https://t.me/my_bot или с реферальным кодом ?start=ref123)");
+            }
+            if (targetType === 'POLL') {
+                 return z.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/[\w-]+\/\d+\/?$/i, "Укажите ссылку на пост с опросом (например, https://t.me/durov/123)");
+            }
+            if (targetType === 'COMMENT') {
+                 return z.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/[\w-]+\/\d+\?comment=\d+$/i, "Укажите ссылку на комментарий в Telegram (например, https://t.me/durov/123?comment=456)");
+            }
             break;
             
         case 'VK':
@@ -168,6 +190,12 @@ export const getLinkValidator = (platform: string, targetType: string) => {
             if (targetType === 'CHANNEL') {
                 return z.string().regex(/^https?:\/\/(m\.)?vk\.com\/[a-zA-Z0-9_.]+$/, "Укажите прямую ссылку на группу или профиль ВКонтакте.");
             }
+            if (targetType === 'COMMENT') {
+                return z.string().regex(/^https?:\/\/(m\.)?vk\.com\/(wall|video|clip|photo)-?\d+_\d+\?(?:.*&)?reply=\d+/, "Укажите ссылку на комментарий ВКонтакте (должна содержать параметр reply).");
+            }
+            if (targetType === 'POLL') {
+                return z.string().regex(/^https?:\/\/(m\.)?vk\.com\/(wall|video|clip|photo)-?\d+_\d+/, "Укажите ссылку на пост с опросом ВКонтакте.");
+            }
             break;
             
         case 'INSTAGRAM':
@@ -176,6 +204,12 @@ export const getLinkValidator = (platform: string, targetType: string) => {
             }
             if (targetType === 'CHANNEL' || targetType === 'STORY') {
                 return z.string().regex(/^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/, "Укажите правильную ссылку на профиль Instagram.");
+            }
+            if (targetType === 'COMMENT') {
+                return z.string().regex(/^https?:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/[a-zA-Z0-9_-]+\/c\/[a-zA-Z0-9_-]+\/?/, "Укажите ссылку на комментарий Instagram.");
+            }
+            if (targetType === 'POLL') {
+                return z.string().regex(/^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/, "Укажите ссылку на профиль или историю Instagram с опросом.");
             }
             break;
             

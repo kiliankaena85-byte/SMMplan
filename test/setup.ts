@@ -265,7 +265,7 @@ async function resetTestDb() {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const tablenames = await db.$queryRaw<Array<{ tablename: string }>>`
-        SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename != '_prisma_migrations';
+        SELECT tablename FROM pg_tables WHERE schemaname=current_schema() AND tablename != '_prisma_migrations';
       `;
       
       const tables = tablenames

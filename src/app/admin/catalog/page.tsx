@@ -32,6 +32,8 @@ type Props = {
     isActive?: string;
     providerStatus?: string;
     externalId?: string;
+    sortBy?: string;
+    sortOrder?: string;
   }>;
 };
 
@@ -58,6 +60,8 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const isActive = isActiveStr === 'true' ? true : isActiveStr === 'false' ? false : undefined;
   const providerStatus = params.providerStatus || undefined;
   const externalId = params.externalId || undefined;
+  const sortBy = params.sortBy || undefined;
+  const sortOrder = (params.sortOrder === 'asc' || params.sortOrder === 'desc') ? (params.sortOrder as 'asc' | 'desc') : undefined;
 
   const [
     { items: rawServices, nextCursor, hasMore },
@@ -77,6 +81,8 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       externalId,
       cursor,
       pageSize: 50,
+      sortBy,
+      sortOrder,
     }),
     SettingsProvider.getExchangeRateUSD(),
     adminCatalogService.listCategories(),
@@ -257,7 +263,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         {/* Pagination / Load More */}
         {hasMore && (
            <div className="flex justify-center pt-4">
-             <Link href={`/admin/catalog?cursor=${nextCursor}${categoryId ? `&category=${categoryId}` : ''}${search ? `&q=${search}` : ''}`}>
+             <Link href={`/admin/catalog?cursor=${nextCursor}${categoryId ? `&category=${categoryId}` : ''}${search ? `&q=${search}` : ''}${sortBy ? `&sortBy=${sortBy}` : ''}${sortOrder ? `&sortOrder=${sortOrder}` : ''}`}>
                <Button intent="outline" size="sm" className="bg-background">Загрузить еще...</Button>
              </Link>
            </div>

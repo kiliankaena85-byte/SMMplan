@@ -64,6 +64,8 @@ class AdminCatalogService {
     providerStatus?: string;
     externalId?: string;
     pageSize?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
   }): Promise<PaginatedResult<CatalogRow>> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
@@ -134,11 +136,36 @@ class AdminCatalogService {
       where.OR = orConditions;
     }
 
+    let orderBy: any = { numericId: 'asc' };
+    if (params.sortBy) {
+      const order = params.sortOrder || 'asc';
+      switch (params.sortBy) {
+        case 'id':
+          orderBy = { numericId: order };
+          break;
+        case 'name':
+          orderBy = { name: order };
+          break;
+        case 'rate':
+          orderBy = { rate: order };
+          break;
+        case 'markup':
+          orderBy = { markup: order };
+          break;
+        case 'price':
+          orderBy = { pricePer1000Cents: order };
+          break;
+        default:
+          orderBy = { numericId: order };
+          break;
+      }
+    }
+
     return paginatedQuery<CatalogRow>(db.service, {
       cursor: params.cursor,
       pageSize: params.pageSize || 50,
       where,
-      orderBy: { numericId: 'asc' },
+      orderBy,
       include: {
         category: { select: { id: true, name: true, network: { select: { name: true, slug: true } } } },
         _count: { select: { orders: true } },
