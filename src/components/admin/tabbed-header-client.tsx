@@ -96,11 +96,9 @@ export function OnboardingSection({
                 <div className="pt-2 flex items-center justify-between">
                   <a
                     href={onboarding.docLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                   >
-                    📖 Полное руководство в Notion →
+                    📖 Полное руководство оператора →
                   </a>
                   <button onClick={toggleOpen} className="text-[10px] font-bold text-muted-foreground hover:text-foreground">
                     Скрыть справочник
