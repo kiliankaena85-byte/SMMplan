@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Clock, CheckCircle2, Info, ArrowRight, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Clock, CheckCircle2, Info, ArrowRight, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { useOrderEngine } from '@/hooks/useOrderEngine';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
@@ -44,7 +44,30 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
     platform,
     urlMutatedTrigger,
     unfilteredCatalog,
+    isLinkOverridden,
+    setIsLinkOverridden,
   } = engine;
+
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
+
+  // Auto-advance logic for Step 1 -> Step 2
+  useEffect(() => {
+    if (currentStep === 1 && url && url.length > 5 && !isLoading && !validationErrors.url && engine.networkId && categoryId) {
+      // Small delay for smooth UX so the user can see the link was accepted
+      const timer = setTimeout(() => {
+        setCurrentStep(2);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, url, isLoading, validationErrors.url, engine.networkId, categoryId]);
+
+  // Keep expanded service in sync with selected service if navigating back
+  useEffect(() => {
+    if (currentStep === 2 && selectedService) {
+      setExpandedServiceId(selectedService.id);
+    }
+  }, [currentStep, selectedService]);
 
   if (!unfilteredCatalog || unfilteredCatalog.length === 0) {
     return (
@@ -93,28 +116,67 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
     }
   };
 
+  const steps = [
+    { num: 1, title: 'Укажите ссылку' },
+    { num: 2, title: 'Выберите тариф' },
+    { num: 3, title: 'Параметры заказа' },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* ── Platform pills Selection ── */}
-      <NetworkSelector
-        platform={platform}
-        manualPlatform={manualPlatform}
-        networkId={engine.networkId}
-        unfilteredCatalog={unfilteredCatalog}
-        onSelect={handlePlatformSelect}
-      />
+      {/* ── Wizard Stepper Header ── */}
+      <div className="flex items-center justify-between mb-8 relative">
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-border -z-10" />
+        {steps.map(step => {
+          const isActive = currentStep === step.num;
+          const isCompleted = currentStep > step.num;
+          return (
+            <div key={step.num} className="flex flex-col items-center gap-2 bg-background px-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isCompleted || (step.num === 2 && currentStep === 3)) {
+                    setCurrentStep(step.num as 1 | 2 | 3);
+                  }
+                }}
+                disabled={!isCompleted && step.num > currentStep}
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm transition-all duration-300 ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground ring-4 ring-primary/20 scale-110'
+                    : isCompleted
+                    ? 'bg-success text-success-foreground cursor-pointer hover:bg-success/80'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                }`}
+              >
+                {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : step.num}
+              </button>
+              <span className={`text-[11px] font-bold uppercase tracking-wider hidden sm:block ${
+                isActive ? 'text-primary' : isCompleted ? 'text-foreground' : 'text-muted-foreground'
+              }`}>
+                {step.title}
+              </span>
+            </div>
+          );
+        })}
+      </div>
 
-      {/* ── Category tabs / mobile dropdown ── */}
-      <CategorySelector
-        categoryId={categoryId}
-        setCategoryId={setCategoryId}
-        availableCategories={engine.availableCategories}
-      />
+      {/* ── Step 1: Link & Platform ── */}
+      {currentStep === 1 && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
+          <NetworkSelector
+            platform={platform}
+            manualPlatform={manualPlatform}
+            networkId={engine.networkId}
+            unfilteredCatalog={unfilteredCatalog}
+            onSelect={handlePlatformSelect}
+          />
 
-      {/* ── Main content grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* Left column: Link input and service selectors */}
-        <div className="space-y-4">
+          <CategorySelector
+            categoryId={categoryId}
+            setCategoryId={setCategoryId}
+            availableCategories={engine.availableCategories}
+          />
+
           <LinkInputField
             url={url}
             setUrl={setUrl}
@@ -127,184 +189,162 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
             urlMutatedTrigger={urlMutatedTrigger}
             availablePlatforms={availablePlatforms}
             onBlur={() => engine.validate(true)}
+            isLinkOverridden={isLinkOverridden}
+            setIsLinkOverridden={setIsLinkOverridden}
           />
 
-          {/* Desktop Service Selector */}
-          <div className="hidden md:block space-y-2" role="listbox" aria-label="Список тарифов">
-            {services.length === 0 && !isLoading && (
-              categoryId ? (
-                <div className="p-6 rounded-2xl border border-dashed border-border bg-card text-center space-y-3">
-                  <div className="text-xl">📦</div>
-                  <h4 className="font-bold text-sm text-foreground text-center">Синхронизация тарифов</h4>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed text-center">
-                    Наш ИИ-ассистент в данный момент обновляет тарифные сетки с провайдерами. Это займет около 2 минут.
-                  </p>
-                  <div className="flex justify-center">
-                    <button 
-                      onClick={() => engine.setCategoryId(categoryId)}
-                      aria-label="Обновить сетку тарифов"
-                      className="h-11 px-4 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-lg transition-all cursor-pointer"
-                    >
-                      Обновить сетку
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <OrderGuideWidget />
-              )
-            )}
+          <div className="flex justify-end pt-4">
+            <button
+              type="button"
+              disabled={!url || !!validationErrors.url || !engine.networkId}
+              onClick={() => setCurrentStep(2)}
+              className="h-12 px-8 rounded-xl bg-primary text-primary-foreground font-black text-sm hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none disabled:hover:scale-100 flex items-center gap-2"
+            >
+              Далее к выбору тарифа <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <OrderGuideWidget />
+        </div>
+      )}
+
+      {/* ── Step 2: Service Selection ── */}
+      {currentStep === 2 && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+          {services.length === 0 && !isLoading && (
+            <div className="p-6 rounded-2xl border border-dashed border-border bg-card text-center space-y-3">
+              <div className="text-xl">📦</div>
+              <h4 className="font-bold text-sm text-foreground text-center">Нет доступных тарифов</h4>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed text-center">
+                Для выбранной платформы и категории сейчас нет доступных тарифов. Попробуйте выбрать другую категорию.
+              </p>
+              <button
+                onClick={() => setCurrentStep(1)}
+                className="mt-4 h-11 px-4 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-lg transition-all"
+              >
+                Вернуться назад
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-3" role="listbox" aria-label="Список тарифов">
             {services.map(srv => {
               const isQuarantined = srv.cooldownUntil && new Date(srv.cooldownUntil) > new Date();
+              const isExpanded = expandedServiceId === srv.id;
+              const isSelected = selectedService?.id === srv.id;
+
               return (
-              <button
-                key={srv.id}
-                type="button"
-                role="option"
-                disabled={!!isQuarantined}
-                aria-selected={selectedService?.id === srv.id}
-                onClick={() => !isQuarantined && setSelectedService(selectedService?.id === srv.id ? null : srv)}
-                className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
-                  selectedService?.id === srv.id
-                    ? 'ring-2 ring-primary bg-primary/5 shadow-sm'
-                    : 'ring-1 ring-border bg-card hover:ring-primary/50 hover:bg-muted hover:shadow-md hover:-translate-y-0.5 shadow-sm'
-                } ${isQuarantined ? 'opacity-50 cursor-not-allowed grayscale' : 'cursor-pointer'}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                      {selectedService?.id === srv.id && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                      )}
-                      <span className="font-semibold text-foreground text-sm line-clamp-2">
-                        {srv.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {srv.badge && (
-                        <span className="text-[10px] bg-warning/10 text-warning-text px-1.5 py-0.5 rounded font-bold uppercase">
-                          {srv.badge}
+                <div
+                  key={srv.id}
+                  className={`rounded-xl transition-all duration-200 border ${
+                    isSelected
+                      ? 'border-primary ring-1 ring-primary/50 bg-primary/5 shadow-sm'
+                      : isExpanded
+                      ? 'border-border bg-card shadow-md'
+                      : 'border-border bg-card hover:border-primary/30 hover:shadow-sm'
+                  } ${isQuarantined ? 'opacity-50 grayscale' : ''}`}
+                >
+                  <button
+                    type="button"
+                    role="option"
+                    disabled={!!isQuarantined}
+                    aria-selected={isSelected}
+                    onClick={() => {
+                      if (!isQuarantined) {
+                        setExpandedServiceId(isExpanded ? null : srv.id);
+                      }
+                    }}
+                    className={`w-full text-left p-4 flex items-center justify-between gap-3 ${isQuarantined ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div className="flex-1 min-w-0 pr-4">
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                        {isSelected && (
+                          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                        )}
+                        <span className="font-bold text-foreground text-sm line-clamp-2">
+                          {srv.name}
                         </span>
-                      )}
-                      <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {srv.speed}
-                      </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {srv.badge && (
+                          <span className="text-[10px] bg-warning/10 text-warning-text px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
+                            {srv.badge}
+                          </span>
+                        )}
+                        <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1.5 shrink-0">
+                          <Clock className="w-3.5 h-3.5" /> {srv.speed}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="font-black text-foreground tracking-tight tabular-nums font-mono text-base">
-                      {formatPricePerUnit(srv.pricePerUnitRub)} ₽
+                    
+                    <div className="text-right shrink-0 flex flex-col items-end gap-2">
+                      <div>
+                        <div className="font-black text-foreground tracking-tight tabular-nums font-mono text-base leading-none">
+                          {formatPricePerUnit(srv.pricePerUnitRub)} ₽
+                        </div>
+                        <div className="text-[10px] font-bold text-muted-foreground tracking-wider mt-0.5">/ шт</div>
+                      </div>
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                     </div>
-                    <div className="text-[10px] font-bold text-muted-foreground tracking-wider">/ шт</div>
-                  </div>
+                  </button>
+
+                  {/* Accordion Content */}
+                  {isExpanded && !isQuarantined && (
+                    <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-200">
+                      <div className="pt-4 border-t border-border/50 space-y-4">
+                        <div className="text-xs text-muted-foreground leading-relaxed prose prose-sm prose-invert max-w-none">
+                          {srv.description ? (
+                            <div dangerouslySetInnerHTML={{ __html: srv.description }} />
+                          ) : (
+                            <p className="italic opacity-70">Детальное описание услуги отсутствует.</p>
+                          )}
+                        </div>
+                        
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedService(srv);
+                            setCurrentStep(3);
+                          }}
+                          className="w-full h-12 bg-primary text-primary-foreground font-black text-sm rounded-xl hover:bg-primary/90 transition-all shadow-sm flex items-center justify-center gap-2"
+                        >
+                          Выбрать этот тариф <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
                   {isQuarantined && (
-                    <div className="mt-2 text-[10px] font-semibold text-warning-text bg-warning/10 border border-warning/20 rounded-lg px-2 py-1 w-max">
-                      ⏳ Временно недоступен
+                    <div className="px-4 pb-4">
+                      <div className="text-[10px] font-semibold text-warning-text bg-warning/10 border border-warning/20 rounded-lg px-3 py-2">
+                        ⏳ Временно недоступен (Колдаун)
+                      </div>
                     </div>
                   )}
                 </div>
-              </button>
-            )})}
-          </div>
-
-          {/* Mobile Service Selector */}
-          <div className="block md:hidden space-y-3">
-            <label htmlFor="service-select" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">
-              Тариф
-            </label>
-            {services.length === 0 && !isLoading ? (
-              categoryId ? (
-                <div className="p-6 rounded-2xl border border-dashed border-border bg-card text-center space-y-3">
-                  <div className="text-xl">📦</div>
-                  <h4 className="font-bold text-sm text-foreground text-center">Синхронизация тарифов</h4>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed text-center">
-                    Наш ИИ-ассистент в данный момент обновляет тарифные сетки с провайдерами. Это займет около 2 минут.
-                  </p>
-                  <div className="flex justify-center">
-                    <button 
-                      onClick={() => engine.setCategoryId(categoryId)}
-                      aria-label="Обновить сетку тарифов"
-                      className="h-11 px-4 bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold rounded-lg transition-all cursor-pointer"
-                    >
-                      Обновить сетку
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <OrderGuideWidget />
-              )
-            ) : (
-              <div className="space-y-3">
-                <div className="relative">
-                  <select
-                    id="service-select"
-                    value={selectedService?.id || ''}
-                    onChange={e => {
-                      const srv = services.find(s => s.id === e.target.value);
-                      setSelectedService(srv || null);
-                    }}
-                    className="w-full h-12 pl-4 pr-10 rounded-xl border border-border bg-card text-sm font-semibold text-foreground outline-none transition-all duration-200 appearance-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                  >
-                    <option value="" className="text-muted-foreground bg-card">-- Выберите тариф --</option>
-                    {services.map(srv => (
-                      <option key={srv.id} value={srv.id} className="text-foreground bg-card">
-                        {srv.name} — {formatPricePerUnit(srv.pricePerUnitRub)} ₽ / шт
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="m6 9 6 6 6-6"/></svg>
-                  </div>
-                </div>
-
-                {/* Mobile selected service preview */}
-                {selectedService && (
-                  <div className="p-4 rounded-xl ring-2 ring-primary bg-primary/5 shadow-sm animate-in fade-in zoom-in-95 duration-200">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                          <span className="font-bold text-foreground text-sm leading-tight">
-                            {selectedService.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {selectedService.badge && (
-                            <span className="text-[10px] bg-warning/10 text-warning-text px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
-                              {selectedService.badge}
-                            </span>
-                          )}
-                          <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1 shrink-0">
-                            <Clock className="w-3.5 h-3.5" /> {selectedService.speed}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-black text-foreground tracking-tight tabular-nums font-mono text-base">
-                          {formatPricePerUnit(selectedService.pricePerUnitRub)} ₽
-                        </div>
-                        <div className="text-[10px] font-bold text-muted-foreground tracking-wider">/ шт</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+              );
+            })}
           </div>
         </div>
+      )}
 
-        {/* Right column: Checkout Summary Card */}
-        <OrderSummaryCard
-          userBalanceCents={userBalanceCents}
-          engine={engine}
-        />
-      </div>
+      {/* ── Step 3: Checkout Configuration ── */}
+      {currentStep === 3 && (
+        <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+          <OrderSummaryCard
+            userBalanceCents={userBalanceCents}
+            engine={engine}
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 function OrderGuideWidget() {
   return (
-    <div className="p-5 rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+    <div className="mt-8 p-5 rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
       {/* Subtle Sky Blue Accent bar */}
       <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
       
@@ -315,11 +355,11 @@ function OrderGuideWidget() {
           </div>
           <div className="space-y-1">
             <h4 className="font-bold text-foreground text-sm leading-tight flex items-center gap-1.5">
-              Сначала вставьте ссылку
+              Умный алгоритм SMMplan
               <span className="inline-flex h-2 w-2 rounded-full bg-success animate-pulse" />
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Наш ИИ-анализатор автоматически определит платформу и адаптирует тарифную сетку под ваш заказ. Это убережет вас от сбоев и сэкономит бюджет!
+              Наш ИИ-анализатор автоматически определит платформу по ссылке и предложит только совместимые и безопасные тарифы.
             </p>
           </div>
         </div>

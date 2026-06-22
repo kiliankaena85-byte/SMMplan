@@ -239,7 +239,7 @@ export default async function ClientTicketChatPage({
             {ticket.subject}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Вы можете общаться здесь или переписываться в Telegram
+            Вы можете общаться здесь или переписываться в Telegram (работаем с 09:00 до 21:00 МСК)
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -260,9 +260,9 @@ export default async function ClientTicketChatPage({
           <span
             className={`shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border uppercase ${
               ticket.status === 'OPEN'
-                ? 'text-rose-800 dark:text-rose-400 bg-rose-50 border-rose-200'
+                ? 'text-status-error bg-status-error-bg border-status-error/20'
                 : ticket.status === 'PENDING'
-                ? 'text-amber-800 dark:text-amber-400 bg-amber-50 border-amber-200'
+                ? 'text-status-warning bg-status-warning-bg border-status-warning/20'
                 : 'text-muted-foreground bg-muted border-border'
             }`}
           >
@@ -274,18 +274,18 @@ export default async function ClientTicketChatPage({
       </div>
 
       {ticket.order && (
-        <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm shrink-0 animate-in fade-in duration-300">
+        <div className="bg-status-info-bg border border-status-info/10 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm shrink-0 animate-in fade-in duration-300">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold text-lg shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-status-info-bg text-status-info flex items-center justify-center font-bold text-lg shrink-0">
               📦
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm text-foreground">Привязанный заказ #{ticket.order.numericId}</span>
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                  ticket.order.status === 'COMPLETED' ? 'bg-success/10 text-emerald-800 dark:text-success' :
-                  ticket.order.status === 'IN_PROGRESS' ? 'bg-primary/10 text-blue-800 dark:text-primary' :
-                  ticket.order.status === 'PENDING' ? 'bg-amber-100 text-amber-800 dark:text-amber-400' :
+                  ticket.order.status === 'COMPLETED' ? 'bg-status-success-bg text-status-success' :
+                  ticket.order.status === 'IN_PROGRESS' ? 'bg-primary/10 text-primary' :
+                  ticket.order.status === 'PENDING' ? 'bg-status-warning-bg text-status-warning' :
                   'bg-default-200 text-default-600'
                 }`}>
                   {ticket.order.status === 'COMPLETED' ? 'Выполнен' :

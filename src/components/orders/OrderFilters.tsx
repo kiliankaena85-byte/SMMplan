@@ -82,7 +82,7 @@ export function OrderFilters({
               placeholder="Поиск по ID или названию тарифа..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-10 pl-9 pr-4 bg-muted border border-border/60 rounded-xl text-xs font-medium placeholder:text-muted-foreground outline-none focus:bg-background focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
+              className="w-full h-11 md:h-9 pl-9 pr-4 bg-muted border border-border/60 rounded-xl text-xs font-medium placeholder:text-muted-foreground outline-none focus:bg-background focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
             />
           </div>
 
@@ -90,7 +90,7 @@ export function OrderFilters({
           <select
             value={initialNetwork || 'ALL'}
             onChange={(e) => handleApplyFilters({ network: e.target.value })}
-            className="h-10 bg-content2 border border-border/60 rounded-xl px-3 py-1 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
+            className="h-11 md:h-9 bg-content2 border border-border/60 rounded-xl px-3 py-1 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
             aria-label="Фильтр по соцсети"
           >
             <option value="ALL">Все соцсети</option>
@@ -105,7 +105,7 @@ export function OrderFilters({
           <select
             value={initialStatus || 'ALL'}
             onChange={(e) => handleApplyFilters({ status: e.target.value })}
-            className="h-10 bg-content2 border border-border/60 rounded-xl px-3 py-1 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
+            className="h-11 md:h-9 bg-content2 border border-border/60 rounded-xl px-3 py-1 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
             aria-label="Фильтр по статусу заказа"
           >
             <option value="ALL">Все статусы</option>
@@ -123,7 +123,7 @@ export function OrderFilters({
         <div className="flex gap-2">
           <button
             type="submit"
-            className="h-10 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm active:scale-95"
+            className="h-11 md:h-9 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm active:scale-95"
           >
             Применить
           </button>
@@ -132,7 +132,7 @@ export function OrderFilters({
             <button
               type="button"
               onClick={handleReset}
-              className="h-10 w-10 flex items-center justify-center bg-content2 border border-border/60 hover:bg-content3 text-muted-foreground hover:text-foreground rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+              className="h-11 w-11 md:h-9 md:w-9 flex items-center justify-center bg-content2 border border-border/60 hover:bg-content3 text-muted-foreground hover:text-foreground rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
               title="Сбросить все фильтры"
             >
               <RotateCcw className="w-4 h-4" />
@@ -152,7 +152,7 @@ export function OrderFilters({
             <button
               onClick={() => handleApplyFilters({ page: currentPage - 1 })}
               disabled={currentPage <= 1}
-              className="h-11 w-11 flex items-center justify-center rounded-xl border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="h-11 w-11 md:h-9 md:w-9 flex items-center justify-center rounded-xl border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
               title="Предыдущая страница"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -163,7 +163,7 @@ export function OrderFilters({
               // Show window around current page to prevent massive numbers
               if (totalPages > 6 && Math.abs(p - currentPage) > 2 && p !== 1 && p !== totalPages) {
                 if (p === 2 || p === totalPages - 1) {
-                  return <span key={`dots-${p}`} className="h-11 w-11 flex items-center justify-center text-xs text-muted-foreground font-bold select-none">...</span>;
+                  return <span key={`dots-${p}`} className="h-11 w-11 md:h-9 md:w-9 flex items-center justify-center text-xs text-muted-foreground font-bold select-none">...</span>;
                 }
                 return null;
               }
@@ -172,7 +172,7 @@ export function OrderFilters({
                 <button
                   key={`page-${p}`}
                   onClick={() => handleApplyFilters({ page: p })}
-                  className={`h-11 w-11 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                  className={`h-11 w-11 md:h-9 md:w-9 rounded-xl text-xs font-bold transition-all active:scale-95 ${
                     currentPage === p
                       ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
                       : 'border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -186,7 +186,7 @@ export function OrderFilters({
             <button
               onClick={() => handleApplyFilters({ page: currentPage + 1 })}
               disabled={currentPage >= totalPages}
-              className="h-11 w-11 flex items-center justify-center rounded-xl border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="h-11 w-11 md:h-9 md:w-9 flex items-center justify-center rounded-xl border border-border bg-content1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
               title="Следующая страница"
             >
               <ChevronRight className="w-4 h-4" />

@@ -73,7 +73,6 @@ export function OrderSummaryCard({
   const [showRequirementsModal, setShowRequirementsModal] = useState(false);
   const [requirementsConfirmed, setRequirementsConfirmed] = useState(false);
   const [modalRequirements, setModalRequirements] = useState<string[]>([]);
-  const [viewportBottom, setViewportBottom] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -86,20 +85,6 @@ export function OrderSummaryCard({
 
   useEffect(() => {
     idempotencyKeyRef.current = crypto.randomUUID();
-    
-    if (!window.visualViewport) return;
-    const vp = window.visualViewport;
-    const update = () => {
-      const diff = window.innerHeight - vp.height;
-      setViewportBottom(diff > 0 ? diff : 0);
-    };
-    vp.addEventListener('resize', update);
-    vp.addEventListener('scroll', update);
-    update();
-    return () => {
-      vp.removeEventListener('resize', update);
-      vp.removeEventListener('scroll', update);
-    };
   }, []);
 
   useEffect(() => {
@@ -616,14 +601,8 @@ export function OrderSummaryCard({
             </div>
           )}
 
-          {/* Floating Bottom Bar (VisualViewport Aware) */}
-          <div 
-            className="fixed left-0 right-0 bg-card border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.05)] p-4 z-50 lg:static lg:bg-transparent lg:border-none lg:shadow-none lg:p-0"
-            style={{ 
-              bottom: viewportBottom > 0 ? `${viewportBottom}px` : '0px',
-              paddingBottom: viewportBottom > 0 ? '1rem' : 'max(1rem, env(safe-area-inset-bottom))'
-            }}
-          >
+          {/* Bottom Bar - Static to prevent overlap */}
+          <div className="pt-2">
             {/* Submit */}
             <div className={gateway === 'balance' && userBalanceRub >= totalPrice ? 'emerald-light' : ''}>
               <button

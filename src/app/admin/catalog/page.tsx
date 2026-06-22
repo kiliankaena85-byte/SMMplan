@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { CatalogTable } from '@/components/admin/catalog-table-v2';
-import { CatalogSidebar } from '@/components/admin/CatalogSidebar';
+
 import {
   TOTAL_MANDATORY_DEDUCTIONS,
   SAFETY_FLOOR_MARKUP,
@@ -34,6 +34,7 @@ type Props = {
     externalId?: string;
     sortBy?: string;
     sortOrder?: string;
+    platform?: string;
   }>;
 };
 
@@ -62,6 +63,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const externalId = params.externalId || undefined;
   const sortBy = params.sortBy || undefined;
   const sortOrder = (params.sortOrder === 'asc' || params.sortOrder === 'desc') ? (params.sortOrder as 'asc' | 'desc') : undefined;
+  const platform = params.platform || undefined;
 
   const [
     { items: rawServices, nextCursor, hasMore },
@@ -83,6 +85,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       pageSize: 50,
       sortBy,
       sortOrder,
+      networkSlug: platform,
     }),
     SettingsProvider.getExchangeRateUSD(),
     adminCatalogService.listCategories(),
@@ -161,47 +164,32 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         onboarding={ONBOARDING_CONFIGS.catalog}
       />
 
-      <div className="flex flex-col lg:flex-row gap-6 w-full">
-        {/* LEFT PANE: Categories Sidebar - Sticky as a unit with lg:self-start to prevent overlap */}
-        <aside className="w-full lg:w-[260px] flex-shrink-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <CatalogSidebar 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            categories={categories as any} 
-            categoryId={categoryId} 
-            totalServices={stats.totalServices} 
-            usdToRub={usdToRub}
-          />
-          
-          {/* Quick Stats Sidebar */}
-          <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl ring-1 ring-border/5 p-5 space-y-4">
-            <div className="space-y-1.5">
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Сводка</p>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground">Активных</span>
-                <span className="font-mono font-bold text-success tabular-nums">{stats.activeServices}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground">В карантине</span>
-                <span className="font-mono font-bold text-warning tabular-nums">{quarantineCount}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground">Ср. Маржа</span>
-                <span className="font-mono font-bold text-primary tabular-nums">x{markupAnalytics.averageMarkup.toFixed(2)}</span>
-              </div>
-            </div>
-            
-            <div className="pt-3 border-t border-border/50 space-y-2">
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Константы</p>
-              <div className="text-[11px] text-muted-foreground bg-muted/30 p-2.5 rounded-xl border border-border/50 font-mono tracking-tight text-center">
-                💱 Курс USD/RUB: <span className="font-bold text-foreground">{usdToRub.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        </aside>
+      {/* Horizontal Stats Dashboard Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Всего услуг</span>
+          <span className="text-2xl font-black text-foreground mt-1 tabular-nums">{stats.totalServices}</span>
+        </div>
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Активных услуг</span>
+          <span className="text-2xl font-black text-success mt-1 tabular-nums">{stats.activeServices}</span>
+        </div>
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">В карантине</span>
+          <span className="text-2xl font-black text-warning mt-1 tabular-nums">{quarantineCount}</span>
+        </div>
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ср. Маржа</span>
+          <span className="text-2xl font-black text-primary mt-1 tabular-nums">x{markupAnalytics.averageMarkup.toFixed(2)}</span>
+        </div>
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between col-span-2 md:col-span-1">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Курс USD/RUB</span>
+          <span className="text-2xl font-black text-foreground mt-1 tabular-nums">{usdToRub.toFixed(2)} ₽</span>
+        </div>
+      </div>
 
-        {/* RIGHT PANE: Catalog Management */}
-        <main className="flex-1 min-w-0 space-y-6">
-
+      {/* Catalog Management Pane */}
+      <div className="w-full space-y-6">
         {/* Anomaly / Loss Warning Banner */}
         {markupAnalytics.stats.loss > 0 && (
           <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 shadow-sm ring-1 ring-destructive/10 animate-pulse-slow">
@@ -268,8 +256,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
              </Link>
            </div>
         )}
-      </main>
+      </div>
     </div>
-  </div>
   );
 }

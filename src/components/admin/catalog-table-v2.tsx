@@ -11,12 +11,13 @@
  * - Safety floor enforcement with visual cues
  */
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Table } from '@heroui/react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Trash2, ShoppingCart, Pencil, Plus, Loader2, AlertCircle, Search } from 'lucide-react';
+import { Trash2, ShoppingCart, Pencil, Plus, Loader2, AlertCircle, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { SocialIcon } from '@/components/ui/SocialIcon';
 import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import {
@@ -1022,7 +1023,12 @@ function CatalogTableRow({
                 </span>
               )}
             </span>
-            <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] font-bold text-muted-foreground leading-none">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold text-muted-foreground leading-none">
+              {s.categoryName && (
+                <span className="bg-muted text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded text-[9px] font-semibold">
+                  {s.categoryName}
+                </span>
+              )}
               {s.providerId && s.externalId && (
                 <span className="font-mono">
                   API: #{s.externalId} ({providers.find(p => p.id === s.providerId)?.name || 'API'})
@@ -1034,13 +1040,6 @@ function CatalogTableRow({
             </div>
           </div>
         </div>
-      </Table.Cell>
-
-      {/* 3. Категория */}
-      <Table.Cell className="py-4 px-4 text-xs font-bold text-foreground">
-        <span className="bg-background border border-border/80 px-2.5 py-1 rounded-lg shadow-sm block w-fit" title={s.categoryName || ''}>
-          {s.categoryName}
-        </span>
       </Table.Cell>
 
       {/* 4. Закупка */}
@@ -1184,14 +1183,57 @@ export function CatalogTable({
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
-  function getSortIcon(field: string) {
-    if (currentSortBy !== field) return null;
-    return currentSortOrder === 'asc' ? ' ▲' : ' ▼';
+  function renderSortableHeader(field: string, title: string, alignRight: boolean = false) {
+    const isActive = currentSortBy === field;
+    return (
+      <button
+        type="button"
+        onClick={() => handleSortClick(field)}
+        className={`hover:text-primary transition-colors inline-flex items-center gap-1 font-extrabold uppercase cursor-pointer ${
+          alignRight ? 'ml-auto justify-end' : ''
+        }`}
+      >
+        <span>{title}</span>
+        {isActive ? (
+          currentSortOrder === 'asc' ? (
+            <ArrowUp className="w-3.5 h-3.5 text-primary shrink-0" />
+          ) : (
+            <ArrowDown className="w-3.5 h-3.5 text-primary shrink-0" />
+          )
+        ) : (
+          <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100 shrink-0" />
+        )}
+      </button>
+    );
   }
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [currency, setCurrency] = useState<'RUB' | 'USD'>('RUB');
   const [volume, setVolume] = useState<'UNIT' | '1K'>('1K');
+
+  const selectedPlatform = searchParams.get('platform') || 'ALL';
+
+  const networks = useMemo(() => {
+    const map = new Map<string, { slug: string; name: string }>();
+    categories.forEach(c => {
+      if (c.network?.slug) {
+        map.set(c.network.slug, { slug: c.network.slug, name: c.network.name });
+      }
+    });
+    return Array.from(map.values());
+  }, [categories]);
+
+  function handlePlatformClick(platformSlug: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (platformSlug === 'ALL') {
+      params.delete('platform');
+    } else {
+      params.set('platform', platformSlug);
+    }
+    params.delete('category'); // Always reset category when changing platform
+    params.delete('cursor'); // Reset pagination
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
   const allIds = services.map(s => s.id);
   const allSelected = selected.size === allIds.length && allIds.length > 0;
@@ -1247,13 +1289,9 @@ export function CatalogTable({
   }
 
   function resetFilters() {
-    const params = new URLSearchParams();
-    if (currentCategory) {
-      params.set('category', currentCategory);
-    }
     setSearchVal('');
     setExtIdVal('');
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    router.push(pathname, { scroll: false });
   }
 
   return (
@@ -1262,7 +1300,7 @@ export function CatalogTable({
       <div className="bg-card/60 backdrop-blur-md border border-border/50 p-5 rounded-2xl shadow-sm ring-1 ring-border/5 space-y-4">
         <div className="flex items-center justify-between border-b border-border/50 pb-3">
           <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Фильтры каталога</h3>
-          {(currentSearch || currentExternalId || currentProviderId !== 'all' || currentIsActive !== 'all' || currentProviderStatus !== 'all') && (
+          {(currentSearch || currentExternalId || currentCategory || selectedPlatform !== 'ALL' || currentProviderId !== 'all' || currentIsActive !== 'all' || currentProviderStatus !== 'all') && (
             <button 
               onClick={resetFilters} 
               className="text-[11px] font-bold text-destructive hover:underline transition-all duration-200 cursor-pointer active:scale-95"
@@ -1271,8 +1309,61 @@ export function CatalogTable({
             </button>
           )}
         </div>
+
+        {/* Platform Horizontal Pills Bar */}
+        <div className="flex flex-wrap gap-2 pb-1 border-b border-border/40">
+          <button
+            onClick={() => handlePlatformClick('ALL')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border ${
+              selectedPlatform === 'ALL'
+                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                : 'bg-background hover:bg-muted text-muted-foreground border-border/80'
+            }`}
+          >
+            Все сети
+          </button>
+          {networks.map((p: { slug: string; name: string }) => (
+            <button
+              key={p.slug}
+              onClick={() => handlePlatformClick(p.slug)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border flex items-center gap-1.5 ${
+                selectedPlatform === p.slug
+                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                  : 'bg-background hover:bg-muted text-muted-foreground border-border/80'
+              }`}
+            >
+              <SocialIcon slug={p.slug} size={14} />
+              {p.name}
+            </button>
+          ))}
+        </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* Category Select Dropdown */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Категория</label>
+            <Select value={currentCategory || 'all'} onValueChange={val => updateFilter('category', val)}>
+              <SelectTrigger className="w-full h-8 border border-border bg-background text-foreground text-xs rounded-xl cursor-pointer">
+                <SelectValue placeholder="Все категории">
+                  {(value: string) => {
+                    if (value === 'all') return 'Все категории';
+                    return categories.find(c => c.id === value)?.name ?? value;
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" label="Все категории" className="text-xs cursor-pointer">Все категории</SelectItem>
+                {categories
+                  .filter(c => selectedPlatform === 'ALL' || c.network?.slug === selectedPlatform)
+                  .map(c => (
+                    <SelectItem key={c.id} value={c.id} label={c.name} className="text-xs cursor-pointer">
+                      {c.name} ({c._count?.services || 0})
+                    </SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
+          </div>
           {/* Текстовый поиск */}
           <div className="space-y-1">
             <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Поиск по названию / ID</label>
@@ -1424,43 +1515,35 @@ export function CatalogTable({
       )}
 
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table className="w-full text-sm text-left">
-            <Table.ScrollContainer>
-              <Table.Content aria-label="Каталог услуг" className="w-full">
-                <Table.Header>
-                  <Table.Column key="checkbox" className={canEdit ? "w-10 px-4 py-3" : "hidden"}>
-                    <input
-                      type="checkbox" checked={allSelected}
-                      onChange={toggleAll}
-                      className="rounded border-border text-primary focus:ring-primary cursor-pointer w-4 h-4"
-                      disabled={!canEdit}
-                    />
-                  </Table.Column>
-                  <Table.Column key="serviceNetwork" isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 min-w-[240px]">
-                    <button type="button" onClick={() => handleSortClick('name')} className="hover:text-primary transition-colors inline-flex items-center gap-0.5 font-extrabold uppercase cursor-pointer">
-                      Услуга / Сеть {getSortIcon('name')}
-                    </button>
-                  </Table.Column>
-                  <Table.Column key="category" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3">Категория</Table.Column>
-                  <Table.Column key="rate" className={`text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-right ${!canSeeRates ? "hidden" : ""}`}>
-                    <button type="button" onClick={() => handleSortClick('rate')} className="hover:text-primary transition-colors inline-flex items-center gap-0.5 font-extrabold uppercase ml-auto cursor-pointer">
-                      Закупка {getSortIcon('rate')}
-                    </button>
-                  </Table.Column>
-                  <Table.Column key="markup" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-center">
-                    <button type="button" onClick={() => handleSortClick('markup')} className="hover:text-primary transition-colors inline-flex items-center gap-0.5 font-extrabold uppercase mx-auto cursor-pointer">
-                      Наценка (%) {getSortIcon('markup')}
-                    </button>
-                  </Table.Column>
-                  <Table.Column key="price" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-right">
-                    <button type="button" onClick={() => handleSortClick('price')} className="hover:text-primary transition-colors inline-flex items-center gap-0.5 font-extrabold uppercase ml-auto cursor-pointer">
-                      Розничная цена {getSortIcon('price')}
-                    </button>
-                  </Table.Column>
-                  <Table.Column key="status" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-center px-4 py-3">Статус</Table.Column>
-                  <Table.Column key="actions" className={canEdit ? "w-12 px-4 py-3 text-right" : "hidden"}><span className="sr-only">Actions</span></Table.Column>
-                </Table.Header>
+        <Table className="w-full text-sm text-left">
+          <Table.ScrollContainer>
+            <Table.Content aria-label="Каталог услуг" className="w-full">
+              <Table.Header>
+                <Table.Column key="checkbox" className={canEdit ? "w-10 px-4 py-3" : "hidden"}>
+                  <input
+                    type="checkbox" checked={allSelected}
+                    onChange={toggleAll}
+                    className="rounded border-border text-primary focus:ring-primary cursor-pointer w-4 h-4"
+                    disabled={!canEdit}
+                  />
+                </Table.Column>
+                <Table.Column key="serviceNetwork" isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 min-w-[240px]">
+                  {renderSortableHeader('name', 'Услуга / Сеть')}
+                </Table.Column>
+                <Table.Column key="rate" className={`text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-right ${!canSeeRates ? "hidden" : ""}`}>
+                  {renderSortableHeader('rate', 'Закупка', true)}
+                </Table.Column>
+                <Table.Column key="markup" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-center">
+                  <div className="flex justify-center">
+                    {renderSortableHeader('markup', 'Наценка (%)')}
+                  </div>
+                </Table.Column>
+                <Table.Column key="price" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-3 text-right">
+                  {renderSortableHeader('price', 'Розничная цена', true)}
+                </Table.Column>
+                <Table.Column key="status" className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-center px-4 py-3">Статус</Table.Column>
+                <Table.Column key="actions" className={canEdit ? "w-12 px-4 py-3 text-right" : "hidden"}><span className="sr-only">Actions</span></Table.Column>
+              </Table.Header>
                 <Table.Body renderEmptyState={() => (
                   <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
                      <ShoppingCart className="w-8 h-8 opacity-20" />
@@ -1485,10 +1568,9 @@ export function CatalogTable({
                     />
                   ))}
                 </Table.Body>
-              </Table.Content>
-            </Table.ScrollContainer>
-          </Table>
-        </div>
+            </Table.Content>
+          </Table.ScrollContainer>
+        </Table>
       </div>
     </div>
   );

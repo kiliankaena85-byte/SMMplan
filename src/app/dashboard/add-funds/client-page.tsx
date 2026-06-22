@@ -115,9 +115,9 @@ export default function AddFundsPage() {
                 key={val}
                 type="button"
                 onClick={() => handlePreset(val)}
-                className={`relative h-11 rounded-xl text-sm font-semibold border transition-all duration-200
+                className={`relative min-h-[44px] md:min-h-[36px] rounded-xl text-sm font-semibold border transition-all duration-200
                   flex items-center justify-center
-                  focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none ${
+                  focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none ${
                   amount === val
                     ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                     : 'bg-background text-foreground border-border hover:border-primary/50 hover:bg-muted'
@@ -169,11 +169,11 @@ export default function AddFundsPage() {
                   if (navigator.vibrate) navigator.vibrate(20);
                   setMethod(id);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-200 ${
+                className={`w-full flex items-center gap-3 px-4 py-3 min-h-[44px] md:min-h-[36px] rounded-xl border text-left transition-all duration-200 ${
                   method === id
                     ? 'border-primary bg-primary/5 text-foreground'
                     : 'border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted'
-                }`}
+                } focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none`}
                 aria-pressed={method === id}
                 aria-label={`Оплатить через ${label}`}
               >
@@ -204,8 +204,8 @@ export default function AddFundsPage() {
           disabled={isPending || amount < 10}
           aria-label={`Перейти к оплате ${amount} рублей`}
           className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50
-            font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-sm text-base
-            focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
+            font-semibold min-h-[44px] md:min-h-[36px] py-3.5 rounded-xl transition-all duration-200 shadow-sm text-base
+            focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
         >
           {isPending
             ? '⟳ Создаём платёж...'
@@ -261,7 +261,7 @@ export default function AddFundsPage() {
           <button
             onClick={handlePromoSubmit}
             disabled={isPromoPending || !promoCode.trim()}
-            className="w-full sm:w-auto px-6 py-3 bg-foreground text-background hover:opacity-90 disabled:opacity-50 font-bold rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none shrink-0"
+            className="w-full sm:w-auto px-6 py-3 min-h-[44px] md:min-h-[36px] bg-foreground text-background hover:opacity-90 disabled:opacity-50 font-bold rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none shrink-0"
           >
             {isPromoPending ? '...' : 'Применить'}
           </button>

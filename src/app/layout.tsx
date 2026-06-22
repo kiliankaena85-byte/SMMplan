@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: '%s | SMMplan',
   },
   description:
-    'Продвижение подписчиков, лайков, просмотров для Instagram, TikTok, VK, YouTube. Быстрый старт, надежные исполнители, поддержка 24/7.',
+    'Продвижение подписчиков, лайков, просмотров для Instagram, TikTok, VK, YouTube. Быстрый старт, надежные исполнители, поддержка 9-21 МСК.',
   keywords: ['smm', 'продвижение', 'подписчики', 'лайки', 'продвижение', 'instagram', 'tiktok', 'youtube', 'vk'],
   openGraph: {
     type: 'website',
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     siteName: 'SMMplan',
     title: 'SMMplan — продвижение в социальных сетях',
     description:
-      'Продвижение подписчиков, лайков, просмотров. Быстрый старт, профессиональное выполнение, поддержка 24/7.',
+      'Продвижение подписчиков, лайков, просмотров. Быстрый старт, профессиональное выполнение, поддержка 9-21 МСК.',
   },
   twitter: {
     card: 'summary_large_image',

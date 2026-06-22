@@ -253,9 +253,9 @@ export function PlatformLinkGuideDrawer({
           <div className="hidden md:flex w-[260px] bg-content2 border border-border/30 rounded-2xl p-4 flex-col justify-between min-h-[240px] shrink-0 relative overflow-hidden shadow-inner select-none">
             {/* Visual Header */}
             <div className="flex items-center gap-2 border-b border-border/20 pb-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
-              <div className="w-2.5 h-2.5 rounded-full bg-warning/60" />
-              <div className="w-2.5 h-2.5 rounded-full bg-success/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-status-error/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-status-warning/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-status-success/60" />
               <div className="h-2 w-24 bg-border/40 rounded-full ml-2" />
             </div>
 

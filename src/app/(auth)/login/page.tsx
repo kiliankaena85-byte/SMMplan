@@ -105,7 +105,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
             {[
               { value: '10K+', label: 'Клиентов' },
               { value: '99%',  label: 'Выполнено' },
-              { value: '24/7', label: 'Поддержка' },
+              { value: '9-21', label: 'Поддержка (МСК)' },
             ].map(({ value, label }) => (
               <div key={label} className="bg-primary-foreground/10 rounded-2xl p-4 text-center">
                 <div className="text-2xl font-black">{value}</div>

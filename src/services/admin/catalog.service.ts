@@ -66,12 +66,15 @@ class AdminCatalogService {
     pageSize?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    networkSlug?: string;
   }): Promise<PaginatedResult<CatalogRow>> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
 
     if (params.categoryId) {
       where.categoryId = params.categoryId;
+    } else if (params.networkSlug) {
+      where.category = { network: { slug: params.networkSlug } };
     }
 
     if (params.providerId) {

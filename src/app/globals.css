@@ -26,7 +26,7 @@
 
   /* ── Muted (slate-100 / slate-500) ── */
   --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
+  --color-muted-foreground: #475569; /* slate-600 for 4.5:1 contrast on slate-50 */
 
   /* ── Accent ── */
   --color-accent: #f1f5f9;
@@ -60,6 +60,18 @@
 
   /* ── Focus Ring ── */
   --color-ring: #bae6fd; /* sky-200 */
+
+  /* ── Status Badges (Semantic Contrast) ── */
+  --color-status-completed: #10b981; /* emerald-500 */
+  --color-status-completed-bg: rgba(16, 185, 129, 0.1);
+  --color-status-pending: #f59e0b; /* amber-500 */
+  --color-status-pending-bg: rgba(245, 158, 11, 0.1);
+  --color-status-in-progress: #6366f1; /* indigo-500 */
+  --color-status-in-progress-bg: rgba(99, 102, 241, 0.1);
+  --color-status-canceled: #64748b; /* slate-500 */
+  --color-status-canceled-bg: rgba(100, 116, 139, 0.1);
+  --color-status-error: #f43f5e; /* rose-500 */
+  --color-status-error-bg: rgba(244, 63, 94, 0.1);
 
   /* ── Warm Theme Tokens (Zinc/Ivory, graphite, amber accents) ── */
   --color-warm-bg: #FAF9F6;        /* Ivory warm background */
@@ -113,7 +125,7 @@
   --color-popover-foreground: #f8fafc;
 
   --color-muted: #243042; /* Soft intermediate slate */
-  --color-muted-foreground: #94a3b8; /* slate-400 */
+  --color-muted-foreground: #cbd5e1; /* slate-300 for 4.5:1 contrast on slate-800 */
 
   --color-accent: #243042;
   --color-accent-foreground: #f8fafc;
@@ -131,6 +143,13 @@
   --color-success-text: #34d399;
   --color-destructive-text: #fca5a5;
   --color-info: #818cf8; /* indigo-400 */
+
+  /* ── Status Badges (Dark Mode Adjustments) ── */
+  --color-status-completed: #34d399; /* emerald-400 */
+  --color-status-pending: #fbbf24; /* amber-400 */
+  --color-status-in-progress: #818cf8; /* indigo-400 */
+  --color-status-canceled: #94a3b8; /* slate-400 */
+  --color-status-error: #fb7185; /* rose-400 */
 }
 
 @layer base {

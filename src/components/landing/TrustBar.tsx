@@ -8,7 +8,7 @@ export function TrustBar() {
     { value: '2,000,000+', label: 'Заказов выполнено', icon: CheckCircle, color: 'text-success' },
     { value: '4 секунды', label: 'Среднее время старта', icon: Timer, color: 'text-warning' },
     { value: '99.9%', label: 'Успешных заказов', icon: Users, color: 'text-primary' },
-    { value: '24/7', label: 'Живая поддержка', icon: Headphones, color: 'text-secondary' },
+    { value: '09:00 - 21:00 МСК', label: 'Живая поддержка', icon: Headphones, color: 'text-secondary' },
   ];
 
   // We duplicate the array to create a seamless infinite loop

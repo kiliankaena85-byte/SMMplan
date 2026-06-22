@@ -229,8 +229,8 @@ export function SmartLinkLanding({
             </div>
             <div className="w-px h-10 bg-border"></div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums drop-shadow-sm">24/7</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Поддержка</p>
+              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums drop-shadow-sm">9-21</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Поддержка (МСК)</p>
             </div>
           </div>
         </motion.div>

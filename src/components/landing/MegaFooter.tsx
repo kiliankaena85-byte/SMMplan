@@ -107,7 +107,7 @@ export function MegaFooter({
         {/* Column 3: Contact & Support */}
         <div className="md:col-span-4 space-y-6">
           <h4 className="text-muted-foreground font-semibold tracking-[0.1em] text-[11px] uppercase mb-6">Поддержка</h4>
-          <p className="text-sm text-muted-foreground">Наша команда на связи 24/7. Среднее время ответа составляет 15 минут.</p>
+          <p className="text-sm text-muted-foreground">Наша команда на связи с 09:00 до 21:00 МСК. Среднее время ответа составляет 15 минут.</p>
           
           <div className="flex flex-col sm:flex-row gap-3">
             <a 

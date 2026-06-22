@@ -139,10 +139,10 @@ export function SuccessContent() {
           {/* Animated Verification Icon */}
           <div className="flex justify-center">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-warning/10 border-4 border-warning/20 flex items-center justify-center">
-                <Loader2 className="w-10 h-10 text-warning animate-spin" />
+              <div className="w-24 h-24 rounded-full bg-status-warning-bg border-4 border-status-warning/20 flex items-center justify-center">
+                <Loader2 className="w-10 h-10 text-status-warning animate-spin" />
               </div>
-              <div className="absolute inset-0 rounded-full border-4 border-warning/20 animate-ping opacity-20" />
+              <div className="absolute inset-0 rounded-full border-4 border-status-warning/20 animate-ping opacity-20" />
             </div>
           </div>
 
@@ -160,14 +160,14 @@ export function SuccessContent() {
               <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground font-medium">Статус проверки</span>
-                  <span className="text-warning-text font-bold flex items-center gap-1.5">
+                  <span className="text-status-warning font-bold flex items-center gap-1.5">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     Проверка {pollCount + 1}/{MAX_POLLS}
                   </span>
                 </div>
                 <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-warning rounded-full transition-all duration-1000"
+                    className="h-full bg-status-warning rounded-full transition-all duration-1000"
                     style={{ width: `${Math.min(((pollCount + 1) / MAX_POLLS) * 100, 100)}%` }}
                   />
                 </div>
@@ -180,10 +180,10 @@ export function SuccessContent() {
 
               {/* Hint after ~15 seconds */}
               {pollCount >= 3 && (
-                <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 text-left animate-in fade-in duration-300">
+                <div className="bg-status-warning-bg border border-status-warning/20 rounded-xl p-4 text-left animate-in fade-in duration-300">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
-                    <div className="text-sm text-warning-text">
+                    <AlertTriangle className="w-5 h-5 text-status-warning shrink-0 mt-0.5" />
+                    <div className="text-sm text-status-warning">
                       <p className="font-semibold mb-1">Подтверждение задерживается</p>
                       <p>Если вы уже оплатили — не волнуйтесь, мы автоматически зачислим платёж, когда банк пришлёт подтверждение. Вы также можете проверить статус позже в разделе «Мои заказы».</p>
                     </div>
@@ -194,10 +194,10 @@ export function SuccessContent() {
           ) : (
             /* Phase 2: Manual fallback after max polls */
             <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 text-left">
+              <div className="bg-status-warning-bg border border-status-warning/20 rounded-xl p-4 text-left">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
-                  <div className="text-sm text-warning-text">
+                  <AlertTriangle className="w-5 h-5 text-status-warning shrink-0 mt-0.5" />
+                  <div className="text-sm text-status-warning">
                     <p className="font-semibold mb-1">Подтверждение задерживается</p>
                     <p>Банк ещё не прислал ответ. Нажмите «Обновить статус», чтобы запросить статус вручную, или проверьте позже.</p>
                   </div>
@@ -234,10 +234,10 @@ export function SuccessContent() {
           {/* Icon */}
           <div className="flex justify-center">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-success/10 border-4 border-success/20 flex items-center justify-center">
-                <CheckCircle2 className="w-12 h-12 text-success" />
+              <div className="w-24 h-24 rounded-full bg-status-success-bg border-4 border-status-success/20 flex items-center justify-center">
+                <CheckCircle2 className="w-12 h-12 text-status-success" />
               </div>
-              <div className="absolute inset-0 rounded-full border-4 border-success/20 animate-ping opacity-20" />
+              <div className="absolute inset-0 rounded-full border-4 border-status-success/20 animate-ping opacity-20" />
             </div>
           </div>
 
@@ -318,8 +318,8 @@ export function SuccessContent() {
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center space-y-6 animate-in fade-in duration-500">
         <div className="flex justify-center">
-          <div className="w-20 h-20 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center">
-            <AlertTriangle className="w-10 h-10 text-destructive" />
+          <div className="w-20 h-20 rounded-full bg-status-error-bg border border-status-error/20 flex items-center justify-center">
+            <AlertTriangle className="w-10 h-10 text-status-error" />
           </div>
         </div>
         <div className="space-y-2">

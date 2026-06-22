@@ -23,7 +23,10 @@ export async function decryptSessionToken(token: string) {
       algorithms: ['HS256'],
     });
     return payload as { sessionId: string; userId: string; role: string; canResetPassword?: boolean };
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('FATAL:')) {
+      console.error(error.message);
+    }
     return null;
   }
 }

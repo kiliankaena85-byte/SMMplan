@@ -20,6 +20,8 @@ interface LinkInputFieldProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   availablePlatforms: any[];
   onBlur?: () => void;
+  isLinkOverridden?: boolean;
+  setIsLinkOverridden?: (val: boolean) => void;
 }
 
 const inputCls =
@@ -38,7 +40,9 @@ export function LinkInputField({
   validationErrors,
   urlMutatedTrigger,
   availablePlatforms,
-  onBlur
+  onBlur,
+  isLinkOverridden,
+  setIsLinkOverridden
 }: LinkInputFieldProps) {
   const urlInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -87,9 +91,24 @@ export function LinkInputField({
         )}
       </div>
       {validationErrors.link && (
-        <p className="text-sm text-destructive font-semibold mt-2 px-1 animate-in slide-in-from-top-1">
-          {validationErrors.link}
-        </p>
+        <div className="mt-2 px-1 animate-in slide-in-from-top-1 space-y-2">
+          <p className="text-sm text-destructive font-semibold">
+            {validationErrors.link}
+          </p>
+          {setIsLinkOverridden && (
+            <label className="flex items-center gap-2 cursor-pointer w-max group mt-2">
+              <input 
+                type="checkbox" 
+                checked={!!isLinkOverridden} 
+                onChange={(e) => setIsLinkOverridden(e.target.checked)} 
+                className="w-4 h-4 rounded border-border accent-destructive transition-all"
+              />
+              <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                Я уверен, что ссылка правильная (игнорировать предупреждение)
+              </span>
+            </label>
+          )}
+        </div>
       )}
 
       {/* Platform selection manual fallback */}
