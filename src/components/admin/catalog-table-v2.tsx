@@ -351,7 +351,7 @@ function ServiceFormSheet({
         onSelect={handleServiceSelect} 
       />
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl p-6 md:p-8 bg-card border-l border-border/40 shadow-2xl flex flex-col gap-0 overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-full p-6 md:p-8 bg-card border-l border-border/40 shadow-2xl flex flex-col gap-0 overflow-y-auto">
         <SheetHeader className="mb-6 px-0 pt-0">
           <SheetTitle className="text-xl tracking-tight font-extrabold text-foreground">{title}</SheetTitle>
           <SheetDescription className="text-xs text-muted-foreground">
