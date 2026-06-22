@@ -1,11 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PaymentDTO } from '@/actions/admin/finance/payments';
+import { Copy, Check, FileText } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
   SUCCEEDED: 'Успешно',
@@ -29,51 +30,113 @@ function fmt(cents: number): string {
   return `${(cents / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
 }
 
+export function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-1 hover:bg-muted text-muted-foreground hover:text-foreground rounded transition-all duration-200 cursor-pointer shrink-0"
+      title="Копировать ID транзакции"
+      type="button"
+    >
+      {copied ? (
+        <Check className="w-3 h-3 text-success animate-in fade-in zoom-in-50 duration-200" />
+      ) : (
+        <Copy className="w-3 h-3 transition-transform active:scale-90" />
+      )}
+    </button>
+  );
+}
+
 export const columns: ColumnDef<PaymentDTO>[] = [
   {
     accessorKey: 'userEmail',
     header: 'Клиент',
-    cell: ({ row }) => (
-      <Link
-        href={`/admin/clients?q=${encodeURIComponent(row.original.userEmail)}`}
-        className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold transition-colors"
-      >
-        {row.original.userEmail}
-      </Link>
-    ),
+    cell: ({ row }) => {
+      const displayId = row.original.gatewayId || row.original.id;
+      return (
+        <div className="flex flex-col gap-1 min-w-0 max-w-[200px]">
+          <Link
+            href={`/admin/clients?q=${encodeURIComponent(row.original.userEmail)}`}
+            className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold truncate transition-colors"
+          >
+            {row.original.userEmail}
+          </Link>
+          <div className="flex items-center gap-1">
+            <span 
+              className="text-[10px] text-muted-foreground font-mono truncate"
+              title={displayId}
+            >
+              ID: {displayId.slice(0, 8)}...
+            </span>
+            <CopyButton value={displayId} />
+          </div>
+        </div>
+      );
+    },
+    filterFn: (row, columnId, filterValue) => {
+      const val = String(filterValue).toLowerCase();
+      const email = String(row.original.userEmail).toLowerCase();
+      const id = String(row.original.id).toLowerCase();
+      const gatewayId = row.original.gatewayId ? String(row.original.gatewayId).toLowerCase() : '';
+      return email.includes(val) || id.includes(val) || gatewayId.includes(val);
+    },
   },
   {
     accessorKey: 'amount',
     header: () => <div className="text-right">Сумма</div>,
-    cell: ({ row }) => (
-      <div className="text-right font-bold tabular-nums text-sm text-foreground">
-        {fmt(row.original.amount)}
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'gateway',
-    header: 'Шлюз',
-    cell: ({ row }) => (
-      <span className="text-xs font-semibold text-muted-foreground">
-        {GATEWAY_LABELS[row.original.gateway] || row.original.gateway}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const isSucceeded = row.original.status === 'SUCCEEDED';
+      return (
+        <div className="flex items-center justify-end gap-2 text-right">
+          <span className="font-bold tabular-nums text-sm text-foreground">
+            {fmt(row.original.amount)}
+          </span>
+          {isSucceeded && (
+            <Link
+              href={`/admin/finance/payments/${row.original.id}/dispute-pack`}
+              className="p-1 hover:bg-muted text-primary hover:text-primary/80 rounded transition-colors"
+              title="📄 Оформить dispute-пакет документов"
+            >
+              <FileText className="w-4 h-4" />
+            </Link>
+          )}
+        </div>
+      );
+    },
   },
   {
     accessorKey: 'status',
     header: 'Статус',
     cell: ({ row }) => {
       const status = row.original.status;
+      const gatewayLabel = GATEWAY_LABELS[row.original.gateway] || row.original.gateway;
       return (
-        <Badge
-          className={cn(
-            "uppercase font-bold tracking-wider text-xs",
-            STATUS_CLASSES[status] || 'bg-muted text-muted-foreground border-border'
-          )}
-        >
-          {STATUS_LABELS[status] || status}
-        </Badge>
+        <div className="flex flex-col items-start gap-1">
+          <Badge
+            className={cn(
+              "uppercase font-bold tracking-wider text-[10px] py-0 px-2 h-5 rounded-md",
+              STATUS_CLASSES[status] || 'bg-muted text-muted-foreground border-border'
+            )}
+          >
+            {STATUS_LABELS[status] || status}
+          </Badge>
+          <span className="text-[10px] text-muted-foreground/75 font-medium ml-1">
+            {gatewayLabel}
+          </span>
+        </div>
       );
     },
   },
@@ -90,29 +153,5 @@ export const columns: ColumnDef<PaymentDTO>[] = [
         })}
       </span>
     ),
-  },
-  {
-    id: 'actions',
-    header: () => <div className="text-center">Документы</div>,
-    cell: ({ row }) => {
-      const isSucceeded = row.original.status === 'SUCCEEDED';
-      return (
-        <div className="text-center">
-          {isSucceeded ? (
-            <Link
-              href={`/admin/finance/payments/${row.original.id}/dispute-pack`}
-              className={cn(
-                buttonVariants({ intent: 'tint', size: 'sm' }),
-                "text-xs font-bold uppercase tracking-wider py-1 h-8 rounded-xl"
-              )}
-            >
-              📄 Оформить пакет
-            </Link>
-          ) : (
-            <span className="text-xs text-muted-foreground/45 italic">-</span>
-          )}
-        </div>
-      );
-    },
   },
 ];

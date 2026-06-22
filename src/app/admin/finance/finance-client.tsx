@@ -31,8 +31,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DataTable } from '@/components/ui/data-table';
 import { columns } from './ledger-columns';
-import { columns as paymentColumns } from './payment-columns';
+import { columns as paymentColumns, CopyButton } from './payment-columns';
 import { Wallet, History, AlertTriangle, DollarSign } from 'lucide-react';
+import Link from 'next/link';
+
 
 const PERIOD_OPTIONS = [
   { value: 'today', label: 'Сегодня' },
@@ -40,6 +42,127 @@ const PERIOD_OPTIONS = [
   { value: 'month', label: '30 дней' },
   { value: 'all',   label: 'Всё время' },
 ] as const;
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  SUCCEEDED: 'Успешно',
+  PENDING:   'Ожидание',
+  CANCELED:  'Отменено',
+};
+
+const LEDGER_STATUS_LABELS: Record<string, string> = {
+  APPROVED:    'Одобрено',
+  QUARANTINE:  'Карантин',
+  REJECTED:    'Отклонено',
+};
+
+const GATEWAY_LABELS: Record<string, string> = {
+  yookassa: 'ЮKassa',
+  cryptobot: 'CryptoBot',
+  test:      'Тестовый',
+};
+
+function renderMobilePayments(table: any) {
+  return (
+    <div className="space-y-3">
+      {table.getRowModel().rows.map((row: any) => {
+        const item = row.original;
+        const isSucceeded = item.status === 'SUCCEEDED';
+        const displayId = item.gatewayId || item.id;
+        return (
+          <div key={item.id} className="p-4 rounded-xl border border-border/60 bg-card shadow-md space-y-2 text-foreground">
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold truncate break-all">{item.userEmail}</div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]" title={displayId}>
+                    ID: {displayId.slice(0, 8)}...
+                  </span>
+                  <CopyButton value={displayId} />
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-sm font-bold font-mono">
+                  {fmt(item.amount)}
+                </span>
+                {isSucceeded && (
+                  <Link 
+                    href={`/admin/finance/payments/${item.id}/dispute-pack`}
+                    className="inline-block text-[10px] text-primary font-bold uppercase tracking-wider mt-1 hover:underline"
+                  >
+                    📄 Споры
+                  </Link>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-center text-xs pt-1.5 border-t border-border/30">
+              <span className="text-muted-foreground tabular-nums">
+                {new Date(item.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                  {GATEWAY_LABELS[item.gateway] || item.gateway}
+                </span>
+                <span className={`w-2 h-2 rounded-full ${
+                  item.status === 'SUCCEEDED' ? 'bg-success' : item.status === 'PENDING' ? 'bg-warning' : 'bg-destructive'
+                }`} title={PAYMENT_STATUS_LABELS[item.status] || item.status} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function renderMobileLedger(table: any) {
+  return (
+    <div className="space-y-3">
+      {table.getRowModel().rows.map((row: any) => {
+        const item = row.original;
+        const isPositive = item.amount >= 0;
+        return (
+          <div key={item.id} className="p-4 rounded-xl border border-border/60 bg-card shadow-md space-y-2 text-foreground">
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold truncate break-all">{item.userEmail}</div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]" title={item.id}>
+                    ID: {item.id.slice(0, 8)}...
+                  </span>
+                  <CopyButton value={item.id} />
+                </div>
+              </div>
+              <div className={`text-right font-bold font-mono text-sm shrink-0 ${isPositive ? 'text-success' : 'text-destructive'}`}>
+                {fmt(item.amount, true)}
+              </div>
+            </div>
+            
+            <div className="text-xs bg-muted/20 px-2.5 py-1.5 rounded-lg border border-border/30 space-y-1">
+              <p className="font-medium leading-relaxed">{item.reason}</p>
+              <p className="text-[10px] text-muted-foreground font-medium">
+                {item.adminId ? `👤 Оператор (${item.adminId.slice(0, 6)})` : '⚙️ Система'}
+              </p>
+            </div>
+            
+            <div className="flex justify-between items-center text-xs pt-1.5 border-t border-border/30">
+              <span className="text-muted-foreground tabular-nums">
+                {new Date(item.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+              {item.status !== 'APPROVED' && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                  item.status === 'QUARANTINE' ? 'bg-warning/10 text-warning border-warning/20' : 'bg-destructive/10 text-destructive border-destructive/20'
+                }`}>
+                  {LEDGER_STATUS_LABELS[item.status] || item.status}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 interface FinanceClientProps {
   initialLedger: LedgerPageResult;
@@ -120,6 +243,7 @@ function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult;
             data={data.items} 
             searchKey="userEmail"
             searchPlaceholder="Фильтр по email..."
+            renderMobileView={renderMobileLedger}
           />
         </div>
       </div>
@@ -303,6 +427,7 @@ function PaymentsTab({ initial, period: initPeriod }: { initial: PaymentsPageRes
             data={data.items} 
             searchKey="userEmail"
             searchPlaceholder="Фильтр по email..."
+            renderMobileView={renderMobilePayments}
           />
         </div>
       </div>

@@ -65,24 +65,18 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
     const p = ledgerParamsSchema.parse(params);
     const periodStart = getPeriodStart(p.period);
 
-    // Resolve search → userId list
-    let userIds: string[] | undefined;
-    if (p.search?.trim()) {
-      const found = await db.user.findMany({
-        where: { email: { contains: p.search.trim(), mode: 'insensitive' } },
-        select: { id: true },
-        take: 100,
-      });
-      userIds = found.map(u => u.id);
-      if (userIds.length === 0) {
-        return { items: [], nextCursor: null, hasMore: false, totals: { approved: 0, quarantine: 0, refunds: 0 } };
-      }
-    }
+    const searchTrim = p.search?.trim();
 
     const where = {
       ...(p.status !== 'ALL' ? { status: p.status } : {}),
       ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
-      ...(userIds ? { userId: { in: userIds } } : {}),
+      ...(searchTrim ? {
+        OR: [
+          { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
+          { id: { contains: searchTrim, mode: 'insensitive' as const } },
+          { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } }
+        ]
+      } : {}),
     };
 
     const pageSize = p.pageSize;
@@ -134,9 +128,9 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
       nextCursor: hasMore ? page[page.length - 1].id : null,
       hasMore,
       totals: {
-        approved: Number(approvedAgg._sum.amount ?? 0),
-        quarantine: Number(quarantineAgg._sum.amount ?? 0),
-        refunds: Math.abs(Number(refundsAgg._sum.amount ?? 0)),
+        approved: Number(approvedAgg._sum?.amount ?? 0),
+        quarantine: Number(quarantineAgg._sum?.amount ?? 0),
+        refunds: Math.abs(Number(refundsAgg._sum?.amount ?? 0)),
       },
     };
   });

@@ -65,24 +65,18 @@ export async function getPaymentsAction(params: Partial<PaymentsParams>): Promis
     const p = paymentsParamsSchema.parse(params);
     const periodStart = getPeriodStart(p.period);
 
-    // Resolve search → userId list if email search is provided
-    let userIds: string[] | undefined;
-    if (p.search?.trim()) {
-      const found = await db.user.findMany({
-        where: { email: { contains: p.search.trim(), mode: 'insensitive' } },
-        select: { id: true },
-        take: 100,
-      });
-      userIds = found.map(u => u.id);
-      if (userIds.length === 0) {
-        return { items: [], nextCursor: null, hasMore: false };
-      }
-    }
+    const searchTrim = p.search?.trim();
 
     const where = {
       ...(p.status !== 'ALL' ? { status: p.status } : {}),
       ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
-      ...(userIds ? { userId: { in: userIds } } : {}),
+      ...(searchTrim ? {
+        OR: [
+          { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
+          { id: { contains: searchTrim, mode: 'insensitive' as const } },
+          { gatewayId: { contains: searchTrim, mode: 'insensitive' as const } }
+        ]
+      } : {}),
     };
 
     const pageSize = p.pageSize;
