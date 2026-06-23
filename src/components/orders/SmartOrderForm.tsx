@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle2, Info, ArrowRight, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, CheckCircle2, Info, ArrowRight, Loader2, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useOrderEngine } from '@/hooks/useOrderEngine';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
@@ -50,6 +50,34 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
+
+  // Filter & Sort State
+  const [sortType, setSortType] = useState<'default' | 'price_asc' | 'price_desc'>('default');
+  const [filterWarranty, setFilterWarranty] = useState(false);
+
+  // Processed services (Filtered & Sorted)
+  const processedServices = React.useMemo(() => {
+    let result = [...services];
+    
+    // Filter by warranty
+    if (filterWarranty) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      result = result.filter((s: any) => 
+        s.badge === 'ГАРАНТИЯ' || 
+        s.name.toLowerCase().includes('гарант') || 
+        (s.description && s.description.toLowerCase().includes('гарант'))
+      );
+    }
+    
+    // Sort
+    if (sortType === 'price_asc') {
+      result.sort((a, b) => a.pricePerUnitRub - b.pricePerUnitRub);
+    } else if (sortType === 'price_desc') {
+      result.sort((a, b) => b.pricePerUnitRub - a.pricePerUnitRub);
+    }
+    
+    return result;
+  }, [services, filterWarranty, sortType]);
 
   // Auto-advance logic for Step 1 -> Step 2
   useEffect(() => {
@@ -228,7 +256,50 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
           )}
 
           <div className="space-y-3" role="listbox" aria-label="Список тарифов">
-            {services.map(srv => {
+            {services.length > 0 && (
+              <div className="flex flex-col sm:flex-row gap-3 bg-muted/30 p-2.5 rounded-2xl border border-border/50 mb-4 animate-in fade-in duration-300">
+                <div className="flex-1">
+                  <select
+                    value={sortType}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    onChange={(e) => setSortType(e.target.value as any)}
+                    className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 appearance-none cursor-pointer"
+                  >
+                    <option value="default">Сортировка по умолчанию</option>
+                    <option value="price_asc">Сначала дешевые</option>
+                    <option value="price_desc">Сначала дорогие</option>
+                  </select>
+                </div>
+                <label className={`flex-1 sm:flex-none cursor-pointer flex items-center justify-center gap-2 h-10 px-4 rounded-xl border transition-all select-none ${filterWarranty ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-background border-border text-foreground hover:bg-muted'}`}>
+                  <input 
+                    type="checkbox" 
+                    className="sr-only" 
+                    checked={filterWarranty}
+                    onChange={(e) => setFilterWarranty(e.target.checked)}
+                  />
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="text-sm font-semibold">С гарантией</span>
+                </label>
+              </div>
+            )}
+
+            {processedServices.length === 0 && services.length > 0 && (
+              <div className="p-6 rounded-2xl border border-dashed border-border bg-card text-center space-y-3">
+                <div className="text-xl">🔍</div>
+                <h4 className="font-bold text-sm text-foreground text-center">Ничего не найдено</h4>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed text-center">
+                  По вашим фильтрам нет подходящих тарифов. Попробуйте отключить фильтр "С гарантией".
+                </p>
+                <button
+                  onClick={() => setFilterWarranty(false)}
+                  className="mt-4 h-11 px-4 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold rounded-lg transition-all"
+                >
+                  Сбросить фильтры
+                </button>
+              </div>
+            )}
+
+            {processedServices.map(srv => {
               const isQuarantined = srv.cooldownUntil && new Date(srv.cooldownUntil) > new Date();
               const isExpanded = expandedServiceId === srv.id;
               const isSelected = selectedService?.id === srv.id;

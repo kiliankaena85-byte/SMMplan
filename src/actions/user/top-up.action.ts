@@ -183,38 +183,30 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
     return { success: true, paymentUrl: `/api/dev/mock-payment?paymentId=${payment.id}` };
   }
 
-  const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+  const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+  const gatewaySvc = PaymentGatewayFactory.getGateway('yookassa');
   const successUrl = `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`;
-
-  const payload = {
-    amount: { value: amountRub.toFixed(2), currency: "RUB" },
-    capture: true,
-    confirmation: { type: "redirect", return_url: successUrl },
+  
+  const gatewayResult = await gatewaySvc.createPayment({
+    paymentId: payment.id,
+    userId: session.userId,
+    amountRub,
+    email: dbUser.email,
+    successUrl,
     description: `Оплата услуг IT-агентства (Digital Consulting, Счёт: ${payment.id})`,
-    metadata: { paymentId: payment.id, userId: session.userId, type: "deposit" }
-  };
-
-  const resp = await fetch("https://api.yookassa.ru/v3/payments", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": authHeader,
-      "Idempotence-Key": payment.id
-    },
-    body: JSON.stringify(payload)
+    isTestMode: false,
+    metadata: { type: "deposit" }
   });
 
-  if (!resp.ok) {
-    console.error("[YooKassa Error]", await resp.text());
-    throw new Error("Ошибка создания платежа в шлюзе YooKassa");
+  if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
+    await db.payment.update({
+      where: { id: payment.id },
+      data: { 
+        gatewayId: gatewayResult.remoteGatewayId || undefined,
+        checkoutUrl: gatewayResult.paymentUrl || undefined
+      }
+    });
   }
 
-  const data = await resp.json();
-  
-  await db.payment.update({
-    where: { id: payment.id },
-    data: { gatewayId: data.id }
-  });
-
-  return { success: true, paymentUrl: data.confirmation.confirmation_url };
+  return { success: true, paymentUrl: gatewayResult.paymentUrl };
 }

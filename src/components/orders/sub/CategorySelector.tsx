@@ -16,33 +16,7 @@ export function CategorySelector({
   availableCategories = []
 }: CategorySelectorProps) {
   return (
-    <>
-      {/* Desktop view */}
-      <div
-        className="hidden md:flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
-        role="tablist"
-        aria-label="Категории услуг"
-      >
-        {availableCategories.map(cat => (
-          <button
-            key={cat.id}
-            type="button"
-            role="tab"
-            aria-selected={categoryId === cat.id}
-            onClick={() => setCategoryId(cat.id)}
-            className={`h-11 px-4 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-200 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-              categoryId === cat.id
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-            }`}
-          >
-            {cat.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Mobile view */}
-      <div className="block md:hidden space-y-2">
+      <div className="space-y-2">
         <label htmlFor="category-select" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">
           Категория
         </label>
@@ -51,7 +25,7 @@ export function CategorySelector({
             id="category-select"
             value={categoryId || ''}
             onChange={e => setCategoryId(e.target.value)}
-            className="w-full h-12 pl-4 pr-10 rounded-xl border border-border bg-card text-sm font-semibold text-foreground outline-none transition-all duration-200 appearance-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+            className="w-full h-12 pl-4 pr-10 rounded-xl border border-border bg-card text-sm font-semibold text-foreground outline-none transition-all duration-200 appearance-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer hover:border-primary/50"
           >
             {availableCategories.map(cat => (
               <option key={cat.id} value={cat.id} className="text-foreground bg-card">
@@ -64,6 +38,5 @@ export function CategorySelector({
           </div>
         </div>
       </div>
-    </>
   );
 }

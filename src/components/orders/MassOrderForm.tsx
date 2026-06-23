@@ -3,14 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { ActionForm } from '@/components/admin/action-form';
 import { massOrderCalculateAction, massOrderCheckoutAction } from '@/actions/order/mass';
-import { Zap, AlertCircle, Loader2, Wallet, CreditCard, Bitcoin, Settings2, LayoutList } from 'lucide-react';
+import { Zap, AlertCircle, Loader2, Wallet, CreditCard, Bitcoin, Settings2, LayoutList, Plus, Trash2 } from 'lucide-react';
 import { useOrderEngine } from '@/hooks/useOrderEngine';
 import { Table } from '@heroui/react';
 import { SubmitButton } from '@/components/admin/submit-button';
-
-// Subcomponents
 import { NetworkSelector } from './sub/NetworkSelector';
 import { CategorySelector } from './sub/CategorySelector';
+import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 
 interface MassOrderCalculation {
   globalError?: string;
@@ -40,31 +39,71 @@ function formatPricePerUnit(price: number): string {
   return formatted;
 }
 
+interface TaskItem {
+  id: string;
+  link: string;
+  categoryId: string;
+  serviceId: string;
+  numericId: string | number;
+  quantity: string;
+  serviceName: string;
+}
+
 export function MassOrderForm({ userEmail }: { userEmail?: string }) {
-  const [mode, setMode] = useState<'simple' | 'pro'>('simple');
+  const [mode, setMode] = useState<'wizard' | 'pro'>('wizard');
   const [email, setEmail] = useState(userEmail || '');
   const [gateway, setGateway] = useState<'yookassa' | 'balance' | 'cryptobot'>('yookassa');
   
   // Pro mode state
   const [proText, setProText] = useState('');
   
-  // Simple mode state
-  const [simpleLinks, setSimpleLinks] = useState('');
-  const [simpleQuantity, setSimpleQuantity] = useState('');
+  // Wizard state
+  const [draftLink, setDraftLink] = useState('');
+  const [draftServiceId, setDraftServiceId] = useState('');
+  const [draftNumericId, setDraftNumericId] = useState('');
+  const [draftQuantity, setDraftQuantity] = useState('');
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
 
+  // Services loading state for the wizard
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [services, setServices] = useState<any[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+
+  // We use useOrderEngine to fetch the unfilteredCatalog. 
   const engine = useOrderEngine([], userEmail);
-  const {
-    unfilteredCatalog,
-    manualPlatform,
-    platform,
-    networkId,
-    categoryId,
-    services,
-    selectedService,
-    setSelectedService,
-    isLoading
-  } = engine;
+  const { unfilteredCatalog, platform, manualPlatform, categoryId, setCategoryId, networkId } = engine;
 
+  useEffect(() => {
+    if (categoryId) {
+      setIsLoadingServices(true);
+      import('@/actions/order/catalog').then(m => m.getServicesByCategoryAction(categoryId))
+        .then(svcs => {
+          setServices(svcs);
+          setIsLoadingServices(false);
+        });
+    } else {
+      setServices([]);
+    }
+  }, [categoryId]);
+
+  const selectedDraftService = services.find(s => s.id === draftServiceId);
+
+  const handleAddTask = () => {
+    if (!draftLink || !draftServiceId || !draftQuantity || !categoryId) return;
+    setTasks([...tasks, {
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(),
+      link: draftLink,
+      categoryId: categoryId,
+      serviceId: draftServiceId,
+      numericId: draftNumericId,
+      quantity: draftQuantity,
+      serviceName: selectedDraftService?.name || 'Услуга'
+    }]);
+    // Clear only link, so user can paste the next link instantly!
+    setDraftLink('');
+  };
+
+  // Platform select handler
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handlePlatformSelect = (pId: string, pName: any) => {
     engine.setNetworkId(pId);
@@ -75,10 +114,8 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
     }
   };
 
-  const computedText = mode === 'simple' 
-    ? (selectedService && simpleQuantity && simpleLinks.trim() 
-        ? simpleLinks.split('\n').map(l => l.trim()).filter(Boolean).map(l => `${selectedService.numericId} | ${l} | ${simpleQuantity}`).join('\n')
-        : '')
+  const computedText = mode === 'wizard' 
+    ? tasks.map(t => `${t.numericId} | ${t.link.trim()} | ${t.quantity}`).join('\n')
     : proText;
 
   const [calculation, setCalculation] = useState<MassOrderCalculation | null>(null);
@@ -134,13 +171,13 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
       <div className="flex w-full sm:w-max gap-1 p-1 bg-muted/50 rounded-xl border border-border/50">
         <button
           type="button"
-          onClick={() => setMode('simple')}
+          onClick={() => setMode('wizard')}
           className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-            mode === 'simple' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            mode === 'wizard' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           }`}
         >
           <LayoutList className="w-4 h-4 shrink-0" />
-          <span className="truncate">Визуальный режим</span>
+          <span className="truncate">Пошаговый режим</span>
         </button>
         <button
           type="button"
@@ -159,95 +196,156 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
           <Zap className="w-24 h-24" />
         </div>
         
-        {mode === 'simple' && (
+        {mode === 'wizard' && (
           <div className="space-y-6 animate-in fade-in duration-300 relative z-10">
             {(!unfilteredCatalog || unfilteredCatalog.length === 0) ? (
               <div className="flex justify-center p-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             ) : (
-              <>
-                <NetworkSelector
-                  platform={platform}
-                  manualPlatform={manualPlatform}
-                  networkId={networkId}
-                  unfilteredCatalog={unfilteredCatalog}
-                  onSelect={handlePlatformSelect}
-                />
+              <div className="space-y-6">
+                <div className="bg-muted/10 p-5 rounded-2xl border border-border/50 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2 space-y-4">
+                      <NetworkSelector
+                        platform={platform}
+                        manualPlatform={manualPlatform}
+                        networkId={networkId}
+                        unfilteredCatalog={unfilteredCatalog}
+                        onSelect={handlePlatformSelect}
+                      />
 
-                <CategorySelector
-                  categoryId={categoryId}
-                  setCategoryId={engine.setCategoryId}
-                  availableCategories={engine.availableCategories}
-                />
+                      <CategorySelector
+                        categoryId={categoryId}
+                        setCategoryId={(val) => {
+                          setCategoryId(val);
+                          setDraftServiceId('');
+                          setDraftNumericId('');
+                        }}
+                        availableCategories={engine.availableCategories}
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="service-select" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    Услуга
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="service-select"
-                      value={selectedService?.id || ''}
-                      onChange={e => {
-                        const s = services.find(x => x.id === e.target.value);
-                        setSelectedService(s || null);
-                      }}
-                      disabled={isLoading || services.length === 0}
-                      className="w-full h-12 pl-4 pr-10 rounded-xl border border-border bg-background text-sm font-semibold text-foreground outline-none transition-all duration-200 appearance-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:opacity-50"
-                    >
-                      <option value="" disabled>-- Выберите услуга --</option>
-                      {services.map(srv => {
-                        const isQuarantined = srv.cooldownUntil && new Date(srv.cooldownUntil) > new Date();
-                        return (
-                          <option key={srv.id} value={srv.id} disabled={!!isQuarantined}>
-                            {srv.name} — {formatPricePerUnit(srv.pricePerUnitRub)} ₽ / шт {isQuarantined ? '(Недоступна)' : ''}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="m6 9 6 6 6-6"/></svg>}
+                    {/* Link */}
+                    <div className="sm:col-span-2 space-y-1.5 mt-2">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Ссылка</label>
+                      <input 
+                        type="text"
+                        value={draftLink}
+                        onChange={e => setDraftLink(e.target.value)}
+                        placeholder="https://t.me/..."
+                        className="w-full h-12 px-4 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+
+                    {/* Service */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Услуга</label>
+                      <div className="relative">
+                        <select
+                          value={draftServiceId}
+                          onChange={e => {
+                            const sId = e.target.value;
+                            const s = services.find(x => x.id === sId);
+                            setDraftServiceId(sId);
+                            setDraftNumericId(s?.numericId || '');
+                            if (s?.minQty) {
+                              setDraftQuantity(s.minQty.toString());
+                            }
+                          }}
+                          disabled={isLoadingServices || !categoryId}
+                          className="w-full h-12 pl-4 pr-10 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 truncate appearance-none"
+                        >
+                          <option value="" disabled>-- Выберите услугу --</option>
+                          {services.map(s => {
+                            const isQuarantined = s.cooldownUntil && new Date(s.cooldownUntil) > new Date();
+                            return (
+                              <option key={s.id} value={s.id} disabled={!!isQuarantined}>
+                                {s.name} ({formatPricePerUnit(s.pricePerUnitRub)} ₽) {isQuarantined ? '(Недоступна)' : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                          {isLoadingServices ? <Loader2 className="w-4 h-4 animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="m6 9 6 6 6-6"/></svg>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quantity */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Количество</label>
+                      <input 
+                        type="number"
+                        value={draftQuantity}
+                        onChange={e => setDraftQuantity(e.target.value)}
+                        placeholder="Кол-во"
+                        min={selectedDraftService?.minQty || 1}
+                        max={selectedDraftService?.maxQty || 1000000}
+                        className="w-full h-12 px-4 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all tabular-nums"
+                      />
                     </div>
                   </div>
-                  {selectedService && (
-                    <div className="text-xs text-muted-foreground pl-1 mt-1 flex justify-between">
-                      <span>Минимум: {selectedService.minQty}</span>
-                      <span>Максимум: {selectedService.maxQty}</span>
+
+                  <button
+                    type="button"
+                    onClick={handleAddTask}
+                    disabled={!draftLink || !draftServiceId || !draftQuantity}
+                    className="w-full mt-2 flex items-center justify-center gap-2 px-4 h-12 rounded-xl bg-foreground text-background font-bold hover:bg-foreground/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Добавить к заказу
+                  </button>
+                </div>
+
+                {tasks.length > 0 ? (
+                  <div className="space-y-3 pt-4 border-t border-border/50 animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-foreground">Список добавленных ссылок</h3>
+                      <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] uppercase font-bold">{tasks.length} шт</span>
                     </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="qty-input" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                    Количество для всех ссылок
-                  </label>
-                  <input
-                    id="qty-input"
-                    type="number"
-                    value={simpleQuantity}
-                    onChange={e => setSimpleQuantity(e.target.value)}
-                    placeholder="Например: 1000"
-                    min={selectedService?.minQty || 1}
-                    max={selectedService?.maxQty || 1000000}
-                    className="w-full h-12 px-4 rounded-xl border border-border bg-background text-sm font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="links-input" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1 flex items-center justify-between">
-                    <span>Список ссылок</span>
-                    <span className="bg-muted px-2 py-0.5 rounded text-[10px]">{simpleLinks.split('\n').filter(l => l.trim()).length} ссылок</span>
-                  </label>
-                  <textarea
-                    id="links-input"
-                    value={simpleLinks}
-                    onChange={e => setSimpleLinks(e.target.value)}
-                    placeholder="https://t.me/channel&#10;https://t.me/post/1&#10;Каждая ссылка с новой строки..."
-                    className="w-full min-h-[160px] p-4 rounded-xl border border-border bg-background text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-y shadow-sm font-mono"
-                  />
-                </div>
-              </>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                      {tasks.map((task, idx) => (
+                        <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border border-border bg-card shadow-sm hover:shadow hover:border-primary/30 transition-all group gap-3 sm:gap-0">
+                          <div className="flex items-center gap-3 truncate">
+                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                              {idx + 1}
+                            </div>
+                            <div className="flex flex-col gap-0.5 truncate">
+                              <span className="text-xs font-bold text-primary truncate" title={task.serviceName}>{task.serviceName}</span>
+                              <span className="text-sm font-medium text-foreground truncate" title={task.link}>{task.link}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pl-11 sm:pl-4">
+                            <span className="text-xs font-bold tabular-nums bg-muted/50 text-muted-foreground px-2.5 py-1 rounded-lg border border-border/50">{task.quantity} шт</span>
+                            <button 
+                              onClick={() => setTasks(tasks.filter(t => t.id !== task.id))} 
+                              className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-md transition-all opacity-100 sm:opacity-0 group-hover:opacity-100"
+                              title="Удалить"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-4 border-t border-border/50">
+                    <div className="border border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center text-center space-y-3 bg-card/30">
+                      <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                        <LayoutList className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-foreground">Корзина пуста</h4>
+                        <p className="text-xs text-muted-foreground max-w-[250px] mx-auto mt-1">
+                          Выберите соцсеть, категорию, укажите ссылку и количество, затем нажмите «Добавить к заказу».
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
