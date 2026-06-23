@@ -21,6 +21,18 @@ const massOrderSchema = z.object({
   expectedTotalRub: z.number().optional(), // W2-2: for TOCTOU price validation
 });
 
+const structuredMassOrderSchema = z.object({
+  orders: z.array(z.object({
+    serviceId: z.string(),
+    link: z.string(),
+    quantity: z.number().positive(),
+  })).min(1, 'Заказы не найдены'),
+  email: z.string().email('Введите корректный email').nullable().optional(),
+  gateway: z.enum(['yookassa', 'cryptobot', 'balance']).default('yookassa'),
+  idempotencyKey: z.string().optional(),
+  expectedTotalRub: z.number().optional(),
+});
+
 export const parseMassOrderText = async (text: string) => {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const orders: { 
@@ -327,6 +339,268 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     let successUrl = `${origin}/success?paymentId=${result.paymentId}`;
 
     // [Phase 3 Surgeon] Generate capability token for sessionless payment return validation
+    let token = '';
+    try {
+      const { SignJWT } = await import('jose');
+      const { getEncodedKey } = await import('@/lib/session');
+      token = await new SignJWT({ 
+        paymentId: result.paymentId,
+        purpose: 'payment_return' 
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('24h')
+        .sign(getEncodedKey());
+    } catch (e) {
+      console.error('[MassCheckout] Failed to generate return capability token:', e);
+    }
+
+    if (token) {
+      successUrl += `&token=${token}`;
+    }
+
+    try {
+      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
+      const gatewayResult = await gatewaySvc.createPayment({
+        paymentId: result.paymentId,
+        userId: user.id,
+        amountRub: paymentAmount / 100,
+        email: user.email,
+        successUrl,
+        description: `Массовый заказ (Payment #${result.paymentId})`,
+        isTestMode: isTestMode || user.email === 'e2e-tester@test.com'
+      });
+      
+      paymentUrl = gatewayResult.paymentUrl || '';
+      remoteGatewayId = gatewayResult.remoteGatewayId || '';
+
+      if (remoteGatewayId || paymentUrl) {
+        await db.payment.update({
+          where: { id: result.paymentId },
+          data: { 
+            gatewayId: remoteGatewayId || undefined,
+            checkoutUrl: paymentUrl || undefined
+          }
+        });
+      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (gatewayErr: any) {
+      console.error('[MassCheckout] Gateway failed', gatewayErr);
+      await db.payment.update({
+        where: { id: result.paymentId },
+        data: { status: 'CANCELED' }
+      });
+      await db.order.updateMany({
+        where: { paymentId: result.paymentId },
+        data: { status: 'ERROR', error: gatewayErr.message || 'Ошибка генерации платежа' }
+      });
+      
+      if (gatewayErr instanceof WalletInsufficientFundsError) {
+        throw new Error('Недостаточно средств на балансе. Пожалуйста, пополните счет.', { cause: gatewayErr });
+      }
+      if (gatewayErr instanceof WalletUserNotFoundError) {
+        throw new Error('Пользователь не найден. Пожалуйста, авторизуйтесь заново.', { cause: gatewayErr });
+      }
+      if (gatewayErr instanceof WalletInvalidAmountError) {
+        throw new Error('Некорректная сумма операции.', { cause: gatewayErr });
+      }
+      throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
+    }
+
+    if (!session && isNewUser) {
+      await createSession(user.id);
+    }
+
+    return { 
+      paymentId: result.paymentId,
+      paymentUrl
+    };
+  });
+};
+
+export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof structuredMassOrderSchema>) => {
+  return createSafeAction(structuredMassOrderSchema, input, async (data) => {
+    const { orders: rawOrders, email, gateway, idempotencyKey } = data;
+    
+    // 0. IDOR Prevention & Anti-Fraud
+    const isAllowed = await RateLimitService.check("massCheckoutCore", 5, 60);
+    if (!isAllowed) throw new Error("Слишком много запросов. Попробуйте через минуту.");
+
+    const session = await verifySession();
+    let userId = session?.userId;
+    let isNewUser = false;
+
+    if (!userId && gateway === 'balance') {
+      throw new Error("Оплата с баланса доступна только авторизованным пользователям");
+    }
+
+    if (!userId) {
+       if (!email) throw new Error("Email обязателен для гостей");
+       const lowerEmail = email.toLowerCase();
+       let user = await db.user.findUnique({ where: { email: lowerEmail } });
+       if (user && (user.isDeleted === true || user.isActive === false)) {
+         throw new Error("Ваш аккаунт заблокирован или удален");
+       }
+       if (!user) {
+         user = await db.user.create({
+           data: { email: lowerEmail, role: 'USER' }
+         });
+         isNewUser = true;
+       }
+       userId = user.id;
+    }
+    
+    const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+
+    if (session?.userId && user.id !== session.userId) {
+      throw new Error("Несоответствие сессии пользователя");
+    }
+
+    // 0.5 Idempotency check
+    if (idempotencyKey) {
+      const existingOrder = await db.order.findFirst({
+        where: { idempotencyKey: `${idempotencyKey}_order_0`, userId: user.id },
+        include: { payment: true }
+      });
+      if (existingOrder && existingOrder.payment) {
+        return {
+          paymentId: existingOrder.paymentId,
+          paymentUrl: existingOrder.payment.checkoutUrl || ''
+        };
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let reqHeaders: any;
+    try {
+      reqHeaders = await headers();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      reqHeaders = {
+        get: (key: string) => {
+          if (key === 'host') return 'localhost:3000';
+          if (key === 'x-forwarded-proto') return 'http';
+          return null;
+        }
+      };
+    }
+    const consentIp = await getClientIp();
+    const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
+
+    let totalCents = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orderCreationData: any[] = [];
+    
+    const crypto = (await import('crypto')).default;
+    const isTestMode = await SettingsManager.isTestMode();
+
+    const serviceIds = rawOrders.map(o => o.serviceId);
+    const services = await db.service.findMany({ 
+      where: { id: { in: serviceIds } },
+      include: { category: { include: { network: true } } }
+    });
+    const serviceMap = new Map(services.map(s => [s.id, s]));
+    
+    const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
+    const { inferTargetTypeFromCategory } = await import('@/utils/target-type');
+
+    for (let idx = 0; idx < rawOrders.length; idx++) {
+       const order = rawOrders[idx];
+       const service = serviceMap.get(order.serviceId);
+       if (!service || !service.isActive || service.isQuarantined) {
+         throw new Error(`Услуга ID ${order.serviceId} не найдена, неактивна или находится в карантине`);
+       }
+       if (order.quantity < service.minQty || order.quantity > service.maxQty) {
+         throw new Error(`Количество для "${service.name}" должно быть от ${service.minQty} до ${service.maxQty}`);
+       }
+
+       // Link Normalization
+       let normalizedLink = order.link;
+       const platformSlug = service.category?.network?.slug?.toUpperCase() || '';
+       const targetType = service.targetType === 'POST'
+         ? inferTargetTypeFromCategory(service.category?.name)
+         : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
+       normalizedLink = mutateLink(order.link, platformSlug, targetType);
+       const validator = getLinkValidator(platformSlug, targetType);
+       const linkResult = validator.safeParse(normalizedLink);
+
+       if (!linkResult.success) {
+         throw new Error(`Ошибка в ссылке ${order.link}: ${linkResult.error.errors[0].message}`);
+       }
+
+       const pricing = await marketingService.calculatePrice(
+         user.id, 
+         order.serviceId, 
+         order.quantity, 
+         null, 
+         { user, service }
+       );
+       totalCents += pricing.totalCents;
+       orderCreationData.push({
+         userId: user.id,
+         serviceId: order.serviceId,
+         providerId: service.providerId,
+         providerServiceId: service.externalId,
+         link: normalizedLink,
+         quantity: order.quantity,
+         charge: pricing.totalCents,
+         providerCost: pricing.providerCostCents,
+         status: 'AWAITING_PAYMENT' as const,
+         email: user.email,
+         isDripFeed: false,
+         remains: order.quantity,
+         consentIp,
+         consentUserAgent,
+         idempotencyKey: idempotencyKey ? `${idempotencyKey}_order_${idx}` : crypto.randomUUID(),
+         isTest: isTestMode
+       });
+    }
+    
+    if (data.expectedTotalRub !== undefined) {
+      const expectedCents = Math.round(data.expectedTotalRub * 100);
+      const diff = Math.abs(totalCents - expectedCents);
+      if (diff > expectedCents * 0.01 && diff > 100) {
+        throw new Error(`Цена изменилась. Ожидалось: ${data.expectedTotalRub} ₽, сейчас: ${totalCents / 100} ₽. Пожалуйста, обновите заказ.`);
+      }
+    }
+
+    let paymentAmount = totalCents;
+    const isMicroOrder = gateway !== 'balance' && totalCents < 1000;
+    if (isMicroOrder) {
+      paymentAmount = 1000;
+    }
+
+    if (gateway === 'balance' && user.balance < totalCents) {
+      throw new Error("Недостаточно средств на балансе");
+    }
+
+    const result = await db.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          userId: user.id,
+          amount: paymentAmount,
+          currency: 'RUB',
+          status: 'PENDING',
+          gateway,
+          consentIp,
+          consentUserAgent
+        }
+      });
+
+      await tx.order.createMany({
+        data: orderCreationData.map(o => ({ ...o, paymentId: payment.id }))
+      });
+
+      return { paymentId: payment.id };
+    });
+
+    let paymentUrl: string | undefined;
+    let remoteGatewayId: string | undefined;
+    const host = reqHeaders.get("host") || "localhost:3000";
+    const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const origin = getBaseUrlSync(host, protocol);
+    let successUrl = `${origin}/success?paymentId=${result.paymentId}`;
+
     let token = '';
     try {
       const { SignJWT } = await import('jose');
