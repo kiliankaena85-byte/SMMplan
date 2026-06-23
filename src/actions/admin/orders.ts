@@ -325,16 +325,14 @@ export async function getFailoverPreview(orderId: string) {
     const routesWithPreview = await Promise.all(availableRoutes.map(async (route) => {
       const exchangeRate = route.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
       
-      // Fetch rate from Shadow Catalog in Redis
-      const cacheKey = `provider:${route.providerId}:catalog`;
-      const cachedStr = await redis.get(cacheKey);
+      // Fetch rate from Shadow Catalog details Hash in Redis
+      const hashKey = `provider:${route.providerId}:catalog:details`;
+      const serviceStr = await redis.hget(hashKey, String(route.providerServiceId));
       let providerRate = 0.0;
-      if (cachedStr) {
+      if (serviceStr) {
         try {
-          const services = JSON.parse(cachedStr);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const s = services.find((x: any) => String(x.service) === String(route.providerServiceId));
-          if (s) providerRate = parseFloat(s.rate) || 0.0;
+          const s = JSON.parse(serviceStr);
+          providerRate = parseFloat(s.rate) || 0.0;
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
           // ignore
@@ -402,16 +400,14 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
       const usdToRub = await SettingsManager.getExchangeRateUSD();
       const exchangeRate = newRoute.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
       
-      // Fetch rate from Shadow Catalog in Redis
-      const cacheKey = `provider:${newRoute.providerId}:catalog`;
-      const cachedStr = await redis.get(cacheKey);
+      // Fetch rate from Shadow Catalog details Hash in Redis
+      const hashKey = `provider:${newRoute.providerId}:catalog:details`;
+      const serviceStr = await redis.hget(hashKey, String(newRoute.providerServiceId));
       let providerRate = 0.0;
-      if (cachedStr) {
+      if (serviceStr) {
         try {
-          const services = JSON.parse(cachedStr);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const s = services.find((x: any) => String(x.service) === String(newRoute.providerServiceId));
-          if (s) providerRate = parseFloat(s.rate) || 0.0;
+          const s = JSON.parse(serviceStr);
+          providerRate = parseFloat(s.rate) || 0.0;
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
           // ignore

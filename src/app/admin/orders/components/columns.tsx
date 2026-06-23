@@ -31,6 +31,7 @@ export type OrderColumn = {
   error: string | null;
   user: { email: string };
   providerName: string | null;
+  providerTicketUrl?: string | null;
   service: { 
     name: string;
     etaP50Seconds: number | null;
@@ -293,9 +294,23 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
               <span className="hidden group-open:inline">Скрыть детали</span>
             </summary>
             <div className="mt-1 pt-1 border-t border-border/80 text-xs text-foreground space-y-1">
-              <div className="flex justify-between gap-2">
+              <div className="flex justify-between gap-2 items-center">
                 <span className="text-muted-foreground select-none">Провайдер:</span>
-                <span className="font-semibold text-foreground">{order.providerName || '—'}</span>
+                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                  {order.providerName || '—'}
+                  {order.providerTicketUrl && (
+                    <a
+                      href={order.providerTicketUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95"
+                      onClick={(e) => e.stopPropagation()}
+                      title="Открыть поддержку провайдера"
+                    >
+                      Поддержка ↗
+                    </a>
+                  )}
+                </span>
               </div>
               <div className="flex justify-between gap-2">
                 <span className="text-muted-foreground select-none">Цена за 1 шт:</span>
@@ -311,9 +326,27 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
               </div>
               {canSeeRates && (
                 <>
-                  <div className="flex justify-between gap-2">
+                  <div className="flex justify-between gap-2 items-center">
                     <span className="text-muted-foreground select-none">ID у провайдера:</span>
-                    <span className="font-mono text-foreground">{order.externalId || '—'}</span>
+                    <span className="font-mono text-foreground flex items-center gap-1.5">
+                      {order.externalId || '—'}
+                      {order.externalId && order.providerTicketUrl && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (typeof window !== 'undefined' && navigator.clipboard) {
+                              navigator.clipboard.writeText(order.externalId!);
+                              toast.success(`Внешний ID (${order.externalId}) скопирован в буфер обмена!`);
+                            }
+                            window.open(order.providerTicketUrl!, '_blank', 'noopener,noreferrer');
+                          }}
+                          className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer"
+                          title="Скопировать ID и открыть тикет у провайдера"
+                        >
+                          Тикет ↗
+                        </button>
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground select-none">Себестоимость:</span>

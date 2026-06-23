@@ -32,16 +32,23 @@ export function PayoutButton({ userId, amount }: PayoutButtonProps) {
     });
   };
 
+  const MIN_PAYOUT_CENTS = 10000; // 100 RUB
+  const MAX_PAYOUT_CENTS = 5000000; // 50,000 RUB
+
+  const isBelowMin = amount < MIN_PAYOUT_CENTS;
+  const isAboveMax = amount > MAX_PAYOUT_CENTS;
+  const isDisabled = isBelowMin || isAboveMax || isPending;
+
   return (
     <>
       <Button
         size="sm"
         intent="secondary"
         onClick={handlePayout}
-        disabled={isPending}
+        disabled={isDisabled}
         className="h-8 text-[10px] font-bold uppercase tracking-wider"
       >
-        {isPending ? 'Загрузка...' : 'На баланс'}
+        {isPending ? 'Загрузка...' : isBelowMin ? 'Мин. 100 ₽' : isAboveMax ? 'Макс. 50к ₽' : 'На баланс'}
       </Button>
 
       <ConfirmModal

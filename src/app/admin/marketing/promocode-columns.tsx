@@ -117,6 +117,7 @@ function DeletePromoButton({ promo }: { promo: PromoCodeWithUsages }) {
 
 export const columns: ColumnDef<PromoCodeWithUsages>[] = [
   {
+    id: 'index',
     header: '#',
     cell: ({ row }) => (
       <span className="text-xs font-mono font-bold text-muted-foreground/45">
@@ -168,6 +169,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
     },
   },
   {
+    id: 'bonus',
     header: 'Бонус',
     cell: ({ row }) => {
       const p = row.original;
@@ -179,6 +181,8 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
     },
   },
   {
+    id: 'utm',
+    accessorFn: (row) => !!(row.utmSource || row.utmMedium || row.utmCampaign),
     header: 'UTM метки',
     cell: ({ row }) => {
       const p = row.original;
@@ -200,6 +204,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
     },
   },
   {
+    id: 'budget',
     header: 'Бюджет',
     cell: ({ row }) => {
       const budgetRub = Number(row.original.budgetCents) / 100;
@@ -211,6 +216,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
     },
   },
   {
+    id: 'ltv',
     header: 'LTV',
     cell: ({ row }) => {
       const usages = row.original.usages || [];
@@ -223,6 +229,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
     },
   },
   {
+    id: 'profit',
     header: 'Прибыль',
     cell: ({ row }) => {
       const usages = row.original.usages || [];
@@ -241,6 +248,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
     },
   },
   {
+    id: 'cac',
     header: 'CAC',
     cell: ({ row }) => {
       const p = row.original;
@@ -259,6 +267,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
     },
   },
   {
+    id: 'romi',
     header: 'ROMI',
     cell: ({ row }) => {
       const p = row.original;
@@ -290,6 +299,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
     },
   },
   {
+    id: 'usage',
     header: 'Использование',
     cell: ({ row }) => {
       const p = row.original;

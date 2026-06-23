@@ -51,7 +51,7 @@ export default async function AdminEditArticlePage({ params }: PageProps) {
   };
 
   return (
-    <div className="p-6 bg-background min-h-full pb-10">
+    <div className="min-h-full pb-10">
       <ArticleForm initialData={initialData} />
     </div>
   );

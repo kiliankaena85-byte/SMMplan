@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { ClientDetailClient } from './client-detail-client';
-import { banUserAction, unbanUserAction, loginAsAction, updateBalanceAction } from '@/actions/admin/users';
+import { banUserAction, unbanUserAction, loginAsAction } from '@/actions/admin/users';
 import { SubmitButton } from '@/components/admin/submit-button';
 import { ActionForm } from '@/components/admin/action-form';
 import { ClientOrdersTable } from './client-orders-table';
@@ -73,7 +73,7 @@ export default async function ClientDetailPage({ params }: Props) {
 
   if (!user) notFound();
 
-  const [orders, countResult] = await Promise.all([
+  const [orders, countResult, loginLogs] = await Promise.all([
     db.order.findMany({
       where: { userId: id },
       orderBy: { createdAt: 'desc' },
@@ -92,6 +92,19 @@ export default async function ClientDetailPage({ params }: Props) {
       where: { id },
       select: {
         _count: { select: { orders: true, tickets: true } },
+      },
+    }),
+    db.loginLog.findMany({
+      where: { email: user.email },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        ipAddress: true,
+        userAgent: true,
+        success: true,
+        failReason: true,
+        createdAt: true,
       },
     }),
   ]);
@@ -115,12 +128,21 @@ export default async function ClientDetailPage({ params }: Props) {
     ordersCount,
     ticketsCount,
     ...(canSeeFinances ? {
-      balance: user.balance,
-      quarantineBalance: user.quarantineBalance,
-      totalSpent: user.totalSpent,
+      balance: Number(user.balance),
+      quarantineBalance: Number(user.quarantineBalance),
+      totalSpent: Number(user.totalSpent),
       referralBalance: user.referralBalance,
     } : {}),
   };
+
+  const logsDto = loginLogs.map(log => ({
+    id: log.id,
+    ipAddress: log.ipAddress,
+    userAgent: log.userAgent ?? 'Unknown',
+    success: log.success,
+    failReason: log.failReason,
+    createdAt: log.createdAt.toISOString(),
+  }));
 
   const roleBadge = ROLE_BADGE[user.role] ?? 'bg-muted text-foreground';
 
@@ -200,38 +222,16 @@ export default async function ClientDetailPage({ params }: Props) {
       </div>
 
       {/* Interactive client panel */}
-      <ClientDetailClient user={dto} />
-
-      {/* Balance Adjustment Block */}
-      {canSeeFinances && (
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-6 ring-1 ring-border/5">
-          <h3 className="text-sm font-bold tracking-tight text-foreground mb-4 flex items-center gap-2">
-            <span className="bg-primary/10 text-primary p-1 rounded-md">💰</span>
-            Корректировка баланса
-          </h3>
-          <ActionForm action={updateBalanceAction} className="space-y-4 max-w-sm">
-            <input type="hidden" name="userId" value={user.id} />
-            <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">Сумма (в копейках, − для списания)</label>
-              <input type="number" name="amount" placeholder="10000 = 100₽" required className="w-full h-10 text-sm px-3 py-2 rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground font-mono tabular-nums tracking-tight placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
-            </div>
-            <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">Причина / Комментарий</label>
-              <input name="reason" placeholder="Например: Бонус за регистрацию" required className="w-full h-10 text-sm px-3 py-2 rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" />
-            </div>
-            <SubmitButton className="w-full h-10 text-sm gap-1.5 shadow-sm active:scale-95 transition-all" confirmMessage="Вы уверены, что хотите изменить баланс клиента?">
-              Применить изменение
-            </SubmitButton>
-          </ActionForm>
-        </div>
-      )}
+      <ClientDetailClient user={dto} loginLogs={logsDto} canSeeFinances={canSeeFinances} />
 
       {/* Recent orders */}
       <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden ring-1 ring-border/5 flex flex-col">
         <div className="px-5 py-4 border-b border-border/60 bg-muted/20">
           <h2 className="text-sm font-bold tracking-tight text-foreground">Последние заказы</h2>
         </div>
-        <ClientOrdersTable orders={orders} />
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <ClientOrdersTable orders={orders} />
+        </div>
         {ordersCount > 15 && (
           <div className="px-5 py-3 border-t border-border/60 bg-muted/10">
             <Link href={`/admin/orders?userId=${user.id}`} className="text-xs font-semibold text-primary hover:underline transition-colors">

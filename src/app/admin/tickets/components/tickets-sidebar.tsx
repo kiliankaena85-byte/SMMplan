@@ -40,15 +40,6 @@ const renderSourceBadge = (source: string) => {
       </span>
     );
   }
-  if (s === 'VK') {
-    return (
-      <span className="absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full border-2 border-card bg-background flex items-center justify-center shadow-xs" title="VK">
-        <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 text-[#0077FF] fill-current">
-          <path d="M15.63 21.6c.15-.31.3-.61.4-.92.35-1.07.67-2.14 1-3.21.13-.42.34-.63.78-.65 1.16-.04 2.32-.01 3.48-.03.54-.01.9-.3.94-.78.06-.72-.11-1.39-.51-2.01-.84-1.28-1.75-2.52-2.61-3.79-.14-.2-.14-.37 0-.58.74-1.06 1.49-2.12 2.21-3.2.56-.84.81-1.76.43-2.75-.24-.63-.73-.91-1.42-.91-1.44.01-2.88 0-4.32.01-.4. 0-.66.19-.81.56-.6 1.46-1.26 2.89-1.95 4.31-.13.26-.29.38-.58.33-.29-.05-.44-.22-.44-.52 0-1.57-.01-3.14.01-4.71 0-.68-.31-1.06-.96-1.12-.55-.05-1.11-.02-1.66-.02-1.47 0-2.64.49-3.22 1.62-.09.18-.08.38.16.48.24.1.48.13.7.27.42.27.56.67.57 1.16.03 1.58.01 3.16.02 4.74 0 .34-.14.54-.42.61-.26.06-.45-.04-.61-.24-.87-1.1-1.63-2.29-2.39-3.48-.25-.39-.5-.78-.77-1.15-.22-.31-.5-.46-.89-.45-1.28.01-2.56 0-3.84.01-.48 0-.81.25-.86.69-.07.63.15 1.18.49 1.7.94 1.44 1.88 2.88 2.84 4.31.95 1.42 1.94 2.82 2.94 4.2.82 1.12 1.81 1.98 3.11 2.37.58.17 1.18.23 1.79.23 1.34-.01 2.68-.01 4.02-.01.44 0 .72-.2.8-.62z" />
-        </svg>
-      </span>
-    );
-  }
   return (
     <span className="absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full border-2 border-card bg-background flex items-center justify-center shadow-xs" title="Web">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 text-indigo-500">
@@ -115,77 +106,92 @@ export function TicketsSidebar({
         <div className="flex items-center justify-between">
           <h1 className="font-black text-base flex items-center gap-2">
             <Headphones className="w-5 h-5 text-primary" />
-            <span>Обращения</span>
+            <span>Список диалогов</span>
           </h1>
-          <div className="text-xs font-bold text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">
-            {stats.open} открытых
-          </div>
+          {stats.criticalOpen > 0 && (
+            <div className="text-xs font-bold text-destructive-text bg-destructive/10 px-2.5 py-0.5 rounded-full border border-destructive/20 animate-pulse">
+              {stats.criticalOpen} ожидает
+            </div>
+          )}
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-3 gap-2">
-          {/* Card 1: Open (Без ответа) */}
-          <button
-            type="button"
-            onClick={() => handleStatusFilter('OPEN')}
-            className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all duration-200 cursor-pointer min-h-[58px] ${
-              currentStatus === 'OPEN'
-                ? 'bg-primary text-primary-foreground border-primary shadow-sm font-black'
-                : 'bg-card border-border/50 text-foreground hover:bg-muted/50'
-            }`}
-          >
-            <span className={`text-[10px] font-bold ${currentStatus === 'OPEN' ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>Без ответа</span>
-            <span className="text-base font-black font-mono mt-0.5 tabular-nums">{stats.open}</span>
-          </button>
-
-          {/* Card 2: Critical Wait (Крит. ожидание) */}
-          <button
-            type="button"
-            onClick={() => handleStatusFilter('OPEN')}
-            className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all duration-200 cursor-pointer min-h-[58px] ${
-              stats.criticalOpen > 0
-                ? 'border-rose-500/40 bg-rose-500/5 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10'
-                : 'bg-card border-border/50 text-foreground hover:bg-muted/50'
-            }`}
-          >
-            <span className={`text-[10px] font-bold ${
-              stats.criticalOpen > 0 ? 'text-rose-500 dark:text-rose-400' : 'text-muted-foreground'
-            }`}>Крит. ожидание</span>
-            <span className={`text-base font-black font-mono mt-0.5 tabular-nums ${
-              stats.criticalOpen > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground'
-            }`}>{stats.criticalOpen || 0}</span>
-          </button>
-
-          {/* Card 3: Pending (В работе) */}
-          <button
-            type="button"
-            onClick={() => handleStatusFilter('PENDING')}
-            className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all duration-200 cursor-pointer min-h-[58px] ${
-              currentStatus === 'PENDING'
-                ? 'bg-primary text-primary-foreground border-primary shadow-sm font-black'
-                : 'bg-card border-border/50 text-foreground hover:bg-muted/50'
-            }`}
-          >
-            <span className={`text-[10px] font-bold ${currentStatus === 'PENDING' ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>В работе</span>
-            <span className="text-base font-black font-mono mt-0.5 tabular-nums">{stats.pending}</span>
-          </button>
+        {/* Status Filter Row */}
+        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+          {[
+            { label: 'Все', value: 'ALL', count: stats.total },
+            { label: 'Открытые', value: 'OPEN', count: stats.open },
+            { label: 'Ожидают', value: 'PENDING', count: stats.pending },
+            { label: 'Закрытые', value: 'CLOSED', count: stats.closed }
+          ].map((pill) => {
+            const isActive = currentStatus === pill.value;
+            return (
+              <button
+                key={pill.value}
+                type="button"
+                onClick={() => handleStatusFilter(pill.value)}
+                className={`px-3 text-[11px] font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer min-h-[36px] h-[36px] flex items-center justify-center gap-1.5 ${
+                  isActive 
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                    : 'bg-muted text-foreground hover:bg-muted-foreground/10'
+                }`}
+              >
+                <span>{pill.label}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  isActive
+                    ? 'bg-primary-foreground/20 text-primary-foreground font-black'
+                    : 'bg-background/80 text-muted-foreground font-bold'
+                }`}>
+                  {pill.count || 0}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Search */}
-        <form onSubmit={handleSearchSubmit} className="relative">
-          <input
-            type="text"
-            value={searchVal}
-            onChange={(e) => setSearchVal(e.target.value)}
-            placeholder="Поиск по теме, почте, ID..."
-            className="w-full pl-9 pr-4 py-2 text-xs border border-border rounded-xl text-foreground outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition-all bg-muted"
-          />
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground/60" />
-        </form>
+        {/* Inline Search & B2B / Source Row */}
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <form onSubmit={handleSearchSubmit} className="relative flex-grow min-w-0">
+            <input
+              type="text"
+              value={searchVal}
+              onChange={(e) => setSearchVal(e.target.value)}
+              placeholder="Поиск..."
+              className="w-full pl-9 pr-3 h-11 text-xs border border-border rounded-xl text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-transparent transition-all bg-muted placeholder:text-muted-foreground/60"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+          </form>
+
+          {/* B2B Filter Toggle */}
+          <button
+            type="button"
+            onClick={() => handleB2bToggle(!currentIsB2b)}
+            className={`px-3 h-11 text-xs font-black rounded-xl transition-all border border-border whitespace-nowrap cursor-pointer select-none uppercase shrink-0 flex items-center justify-center ${
+              currentIsB2b
+                ? 'bg-warning/15 text-warning-text border-warning/25 shadow-xs'
+                : 'bg-muted text-foreground hover:bg-muted-foreground/10'
+            }`}
+          >
+            B2B
+          </button>
+
+          {/* Source Filter Dropdown */}
+          <select
+            value={currentSource}
+            onChange={(e) => handleSourceFilter(e.target.value)}
+            className="h-11 bg-muted border border-border rounded-xl px-2 text-xs font-bold text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-transparent cursor-pointer select-none min-w-[90px] shrink-0"
+            aria-label="Фильтр по источнику"
+          >
+            <option value="ALL">Все сети</option>
+            <option value="TELEGRAM">Telegram</option>
+            <option value="EMAIL">Email</option>
+            <option value="WEB">Web</option>
+          </select>
+        </div>
 
         {/* SLA stats */}
         {stats?.avgFRTMin !== undefined && (stats.avgFRTMin > 0 || stats.avgTTRMin > 0) && (
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-bold px-1 py-0.5 border-b border-border/20 pb-1">
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-bold px-1 py-0.5 border-t border-border/20 pt-1">
             {stats.avgFRTMin > 0 && (
               <span className="flex items-center gap-1">⚡ Ответ: <span className="text-foreground">{formatEta(stats.avgFRTMin * 60)}</span></span>
             )}
@@ -194,75 +200,6 @@ export function TicketsSidebar({
             )}
           </div>
         )}
-
-        {/* Status & B2B Filter Row */}
-        <div className="flex items-center justify-between gap-2">
-          {/* Status Pills */}
-          <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none flex-grow">
-            {[
-              { label: 'Все', value: 'ALL' },
-              { label: 'Открытые', value: 'OPEN' },
-              { label: 'Ожидают', value: 'PENDING' },
-              { label: 'Закрытые', value: 'CLOSED' }
-            ].map((pill) => {
-              const isActive = currentStatus === pill.value;
-              return (
-                <button
-                  key={pill.value}
-                  type="button"
-                  onClick={() => handleStatusFilter(pill.value)}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer min-h-[36px] flex items-center justify-center ${
-                    isActive 
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                      : 'bg-muted text-foreground hover:bg-muted-foreground/10'
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* B2B Filter Toggle */}
-          <button
-            type="button"
-            onClick={() => handleB2bToggle(!currentIsB2b)}
-            className={`px-2.5 py-1.5 text-[10px] font-black rounded-lg transition-all border whitespace-nowrap cursor-pointer select-none uppercase shrink-0 min-h-[36px] flex items-center justify-center ${
-              currentIsB2b
-                ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
-                : 'bg-muted text-foreground border-border hover:bg-muted-foreground/10'
-            }`}
-          >
-            B2B
-          </button>
-        </div>
-
-        {/* Source Filter Group */}
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none pt-2.5 border-t border-border/40">
-          {[
-            { label: 'Все сети', value: 'ALL' },
-            { label: 'Telegram', value: 'TELEGRAM' },
-            { label: 'Email', value: 'EMAIL' },
-            { label: 'VK', value: 'VK' },
-            { label: 'Web', value: 'WEB' }
-          ].map((src) => {
-            const isActive = currentSource === src.value;
-            return (
-              <button
-                key={src.value}
-                type="button"
-                onClick={() => handleSourceFilter(src.value)}
-                className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors whitespace-nowrap cursor-pointer border min-h-[30px] flex items-center justify-center ${
-                  isActive 
-                    ? 'bg-secondary text-secondary-foreground border-secondary font-black' 
-                    : 'bg-background/80 text-muted-foreground hover:text-foreground border-border/50'
-                }`}
-              >
-                {src.label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* Cards List container */}
@@ -298,7 +235,7 @@ export function TicketsSidebar({
                         {ticket.user.email}
                       </span>
                       {ticket.user.b2bConfig?.isB2b && (
-                        <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded text-[8px] font-black uppercase shrink-0 select-none">
+                        <span className="px-1.5 py-0.5 bg-warning/10 text-warning-text border border-warning/20 rounded text-[8px] font-black uppercase shrink-0 select-none">
                           Priority B2B
                         </span>
                       )}

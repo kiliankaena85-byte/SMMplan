@@ -153,7 +153,7 @@ export async function deletePromoCode(id: string) {
 
 const referralPayoutSchema = z.object({
   userId: z.string().min(1),
-  amount: z.coerce.number().int().min(100, "Минимальная сумма выплаты 100 копеек (1 ₽)").max(5000000, "Максимальная сумма выплаты 5,000,000 копеек (50,000 ₽)"),
+  amount: z.coerce.number().int().min(10000, "Минимальная сумма выплаты 10 000 копеек (100 ₽)").max(5000000, "Максимальная сумма выплаты 5,000,000 копеек (50,000 ₽)"),
 });
 
 export async function processReferralPayout(userId: string, amount: number) {

@@ -34,7 +34,7 @@ export const test = base.extend<AuthFixtures>({
     });
 
     const encodedKey = new TextEncoder().encode(jwtSecret);
-    const sessionToken = await new SignJWT({ sessionId: session.id, userId: user.id })
+    const sessionToken = await new SignJWT({ sessionId: session.id, userId: user.id, role: user.role })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('7d')
@@ -82,7 +82,7 @@ export const test = base.extend<AuthFixtures>({
     });
 
     const encodedKey = new TextEncoder().encode(jwtSecret);
-    const sessionToken = await new SignJWT({ sessionId: session.id, userId: admin.id })
+    const sessionToken = await new SignJWT({ sessionId: session.id, userId: admin.id, role: admin.role })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('7d')

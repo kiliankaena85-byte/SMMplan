@@ -123,7 +123,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
   };
 
   return (
-    <form action={formAction} className="space-y-6 pb-24">
+    <form key={settings.updatedAt?.toString() || 'general'} action={formAction} className="space-y-6">
       <input type="hidden" name="_isGeneralSettings" value="1" />
       
       {/* Hidden inputs to preserve uploads inside settings submit */}
@@ -429,9 +429,9 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
         </div>
       </Card>
 
-      {/* Sticky Save Button */}
-      <div className="fixed bottom-0 right-0 left-64 p-4 bg-background/80 backdrop-blur-md border-t border-border z-10 flex justify-end">
-        <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-12 px-8 shadow-xl">
+      {/* Save Button */}
+      <div className="flex justify-end pt-4">
+        <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-12 px-8 shadow-md">
           {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Сохранить все настройки
         </Button>

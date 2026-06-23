@@ -48,6 +48,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
     apiKey:          '',   // always empty — only set when explicitly changing
     isActive:        initialData?.isActive        ?? true,
     balanceCurrency: initialData?.balanceCurrency || 'USD',
+    ticketUrl:       initialData?.ticketUrl       || '',
   });
 
   const [mapping, setMapping] = useState({
@@ -199,7 +200,8 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
         apiKey:          formData.apiKey,
         isActive:        formData.isActive,
         balanceCurrency: formData.balanceCurrency,
-        mapping:         mappingPayload
+        mapping:         mappingPayload,
+        ticketUrl:       formData.ticketUrl,
       };
 
       let res;
@@ -449,6 +451,29 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
             />
             {fieldErrors.apiKey && (
               <p className="text-xs font-bold text-destructive mt-1">{fieldErrors.apiKey[0]}</p>
+            )}
+          </div>
+
+          {/* Ticket URL */}
+          <div className="sm:col-span-6">
+            <label className={labelCls} htmlFor="provider-ticket-url">
+              URL поддержки (тикет-системы)
+            </label>
+            <input
+              id="provider-ticket-url"
+              type="url"
+              name="ticketUrl"
+              placeholder="https://example.com/tickets"
+              value={formData.ticketUrl}
+              onChange={handleChange}
+              className={`${inputCls} font-mono ${fieldErrors.ticketUrl ? 'border-destructive focus:ring-destructive/20' : ''}`}
+              aria-label="URL поддержки провайдера"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Ссылка на тикетную систему провайдера для быстрого перехода из таблицы заказов.
+            </p>
+            {fieldErrors.ticketUrl && (
+              <p className="text-xs font-bold text-destructive mt-1">{fieldErrors.ticketUrl[0]}</p>
             )}
           </div>
 

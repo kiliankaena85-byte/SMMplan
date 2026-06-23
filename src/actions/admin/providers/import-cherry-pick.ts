@@ -382,11 +382,40 @@ export async function fetchExternalServices(providerId?: string, forceRefresh = 
         });
         
         // Save to Shadow Catalog (24 hours TTL)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Raw service mapping is dynamic depending on the provider structure
+        const lightweightServices = services.map((s: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { desc, description, ...rest } = s;
+            return rest;
+        });
+
         try {
-            await redis.setex(cacheKey, 86400, JSON.stringify(services));
+            await redis.setex(cacheKey, 86400, JSON.stringify(lightweightServices));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (redisErr: any) {
-            console.warn('[fetchExternalServices] Redis unavailable for cache write:', redisErr.message);
+            console.warn('[fetchExternalServices] Redis unavailable for index cache write:', redisErr.message);
+        }
+
+        // Save full details to Redis Hash (24 hours TTL)
+        try {
+            const hashKey = `provider:${providerDbId}:catalog:details`;
+            const pipeline = redis.pipeline();
+            pipeline.del(hashKey);
+
+            const fields: Record<string, string> = {};
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Raw service details are dynamic depending on the provider structure
+            services.forEach((s: any) => {
+                fields[String(s.service)] = JSON.stringify(s);
+            });
+
+            if (Object.keys(fields).length > 0) {
+                pipeline.hset(hashKey, fields);
+                pipeline.expire(hashKey, 86400);
+            }
+            await pipeline.exec();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (redisErr: any) {
+            console.warn('[fetchExternalServices] Redis unavailable for details cache write:', redisErr.message);
         }
      }
      

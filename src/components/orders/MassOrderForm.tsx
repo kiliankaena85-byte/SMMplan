@@ -77,7 +77,7 @@ export function MassOrderForm({ userEmail }: { userEmail?: string }) {
 
   const computedText = mode === 'simple' 
     ? (selectedService && simpleQuantity && simpleLinks.trim() 
-        ? simpleLinks.split('\n').map(l => l.trim()).filter(Boolean).map(l => `${selectedService.id} | ${l} | ${simpleQuantity}`).join('\n')
+        ? simpleLinks.split('\n').map(l => l.trim()).filter(Boolean).map(l => `${selectedService.numericId} | ${l} | ${simpleQuantity}`).join('\n')
         : '')
     : proText;
 

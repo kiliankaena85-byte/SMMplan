@@ -39,7 +39,7 @@ export function OnboardingSection({
     setIsMounted(true);
     const saved = localStorage.getItem(`admin_onboarding_${onboardingKey}`);
     if (saved === null) {
-      setIsOpen(true);
+      setIsOpen(false);
     } else {
       setIsOpen(saved === 'true');
     }

@@ -375,7 +375,7 @@ export function UnifiedTicketsWorkspace({
                         {activeTicket.user.b2bConfig?.isB2b && (
                           <>
                             <span className="hidden sm:inline w-1 h-1 rounded-full bg-border shrink-0" />
-                            <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded text-[9px] font-black uppercase shrink-0 animate-pulse select-none" title="Приоритетный B2B клиент">
+                            <span className="px-1.5 py-0.5 bg-warning/10 text-warning-text border border-warning/20 rounded text-[9px] font-black uppercase shrink-0 animate-pulse select-none" title="Приоритетный B2B клиент">
                               Priority B2B
                             </span>
                           </>
@@ -397,10 +397,10 @@ export function UnifiedTicketsWorkspace({
                           <span>📦 Связанный заказ #{activeTicket.order.numericId}</span>
                           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                           <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                            activeTicket.order.status === 'COMPLETED' ? 'bg-success/15 text-success border-emerald-500/20' :
-                            activeTicket.order.status === 'IN_PROGRESS' ? 'bg-primary/15 text-primary border-primary/20' :
-                            activeTicket.order.status === 'PENDING' ? 'bg-amber-500/15 text-amber-600 border-amber-500/20' :
-                            'bg-muted text-foreground border-border'
+                            activeTicket.order.status === 'COMPLETED' ? 'bg-success/15 text-success-text border border-success/20' :
+                            activeTicket.order.status === 'IN_PROGRESS' ? 'bg-primary/15 text-primary border border-primary/20' :
+                            activeTicket.order.status === 'PENDING' ? 'bg-warning/15 text-warning-text border border-warning/20' :
+                            'bg-muted text-foreground border border-border'
                           }`}>
                             {activeTicket.order.status === 'COMPLETED' ? 'Выполнен' :
                              activeTicket.order.status === 'IN_PROGRESS' ? 'В работе' :
@@ -445,9 +445,9 @@ export function UnifiedTicketsWorkspace({
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-xs text-foreground">Заказ #{activeTicket.order.numericId}</span>
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                              activeTicket.order.status === 'COMPLETED' ? 'bg-success/10 text-success' :
+                              activeTicket.order.status === 'COMPLETED' ? 'bg-success/10 text-success-text' :
                               activeTicket.order.status === 'IN_PROGRESS' ? 'bg-primary/10 text-primary' :
-                              activeTicket.order.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
+                              activeTicket.order.status === 'PENDING' ? 'bg-warning/10 text-warning-text' :
                               'bg-muted text-foreground'
                             }`}>
                               {activeTicket.order.status === 'COMPLETED' ? 'Выполнен' :

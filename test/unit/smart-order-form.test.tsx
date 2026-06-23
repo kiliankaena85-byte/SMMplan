@@ -9,6 +9,7 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SmartOrderForm } from '@/components/orders/SmartOrderForm';
 import { useOrderEngine } from '@/hooks/useOrderEngine';
+import { OrderSummaryCard } from '@/components/orders/sub/OrderSummaryCard';
 
 // Mock dependencies
 vi.mock('@/hooks/useOrderEngine', () => ({
@@ -129,7 +130,7 @@ describe('SmartOrderForm & UX Fallbacks (QA-5)', () => {
     });
 
     vi.mocked(useOrderEngine).mockReturnValue(state as any);
-    render(<SmartOrderForm />);
+    render(<OrderSummaryCard userBalanceCents={1000} engine={state} />);
 
     // Ensure the consent text is present
     const consentText = screen.getByText(/Нажимая кнопку «Оплатить заказ», вы соглашаетесь с/i);

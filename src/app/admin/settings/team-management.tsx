@@ -83,6 +83,15 @@ export function TeamManagement({
   const [newRoleDesc, setNewRoleDesc] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
+  // Ruble support limit client-side state
+  const [limits, setLimits] = useState<Record<string, string>>(() => {
+    const initialLimits: Record<string, string> = {};
+    staffUsers.forEach(u => {
+      initialLimits[u.id] = String((u.supportLimitCents || 0) / 100);
+    });
+    return initialLimits;
+  });
+
   const isOwner = currentAdminRole === 'OWNER';
 
   async function handleUpdateLimit(formData: FormData) {
@@ -178,7 +187,7 @@ export function TeamManagement({
     <div className="space-y-8">
       {/* ── SECTION 1: Staff List & Escrow Guard ── */}
       <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
-        <CardContent className="p-8 space-y-6">
+        <CardContent className="p-4 sm:p-8 space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-destructive/15 text-destructive rounded-xl border border-destructive/20">
               <ShieldAlert className="w-5 h-5" />
@@ -189,13 +198,14 @@ export function TeamManagement({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border overflow-hidden">
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-xl border border-border overflow-hidden w-full overflow-x-auto scrollbar-hide">
             <Table aria-label="Список активных членов команды саппорта">
               <TableHeader>
                 <TableRow>
                   <TableHead className="px-6 py-4">EMAIL</TableHead>
                   <TableHead className="px-6 py-4">НАЗНАЧЕНИЕ РОЛИ И ПРАВ</TableHead>
-                  <TableHead className="px-6 py-4 text-right">ДНЕВНОЙ ЛИМИТ (КОП.) И ДЕЙСТВИЕ</TableHead>
+                  <TableHead className="px-6 py-4 text-right">ДНЕВНОЙ ЛИМИТ (₽) И ДЕЙСТВИЕ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -206,75 +216,168 @@ export function TeamManagement({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  staffUsers.map((u) => (
-                    <TableRow key={u.id} className="hover:bg-muted/10 transition-colors">
-                      <TableCell className="px-6 py-5">
-                        <span className="font-mono text-xs font-bold text-foreground bg-muted/40 px-2 py-1.5 rounded-lg border border-border/30">{u.email}</span>
-                      </TableCell>
-                      <TableCell className="px-6 py-5">
-                        <form action={handleUpdateRole} className="flex flex-col sm:flex-row gap-4 items-center">
-                          <input type="hidden" name="userId" value={u.id} />
-                          
-                          {/* System Role Selection */}
-                          <div className="flex flex-col gap-1 w-full sm:w-auto">
-                            <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Роль</span>
-                            <Select name="role" defaultValue={u.role}>
-                              <SelectTrigger className="w-full sm:w-32 h-11 bg-background text-xs font-bold rounded-xl" size="default">
-                                <SelectValue>
-                                  {(value: string) => value || 'Выбрать'}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getAllowedRoles(currentAdminRole).map((r) => (
-                                  <SelectItem key={r} value={r}>{r}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                  staffUsers.map((u) => {
+                    const supportLimitRub = limits[u.id] ? Math.round(parseFloat(limits[u.id]) * 100) : 0;
+                    return (
+                      <TableRow key={u.id} className="hover:bg-muted/10 transition-colors">
+                        <TableCell className="px-6 py-5">
+                          <span className="font-mono text-xs font-bold text-foreground bg-muted/40 px-2 py-1.5 rounded-lg border border-border/30 truncate max-w-[200px] inline-block" title={u.email}>{u.email}</span>
+                        </TableCell>
+                        <TableCell className="px-6 py-5">
+                          <form action={handleUpdateRole} className="flex flex-col sm:flex-row gap-4 items-center">
+                            <input type="hidden" name="userId" value={u.id} />
+                            
+                            {/* System Role Selection */}
+                            <div className="flex flex-col gap-1 w-full sm:w-auto">
+                              <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Роль</span>
+                              <Select name="role" defaultValue={u.role}>
+                                <SelectTrigger className="w-full sm:w-32 h-11 bg-background text-xs font-bold rounded-xl" size="default">
+                                  <SelectValue>
+                                    {(value: string) => value || 'Выбрать'}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {getAllowedRoles(currentAdminRole).map((r) => (
+                                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                          {/* Custom Staff Role Selection */}
-                          <div className="flex flex-col gap-1 w-full sm:w-auto">
-                            <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Группа прав</span>
-                            <Select name="staffRoleId" defaultValue={u.staffRoleId || 'NONE'}>
-                              <SelectTrigger className="w-full sm:w-48 h-11 bg-background text-xs font-bold rounded-xl" size="default">
-                                <SelectValue>
-                                  {(value: string) => {
-                                    if (!value || value === 'NONE') return 'Все права (OWNER)';
-                                    return staffRoles.find(r => r.id === value)?.name ?? value;
-                                  }}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="NONE">Все права (OWNER)</SelectItem>
-                                {staffRoles.map((role) => (
-                                  <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                            {/* Custom Staff Role Selection */}
+                            <div className="flex flex-col gap-1 w-full sm:w-auto">
+                              <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Группа прав</span>
+                              <Select name="staffRoleId" defaultValue={u.staffRoleId || 'NONE'}>
+                                <SelectTrigger className="w-full sm:w-48 h-11 bg-background text-xs font-bold rounded-xl" size="default">
+                                  <SelectValue>
+                                    {(value: string) => {
+                                      if (!value || value === 'NONE') return 'Все права (OWNER)';
+                                      return staffRoles.find(r => r.id === value)?.name ?? value;
+                                    }}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="NONE">Все права (OWNER)</SelectItem>
+                                  {staffRoles.map((role) => (
+                                    <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                          <div className="pt-5 w-full sm:w-auto">
-                            <SubmitButton label="Сменить" className="w-full sm:w-auto" />
-                          </div>
-                        </form>
-                      </TableCell>
-                      <TableCell className="px-6 py-5">
-                        <form action={handleUpdateLimit} className="flex gap-2 items-center justify-end">
-                          <input type="hidden" name="userId" value={u.id} />
-                          <Input 
-                            type="number" 
-                            name="limit" 
-                            defaultValue={u.supportLimitCents || 0} 
-                            className="w-32 h-11 text-right font-mono font-bold text-xs rounded-xl"
-                          />
-                          <SubmitButton label="Сохранить" />
-                        </form>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            <div className="pt-5 w-full sm:w-auto">
+                              <SubmitButton label="Сменить" className="w-full sm:w-auto" />
+                            </div>
+                          </form>
+                        </TableCell>
+                        <TableCell className="px-6 py-5">
+                          <form action={handleUpdateLimit} className="flex gap-2 items-center justify-end">
+                            <input type="hidden" name="userId" value={u.id} />
+                            <Input 
+                              type="number" 
+                              step="0.01"
+                              value={limits[u.id] ?? ''} 
+                              onChange={e => setLimits(prev => ({ ...prev, [u.id]: e.target.value }))}
+                              className="w-32 h-11 text-right font-mono font-bold text-xs rounded-xl"
+                            />
+                            <input 
+                              type="hidden" 
+                              name="limit" 
+                              value={supportLimitRub} 
+                            />
+                            <SubmitButton label="Сохранить" />
+                          </form>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile Card Feed View */}
+          <div className="block md:hidden divide-y divide-border/30 bg-card/30 rounded-xl border border-border overflow-hidden">
+            {staffUsers.length === 0 ? (
+              <p className="text-center py-8 text-xs text-muted-foreground italic">Сотрудников нет</p>
+            ) : (
+              staffUsers.map((u) => {
+                const supportLimitRub = limits[u.id] ? Math.round(parseFloat(limits[u.id]) * 100) : 0;
+                return (
+                  <div key={u.id} className="p-4 space-y-4">
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-foreground bg-muted/40 px-2.5 py-1.5 rounded-lg border border-border/30 truncate max-w-[280px]" title={u.email}>
+                        {u.email}
+                      </span>
+                    </div>
+
+                    <form action={handleUpdateRole} className="space-y-3 p-3 rounded-xl border border-border/40 bg-muted/20">
+                      <input type="hidden" name="userId" value={u.id} />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Роль</span>
+                          <Select name="role" defaultValue={u.role}>
+                            <SelectTrigger className="w-full h-10 bg-background text-xs font-bold rounded-xl" size="default">
+                              <SelectValue>
+                                {(value: string) => value || 'Выбрать'}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getAllowedRoles(currentAdminRole).map((r) => (
+                                <SelectItem key={r} value={r}>{r}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Группа прав</span>
+                          <Select name="staffRoleId" defaultValue={u.staffRoleId || 'NONE'}>
+                            <SelectTrigger className="w-full h-10 bg-background text-xs font-bold rounded-xl" size="default">
+                              <SelectValue>
+                                {(value: string) => {
+                                  if (!value || value === 'NONE') return 'Все права (OWNER)';
+                                  return staffRoles.find(r => r.id === value)?.name ?? value;
+                                }}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NONE">Все права (OWNER)</SelectItem>
+                              {staffRoles.map((role) => (
+                                <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <SubmitButton label="Сменить роль" className="w-full h-10 text-xs" />
+                    </form>
+
+                    <form action={handleUpdateLimit} className="flex gap-3 items-center justify-between p-3 rounded-xl border border-border/40 bg-muted/20">
+                      <input type="hidden" name="userId" value={u.id} />
+                      <div className="flex flex-col gap-1 flex-1">
+                        <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Дневной лимит (₽)</span>
+                        <Input 
+                          type="number" 
+                          step="0.01"
+                          value={limits[u.id] ?? ''} 
+                          onChange={e => setLimits(prev => ({ ...prev, [u.id]: e.target.value }))}
+                          className="w-full h-10 text-left font-mono font-bold text-xs rounded-xl"
+                        />
+                        <input 
+                          type="hidden" 
+                          name="limit" 
+                          value={supportLimitRub} 
+                        />
+                      </div>
+                      <div className="pt-4">
+                        <SubmitButton label="Сохранить" className="h-10 text-xs" />
+                      </div>
+                    </form>
+                  </div>
+                );
+              })
+            )}
           </div>
         </CardContent>
       </Card>
@@ -282,7 +385,7 @@ export function TeamManagement({
       {/* ── SECTION 2: Custom Roles & Granular Permissions Grid (Owner-only) ── */}
       {isOwner && (
         <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
-          <CardContent className="p-8 space-y-6">
+          <CardContent className="p-4 sm:p-8 space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/15 text-primary rounded-xl border border-primary/20">
@@ -362,7 +465,7 @@ export function TeamManagement({
                   <div key={role.id} className="p-6 rounded-xl border border-border/80 space-y-4 bg-muted/10">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">{role.name}</h4>
                           {role.isSystem && (
                             <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border border-primary/20 rounded-md">Системная</Badge>
@@ -443,7 +546,7 @@ export function TeamManagement({
 
       {/* ── SECTION 3: Role Promotion (Clients to Staff) ── */}
       <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
-        <CardContent className="p-8 space-y-6">
+        <CardContent className="p-4 sm:p-8 space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/15 text-primary rounded-xl border border-primary/20">
               <UserPlus className="w-5 h-5" />
@@ -469,7 +572,8 @@ export function TeamManagement({
             <SearchButton />
           </form>
 
-          <div className="rounded-xl border border-border overflow-hidden">
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-xl border border-border overflow-hidden w-full overflow-x-auto scrollbar-hide">
             <Table aria-label="Список клиентов для изменения ролей">
               <TableHeader>
                 <TableRow>
@@ -488,7 +592,7 @@ export function TeamManagement({
                   regularUsers.map((u) => (
                     <TableRow key={u.id} className="hover:bg-muted/10 transition-colors">
                       <TableCell className="px-6 py-5">
-                        <span className="text-xs font-mono font-bold text-foreground bg-muted/40 px-2 py-1.5 rounded-lg border border-border/30">{u.email}</span>
+                        <span className="text-xs font-mono font-bold text-foreground bg-muted/40 px-2 py-1.5 rounded-lg border border-border/30 truncate max-w-[300px] inline-block" title={u.email}>{u.email}</span>
                       </TableCell>
                       <TableCell className="px-6 py-5">
                         <form action={handleUpdateRole} className="flex flex-col sm:flex-row gap-4 items-center justify-end">
@@ -542,6 +646,64 @@ export function TeamManagement({
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile Card Feed View */}
+          <div className="block md:hidden divide-y divide-border/30 bg-card/30 rounded-xl border border-border overflow-hidden">
+            {regularUsers.length === 0 ? (
+              <p className="text-center py-8 text-xs text-muted-foreground italic">
+                {searchQuery ? "Пользователь не найден" : "Начните поиск по email для смены роли"}
+              </p>
+            ) : (
+              regularUsers.map((u) => (
+                <div key={u.id} className="p-4 space-y-3">
+                  <span className="text-xs font-mono font-bold text-foreground bg-muted/40 px-2.5 py-1.5 rounded-lg border border-border/30 truncate max-w-[280px] block" title={u.email}>
+                    {u.email}
+                  </span>
+                  <form action={handleUpdateRole} className="space-y-3 p-3 rounded-xl border border-border/40 bg-muted/20">
+                    <input type="hidden" name="userId" value={u.id} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Роль</span>
+                        <Select name="role" defaultValue={u.role}>
+                          <SelectTrigger className="w-full h-10 bg-background text-xs font-bold rounded-xl" size="default">
+                            <SelectValue>
+                              {(value: string) => value || 'Выбрать'}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAllowedRoles(currentAdminRole).map((r) => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Группа прав</span>
+                        <Select name="staffRoleId" defaultValue={u.staffRoleId || 'NONE'}>
+                          <SelectTrigger className="w-full h-10 bg-background text-xs font-bold rounded-xl" size="default">
+                            <SelectValue>
+                              {(value: string) => {
+                                if (!value || value === 'NONE') return 'Все права (OWNER)';
+                                return staffRoles.find(r => r.id === value)?.name ?? value;
+                              }}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NONE">Все права (OWNER)</SelectItem>
+                            {staffRoles.map((role) => (
+                              <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <SubmitButton label="Назначить" className="w-full h-10 text-xs" />
+                  </form>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

@@ -79,6 +79,8 @@ export async function POST(request: NextRequest) {
         return await handleServices(user, formData);
       case 'add':
         return await handleAdd(user, formData);
+      case 'add_multi':
+        return await handleAddMulti(user, formData);
       case 'status':
         return await handleStatus(user, formData);
       case 'balance':
@@ -169,7 +171,7 @@ async function handleAdd(user: any, formData: FormData) {
     });
 
     if (!result.success || !result.orderId) {
-      throw new Error(result.error === 'Insufficient funds' ? 'INSUFFICIENT_FUNDS' : result.error);
+      throw new Error((result.error === 'Insufficient funds' || result.error?.startsWith('Insufficient funds')) ? 'INSUFFICIENT_FUNDS' : result.error);
     }
 
     const createdOrder = await db.order.findUnique({ where: { id: result.orderId }, select: { numericId: true }});
@@ -186,6 +188,119 @@ async function handleAdd(user: any, formData: FormData) {
     console.error('[API v2 Error]:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseOrders(formData: FormData): any[] | null { // Justified: parsing dynamic reseller payload format types
+  const ordersStr = formData.get('orders')?.toString();
+  if (ordersStr) {
+    try {
+      const parsed = JSON.parse(ordersStr);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // Not a valid JSON array, fallback to form-urlencoded parsing
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ordersMap: Record<number, any> = {}; // Justified: building index map of arbitrary form fields
+  let hasEntries = false;
+  for (const [key, value] of formData.entries()) {
+    const match = key.match(/^orders\[(\d+)\]\[(\w+)\]$/);
+    if (match) {
+      hasEntries = true;
+      const index = parseInt(match[1], 10);
+      const field = match[2];
+      if (!ordersMap[index]) {
+        ordersMap[index] = {};
+      }
+      ordersMap[index][field] = value.toString();
+    }
+  }
+
+  if (!hasEntries) return null;
+
+  return Object.keys(ordersMap)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map(index => ordersMap[index]);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleAddMulti(user: any, formData: FormData) { // Justified: user object can be any Prisma User model
+  const rawOrders = parseOrders(formData);
+
+  if (!rawOrders || !Array.isArray(rawOrders) || rawOrders.length === 0) {
+    return NextResponse.json({ error: 'Incorrect parameters' }, { status: 400 });
+  }
+
+  // Cap batch size to prevent DoS (max 50 orders)
+  if (rawOrders.length > 50) {
+    return NextResponse.json({ error: 'Batch size too large (max 50 orders)' }, { status: 400 });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const results: any[] = []; // Justified: dynamic results array containing orders or errors
+
+  for (const rawOrder of rawOrders) {
+    const parsed = addSchema.safeParse(rawOrder);
+    if (!parsed.success) {
+      results.push({ error: 'Incorrect parameters' });
+      continue;
+    }
+
+    const { service: serviceNumericId, link, quantity, runs, interval } = parsed.data;
+
+    try {
+      const service = await db.service.findUnique({ where: { numericId: serviceNumericId } });
+      if (!service || !service.isActive) {
+        results.push({ error: 'Incorrect service ID' });
+        continue;
+      }
+
+      if (quantity < service.minQty || quantity > service.maxQty) {
+        results.push({ error: 'Quantity out of bounds' });
+        continue;
+      }
+
+      const totalQuantity = (runs && runs > 0) ? quantity * runs : quantity;
+
+      const pricing = await marketingService.calculatePrice(user.id, service.id, totalQuantity);
+
+      const result = await orderService.createOrder(user.id, {
+        serviceId: service.id,
+        link,
+        quantity: totalQuantity,
+        charge: pricing.totalCents,
+        providerCost: pricing.providerCostCents,
+        runs,
+        interval
+      });
+
+      if (!result.success || !result.orderId) {
+        throw new Error((result.error === 'Insufficient funds' || result.error?.startsWith('Insufficient funds')) ? 'INSUFFICIENT_FUNDS' : result.error);
+      }
+
+      const createdOrder = await db.order.findUnique({
+        where: { id: result.orderId },
+        select: { numericId: true }
+      });
+
+      results.push({ order: createdOrder?.numericId });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) { // Justified: catching dynamic database or business logic errors
+      if (err instanceof Error && err.message === 'INSUFFICIENT_FUNDS') {
+        results.push({ error: 'Not enough funds on balance' });
+      } else if (err?.code === 'P2034' || err?.code === 'P2028') {
+        results.push({ error: 'Not enough funds on balance' });
+      } else {
+        console.error('[API v2 add_multi item error]:', err);
+        results.push({ error: 'Internal server error' });
+      }
+    }
+  }
+
+  return NextResponse.json(results);
 }
 
 async function handleStatus(user: User, formData: FormData) {

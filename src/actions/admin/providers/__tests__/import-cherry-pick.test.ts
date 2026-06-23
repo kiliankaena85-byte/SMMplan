@@ -32,13 +32,24 @@ vi.mock('@/lib/session', async (importOriginal: any) => {
 });
 
 // Mock redis
-vi.mock('@/lib/redis', () => ({
-  redis: {
-    get: vi.fn(),
-    set: vi.fn(),
-    setex: vi.fn(),
-  }
-}));
+vi.mock('@/lib/redis', () => {
+  const mockPipeline = {
+    del: vi.fn().mockReturnThis(),
+    hset: vi.fn().mockReturnThis(),
+    expire: vi.fn().mockReturnThis(),
+    exec: vi.fn().mockResolvedValue([]),
+  };
+  return {
+    redis: {
+      get: vi.fn(),
+      set: vi.fn(),
+      setex: vi.fn(),
+      hget: vi.fn(),
+      hmget: vi.fn(),
+      pipeline: vi.fn(() => mockPipeline),
+    }
+  };
+});
 
 // Mock provider instance
 const mockGetServices = vi.fn();
@@ -228,7 +239,7 @@ describe('Cherry-Pick Service Import & Shadow Catalog Tests', () => {
         metrics: { platform: 'Telegram', category: 'SUBSCRIBERS', targetType: 'CHANNEL', anomalyScore: 0.1 }
       }
     ];
-    vi.mocked(redis.get).mockResolvedValue(JSON.stringify(mockShadowCatalog));
+    vi.mocked(redis.hmget).mockResolvedValue([JSON.stringify(mockShadowCatalog[0])]);
 
     // Live check api mock - return live prices to ensure no cache poisoning occurs
     mockGetServices.mockResolvedValue([

@@ -19,7 +19,7 @@ This project hardens the Smmplan B2B administration panel and client-support flo
 | 3 | R3: Financial Dashboard Analytics | dashboard metrics (Revenue, YooKassa fees, Provider cost COGS), dynamic USN tax selection (Income vs. Income minus Expenses), and clear net profit indicators (green/yellow/red). | M1, M2 | DONE |
 | 4 | R4: Balance Verification Ledger | Double-check Ledger verifier utility `src/utils/balance-verifier.ts` (`npm run check-balances`) to compare user.balance with ledger entries sum, auto-block fraud, and write alerts. | None | DONE |
 | 5 | R5: Visual QA Script & E2E Tests | `scripts/visual-qa.js` utilizing Playwright with `--compare` using pixelmatch, native visual regression test spec, and 100% build checks. | M1, M3 | DONE |
-| 6 | R6: Ads Analytics Promo Campaign | UTM campaign promo tracking in Prisma, atomic logging at payment time, UI promo creation forms with Ruble-to-cents conversion, dynamic CAC/LTV/ROMI columns with Ivory/Zinc colors and >= 44px hitboxes. | M1, M2, M3 | IN_PROGRESS |
+| 6 | R6: Ads Analytics Promo Campaign | UTM campaign promo tracking in Prisma, atomic logging at payment time, UI promo creation forms with Ruble-to-cents conversion, dynamic CAC/LTV/ROMI columns with Ivory/Zinc colors and >= 44px hitboxes. | M1, M2, M3 | DONE |
 
 
 ## Interface Contracts

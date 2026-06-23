@@ -8,9 +8,11 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { 
   Home, Users, Package, RefreshCw, ShoppingCart, 
   MessageSquare, CreditCard, Link as LinkIcon, Gift, FileText, Settings,
-  PanelLeftClose, PanelLeftOpen, ArrowLeft, BarChart, AlertTriangle, ToggleLeft, Activity, Cpu, BookOpen
+  PanelLeftClose, PanelLeftOpen, ArrowLeft, BarChart, AlertTriangle, ToggleLeft, Activity, Cpu, BookOpen,
+  Sun, Moon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTheme } from 'next-themes';
 
 interface NavItem {
   href: string;
@@ -41,6 +43,20 @@ const ICON_MAP: Record<string, any> = {
 export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) {
   const [collapsed, setCollapsed] = React.useState(true);
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const currentTheme = theme || 'sky-dark';
+  const isDark = currentTheme.includes('dark') || currentTheme === 'dark';
+  const currentAccent = currentTheme.includes('emerald') ? 'emerald' : currentTheme.includes('violet') ? 'violet' : currentTheme.includes('warm') ? 'warm' : currentTheme.includes('telegram') ? 'telegram' : 'sky';
+
+  const setMode = (mode: "light" | "dark") => {
+    setTheme(`${currentAccent}-${mode}`);
+  };
 
   return (
     <aside 
@@ -159,6 +175,50 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
             <ArrowLeft className="w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:-translate-x-1" />
             {!collapsed && <span className="ml-3 tracking-wide">В кабинет клиента</span>}
           </Link>
+        </div>
+
+        {/* Theme Toggle Component */}
+        <div className="pt-2 border-t border-border/40 mx-2 mt-2">
+          {!mounted ? (
+            <div className="h-12 mx-2" />
+          ) : collapsed ? (
+            <button
+              onClick={() => setMode(isDark ? 'light' : 'dark')}
+              title={isDark ? "Светлая тема" : "Темная тема"}
+              aria-label="Переключить тему"
+              className="w-12 h-12 flex items-center justify-center rounded-[10px] text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all duration-200 mx-auto active:scale-95 cursor-pointer mt-1"
+            >
+              {isDark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+            </button>
+          ) : (
+            <div className="flex items-center justify-between px-4 py-2 mt-1 bg-muted/20 border border-border/40 rounded-[10px] mx-1 transition-all duration-200">
+              <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">Тема</span>
+              <div className="flex gap-1 bg-muted/40 p-0.5 rounded-lg border border-border/40">
+                <button
+                  onClick={() => setMode('light')}
+                  className={cn(
+                    "p-1.5 rounded-md transition-all cursor-pointer active:scale-[0.93]",
+                    !isDark ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                  title="Светлая тема"
+                  aria-label="Светлая тема"
+                >
+                  <Sun className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setMode('dark')}
+                  className={cn(
+                    "p-1.5 rounded-md transition-all cursor-pointer active:scale-[0.93]",
+                    isDark ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                  title="Темная тема"
+                  aria-label="Темная тема"
+                >
+                  <Moon className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
     </aside>

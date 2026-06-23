@@ -28,7 +28,7 @@ export default async function AdminKnowledgePage() {
   const totalViews = articles.reduce((sum, a) => sum + a.viewCount, 0);
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out bg-background min-h-full pb-10">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out min-h-full pb-10">
       <AdminTabbedHeader
         icon={BookOpen}
         title="База знаний & Блог"

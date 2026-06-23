@@ -9,6 +9,9 @@ const prisma = new PrismaClient();
 const authFile = path.join(__dirname, 'playwright/.auth/user.json');
 
 setup('authenticate', async ({ page, context }) => {
+  // Clear any existing cookies to avoid stale session tokens
+  await context.clearCookies();
+
   // 1. Generate fake JWT that matches `session.ts` logic
   const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
   const encodedKey = new TextEncoder().encode(secretKey);
@@ -32,7 +35,7 @@ setup('authenticate', async ({ page, context }) => {
     }
   });
 
-  const sessionToken = await new SignJWT({ sessionId: session.id, userId: user.id })
+  const sessionToken = await new SignJWT({ sessionId: session.id, userId: user.id, role: user.role })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')

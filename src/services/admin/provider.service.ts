@@ -58,6 +58,7 @@ export type ProviderDetailDTO = {
   balanceCurrency: string;
   mapping: ApiMappingDTO | null; // null means Standard v2 integration
   hasApiKey: boolean;    // true = key is set; the key itself is never exposed
+  ticketUrl: string | null;
 };
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -112,6 +113,7 @@ class AdminProviderService {
         balanceCurrency: true,
         apiKey: true,        // needed only to check if set
         metadata: true,
+        ticketUrl: true,
       },
     });
 
@@ -128,6 +130,7 @@ class AdminProviderService {
       balanceCurrency: p.balanceCurrency,
       mapping: (meta.mapping as ApiMappingDTO) || null,
       hasApiKey: Boolean(p.apiKey && p.apiKey.length > 0),
+      ticketUrl: p.ticketUrl,
     };
   }
 

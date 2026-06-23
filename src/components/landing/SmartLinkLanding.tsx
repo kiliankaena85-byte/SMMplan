@@ -23,10 +23,10 @@ import { DynamicPayloadWarnings } from "./order-engine/DynamicPayloadWarnings";
 import { MegaFooter } from "./MegaFooter";
 import { PlatformLinkGuideDrawer } from "./order-engine/PlatformLinkGuideDrawer";
 import { PaymentGatewaySelectionModal } from "./order-engine/PaymentGatewaySelectionModal";
-import { Box } from "lucide-react";
-import { MassOrderPreview } from "./order-engine/MassOrderPreview";
+import { Box, LayoutList, Link2 } from "lucide-react";
 import { MassConfirmEmailModal } from "./order-engine/MassConfirmEmailModal";
 import { PlatformSelectorFallback } from "@/components/orders/PlatformSelectorFallback";
+import { GuestMassOrderForm } from "./order-engine/GuestMassOrderForm";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { SocialIcon } from "@/components/ui/SocialIcon";
@@ -93,6 +93,14 @@ export function SmartLinkLanding({
   const [isGuideOpen, setIsGuideOpen] = React.useState(false);
   const [activeLegalSlug, setActiveLegalSlug] = React.useState<string | null>(null);
   const [showCatalogModal, setShowCatalogModal] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<'single' | 'mass'>('single');
+
+  // Auto-switch tab to mass order if mass input pattern is pasted
+  React.useEffect(() => {
+    if (isMassMode && activeTab === 'single') {
+      setActiveTab('mass');
+    }
+  }, [isMassMode, activeTab]);
 
   const handleSelectServiceFromCatalog = (srv: PublicService, catId: string, netId: string) => {
     engine.setNetworkId(netId);
@@ -238,51 +246,85 @@ export function SmartLinkLanding({
         {/* ── Main Input & UI Panel ── */}
         <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.08)] border border-border/80 rounded-2xl md:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-8 relative">
           
-          {/* Smart Input (Massive Pill) - Hidden on mobile to prevent duplicate inputs */}
-          <div className="hidden md:block">
-            <HeroInput 
-              engine={engine} 
-              handleCheckout={handleCheckout} 
-              linkHasError={linkHasError} 
-              setLinkHasError={setLinkHasError} 
-              onOpenGuide={() => setIsGuideOpen(true)}
-            />
+          {/* Segmented activeTab switcher for premium look & layout-shift prevention */}
+          <div className="flex gap-1 p-1 bg-default-100 rounded-2xl border border-border/50 w-full sm:w-max mb-6">
+            <button
+              onClick={() => {
+                if (navigator.vibrate) navigator.vibrate(10);
+                setActiveTab('single');
+                engine.setUrl("");
+              }}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'single'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-default-200/50'
+              }`}
+            >
+              <Link2 className="w-4 h-4 shrink-0" />
+              <span>Одиночный заказ</span>
+            </button>
+            <button
+              onClick={() => {
+                if (navigator.vibrate) navigator.vibrate(10);
+                setActiveTab('mass');
+                engine.setUrl("");
+              }}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'mass'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-default-200/50'
+              }`}
+            >
+              <LayoutList className="w-4 h-4 shrink-0" />
+              <span>Массовый заказ</span>
+            </button>
           </div>
 
-
-
-          {url.trim().length >= 5 && !isLoading && (!engine.platform || !networkId) && !engine.manualPlatform && (
-            <div className="mt-4 animate-in fade-in duration-300 w-full max-w-4xl mx-auto relative z-20 hidden md:block">
-              <PlatformSelectorFallback
-                onSelect={engine.setManualPlatform}
-                availablePlatforms={availablePlatforms}
+          <div className="min-h-[500px] transition-all duration-300">
+            {unfilteredCatalog.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2.5rem] min-h-[360px] p-8 m-4">
+                <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center animate-bounce">
+                  <Box className="w-8 h-8 text-primary/60" />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-lg font-extrabold text-foreground">Каталог временно недоступен</p>
+                  <p className="text-sm text-muted-foreground max-w-md leading-relaxed mx-auto">
+                    В настоящий момент мы обновляем список услуг и проводим техническое обслуживание. Пожалуйста, зайдите немного позже или обратитесь в поддержку.
+                  </p>
+                </div>
+              </div>
+            ) : activeTab === 'mass' ? (
+              <GuestMassOrderForm
+                engine={engine}
+                handleCheckout={handleCheckout}
+                isSubmitting={isSubmitting}
               />
-            </div>
-          )}
+            ) : (
+              <>
+                {/* Smart Input (Massive Pill) - Hidden on mobile to prevent duplicate inputs */}
+                <div className="hidden md:block">
+                  <HeroInput 
+                    engine={engine} 
+                    handleCheckout={handleCheckout} 
+                    linkHasError={linkHasError} 
+                    setLinkHasError={setLinkHasError} 
+                    onOpenGuide={() => setIsGuideOpen(true)}
+                  />
+                </div>
 
-          {/* Витрина интерфейса */}
-          <div id="catalog-section" className="w-full bg-content1 rounded-3xl overflow-visible md:overflow-hidden mt-2 md:mt-6">
-             {unfilteredCatalog.length === 0 ? (
-               <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2.5rem] min-h-[360px] p-8 m-4">
-                 <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center animate-bounce">
-                   <Box className="w-8 h-8 text-primary/60" />
-                 </div>
-                 <div className="text-center space-y-2">
-                   <p className="text-lg font-extrabold text-foreground">Каталог временно недоступен</p>
-                   <p className="text-sm text-muted-foreground max-w-md leading-relaxed mx-auto">
-                     В настоящий момент мы обновляем список услуг и проводим техническое обслуживание. Пожалуйста, зайдите немного позже или обратитесь в поддержку.
-                   </p>
-                 </div>
-               </div>
-             ) : isMassMode ? (
-               <MassOrderPreview
-                 engine={engine}
-                 handleCheckout={handleCheckout}
-                 isSubmitting={isSubmitting}
-               />
-             ) : (
-               <div className="w-full flex flex-col will-change-transform">
-                 {/* SECTION 1.0: MOBILE WIZARD (< MD) — 2-step master */}
+                {url.trim().length >= 5 && !isLoading && (!engine.platform || !networkId) && !engine.manualPlatform && (
+                  <div className="mt-4 animate-in fade-in duration-300 w-full max-w-4xl mx-auto relative z-20 hidden md:block">
+                    <PlatformSelectorFallback
+                      onSelect={engine.setManualPlatform}
+                      availablePlatforms={availablePlatforms}
+                    />
+                  </div>
+                )}
+
+                {/* Витрина интерфейса */}
+                <div id="catalog-section" className="w-full bg-content1 rounded-3xl overflow-visible md:overflow-hidden mt-2 md:mt-6">
+                  <div className="w-full flex flex-col will-change-transform">
+                    {/* SECTION 1.0: MOBILE WIZARD (< MD) — 2-step master */}
                     <MobileWizard 
                       engine={engine} 
                       handleCheckout={handleCheckout} 
@@ -294,65 +336,67 @@ export function SmartLinkLanding({
                       onOpenCatalog={() => setShowCatalogModal(true)}
                     />
 
-                 {/* SECTION 1: NETWORKS (Top Tabs Premium) - Hidden on Mobile */}
-                 <NetworkSelector engine={engine} />
+                    {/* SECTION 1: NETWORKS (Top Tabs Premium) - Hidden on Mobile */}
+                    <NetworkSelector engine={engine} />
 
-                 {/* SECTION 2: COLUMNS (Categories & Services & Checkout) — HARD BOUNDARY */}
-                 <div className="hidden md:flex flex-col lg:flex-row min-h-[400px] border-b border-border/50 relative items-start">
-                   {/* 2.1 Left Column: Categories (Tablet Horizontal / Desktop Vertical) */}
-                   <CategorySidebar engine={engine} />
+                    {/* SECTION 2: COLUMNS (Categories & Services & Checkout) — HARD BOUNDARY */}
+                    <div className="hidden md:flex flex-col lg:flex-row min-h-[400px] border-b border-border/50 relative items-start">
+                      {/* 2.1 Left Column: Categories (Tablet Horizontal / Desktop Vertical) */}
+                      <CategorySidebar engine={engine} />
 
-                   {/* MIDDLE WRAPPER */}
-                   <div className="flex flex-col flex-1 min-w-0 border-r border-border/50 pb-12 lg:pb-0">
-                     {/* 2.2 Center Column: Services Container */}
-                     <div className="p-4 md:p-6 lg:p-8 bg-content1 relative flex flex-col min-h-0">
-                       <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
-                         <h3 className="font-extrabold text-foreground text-xl md:text-2xl flex items-center gap-3">
-                           Выберите тариф {services.length > 0 && <span className="text-sm font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">{services.length}</span>}
-                         </h3>
-                       </div>
+                      {/* MIDDLE WRAPPER */}
+                      <div className="flex flex-col flex-1 min-w-0 border-r border-border/50 pb-12 lg:pb-0">
+                        {/* 2.2 Center Column: Services Container */}
+                        <div className="p-4 md:p-6 lg:p-8 bg-content1 relative flex flex-col min-h-0">
+                          <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
+                            <h3 className="font-extrabold text-foreground text-xl md:text-2xl flex items-center gap-3">
+                              Выберите тариф {services.length > 0 && <span className="text-sm font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">{services.length}</span>}
+                            </h3>
+                          </div>
 
-                       <>
-                         {services.length === 0 && isLoading ? (
-                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 pt-4">
-                             {Array.from({length: 8}).map((_, i) => (
-                               <div key={i} className="w-full flex flex-col p-5 md:p-6 min-h-[400px] bg-content2 border border-border/50 shadow-sm animate-pulse rounded-[2rem]" />
-                             ))}
-                           </div>
-                         ) : services.length === 0 ? (
-                           <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2rem] min-h-[320px] p-8">
-                             <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center">
-                               <Box className="w-5 h-5 text-primary/60" />
-                             </div>
-                             <div className="text-center space-y-1.5">
-                               <p className="text-base font-bold text-foreground">
-                                 {!networkId ? 'Выберите платформу' : !categoryId ? 'Выберите категорию' : 'Услуги не найдены'}
-                               </p>
-                               <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-                                 {!networkId
-                                   ? 'Вставьте ссылку на профиль/пост выше, или выберите нужную соцсеть из списка.'
-                                   : !categoryId
-                                   ? 'Выберите нужную категорию услуг в меню слева.'
-                                   : 'В этой категории пока нет доступных услуг. Попробуйте выбрать другую.'}
-                               </p>
-                             </div>
-                           </div>
-                         ) : (
-                          <div className={`pb-8 pt-4 transition-opacity duration-300 hidden md:block ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                             {/* Main Grid Render */}
-                             <ServiceGrid engine={engine} />
-                           </div>
-                         )}
-                       </>
-                     </div>
+                          <>
+                            {services.length === 0 && isLoading ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 pt-4">
+                                {Array.from({length: 8}).map((_, i) => (
+                                  <div key={i} className="w-full flex flex-col p-5 md:p-6 min-h-[400px] bg-content2 border border-border/50 shadow-sm animate-pulse rounded-[2rem]" />
+                                ))}
+                              </div>
+                            ) : services.length === 0 ? (
+                              <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2rem] min-h-[320px] p-8">
+                                <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center">
+                                  <Box className="w-5 h-5 text-primary/60" />
+                                </div>
+                                <div className="text-center space-y-1.5">
+                                  <p className="text-base font-bold text-foreground">
+                                    {!networkId ? 'Выберите платформу' : !categoryId ? 'Выберите категорию' : 'Услуги не найдены'}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                                    {!networkId
+                                      ? 'Вставьте ссылку на профиль/пост выше, или выберите нужную соцсеть из списка.'
+                                      : !categoryId
+                                      ? 'Выберите нужную категорию услуг в меню слева.'
+                                      : 'В этой категории пока нет доступных услуг. Попробуйте выбрать другую.'}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className={`pb-8 pt-4 transition-opacity duration-300 hidden md:block ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                {/* Main Grid Render */}
+                                <ServiceGrid engine={engine} />
+                              </div>
+                            )}
+                          </>
+                        </div>
 
-                     {/* SECTION 3: DYNAMIC PAYLOAD & WARNINGS */}
-                     <DynamicPayloadWarnings engine={engine} />
+                        {/* SECTION 3: DYNAMIC PAYLOAD & WARNINGS */}
+                        <DynamicPayloadWarnings engine={engine} />
 
-                   </div> {/* Closes MIDDLE WRAPPER */}
-                 </div> {/* Closes SECTION 2: COLUMNS lg:flex-row */}
-               </div>
-             )}
+                      </div> {/* Closes MIDDLE WRAPPER */}
+                    </div> {/* Closes SECTION 2: COLUMNS lg:flex-row */}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
         
@@ -422,7 +466,11 @@ export function SmartLinkLanding({
       <PaymentGatewaySelectionModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
-        totalPriceFormatted={pricing ? (pricing.totalCents / 100).toFixed(2) : "0.00"}
+        totalPriceFormatted={
+          activeTab === 'mass'
+            ? (massCalculation ? massCalculation.totalRub.toFixed(2) : "0.00")
+            : (pricing ? (pricing.totalCents / 100).toFixed(2) : "0.00")
+        }
         isSubmitting={isSubmitting}
         onSelectGateway={confirmAndPay}
       />

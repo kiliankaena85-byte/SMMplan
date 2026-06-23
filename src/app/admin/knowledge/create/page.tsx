@@ -12,7 +12,7 @@ export default async function AdminCreateArticlePage() {
   await enforceSectionAccess('settings');
 
   return (
-    <div className="p-6 bg-background min-h-full pb-10">
+    <div className="min-h-full pb-10">
       <ArticleForm />
     </div>
   );

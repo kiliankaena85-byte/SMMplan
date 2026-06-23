@@ -225,26 +225,58 @@ export default function ClientProfileSidebar({
           </div>
         </div>
 
-        {supportLimitCents !== undefined && (
-          <div className="w-full mt-3 p-3 bg-primary/5 border border-primary/10 rounded-xl space-y-2 text-left">
-            <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Лимиты поддержки</div>
-            <div className="flex justify-between text-xs leading-normal">
-              <span className="text-muted-foreground">Доступно лимита:</span>
-              <span className="font-bold text-foreground">{(supportLimitCents / 100).toFixed(2)} ₽</span>
-            </div>
-            {supportSpentTodayCents !== undefined && (
-              <div className="flex justify-between text-xs leading-normal">
-                <span className="text-muted-foreground">Потрачено сегодня:</span>
-                <span className="font-bold text-foreground">{(supportSpentTodayCents / 100).toFixed(2)} ₽</span>
+        {supportLimitCents !== undefined && (() => {
+          const limitCents = supportLimitCents || 0;
+          const spentCents = supportSpentTodayCents || 0;
+          const leftCents = Math.max(0, limitCents - spentCents);
+          const spentPercent = limitCents > 0 ? (spentCents / limitCents) * 100 : 0;
+          
+          let colorClasses = "bg-success/5 border-success/15 text-success-text";
+          let badgeText = "Бюджет в норме";
+          let badgeColor = "bg-success/20 text-success-text";
+          
+          if (spentPercent >= 90) {
+            colorClasses = "bg-destructive/5 border-destructive/15 text-destructive-text";
+            badgeText = "Лимит исчерпан";
+            badgeColor = "bg-destructive/20 text-destructive-text";
+          } else if (spentPercent >= 50) {
+            colorClasses = "bg-warning/5 border-warning/15 text-warning-text";
+            badgeText = "Мало лимита";
+            badgeColor = "bg-warning/20 text-warning-text";
+          }
+          
+          return (
+            <div className={`w-full mt-3 p-3.5 border rounded-xl space-y-2.5 text-left transition-colors ${colorClasses}`}>
+              <div className="flex justify-between items-center">
+                <div className="text-[10px] font-black uppercase tracking-wider">Лимиты поддержки</div>
+                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${badgeColor}`}>
+                  {badgeText}
+                </span>
               </div>
-            )}
-          </div>
-        )}
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between leading-normal">
+                  <span className="opacity-80">Суточный лимит:</span>
+                  <span className="font-bold">{(limitCents / 100).toFixed(2)} ₽</span>
+                </div>
+                <div className="flex justify-between leading-normal">
+                  <span className="opacity-80">Потрачено сегодня:</span>
+                  <span className="font-bold">{(spentCents / 100).toFixed(2)} ₽</span>
+                </div>
+                <div className="flex justify-between leading-normal border-t border-current/10 pt-1.5 mt-1 font-bold">
+                  <span>Осталось доступно:</span>
+                  <span>{(leftCents / 100).toFixed(2)} ₽</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         <Link
           href={`/admin/clients/${user.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
           aria-label="Открыть полный профиль клиента"
-          className="mt-3 w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-border bg-card text-foreground hover:bg-muted transition-all duration-200 cursor-pointer"
+          className="mt-3 w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border border-border bg-card text-foreground hover:bg-muted transition-all duration-200 cursor-pointer"
         >
           <User className="w-3.5 h-3.5 text-primary" /> В профиль клиента
         </Link>
@@ -284,11 +316,11 @@ export default function ClientProfileSidebar({
              {user.orders.length === 0 && <div className="text-xs text-muted-foreground/80 text-center py-2">Нет заказов</div>}
            </div>
 
-           {user.orders.length > 0 && (
-             <Link href={`/admin/orders?userId=${user.id}`} className="block mt-2 text-[11px] text-center font-bold text-primary hover:text-primary/80 transition-colors">
-               Смотреть все заказы →
-             </Link>
-           )}
+            {user.orders.length > 0 && (
+              <Link href={`/admin/orders?userId=${user.id}`} target="_blank" rel="noopener noreferrer" className="block mt-2 text-[11px] text-center font-bold text-primary hover:text-primary/80 transition-colors">
+                Смотреть все заказы →
+              </Link>
+            )}
         </div>
 
         {/* Последние транзакции */}

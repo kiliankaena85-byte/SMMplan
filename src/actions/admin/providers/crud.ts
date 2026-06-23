@@ -47,6 +47,16 @@ const providerSchema = z.object({
   isActive: z.boolean().default(false),
   balanceCurrency: z.string().length(3, "Код валюты должен состоять ровно из 3 букв (например, USD)").toUpperCase(),
   mapping: apiMappingSchema.nullable().optional(),
+  ticketUrl: z.string()
+    .trim()
+    .transform(val => val === "" ? null : val)
+    .pipe(
+      z.string()
+        .url("Некорректный формат URL (укажите полный адрес с https://)")
+        .refine(val => val.startsWith("http://") || val.startsWith("https://"), "Разрешены только протоколы http и https")
+        .nullable()
+    )
+    .optional(),
 });
 
 const idSchema = z.string().min(1);
@@ -57,6 +67,7 @@ export async function createProvider(rawData: {
   apiKey: string;
   isActive: boolean;
   balanceCurrency: string;
+  ticketUrl?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapping?: any;
 }) {
@@ -87,6 +98,7 @@ export async function createProvider(rawData: {
           isActive: data.isActive,
           balanceCurrency: data.balanceCurrency,
           metadata: metadata,
+          ticketUrl: data.ticketUrl || null,
         }
       });
 
@@ -113,6 +125,7 @@ export async function updateProvider(rawId: string, rawData: {
   apiKey?: string; // If empty, we don't update
   isActive: boolean;
   balanceCurrency: string;
+  ticketUrl?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapping?: any;
 }) {
@@ -141,7 +154,8 @@ export async function updateProvider(rawId: string, rawData: {
         balanceCurrency: data.balanceCurrency,
         metadata: {
            mapping: data.mapping || null
-        }
+        },
+        ticketUrl: data.ticketUrl || null,
       };
 
       if (data.apiKey && data.apiKey.trim() !== "") {

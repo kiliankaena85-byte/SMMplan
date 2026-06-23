@@ -138,7 +138,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
       {/* CRUD Form card */}
       <div className="lg:col-span-1 space-y-6">
         <Card className="rounded-2xl border-border shadow-sm bg-card">
-          <CardHeader className="border-b border-border bg-slate-50/50 p-6">
+          <CardHeader className="border-b border-border/60 bg-muted/20 p-6">
             <CardTitle className="text-sm font-bold uppercase tracking-widest text-foreground flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" />
               <span>{editingTemplate ? 'Редактировать шаблон' : 'Создать умный шаблон'}</span>
@@ -210,7 +210,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                       key={tag}
                       type="button"
                       onClick={() => setText(prev => prev + tag)}
-                      className="text-[9px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded transition-colors"
+                      className="text-[9px] font-mono font-bold bg-muted hover:bg-muted/80 text-muted-foreground px-1.5 py-0.5 rounded transition-colors"
                     >
                       {tag}
                     </button>
@@ -248,12 +248,12 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
       {/* Templates list card */}
       <div className="lg:col-span-2">
         <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
-          <CardHeader className="border-b border-border bg-slate-50/50 p-6 flex flex-row items-center justify-between">
+          <CardHeader className="border-b border-border/60 bg-muted/20 p-6 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold uppercase tracking-widest text-foreground flex items-center gap-2">
               <Tag className="w-4 h-4 text-primary" />
               <span>Список шаблонов ответов</span>
             </CardTitle>
-            <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-full uppercase tracking-wider">
+            <span className="text-[10px] font-bold bg-muted text-muted-foreground px-2 py-1 rounded-full uppercase tracking-wider">
               {templates.length} шаблонов
             </span>
           </CardHeader>
@@ -261,7 +261,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-border text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-slate-50/30">
+                <tr className="border-b border-border/60 text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/10">
                   <th className="px-6 py-4">Сорт</th>
                   <th className="px-6 py-4">Название / Команда</th>
                   <th className="px-6 py-4">Текст шаблона</th>
@@ -279,11 +279,11 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                   </tr>
                 ) : (
                   templates.map(t => (
-                    <tr key={t.id} className="hover:bg-slate-50/30 transition-colors">
+                    <tr key={t.id} className="hover:bg-muted/10 transition-colors">
                       <td className="px-6 py-4 font-mono text-muted-foreground">{t.sort || 0}</td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-0.5">
-                          <span className="font-bold text-slate-700">{t.label}</span>
+                          <span className="font-bold text-foreground">{t.label}</span>
                           {t.shortcut ? (
                             <span className="text-[10px] font-mono font-bold text-primary">/{t.shortcut}</span>
                           ) : (
@@ -291,14 +291,14 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 max-w-[200px] truncate text-slate-500 font-normal" title={t.text}>
+                      <td className="px-6 py-4 max-w-[200px] truncate text-muted-foreground font-normal" title={t.text}>
                         {t.text}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                          t.category === 'PAYMENT' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                          t.category === 'ORDER' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
-                          'bg-slate-50 text-slate-600 border border-slate-100'
+                          t.category === 'PAYMENT' ? 'bg-success/10 text-success border border-success/20' :
+                          t.category === 'ORDER' ? 'bg-info/10 text-info border border-info/20' :
+                          'bg-muted text-muted-foreground border border-border/40'
                         }`}>
                           {t.category === 'PAYMENT' ? 'Оплата' :
                            t.category === 'ORDER' ? 'Заказы' : 'Общие'}
@@ -307,8 +307,8 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                           t.isActive !== false
-                            ? 'bg-green-50 text-green-700 border border-green-100'
-                            : 'bg-slate-100 text-slate-400'
+                            ? 'bg-success/10 text-success border border-success/20'
+                            : 'bg-muted text-muted-foreground/60 border border-border/20'
                         }`}>
                           {t.isActive !== false ? 'Активен' : 'Отключен'}
                         </span>
@@ -318,7 +318,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                           <button
                             type="button"
                             onClick={() => handleEditClick(t)}
-                            className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-primary transition-colors rounded-lg"
+                            className="p-1.5 hover:bg-muted text-muted-foreground hover:text-primary transition-colors rounded-lg"
                             title="Редактировать"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -326,7 +326,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                           <button
                             type="button"
                             onClick={() => handleDelete(t.id)}
-                            className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-destructive transition-colors rounded-lg"
+                            className="p-1.5 hover:bg-muted text-muted-foreground hover:text-destructive transition-colors rounded-lg"
                             title="Удалить"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

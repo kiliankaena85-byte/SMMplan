@@ -50,6 +50,7 @@ export async function updateBalanceAction(formData: FormData) {
       ipAddress
     });
 
+    revalidatePath(`/admin/clients/${userId}`);
     revalidatePath('/admin/clients');
     return { success: true as const, status: escrowResult.status };
   });

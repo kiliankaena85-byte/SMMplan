@@ -29,12 +29,15 @@ async function main() {
   for (const name of providerNames) {
     await prisma.provider.upsert({
       where: { name },
-      update: {},
+      update: {
+        ticketUrl: `https://${name.toLowerCase().replace(/-/g, '')}.com/support`
+      },
       create: {
         name,
-        apiUrl: `https://${name.toLowerCase().replace('-', '')}.com/api/v2`,
+        apiUrl: `https://${name.toLowerCase().replace(/-/g, '')}.com/api/v2`,
         apiKey: `mock_key_${name}`,
         isActive: true,
+        ticketUrl: `https://${name.toLowerCase().replace(/-/g, '')}.com/support`
       }
     });
   }

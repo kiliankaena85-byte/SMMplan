@@ -139,7 +139,7 @@ class AdminCatalogService {
       where.OR = orConditions;
     }
 
-    let orderBy: any = { numericId: 'asc' };
+    let orderBy: Record<string, 'asc' | 'desc'> = { numericId: 'asc' };
     if (params.sortBy) {
       const order = params.sortOrder || 'asc';
       switch (params.sortBy) {
@@ -404,6 +404,38 @@ class AdminCatalogService {
             const newCostCents = newRate * exchangeRate * 100;
             const actualMarkup = newCostCents > 0 ? (currentRetailCents / newCostCents) : s.markup;
 
+            // Retrieve price history to calculate 30-day cumulative drift
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            let baselineRecord = await db.servicePriceHistory.findFirst({
+              where: {
+                serviceId: s.id,
+                createdAt: { lte: thirtyDaysAgo }
+              },
+              orderBy: { createdAt: 'desc' }
+            });
+
+            if (!baselineRecord) {
+              baselineRecord = await db.servicePriceHistory.findFirst({
+                where: { serviceId: s.id },
+                orderBy: { createdAt: 'asc' }
+              });
+            }
+
+            let historicalRate = baselineRecord ? baselineRecord.rate : oldRate;
+
+            if (!baselineRecord) {
+              await db.servicePriceHistory.create({
+                data: {
+                  serviceId: s.id,
+                  rate: oldRate,
+                  createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000)
+                }
+              });
+              historicalRate = oldRate;
+            }
+
+            const cumulativeDrift = (newRate - historicalRate) / historicalRate;
+
             if (actualMarkup < SAFETY_FLOOR_MARKUP) {
               // 1. Margin Floor breach -> Quarantine
               await db.service.update({
@@ -418,7 +450,7 @@ class AdminCatalogService {
               marginFloorBreaches++;
               priceAnomalies++;
             } else if (driftPercent > QUARANTINE_THRESHOLD) {
-              // 2. Quarantine threshold > 20%
+              // 2. Quarantine threshold > 20% (instant spike)
               await db.service.update({
                 where: { id: s.id },
                 data: {
@@ -429,8 +461,20 @@ class AdminCatalogService {
                 }
               });
               priceAnomalies++;
+            } else if (cumulativeDrift > QUARANTINE_THRESHOLD) {
+              // 3. Cumulative Price Drift > 20% over 30 days
+              await db.service.update({
+                where: { id: s.id },
+                data: {
+                  isQuarantined: true,
+                  pendingRate: newRate,
+                  quarantineReason: `Cumulative Price Drift: Цена выросла с ${providerCurrency === 'RUB' ? '₽' : '$'}${historicalRate.toFixed(4)} до ${providerCurrency === 'RUB' ? '₽' : '$'}${newRate.toFixed(4)} (+${(cumulativeDrift * 100).toFixed(1)}% за последние 30 дней)`,
+                  quarantinedAt: new Date()
+                }
+              });
+              priceAnomalies++;
             } else {
-              // 3, 4, 5. Silent update (Drift 5-20%, Drift < 5%, or Drop)
+              // 4. Silent update (Drift <= threshold, or Drop)
               const newPriceCents = Math.round(applyBeautifulRounding(newRate * s.markup * exchangeRate) * 100);
               await db.service.update({
                 where: { id: s.id },
@@ -438,6 +482,12 @@ class AdminCatalogService {
                   rate: newRate,
                   providerCurrency: providerCurrency,
                   pricePer1000Cents: newPriceCents
+                }
+              });
+              await db.servicePriceHistory.create({
+                data: {
+                  serviceId: s.id,
+                  rate: newRate
                 }
               });
               priceUpdatedSilent++;
@@ -482,16 +532,22 @@ class AdminCatalogService {
     providerId: string,
     categoryIdMap?: Record<string, string>
   ) {
-    // 1. Fetch from Shadow Catalog (Redis) to get the AI-normalized names and metrics
-    const cacheKey = `provider:${providerId}:catalog`;
-    const cached = await redis.get(cacheKey);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let shadowServices: any[] = [];
-    if (cached) {
-      try { shadowServices = JSON.parse(cached); } catch (err) { console.warn('[CatalogService] shadow parse failed:', err); }
-    }
+    // 1. Fetch from Shadow Catalog (Redis Hash) to get the AI-normalized names and metrics
+    const hashKey = `provider:${providerId}:catalog:details`;
+    const rawShadowServices = await redis.hmget(hashKey, ...externalIds.map(String));
+    
+    const toImportShadow = rawShadowServices
+      .filter(Boolean)
+      .map((str) => {
+        try {
+          return JSON.parse(str!);
+        } catch (err) {
+          console.warn('[CatalogService] shadow parse failed for service detail:', err);
+          return null;
+        }
+      })
+      .filter(Boolean);
 
-    const toImportShadow = shadowServices.filter(s => externalIds.includes(s.service.toString()));
     if (toImportShadow.length === 0) throw new Error('Не найдены услуги для импорта в теневом каталоге (Обновите каталог)');
 
     // 2. LIVE-CHECK: Fetch fresh prices from Provider API to prevent Cache Poisoning
@@ -600,6 +656,23 @@ class AdminCatalogService {
            skipDuplicates: true
        });
        importedCount = result.count;
+
+       // Record initial price history for newly imported services
+       const createdServices = await db.service.findMany({
+         where: {
+           providerId: providerDbRecord.id,
+           externalId: { in: servicesToCreate.map(s => s.externalId) }
+         },
+         select: { id: true, rate: true }
+       });
+       if (createdServices.length > 0) {
+         await db.servicePriceHistory.createMany({
+           data: createdServices.map(cs => ({
+             serviceId: cs.id,
+             rate: cs.rate
+           }))
+         });
+       }
     }
 
     auditAdmin({

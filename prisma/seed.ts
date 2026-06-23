@@ -25,12 +25,15 @@ async function main() {
   // 2. Default Provider
   const provider = await prisma.provider.upsert({
     where: { name: 'Vexboost' },
-    update: {},
+    update: {
+      ticketUrl: 'https://vexboost.ru/tickets/'
+    },
     create: {
       name: 'Vexboost',
       apiUrl: 'https://vexboost.ru/api/v2/',
       apiKey: process.env.VEXBOOST_API_KEY || 'dummy_key',
-      isActive: true
+      isActive: true,
+      ticketUrl: 'https://vexboost.ru/tickets/'
     }
   });
   console.log('Upserted Provider Vexboost');

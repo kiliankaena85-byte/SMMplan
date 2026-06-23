@@ -32,35 +32,14 @@ export function useCheckoutOrchestrator({
   }, [engine.email]);
 
   const handleMassCheckoutConfirm = async (confirmedEmail: string) => {
-    const { url } = engine;
-    setIsSubmitting(true);
-    try {
-      const { massOrderCheckoutAction } = await import('@/actions/order/mass');
-      const res = await massOrderCheckoutAction({
-        text: url,
-        email: confirmedEmail,
-        gateway: 'yookassa'
-      });
-      if (res.success) {
-        if (res.data?.paymentUrl) {
-          window.location.href = res.data.paymentUrl;
-        } else {
-          const errorMessage = 'Не удалось получить ссылку на оплату. Обратитесь в поддержку.';
-          const paymentId = res.data?.paymentId || '';
-          window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=yookassa&email=${encodeURIComponent(confirmedEmail)}&url=${encodeURIComponent(url)}&paymentId=${paymentId}&orderId=`;
-        }
-      } else {
-        const errorMessage = res.error || 'Ошибка создания заказа. Попробуйте еще раз.';
-        window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=yookassa&email=${encodeURIComponent(confirmedEmail)}&url=${encodeURIComponent(url)}&paymentId=&orderId=`;
-      }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      const errorMessage = e.message || 'Ошибка платежного шлюза.';
-      window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=yookassa&email=${encodeURIComponent(confirmedEmail)}&url=${encodeURIComponent(url)}&paymentId=&orderId=`;
-    } finally {
-      setIsSubmitting(false);
-      setShowMassConfirmModal(false);
-    }
+    setShowMassConfirmModal(false);
+    setPendingCheckoutParams({
+      isMassMode: true,
+      email: confirmedEmail,
+      text: engine.url,
+      expectedTotalRub: engine.massCalculation?.totalRub,
+    });
+    setShowPaymentModal(true);
   };
 
   const handleCheckout = async () => {
@@ -327,6 +306,30 @@ export function useCheckoutOrchestrator({
     if (!pendingCheckoutParams) return;
     setIsSubmitting(true);
     try {
+      if (pendingCheckoutParams.isMassMode) {
+        const { massOrderCheckoutAction } = await import('@/actions/order/mass');
+        const res = await massOrderCheckoutAction({
+          text: pendingCheckoutParams.text,
+          email: pendingCheckoutParams.email,
+          gateway: gateway as 'yookassa' | 'cryptobot' | 'balance',
+          expectedTotalRub: pendingCheckoutParams.expectedTotalRub
+        });
+        setIsSubmitting(false);
+        setShowPaymentModal(false);
+        if (res.success) {
+          if (res.data?.paymentUrl) {
+            window.location.href = res.data.paymentUrl;
+          } else {
+            const errorMessage = 'Ошибка: не удалось получить ссылку на оплату.';
+            window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email)}&url=${encodeURIComponent(pendingCheckoutParams.text)}&paymentId=&orderId=`;
+          }
+        } else {
+          const errorMessage = res.error || 'Ошибка создания заказа. Попробуйте еще раз.';
+          window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email)}&url=${encodeURIComponent(pendingCheckoutParams.text)}&paymentId=&orderId=`;
+        }
+        return;
+      }
+
       const { checkoutAction } = await import('@/actions/order/checkout');
       const res = await checkoutAction({
         ...pendingCheckoutParams,

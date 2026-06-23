@@ -8,7 +8,6 @@ import { Toaster } from '@/components/ui/sonner';
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { CommandPalette } from '@/components/admin/command-palette';
 import { SettingsManager } from '@/lib/settings';
-import { AdminThemeForcer } from '@/components/admin/theme-forcer';
 
 // RBAC: Allowed roles for admin panel access
 const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
@@ -172,7 +171,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       </div>
 
       <CommandPalette />
-      <AdminThemeForcer />
       <Toaster position="top-right" richColors closeButton className="mt-4 mr-4" />
     </div>
   );

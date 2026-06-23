@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CBRRateService } from '@/services/system/cbr-rate.service';
 import { getRedisConnection } from '@/lib/queue-manager';
 import { catalogQueue } from '@/workers/queues';
+import { db } from '@/lib/db';
 
 /**
  * T-007: Cron endpoint to sync CBR Exchange Rate.
@@ -18,6 +19,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Check if the system is in manual mode (i.e. exchangeRateUpdatedAt is null, and rate is not 0)
+    const settings = await db.systemSettings.findUnique({ where: { id: 'global' } });
+    if (settings && settings.exchangeRateUpdatedAt === null && settings.exchangeRateUSD !== 0) {
+      console.info('[SyncCBRCron] Skipped. System is in manual exchange rate mode.');
+      return NextResponse.json({ success: false, reason: 'manual_mode_prevented' }, { status: 200 });
+    }
+
     const redis = getRedisConnection();
     const lockKey = 'cron:sync-cbr:lock';
     

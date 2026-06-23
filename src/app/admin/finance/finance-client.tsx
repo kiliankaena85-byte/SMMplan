@@ -10,9 +10,9 @@
 
 import { useState, useTransition, useCallback } from 'react';
 import { toast } from 'sonner';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getLedgerAction, type LedgerEntryDTO, type LedgerPageResult } from '@/actions/admin/finance/ledger';
-import { getPaymentsAction, type PaymentsPageResult } from '@/actions/admin/finance/payments';
+import { getPaymentsAction, type PaymentsPageResult, type PaymentDTO } from '@/actions/admin/finance/payments';
+import { type Table } from '@tanstack/react-table';
 import { 
   Tabs, 
   TabsList, 
@@ -61,10 +61,10 @@ const GATEWAY_LABELS: Record<string, string> = {
   test:      'Тестовый',
 };
 
-function renderMobilePayments(table: any) {
+function renderMobilePayments(table: Table<PaymentDTO>) {
   return (
     <div className="space-y-3">
-      {table.getRowModel().rows.map((row: any) => {
+      {table.getRowModel().rows.map((row) => {
         const item = row.original;
         const isSucceeded = item.status === 'SUCCEEDED';
         const displayId = item.gatewayId || item.id;
@@ -115,10 +115,10 @@ function renderMobilePayments(table: any) {
   );
 }
 
-function renderMobileLedger(table: any) {
+function renderMobileLedger(table: Table<LedgerEntryDTO>) {
   return (
     <div className="space-y-3">
-      {table.getRowModel().rows.map((row: any) => {
+      {table.getRowModel().rows.map((row) => {
         const item = row.original;
         const isPositive = item.amount >= 0;
         return (

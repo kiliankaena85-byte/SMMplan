@@ -94,12 +94,13 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
     });
     
     const sessionId = payload.sessionId as string;
+    console.warn(`[verifySession] Verifying sessionId: "${sessionId}"`);
     const session = await db.session.findUnique({
       where: { id: sessionId },
       include: { user: true }
     });
     if (!session) {
-      console.warn('[verifySession] null because: session not found in DB');
+      console.warn(`[verifySession] null because: session "${sessionId}" not found in DB`);
       return null;
     }
 

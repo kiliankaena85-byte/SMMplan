@@ -20,7 +20,7 @@ type AdminOrderRow = Order & {
       network: Pick<Network, 'name'> | null;
     };
   };
-  provider: { name: string } | null;
+  provider: { name: string; ticketUrl: string | null } | null;
 };
 
 type OrderSearchParams = {
@@ -204,7 +204,7 @@ class AdminOrderService {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, email: true } },
-        provider: { select: { name: true } },
+        provider: { select: { name: true, ticketUrl: true } },
         service: { 
           select: { 
             id: true, 

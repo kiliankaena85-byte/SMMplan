@@ -190,7 +190,7 @@ export function CreatePromoModal() {
         <Plus className="w-4 h-4" />
         Создать
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[450px] bg-card border-border/80">
+      <DialogContent className="sm:max-w-[450px] max-h-[90vh] overflow-y-auto bg-card border-border/80">
         <DialogHeader>
           <DialogTitle className="text-foreground font-bold text-lg">Новый промокод</DialogTitle>
         </DialogHeader>

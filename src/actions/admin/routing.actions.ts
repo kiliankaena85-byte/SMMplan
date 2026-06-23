@@ -102,15 +102,13 @@ export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
 
       const oldProviderId = service.providerId;
 
-      // Fetch new rate from redis catalog to prevent arbitrage
-      const cacheKey = `provider:${targetRoute.providerId}:catalog`;
-      const cachedStr = await redis.get(cacheKey);
+      // Fetch new rate from redis catalog details Hash to prevent arbitrage
+      const hashKey = `provider:${targetRoute.providerId}:catalog:details`;
+      const serviceStr = await redis.hget(hashKey, String(targetRoute.providerServiceId));
       let newRate = service.rate;
-      if (cachedStr) {
+      if (serviceStr) {
         try {
-          const services = JSON.parse(cachedStr);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const s = services.find((x: any) => String(x.service) === String(targetRoute.providerServiceId));
+          const s = JSON.parse(serviceStr);
           if (s && parseFloat(s.rate) > 0) {
             newRate = parseFloat(s.rate);
           }
@@ -394,23 +392,19 @@ export async function getProviderComparisonData(serviceId: string) {
         avgEtaSeconds = Math.round(totalDuration / completedOrders.length);
       }
 
-      // 2. Fetch real-time provider rate and limits from Redis shadow catalog
-      const cacheKey = `provider:${route.providerId}:catalog`;
-      const cachedStr = await redis.get(cacheKey);
+      // 2. Fetch real-time provider rate and limits from Redis shadow catalog details Hash
+      const hashKey = `provider:${route.providerId}:catalog:details`;
+      const serviceStr = await redis.hget(hashKey, String(route.providerServiceId));
       let providerRate: number | null = null;
       let providerMinQty: number | null = null;
       let providerMaxQty: number | null = null;
 
-      if (cachedStr) {
+      if (serviceStr) {
         try {
-          const services = JSON.parse(cachedStr);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const s = services.find((x: any) => String(x.service) === String(route.providerServiceId));
-          if (s) {
-            providerRate = parseFloat(s.rate) || 0.0;
-            providerMinQty = parseInt(s.min) || 0;
-            providerMaxQty = parseInt(s.max) || 0;
-          }
+          const s = JSON.parse(serviceStr);
+          providerRate = parseFloat(s.rate) || 0.0;
+          providerMinQty = parseInt(s.min) || 0;
+          providerMaxQty = parseInt(s.max) || 0;
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
           // ignore parsing error

@@ -4,6 +4,7 @@ import { Loader2, MessageSquare } from 'lucide-react';
 import { ClientDate } from '@/components/ui/client-date';
 import { Message } from './useChatMessages';
 import { ImageZoomModal } from './ImageZoomModal';
+import { toast } from 'sonner';
 
 // Deterministic gradient picker for avatars based on string hash
 const getAvatarGradient = (str: string) => {
@@ -90,6 +91,8 @@ export function ChatMessageList({
       return setEditingMessageId(null);
     }
 
+    const originalText = messages.find(m => m.id === msgId)?.text || '';
+
     // Optimistic update
     setMessages((prev) =>
       prev.map((m) => (m.id === msgId ? { ...m, text: editingText.trim() } : m))
@@ -101,9 +104,17 @@ export function ChatMessageList({
     fd.set('newText', editingText);
 
     try {
-      await editTicketMessage(fd);
-    } catch {
-      /* error silently failing in MVP */
+      const res = (await editTicketMessage(fd)) as { success?: boolean; error?: string } | null | undefined;
+      if (res && res.success === false) {
+        throw new Error(res.error || 'Ошибка при сохранении сообщения на сервере');
+      }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Не удалось изменить сообщение';
+      toast.error(errMsg);
+      // Rollback to original text
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msgId ? { ...m, text: originalText } : m))
+      );
     }
   };
 
@@ -649,21 +660,21 @@ export function ChatMessageList({
                         <textarea
                           value={editingText}
                           onChange={(e) => setEditingText(e.target.value)}
-                          className="w-full text-sm text-slate-900 bg-card border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px]"
+                          className="w-full text-sm text-foreground bg-background border border-border rounded-xl p-3 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[80px] leading-relaxed"
                           autoFocus
                         />
                         <div className="flex gap-2 justify-end mt-2">
                           <button
                             type="button"
                             onClick={() => setEditingMessageId(null)}
-                            className="text-[11px] font-bold uppercase bg-card/50 text-slate-700 px-4 h-11 rounded-xl border border-slate-300 hover:bg-card flex items-center justify-center cursor-pointer"
+                            className="text-[11px] font-bold uppercase bg-muted/50 text-muted-foreground px-4 h-11 rounded-xl border border-border hover:bg-muted flex items-center justify-center cursor-pointer transition-colors"
                           >
                             Отмена
                           </button>
                           <button
                             type="button"
                             onClick={() => handleEditSubmit(msg.id)}
-                            className="text-[11px] font-bold uppercase bg-primary text-primary-foreground px-4 h-11 rounded-xl hover:bg-primary shadow-sm border border-indigo-700 flex items-center justify-center cursor-pointer"
+                            className="text-[11px] font-bold uppercase bg-primary text-primary-foreground px-4 h-11 rounded-xl hover:bg-primary/95 shadow-sm border border-primary flex items-center justify-center cursor-pointer transition-colors"
                           >
                             Сохранить
                           </button>

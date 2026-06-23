@@ -355,10 +355,7 @@ export const SmartAnalyzerLogic = class {
             else if (fullContent.includes('boost') || fullContent.includes('буст')) category = 'BOOSTS';
             else if (isStory) category = 'STORIES';
             else if (isAutoViews) category = 'AUTO_VIEWS';
-            else if (nameNode.includes('подпис') || nameNode.includes('member')) {
-                // ПРИОРИТЕТ: "Подписчики" (Subscribers) > "Подписка" (Boosts/Auto)
-                category = 'SUBSCRIBERS';
-            }
+            else if (isAutoViews) category = 'AUTO_VIEWS';
             else if (nameNode.includes('реакци') || nameNode.includes('reaction')) {
                 // Earliest match check within name for views vs reactions
                 const vIdx = nameNode.indexOf('просмотр');
@@ -371,6 +368,10 @@ export const SmartAnalyzerLogic = class {
                 
                 if (minV < minR) category = 'VIEWS';
                 else category = 'REACTIONS';
+            }
+            else if (nameNode.includes('подпис') || nameNode.includes('member')) {
+                // ПРИОРИТЕТ: "Подписчики" (Subscribers) > "Подписка" (Boosts/Auto)
+                category = 'SUBSCRIBERS';
             }
             else if (nameNode.includes('просмотр') || nameNode.includes('view')) category = 'VIEWS';
         } else if (effectivePlatform === 'YOUTUBE') {
@@ -389,43 +390,44 @@ export const SmartAnalyzerLogic = class {
         // 3. Target Type
         let targetType: string;
         const isPrivate = fullContent.includes('private') || fullContent.includes('закрыт') || fullContent.includes('приват');
-        const isAuto = isAutoMention || fullContent.includes('последних');
+        const isAuto = isAutoMention || fullContent.includes('последних') || fullContent.includes('последние') || fullContent.includes('будущие') || fullContent.includes('будущих');
 
         if (effectivePlatform === 'TELEGRAM') {
             if (category === 'STARS') targetType = 'CUSTOM';
             else if (category === 'BOTS' || category === 'REFERRALS') targetType = 'CHANNEL';
             else if (category === 'STORIES') targetType = 'STORY';
             else if (isAuto) targetType = 'CHANNEL_POSTS';
-            else if (['SUBSCRIBERS', 'GROUPS', 'BOOSTS'].includes(category)) targetType = 'CHANNEL';
+            else if (['SUBSCRIBERS', 'GROUPS', 'BOOSTS', 'PREMIUM', 'FRIENDS'].includes(category)) targetType = 'CHANNEL';
             else targetType = 'POST';
         } else if (effectivePlatform === 'YOUTUBE') {
-            if (category === 'SUBSCRIBERS') targetType = 'CHANNEL';
-            else targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
+            if (isAuto) targetType = 'CHANNEL_POSTS';
+            else if (['SUBSCRIBERS', 'FRIENDS', 'GROUPS'].includes(category)) targetType = 'CHANNEL';
+            else targetType = 'POST';
         } else if (effectivePlatform === 'INSTAGRAM') {
             if (isAuto) targetType = 'CHANNEL_POSTS';
-            else if (category === 'SUBSCRIBERS') targetType = 'CHANNEL'; // Changed from 'PROFILE' to 'CHANNEL'
+            else if (['SUBSCRIBERS', 'FRIENDS', 'GROUPS'].includes(category)) targetType = 'CHANNEL';
             else if (category === 'STORIES') targetType = 'STORY';
-            else if (fullContent.includes('reel') || fullContent.includes('video')) targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
+            else if (fullContent.includes('reel') || fullContent.includes('video')) targetType = 'POST'; 
             else targetType = 'POST';
         } else if (effectivePlatform === 'VK') {
             if (isAuto) targetType = 'CHANNEL_POSTS';
-            else if (fullContent.includes('stream') || fullContent.includes('зрител')) targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
+            else if (fullContent.includes('stream') || fullContent.includes('зрител')) targetType = 'POST'; 
             else if (category === 'POLLS') targetType = 'POLL';
-            else if (category === 'FRIENDS') targetType = 'CHANNEL'; // Changed from 'PROFILE' to 'CHANNEL'
-            else if (category === 'GROUPS' || category === 'SUBSCRIBERS') targetType = 'CHANNEL';
-            else if (fullContent.includes('clip') || fullContent.includes('клип')) targetType = 'POST'; // Changed from 'VK_CLIP' to 'POST'
-            else if (fullContent.includes('video') || fullContent.includes('видео')) targetType = 'POST'; // Changed from 'VK_VIDEO' to 'POST'
+            else if (['FRIENDS', 'GROUPS', 'SUBSCRIBERS'].includes(category)) targetType = 'CHANNEL';
+            else if (fullContent.includes('clip') || fullContent.includes('клип')) targetType = 'POST';
+            else if (fullContent.includes('video') || fullContent.includes('видео')) targetType = 'POST';
             else targetType = 'POST';
         } else if (effectivePlatform === 'DZEN') {
-            if (fullContent.includes('стать') || fullContent.includes('article')) targetType = 'POST';
+            if (isAuto) targetType = 'CHANNEL_POSTS';
+            else if (fullContent.includes('стать') || fullContent.includes('article')) targetType = 'POST';
             else if (category === 'SUBSCRIBERS') targetType = 'CHANNEL';
-            else targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
+            else targetType = 'POST'; 
         } else {
             if (isAuto) targetType = 'CHANNEL_POSTS';
-            else if (['SUBSCRIBERS', 'GROUPS', 'FRIENDS'].includes(category)) {
-                 targetType = 'CHANNEL'; // Simplified to CHANNEL for all
+            else if (['SUBSCRIBERS', 'GROUPS', 'FRIENDS', 'PREMIUM'].includes(category)) {
+                 targetType = 'CHANNEL'; 
             } else if (fullContent.includes('video') || fullContent.includes('reel') || fullContent.includes('shorts')) {
-                targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
+                targetType = 'POST'; 
             } else {
                 targetType = 'POST';
             }

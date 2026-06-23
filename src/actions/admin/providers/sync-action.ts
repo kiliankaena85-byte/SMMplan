@@ -188,9 +188,54 @@ export async function adminSyncProviderCatalog() {
             continue;
           }
 
+          // Retrieve history and check cumulative price drift
+          let cumulativeDriftExceeded = false;
+          let cumulativeDrift = 0;
+          let historicalRate = oldRate;
+          
+          if (oldRate > 0 && newRate !== oldRate) {
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            let baselineRecord = await db.servicePriceHistory.findFirst({
+              where: {
+                serviceId: myService.id,
+                createdAt: { lte: thirtyDaysAgo }
+              },
+              orderBy: { createdAt: 'desc' }
+            });
+
+            if (!baselineRecord) {
+              baselineRecord = await db.servicePriceHistory.findFirst({
+                where: { serviceId: myService.id },
+                orderBy: { createdAt: 'asc' }
+              });
+            }
+
+            historicalRate = baselineRecord ? baselineRecord.rate : oldRate;
+
+            if (!baselineRecord) {
+              updatesBatch.push(
+                db.servicePriceHistory.create({
+                  data: {
+                    serviceId: myService.id,
+                    rate: oldRate,
+                    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000)
+                  }
+                })
+              );
+              historicalRate = oldRate;
+            }
+
+            cumulativeDrift = (newRate - historicalRate) / historicalRate;
+            if (cumulativeDrift > quarantineThreshold) {
+              cumulativeDriftExceeded = true;
+            }
+          }
+
+
+
           let markupChanged = false;
 
-          // Check for Elastic Quarantine
+          // Check for Elastic Quarantine and price drift
           if (oldRate > 0 && newRate > oldRate) {
             const increaseRatio = newRate / oldRate;
 
@@ -221,6 +266,33 @@ export async function adminSyncProviderCatalog() {
               
               disabledCount++;
               continue;
+            } else if (cumulativeDriftExceeded) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const updateData: any = {
+                isQuarantined: true,
+                quarantineReason: `Cumulative Price Drift: Цена выросла с ${providerCurrency === 'RUB' ? '₽' : '$'}${historicalRate.toFixed(4)} до ${providerCurrency === 'RUB' ? '₽' : '$'}${newRate.toFixed(4)} (+${(cumulativeDrift * 100).toFixed(1)}% за последние 30 дней)`,
+                isActive: false,
+                pendingRate: newRate,
+                quarantinedAt: new Date()
+              };
+              if (providerCurrencyChanged) {
+                updateData.providerCurrency = providerCurrency;
+              }
+              updatesBatch.push(
+                db.service.update({
+                  where: { id: myService.id },
+                  data: updateData
+                })
+              );
+              
+              const currencySymbol = providerCurrency === 'RUB' ? '₽' : '$';
+              const alertMsg = `🚨 [Price Drift Quarantine] Услуга ${myService.id} ушла в карантин из-за накопленного дрейфа цены > ${(quarantineThreshold * 100).toFixed(0)}% за 30 дней (${currencySymbol}${historicalRate.toFixed(4)} -> ${currencySymbol}${newRate.toFixed(4)}).`;
+              console.warn(alertMsg);
+              const { sendAdminAlert } = await import('@/lib/notifications');
+              await sendAdminAlert(alertMsg, 'WARNING');
+              
+              disabledCount++;
+              continue;
             } else {
               // Рост <= порога. Берем процент на себя (абсорбируем), снижая markup
               const serviceExchangeRateLocal = providerCurrency === 'RUB' ? 1.0 : usdToRub;
@@ -234,19 +306,14 @@ export async function adminSyncProviderCatalog() {
                 }
               }
             }
-          }
-
-          const pricePer1kRub = newRate * myService.markup * serviceExchangeRate;
-          const pricePer1kRubRounded = applyBeautifulRounding(pricePer1kRub);
-          const pricePerUnitRub = pricePer1kRubRounded / 1000;
-          const purchaseCostPerUnitRub = (newRate * serviceExchangeRate) / 1000;
-
-          // Check for Loss Prevention: retail price per unit < purchase cost per unit
-          if (pricePerUnitRub < purchaseCostPerUnitRub) {
+          } else if (cumulativeDriftExceeded) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updateData: any = {
+              isQuarantined: true,
+              quarantineReason: `Cumulative Price Drift: Цена выросла с ${providerCurrency === 'RUB' ? '₽' : '$'}${historicalRate.toFixed(4)} до ${providerCurrency === 'RUB' ? '₽' : '$'}${newRate.toFixed(4)} (+${(cumulativeDrift * 100).toFixed(1)}% за последние 30 дней)`,
               isActive: false,
-              lastSeenAt: new Date()
+              pendingRate: newRate,
+              quarantinedAt: new Date()
             };
             if (providerCurrencyChanged) {
               updateData.providerCurrency = providerCurrency;
@@ -257,27 +324,19 @@ export async function adminSyncProviderCatalog() {
                 data: updateData
               })
             );
-
-            const alertMsg = `🚨 [Loss Prevention] Услуга ${myService.id} автоматически отключена! Розничная цена ${pricePerUnitRub.toFixed(4)} ₽/шт меньше себестоимости закупки ${purchaseCostPerUnitRub.toFixed(4)} ₽/шт.`;
-            console.error(alertMsg);
-
-            await db.routingAuditLog.create({
-              data: {
-                serviceId: myService.id,
-                action: 'LOSS_PREVENTION_BLOCK',
-                reason: `Retail price ${pricePerUnitRub.toFixed(4)} < Cost ${purchaseCostPerUnitRub.toFixed(4)}`
-              }
-            });
-
+            
+            const currencySymbol = providerCurrency === 'RUB' ? '₽' : '$';
+            const alertMsg = `🚨 [Price Drift Quarantine] Услуга ${myService.id} ушла в карантин из-за накопленного дрейфа цены > ${(quarantineThreshold * 100).toFixed(0)}% за 30 дней (${currencySymbol}${historicalRate.toFixed(4)} -> ${currencySymbol}${newRate.toFixed(4)}).`;
+            console.warn(alertMsg);
             const { sendAdminAlert } = await import('@/lib/notifications');
-            await sendAdminAlert(alertMsg, 'CRITICAL');
-
+            await sendAdminAlert(alertMsg, 'WARNING');
+            
             disabledCount++;
             continue;
           }
 
           // Normal sync: Price update
-          const newPriceCents = Math.round(pricePer1kRubRounded * 100);
+          const newPriceCents = Math.round(applyBeautifulRounding(newRate * myService.markup * serviceExchangeRate) * 100);
 
           if (newRate !== oldRate || newPriceCents !== myService.pricePer1000Cents || providerCurrencyChanged || markupChanged) {
             const minInt = parseInt(external.min, 10) || 10;
@@ -308,6 +367,16 @@ export async function adminSyncProviderCatalog() {
                 data: updateData
               })
             );
+            if (newRate !== oldRate) {
+              updatesBatch.push(
+                db.servicePriceHistory.create({
+                  data: {
+                    serviceId: myService.id,
+                    rate: newRate
+                  }
+                })
+              );
+            }
             updatedCount++;
           } else {
             unchangedCount++;
@@ -374,16 +443,25 @@ export async function approveQuarantinedService(serviceId: string) {
       applyBeautifulRounding(targetRate * Math.max(service.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
     );
 
-    await db.service.update({
-      where: { id: serviceId },
-      data: {
-        rate: targetRate,
-        pricePer1000Cents: newPricePer1000Cents,
-        isQuarantined: false,
-        pendingRate: null,
-        quarantineReason: null,
-        quarantinedAt: null,
-      },
+    await db.$transaction(async (tx) => {
+      await tx.service.update({
+        where: { id: serviceId },
+        data: {
+          rate: targetRate,
+          pricePer1000Cents: newPricePer1000Cents,
+          isQuarantined: false,
+          pendingRate: null,
+          quarantineReason: null,
+          quarantinedAt: null,
+        },
+      });
+
+      await tx.servicePriceHistory.create({
+        data: {
+          serviceId,
+          rate: targetRate,
+        }
+      });
     });
 
     auditAdmin({
@@ -451,6 +529,13 @@ export async function approveAllQuarantined() {
             quarantineReason: null,
             quarantinedAt: null,
           },
+        });
+
+        await tx.servicePriceHistory.create({
+          data: {
+            serviceId: s.id,
+            rate: targetRate,
+          }
         });
       }
     });

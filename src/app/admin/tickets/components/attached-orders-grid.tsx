@@ -9,6 +9,7 @@ import {
   bulkRefillOrdersAction, 
   bulkRefundOrdersAction 
 } from '@/actions/support/ticket';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 export interface AttachedOrdersGridProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,8 +21,11 @@ export interface AttachedOrdersGridProps {
 export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOrdersGridProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'refill' | 'refund' | null>(null);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isPending) return;
     if (e.target.checked) {
       setSelectedIds(orders.map(o => o.id));
     } else {
@@ -30,39 +34,51 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
   };
 
   const handleSelectRow = (id: string) => {
+    if (isPending) return;
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
   };
 
-  const handleBulkRefill = () => {
+  const handleBulkRefillRequest = () => {
     if (selectedIds.length === 0) return;
-    startTransition(async () => {
-      const res = await bulkRefillOrdersAction(ticketId, selectedIds);
-      if (res.success) {
-        toast.success(`Массовый перезапуск: обработано ${res.processedCount} заказов.`);
-        if (res.errors.length > 0) {
-          res.errors.forEach(err => toast.error(err));
-        }
-        setSelectedIds([]);
-      } else {
-        toast.error('Произошла непредвиденная ошибка');
-      }
-    });
+    setConfirmAction('refill');
+    setConfirmOpen(true);
   };
 
-  const handleBulkRefund = () => {
+  const handleBulkRefundRequest = () => {
     if (selectedIds.length === 0) return;
+    setConfirmAction('refund');
+    setConfirmOpen(true);
+  };
+
+  const executeConfirm = () => {
+    if (selectedIds.length === 0 || !confirmAction) return;
+    setConfirmOpen(false);
+    
     startTransition(async () => {
-      const res = await bulkRefundOrdersAction(ticketId, selectedIds);
-      if (res.success) {
-        toast.success(`Массовый частичный возврат: возвращено ${res.totalRefundedAmount} ₽ по ${res.processedCount} заказам.`);
-        if (res.errors.length > 0) {
-          res.errors.forEach(err => toast.error(err));
+      if (confirmAction === 'refill') {
+        const res = await bulkRefillOrdersAction(ticketId, selectedIds);
+        if (res.success) {
+          toast.success(`Массовый перезапуск: обработано ${res.processedCount} заказов.`);
+          if (res.errors.length > 0) {
+            res.errors.forEach(err => toast.error(err));
+          }
+          setSelectedIds([]);
+        } else {
+          toast.error('Произошла непредвиденная ошибка');
         }
-        setSelectedIds([]);
-      } else {
-        toast.error('Произошла непредвиденная ошибка');
+      } else if (confirmAction === 'refund') {
+        const res = await bulkRefundOrdersAction(ticketId, selectedIds);
+        if (res.success) {
+          toast.success(`Массовый частичный возврат: возвращено ${res.totalRefundedAmount} ₽ по ${res.processedCount} заказам.`);
+          if (res.errors.length > 0) {
+            res.errors.forEach(err => toast.error(err));
+          }
+          setSelectedIds([]);
+        } else {
+          toast.error('Произошла непредвиденная ошибка');
+        }
       }
     });
   };
@@ -82,7 +98,7 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
             <span className="text-xs font-black text-foreground flex items-center gap-2">
               <span>📦 Прикрепленные заказы B2B ({orders.length})</span>
               {isB2bClient && (
-                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded text-[9px] font-black uppercase select-none animate-pulse">
+                <span className="px-1.5 py-0.5 bg-warning/10 text-warning-text border border-warning/20 rounded text-[9px] font-black uppercase select-none animate-pulse">
                   B2B Безлимит
                 </span>
               )}
@@ -100,7 +116,8 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
                     type="checkbox"
                     checked={selectedIds.length === orders.length && orders.length > 0}
                     onChange={handleSelectAll}
-                    className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer min-h-[36px] min-w-[36px]"
+                    disabled={isPending}
+                    className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer min-h-[36px] min-w-[36px] disabled:opacity-50"
                   />
                 </div>
                 <span>Выбрать все</span>
@@ -113,7 +130,7 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
               <Button
                 intent="primary"
                 size="sm"
-                onClick={handleBulkRefill}
+                onClick={handleBulkRefillRequest}
                 disabled={isPending}
                 className="h-11 min-h-[44px] px-4 text-[11px] font-bold flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer transition-all duration-200"
                 style={{
@@ -127,7 +144,7 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
               <Button
                 intent="destructive"
                 size="sm"
-                onClick={handleBulkRefund}
+                onClick={handleBulkRefundRequest}
                 disabled={isPending}
                 className="h-11 min-h-[44px] px-4 text-[11px] font-bold flex items-center gap-1.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer transition-all duration-200"
                 style={{
@@ -169,8 +186,9 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
                       <input 
                         type="checkbox" 
                         checked={isSelected}
+                        disabled={isPending}
                         readOnly
-                        className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer min-h-[36px] min-w-[36px] pointer-events-none"
+                        className="w-5 h-5 rounded border-border text-primary focus:ring-primary cursor-pointer min-h-[36px] min-w-[36px] pointer-events-none disabled:opacity-50"
                       />
                     </div>
 
@@ -181,7 +199,7 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
                           #{o.numericId}
                         </span>
                         <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border shrink-0 ${
-                          o.status === 'COMPLETED' ? 'bg-success/10 text-success border-emerald-500/20' :
+                          o.status === 'COMPLETED' ? 'bg-success/10 text-success border-success/20' :
                           o.status === 'IN_PROGRESS' ? 'bg-primary/10 text-primary border-primary/20' :
                           o.status === 'PENDING' ? 'bg-warning/10 text-warning-text border-warning/20' :
                           'bg-muted text-foreground border-border'
@@ -212,6 +230,20 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
           </div>
         </div>
       </div>
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={executeConfirm}
+        title={confirmAction === 'refill' ? 'Массовый докрут заказов' : 'Массовый возврат средств'}
+        isDanger={confirmAction === 'refund'}
+        confirmText={confirmAction === 'refill' ? 'Перезапустить' : 'Оформить возврат'}
+      >
+        {confirmAction === 'refill' ? (
+          <>Вы действительно хотите запустить массовый докрут (перезапуск) для выбранных <strong>{selectedIds.length}</strong> заказов?</>
+        ) : (
+          <>Вы действительно хотите оформить частичный возврат средств на баланс клиента для выбранных <strong>{selectedIds.length}</strong> заказов за недовыполненные остатки?</>
+        )}
+      </ConfirmModal>
     </div>
   );
 }

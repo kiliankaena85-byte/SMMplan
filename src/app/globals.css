@@ -158,7 +158,8 @@
     color: var(--color-foreground);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overscroll-behavior-y: contain; /* Prevent pull-to-refresh destroying form state on Android */
-    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -425,4 +426,11 @@
   background-size: 300% 300%;
 }
 
-
+/* --- Custom Utility: Scrollbar None --- */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -156,10 +156,33 @@ export async function updateGlobalSettings(formData: FormData) {
     }
 
     let isRateChanged = false;
+    let finalExchangeRate = exchangeRateUSD;
+
     if (exchangeRateUSD !== undefined && exchangeRateUSD >= 0) {
-      if (oldSettings?.exchangeRateUSD !== exchangeRateUSD) {
-        dataToUpdate.exchangeRateUSD = exchangeRateUSD;
-        isRateChanged = true;
+      if (exchangeRateUSD === 0) {
+        // Trigger CBR sync immediately
+        try {
+          const { CBRRateService } = await import('@/services/system/cbr-rate.service');
+          const syncResult = await CBRRateService.syncCBRExchangeRate();
+          if (syncResult.updated) {
+            finalExchangeRate = syncResult.systemRate;
+            dataToUpdate.exchangeRateUSD = finalExchangeRate;
+            dataToUpdate.exchangeRateUpdatedAt = new Date();
+            isRateChanged = true;
+          } else {
+            finalExchangeRate = syncResult.systemRate || 95.0;
+            dataToUpdate.exchangeRateUSD = finalExchangeRate;
+            isRateChanged = true;
+          }
+        } catch (syncErr) {
+          console.error('[SettingsAction] Failed to sync CBR rate on 0 input:', syncErr);
+        }
+      } else {
+        if (oldSettings?.exchangeRateUSD !== exchangeRateUSD) {
+          dataToUpdate.exchangeRateUSD = exchangeRateUSD;
+          dataToUpdate.exchangeRateUpdatedAt = null; // Clear sync timestamp to indicate manual mode
+          isRateChanged = true;
+        }
       }
     }
 
@@ -192,9 +215,9 @@ export async function updateGlobalSettings(formData: FormData) {
     await settingsService.updateSystemSettings(dataToUpdate);
 
     // Atomic Re-pricing: trigger background sync if rate changed
-    if (isRateChanged && exchangeRateUSD) {
+    if (isRateChanged && finalExchangeRate) {
        try {
-         await catalogQueue.add('sync-prices-bg', { type: 'SYNC_PRICES', usdToRub: exchangeRateUSD });
+         await catalogQueue.add('sync-prices-bg', { type: 'SYNC_PRICES', usdToRub: finalExchangeRate });
        } catch (err) {
          console.error('[SettingsAction] Failed to enqueue background price sync:', err);
        }

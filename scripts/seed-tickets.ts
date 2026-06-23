@@ -3,133 +3,213 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding mock tickets...');
+  console.log('Seeding rich set of mock tickets...');
 
-  // 1. Get or create a user
-  let user = await prisma.user.findFirst({ where: { role: 'USER' } });
-  if (!user) {
-    user = await prisma.user.create({
+  // 1. Get or create a B2B user
+  let b2bUser = await prisma.user.findFirst({
+    where: { email: 'b2b_client@smmplan.pro' },
+    include: { b2bConfig: true }
+  });
+  if (!b2bUser) {
+    b2bUser = await prisma.user.create({
       data: {
-        email: 'test_client@example.com',
+        email: 'b2b_client@smmplan.pro',
         role: 'USER',
-        balance: 150000,
-        totalSpent: 450000,
+        balance: 4500000, // 45,000 RUB
+        totalSpent: 12500000, // 125,000 RUB
+        b2bConfig: {
+          create: {
+            isB2b: true,
+            prioritySupport: true,
+            webhookUrl: 'https://webhook.site/b2b-test'
+          }
+        }
       },
+      include: { b2bConfig: true }
     });
   }
 
-  // Clear existing tickets for this user to avoid clutter
+  // 2. Get or create a normal user
+  let normalUser = await prisma.user.findFirst({
+    where: { email: 'standard_user@gmail.com' }
+  });
+  if (!normalUser) {
+    normalUser = await prisma.user.create({
+      data: {
+        email: 'standard_user@gmail.com',
+        role: 'USER',
+        balance: 12000, // 120 RUB
+        totalSpent: 45000, // 450 RUB
+      }
+    });
+  }
+
+  // Clear existing tickets for both test users to avoid duplicates
   await prisma.ticket.deleteMany({
-    where: { userId: user.id },
+    where: {
+      userId: { in: [b2bUser.id, normalUser.id] }
+    }
   });
 
-  // Ticket 1: Active issue (OPEN)
-  const ticket1 = await prisma.ticket.create({
-    data: {
-      userId: user.id,
+  const now = Date.now();
+
+  // Seed 12 tickets
+  const ticketData = [
+    {
+      userId: b2bUser.id,
       subject: 'Заказ #4521 завис в статусе В работе',
-      status: 'OPEN',
-      source: 'WEB',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-      messages: {
-        create: [
-          {
-            sender: 'USER',
-            text: 'Здравствуйте! Я заказал подписчиков вчера, статус "В работе", но ничего не происходит. Можете проверить?',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-          },
-          {
-            sender: 'STAFF',
-            text: 'Здравствуйте! Сейчас проверю информацию по вашему заказу. Минутку.',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 23.5),
-          },
-          {
-            sender: 'INTERNAL',
-            text: 'Провайдер #3 висит (VexBoost). Надо сделать отмену через их API и вернуть на баланс. Либо подождать еще час.',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 23.4),
-          },
-          {
-            sender: 'STAFF',
-            text: 'Связался с провайдером. В данный момент наблюдаются задержки на серверах Instagram. Мы можем либо подождать 2-3 часа, либо я могу отменить заказ и вернуть средства на баланс. Что предпочитаете?',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 23.3),
-          },
-          {
-            sender: 'USER',
-            text: 'Давайте подождем пару часов. Если не пойдет, тогда отменим.',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-          },
-        ],
-      },
+      status: 'OPEN' as const,
+      source: 'WEB' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 2), // 2 hours ago
+      messages: [
+        { sender: 'USER' as const, text: 'Здравствуйте! Заказ #4521 завис в статусе В работе уже более 4 часов. Проверьте, пожалуйста.' },
+        { sender: 'STAFF' as const, text: 'Здравствуйте! Проверяем. Задержка на стороне провайдера. Ожидайте обновления.' }
+      ]
     },
-  });
-
-  // Ticket 2: Awaiting user reply (PENDING)
-  const ticket2 = await prisma.ticket.create({
-    data: {
-      userId: user.id,
+    {
+      userId: b2bUser.id,
       subject: 'Вопрос по пополнению через USDT',
-      status: 'PENDING',
-      source: 'TELEGRAM',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
-      messages: {
-        create: [
-          {
-            sender: 'USER',
-            text: 'Пытаюсь пополнить через Cryptobot, но не открывается ссылка. Выдает ошибку 404.',
-            mediaUrl: 'sample-error.jpg',
-            mediaType: 'image',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48),
-          },
-          {
-            sender: 'STAFF',
-            text: 'Приветствуем! Подскажите, вы используете VPN? Попробуйте отключить его, либо скопируйте ссылку напрямую в браузер без перехода через Telegram.',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 47.5),
-          },
-        ],
-      },
+      status: 'PENDING' as const,
+      source: 'TELEGRAM' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 24), // 1 day ago
+      messages: [
+        { sender: 'USER' as const, text: 'Пытаюсь пополнить баланс через Cryptobot в USDT, но ссылка выдает ошибку. Можете прислать счет вручную?' },
+        { sender: 'STAFF' as const, text: 'Приветствуем! Пришлите скриншот ошибки. Счет вручную выставить не можем, но поможем разобраться.' }
+      ]
     },
-  });
-
-  // Ticket 3: Closed ticket
-  const ticket3 = await prisma.ticket.create({
-    data: {
-      userId: user.id,
-      subject: 'Сбой в накрутке лайков',
-      status: 'CLOSED',
-      source: 'WEB',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 120), // 5 days ago
-      resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 100),
-      messages: {
-        create: [
-          {
-            sender: 'USER',
-            text: 'Накрутили только половину лайков на пост, заказ числится как выполненный.',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 120),
-          },
-          {
-            sender: 'STAFF',
-            text: 'Здравствуйте! Передаем информацию в технический отдел.',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 119),
-          },
-          {
-            sender: 'STAFF',
-            text: 'Средства за невыполненную часть заказа возвращены на ваш баланс (150 ₽). Приносим извинения за неудобства.',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 100),
-          },
-          {
-            sender: 'USER',
-            text: 'Спасибо, деньги пришли.',
-            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 99),
-          },
-        ],
-      },
+    {
+      userId: normalUser.id,
+      subject: 'Сбой в накрутке лайков Instagram',
+      status: 'CLOSED' as const,
+      source: 'WEB' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 72), // 3 days ago
+      resolvedAt: new Date(now - 1000 * 60 * 60 * 68),
+      messages: [
+        { sender: 'USER' as const, text: 'Накрутка лайков остановилась на 50%. Заказ отмечен как выполненный.' },
+        { sender: 'STAFF' as const, text: 'Здравствуйте! Вернули средства за недовыполненную часть заказа на ваш баланс. Приятного дня!' },
+        { sender: 'USER' as const, text: 'Спасибо, баланс обновился.' }
+      ]
     },
-  });
+    {
+      userId: b2bUser.id,
+      subject: 'Счета-фактуры и закрывающие документы за май',
+      status: 'OPEN' as const,
+      source: 'EMAIL' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 4), // 4 hours ago
+      messages: [
+        { sender: 'USER' as const, text: 'Добрый день! Вышлите закрывающие документы по договору B2B за прошлый месяц. ИНН компании 7701234567.' }
+      ]
+    },
+    {
+      userId: normalUser.id,
+      subject: 'Отмена зависшего заказа Telegram #1042',
+      status: 'OPEN' as const,
+      source: 'TELEGRAM' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 6), // 6 hours ago
+      messages: [
+        { sender: 'USER' as const, text: 'Отмените заказ #1042. Слишком долго идет накрутка подписчиков.' }
+      ]
+    },
+    {
+      userId: normalUser.id,
+      subject: 'Заявка на докрутку просмотров YouTube',
+      status: 'PENDING' as const,
+      source: 'WEB' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 30), // 30 hours ago
+      messages: [
+        { sender: 'USER' as const, text: 'Списались просмотры на видео. Делал заказ с гарантией 30 дней. Ссылка: youtube.com/watch?v=123' },
+        { sender: 'STAFF' as const, text: 'Здравствуйте. Запустили докрутку. Ожидайте выполнения в течение суток.' }
+      ]
+    },
+    {
+      userId: b2bUser.id,
+      subject: 'Не пришли средства при оплате по СБП',
+      status: 'OPEN' as const,
+      source: 'WEB' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 1), // 1 hour ago
+      messages: [
+        { sender: 'USER' as const, text: 'Оплатил 15 000 рублей по СБП 20 минут назад. Деньги на баланс кабинета b2b_client@smmplan.pro до сих пор не зачислились.' }
+      ]
+    },
+    {
+      userId: normalUser.id,
+      subject: 'Ошибка лимитов на накрутку Telegram',
+      status: 'CLOSED' as const,
+      source: 'TELEGRAM' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 96), // 4 days ago
+      resolvedAt: new Date(now - 1000 * 60 * 60 * 90),
+      messages: [
+        { sender: 'USER' as const, text: 'Пишет что лимит превышен при заказе. Почему?' },
+        { sender: 'STAFF' as const, text: 'Здравствуйте. На данной услуге лимит 10 000 штук в сутки на один канал. Пожалуйста, попробуйте заказать завтра.' }
+      ]
+    },
+    {
+      userId: normalUser.id,
+      subject: 'Вопрос по API интеграции',
+      status: 'CLOSED' as const,
+      source: 'EMAIL' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 120), // 5 days ago
+      resolvedAt: new Date(now - 1000 * 60 * 60 * 115),
+      messages: [
+        { sender: 'USER' as const, text: 'Добрый день. Где найти документацию по вашему API для интеграции с нашим сайтом?' },
+        { sender: 'STAFF' as const, text: 'Здравствуйте. Документация доступна в вашем личном кабинете в разделе Настройки -> API.' }
+      ]
+    },
+    {
+      userId: b2bUser.id,
+      subject: 'Проблема с автоплатежом с корпоративной карты',
+      status: 'PENDING' as const,
+      source: 'EMAIL' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 48), // 2 days ago
+      messages: [
+        { sender: 'USER' as const, text: 'Не сработал автоплатеж для пополнения баланса. Ошибка авторизации карты.' },
+        { sender: 'STAFF' as const, text: 'Здравствуйте. Уточните банк-эмитент карты. Проверим логи эквайринга.' }
+      ]
+    },
+    {
+      userId: b2bUser.id,
+      subject: 'Накрутка просмотров на пост не запускается',
+      status: 'OPEN' as const,
+      source: 'TELEGRAM' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 5), // 5 hours ago
+      messages: [
+        { sender: 'USER' as const, text: 'Привет. Пост t.me/channel/123 просмотры не пошли. Заказ оформлен час назад.' }
+      ]
+    },
+    {
+      userId: normalUser.id,
+      subject: 'Сбой в платежной форме YooKassa',
+      status: 'OPEN' as const,
+      source: 'WEB' as const,
+      createdAt: new Date(now - 1000 * 60 * 60 * 12), // 12 hours ago
+      messages: [
+        { sender: 'USER' as const, text: 'Выдает техническую ошибку при клике на оплату картой РФ. Это у вас или у банка проблемы?' }
+      ]
+    }
+  ];
 
-  console.log('✅ Tickets seeded successfully!');
-  console.log(`Open: ${ticket1.id}`);
-  console.log(`Pending: ${ticket2.id}`);
-  console.log(`Closed: ${ticket3.id}`);
+  for (const t of ticketData) {
+    const { userId, subject, status, source, createdAt, resolvedAt, messages } = t;
+    await prisma.ticket.create({
+      data: {
+        userId,
+        subject,
+        status,
+        source,
+        createdAt,
+        resolvedAt,
+        messages: {
+          create: messages.map((m, idx) => ({
+            sender: m.sender,
+            text: m.text,
+            createdAt: new Date(createdAt.getTime() + idx * 60 * 1000)
+          }))
+        }
+      }
+    });
+  }
+
+  console.log('✅ 12 diverse mock tickets seeded successfully!');
 }
 
 main()

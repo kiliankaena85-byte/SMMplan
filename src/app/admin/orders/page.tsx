@@ -219,6 +219,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               error: o.error ?? null,
               user: { email: o.user.email },
               providerName: o.provider?.name ?? null,
+              providerTicketUrl: o.provider?.ticketUrl ?? null,
               service: {
                 name: o.service.name,
                 etaP50Seconds: o.service.etaP50Seconds,
