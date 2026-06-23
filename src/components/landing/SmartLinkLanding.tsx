@@ -26,7 +26,7 @@ import { PaymentGatewaySelectionModal } from "./order-engine/PaymentGatewaySelec
 import { Box, LayoutList, Link2 } from "lucide-react";
 import { MassConfirmEmailModal } from "./order-engine/MassConfirmEmailModal";
 import { PlatformSelectorFallback } from "@/components/orders/PlatformSelectorFallback";
-import { GuestMassOrderForm } from "./order-engine/GuestMassOrderForm";
+import { UniversalOrderForm } from "@/components/orders/UniversalOrderForm";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { SocialIcon } from "@/components/ui/SocialIcon";
@@ -294,11 +294,7 @@ export function SmartLinkLanding({
                 </div>
               </div>
             ) : activeTab === 'mass' ? (
-              <GuestMassOrderForm
-                engine={engine}
-                handleCheckout={handleCheckout}
-                isSubmitting={isSubmitting}
-              />
+              <UniversalOrderForm userEmail={initialEmail} />
             ) : (
               <>
                 {/* Smart Input (Massive Pill) - Hidden on mobile to prevent duplicate inputs */}
@@ -415,7 +411,7 @@ export function SmartLinkLanding({
       <MegaFooter contactSettings={contactSettings} />
 
       {/* ══════════ DESKTOP STICKY CHECKOUT BAR (Финтех-бар) ══════════ */}
-      {!isMassMode && (
+      {!isMassMode && activeTab !== 'mass' && (
         <StickyCheckoutBar
           selectedService={selectedService}
           url={url}

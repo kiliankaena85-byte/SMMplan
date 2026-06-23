@@ -26,9 +26,9 @@ function formatPricePerUnit(price: number): string {
   return formatted;
 }
 
-export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "" }: { userBalanceCents?: number; userEmail?: string }) {
+export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "", initialText = "" }: { userBalanceCents?: number; userEmail?: string; initialText?: string }) {
   const engine = useMultiOrderEngine();
-  const [inputText, setInputText] = useState("");
+  const [inputText, setInputText] = useState(initialText);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   
   const [isLoading, setIsLoading] = useState(false);
@@ -45,6 +45,14 @@ export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "" }: { u
       }
     }
   }, [engine.tasks, expandedTaskId]);
+
+  useEffect(() => {
+    if (initialText) {
+      engine.addLinks(initialText);
+      setInputText("");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const text = e.clipboardData.getData('text');
@@ -123,6 +131,12 @@ export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "" }: { u
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onPaste={handlePaste}
+              onKeyDown={(e) => {
+                 if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (inputText.trim()) handleAddClick();
+                 }
+              }}
               placeholder="Вставьте ссылку или сразу несколько (до 50 шт)"
               className="w-full min-h-[80px] bg-transparent resize-none outline-none text-foreground text-sm font-medium placeholder:text-muted-foreground/60"
            />

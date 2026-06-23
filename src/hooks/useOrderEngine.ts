@@ -171,8 +171,7 @@ export function useOrderEngine(
     validOrders: any[];
   } | null>(null);
   const [isMassCalculating, setIsMassCalculating] = useState(false);
-
-  const isMassMode = url.includes("\n") || url.includes("|");
+  const isMassMode = url.includes("\n") || url.split(/\s+/).filter(Boolean).length > 1;
 
   // Status states
   const [isLoading, setIsLoading] = useState(false);

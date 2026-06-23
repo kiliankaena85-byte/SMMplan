@@ -239,9 +239,9 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
               <div className="pl-3 sm:pl-5 pr-1.5 sm:pr-2 flex-shrink-0">
                 <Link2 className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
               </div>
-              <input
+              <textarea
                 id="landing-url"
-                type="url"
+                rows={1}
                 value={url}
                 onChange={(e) => {
                   setUrl(e.target.value);
@@ -250,6 +250,14 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
                 onFocus={() => setIsFocused(true)}
                 onPaste={(e) => {
                   const pastedText = e.clipboardData.getData("text");
+                  if (pastedText.includes('\n') || pastedText.split(/\s+/).filter(Boolean).length > 1) {
+                     e.preventDefault();
+                     setUrl(pastedText);
+                     if (linkHasError) setLinkHasError(false);
+                     toast.success("Режим Умной Корзины активирован!");
+                     return;
+                  }
+
                   const activeNetwork = engine.catalog.find(n => n.id === engine.networkId);
                   const platformSlug = activeNetwork?.slug || "";
                   
@@ -293,7 +301,7 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
                   }
                 }}
                 placeholder="Вставьте ссылку на канал, группу или пост..."
-                className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm sm:text-base md:text-lg font-semibold text-foreground placeholder:text-muted-foreground px-1.5 sm:px-3 h-full w-full"
+                className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm sm:text-base md:text-lg font-semibold text-foreground placeholder:text-muted-foreground px-1.5 sm:px-3 h-full w-full resize-none pt-[18px] sm:pt-[20px] md:pt-[22px] overflow-hidden whitespace-nowrap"
               />
               <Button
                 type="button"
