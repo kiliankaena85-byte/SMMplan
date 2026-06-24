@@ -7,6 +7,7 @@ import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 import { ClientDate } from '@/components/ui/client-date';
 import { Clock, ExternalLink, LayoutDashboard } from 'lucide-react';
+import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
 
 const STATUS_LABEL: Record<string, string> = {
   COMPLETED:       'Выполнен',
@@ -152,6 +153,16 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                         )}
                       </div>
                     )}
+                    {!['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                         <RepeatOrderButton 
+                           serviceId={order.service.id} 
+                           categoryId={order.service.categoryId} 
+                           link={order.link} 
+                           quantity={order.quantity} 
+                         />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -263,6 +274,17 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                             balance={Number(user.balance)} 
                           />
                         )}
+                      </div>
+                    )}
+                    {!['PENDING', 'AWAITING_PAYMENT'].includes(selectedOrder.status) && (
+                      <div className="flex gap-3 pt-2">
+                         <RepeatOrderButton 
+                           serviceId={selectedOrder.service.id} 
+                           categoryId={selectedOrder.service.categoryId} 
+                           link={selectedOrder.link} 
+                           quantity={selectedOrder.quantity} 
+                           className="w-full h-11 text-sm font-bold bg-primary text-primary-foreground border-none hover:bg-primary/90 hover:text-primary-foreground"
+                         />
                       </div>
                     )}
                   </div>

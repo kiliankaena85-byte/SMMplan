@@ -20,7 +20,7 @@ export function MegaFooter({
   const siteName = contactSettings?.SITE_NAME || "SMMplan";
   const companyName = contactSettings?.COMPANY_NAME && contactSettings.COMPANY_NAME !== "SMMplan" && !contactSettings.COMPANY_NAME.includes("Укажите")
     ? contactSettings.COMPANY_NAME
-    : "Самозанятый Соколов Артём Андреевич";
+    : "ИП Соколов Артём Андреевич";
   const supportEmail = contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro";
   const inn = contactSettings?.LEGAL_INN && contactSettings.LEGAL_INN !== "Укажите ИНН" && contactSettings.LEGAL_INN !== "000000000000"
     ? contactSettings.LEGAL_INN
@@ -48,7 +48,7 @@ export function MegaFooter({
             </div>
             <span className="text-2xl font-black tracking-tight text-foreground">{siteName}</span>
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
+          <p className="text-base text-muted-foreground leading-relaxed max-w-sm">
             Платформа нового поколения для B2B продвижения. Мгновенный запуск, строгая конфиденциальность и официальная работа с гарантиями.
           </p>
           <div className="pt-4 flex flex-wrap items-center gap-5 text-muted-foreground/40 select-none border-t border-border/10 max-w-sm">
@@ -87,27 +87,27 @@ export function MegaFooter({
               <span className="font-extrabold text-[10px] tracking-wider leading-none">Cryptobot</span>
             </div>
           </div>
-          <p className="text-[10px] text-muted-foreground/50 max-w-sm leading-relaxed mt-4">
+          <p className="text-xs text-muted-foreground/80 max-w-sm leading-relaxed mt-4">
             * Сервисы Instagram и Facebook принадлежат компании Meta, признанной экстремистской организацией и запрещенной на территории РФ.
           </p>
         </div>
 
         {/* Column 2: Legal Links */}
         <div className="md:col-span-3 space-y-6">
-          <h4 className="text-muted-foreground font-semibold tracking-[0.1em] text-[11px] uppercase mb-6">Документы</h4>
+          <h4 className="text-foreground font-bold tracking-widest text-xs uppercase mb-6">Документы</h4>
           <ul className="space-y-4 text-sm font-medium">
-            <li><Link href={ROUTES.LEGAL.TERMS} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Публичная оферта <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href={ROUTES.LEGAL.PRIVACY} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Конфиденциальность <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href={ROUTES.LEGAL.REFUND} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Возврат средств <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href={ROUTES.LEGAL.COOKIE} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">Использование Cookie <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href="/knowledge" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 group">База знаний <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.TERMS} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Публичная оферта <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.PRIVACY} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Конфиденциальность <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.REFUND} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Возврат средств <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.COOKIE} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Использование Cookie <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href="/knowledge" className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">База знаний <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
           </ul>
         </div>
 
         {/* Column 3: Contact & Support */}
         <div className="md:col-span-4 space-y-6">
-          <h4 className="text-muted-foreground font-semibold tracking-[0.1em] text-[11px] uppercase mb-6">Поддержка</h4>
-          <p className="text-sm text-muted-foreground">Наша команда на связи с 09:00 до 21:00 МСК. Среднее время ответа составляет 15 минут.</p>
+          <h4 className="text-foreground font-bold tracking-widest text-xs uppercase mb-6">Поддержка</h4>
+          <p className="text-sm text-foreground/80">Наша команда на связи с 09:00 до 21:00 МСК. Среднее время ответа составляет 15 минут.</p>
           
           <div className="flex flex-col sm:flex-row gap-3">
             <a 
@@ -129,13 +129,13 @@ export function MegaFooter({
 
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 border-t border-border/40 pt-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs font-medium text-muted-foreground/60 relative z-10">
+      <div className="max-w-7xl mx-auto px-6 border-t border-border/40 pt-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs font-medium text-foreground/80 relative z-10">
         <div className="flex flex-col gap-1.5">
-          <p>© {new Date().getFullYear()} {companyName}. Все права защищены.</p>
-          <p className="text-[10px] opacity-70">
+          <p className="text-sm">© {new Date().getFullYear()} {companyName}. Все права защищены.</p>
+          <p className="text-xs opacity-80">
             Официальный сервис продвижения. ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""}
           </p>
-          <p className="text-[10px] opacity-70">Адрес: {address}</p>
+          <p className="text-xs opacity-80">Адрес: {address}</p>
         </div>
         <p className="flex items-center gap-1">Designed with <span className="text-destructive/70">❤</span> for B2B Growth</p>
       </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Plus, Copy, CheckCircle2, ChevronDown, ChevronUp, Trash2, ShieldCheck, ArrowRight, Wand2 } from 'lucide-react';
-import { useMultiOrderEngine, OrderTask } from '@/hooks/useMultiOrderEngine';
+import { Loader2, Copy, CheckCircle2, ChevronDown, ChevronUp, Trash2, ArrowRight, Wand2 } from 'lucide-react';
+import { useMultiOrderEngine } from '@/hooks/useMultiOrderEngine';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import { formatCents } from '@/lib/utils';
 import { PublicCategory } from '@/actions/order/catalog';
@@ -26,7 +26,19 @@ function formatPricePerUnit(price: number): string {
   return formatted;
 }
 
-export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "", initialText = "", onEmpty }: { userBalanceCents?: number; userEmail?: string; initialText?: string; onEmpty?: () => void }) {
+export function UniversalOrderForm({ 
+  userBalanceCents = 0, 
+  userEmail = "", 
+  initialText = "", 
+  onEmpty,
+  initialReorderData
+}: { 
+  userBalanceCents?: number; 
+  userEmail?: string; 
+  initialText?: string; 
+  onEmpty?: () => void;
+  initialReorderData?: { serviceId: string; categoryId: string; link: string; quantity: number } | null;
+}) {
   const engine = useMultiOrderEngine();
   const [inputText, setInputText] = useState(initialText);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
@@ -60,8 +72,15 @@ export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "", initi
       engine.addLinks(initialText);
       setInputText("");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [engine, initialText]);
+
+  const hasLoadedReorder = useRef(false);
+  useEffect(() => {
+    if (initialReorderData && !hasLoadedReorder.current) {
+      hasLoadedReorder.current = true;
+      engine.loadReorderTask(initialReorderData);
+    }
+  }, [engine, initialReorderData]);
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const text = e.clipboardData.getData('text');

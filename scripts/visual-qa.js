@@ -63,8 +63,14 @@ async function seedData(userId) {
         minQty: 10,
         maxQty: 10000,
         isActive: true,
-        targetType: 'CHANNEL'
+        targetType: 'CHANNEL',
+        externalId: 'mock_tg_sub_econom'
       }
+    });
+  } else if (!service.externalId) {
+    service = await prisma.service.update({
+      where: { id: service.id },
+      data: { externalId: 'mock_tg_sub_econom' }
     });
   }
 
@@ -81,8 +87,14 @@ async function seedData(userId) {
         pendingRate: 20.0,
         quarantineReason: 'E2E Price increase by 100%',
         minQty: 10,
-        maxQty: 1000
+        maxQty: 1000,
+        externalId: 'mock_quarantined'
       }
+    });
+  } else if (!quarantinedService.externalId) {
+    quarantinedService = await prisma.service.update({
+      where: { id: quarantinedService.id },
+      data: { externalId: 'mock_quarantined' }
     });
   }
 

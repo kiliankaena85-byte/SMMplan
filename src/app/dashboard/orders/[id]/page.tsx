@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Clock, LayoutDashboard } from 'lucide-react';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
-import { OrderProgressBar } from '@/components/orders/OrderProgressBar';import { PaymentAutoSync } from '@/components/orders/PaymentAutoSync';
+import { OrderProgressBar } from '@/components/orders/OrderProgressBar';
+import { PaymentAutoSync } from '@/components/orders/PaymentAutoSync';
+import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,6 +108,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 charge={Number(order.charge)} 
                 balance={Number(order.user.balance)} 
               />
+            )}
+            {!['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
+               <RepeatOrderButton 
+                 serviceId={order.service.id} 
+                 categoryId={order.service.categoryId} 
+                 link={order.link} 
+                 quantity={order.quantity} 
+               />
             )}
           </div>
           <div className="text-right">

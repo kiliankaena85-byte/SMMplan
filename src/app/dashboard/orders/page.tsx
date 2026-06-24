@@ -7,6 +7,7 @@ import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 import { MobileOrderList } from '@/components/orders/MobileOrderList';
 import { ClientDate } from '@/components/ui/client-date';
 import { OrderFilters } from '@/components/orders/OrderFilters';
+import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -126,6 +127,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         createdAt: true,
         service: { 
           select: { 
+            id: true,
+            categoryId: true,
             name: true,
             category: {
               select: {
@@ -272,6 +275,16 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                                 balance={Number(user.balance)} 
                               />
                             )}
+                        </div>
+                      )}
+                      {!['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
+                        <div className="mt-1.5">
+                           <RepeatOrderButton 
+                             serviceId={order.service.id} 
+                             categoryId={order.service.categoryId} 
+                             link={order.link} 
+                             quantity={order.quantity} 
+                           />
                         </div>
                       )}
                       {order.status === 'IN_PROGRESS' && order.remains != null && (

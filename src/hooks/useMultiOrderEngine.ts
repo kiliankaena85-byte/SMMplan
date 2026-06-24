@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 import { getPublicCatalogAction, PublicNetwork, PublicService, getServicesByCategoryAction } from "@/actions/order/catalog";
 import { extractLinks, detectPlatformLite, cleanUrlTitle } from "@/utils/link-extractor";
-import { calculatePriceAction } from "@/actions/order/checkout";
 
 export interface OrderTask {
   id: string;
@@ -132,6 +131,48 @@ export function useMultiOrderEngine() {
      });
   }, [updateTask]);
 
+  // Load a single task pre-filled for Reorder
+  const loadReorderTask = useCallback((data: { serviceId: string; categoryId: string; link: string; quantity: number }) => {
+    const taskId = crypto.randomUUID();
+    const url = data.link || "";
+    
+    // Add task in 'new' state, waiting for services to load
+    setTasks([{
+      id: taskId,
+      url,
+      cleanTitle: cleanUrlTitle(url),
+      platform: detectPlatformLite(url),
+      categoryId: data.categoryId,
+      serviceId: data.serviceId, // Temporarily save it here, won't be 'configured' until services load
+      quantity: data.quantity || 100,
+      status: 'new',
+      priceCents: 0,
+      availableServices: [],
+      isLoadingServices: true
+    }]);
+
+    // Force fetch services for this category
+    getServicesByCategoryAction(data.categoryId).then(svcs => {
+      setTasks(prev => {
+        return prev.map(t => {
+          if (t.id === taskId) {
+            const svc = svcs.find(s => s.id === data.serviceId);
+            const priceRub = svc?.pricePerUnitRub || 0;
+            return {
+              ...t,
+              availableServices: svcs,
+              isLoadingServices: false,
+              serviceId: svc ? data.serviceId : "", // Reset if service no longer exists
+              status: svc ? 'configured' : 'new',
+              priceCents: svc ? Math.max(1, Math.ceil(priceRub * 100 * t.quantity)) : 0
+            };
+          }
+          return t;
+        });
+      });
+    });
+  }, []);
+
   const totalTasks = tasks.length;
   const configuredTasks = tasks.filter(t => t.status === 'configured').length;
   const totalCents = tasks.reduce((sum, t) => sum + (t.priceCents || 0), 0);
@@ -145,6 +186,7 @@ export function useMultiOrderEngine() {
     updateTask,
     applyToAllSamePlatform,
     setTaskConfig,
+    loadReorderTask,
     stats: {
        totalTasks,
        configuredTasks,

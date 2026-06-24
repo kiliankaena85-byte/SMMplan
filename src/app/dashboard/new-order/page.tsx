@@ -9,8 +9,9 @@ export const metadata: Metadata = {
   title: 'Новый заказ',
 };
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await verifySession();
+  const sp = await searchParams;
   let userEmail = "";
   let userBalanceCents = 0;
   if (session?.userId) {
@@ -22,5 +23,15 @@ export default async function Page() {
     userBalanceCents = user?.balance ? Number(user.balance) : 0;
   }
 
-  return <ClientPage userEmail={userEmail} userBalanceCents={userBalanceCents} />;
+  let initialReorderData = null;
+  if (sp.reorderServiceId && sp.reorderCategoryId && sp.reorderQty) {
+    initialReorderData = {
+      serviceId: sp.reorderServiceId as string,
+      categoryId: sp.reorderCategoryId as string,
+      link: (sp.reorderLink as string) || "",
+      quantity: parseInt(sp.reorderQty as string, 10) || 100
+    };
+  }
+
+  return <ClientPage userEmail={userEmail} userBalanceCents={userBalanceCents} initialReorderData={initialReorderData} />;
 }
