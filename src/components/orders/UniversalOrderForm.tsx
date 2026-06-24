@@ -6,6 +6,13 @@ import { useMultiOrderEngine } from '@/hooks/useMultiOrderEngine';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import { formatCents } from '@/lib/utils';
 import { PublicCategory } from '@/actions/order/catalog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function formatPricePerUnit(price: number): string {
   if (price === 0) return '0.00';
@@ -153,8 +160,8 @@ export function UniversalOrderForm({
     <div className="space-y-6 pb-32">
       {/* Smart Dropzone */}
       <div className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-primary/20 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
-        <div className="relative bg-card border border-border rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 to-primary/20 rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
+        <div className="relative bg-card border border-border/60 rounded-3xl p-5 shadow-lg shadow-black/5 ring-1 ring-black/5 flex flex-col gap-3">
            <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
@@ -196,7 +203,11 @@ export function UniversalOrderForm({
            if (net) platformName = net.name;
 
            return (
-             <div key={task.id} className={`rounded-xl border transition-all duration-300 ${isExpanded ? 'border-primary ring-1 ring-primary/30 shadow-md bg-card' : isConfigured ? 'border-border/50 bg-background opacity-80' : 'border-border bg-card'}`}>
+             <div 
+               key={task.id} 
+               className={`rounded-[2rem] border transition-all duration-300 animate-in slide-in-from-top-4 fade-in fill-mode-both ${isExpanded ? 'border-primary ring-1 ring-primary/30 shadow-2xl shadow-primary/10 bg-card z-10 relative' : isConfigured ? 'border-border/40 bg-background opacity-80 shadow-sm ring-1 ring-black/5' : 'border-border/50 bg-card shadow-md hover:shadow-lg ring-1 ring-black/5'}`}
+               style={{ animationDelay: `${index * 50}ms`, animationDuration: '400ms' }}
+             >
                 
                 {/* Header */}
                 <div 
@@ -243,54 +254,71 @@ export function UniversalOrderForm({
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Платформа</label>
-                               <select 
-                                  value={net ? net.id : ""}
-                                  onChange={(e) => {
-                                     const selectedNet = engine.catalog.find(n => n.id === e.target.value);
-                                     if (selectedNet) {
-                                        let catId = selectedNet.categories[0]?.id || "";
-                                        // Try to preserve category if changing to same platform type, though ID changes
-                                        engine.updateTask(task.id, { 
-                                           platform: (selectedNet.name.toUpperCase().includes("TELEGRAM") ? IntelligencePlatform.TELEGRAM : 
-                                                     selectedNet.name.toUpperCase().includes("VK") ? IntelligencePlatform.VK : 
-                                                     selectedNet.name.toUpperCase().includes("INSTAGRAM") ? IntelligencePlatform.INSTAGRAM : 
-                                                     IntelligencePlatform.OTHER) as any, // Simple fallback mapping
-                                           categoryId: catId, 
-                                           serviceId: "", 
-                                           status: 'new',
-                                           isLoadingServices: !!catId
-                                        });
-                                     }
-                                  }}
-                                  className="w-full h-11 px-3 bg-background border border-border rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 appearance-none"
-                               >
-                                  <option value="" disabled>Выберите платформу</option>
-                                  {engine.catalog.map(n => (
-                                     <option key={n.id} value={n.id}>{n.name}</option>
-                                  ))}
-                               </select>
+                               <Select 
+                                   value={net ? net.id : ""}
+                                   onValueChange={(val) => {
+                                      if (!val) return;
+                                      const selectedNet = engine.catalog.find(n => n.id === val);
+                                      if (selectedNet) {
+                                         let catId = selectedNet.categories[0]?.id || "";
+                                         engine.updateTask(task.id, { 
+                                            platform: (selectedNet.name.toUpperCase().includes("TELEGRAM") ? IntelligencePlatform.TELEGRAM : 
+                                                      selectedNet.name.toUpperCase().includes("VK") ? IntelligencePlatform.VK : 
+                                                      selectedNet.name.toUpperCase().includes("INSTAGRAM") ? IntelligencePlatform.INSTAGRAM : 
+                                                      IntelligencePlatform.OTHER) as any,
+                                            categoryId: catId, 
+                                            serviceId: "", 
+                                            status: 'new',
+                                            isLoadingServices: !!catId
+                                         });
+                                      }
+                                   }}
+                                >
+                                   <SelectTrigger className="w-full h-11 bg-background border-border/80 hover:border-border rounded-2xl text-sm font-semibold transition-all">
+                                      <SelectValue placeholder="Выберите платформу">
+                                         {(value: string) => {
+                                            if (!value) return null;
+                                            return engine.catalog.find(n => n.id === value)?.name ?? value;
+                                         }}
+                                      </SelectValue>
+                                   </SelectTrigger>
+                                   <SelectContent>
+                                      {engine.catalog.map(n => (
+                                         <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>
+                                      ))}
+                                   </SelectContent>
+                                </Select>
                             </div>
                             
                             {net && (
                                <div className="space-y-1.5">
                                   <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Категория</label>
-                                  <select 
+                                  <Select 
                                      value={task.categoryId}
-                                     onChange={(e) => {
+                                     onValueChange={(val) => {
+                                        if (!val) return;
                                         engine.updateTask(task.id, { 
-                                           categoryId: e.target.value, 
+                                           categoryId: val, 
                                            serviceId: "", 
                                            status: 'new',
                                            isLoadingServices: true 
                                         });
                                      }}
-                                     className="w-full h-11 px-3 bg-background border border-border rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 appearance-none"
                                   >
-                                     <option value="" disabled>Выберите категорию</option>
-                                     {net.categories.map((c: PublicCategory) => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                     ))}
-                                  </select>
+                                     <SelectTrigger className="w-full h-11 bg-background border-border/80 hover:border-border rounded-2xl text-sm font-semibold transition-all">
+                                        <SelectValue placeholder="Выберите категорию">
+                                           {(value: string) => {
+                                              if (!value) return null;
+                                              return net.categories.find((c: PublicCategory) => c.id === value)?.name ?? value;
+                                           }}
+                                        </SelectValue>
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                        {net.categories.map((c: PublicCategory) => (
+                                           <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                        ))}
+                                     </SelectContent>
+                                  </Select>
                                </div>
                             )}
                          </div>
@@ -299,27 +327,37 @@ export function UniversalOrderForm({
                          <div className="space-y-1.5">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Услуга</label>
                             {task.isLoadingServices ? (
-                               <div className="h-11 flex items-center justify-center bg-muted/30 rounded-xl border border-border/50">
+                               <div className="h-11 flex items-center justify-center bg-muted/30 rounded-2xl border border-border/50">
                                   <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                                </div>
                             ) : (
-                               <select
+                               <Select
                                   value={task.serviceId}
-                                  onChange={(e) => {
-                                     const svc = task.availableServices.find(s => s.id === e.target.value);
+                                  onValueChange={(val) => {
+                                     if (!val) return;
+                                     const svc = task.availableServices.find(s => s.id === val);
                                      if (svc) {
                                         engine.setTaskConfig(task.id, svc.id, Math.max(task.quantity, svc.minQty), svc.pricePerUnitRub);
                                      }
                                   }}
-                                  className="w-full h-11 px-3 bg-background border border-border rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 appearance-none"
                                >
-                                  <option value="" disabled>-- Выберите услуга --</option>
-                                  {task.availableServices.map(s => (
-                                     <option key={s.id} value={s.id}>
-                                        {s.name} ({formatPricePerUnit(s.pricePerUnitRub)} ₽/шт)
-                                     </option>
-                                  ))}
-                               </select>
+                                  <SelectTrigger className="w-full h-11 bg-background border-border/80 hover:border-border rounded-2xl text-sm font-semibold transition-all">
+                                     <SelectValue placeholder="-- Выберите услугу --">
+                                        {(value: string) => {
+                                           if (!value) return null;
+                                           const s = task.availableServices.find(srv => srv.id === value);
+                                           return s ? `${s.name} (${formatPricePerUnit(s.pricePerUnitRub)} ₽/шт)` : value;
+                                        }}
+                                     </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                     {task.availableServices.map(s => (
+                                        <SelectItem key={s.id} value={s.id}>
+                                           {s.name} ({formatPricePerUnit(s.pricePerUnitRub)} ₽/шт)
+                                        </SelectItem>
+                                     ))}
+                                  </SelectContent>
+                               </Select>
                             )}
                          </div>
 
@@ -335,7 +373,7 @@ export function UniversalOrderForm({
                                   const svc = task.availableServices.find(s => s.id === task.serviceId);
                                   engine.setTaskConfig(task.id, task.serviceId, val, svc?.pricePerUnitRub || 0);
                                }}
-                               className="w-full h-11 px-3 bg-background border border-border rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                               className="w-full h-11 px-4 bg-background border border-border/80 hover:border-border rounded-2xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all tabular-nums"
                             />
                          </div>
 
@@ -375,7 +413,7 @@ export function UniversalOrderForm({
 
       {/* Sticky Checkout Footer */}
       {engine.stats.totalTasks > 0 && (
-         <div className="fixed bottom-0 left-0 w-full bg-background/80 backdrop-blur-xl border-t border-border p-4 z-50 md:sticky md:bottom-4 md:rounded-2xl md:border md:shadow-2xl space-y-4">
+         <div className="fixed bottom-0 left-0 w-full bg-background/80 backdrop-blur-xl border-t border-border p-4 z-50 md:sticky md:bottom-4 md:rounded-[2rem] md:border md:border-border/60 md:shadow-2xl md:ring-1 md:ring-black/5 space-y-4">
             
             {error && (
               <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-xl">
@@ -393,23 +431,36 @@ export function UniversalOrderForm({
                         value={formEmail}
                         onChange={(e) => setFormEmail(e.target.value)}
                         placeholder="Ваш email"
-                        className="w-full h-11 px-3 bg-background border border-border rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                        className="w-full h-11 px-4 bg-background border border-border/80 hover:border-border rounded-2xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                      />
                   </div>
                   <div className="space-y-1.5">
-                     <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Способ оплаты</label>
-                     <select
-                        value={gateway}
-                        onChange={(e) => setGateway(e.target.value as any)}
-                        className="w-full h-11 px-3 bg-background border border-border rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 appearance-none"
-                     >
-                        <option value="yookassa">Банковская карта (РФ) / СБП</option>
-                        <option value="cryptobot">Криптовалюта (CryptoBot)</option>
-                        {userBalanceCents >= engine.stats.totalCents && (
-                          <option value="balance">Баланс ({formatCents(userBalanceCents)} ₽)</option>
-                        )}
-                     </select>
-                  </div>
+                      <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Способ оплаты</label>
+                      <Select
+                         value={gateway}
+                         onValueChange={(val) => {
+                           if (val) setGateway(val as any);
+                         }}
+                      >
+                         <SelectTrigger className="w-full h-11 bg-background border-border/80 hover:border-border rounded-2xl text-sm font-semibold transition-all">
+                            <SelectValue placeholder="Выберите способ оплаты">
+                               {(value: string) => {
+                                  if (value === 'yookassa') return 'Банковская карта (РФ) / СБП';
+                                  if (value === 'cryptobot') return 'Криптовалюта (CryptoBot)';
+                                  if (value === 'balance') return `Баланс (${formatCents(userBalanceCents)} ₽)`;
+                                  return value;
+                               }}
+                            </SelectValue>
+                         </SelectTrigger>
+                         <SelectContent>
+                            <SelectItem value="yookassa">Банковская карта (РФ) / СБП</SelectItem>
+                            <SelectItem value="cryptobot">Криптовалюта (CryptoBot)</SelectItem>
+                            {userBalanceCents >= engine.stats.totalCents && (
+                              <SelectItem value="balance">Баланс ({formatCents(userBalanceCents)} ₽)</SelectItem>
+                            )}
+                         </SelectContent>
+                      </Select>
+                   </div>
                </div>
             )}
 
@@ -426,7 +477,7 @@ export function UniversalOrderForm({
                <button
                   disabled={!engine.stats.isReadyToPay || isLoading || !formEmail}
                   onClick={handleCheckout}
-                  className={`h-12 px-6 rounded-xl font-black text-sm flex items-center gap-2 transition-all ${
+                  className={`h-12 px-6 rounded-2xl font-black text-sm flex items-center gap-2 transition-all ${
                      engine.stats.isReadyToPay && !isLoading && formEmail
                      ? 'bg-primary text-primary-foreground shadow-lg hover:scale-105 active:scale-95' 
                      : 'bg-muted text-muted-foreground cursor-not-allowed opacity-70'
