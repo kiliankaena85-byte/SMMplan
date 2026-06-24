@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Plus, Copy, CheckCircle2, ChevronDown, ChevronUp, Trash2, ShieldCheck, ArrowRight, Wand2 } from 'lucide-react';
 import { useMultiOrderEngine, OrderTask } from '@/hooks/useMultiOrderEngine';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
@@ -26,7 +26,7 @@ function formatPricePerUnit(price: number): string {
   return formatted;
 }
 
-export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "", initialText = "" }: { userBalanceCents?: number; userEmail?: string; initialText?: string }) {
+export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "", initialText = "", onEmpty }: { userBalanceCents?: number; userEmail?: string; initialText?: string; onEmpty?: () => void }) {
   const engine = useMultiOrderEngine();
   const [inputText, setInputText] = useState(initialText);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
@@ -45,6 +45,15 @@ export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "", initi
       }
     }
   }, [engine.tasks, expandedTaskId]);
+
+  const prevTasksLengthRef = useRef(engine.tasks.length);
+  useEffect(() => {
+    // If tasks transition from >0 to 0, call onEmpty
+    if (prevTasksLengthRef.current > 0 && engine.tasks.length === 0) {
+      if (onEmpty) onEmpty();
+    }
+    prevTasksLengthRef.current = engine.tasks.length;
+  }, [engine.tasks.length, onEmpty]);
 
   useEffect(() => {
     if (initialText) {
@@ -211,28 +220,61 @@ export function UniversalOrderForm({ userBalanceCents = 0, userEmail = "", initi
                 {isExpanded && (
                    <div className="px-4 pb-4 animate-in slide-in-from-top-2">
                       <div className="pt-4 border-t border-border/50 space-y-4">
-                         {/* Category Selector */}
-                         {net && (
+                         {/* Platform & Category Selectors */}
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Категория</label>
+                               <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Платформа</label>
                                <select 
-                                  value={task.categoryId}
+                                  value={net ? net.id : ""}
                                   onChange={(e) => {
-                                     engine.updateTask(task.id, { 
-                                        categoryId: e.target.value, 
-                                        serviceId: "", 
-                                        status: 'new',
-                                        isLoadingServices: true 
-                                     });
+                                     const selectedNet = engine.catalog.find(n => n.id === e.target.value);
+                                     if (selectedNet) {
+                                        let catId = selectedNet.categories[0]?.id || "";
+                                        // Try to preserve category if changing to same platform type, though ID changes
+                                        engine.updateTask(task.id, { 
+                                           platform: (selectedNet.name.toUpperCase().includes("TELEGRAM") ? IntelligencePlatform.TELEGRAM : 
+                                                     selectedNet.name.toUpperCase().includes("VK") ? IntelligencePlatform.VK : 
+                                                     selectedNet.name.toUpperCase().includes("INSTAGRAM") ? IntelligencePlatform.INSTAGRAM : 
+                                                     IntelligencePlatform.OTHER) as any, // Simple fallback mapping
+                                           categoryId: catId, 
+                                           serviceId: "", 
+                                           status: 'new',
+                                           isLoadingServices: !!catId
+                                        });
+                                     }
                                   }}
                                   className="w-full h-11 px-3 bg-background border border-border rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 appearance-none"
                                >
-                                  {net.categories.map((c: PublicCategory) => (
-                                     <option key={c.id} value={c.id}>{c.name}</option>
+                                  <option value="" disabled>Выберите платформу</option>
+                                  {engine.catalog.map(n => (
+                                     <option key={n.id} value={n.id}>{n.name}</option>
                                   ))}
                                </select>
                             </div>
-                         )}
+                            
+                            {net && (
+                               <div className="space-y-1.5">
+                                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Категория</label>
+                                  <select 
+                                     value={task.categoryId}
+                                     onChange={(e) => {
+                                        engine.updateTask(task.id, { 
+                                           categoryId: e.target.value, 
+                                           serviceId: "", 
+                                           status: 'new',
+                                           isLoadingServices: true 
+                                        });
+                                     }}
+                                     className="w-full h-11 px-3 bg-background border border-border rounded-xl text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 appearance-none"
+                                  >
+                                     <option value="" disabled>Выберите категорию</option>
+                                     {net.categories.map((c: PublicCategory) => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                     ))}
+                                  </select>
+                               </div>
+                            )}
+                         </div>
 
                          {/* Service Selector */}
                          <div className="space-y-1.5">

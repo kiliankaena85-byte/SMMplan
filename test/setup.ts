@@ -330,7 +330,9 @@ beforeEach(async () => {
         'category-matcher',
         'eta.fuzzing',
         'smtp.test.ts',
-        'smart-analyzer'
+        'smart-analyzer',
+        'abtest',
+        'ab-test'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;

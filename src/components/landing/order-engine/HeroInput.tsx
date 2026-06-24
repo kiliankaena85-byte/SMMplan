@@ -301,7 +301,7 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
                   }
                 }}
                 placeholder="Вставьте ссылку на канал, группу или пост..."
-                className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm sm:text-base md:text-lg font-semibold text-foreground placeholder:text-muted-foreground px-1.5 sm:px-3 h-full w-full resize-none pt-[18px] sm:pt-[20px] md:pt-[22px] overflow-hidden whitespace-nowrap"
+                className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm sm:text-base md:text-lg font-semibold text-foreground placeholder:text-muted-foreground px-1.5 sm:px-3 w-full resize-none overflow-hidden whitespace-nowrap self-center leading-tight"
               />
               <Button
                 type="button"

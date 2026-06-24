@@ -86,12 +86,13 @@ const checkoutSchema = z.object({
   mediaGroupUrl: z.string().optional(),
   isLinkOverridden: z.boolean().optional(),
   isSmartDrip: z.boolean().optional(),
-  smartDripDays: z.number().int().min(1).max(30).optional()
+  smartDripDays: z.number().int().min(1).max(30).optional(),
+  abVariant: z.enum(['A', 'B', 'C']).optional()
 });
 
 export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
-    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays } = data;
+    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant } = data;
     const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
 
     // Feature Flags Validation
@@ -325,11 +326,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
-    if ((gateway === 'yookassa' || gateway === 'robokassa') && paymentAmount > 180000) {
-      if (!user.telegramId) {
-        throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
-      }
-    }
+
 
     // W5-1 SECURITY FIX: Explicitly check balance before transaction
     if (gateway === 'balance' && user.balance < finalTotalCents) {
@@ -382,7 +379,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           remains: totalQuantity,
           idempotencyKey,
           promoCodeId: promoCodeId || null,
-          discountCents: BigInt(pricing.discountCents)
+          discountCents: BigInt(pricing.discountCents),
+          abVariant
         }
       });
 
@@ -408,7 +406,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             customData: `Медиагруппа: последнее медиа. Основной заказ: ${newOrder.numericId}`,
             remains: totalQuantity,
             promoCodeId: promoCodeId || null,
-            discountCents: BigInt(pricing.discountCents)
+            discountCents: BigInt(pricing.discountCents),
+            abVariant
           }
         });
         secondOrderId = secondOrder.id;
@@ -429,7 +428,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           gateway,
           consentIp,
           consentUserAgent,
-          consentVersion
+          consentVersion,
+          abVariant
         }
       });
 
@@ -821,7 +821,7 @@ export async function getAvailableGatewaysAction() {
     return {
       success: true,
       data: {
-        yookassa: !!(secrets.yookassaShopId && secrets.yookassaSecretKey),
+        yookassa: isTest || !!(secrets.yookassaShopId && secrets.yookassaSecretKey),
         robokassa: !!(secrets.robokassaLogin && secrets.robokassaPassword),
         cryptobot: !!secrets.cryptoBotToken,
         isTestMode: isTest

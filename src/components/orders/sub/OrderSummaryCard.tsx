@@ -472,6 +472,9 @@ export function OrderSummaryCard({
             interval={dripInterval}
             setInterval={setDripInterval}
           />
+          {dripFeedEnabled && validationErrors?.dripfeed && (
+            <p className="text-xs text-destructive font-semibold mt-1">{validationErrors.dripfeed}</p>
+          )}
 
           {/* Smart Drip feed */}
           {selectedService?.smartConfig?.isEnabled && (
@@ -528,6 +531,9 @@ export function OrderSummaryCard({
                 </div>
               )}
             </div>
+          )}
+          {isSmartDrip && validationErrors?.dripfeed && (
+            <p className="text-xs text-destructive font-semibold mt-1">{validationErrors.dripfeed}</p>
           )}
 
           {/* Price */}

@@ -447,7 +447,7 @@ export function useOrderEngine(
     }
 
     const totalQty = quantity;
-    const originalTotalCents = Math.max(1, Math.round(selectedService.pricePerUnitRub * 100 * totalQty));
+    const originalTotalCents = Math.max(1, Math.ceil(selectedService.pricePerUnitRub * 100 * totalQty));
 
     let totalCents = originalTotalCents;
     if (isSmartDrip && selectedService.smartConfig?.isEnabled) {

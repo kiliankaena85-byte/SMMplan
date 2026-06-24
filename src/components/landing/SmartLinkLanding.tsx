@@ -10,7 +10,24 @@ import { WhyUs } from "./WhyUs";
 import { FAQ } from "./FAQ";
 import { Reviews } from "./Reviews";
 import { LinkModal } from "./order-engine/LinkModal";
-import { StickyCheckoutBar } from "./order-engine/StickyCheckoutBar";
+import { CheckoutDrawer } from "./order-engine/drawer/CheckoutDrawer";
+import { useABTest } from "@/hooks/useABTest";
+import dynamic from "next/dynamic";
+
+const InlineCheckoutForm = dynamic(
+  () => import("./order-engine/InlineCheckoutForm").then((mod) => mod.InlineCheckoutForm),
+  { ssr: false }
+);
+
+const FullscreenCheckoutVariantC = dynamic(
+  () => import("./order-engine/FullscreenCheckoutVariantC").then((mod) => mod.FullscreenCheckoutVariantC),
+  { ssr: false }
+);
+
+const StickyCheckoutTriggerBar = dynamic(
+  () => import("./order-engine/StickyCheckoutTriggerBar").then((mod) => mod.StickyCheckoutTriggerBar),
+  { ssr: false }
+);
 import { NetworkSelector } from "./order-engine/NetworkSelector";
 import { CategorySidebar } from "./order-engine/CategorySidebar";
 import { ServiceGrid } from "./order-engine/ServiceGrid";
@@ -23,7 +40,7 @@ import { DynamicPayloadWarnings } from "./order-engine/DynamicPayloadWarnings";
 import { MegaFooter } from "./MegaFooter";
 import { PlatformLinkGuideDrawer } from "./order-engine/PlatformLinkGuideDrawer";
 import { PaymentGatewaySelectionModal } from "./order-engine/PaymentGatewaySelectionModal";
-import { Box, LayoutList, Link2 } from "lucide-react";
+import { Box } from "lucide-react";
 import { MassConfirmEmailModal } from "./order-engine/MassConfirmEmailModal";
 import { PlatformSelectorFallback } from "@/components/orders/PlatformSelectorFallback";
 import { UniversalOrderForm } from "@/components/orders/UniversalOrderForm";
@@ -39,7 +56,8 @@ export function SmartLinkLanding({
   contactSettings,
   initialServiceId = "",
   initialCategoryId = "",
-  initialNetworkId = ""
+  initialNetworkId = "",
+  userBalanceCents = 0
 }: {
   initialCatalog: PublicNetwork[];
   initialEmail?: string;
@@ -55,6 +73,7 @@ export function SmartLinkLanding({
   initialServiceId?: string;
   initialCategoryId?: string;
   initialNetworkId?: string;
+  userBalanceCents?: number;
 }) {
   const companyName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "SMMplan";
   const engine = useOrderEngine(initialCatalog, initialEmail, initialServiceId, initialCategoryId, initialNetworkId);
@@ -82,10 +101,7 @@ export function SmartLinkLanding({
     pricing,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     totalPriceFormatted,
-    isMassMode,
     massCalculation,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    isMassCalculating,
   } = engine;
 
   const desktopEmailInputRef = React.useRef<HTMLInputElement>(null);
@@ -93,14 +109,7 @@ export function SmartLinkLanding({
   const [isGuideOpen, setIsGuideOpen] = React.useState(false);
   const [activeLegalSlug, setActiveLegalSlug] = React.useState<string | null>(null);
   const [showCatalogModal, setShowCatalogModal] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<'single' | 'mass'>('single');
-
-  // Auto-switch tab to mass order if mass input pattern is pasted
-  React.useEffect(() => {
-    if (isMassMode && activeTab === 'single') {
-      setActiveTab('mass');
-    }
-  }, [isMassMode, activeTab]);
+  const [showSmartCart, setShowSmartCart] = React.useState(false);
 
   const handleSelectServiceFromCatalog = (srv: PublicService, catId: string, netId: string) => {
     engine.setNetworkId(netId);
@@ -108,6 +117,15 @@ export function SmartLinkLanding({
     engine.setSelectedService(srv);
     setShowCatalogModal(false);
   };
+
+  const abVariant = useABTest();
+  const [isFullscreenCheckoutOpen, setIsFullscreenCheckoutOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!selectedService) {
+      setIsFullscreenCheckoutOpen(false);
+    }
+  }, [selectedService]);
 
   const {
     isSubmitting,
@@ -117,12 +135,14 @@ export function SmartLinkLanding({
     handleMassCheckoutConfirm,
     handleCheckout,
     emailHasError,
+    termsHasError,
     showPaymentModal, setShowPaymentModal,
     confirmAndPay
   } = useCheckoutOrchestrator({ 
     engine, 
     desktopEmailInputRef, 
-    mobileEmailInputRef 
+    mobileEmailInputRef,
+    abVariant
   });
 
   const availablePlatforms = unfilteredCatalog.map(net => {
@@ -147,21 +167,16 @@ export function SmartLinkLanding({
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
       
-      {/* ── Abstract Soft Background (Instead of 3D Scene) ── */}
       <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-primary/5 to-background pointer-events-none z-0 select-none overflow-hidden" />
 
       <Header initialEmail={initialEmail} siteName={companyName} activePath={ROUTES.HOME} />
 
-      {/* ── Секция 2: Hero Блок (App Style) ── */}
-      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 py-8 md:py-20 pb-16 md:pb-40 flex flex-col items-center relative z-10">
+      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 pt-12 md:pt-28 pb-16 md:pb-40 flex flex-col items-center relative z-10">
 
-        {/* --- Variant B: Fintech Dot Grid Backdrop --- */}
         <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden premium-dot-grid" />
         <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden bg-gradient-to-b from-transparent via-background/50 to-background" />
 
-        {/* --- Glassmorphic Blur Blobs (Floating space spheres inspired by Lovable.dev) --- */}
         <div className="absolute top-0 inset-x-0 h-[600px] z-[-2] pointer-events-none overflow-hidden select-none">
-          {/* Blob 1: Pink/Violet */}
           <motion.div
             animate={{
               x: [0, 50, -30, 0],
@@ -175,7 +190,6 @@ export function SmartLinkLanding({
             }}
             className="absolute top-[10%] left-[12%] w-72 h-72 rounded-full bg-pink-500/10 dark:bg-pink-500/5 blur-3xl"
           />
-          {/* Blob 2: Sky Blue/Primary */}
           <motion.div
             animate={{
               x: [0, -60, 40, 0],
@@ -189,7 +203,6 @@ export function SmartLinkLanding({
             }}
             className="absolute top-[15%] right-[15%] w-80 h-80 rounded-full bg-primary/10 dark:bg-primary/5 blur-3xl"
           />
-          {/* Blob 3: Emerald */}
           <motion.div
             animate={{
               x: [0, 30, -40, 0],
@@ -201,7 +214,7 @@ export function SmartLinkLanding({
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute top-[30%] left-[30%] w-64 h-64 rounded-full bg-emerald-500/10 dark:bg-emerald-500/5 blur-3xl"
+            className="absolute top-[30%] left-[30%] w-64 h-64 rounded-full bg-emerald-500/10 dark:emerald-500/5 blur-3xl"
           />
         </div>
 
@@ -224,7 +237,6 @@ export function SmartLinkLanding({
           <p className="text-lg text-muted-foreground leading-relaxed font-medium max-w-xl mx-auto drop-shadow-sm">
             Автоматическая платформа для продвижения в социальных сетях с мгновенным запуском.
           </p>
-          {/* Social Proof Stats */}
           <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-10 pt-2">
             <div className="text-center">
               <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums drop-shadow-sm">15+</p>
@@ -243,43 +255,8 @@ export function SmartLinkLanding({
           </div>
         </motion.div>
  
-        {/* ── Main Input & UI Panel ── */}
         <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.08)] border border-border/80 rounded-2xl md:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-8 relative">
           
-          {/* Segmented activeTab switcher for premium look & layout-shift prevention */}
-          <div className="flex gap-1 p-1 bg-default-100 rounded-2xl border border-border/50 w-full sm:w-max mb-6">
-            <button
-              onClick={() => {
-                if (navigator.vibrate) navigator.vibrate(10);
-                setActiveTab('single');
-                engine.setUrl("");
-              }}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-                activeTab === 'single'
-                  ? 'bg-background shadow-sm text-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-default-200/50'
-              }`}
-            >
-              <Link2 className="w-4 h-4 shrink-0" />
-              <span>Одиночный заказ</span>
-            </button>
-            <button
-              onClick={() => {
-                if (navigator.vibrate) navigator.vibrate(10);
-                setActiveTab('mass');
-                engine.setUrl("");
-              }}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-                activeTab === 'mass'
-                  ? 'bg-background shadow-sm text-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-default-200/50'
-              }`}
-            >
-              <LayoutList className="w-4 h-4 shrink-0" />
-              <span>Массовый заказ</span>
-            </button>
-          </div>
-
           <div className="min-h-[500px] transition-all duration-300">
             {unfilteredCatalog.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2.5rem] min-h-[360px] p-8 m-4">
@@ -293,11 +270,19 @@ export function SmartLinkLanding({
                   </p>
                 </div>
               </div>
-            ) : activeTab === 'mass' ? (
-              <UniversalOrderForm userEmail={initialEmail} />
+            ) : (showSmartCart || engine.isMassMode) ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <UniversalOrderForm 
+                  userEmail={initialEmail} 
+                  initialText={engine.url}
+                  onEmpty={() => {
+                    setShowSmartCart(false);
+                    engine.setUrl("");
+                  }}
+                />
+              </div>
             ) : (
               <>
-                {/* Smart Input (Massive Pill) - Hidden on mobile to prevent duplicate inputs */}
                 <div className="hidden md:block">
                   <HeroInput 
                     engine={engine} 
@@ -317,10 +302,8 @@ export function SmartLinkLanding({
                   </div>
                 )}
 
-                {/* Витрина интерфейса */}
                 <div id="catalog-section" className="w-full bg-content1 rounded-3xl overflow-visible md:overflow-hidden mt-2 md:mt-6">
                   <div className="w-full flex flex-col will-change-transform">
-                    {/* SECTION 1.0: MOBILE WIZARD (< MD) — 2-step master */}
                     <MobileWizard 
                       engine={engine} 
                       handleCheckout={handleCheckout} 
@@ -332,17 +315,12 @@ export function SmartLinkLanding({
                       onOpenCatalog={() => setShowCatalogModal(true)}
                     />
 
-                    {/* SECTION 1: NETWORKS (Top Tabs Premium) - Hidden on Mobile */}
                     <NetworkSelector engine={engine} />
 
-                    {/* SECTION 2: COLUMNS (Categories & Services & Checkout) — HARD BOUNDARY */}
                     <div className="hidden md:flex flex-col lg:flex-row min-h-[400px] border-b border-border/50 relative items-start">
-                      {/* 2.1 Left Column: Categories (Tablet Horizontal / Desktop Vertical) */}
                       <CategorySidebar engine={engine} />
 
-                      {/* MIDDLE WRAPPER */}
                       <div className="flex flex-col flex-1 min-w-0 border-r border-border/50 pb-12 lg:pb-0">
-                        {/* 2.2 Center Column: Services Container */}
                         <div className="p-4 md:p-6 lg:p-8 bg-content1 relative flex flex-col min-h-0">
                           <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
                             <h3 className="font-extrabold text-foreground text-xl md:text-2xl flex items-center gap-3">
@@ -364,42 +342,66 @@ export function SmartLinkLanding({
                                 </div>
                                 <div className="text-center space-y-1.5">
                                   <p className="text-base font-bold text-foreground">
-                                    {!networkId ? 'Выберите платформу' : !categoryId ? 'Выберите категорию' : 'Услуги не найдены'}
+                                    {!networkId ? 'Выберите платформу' : !engine.categoryId ? 'Выберите категорию' : 'Услуги не найдены'}
                                   </p>
                                   <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
                                     {!networkId
                                       ? 'Вставьте ссылку на профиль/пост выше, или выберите нужную соцсеть из списка.'
-                                      : !categoryId
+                                      : !engine.categoryId
                                       ? 'Выберите нужную категорию услуг в меню слева.'
                                       : 'В этой категории пока нет доступных услуг. Попробуйте выбрать другую.'}
                                   </p>
                                 </div>
                               </div>
-                            ) : (
-                              <div className={`pb-8 pt-4 transition-opacity duration-300 hidden md:block ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                                {/* Main Grid Render */}
-                                <ServiceGrid engine={engine} />
-                              </div>
+                                                        ) : (
+                              <>
+                                <div className={`pb-8 pt-4 transition-opacity duration-300 hidden md:block ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                  <ServiceGrid engine={engine} />
+                                </div>
+
+                                {abVariant === "B" && selectedService && !engine.isMassMode && !showSmartCart && (
+                                  <div className="hidden md:block">
+                                    <InlineCheckoutForm
+                                      selectedService={selectedService}
+                                      url={url}
+                                      setShowLinkModal={setShowLinkModal}
+                                      quantity={quantity}
+                                      setQuantity={setQuantity}
+                                      pricing={pricing}
+                                      email={email}
+                                      setEmail={setEmail}
+                                      promoCode={engine.promoCode}
+                                      setPromoCode={engine.setPromoCode}
+                                      isCalculating={engine.isCalculating}
+                                      isSubmitting={isSubmitting}
+                                      handleCheckout={handleCheckout}
+                                      onClearSelection={() => setSelectedService(null)}
+                                      emailInputRef={desktopEmailInputRef}
+                                      emailHasError={emailHasError}
+                                      termsHasError={termsHasError}
+                                      engine={engine}
+                                      onOpenDocument={setActiveLegalSlug}
+                                      userBalanceCents={userBalanceCents}
+                                    />
+                                  </div>
+                                )}
+                              </>
                             )}
                           </>
                         </div>
 
-                        {/* SECTION 3: DYNAMIC PAYLOAD & WARNINGS */}
                         <DynamicPayloadWarnings engine={engine} />
 
-                      </div> {/* Closes MIDDLE WRAPPER */}
-                    </div> {/* Closes SECTION 2: COLUMNS lg:flex-row */}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </>
             )}
           </div>
         </div>
-        
-
       </main>
 
-      {/* Trust and WhyUs wrappers */}
       <div className="relative z-10 -mt-10 bg-background">
         <TrustBar />
         <WhyUs companyName={companyName} />
@@ -407,12 +409,11 @@ export function SmartLinkLanding({
         <FAQ companyName={companyName} />
       </div>
       
-      {/* ── Секция 3: Подвал "Premium Trust" (Mega-Footer) ── */}
       <MegaFooter contactSettings={contactSettings} />
 
-      {/* ══════════ DESKTOP STICKY CHECKOUT BAR (Финтех-бар) ══════════ */}
-      {!isMassMode && activeTab !== 'mass' && (
-        <StickyCheckoutBar
+      {/* ══════════ CHECKOUT DRAWER (Яндекс-шторка) - Variant A ══════════ */}
+      {(!abVariant || abVariant === "A") && !engine.isMassMode && !showSmartCart && (
+        <CheckoutDrawer
           selectedService={selectedService}
           url={url}
           setShowLinkModal={setShowLinkModal}
@@ -429,9 +430,52 @@ export function SmartLinkLanding({
           onClearSelection={() => setSelectedService(null)}
           emailInputRef={desktopEmailInputRef}
           emailHasError={emailHasError}
+          termsHasError={termsHasError}
           engine={engine}
           onOpenDocument={setActiveLegalSlug}
+          userBalanceCents={userBalanceCents}
         />
+      )}
+
+      {/* ══════════ STICKY TRIGGER BAR & FULLSCREEN OVERLAY - Variant C ══════════ */}
+      {abVariant === "C" && !engine.isMassMode && !showSmartCart && selectedService && (
+        <>
+          <div className="hidden md:block">
+            <StickyCheckoutTriggerBar
+              selectedService={selectedService}
+              url={url}
+              pricing={pricing}
+              engine={engine}
+              onOpenCheckout={() => setIsFullscreenCheckoutOpen(true)}
+              onClearSelection={() => setSelectedService(null)}
+            />
+          </div>
+
+          {isFullscreenCheckoutOpen && (
+            <FullscreenCheckoutVariantC
+              selectedService={selectedService}
+              url={url}
+              setShowLinkModal={setShowLinkModal}
+              quantity={quantity}
+              setQuantity={setQuantity}
+              pricing={pricing}
+              email={email}
+              setEmail={setEmail}
+              promoCode={engine.promoCode}
+              setPromoCode={engine.setPromoCode}
+              isCalculating={engine.isCalculating}
+              isSubmitting={isSubmitting}
+              handleCheckout={handleCheckout}
+              onClose={() => setIsFullscreenCheckoutOpen(false)}
+              emailInputRef={desktopEmailInputRef}
+              emailHasError={emailHasError}
+              termsHasError={termsHasError}
+              engine={engine}
+              onOpenDocument={setActiveLegalSlug}
+              userBalanceCents={userBalanceCents}
+            />
+          )}
+        </>
       )}
 
       {/* ══════════ LINK MODAL (Progressive Disclosure) ══════════ */}
@@ -463,7 +507,7 @@ export function SmartLinkLanding({
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         totalPriceFormatted={
-          activeTab === 'mass'
+          showSmartCart
             ? (massCalculation ? massCalculation.totalRub.toFixed(2) : "0.00")
             : (pricing ? (pricing.totalCents / 100).toFixed(2) : "0.00")
         }

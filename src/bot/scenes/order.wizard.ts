@@ -278,8 +278,9 @@ export const orderWizard = new Scenes.WizardScene(
     if (!ctx.message?.text) return ctx.reply('Введите число.');
     const runs = parseInt(ctx.message.text);
     if (isNaN(runs) || runs < 2) return ctx.reply('❌ Количество запусков должно быть не менее 2.');
-    const { qty } = ctx.wizard.state.orderData;
-    if (Math.floor(qty / runs) < 10) return ctx.reply(`❌ Слишком много запусков для количества ${qty}. В каждом запуске должно быть хотя бы 10 шт.`);
+    const { qty, service } = ctx.wizard.state.orderData;
+    const minQty = service.minQty || 1;
+    if (Math.floor(qty / runs) < minQty) return ctx.reply(`❌ Слишком много запусков для количества ${qty}. В каждом запуске должно быть хотя бы ${minQty} шт.`);
     ctx.wizard.state.orderData.runs = runs;
     await ctx.reply('⏱ <b>Введите интервал между запусками (в минутах):</b>\nНапример: 60', { parse_mode: 'HTML' });
     return ctx.wizard.next();

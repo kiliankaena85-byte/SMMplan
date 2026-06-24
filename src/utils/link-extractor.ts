@@ -9,16 +9,24 @@ export interface ExtractedLink {
 
 export function extractLinks(text: string): string[] {
   if (!text) return [];
-  // Regex to extract URLs
-  const regex = /https?:\/\/[^\s]+/g;
-  const matches = text.match(regex);
-  if (!matches) {
-    // Also try to find links without http (e.g. t.me/durov)
-    const lazyRegex = /(?:t\.me|vk\.com|instagram\.com|tiktok\.com|youtube\.com|youtu\.be|twitch\.tv|x\.com|twitter\.com|likee\.video)\/[^\s]+/g;
-    const lazyMatches = text.match(lazyRegex) || [];
-    return Array.from(new Set(lazyMatches.map(m => 'https://' + m)));
+  
+  const tokens = text.split(/\s+/).filter(Boolean);
+  const results: string[] = [];
+
+  for (const token of tokens) {
+    if (/^https?:\/\//i.test(token)) {
+      results.push(token);
+    } else {
+      const lazyRegex = /^(?:t\.me|vk\.com|instagram\.com|tiktok\.com|youtube\.com|youtu\.be|twitch\.tv|x\.com|twitter\.com|likee\.video)\/[^\s]+/i;
+      if (lazyRegex.test(token)) {
+        results.push('https://' + token);
+      } else {
+        results.push(token); // Fallback: keep the raw string
+      }
+    }
   }
-  return Array.from(new Set(matches)); // Deduplicate
+
+  return Array.from(new Set(results)); // Deduplicate
 }
 
 export function detectPlatformLite(url: string): IntelligencePlatform {

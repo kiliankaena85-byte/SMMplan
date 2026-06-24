@@ -79,14 +79,27 @@ export function useMobileWizard(engine: OrderEngine) {
   useEffect(() => {
     if (selectedService?.id !== lastSelectedServiceId) {
       setLastSelectedServiceId(selectedService?.id);
-      if (selectedService && url.trim().length >= 5) {
-        setActiveStep(4);
-      } else if (selectedService && url.trim().length < 5) {
-        setCatalogHint(true);
-        setActiveStep(1);
+      if (selectedService) {
+        if (url.trim().length >= 5) {
+          setActiveStep(4);
+        } else {
+          setCatalogHint(true);
+          setActiveStep(1);
+        }
+      } else {
+        // Rollback step when selectedService is cleared (e.g. closing checkout drawer)
+        if (url.trim().length >= 5) {
+          if (categoryId) {
+            setActiveStep(3);
+          } else {
+            setActiveStep(2);
+          }
+        } else {
+          setActiveStep(1);
+        }
       }
     }
-  }, [selectedService, lastSelectedServiceId, url]);
+  }, [selectedService, lastSelectedServiceId, url, categoryId, setActiveStep]);
 
   useEffect(() => {
     if (categoryId !== lastCategoryId) {

@@ -4,23 +4,27 @@ import { OrderEngine } from '@/hooks/useOrderEngine';
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
+import { ABVariant } from '@/hooks/useABTest';
 
 interface CheckoutOrchestratorOptions {
   engine: OrderEngine;
   desktopEmailInputRef?: React.RefObject<HTMLInputElement | null>;
   mobileEmailInputRef?: React.RefObject<HTMLInputElement | null>;
+  abVariant?: ABVariant | null;
 }
 
 export function useCheckoutOrchestrator({ 
   engine, 
   desktopEmailInputRef, 
-  mobileEmailInputRef 
+  mobileEmailInputRef,
+  abVariant
 }: CheckoutOrchestratorOptions) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkHasError, setLinkHasError] = useState(false);
   const [showMassConfirmModal, setShowMassConfirmModal] = useState(false);
   const [emailHasError, setEmailHasError] = useState(false);
+  const [termsHasError, setTermsHasError] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pendingCheckoutParams, setPendingCheckoutParams] = useState<any>(null);
@@ -30,6 +34,12 @@ export function useCheckoutOrchestrator({
       setEmailHasError(false);
     }
   }, [engine.email]);
+
+  useEffect(() => {
+    if (engine.agreedToTerms) {
+      setTermsHasError(false);
+    }
+  }, [engine.agreedToTerms]);
 
   const handleMassCheckoutConfirm = async (confirmedEmail: string) => {
     setShowMassConfirmModal(false);
@@ -42,7 +52,7 @@ export function useCheckoutOrchestrator({
     setShowPaymentModal(true);
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (directGateway?: string) => {
     const { selectedService, url, quantity, customData, agreedToTerms, email, isMassMode, massCalculation, promoCode } = engine;
 
     if (isMassMode) {
@@ -241,6 +251,19 @@ export function useCheckoutOrchestrator({
       toast.error(`Минимальное количество для заказа: ${selectedService.minQty}`, { position: 'top-center' });
       return;
     }
+    if (engine.dripFeedEnabled && engine.runs > 0) {
+      const chunk = Math.floor(quantity / engine.runs);
+      if (chunk < (selectedService.minQty || 1)) {
+        toast.error(`Для Drip-feed количество на один запуск (${chunk}) не может быть меньше минимального (${selectedService.minQty || 1})`, { position: 'top-center' });
+        return;
+      }
+    } else if (engine.isSmartDrip && engine.smartDripDays > 0) {
+      const chunk = Math.floor(quantity / engine.smartDripDays);
+      if (chunk < (selectedService.minQty || 1)) {
+        toast.error(`Для Умного Drip-feed количество на 1 день (${chunk}) не может быть меньше минимального (${selectedService.minQty || 1})`, { position: 'top-center' });
+        return;
+      }
+    }
     const nameLower = selectedService.name.toLowerCase();
     const customDataType = selectedService.customDataType;
     const reqCustomData = (customDataType && customDataType !== 'NONE') ||
@@ -253,6 +276,7 @@ export function useCheckoutOrchestrator({
       return;
     }
     if (!agreedToTerms) {
+      setTermsHasError(true);
       // Per Article 438 Civil Code RF: acceptance of the offer must be an explicit act by the user.
       // Per 152-FZ: processing of personal data (email) requires explicit consent.
       toast.error("Пожалуйста, примите условия Оферты и Политики конфиденциальности.", {
@@ -285,7 +309,7 @@ export function useCheckoutOrchestrator({
       return;
     }
     
-    setPendingCheckoutParams({
+    const checkoutParams = {
       serviceId: selectedService.id,
       link: finalUrl,
       quantity,
@@ -297,8 +321,60 @@ export function useCheckoutOrchestrator({
       isSmartDrip: engine.isSmartDrip,
       smartDripDays: engine.isSmartDrip ? engine.smartDripDays : undefined,
       runs: engine.dripFeedEnabled ? engine.runs : undefined,
-      interval: engine.dripFeedEnabled ? engine.dripInterval : undefined
-    });
+      interval: engine.dripFeedEnabled ? engine.dripInterval : undefined,
+      abVariant: abVariant || undefined
+    };
+
+    if (directGateway) {
+      setIsSubmitting(true);
+      try {
+        const { checkoutAction } = await import('@/actions/order/checkout');
+        const res = await checkoutAction({
+          ...checkoutParams,
+          gateway: directGateway
+        });
+        setIsSubmitting(false);
+        if (res.success && res.data?.paymentUrl) {
+          window.location.href = res.data.paymentUrl;
+        } else if (!res.success) {
+          if (res.error?.includes("Telegram-аккаунт") || res.error?.includes("привяжите ваш Telegram-аккаунт")) {
+            toast.error(res.error, {
+              position: 'top-center',
+              duration: 8000,
+              action: {
+                label: 'Привязать',
+                onClick: () => window.location.href = '/dashboard/settings'
+              }
+            });
+            return;
+          }
+          if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
+            toast.error(
+              'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
+              {
+                position: 'top-center',
+                duration: 6000,
+                action: {
+                  label: 'Мой баланс',
+                  onClick: () => window.location.href = '/dashboard/add-funds'
+                }
+              }
+            );
+          } else {
+            const errorMessage = res.error || "Ошибка создания заказа. Попробуйте снова.";
+            window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${checkoutParams.serviceId}&gateway=${directGateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(finalUrl)}&paymentId=&orderId=`;
+          }
+        }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (e: any) {
+        setIsSubmitting(false);
+        const errorMessage = e.message || "Ошибка платежного шлюза.";
+        window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${checkoutParams.serviceId}&gateway=${directGateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(finalUrl)}&paymentId=&orderId=`;
+      }
+      return;
+    }
+
+    setPendingCheckoutParams(checkoutParams);
     setShowPaymentModal(true);
   };
 
@@ -408,6 +484,7 @@ export function useCheckoutOrchestrator({
     handleMassCheckoutConfirm,
     handleCheckout,
     emailHasError,
+    termsHasError,
     showPaymentModal,
     setShowPaymentModal,
     confirmAndPay

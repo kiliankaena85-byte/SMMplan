@@ -114,7 +114,7 @@ export function useMultiOrderEngine() {
             quantity: sourceTask.quantity,
             availableServices: sourceTask.availableServices, // Copy cache to avoid refetch
             status: 'configured',
-            priceCents: Math.round((sourceTask.availableServices.find(s => s.id === sourceTask.serviceId)?.pricePerUnitRub || 0) * 100 * sourceTask.quantity)
+            priceCents: Math.max(1, Math.ceil((sourceTask.availableServices.find(s => s.id === sourceTask.serviceId)?.pricePerUnitRub || 0) * 100 * sourceTask.quantity))
           };
         }
         return t;
@@ -128,7 +128,7 @@ export function useMultiOrderEngine() {
         serviceId,
         quantity,
         status: serviceId ? 'configured' : 'new',
-        priceCents: Math.round(pricePerUnitRub * 100 * quantity)
+        priceCents: serviceId ? Math.max(1, Math.ceil(pricePerUnitRub * 100 * quantity)) : 0
      });
   }, [updateTask]);
 

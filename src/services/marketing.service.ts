@@ -136,6 +136,12 @@ class MarketingService {
       discountCents = originalTotalCents - totalCents;
     }
 
+    // Enforce a minimum price of 1 cent (0.01 ₽) for any calculated order
+    if (quantity > 0 && totalCents < 1) {
+      totalCents = 1;
+      discountCents = Math.max(0, originalTotalCents - totalCents);
+    }
+
     // Always accurately report the applied discount percentage for UI/Analytics
     const finalDiscountPercent = originalTotalCents > 0 ? Math.round((discountCents / originalTotalCents) * 100) : 0;
 

@@ -112,6 +112,14 @@ describe('MarketingService', () => {
        expect(res.providerCostCents).toBe(1);
        expect(res.totalCents).toBe(3); // safety floor is 3 cents when providerCostCents is 1
     });
+
+    it('enforces a minimum price of 1 cent (clamped to safety floor of 3 cents) even with 100% discount on free provider service', async () => {
+       vi.mocked(db.service.findUnique).mockResolvedValueOnce({ id: 'srv1', minQty: 10, maxQty: 100, rate: 0.0, markup: 1.5 } as any);
+       vi.mocked(db.promoCode.findUnique).mockResolvedValueOnce({ id: 'pr1', code: 'FREE', isActive: true, maxUses: 0, expiresAt: null, type: 'DISCOUNT', discountPercent: 100.0 } as any);
+       
+       const res = await marketingService.calculatePrice(null, 'srv1', 10, 'FREE');
+       expect(res.totalCents).toBe(3); // safety floor is 3 cents when providerCostCents is 1
+    });
   });
 
   describe('consumePromoCode', () => {
