@@ -33,6 +33,9 @@ Phases execute in numeric order: 1, 999.1
 |-------|----------------|--------|-----------|
 | 1. B2B Reseller API Gateway | 1/1 | Completed | x |
 | 999.1. B2B Promo Banner | 1/1 | Completed | x |
+| 999.7. Shadow Catalog | 1/1 | Completed | x |
+| 999.9. Dark Mode Refactoring | 1/1 | Completed | x |
+| 999.11. Provider Ticket URL | 1/1 | Completed | x |
 
 ### Phase 2: Production Hardening (Docker, CI/CD, Deployment Architecture)
 
@@ -112,16 +115,16 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
-### Phase 999.7: Shadow Catalog Memory Optimization (BACKLOG)
+### Phase 999.7: Shadow Catalog Memory Optimization (COMPLETED)
 
 **Goal:** Optimize memory usage for the Shadow Catalog by preventing full JSON parsing on every page load or filter action.
 **Requirements:**
 - Implement a more efficient storage and querying strategy (e.g., Redis Hash, sorted sets, chunked storage, or a PostgreSQL staging table).
 - Risk mitigation: Prevent N simultaneous admin sessions from consuming N * 3-6MB of heap space.
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] Implemented ShadowService PostgreSQL table and cherry-pick import logic (Completed)
 
 ### Phase 999.8: Active Service Price Drift Detection (BACKLOG)
 
@@ -134,14 +137,14 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
-### Phase 999.9: Dark Mode UX/UI Refactoring (BACKLOG)
+### Phase 999.9: Dark Mode UX/UI Refactoring (COMPLETED)
 
 **Goal:** [Captured for future planning] Разобраться с темной темой, устранить визуальный бардак, оптимизировать FOUC-эффекты и привести к единому премиальному стандарту в соответствии с gsd-dark-mode-manifest.md.
 **Requirements:** TBD
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] Replaced opaque borders with translucent luminance borders in globals.css (Completed)
 
 ### Phase 999.10: Dark Mode Manifest Skill Audit (BACKLOG)
 
@@ -152,17 +155,17 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
-### Phase 999.11: Provider Ticket URL Integration in Orders Table (BACKLOG)
+### Phase 999.11: Provider Ticket URL Integration in Orders Table (COMPLETED)
 
 **Goal:** [Captured for future planning] Внедрить в таблицу "Заказы" рядом с ID провайдера прямую ссылку на его сайт/страницу создания тикетов, добавив ручное управление URL для каждого провайдера в его карточке настроек.
 **Requirements:**
 - Добавить поле `ticketUrl` в модель `Provider` в Prisma.
 - Добавить поле ввода для `ticketUrl` в форму создания/редактирования провайдера в админке.
 - В админ-таблице заказов выводить кликабельную ссылку-иконку рядом с внешним ID заказа/провайдера, ведущую прямо на URL тикетов этого провайдера для быстрого разрешения споров оператором.
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] Fully integrated, tested, and committed (Completed)
 
 ### Phase 999.12: Guest & Client Knowledge Base & SEO Blog Gateway (BACKLOG)
 
