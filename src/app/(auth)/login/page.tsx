@@ -162,16 +162,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
             </p>
           </div>
 
-          <p className="text-center text-xs text-muted-foreground">
-            Вводя email, вы соглашаетесь с{' '}
-            <Link href="/legal/terms" className="underline hover:text-foreground transition-colors">
-              Публичной офертой
-            </Link>{' '}
-            и{' '}
-            <Link href="/legal/privacy" className="underline hover:text-foreground transition-colors">
-              Политикой конфиденциальности
-            </Link>
-          </p>
         </div>
       </div>
     </div>

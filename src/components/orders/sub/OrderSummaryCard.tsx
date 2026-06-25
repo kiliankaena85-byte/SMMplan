@@ -637,12 +637,15 @@ export function OrderSummaryCard({
             </div>
 
             {/* Consent */}
-            <div className="text-[10px] text-center text-muted-foreground mt-2 leading-relaxed select-none">
-              Нажимая кнопку «Оплатить заказ», вы соглашаетесь с{" "}
+            <div className="text-[10px] text-center text-muted-foreground mt-2 leading-relaxed select-none px-2">
+              Нажимая кнопку «Оплатить заказ», вы соглашаетесь с{' '}
               <Link href="/legal/terms" className="underline hover:text-foreground font-semibold" target="_blank">
                 Договором публичной оферты
-              </Link>{" "}
-              и правилами сервиса.
+              </Link>{' '}
+              и даете согласие на обработку данных согласно{' '}
+              <Link href="/legal/privacy" className="underline hover:text-foreground font-semibold" target="_blank">
+                Политике конфиденциальности
+              </Link>.
             </div>
           </div>
         </ActionForm>

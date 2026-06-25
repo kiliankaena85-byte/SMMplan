@@ -6,6 +6,7 @@ import { loginWithPasswordAction } from '@/actions/auth/password-login';
 import { registerWithPasswordAction } from '@/actions/auth/password-register';
 import { Mail, Loader2, CheckCircle2, ArrowRight, Eye, EyeOff, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 const inputCls =
   'w-full rounded-xl border border-border bg-background text-foreground px-4 py-3 ' +
@@ -222,6 +223,17 @@ export function LoginForm() {
               </>
             )}
           </button>
+
+          <p className="text-center text-[11px] leading-tight text-muted-foreground px-2">
+            Нажимая кнопку, вы принимаете условия{' '}
+            <Link href="/legal/terms" className="underline hover:text-foreground transition-colors">
+              Публичной оферты
+            </Link>{' '}
+            и даете согласие на обработку данных согласно{' '}
+            <Link href="/legal/privacy" className="underline hover:text-foreground transition-colors">
+              Политике конфиденциальности
+            </Link>
+          </p>
         </form>
       )}
 
@@ -273,6 +285,17 @@ export function LoginForm() {
               </>
             )}
           </button>
+
+          <p className="text-center text-[11px] leading-tight text-muted-foreground px-2">
+            Нажимая кнопку, вы принимаете условия{' '}
+            <Link href="/legal/terms" className="underline hover:text-foreground transition-colors">
+              Публичной оферты
+            </Link>{' '}
+            и даете согласие на обработку данных согласно{' '}
+            <Link href="/legal/privacy" className="underline hover:text-foreground transition-colors">
+              Политике конфиденциальности
+            </Link>
+          </p>
         </form>
       )}
 
@@ -342,6 +365,17 @@ export function LoginForm() {
               </>
             )}
           </button>
+
+          <p className="text-center text-[11px] leading-tight text-muted-foreground px-2">
+            Нажимая кнопку, вы принимаете условия{' '}
+            <Link href="/legal/terms" className="underline hover:text-foreground transition-colors">
+              Публичной оферты
+            </Link>{' '}
+            и даете согласие на обработку данных согласно{' '}
+            <Link href="/legal/privacy" className="underline hover:text-foreground transition-colors">
+              Политике конфиденциальности
+            </Link>
+          </p>
         </form>
       )}
     </div>
