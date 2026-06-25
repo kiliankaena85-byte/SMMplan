@@ -9,6 +9,16 @@ import { ClientDate } from '@/components/ui/client-date';
 import { OrderFilters } from '@/components/orders/OrderFilters';
 import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
 import { Metadata } from 'next';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
+import { CopyText } from '@/components/ui/CopyText';
+import { SocialIcon } from '@/components/ui/SocialIcon';
 
 export const metadata: Metadata = {
   title: 'Мои заказы | SMMplan',
@@ -109,7 +119,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   }
 
   // Fetch paginated dataset concurrently
-  const [orders, totalCount, networks] = await Promise.all([
+  const [orders, totalCount, networks, statusCounts] = await Promise.all([
     db.order.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -135,7 +145,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                 name: true,
                 network: {
                   select: {
-                    name: true
+                    name: true,
+                    slug: true
                   }
                 }
               }
@@ -149,10 +160,20 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       where: { isActive: true },
       select: { slug: true, name: true },
       orderBy: { sort: 'asc' }
-    })
+    }),
+    db.order.groupBy({
+      by: ['status'],
+      where: { userId: session.userId },
+      _count: true,
+    }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+
+  const countsMap = statusCounts.reduce((acc, curr) => {
+    acc[curr.status] = curr._count;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -165,7 +186,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         </div>
         <Link
           href="/dashboard/new-order"
-          className="h-11 px-4 flex items-center text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all duration-200 shadow-sm"
+          className="h-11 px-4 flex items-center text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all duration-200 shadow-sm animate-hover-pulse"
         >
           + Новый заказ
         </Link>
@@ -179,95 +200,126 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         availableNetworks={networks}
         currentPage={currentPage}
         totalPages={totalPages}
+        statusCounts={countsMap}
       />
 
       <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
         {/* Desktop table */}
         <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-sm" aria-label="Список заказов">
-            <thead>
-              <tr className="text-left text-[11px] uppercase tracking-widest text-foreground/75 bg-muted/20 border-b border-border/40">
-                <th className="py-3.5 px-4 font-bold">ID</th>
-                <th className="py-3.5 px-4 font-bold min-w-[200px]">Услуга</th>
-                <th className="py-3.5 px-4 font-bold">Ссылка / Кол-во</th>
-                <th className="py-3.5 px-4 font-bold text-right">Сумма (₽)</th>
-                <th className="py-3.5 px-4 font-bold">Статус</th>
-                <th className="py-3.5 px-4 font-bold text-right">Дата</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table aria-label="Список заказов">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[10%]">ID</TableHead>
+                <TableHead className="w-[30%] min-w-[200px]">Услуга</TableHead>
+                <TableHead className="w-[25%]">Ссылка / Кол-во</TableHead>
+                <TableHead className="w-[12%] text-right">Сумма</TableHead>
+                <TableHead className="w-[15%]">Статус</TableHead>
+                <TableHead className="w-[8%]">Действия</TableHead>
+                <TableHead className="w-[10%] text-right">Дата</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {orders.map((order) => {
                 const color = STATUS_COLOR[order.status] || STATUS_COLOR.CANCELED;
                 const label = STATUS_LABEL[order.status] || order.status;
                 return (
-                  <tr
+                  <TableRow
                     key={order.id}
-                    className="border-b border-border/40 hover:bg-muted/30 transition-colors last:border-0 cursor-pointer"
+                    className="cursor-pointer hover:bg-muted/40 transition-colors"
                   >
-                    <td className="py-3 px-4 font-mono text-xs text-muted-foreground">
-                      <Link href={`/dashboard/orders/${order.id}`} className="hover:text-primary transition-colors" aria-label={`Открыть заказ #${order.numericId}`}>
-                        #{order.numericId}
-                      </Link>
-                    </td>
-                    <td className="py-3 px-4">
+                    <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <Link href={`/dashboard/orders/${order.id}`} className="hover:text-primary font-bold transition-colors" aria-label={`Открыть заказ #${order.numericId}`}>
+                          #{order.numericId}
+                        </Link>
+                        <CopyText text={order.numericId.toString()} iconOnly={true} tooltipText="Копировать ID заказа" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <Link href={`/dashboard/orders/${order.id}`} className="block" tabIndex={-1}>
-                        <div className="text-[10px] uppercase font-bold text-muted-foreground mb-0.5 flex items-center gap-1.5">
+                        <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 flex items-center gap-1.5">
+                          {order.service.category?.network?.slug && (
+                            <SocialIcon slug={order.service.category.network.slug} size={12} className="inline-block" />
+                          )}
                           {order.service.category?.network?.name && (
                             <span className="text-primary">{order.service.category.network.name}</span>
                           )}
                           {order.service.category?.network?.name && order.service.category?.name && (
-                            <span className="text-muted-foreground/50">•</span>
+                            <span className="text-muted-foreground/30">•</span>
                           )}
                           {order.service.category?.name && (
-                            <span>{order.service.category.name}</span>
+                            <span className="text-muted-foreground/80">{order.service.category.name}</span>
                           )}
                         </div>
-                        <div className="font-medium text-foreground line-clamp-2 max-w-[200px] hover:text-primary transition-colors">
+                        <div className="font-semibold text-foreground line-clamp-2 max-w-[240px] hover:text-primary transition-colors leading-tight">
                           {order.service.name}
                         </div>
                       </Link>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex flex-col gap-0.5">
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
                         {order.link && (
-                          <a
-                            href={order.link}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                            className="text-primary hover:underline text-xs max-w-[160px] truncate"
-                            aria-label={`Открыть ссылку заказа #${order.numericId}`}
-                          >
-                            {order.link}
-                          </a>
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={order.link}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="text-primary hover:underline text-xs max-w-[180px] truncate font-medium"
+                              aria-label={`Открыть ссылку заказа #${order.numericId}`}
+                            >
+                              {order.link}
+                            </a>
+                            <CopyText text={order.link} iconOnly={true} tooltipText="Копировать целевую ссылку" />
+                          </div>
                         )}
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {order.quantity.toLocaleString('ru-RU')} шт.
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground tabular-nums font-medium">
+                            {order.quantity.toLocaleString('ru-RU')} шт.
+                          </span>
+                        </div>
                       </div>
-                    </td>
-                    <td className="py-3 px-4 text-right font-semibold text-foreground tabular-nums">
+                    </TableCell>
+                    <TableCell className="text-right font-black text-foreground tabular-nums whitespace-nowrap">
                       {(Number(order.charge) / 100).toLocaleString('ru-RU', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wide font-bold rounded-md border ${color}`}
-                      >
-                        {label}
-                      </span>
-                      {order.error && (
-                        <div
-                          className="text-[10px] text-destructive mt-1 max-w-[150px] line-clamp-1"
-                          title={order.error}
+                      })} ₽
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1.5">
+                        <span
+                          className={`inline-flex items-center self-start px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-md border ${color}`}
                         >
-                          {order.error}
-                        </div>
-                      )}
-                      {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
-                        <div className="mt-1.5 flex gap-2 min-w-[120px]">
-                            <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
+                          {label}
+                        </span>
+                        {order.error && (
+                          <div
+                            className="text-[10px] text-destructive max-w-[150px] truncate"
+                            title={order.error}
+                          >
+                            {order.error}
+                          </div>
+                        )}
+                        {order.status === 'IN_PROGRESS' && order.remains != null && (
+                          <div className="space-y-0.5 max-w-[120px]">
+                            <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary rounded-full animate-pulse"
+                                style={{ width: `${Math.min(100, Math.max(0, Math.round(((order.quantity - order.remains) / order.quantity) * 100)))}%` }}
+                              />
+                            </div>
+                            <div className="text-[9px] text-muted-foreground tabular-nums flex justify-between">
+                              <span>Выполнено:</span>
+                              <span>{Math.min(100, Math.max(0, Math.round(((order.quantity - order.remains) / order.quantity) * 100)))}%</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) ? (
+                          <div className="flex flex-col gap-1">
                             {order.status === 'AWAITING_PAYMENT' && user && (
                               <RetryPaymentModal 
                                 orderId={order.id} 
@@ -275,40 +327,26 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                                 balance={Number(user.balance)} 
                               />
                             )}
-                        </div>
-                      )}
-                      {!['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
-                        <div className="mt-1.5">
-                           <RepeatOrderButton 
-                             serviceId={order.service.id} 
-                             categoryId={order.service.categoryId} 
-                             link={order.link} 
-                             quantity={order.quantity} 
-                           />
-                        </div>
-                      )}
-                      {order.status === 'IN_PROGRESS' && order.remains != null && (
-                        <div className="mt-1 space-y-0.5">
-                          <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary rounded-full"
-                              style={{ width: `${Math.round(((order.quantity - order.remains) / order.quantity) * 100)}%` }}
-                            />
+                            <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
                           </div>
-                          <div className="text-[10px] text-muted-foreground tabular-nums">
-                            {order.quantity - order.remains} / {order.quantity.toLocaleString('ru-RU')}
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right text-xs text-muted-foreground whitespace-nowrap">
+                        ) : (
+                          <RepeatOrderButton 
+                            serviceId={order.service.id} 
+                            categoryId={order.service.categoryId} 
+                            link={order.link} 
+                            quantity={order.quantity} 
+                          />
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
                       <ClientDate date={order.createdAt.toISOString()} format="datetime" />
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {/* Mobile cards (Virtualized + Drawer) */}

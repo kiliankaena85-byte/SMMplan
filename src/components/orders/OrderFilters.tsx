@@ -3,6 +3,13 @@
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface OrderFiltersProps {
   initialSearch: string;
@@ -11,6 +18,7 @@ interface OrderFiltersProps {
   availableNetworks: { slug: string; name: string }[];
   currentPage: number;
   totalPages: number;
+  statusCounts?: Record<string, number>;
 }
 
 export function OrderFilters({
@@ -20,6 +28,7 @@ export function OrderFilters({
   availableNetworks,
   currentPage,
   totalPages,
+  statusCounts = {},
 }: OrderFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,8 +71,50 @@ export function OrderFilters({
     router.push('/dashboard/orders');
   };
 
+  const statuses = [
+    { value: 'ALL', label: 'Все' },
+    { value: 'PENDING', label: 'В очереди' },
+    { value: 'IN_PROGRESS', label: 'В работе' },
+    { value: 'COMPLETED', label: 'Выполнены' },
+    { value: 'AWAITING_PAYMENT', label: 'Ожидают оплаты' },
+    { value: 'PARTIAL', label: 'Частично' },
+    { value: 'ERROR', label: 'Ошибка' },
+    { value: 'CANCELED', label: 'Отменены' },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* ── STATUS TABS PANEL (Stripe / Vercel style) ── */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+        {statuses.map((stat) => {
+          const count = stat.value === 'ALL'
+            ? Object.values(statusCounts).reduce((a, b) => a + b, 0)
+            : statusCounts[stat.value] || 0;
+          const isActive = (initialStatus || 'ALL') === stat.value;
+          return (
+            <button
+              key={stat.value}
+              type="button"
+              onClick={() => handleApplyFilters({ status: stat.value })}
+              className={`h-9 px-4 shrink-0 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 select-none cursor-pointer active:scale-95 ${
+                isActive
+                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/15'
+                  : 'bg-card border border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <span>{stat.label}</span>
+              {count > 0 && (
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                  isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted-foreground/15 text-muted-foreground'
+                }`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ── FILTER INPUTS PANEL ── */}
       <form 
         onSubmit={(e) => {
@@ -87,36 +138,30 @@ export function OrderFilters({
           </div>
 
           {/* Social Network filter */}
-          <select
+          <Select
             value={initialNetwork || 'ALL'}
-            onChange={(e) => handleApplyFilters({ network: e.target.value })}
-            className="h-11 md:h-9 bg-content2 border border-border/60 rounded-xl px-3 py-1 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
-            aria-label="Фильтр по соцсети"
+            onValueChange={(val) => handleApplyFilters({ network: val ?? 'ALL' })}
           >
-            <option value="ALL">Все соцсети</option>
-            {availableNetworks.map((net) => (
-              <option key={net.slug} value={net.slug}>
-                {net.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Status filter */}
-          <select
-            value={initialStatus || 'ALL'}
-            onChange={(e) => handleApplyFilters({ status: e.target.value })}
-            className="h-11 md:h-9 bg-content2 border border-border/60 rounded-xl px-3 py-1 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
-            aria-label="Фильтр по статусу заказа"
-          >
-            <option value="ALL">Все статусы</option>
-            <option value="PENDING">Ожидание</option>
-            <option value="IN_PROGRESS">В работе</option>
-            <option value="COMPLETED">Выполнен</option>
-            <option value="AWAITING_PAYMENT">Ожидает оплаты</option>
-            <option value="CANCELED">Отменен</option>
-            <option value="ERROR">Ошибка</option>
-            <option value="PARTIAL">Частично</option>
-          </select>
+            <SelectTrigger 
+              className="h-11 md:h-9 bg-muted border border-border/60 rounded-xl px-3 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none transition-all hover:bg-muted/80 flex items-center justify-between gap-1.5 min-w-[130px]"
+              aria-label="Фильтр по соцсети"
+            >
+              <SelectValue placeholder="Все соцсети">
+                {(value: string) => {
+                  if (!value || value === 'ALL') return 'Все соцсети';
+                  return availableNetworks.find(net => net.slug === value)?.name ?? value;
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="bg-popover text-popover-foreground border border-border rounded-xl shadow-md p-1">
+              <SelectItem value="ALL">Все соцсети</SelectItem>
+              {availableNetworks.map((net) => (
+                <SelectItem key={net.slug} value={net.slug}>
+                  {net.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Action Controls */}

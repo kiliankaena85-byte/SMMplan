@@ -8,6 +8,8 @@ import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 import { ClientDate } from '@/components/ui/client-date';
 import { Clock, ExternalLink, LayoutDashboard } from 'lucide-react';
 import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
+import { CopyText } from '@/components/ui/CopyText';
+import { SocialIcon } from '@/components/ui/SocialIcon';
 
 const STATUS_LABEL: Record<string, string> = {
   COMPLETED:       'Выполнен',
@@ -29,6 +31,17 @@ const STATUS_COLOR: Record<string, string> = {
   ERROR:           'text-destructive     bg-destructive/10     border-red-500/20',
   PARTIAL:         'text-warning-text bg-warning/10 border-warning/20',
   CANCELED:        'text-muted-foreground bg-muted border-border',
+};
+
+const STATUS_ACCENT_BORDER: Record<string, string> = {
+  COMPLETED:       'border-l-success',
+  IN_PROGRESS:     'border-l-blue-500',
+  PENDING:         'border-l-warning',
+  AWAITING_PAYMENT:'border-l-warning',
+  PROVISIONING:    'border-l-indigo-500',
+  ERROR:           'border-l-destructive',
+  PARTIAL:         'border-l-warning',
+  CANCELED:        'border-l-muted-foreground/30',
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,14 +91,17 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                 {/* 4.1 Карточки вместо таблиц + 4.3 Touch Targets */}
                 <div 
                   onClick={() => handleOrderClick(order)}
-                  className="bg-card border border-border rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
+                  className={`bg-card border border-border border-l-4 ${STATUS_ACCENT_BORDER[order.status] || 'border-l-muted-foreground/30'} rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-all cursor-pointer`}
                   style={{ minHeight: '120px' }} // Ensures large enough touch target
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-mono text-muted-foreground">#{order.numericId}</div>
                       
-                      <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1 flex items-center gap-1">
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                        {order.service.category?.network?.slug && (
+                          <SocialIcon slug={order.service.category.network.slug} size={10} className="inline-block" />
+                        )}
                         {order.service.category?.network?.name && (
                           <span className="text-primary">{order.service.category.network.name}</span>
                         )}
@@ -97,7 +113,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                         )}
                       </div>
                       
-                      <div className="text-sm font-medium text-foreground line-clamp-2 mt-0.5">
+                      <div className="text-sm font-medium text-foreground line-clamp-2 mt-1 leading-snug">
                         {order.service.name}
                       </div>
                     </div>
@@ -184,7 +200,10 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                 <div className="w-12 h-1.5 bg-muted rounded-full min-h-2 min-w-12" />
               </div>
               <DrawerHeader className="flex flex-col gap-1 px-6 min-h-[48px] justify-center">
-                <h2 className="text-xl font-bold">Заказ #{selectedOrder?.numericId}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold">Заказ #{selectedOrder?.numericId}</h2>
+                  <CopyText text={selectedOrder?.numericId?.toString() || ''} iconOnly={true} tooltipText="Копировать ID" />
+                </div>
                 <div className="text-sm font-normal text-muted-foreground flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5" />
                   <ClientDate date={selectedOrder.createdAt} format="datetime" />
@@ -224,15 +243,18 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                     {/* Link */}
                     <div>
                       <label className="text-xs font-bold text-muted-foreground uppercase mb-1.5 block">Ссылка</label>
-                      <a 
-                        href={selectedOrder.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary break-all"
-                      >
-                        {selectedOrder.link}
-                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <a 
+                          href={selectedOrder.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary break-all"
+                        >
+                          {selectedOrder.link}
+                          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                        </a>
+                        <CopyText text={selectedOrder.link || ''} iconOnly={true} tooltipText="Копировать ссылку" />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
