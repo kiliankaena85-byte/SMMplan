@@ -117,8 +117,8 @@ export function SmartDripClient({
 
   // Extract unique platforms/networks for filtering
   const networks = Array.from(
-    new Set(services.map(s => s.category.network.name))
-  ).sort();
+    new Set(services.map(s => s.category?.network?.name).filter(Boolean))
+  ).sort() as string[];
 
   // Handle global kill switch
   const handleGlobalToggle = (checked: boolean) => {
@@ -277,7 +277,7 @@ export function SmartDripClient({
   const filteredServices = services.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
       s.id.toLowerCase().includes(serviceSearch.toLowerCase());
-    const matchesNetwork = selectedNetwork === 'ALL' || s.category.network.name === selectedNetwork;
+    const matchesNetwork = selectedNetwork === 'ALL' || s.category?.network?.name === selectedNetwork;
     
     let matchesStatus = true;
     if (selectedStatus === 'ENABLED') {
@@ -618,11 +618,11 @@ export function SmartDripClient({
                         {/* Network / Category */}
                         <TableCell className="py-4 px-4">
                           <div className="flex items-center gap-2">
-                            <SocialIcon slug={s.category.network.slug} size={16} />
-                            <span className="font-semibold text-foreground text-xs">{s.category.network.name}</span>
+                            {s.category?.network?.slug && <SocialIcon slug={s.category.network.slug} size={16} />}
+                            <span className="font-semibold text-foreground text-xs">{s.category?.network?.name || 'Без сети'}</span>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate max-w-[120px] mt-0.5">
-                            {s.category.name}
+                            {s.category?.name || 'Без категории'}
                           </div>
                         </TableCell>
 
@@ -757,7 +757,7 @@ export function SmartDripClient({
           <DialogHeader className="pb-3 border-b border-border/50">
             <DialogTitle className="text-foreground font-black text-base flex items-center gap-2">
               <Settings className="w-5 h-5 text-primary" />
-              Умный Dripfeed: {editingService?.category.network.name}
+              Умный Dripfeed: {editingService?.category?.network?.name || 'Без сети'}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               {editingService?.name}

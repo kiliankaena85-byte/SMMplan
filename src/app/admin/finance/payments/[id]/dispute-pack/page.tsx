@@ -4,7 +4,8 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { getPaymentDisputePackAction } from '@/actions/admin/finance/payments';
-import { FileText, Printer, ArrowLeft, ShieldCheck, HelpCircle } from 'lucide-react';
+import { FileText, ArrowLeft, ShieldCheck, HelpCircle } from 'lucide-react';
+import { PrintButton } from '@/components/admin/PrintButton';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { formatBalance } from '@/lib/utils';
 
@@ -375,13 +376,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
 
         {/* Action button at bottom */}
         <div className="mt-8 space-y-4">
-          <button
-            onClick={() => window.print()}
-            className="w-full h-12 bg-sky-500 hover:bg-sky-400 text-primary-foreground font-bold uppercase tracking-wider text-xs rounded-xl shadow-lg shadow-sky-500/15 flex items-center justify-center gap-2.5 transition-all active:scale-[0.98]"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Печать / Сохранить в PDF</span>
-          </button>
+          <PrintButton />
           
           <div className="p-4 bg-slate-800/40 rounded-xl border border-slate-800 flex gap-3 text-[10px] text-slate-400 leading-relaxed font-medium">
             <span>🛡️</span>

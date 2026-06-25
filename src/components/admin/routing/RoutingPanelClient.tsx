@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Card, Button, Modal, ModalHeader, ModalBody, ModalFooter, Checkbox, Chip, Table, Alert, Input, Switch } from '@heroui/react';
+import { Card, Button, Modal, ModalHeader, ModalBody, ModalFooter, Checkbox, Chip, Alert, Input, Switch } from '@heroui/react';
+import { Table } from '@/components/admin/hero-ui';
 import { previewHotSwap, executeHotSwap, addServiceRoute, toggleRouteStatus, changeRoutePriority, deleteServiceRoute } from '@/actions/admin/routing.actions';
 import { toast } from 'sonner';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -261,77 +262,82 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
         </div>
         
         <Table aria-label="Routes table" className="w-full">
-          <Table.Header>
-            <Table.Column id="provider" isRowHeader>ПРОВАЙДЕР</Table.Column>
-            <Table.Column id="external_id">EXTERNAL ID</Table.Column>
-            <Table.Column id="priority">ПРИОРИТЕТ</Table.Column>
-            <Table.Column id="status">СТАТУС</Table.Column>
-            <Table.Column id="actions">ДЕЙСТВИЯ</Table.Column>
-          </Table.Header>
-          <Table.Body renderEmptyState={() => "Нет доступных маршрутов"}>
-            {sortedRoutes.map((route, index: number) => (
-              <Table.Row key={route.id} id={route.id} className={route.isPrimary ? "bg-success-50/50" : ""}>
-                <Table.Cell className="font-semibold">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-foreground">{route.provider.name}</span>
-                    {route.isPrimary && <div><Chip size="sm" color="success" variant="soft">PRIMARY NODE</Chip></div>}
-                  </div>
-                </Table.Cell>
-                <Table.Cell className="font-mono text-sm">{route.providerServiceId}</Table.Cell>
-                <Table.Cell>
-                  <div className="flex items-center gap-2">
-                    <span className="w-4 text-center font-semibold text-lg">{route.priority}</span>
-                    <div className="flex flex-col gap-0.5">
-                      <Button size="sm" isIconOnly variant="ghost" 
-                              isDisabled={index === 0 || isPending}
-                              onPress={() => handlePriority(route.id, 'up')}>
-                        ↑
-                      </Button>
-                      <Button size="sm" isIconOnly variant="ghost" 
-                              isDisabled={index === sortedRoutes.length - 1 || isPending}
-                              onPress={() => handlePriority(route.id, 'down')}>
-                        ↓
-                      </Button>
-                    </div>
-                  </div>
-                </Table.Cell>
-                <Table.Cell>
-                  <Switch 
-                    isSelected={route.isActive} 
-                    onChange={() => handleToggle(route.id)}
-                    isDisabled={isPending || route.isPrimary}
-                    size="sm"
-                  >
-                    {route.isActive ? 'Active' : 'Disabled'}
-                  </Switch>
-                </Table.Cell>
-                <Table.Cell>
-                  <div className="flex gap-2">
-                    {!route.isPrimary && (
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
-                        isDisabled={!route.isActive || isPending}
-                        onPress={() => handleOpenSwap(route)}
+          <Table.ScrollContainer>
+            <Table.Content aria-label="Routes Content">
+              <Table.Header>
+                <Table.Column id="provider" isRowHeader>ПРОВАЙДЕР</Table.Column>
+                <Table.Column id="external_id">EXTERNAL ID</Table.Column>
+                <Table.Column id="priority">ПРИОРИТЕТ</Table.Column>
+                <Table.Column id="status">СТАТУС</Table.Column>
+                <Table.Column id="actions">ДЕЙСТВИЯ</Table.Column>
+              </Table.Header>
+              <Table.Body renderEmptyState={() => "Нет доступных маршрутов"}>
+                {sortedRoutes.map((route, index: number) => (
+                  <Table.Row key={route.id} id={route.id} className={route.isPrimary ? "bg-success-50/50" : ""}>
+                    <Table.Cell className="font-semibold">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-foreground">{route.provider.name}</span>
+                        {route.isPrimary && <div><Chip size="sm" color="success" variant="soft">PRIMARY NODE</Chip></div>}
+                      </div>
+                    </Table.Cell>
+                    <Table.Cell className="font-mono text-sm">{route.providerServiceId}</Table.Cell>
+                    <Table.Cell>
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 text-center font-semibold text-lg">{route.priority}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <Button size="sm" isIconOnly variant="ghost" 
+                                  isDisabled={index === 0 || isPending}
+                                  onPress={() => handlePriority(route.id, 'up')}>
+                            ↑
+                          </Button>
+                          <Button size="sm" isIconOnly variant="ghost" 
+                                  isDisabled={index === sortedRoutes.length - 1 || isPending}
+                                  onPress={() => handlePriority(route.id, 'down')}>
+                            ↓
+                          </Button>
+                        </div>
+                      </div>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Switch 
+                        aria-label="Route status switch"
+                        isSelected={route.isActive} 
+                        onChange={() => handleToggle(route.id)}
+                        isDisabled={isPending || route.isPrimary}
+                        size="sm"
                       >
-                        Сделать основным
-                      </Button>
-                    )}
-                    {!route.isPrimary && (
-                      <Button 
-                        size="sm" 
-                        variant="danger-soft" 
-                        isDisabled={isPending}
-                        onPress={() => handleDelete(route.id)}
-                      >
-                        Удалить
-                      </Button>
-                    )}
-                  </div>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
+                        {route.isActive ? 'Active' : 'Disabled'}
+                      </Switch>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <div className="flex gap-2">
+                        {!route.isPrimary && (
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            isDisabled={!route.isActive || isPending}
+                            onPress={() => handleOpenSwap(route)}
+                          >
+                            Сделать основным
+                          </Button>
+                        )}
+                        {!route.isPrimary && (
+                          <Button 
+                            size="sm" 
+                            variant="danger-soft" 
+                            isDisabled={isPending}
+                            onPress={() => handleDelete(route.id)}
+                          >
+                            Удалить
+                          </Button>
+                        )}
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
         </Table>
       </Card>
 
