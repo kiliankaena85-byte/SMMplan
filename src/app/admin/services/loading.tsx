@@ -1,3 +1,4 @@
+"use client";
 import { Skeleton } from "@heroui/react";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { List } from "lucide-react";
