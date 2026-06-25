@@ -162,6 +162,19 @@ export default async function LoginPage({ searchParams }: PageProps) {
             </p>
           </div>
 
+          {/* FZ-152 compliance disclaimer */}
+          <p className="text-[10px] text-muted-foreground text-center px-4 mt-4">
+            Авторизуясь или регистрируясь на сайте, вы выражаете согласие на обработку персональных данных и соглашаетесь с{' '}
+            <Link href="/legal/privacy" className="text-primary hover:underline font-bold">
+              Политикой конфиденциальности
+            </Link>{' '}
+            и{' '}
+            <Link href="/legal/terms" className="text-primary hover:underline font-bold">
+              Пользовательским соглашением
+            </Link>
+            .
+          </p>
+
         </div>
       </div>
     </div>

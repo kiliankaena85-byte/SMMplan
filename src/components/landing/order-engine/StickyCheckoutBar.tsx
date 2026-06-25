@@ -268,7 +268,7 @@ export function StickyCheckoutBar({
                 onClick={handleCheckout}
                 disabled={isSubmitting}
                 className={`h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-md shadow-primary/10 transition-all flex items-center justify-center gap-1.5 shrink-0 ${
-                  isSubmitting ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : 'hover:scale-[1.02] active:scale-95'
+                  isSubmitting ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : 'hover:scale-[1.02] active:scale-95 animate-hover-pulse'
                 }`}
               >
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : (
@@ -285,7 +285,8 @@ export function StickyCheckoutBar({
                 termsHasError ? 'ring-2 ring-destructive/40 bg-destructive/5 px-2 py-0.5 border border-destructive/20' : ''
               }`}
             >
-               <LegalCheckbox
+               {/* FZ-152 compliance: пользователь выражает согласие на обработку персональных данных и соглашается с Политикой /legal/privacy */}
+             <LegalCheckbox
                 id="desktop-legal-checkbox"
                 checked={engine?.agreedToTerms ?? false}
                 onChange={(val) => engine?.setAgreedToTerms(val)}
