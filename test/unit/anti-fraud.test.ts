@@ -2,13 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createTopUpPaymentAction } from '@/actions/user/top-up.action';
 import { checkoutAction } from '@/actions/order/checkout';
 import { db } from '@/lib/db';
+import { verifySession } from '@/lib/session';
+import { marketingService } from '@/services/marketing.service';
 
 vi.mock('@/lib/db', () => ({
   db: {
     service: { findUnique: vi.fn() },
     user: { upsert: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
     order: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
-    payment: { create: vi.fn(), update: vi.fn() },
+    payment: { create: vi.fn(), update: vi.fn(), aggregate: vi.fn().mockResolvedValue({ _sum: { amount: 0 } }) },
     promoCode: { findUnique: vi.fn(), update: vi.fn() },
     session: { create: vi.fn() },
     systemSettings: { findUnique: vi.fn() },
@@ -31,6 +33,11 @@ vi.mock('@/lib/settings', () => ({
       yookassaSecretKey: 'key123',
       cryptoBotToken: 'token123'
     })
+  },
+  SettingsProvider: {
+    getSupportEmailDomain: vi.fn().mockResolvedValue('smmplan.local'),
+    getContactAndLegalSettings: vi.fn().mockResolvedValue({ COMPANY_NAME: 'SMMplan' }),
+    getExchangeRateUSD: vi.fn().mockResolvedValue(100),
   }
 }));
 
@@ -47,6 +54,7 @@ vi.mock('@/utils/ip', () => ({
 vi.mock('@/lib/session', () => ({
   verifySession: vi.fn(),
   createSession: vi.fn().mockResolvedValue({}),
+  getEncodedKey: vi.fn().mockReturnValue(new TextEncoder().encode('secretsecretsecretsecretsecretsecretsecret')),
 }));
 
 vi.mock('@/services/marketing.service', () => ({
@@ -81,7 +89,7 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
 
   describe('Top-Up Limits (createTopUpPaymentAction)', () => {
     it('should block YooKassa card payment > $20 (180,000 cents) if user does not have telegramId', async () => {
-      vi.mocked(await import('@/lib/session')).verifySession.mockResolvedValue({ userId: 'user_123' });
+      vi.mocked(verifySession).mockResolvedValue({ userId: 'user_123' });
       vi.mocked(db.user.findUnique).mockResolvedValue({
         id: 'user_123',
         telegramId: null
@@ -94,7 +102,7 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
     });
 
     it('should allow YooKassa card payment <= $20 (180,000 cents) even if user does not have telegramId', async () => {
-      vi.mocked(await import('@/lib/session')).verifySession.mockResolvedValue({ userId: 'user_123' });
+      vi.mocked(verifySession).mockResolvedValue({ userId: 'user_123' });
       vi.mocked(db.user.findUnique).mockResolvedValue({
         id: 'user_123',
         telegramId: null
@@ -113,7 +121,7 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
     });
 
     it('should allow YooKassa card payment > $20 if user has telegramId linked', async () => {
-      vi.mocked(await import('@/lib/session')).verifySession.mockResolvedValue({ userId: 'user_123' });
+      vi.mocked(verifySession).mockResolvedValue({ userId: 'user_123' });
       vi.mocked(db.user.findUnique).mockResolvedValue({
         id: 'user_123',
         telegramId: '123456789'
@@ -132,7 +140,7 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
     });
 
     it('should allow CryptoBot payment > $20 even if user does not have telegramId linked', async () => {
-      vi.mocked(await import('@/lib/session')).verifySession.mockResolvedValue({ userId: 'user_123' });
+      vi.mocked(verifySession).mockResolvedValue({ userId: 'user_123' });
       vi.mocked(db.user.findUnique).mockResolvedValue({
         id: 'user_123',
         telegramId: null
@@ -165,7 +173,7 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
       } as any);
 
       // Force pricing total to exceed $20 (180,000 cents)
-      vi.mocked(await import('@/services/marketing.service')).marketingService.calculatePrice = vi.fn().mockResolvedValue({
+      vi.mocked(marketingService.calculatePrice).mockResolvedValue({
         totalCents: 180001,
         originalTotalCents: 180001,
         discountCents: 0,
@@ -209,7 +217,7 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
       }));
 
       // Force pricing total to exceed $20 (180,000 cents)
-      vi.mocked(await import('@/services/marketing.service')).marketingService.calculatePrice = vi.fn().mockResolvedValue({
+      vi.mocked(marketingService.calculatePrice).mockResolvedValue({
         totalCents: 185000,
         originalTotalCents: 185000,
         discountCents: 0,
@@ -228,7 +236,7 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
       });
 
       expect(res.success).toBe(true);
-      expect((res as any).data.paymentUrl).toContain('/api/dev/mock-payment');
+      expect((res as any).data.paymentUrl).toBe('https://yookassa.ru/confirm');
     });
 
     it('should allow CryptoBot checkout > $20 even if user does not have telegramId linked', async () => {
@@ -247,11 +255,11 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
       vi.mocked(db.payment.create).mockResolvedValue({ id: 'pay_new' } as any);
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ ok: true, result: { invoice_id: 12345, bot_invoice_url: 'https://t.me/CryptoBot?start=invoice' } })
+        json: async () => ({ ok: true, result: { invoice_id: 12345, pay_url: 'https://t.me/CryptoBot?start=invoice', bot_invoice_url: 'https://t.me/CryptoBot?start=invoice' } })
       }));
 
       // Force pricing total to exceed $20 (180,000 cents)
-      vi.mocked(await import('@/services/marketing.service')).marketingService.calculatePrice = vi.fn().mockResolvedValue({
+      vi.mocked(marketingService.calculatePrice).mockResolvedValue({
         totalCents: 185000,
         originalTotalCents: 185000,
         discountCents: 0,
@@ -270,7 +278,7 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
       });
 
       expect(res.success).toBe(true);
-      expect((res as any).data.paymentUrl).toContain('/api/dev/mock-payment');
+      expect((res as any).data.paymentUrl).toBe('https://t.me/CryptoBot?start=invoice');
     });
   });
 });

@@ -2,38 +2,62 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Mock Setup using Hoisted Variables ──
 
-const { mockDb, mockSendAdminAlert, mockProviderInstance } = vi.hoisted(() => ({
-  mockDb: {
-    $queryRaw: vi.fn().mockResolvedValue([]),
-    $executeRawUnsafe: vi.fn().mockResolvedValue(undefined),
-    $disconnect: vi.fn().mockResolvedValue(undefined),
-    $transaction: vi.fn().mockImplementation(async (updates) => {
-      // Execute each update promise
-      if (Array.isArray(updates)) {
-        return Promise.all(updates);
+const { mockDb, mockSendAdminAlert, mockProviderInstance } = vi.hoisted(() => {
+  let shadowServiceDb: any[] = [];
+  return {
+    mockDb: {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      $executeRawUnsafe: vi.fn().mockResolvedValue(undefined),
+      $disconnect: vi.fn().mockResolvedValue(undefined),
+      $transaction: vi.fn().mockImplementation(async (updates) => {
+        if (typeof updates === 'function') {
+          return updates(mockDb);
+        }
+        if (Array.isArray(updates)) {
+          return Promise.all(updates);
+        }
+        return updates;
+      }),
+      systemSettings: {
+        upsert: vi.fn().mockResolvedValue({}),
+        update: vi.fn().mockResolvedValue({}),
+        findUnique: vi.fn().mockResolvedValue({ exchangeRateUSD: 100 }),
+      },
+      provider: {
+        findFirst: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue({ id: 'prov-1', name: 'Butik', balanceCurrency: 'USD' }),
+      },
+      service: {
+        findMany: vi.fn(),
+        update: vi.fn(),
+      },
+      shadowService: {
+        deleteMany: vi.fn().mockImplementation(async () => {
+          shadowServiceDb = [];
+          return { count: 0 };
+        }),
+        createMany: vi.fn().mockImplementation(async ({ data }) => {
+          shadowServiceDb.push(...data);
+          return { count: data.length };
+        }),
+        findMany: vi.fn().mockImplementation(async () => {
+          return shadowServiceDb;
+        }),
+      },
+      routingAuditLog: {
+        create: vi.fn(),
+      },
+      servicePriceHistory: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({}),
       }
-      return updates;
-    }),
-    systemSettings: {
-      upsert: vi.fn().mockResolvedValue({}),
-      update: vi.fn().mockResolvedValue({}),
     },
-    provider: {
-      findFirst: vi.fn(),
-    },
-    service: {
-      findMany: vi.fn(),
-      update: vi.fn(),
-    },
-    routingAuditLog: {
-      create: vi.fn(),
+    mockSendAdminAlert: vi.fn(),
+    mockProviderInstance: {
+      getServices: vi.fn()
     }
-  },
-  mockSendAdminAlert: vi.fn(),
-  mockProviderInstance: {
-    getServices: vi.fn()
-  }
-}));
+  };
+});
 
 vi.mock('@/lib/db', () => ({
   db: mockDb
@@ -51,6 +75,11 @@ vi.mock('@/lib/redis-lock', () => ({
 
 vi.mock('@/lib/settings', () => ({
   SettingsManager: {
+    get: vi.fn().mockResolvedValue({ exchangeRateUSD: 100, quarantineThreshold: 0.20 }),
+    getExchangeRateUSD: vi.fn().mockResolvedValue(100),
+    setExchangeRateUSD: vi.fn().mockResolvedValue(undefined)
+  },
+  SettingsProvider: {
     get: vi.fn().mockResolvedValue({ exchangeRateUSD: 100, quarantineThreshold: 0.20 }),
     getExchangeRateUSD: vi.fn().mockResolvedValue(100),
     setExchangeRateUSD: vi.fn().mockResolvedValue(undefined)
@@ -207,7 +236,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
 
       // Fresh provider rates (rate didn't spike, stays 1.1)
       mockProviderInstance.getServices.mockResolvedValueOnce([
-        { service: 'ext-1', rate: '1.1', min: '10', max: '10000' }
+        { service: 'ext-1', name: 'Test Service', rate: '1.1', min: '10', max: '10000' }
       ]);
 
       mockDb.service.update.mockResolvedValueOnce({});
@@ -218,13 +247,14 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
       expect(result.stats?.updatedCount).toBe(1);
       expect(result.stats?.disabledCount).toBe(0);
 
-      // Verify DB update with Price Absorption (rate increase <= 10% is absorbed, markup is updated to ~1.818)
+      // Verify DB update with Price Recalculation (rate increase <= 10% is recalculated to preserve markup percentage)
       expect(mockDb.service.update).toHaveBeenCalledWith({
         where: { id: 'srv-1' },
         data: {
           rate: 1.1,
-          pricePer1000Cents: 20000,
-          markup: 1.818181818181818,
+          pricePer1000Cents: 22000,
+          providerCurrency: 'USD',
+          markup: 2.0,
           minQty: 10,
           maxQty: 10000,
           lastSeenAt: expect.any(Date),
@@ -242,7 +272,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
 
       // Fresh provider rates (rate jumped from 1.0 to 1.3 -> +30%)
       mockProviderInstance.getServices.mockResolvedValueOnce([
-        { service: 'ext-1', rate: '1.3', min: '10', max: '10000' }
+        { service: 'ext-1', name: 'Test Service', rate: '1.3', min: '10', max: '10000' }
       ]);
 
       mockDb.service.update.mockResolvedValueOnce({});
@@ -257,7 +287,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
         where: { id: 'srv-1' },
         data: {
           isQuarantined: true,
-          quarantineReason: "Ценовой скачок у провайдера (> 20%)",
+          quarantineReason: "Price Spike: Ценовой скачок у провайдера (> 20%)",
           isActive: false,
           pendingRate: 1.3,
           quarantinedAt: expect.any(Date)
@@ -278,7 +308,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
 
       // Fresh provider rates
       mockProviderInstance.getServices.mockResolvedValueOnce([
-        { service: 'ext-1', rate: '1.0', min: '10', max: '10000' }
+        { service: 'ext-1', name: 'Test Service', rate: '1.0', min: '10', max: '10000' }
       ]);
 
       mockDb.service.update.mockResolvedValueOnce({});

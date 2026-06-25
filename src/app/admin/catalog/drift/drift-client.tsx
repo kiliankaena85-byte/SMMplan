@@ -32,7 +32,7 @@ export function DriftClient({ initialData }: { initialData: DriftCandidate[] }) 
         } else {
           alert('Ошибка: ' + res.error);
         }
-      } catch (err) {
+      } catch {
         alert('Ошибка при компенсации маржи');
       } finally {
         setLoadingIds(prev => {

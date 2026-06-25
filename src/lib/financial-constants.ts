@@ -163,8 +163,11 @@ export function applyPricingLadder(
 export function applyBeautifulRounding(priceRubPer1000: number): number {
   if (priceRubPer1000 <= 0) return 0;
   
-  if (priceRubPer1000 < 1000) {
-    return Math.ceil(priceRubPer1000 / 10) * 10;
+  // Clean up floating point precision jitter (e.g. 220.00000000000003 -> 220)
+  const cleanedPrice = Math.round(priceRubPer1000 * 100000) / 100000;
+  
+  if (cleanedPrice < 1000) {
+    return Math.ceil(cleanedPrice / 10) * 10;
   }
-  return Math.ceil(priceRubPer1000 / 100) * 100;
+  return Math.ceil(cleanedPrice / 100) * 100;
 }

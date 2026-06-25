@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { requireStaffPermission } from '@/lib/server/rbac';
-import { SAFETY_FLOOR_MARKUP, applyBeautifulRounding } from '@/lib/financial-constants';
+import { applyBeautifulRounding } from '@/lib/financial-constants';
 import { SettingsProvider } from '@/lib/settings';
 
 export type DriftCandidate = {

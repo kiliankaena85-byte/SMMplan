@@ -9,7 +9,7 @@ import { Table } from '@heroui/react';
 import { SubmitButton } from '@/components/admin/submit-button';
 import { NetworkSelector } from './sub/NetworkSelector';
 import { CategorySelector } from './sub/CategorySelector';
-import { IntelligencePlatform } from '@/services/analyzer/link-rules';
+
 
 interface MassOrderCalculation {
   globalError?: string;

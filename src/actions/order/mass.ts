@@ -12,6 +12,9 @@ import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.serv
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SettingsManager } from '@/lib/settings';
 import { WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
+import crypto from 'crypto';
+import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
+import { inferTargetTypeFromCategory } from '@/utils/target-type';
 
 const massOrderSchema = z.object({
   text: z.string().min(1, 'Введите данные для заказа'),
@@ -81,7 +84,6 @@ export const parseMassOrderText = async (text: string) => {
     });
 
     const serviceMap = new Map(services.map(s => [s.numericId, s]));
-    const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
 
     for (let i = 0; i < orders.length; i++) {
       const order = orders[i];
@@ -490,8 +492,6 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     let totalCents = 0;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const orderCreationData: any[] = [];
-    
-    const crypto = (await import('crypto')).default;
     const isTestMode = await SettingsManager.isTestMode();
 
     const serviceIds = rawOrders.map(o => o.serviceId);
@@ -500,9 +500,6 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       include: { category: { include: { network: true } } }
     });
     const serviceMap = new Map(services.map(s => [s.id, s]));
-    
-    const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
-    const { inferTargetTypeFromCategory } = await import('@/utils/target-type');
 
     for (let idx = 0; idx < rawOrders.length; idx++) {
        const order = rawOrders[idx];
@@ -515,12 +512,11 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
        }
 
        // Link Normalization
-       let normalizedLink = order.link;
        const platformSlug = service.category?.network?.slug?.toUpperCase() || '';
        const targetType = service.targetType === 'POST'
          ? inferTargetTypeFromCategory(service.category?.name)
          : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
-       normalizedLink = mutateLink(order.link, platformSlug, targetType);
+       const normalizedLink = mutateLink(order.link, platformSlug, targetType);
        const validator = getLinkValidator(platformSlug, targetType);
        const linkResult = validator.safeParse(normalizedLink);
 

@@ -38,7 +38,6 @@ export function DrawerQuantityCard({
   quantity,
   setQuantity,
   pricing,
-  engine: _engine
 }: DrawerQuantityCardProps) {
   const min = selectedService.minQty || 10;
   const max = selectedService.maxQty || 100000;

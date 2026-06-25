@@ -251,10 +251,11 @@ class AdminTicketService {
               }
             },
             orders: {
-              take: 3,
+              take: 10,
               orderBy: { createdAt: 'desc' },
               select: {
                 id: true,
+                numericId: true,
                 status: true,
                 quantity: true,
                 charge: true,
@@ -459,11 +460,13 @@ class AdminTicketService {
         } : null,
         orders: ticket.user.orders.map(o => ({
           id: o.id,
+          numericId: o.numericId,
           status: o.status,
           quantity: o.quantity,
-          charge: o.charge,
+          charge: Number(o.charge),
           createdAt: o.createdAt.toISOString(),
-          service: { name: o.service.name },
+          serviceName: o.service?.name || 'Услуга',
+          service: { name: o.service?.name || 'Услуга' },
         })),
         payments: ticket.user.payments.map(p => ({
           id: p.id,

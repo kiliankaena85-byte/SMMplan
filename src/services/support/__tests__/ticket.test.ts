@@ -129,5 +129,23 @@ describe('TicketService', () => {
         undefined
       );
     });
+    
+    it('should pass orderId to database create call if provided', async () => {
+      const mockTicket = {
+        id: 'ticket-4',
+        user: { id: 'u4', telegramId: null }
+      };
+      
+      vi.mocked(db.ticket.findUnique).mockResolvedValueOnce(mockTicket as any);
+      vi.mocked(db.ticketMessage.create).mockResolvedValueOnce({ ticket: mockTicket } as any);
+      
+      await ticketService.addMessage('ticket-4', 'STAFF', 'Message with order', undefined, undefined, undefined, undefined, undefined, 'order-123');
+      
+      expect(db.ticketMessage.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({
+          orderId: 'order-123'
+        })
+      }));
+    });
   });
 });

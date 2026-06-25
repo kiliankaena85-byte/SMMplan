@@ -540,6 +540,7 @@ export function UnifiedTicketsWorkspace({
                     initialNextCursor={activeTicket.nextCursor}
                     onSelectOrder={handleOpenOrderDrawer}
                     clientEmail={activeTicket.user.email}
+                    initialOrders={activeTicket.user.orders}
                   />
                 </div>
               </div>

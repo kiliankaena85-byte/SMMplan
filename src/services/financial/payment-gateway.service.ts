@@ -44,7 +44,7 @@ class YooKassaGateway extends BasePaymentGateway {
     const secretKey = secrets.yookassaSecretKey;
 
     const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test';
-    const isE2ETest = process.env.NODE_ENV === 'test' || (params.email && params.email.startsWith('e2e-'));
+    const isE2ETest = (process.env.NODE_ENV === 'test' && params.isTestMode !== false) || (params.email && params.email.startsWith('e2e-'));
 
     if (isE2ETest || isDummyKeys) {
       return {
@@ -154,7 +154,7 @@ class CryptoBotGateway extends BasePaymentGateway {
     const cryptoToken = secrets.cryptoBotToken;
 
     const isDummyKeys = !cryptoToken || cryptoToken === 'test_token' || cryptoToken === 'test_shop_id' || cryptoToken === 'test_login';
-    const isE2ETest = process.env.NODE_ENV === 'test' || params.isTestMode || params.email === 'e2e-tester@test.com';
+    const isE2ETest = (process.env.NODE_ENV === 'test' && params.isTestMode !== false) || params.isTestMode || params.email === 'e2e-tester@test.com';
 
     if (isE2ETest || isDummyKeys) {
       return {
@@ -349,7 +349,7 @@ class RobokassaGateway extends BasePaymentGateway {
     const password = secrets.robokassaPassword;
 
     const isDummyKeys = !login || !password || login === 'test_login';
-    const isE2ETest = process.env.NODE_ENV === 'test' || params.email === 'e2e-tester@test.com';
+    const isE2ETest = (process.env.NODE_ENV === 'test' && params.isTestMode !== false) || params.email === 'e2e-tester@test.com';
 
     if (isE2ETest || isDummyKeys) {
       return {

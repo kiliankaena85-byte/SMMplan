@@ -2,26 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { getProviderComparisonData, executeHotSwap } from '@/actions/admin/routing.actions';
-import { SettingsProvider } from '@/lib/settings';
-import { redis } from '@/lib/redis';
-
-// Mock cookies and headers
-const mockCookieStore = {
-  get: vi.fn(),
-  set: vi.fn(),
-  delete: vi.fn(),
-};
-
-const mockHeadersStore = new Headers({
-  'x-forwarded-for': '127.0.0.1',
-  'user-agent': 'vitest',
-});
-
-vi.mock('next/headers', () => ({
-  headers: vi.fn(async () => mockHeadersStore),
-  cookies: vi.fn(async () => mockCookieStore),
-}));
-
 // Mock verifySession to control it per test
 vi.mock('@/lib/session', async (importOriginal: any) => {
   const actual = await (importOriginal as <T>() => Promise<T>)<typeof import('@/lib/session')>();
@@ -30,14 +10,6 @@ vi.mock('@/lib/session', async (importOriginal: any) => {
     verifySession: vi.fn(),
   };
 });
-
-// Mock redis
-vi.mock('@/lib/redis', () => ({
-  redis: {
-    get: vi.fn(),
-    set: vi.fn(),
-  }
-}));
 
 describe('Operational Routing: Comparison Matrix & SLA Analytics Tests', () => {
   let adminUser: any;
@@ -162,11 +134,10 @@ describe('Operational Routing: Comparison Matrix & SLA Analytics Tests', () => {
     expect(failureResult.error).toContain('Forbidden: Administrator/Staff context required');
   });
 
-  it('should aggregate comparative data successfully with fallback to DB properties for primary route if Redis cache is cold', async () => {
+  it('should aggregate comparative data successfully with fallback to DB properties for primary route if DB shadow catalog is cold', async () => {
     vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-    // Redis mock returns null (cold cache)
-    (vi.mocked(redis.get) as any).mockResolvedValue(null);
+    // DB shadow catalog is cold (no records seeded)
 
     const result = await getProviderComparisonData(service.id);
     const successResult = result as { success: true; data: any[] };
@@ -184,27 +155,41 @@ describe('Operational Routing: Comparison Matrix & SLA Analytics Tests', () => {
     expect(primaryData.procurementCostPerUnitRub).toBe(0.01); // 0.1 * 100 / 1000
     expect(primaryData.limitsMismatch).toBe(false);
 
-    // Non-primary route should have null values for pricing/limits since Redis is cold
+    // Non-primary route should have null values for pricing/limits since DB catalog is cold
     expect(nonPrimaryData.providerMinQty).toBeNull();
     expect(nonPrimaryData.procurementRatePer1kUsd).toBeNull();
     expect(nonPrimaryData.limitsMismatch).toBe(false);
   });
 
-  it('should aggregate comparative data successfully using Redis cached catalog and detect limit incompatibilities correctly', async () => {
+  it('should aggregate comparative data successfully using DB shadow catalog and detect limit incompatibilities correctly', async () => {
     vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-    // Redis mock returns cached catalog
-    const mockCatalogA = JSON.stringify([
-      { service: 'ext-100', rate: '0.08', min: '50', max: '20000' } // minQty: 50 > service minQty (10) -> mismatch!
-    ]);
-    const mockCatalogB = JSON.stringify([
-      { service: 'ext-200', rate: '5.0', min: '5', max: '5000' } // minQty: 5 < 10, maxQty: 5000 < 10000 -> maxQty mismatch!
-    ]);
-
-    (vi.mocked(redis.get) as any).mockImplementation(async (key: any) => {
-      if (key === `provider:${providerA.id}:catalog`) return mockCatalogA;
-      if (key === `provider:${providerB.id}:catalog`) return mockCatalogB;
-      return null;
+    // Seed DB with shadow services instead of mocking Redis
+    await db.shadowService.createMany({
+      data: [
+        {
+          providerId: providerA.id,
+          externalId: 'ext-100',
+          name: 'Ext 100 Service Name',
+          rate: 0.08,
+          rateRub: 8.0, // rate 0.08 * 100 usdRate
+          min: 50,
+          max: 20000,
+          platform: 'telegram',
+          normalizedCategory: 'VIEWS'
+        },
+        {
+          providerId: providerB.id,
+          externalId: 'ext-200',
+          name: 'Ext 200 Service Name',
+          rate: 5.0,
+          rateRub: 5.0,
+          min: 5,
+          max: 5000,
+          platform: 'telegram',
+          normalizedCategory: 'VIEWS'
+        }
+      ]
     });
 
     const result = await getProviderComparisonData(service.id);

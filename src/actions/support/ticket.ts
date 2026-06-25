@@ -1,6 +1,7 @@
 'use server';
 
 import { verifySession } from '@/lib/session';
+import { extractOrderIds } from '@/utils/ticket-parser';
 import { ticketService } from '@/services/support/ticket.service';
 import { db } from '@/lib/db';
 import { aiSupportService } from '@/services/admin/ai-support.service';
@@ -66,22 +67,47 @@ export async function sendLiveChatMessage(formData: FormData) {
   const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
   if (!ticket || ticket.userId !== session.userId) throw new Error('Forbidden');
 
-  // On-the-fly order binding (first message with order context)
-  if (orderId && !ticket.orderId) {
+  let verifiedOrderId: string | undefined = undefined;
+  if (orderId) {
     // Verify user owns the order too
     const order = await db.order.findFirst({
       where: { id: orderId, userId: session.userId }
     });
     if (order) {
-      await db.ticket.update({
-        where: { id: ticketId },
-        data: { orderId }
+      verifiedOrderId = order.id;
+      if (!ticket.orderId) {
+        await db.ticket.update({
+          where: { id: ticketId },
+          data: { orderId: order.id }
+        });
+      }
+    }
+  } else if (message) {
+    const extractedIds = extractOrderIds(message);
+    if (extractedIds.length > 0) {
+      const order = await db.order.findFirst({
+        where: {
+          userId: session.userId,
+          OR: [
+            { id: { in: extractedIds } },
+            { numericId: { in: extractedIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id)) } }
+          ]
+        }
       });
+      if (order) {
+        verifiedOrderId = order.id;
+        if (!ticket.orderId) {
+          await db.ticket.update({
+            where: { id: ticketId },
+            data: { orderId: order.id }
+          });
+        }
+      }
     }
   }
 
   // Add message via unified omnichannel service
-  const savedMsg = await ticketService.addMessage(ticketId, 'USER', message, undefined, undefined, undefined, undefined, undefined, orderId || undefined);
+  const savedMsg = await ticketService.addMessage(ticketId, 'USER', message, undefined, undefined, undefined, undefined, undefined, verifiedOrderId);
 
   // Broadcast to SSE listeners (real-time delivery to operator panel & client tabs)
   if (savedMsg?.id) {
@@ -113,7 +139,8 @@ const adminReplySchema = z.object({
   isInternal: z.any().transform(val => val === 'true' || val === 'on'),
   mediaUrl: z.string().optional(),
   mediaType: z.string().optional(),
-  replyToId: z.string().optional()
+  replyToId: z.string().optional(),
+  orderId: z.string().optional()
 }).refine(data => data.message || data.mediaUrl, "Either message or mediaUrl must be provided");
 
 export async function createTicket(formData: FormData) {
@@ -172,6 +199,28 @@ export async function addTicketMessage(formData: FormData) {
         data: { orderId: order.id }
       });
     }
+  } else if (message) {
+    const extractedIds = extractOrderIds(message);
+    if (extractedIds.length > 0) {
+      const order = await db.order.findFirst({
+        where: {
+          userId: session.userId,
+          OR: [
+            { id: { in: extractedIds } },
+            { numericId: { in: extractedIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id)) } }
+          ]
+        }
+      });
+      if (order) {
+        verifiedOrderId = order.id;
+        if (!ticket.orderId) {
+          await db.ticket.update({
+            where: { id: ticketId },
+            data: { orderId: order.id }
+          });
+        }
+      }
+    }
   }
 
   const savedMsg = await ticketService.addMessage(ticketId, 'USER', message || '', mediaUrl, mediaType, replyToId, undefined, undefined, verifiedOrderId);
@@ -185,11 +234,55 @@ export async function adminReplyTicket(formData: FormData) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
     const parsed = adminReplySchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Ошибка валидации сообщения');
-    const { ticketId, message, isInternal, mediaUrl, mediaType, replyToId } = parsed.data;
+    const { ticketId, message, isInternal, mediaUrl, mediaType, replyToId, orderId } = parsed.data;
+
+    const ticket = await db.ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, userId: true, orderId: true }
+    });
+    if (!ticket) throw new Error('Ticket not found');
+
+    let verifiedOrderId: string | undefined = undefined;
+    if (orderId) {
+      const order = await db.order.findFirst({
+        where: { id: orderId, userId: ticket.userId }
+      });
+      if (order) {
+        verifiedOrderId = order.id;
+        if (!ticket.orderId) {
+          await db.ticket.update({
+            where: { id: ticketId },
+            data: { orderId: order.id }
+          });
+        }
+      }
+    } else if (message) {
+      const extractedIds = extractOrderIds(message);
+      if (extractedIds.length > 0) {
+        const order = await db.order.findFirst({
+          where: {
+            userId: ticket.userId,
+            OR: [
+              { id: { in: extractedIds } },
+              { numericId: { in: extractedIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id)) } }
+            ]
+          }
+        });
+        if (order) {
+          verifiedOrderId = order.id;
+          if (!ticket.orderId) {
+            await db.ticket.update({
+              where: { id: ticketId },
+              data: { orderId: order.id }
+            });
+          }
+        }
+      }
+    }
 
     const sender = isInternal ? 'INTERNAL' : 'STAFF';
 
-    const savedMsg = await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType, replyToId);
+    const savedMsg = await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType, replyToId, undefined, undefined, verifiedOrderId);
 
     const ipAddress = await getClientIp('unknown');
     auditAdmin({
@@ -198,7 +291,7 @@ export async function adminReplyTicket(formData: FormData) {
       action: isInternal ? 'TICKET_INTERNAL_NOTE_ADD' : 'TICKET_REPLY_SEND',
       target: ticketId,
       targetType: 'TICKET',
-      newValue: { message, mediaUrl, mediaType, replyToId },
+      newValue: { message, mediaUrl, mediaType, replyToId, orderId: verifiedOrderId },
       ipAddress
     });
 

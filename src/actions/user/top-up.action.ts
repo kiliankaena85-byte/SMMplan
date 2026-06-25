@@ -23,6 +23,12 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
   if (!dbUser) throw new Error("Пользователь не найден.");
   if (dbUser.isDeleted === true || dbUser.isActive === false) throw new Error("Ваш аккаунт заблокирован или удален");
 
+  if (gateway === 'yookassa' && amountCents > 180000) {
+    if (!dbUser.telegramId) {
+      throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
+    }
+  }
+
 
 
   const reqHeaders = await headers();

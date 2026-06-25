@@ -5,7 +5,6 @@ import { db } from '@/lib/db';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { revalidatePath } from 'next/cache';
 import { SettingsProvider } from '@/lib/settings';
-import { redis } from '@/lib/redis';
 import { applyBeautifulRounding } from '@/lib/financial-constants';
 
 const swapSchema = z.object({
@@ -102,19 +101,18 @@ export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
 
       const oldProviderId = service.providerId;
 
-      // Fetch new rate from redis catalog details Hash to prevent arbitrage
-      const hashKey = `provider:${targetRoute.providerId}:catalog:details`;
-      const serviceStr = await redis.hget(hashKey, String(targetRoute.providerServiceId));
-      let newRate = service.rate;
-      if (serviceStr) {
-        try {
-          const s = JSON.parse(serviceStr);
-          if (s && parseFloat(s.rate) > 0) {
-            newRate = parseFloat(s.rate);
+      // Fetch new rate from database ShadowService staging table to prevent arbitrage
+      const shadowSvc = await tx.shadowService.findUnique({
+        where: {
+          providerId_externalId: {
+            providerId: targetRoute.providerId,
+            externalId: String(targetRoute.providerServiceId)
           }
-        } catch {
-          // Ignore JSON parsing errors
         }
+      });
+      let newRate = service.rate;
+      if (shadowSvc && shadowSvc.rate > 0) {
+        newRate = shadowSvc.rate;
       }
 
       const usdToRub = await SettingsProvider.getExchangeRateUSD();
@@ -392,23 +390,23 @@ export async function getProviderComparisonData(serviceId: string) {
         avgEtaSeconds = Math.round(totalDuration / completedOrders.length);
       }
 
-      // 2. Fetch real-time provider rate and limits from Redis shadow catalog details Hash
-      const hashKey = `provider:${route.providerId}:catalog:details`;
-      const serviceStr = await redis.hget(hashKey, String(route.providerServiceId));
+      // 2. Fetch real-time provider rate and limits from Database ShadowService staging table
+      const shadowSvc = await db.shadowService.findUnique({
+        where: {
+          providerId_externalId: {
+            providerId: route.providerId,
+            externalId: String(route.providerServiceId)
+          }
+        }
+      });
       let providerRate: number | null = null;
       let providerMinQty: number | null = null;
       let providerMaxQty: number | null = null;
 
-      if (serviceStr) {
-        try {
-          const s = JSON.parse(serviceStr);
-          providerRate = parseFloat(s.rate) || 0.0;
-          providerMinQty = parseInt(s.min) || 0;
-          providerMaxQty = parseInt(s.max) || 0;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (err) {
-          // ignore parsing error
-        }
+      if (shadowSvc) {
+        providerRate = shadowSvc.rate;
+        providerMinQty = shadowSvc.min;
+        providerMaxQty = shadowSvc.max;
       }
 
       // 3. Fallback to DB properties if primary route and cache is missing/cold

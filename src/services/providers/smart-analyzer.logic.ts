@@ -355,7 +355,6 @@ export const SmartAnalyzerLogic = class {
             else if (fullContent.includes('boost') || fullContent.includes('буст')) category = 'BOOSTS';
             else if (isStory) category = 'STORIES';
             else if (isAutoViews) category = 'AUTO_VIEWS';
-            else if (isAutoViews) category = 'AUTO_VIEWS';
             else if (nameNode.includes('реакци') || nameNode.includes('reaction')) {
                 // Earliest match check within name for views vs reactions
                 const vIdx = nameNode.indexOf('просмотр');

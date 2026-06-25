@@ -15,26 +15,40 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
   }, [catalog, networkId]);
 
   const desktopGridContent = useMemo(() => {
-    return services.map((srv) => {
+    return services.map((srv, i) => {
       const isSelected = selectedService?.id === srv.id;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const brand = getBrandColor(selectedNetworkObj?.slug);
       const isQuarantined = srv.cooldownUntil && new Date(srv.cooldownUntil) > new Date();
 
+      const descriptionText = isQuarantined 
+        ? "Услуга временно приостановлена. Пожалуйста, выберите аналогичную услугу из списка."
+        : srv.description 
+          ? srv.description
+          : srv.name.toLowerCase().includes('без гарант')
+            ? "Услуга без гарантии. В случае отписок восстановление не производится."
+            : "Стандартные условия сервиса. Скорость зависит от текущей нагрузки провайдера.";
+
       return (
-        <Card 
+        <motion.div
           key={srv.id}
-          onClick={() => {
-            if (isQuarantined) return;
-            setSelectedService(isSelected ? null : srv);
-          }}
-          className={`group w-full flex flex-col p-6 border-2 rounded-3xl relative overflow-visible transition-all duration-300 ease-out h-full ${
-            isQuarantined ? 'cursor-not-allowed opacity-75 grayscale-[0.5] bg-content2 border-transparent' 
-            : isSelected ? 'cursor-pointer border-transparent text-primary-foreground z-[50] bg-primary shadow-2xl shadow-primary/30 scale-[1.02]' 
-            : 'cursor-pointer bg-content1 border-border/40 z-[1] hover:border-border hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1'
-          }`}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: i * 0.05, ease: [0.25, 0.1, 0.25, 1] }}
+          className="h-full"
         >
-          <div className={`absolute inset-0 rounded-3xl opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/20 to-transparent ${isSelected && !isQuarantined ? 'opacity-100' : 'group-hover:opacity-10'}`} />
+          <Card 
+            onClick={() => {
+              if (isQuarantined) return;
+              setSelectedService(isSelected ? null : srv);
+            }}
+            className={`group w-full flex flex-col p-4 sm:p-5 border-2 rounded-[2rem] relative overflow-visible transition-all duration-300 ease-out h-full ${
+              isQuarantined ? 'cursor-not-allowed opacity-75 grayscale-[0.5] bg-content2 border-transparent' 
+              : isSelected ? 'cursor-pointer border-transparent text-primary-foreground z-[50] bg-primary shadow-[0_20px_40px_-10px_var(--tw-shadow-color)] shadow-primary/30 scale-[1.02]' 
+              : 'cursor-pointer bg-content1 border-border/40 z-[1] hover:border-border hover:shadow-2xl hover:shadow-black/5 hover:-translate-y-1'
+            }`}
+          >
+            <div className={`absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/20 to-transparent ${isSelected && !isQuarantined ? 'opacity-100' : 'group-hover:opacity-10'}`} />
           
           {srv.badge && !isQuarantined && (
             <div 
@@ -71,17 +85,13 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
                <span>{srv.name}</span>
              </h4>
              <div className="flex-1 mb-6 flex flex-col">
-                <p className={`text-sm font-medium leading-relaxed p-4 rounded-2xl border transition-all duration-300 ${
+                <p className={`text-sm font-medium leading-relaxed p-4 rounded-2xl border transition-all duration-300 text-pretty ${
                   isSelected && !isQuarantined ? 'bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground/90 shadow-inner' 
                   : isQuarantined ? 'bg-danger/10 border-danger/20 text-danger' 
                   : 'bg-content2/50 border-border/50 text-muted-foreground'
                 }`}>
                   <span className="line-clamp-6 whitespace-pre-line">
-                    {isQuarantined 
-                       ? `Услуга временно приостановлена. Пожалуйста, выберите аналогичную услугу из списка.` 
-                      : (srv.description || (srv.name.toLowerCase().includes('без гарант') 
-                      ? "Услуга без гарантии. В случае отписок восстановление не производится." 
-                      : "Стандартные условия сервиса. Скорость зависит от текущей нагрузки провайдера."))}
+                    {descriptionText}
                   </span>
                 </p>
              </div>
@@ -104,7 +114,8 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
               <Check className="w-4 h-4" strokeWidth={isSelected ? 4 : 3} />
             </div>
           </div>
-        </Card>
+          </Card>
+        </motion.div>
       );
     });
   }, [services, selectedService, selectedNetworkObj, setSelectedService]);

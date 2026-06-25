@@ -3,30 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { adminCatalogService } from "@/services/admin/catalog.service";
-import { providerService } from "@/services/providers/provider.service";
-import { SmartAnalyzerLogic } from "@/services/providers/smart-analyzer.logic";
 import { db } from "@/lib/db";
 import { handleServerError } from "@/utils/error-handler";
-
-import { redis } from "@/lib/redis";
-
 import { z } from 'zod';
-import { SecuritySanitizer } from "@/utils/security-sanitizer";
-
-const rawServiceSchema = z.object({
-  service: z.union([z.string(), z.number()]),
-  name: z.string().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
-  type: z.string().optional(),
-  category: z.string().optional(),
-  rate: z.union([z.string(), z.number()]),
-  min: z.union([z.string(), z.number()]),
-  max: z.union([z.string(), z.number()]),
-  refill: z.boolean().optional(),
-  cancel: z.boolean().optional(),
-  dripfeed: z.boolean().optional(),
-  desc: z.string().optional().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
-  description: z.string().optional().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
-}).strip(); // Remove extra fields
 
 // --- [NEW] Pagination & Filtering API ---
 export async function fetchPaginatedExternalServices(
@@ -38,23 +17,12 @@ export async function fetchPaginatedExternalServices(
 ) {
     return requireStaffPermission('catalog', 'view', async () => {
         try {
-            const cacheKey = `provider:${providerId}:catalog`;
-            let cachedStr: string | null = null;
-            try {
-                cachedStr = await redis.get(cacheKey);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (redisErr: any) {
-                console.warn('[import] Redis unavailable:', redisErr.message);
-                return { success: false, error: 'Redis недоступен. Нажмите «Загрузить каталог» для синхронизации.', emptyCache: true };
-            }
-            
-            if (!cachedStr) {
+            const shadowCount = await db.shadowService.count({ where: { providerId } });
+            if (shadowCount === 0) {
                 return { success: false, error: 'Теневой каталог пуст. Нажмите «Загрузить каталог».', emptyCache: true };
             }
 
-            let allServices = JSON.parse(cachedStr);
-
-            // 0. Currency Conversion Prep
+            // 0. Currency & Rate Settings
             const [provider, settings] = await Promise.all([
                 db.provider.findUnique({ where: { id: providerId }, select: { balanceCurrency: true } }),
                 db.systemSettings.findUnique({ where: { id: "global" }, select: { exchangeRateUSD: true } })
@@ -62,219 +30,270 @@ export async function fetchPaginatedExternalServices(
             const currency = provider?.balanceCurrency || 'USD';
             const usdRate = settings?.exchangeRateUSD || 90.0;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            allServices = allServices.map((s: any) => {
-                const rawRate = parseFloat(s.rate) || 0;
-                const rateRub = currency === 'USD' ? rawRate * usdRate : rawRate;
-                const pricePerUnitProcurementRub = rateRub / 1000;
-                const pricePerUnitProcurementUsd = rawRate / 1000;
-                return { ...s, rateRub, pricePerUnitProcurementRub, pricePerUnitProcurementUsd, providerCurrency: currency, usdRate };
-            });
-
-            // 2. Fetch imported map for "alreadyImported" status
+            // 1. Fetch imported map for "alreadyImported" status
             const existingServices = await db.service.findMany({
                 where: { providerId, externalId: { not: null } },
                 select: { id: true, externalId: true }
             });
-            const existingMap = new Map(existingServices.map((s: {id: string, externalId: string | null}) => [s.externalId, s.id]));
-            // Extract unique provider categories with count BEFORE filtering
-            const providerCategoriesMap = new Map<string, number>();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            allServices.forEach((s: any) => {
-                const cat = s.category || 'Без категории';
-                providerCategoriesMap.set(cat, (providerCategoriesMap.get(cat) || 0) + 1);
-            });
-            const providerCategories = Array.from(providerCategoriesMap.entries())
-                .map(([name, count]) => ({ name, count }))
-                .sort((a, b) => a.name.localeCompare(b.name));
+            const existingMap = new Map(existingServices.map((s: {id: string; externalId: string | null}) => [s.externalId!, s.id]));
+            const importedExternalIds = existingServices.map(s => s.externalId).filter(Boolean) as string[];
 
-            // Apply all filters EXCEPT platform filter first to get platform counts:
-            let filteredForCounting = allServices;
-            
+            // 2. Build where conditions
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const andConditions: any[] = [{ providerId }];
+
             if (filters.category && filters.category !== 'ALL') {
-                const catFilter = filters.category;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => 
-                     s.metrics?.category === catFilter
-                );
+                andConditions.push({ normalizedCategory: filters.category });
             }
             if (filters.providerCategory && filters.providerCategory !== 'ALL') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => 
-                     (s.category || 'Без категории') === filters.providerCategory
-                );
+                if (filters.providerCategory === 'Без категории') {
+                    andConditions.push({
+                        OR: [
+                            { category: null },
+                            { category: '' },
+                            { category: 'Без категории' }
+                        ]
+                    });
+                } else {
+                    andConditions.push({ category: filters.providerCategory });
+                }
             }
             if (filters.geo && filters.geo !== 'ALL') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => s.metrics?.geo === filters.geo);
+                andConditions.push({ geo: filters.geo });
             }
             if (filters.velocity && filters.velocity !== 'ALL') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => {
-                     const v = s.metrics?.velocity || 0;
-                     if (filters.velocity === 'FAST') return v >= 50;
-                     if (filters.velocity === 'SLOW') return v <= 10;
-                     return v > 10 && v < 50;
-                 });
+                if (filters.velocity === 'FAST') {
+                    andConditions.push({ velocity: { gte: 50 } });
+                } else if (filters.velocity === 'SLOW') {
+                    andConditions.push({ velocity: { lte: 10 } });
+                } else {
+                    andConditions.push({ velocity: { gt: 10, lt: 50 } });
+                }
             }
             if (filters.hasRefill) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => s.refill === true || s.metrics?.warranty > 0);
+                andConditions.push({
+                    OR: [
+                        { refill: true },
+                        { warranty: { gt: 0 } }
+                    ]
+                });
             }
             if (filters.hasAnomaly) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => s.metrics?.anomalyScore > 0);
+                andConditions.push({ anomalyScore: { gt: 0 } });
             }
             if (filters.retailReady) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => {
-                    const min = parseInt(s.min, 10);
-                    return !isNaN(min) && min > 0 && min <= 100;
-                });
+                andConditions.push({ min: { gt: 0, lte: 100 } });
             }
             if (filters.minPrice !== undefined && filters.minPrice !== '') {
                 const minP = parseFloat(filters.minPrice);
                 if (!isNaN(minP)) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    filteredForCounting = filteredForCounting.filter((s: any) => (s.rateRub || 0) >= minP);
+                    andConditions.push({ rateRub: { gte: minP } });
                 }
             }
             if (filters.maxPrice !== undefined && filters.maxPrice !== '') {
                 const maxP = parseFloat(filters.maxPrice);
                 if (!isNaN(maxP)) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    filteredForCounting = filteredForCounting.filter((s: any) => (s.rateRub || 0) <= maxP);
+                    andConditions.push({ rateRub: { lte: maxP } });
                 }
             }
             if (filters.search) {
                 const q = filters.search.toLowerCase().trim();
                 const terms = q.split(/\s+/).filter(Boolean);
-                if (terms.length > 0) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    filteredForCounting = filteredForCounting.filter((s: any) => {
-                        const sName = (s.name || '').toLowerCase();
-                        const sCat = (s.category || '').toLowerCase();
-                        const sId = String(s.service);
-                        return terms.every((term: string) => 
-                            sName.includes(term) || 
-                            sCat.includes(term) || 
-                            sId.includes(term)
-                        );
+                for (const term of terms) {
+                    andConditions.push({
+                        OR: [
+                            { name: { contains: term, mode: 'insensitive' } },
+                            { category: { contains: term, mode: 'insensitive' } },
+                            { externalId: { contains: term, mode: 'insensitive' } }
+                        ]
                     });
                 }
             }
-            
+
             const importStatus = filters.importStatus || (filters.hideImported ? 'NOT_IMPORTED' : 'ALL');
             if (importStatus === 'NOT_IMPORTED') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => !existingMap.has(String(s.service)));
+                if (importedExternalIds.length > 0) {
+                    andConditions.push({ externalId: { notIn: importedExternalIds } });
+                }
             } else if (importStatus === 'IMPORTED') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                filteredForCounting = filteredForCounting.filter((s: any) => existingMap.has(String(s.service)));
+                andConditions.push({ externalId: { in: importedExternalIds } });
             }
 
-            // Compute platform counts based on the filtered list
+            const whereWithoutPlatform = { AND: andConditions };
+
+            // 3. Platform counts based on whereWithoutPlatform
+            const platformGroups = await db.shadowService.groupBy({
+                by: ['platform'],
+                where: whereWithoutPlatform,
+                _count: {
+                    id: true
+                }
+            });
+
+            let telegram = 0;
+            let instagram = 0;
+            let vk = 0;
+            let youtube = 0;
+            let tiktok = 0;
+            let other = 0;
+            let totalCount = 0;
+
+            for (const g of platformGroups) {
+                const count = g._count.id;
+                totalCount += count;
+                const p = (g.platform || '').toLowerCase();
+                if (p === 'telegram') telegram = count;
+                else if (p === 'instagram') instagram = count;
+                else if (p === 'vk') vk = count;
+                else if (p === 'youtube') youtube = count;
+                else if (p === 'tiktok') tiktok = count;
+                else other += count;
+            }
+
             const platformCounts = {
-                ALL: filteredForCounting.length,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                telegram: filteredForCounting.filter((s: any) => (s.metrics?.platform || '').toLowerCase() === 'telegram').length,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                instagram: filteredForCounting.filter((s: any) => (s.metrics?.platform || '').toLowerCase() === 'instagram').length,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                vk: filteredForCounting.filter((s: any) => (s.metrics?.platform || '').toLowerCase() === 'vk').length,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                youtube: filteredForCounting.filter((s: any) => (s.metrics?.platform || '').toLowerCase() === 'youtube').length,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                tiktok: filteredForCounting.filter((s: any) => (s.metrics?.platform || '').toLowerCase() === 'tiktok').length,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                other: filteredForCounting.filter((s: any) => !['telegram', 'instagram', 'vk', 'youtube', 'tiktok'].includes((s.metrics?.platform || '').toLowerCase())).length
+                ALL: totalCount,
+                telegram,
+                instagram,
+                vk,
+                youtube,
+                tiktok,
+                other
             };
 
-            // Now apply platform filter for the active list
+            // 4. Platform filter apply
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let finalWhere: any = { ...whereWithoutPlatform };
             if (filters.platform && filters.platform !== 'ALL') {
                 if (filters.platform === 'other') {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    allServices = filteredForCounting.filter((s: any) => !['telegram', 'instagram', 'vk', 'youtube', 'tiktok'].includes((s.metrics?.platform || '').toLowerCase()));
+                    finalWhere = {
+                        AND: [
+                            ...andConditions,
+                            {
+                                platform: {
+                                    notIn: ['telegram', 'instagram', 'vk', 'youtube', 'tiktok']
+                                }
+                            }
+                        ]
+                    };
                 } else {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    allServices = filteredForCounting.filter((s: any) => (s.metrics?.platform || '').toLowerCase() === filters.platform);
+                    finalWhere = {
+                        AND: [
+                            ...andConditions,
+                            {
+                                platform: {
+                                    equals: filters.platform.toLowerCase()
+                                }
+                            }
+                        ]
+                    };
                 }
-            } else {
-                allServices = filteredForCounting;
             }
 
-            // Mark imported
+            // 5. Unique provider categories query
+            const categoryGroups = await db.shadowService.groupBy({
+                by: ['category'],
+                where: { providerId },
+                _count: {
+                    id: true
+                }
+            });
+
+            const providerCategories = categoryGroups.map((g) => ({
+                name: g.category || 'Без категории',
+                count: g._count.id
+            })).sort((a, b) => a.name.localeCompare(b.name));
+
+            // 6. Sorting
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            allServices = allServices.map((s: any) => ({
-                ...s,
-                alreadyImported: existingMap.has(String(s.service)),
-                localServiceId: existingMap.get(String(s.service))
-            }));
-
-            // 5. Sorting
+            let orderBy: any = {};
             if (filters.sortBy === 'price_asc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => a.rateRub - b.rateRub);
+                orderBy = { rateRub: 'asc' };
             } else if (filters.sortBy === 'price_desc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => b.rateRub - a.rateRub);
+                orderBy = { rateRub: 'desc' };
             } else if (filters.sortBy === 'anomaly_asc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (a.metrics?.anomalyScore || 0) - (b.metrics?.anomalyScore || 0));
+                orderBy = { anomalyScore: 'asc' };
             } else if (filters.sortBy === 'anomaly_desc' || filters.sortBy === 'anomaly') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (b.metrics?.anomalyScore || 0) - (a.metrics?.anomalyScore || 0));
+                orderBy = { anomalyScore: 'desc' };
             } else if (filters.sortBy === 'min_asc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (parseInt(a.min, 10) || 0) - (parseInt(b.min, 10) || 0));
+                orderBy = { min: 'asc' };
             } else if (filters.sortBy === 'min_desc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (parseInt(b.min, 10) || 0) - (parseInt(a.min, 10) || 0));
+                orderBy = { min: 'desc' };
             } else if (filters.sortBy === 'id_asc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => {
-                    const aId = parseInt(a.service, 10);
-                    const bId = parseInt(b.service, 10);
-                    if (!isNaN(aId) && !isNaN(bId)) return aId - bId;
-                    return String(a.service).localeCompare(String(b.service));
-                });
+                orderBy = { externalId: 'asc' };
             } else if (filters.sortBy === 'id_desc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => {
-                    const aId = parseInt(a.service, 10);
-                    const bId = parseInt(b.service, 10);
-                    if (!isNaN(aId) && !isNaN(bId)) return bId - aId;
-                    return String(b.service).localeCompare(String(a.service));
-                });
+                orderBy = { externalId: 'desc' };
             } else if (filters.sortBy === 'name_asc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (a.cleanName || a.name || '').localeCompare(b.cleanName || b.name || ''));
+                orderBy = { cleanName: 'asc' };
             } else if (filters.sortBy === 'name_desc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (b.cleanName || b.name || '').localeCompare(a.cleanName || a.name || ''));
+                orderBy = { cleanName: 'desc' };
             } else if (filters.sortBy === 'category_asc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (a.category || '').localeCompare(b.category || ''));
+                orderBy = { category: 'asc' };
             } else if (filters.sortBy === 'category_desc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (b.category || '').localeCompare(b.category || ''));
+                orderBy = { category: 'desc' };
             } else if (filters.sortBy === 'platform_asc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (a.metrics?.platform || '').localeCompare(b.metrics?.platform || ''));
+                orderBy = { platform: 'asc' };
             } else if (filters.sortBy === 'platform_desc') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                allServices.sort((a: any, b: any) => (b.metrics?.platform || '').localeCompare(a.metrics?.platform || ''));
+                orderBy = { platform: 'desc' };
+            } else {
+                orderBy = { id: 'asc' };
             }
 
-            // 6. Pagination
-            const total = allServices.length;
+            // 7. Paginated query
+            const total = await db.shadowService.count({ where: finalWhere });
             const totalPages = Math.ceil(total / pageSize);
             const start = (page - 1) * pageSize;
-            const paginated = allServices.slice(start, start + pageSize);
+
+            const paginated = await db.shadowService.findMany({
+                where: finalWhere,
+                orderBy,
+                take: pageSize,
+                skip: start
+            });
+
+            // 8. Map to match UI schema expectations
+            const paginatedMapped = paginated.map((s) => {
+                const rawRate = s.rate;
+                const rateRub = s.rateRub;
+                const pricePerUnitProcurementRub = rateRub / 1000;
+                const pricePerUnitProcurementUsd = rawRate / 1000;
+
+                return {
+                    service: s.externalId,
+                    name: s.name,
+                    type: s.type || undefined,
+                    category: s.category || undefined,
+                    rate: s.rate,
+                    min: String(s.min),
+                    max: String(s.max),
+                    refill: s.refill,
+                    cancel: s.cancel,
+                    dripfeed: s.dripfeed,
+                    cleanName: s.cleanName,
+                    rateRub,
+                    pricePerUnitProcurementRub,
+                    pricePerUnitProcurementUsd,
+                    providerCurrency: currency,
+                    usdRate,
+                    alreadyImported: existingMap.has(s.externalId),
+                    localServiceId: existingMap.get(s.externalId) || null,
+                    metrics: {
+                        platform: s.platform,
+                        category: s.normalizedCategory,
+                        targetType: s.targetType,
+                        customDataType: s.customDataType,
+                        isMediaGroupAware: s.isMediaGroupAware,
+                        isPrivate: s.isPrivate,
+                        warranty: s.warranty,
+                        geo: s.geo,
+                        velocity: s.velocity,
+                        anomalyScore: s.anomalyScore
+                    }
+                };
+            });
 
             return {
                 success: true,
-                data: paginated,
+                data: paginatedMapped,
                 platformCounts,
                 providerCategories,
                 pagination: {
@@ -305,124 +324,20 @@ export async function fetchExternalServices(providerId?: string, forceRefresh = 
      }
 
      const providerDbId = providerDbRecord.id;
-     const cacheKey = `provider:${providerDbId}:catalog`;
      
-     let services = [];
-
+     let shadowCount = 0;
      if (!forceRefresh) {
-        try {
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-                try {
-                    services = JSON.parse(cached);
-                } catch(e) {
-                    console.error("Failed to parse shadow catalog cache", e);
-                }
-            }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (redisErr: any) {
-            console.warn('[fetchExternalServices] Redis unavailable for cache read:', redisErr.message);
-        }
+         shadowCount = await db.shadowService.count({ where: { providerId: providerDbId } });
      }
 
-     if (services.length === 0) {
-        // Cache miss or force refresh
-        const providerInstance = await providerService.getProviderInstance(providerDbRecord);
-        const rawServices = await providerInstance.getServices();
-        
-        // Fetch exchange settings for Anti-Liar dictionary
-        const settings = await db.systemSettings.findUnique({ where: { id: "global" }, select: { exchangeRateUSD: true } });
-        const usdRate = settings?.exchangeRateUSD || 90.0;
-        const currency = providerDbRecord.balanceCurrency || 'USD';
-        
-        // Filter raw services using Zod Schema
-        const validRawServices = [];
-        let invalidCount = 0;
-        
-        if (Array.isArray(rawServices)) {
-            for (const s of rawServices) {
-                const parsed = rawServiceSchema.safeParse(s);
-                if (parsed.success) {
-                    validRawServices.push(parsed.data);
-                } else {
-                    if (invalidCount < 3) {
-                        console.warn(`[Provider Sync] Invalid service format (sample):`, parsed.error.issues);
-                    }
-                    invalidCount++;
-                }
-            }
-        } else {
-            throw new Error("Provider did not return an array of services");
-        }
-
-        if (invalidCount > 0) {
-            console.warn(`[Provider Sync] Ignored ${invalidCount} invalid services from provider ${providerDbRecord.name}`);
-        }
-
-        // Data Intelligence: Normalize services using SmartAnalyzerLogic
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        services = validRawServices.map((s: any) => {
-            const rawRate = parseFloat(s.rate) || 0;
-            const basePriceUsd = currency === 'RUB' ? rawRate / usdRate : rawRate;
-            const analyzed = SmartAnalyzerLogic.detectSync(s.name, s.description || '', s.category || '', undefined, basePriceUsd);
-            return {
-                ...s,
-                cleanName: analyzed.cleanName,
-                metrics: {
-                    ...analyzed.metrics,
-                    platform: analyzed.platform,
-                    category: analyzed.category,
-                    targetType: analyzed.targetType,
-                    customDataType: analyzed.customDataType,
-                    isMediaGroupAware: analyzed.isMediaGroupAware,
-                    isPrivate: analyzed.isPrivate,
-                    warranty: analyzed.warranty
-                }
-            };
-        });
-        
-        // Save to Shadow Catalog (24 hours TTL)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Raw service mapping is dynamic depending on the provider structure
-        const lightweightServices = services.map((s: any) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { desc, description, ...rest } = s;
-            return rest;
-        });
-
-        try {
-            await redis.setex(cacheKey, 86400, JSON.stringify(lightweightServices));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (redisErr: any) {
-            console.warn('[fetchExternalServices] Redis unavailable for index cache write:', redisErr.message);
-        }
-
-        // Save full details to Redis Hash (24 hours TTL)
-        try {
-            const hashKey = `provider:${providerDbId}:catalog:details`;
-            const pipeline = redis.pipeline();
-            pipeline.del(hashKey);
-
-            const fields: Record<string, string> = {};
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Raw service details are dynamic depending on the provider structure
-            services.forEach((s: any) => {
-                fields[String(s.service)] = JSON.stringify(s);
-            });
-
-            if (Object.keys(fields).length > 0) {
-                pipeline.hset(hashKey, fields);
-                pipeline.expire(hashKey, 86400);
-            }
-            await pipeline.exec();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (redisErr: any) {
-            console.warn('[fetchExternalServices] Redis unavailable for details cache write:', redisErr.message);
-        }
+     if (shadowCount === 0 || forceRefresh) {
+         shadowCount = await adminCatalogService.refreshShadowCatalog(providerDbId);
      }
      
      return {
         success: true,
-        count: services.length,
-        source: services.length > 0 && forceRefresh ? 'api' : 'cache',
+        count: shadowCount,
+        source: shadowCount > 0 && forceRefresh ? 'api' : 'cache',
         providerId: providerDbId,
      };
   });

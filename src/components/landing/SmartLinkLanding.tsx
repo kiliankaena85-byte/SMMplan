@@ -231,10 +231,10 @@ export function SmartLinkLanding({
           <div className="mb-4">
             <ThemeSwitcher />
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.05] drop-shadow-md">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.05] drop-shadow-md text-balance">
             Ускоряем ваши <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">соцсети</span>
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed font-medium max-w-xl mx-auto drop-shadow-sm">
+          <p className="text-lg text-muted-foreground leading-relaxed font-medium max-w-xl mx-auto drop-shadow-sm text-pretty">
             Автоматическая платформа для продвижения в социальных сетях с мгновенным запуском.
           </p>
           <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-10 pt-2">
@@ -255,17 +255,17 @@ export function SmartLinkLanding({
           </div>
         </motion.div>
  
-        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.08)] border border-border/80 rounded-2xl md:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-8 relative">
+        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-2xl ring-1 ring-border/20 rounded-2xl md:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-8 relative">
           
           <div className="min-h-[500px] transition-all duration-300">
             {unfilteredCatalog.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2.5rem] min-h-[360px] p-8 m-4">
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-2xl min-h-[360px] p-8 m-4">
                 <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center animate-bounce">
                   <Box className="w-8 h-8 text-primary/60" />
                 </div>
                 <div className="text-center space-y-2">
                   <p className="text-lg font-extrabold text-foreground">Каталог временно недоступен</p>
-                  <p className="text-sm text-muted-foreground max-w-md leading-relaxed mx-auto">
+                  <p className="text-sm text-muted-foreground max-w-md leading-relaxed mx-auto text-pretty">
                     В настоящий момент мы обновляем список услуг и проводим техническое обслуживание. Пожалуйста, зайдите немного позже или обратитесь в поддержку.
                   </p>
                 </div>
@@ -336,7 +336,7 @@ export function SmartLinkLanding({
                                 ))}
                               </div>
                             ) : services.length === 0 ? (
-                              <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-[2rem] min-h-[320px] p-8">
+                              <div className="flex-1 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-border/50 bg-gradient-to-b from-content2/80 to-content1 rounded-2xl min-h-[320px] p-8">
                                 <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center">
                                   <Box className="w-5 h-5 text-primary/60" />
                                 </div>
@@ -344,7 +344,7 @@ export function SmartLinkLanding({
                                   <p className="text-base font-bold text-foreground">
                                     {!networkId ? 'Выберите платформу' : !engine.categoryId ? 'Выберите категорию' : 'Услуги не найдены'}
                                   </p>
-                                  <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                                  <p className="text-sm text-muted-foreground max-w-xs leading-relaxed text-pretty">
                                     {!networkId
                                       ? 'Вставьте ссылку на профиль/пост выше, или выберите нужную соцсеть из списка.'
                                       : !engine.categoryId

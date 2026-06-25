@@ -47,7 +47,7 @@ export function cleanUrlTitle(url: string): string {
     let clean = url.replace(/^https?:\/\//, '').replace(/^www\./, '');
     if (clean.length > 40) clean = clean.substring(0, 37) + '...';
     return clean;
-  } catch (e) {
+  } catch {
     return url;
   }
 }

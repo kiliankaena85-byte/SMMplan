@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { redis } from '@/lib/redis';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
 import { sendAdminAlert } from '@/lib/notifications';
@@ -14,6 +13,24 @@ import {
 } from '@/lib/financial-constants';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { ServiceAuditEngine } from './audit-engine';
+import { z } from 'zod';
+import { SecuritySanitizer } from '@/utils/security-sanitizer';
+import { SmartAnalyzerLogic } from '@/services/providers/smart-analyzer.logic';
+
+const rawServiceSchema = z.object({
+  service: z.union([z.string(), z.number()]),
+  name: z.string().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
+  type: z.string().optional(),
+  category: z.string().optional(),
+  rate: z.union([z.string(), z.number()]),
+  min: z.union([z.string(), z.number()]),
+  max: z.union([z.string(), z.number()]),
+  refill: z.boolean().optional(),
+  cancel: z.boolean().optional(),
+  dripfeed: z.boolean().optional(),
+  desc: z.string().optional().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
+  description: z.string().optional().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
+}).strip();
 
 // ── Types ──
 
@@ -258,24 +275,145 @@ class AdminCatalogService {
    * Finds services that were deleted by the provider and marks them inactive.
    * Auto-restores services that reappeared.
    */
+  /**
+   * Refreshes the local ShadowService staging catalog by fetching the latest services from the provider API.
+   * Clears existing records for this provider and populates new ones.
+   * This is session-agnostic and safe to use in background workers.
+   */
+  async refreshShadowCatalog(providerId: string): Promise<number> {
+    const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
+    if (!providerDbRecord) throw new Error("Provider not found");
+
+    const providerInstance = await providerService.getProviderInstance(providerDbRecord);
+    const rawServices = await providerInstance.getServices();
+
+    if (!Array.isArray(rawServices) || rawServices.length === 0) {
+      throw new Error("API провайдера вернуло пустой список или ошибку. Синхронизация прервана (защита).");
+    }
+
+    // Fetch exchange settings
+    const settings = await db.systemSettings.findUnique({ where: { id: "global" }, select: { exchangeRateUSD: true } });
+    const usdRate = settings?.exchangeRateUSD || 90.0;
+    const currency = providerDbRecord.balanceCurrency || 'USD';
+
+    // Filter raw services using Zod Schema
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const validRawServices: any[] = [];
+    let invalidCount = 0;
+
+    for (const s of rawServices) {
+      const parsed = rawServiceSchema.safeParse(s);
+      if (parsed.success) {
+        validRawServices.push(parsed.data);
+      } else {
+        invalidCount++;
+      }
+    }
+
+    if (invalidCount > 0) {
+      console.warn(`[Provider Sync] Ignored ${invalidCount} invalid services from provider ${providerDbRecord.name}`);
+    }
+
+    // Data Intelligence: Normalize services using SmartAnalyzerLogic
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const services = validRawServices.map((s: any) => {
+      const rawRate = parseFloat(s.rate) || 0;
+      const basePriceUsd = currency === 'RUB' ? rawRate / usdRate : rawRate;
+      const analyzed = SmartAnalyzerLogic.detectSync(s.name, s.description || '', s.category || '', undefined, basePriceUsd);
+      return {
+        ...s,
+        cleanName: analyzed.cleanName,
+        metrics: {
+          ...analyzed.metrics,
+          platform: analyzed.platform,
+          category: analyzed.category,
+          targetType: analyzed.targetType,
+          customDataType: analyzed.customDataType,
+          isMediaGroupAware: analyzed.isMediaGroupAware,
+          isPrivate: analyzed.isPrivate,
+          warranty: analyzed.warranty
+        }
+      };
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const servicesToCreate = services.map((s: any) => {
+      const rawRate = parseFloat(s.rate) || 0;
+      const rateRub = currency === 'USD' ? rawRate * usdRate : rawRate;
+
+      return {
+        providerId: providerDbRecord.id,
+        externalId: String(s.service),
+        name: s.name,
+        type: s.type || null,
+        category: s.category || null,
+        rate: rawRate,
+        rateRub,
+        min: parseInt(s.min, 10) || 0,
+        max: parseInt(s.max, 10) || 0,
+        refill: s.refill || false,
+        cancel: s.cancel || false,
+        dripfeed: s.dripfeed || false,
+        cleanName: s.cleanName || null,
+        platform: (s.metrics?.platform || 'other').toLowerCase(),
+        normalizedCategory: s.metrics?.category || null,
+        targetType: s.metrics?.targetType || 'POST',
+        customDataType: s.metrics?.customDataType || 'NONE',
+        isMediaGroupAware: s.metrics?.isMediaGroupAware || false,
+        isPrivate: s.metrics?.isPrivate || false,
+        warranty: s.metrics?.warranty || 0,
+        geo: s.metrics?.geo || 'WORLDWIDE',
+        velocity: s.metrics?.velocity || 0,
+        anomalyScore: s.metrics?.anomalyScore || 0.0
+      };
+    });
+
+    // Use a transaction to perform atomic wipe and write in chunks
+    await db.$transaction(async (tx) => {
+      await tx.shadowService.deleteMany({ where: { providerId: providerDbRecord.id } });
+
+      const chunkSize = 1000;
+      for (let i = 0; i < servicesToCreate.length; i += chunkSize) {
+        const chunk = servicesToCreate.slice(i, i + chunkSize);
+        await tx.shadowService.createMany({
+          data: chunk,
+          skipDuplicates: true
+        });
+      }
+    });
+
+    return servicesToCreate.length;
+  }
+
+  /**
+   * Zombie Eraser & Catalog Synchronization
+   * Finds services that were deleted by the provider and marks them inactive.
+   * Auto-restores services that reappeared.
+   */
   async syncProviderCatalog(providerId: string, admin: { id: string; email: string }) {
     const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
     if (!providerDbRecord) throw new Error('Провайдер не найден');
     if (providerDbRecord.syncLock) throw new Error('Синхронизация отключена (syncLock)');
 
-    const providerInstance = await providerService.getProviderInstance(providerDbRecord);
-    const liveServices = await providerInstance.getServices();
-    
-    if (!Array.isArray(liveServices) || liveServices.length === 0) {
-      throw new Error('API провайдера вернуло пустой список или ошибку. Синхронизация прервана (защита).');
-    }
+    // 1. Refresh shadow catalog in database (chunked and memory-safe)
+    await this.refreshShadowCatalog(providerId);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const liveMap = new Map(liveServices.map((s: any) => [String(s.service), s]));
-    
+    // 2. Fetch our curated services
     const ourServices = await db.service.findMany({
       where: { providerId }
     });
+
+    // 3. Query only corresponding staging services from ShadowService table
+    const activeExternalIds = ourServices.map(s => s.externalId).filter(Boolean) as string[];
+    const stagingServices = await db.shadowService.findMany({
+      where: {
+        providerId,
+        externalId: { in: activeExternalIds }
+      }
+    });
+
+    // Map by externalId for fast O(1) lookup
+    const stagingMap = new Map(stagingServices.map((s) => [s.externalId, s]));
 
     let zombiesDisabled = 0;
     let resurrected = 0;
@@ -291,11 +429,11 @@ class AdminCatalogService {
 
     for (const s of ourServices) {
       if (!s.externalId) continue;
-      
-      const liveExt = liveMap.get(s.externalId);
-      
-      if (!liveExt) {
-        // ZOMBIE DETECTION
+
+      const stagingExt = stagingMap.get(s.externalId);
+
+      if (!stagingExt) {
+        // ZOMBIE DETECTION: Service was deleted by the provider
         if (s.isActive) {
           await db.service.update({
             where: { id: s.id },
@@ -321,15 +459,15 @@ class AdminCatalogService {
         }
       } else {
         // LIVE SERVICE
-        const rawRate = parseFloat(liveExt.rate);
-        
+        const rawRate = stagingExt.rate;
+
         if (isNaN(rawRate) || rawRate <= 0) {
            if (!s.isQuarantined && s.isActive) {
              await db.service.update({
                where: { id: s.id },
                data: {
                  isQuarantined: true,
-                 quarantineReason: `Invalid Provider Rate: ${liveExt.rate}. Парсинг вернул NaN или <= 0.`,
+                 quarantineReason: `Invalid Provider Rate: ${rawRate}. Парсинг вернул NaN или <= 0.`,
                  quarantinedAt: new Date()
                }
              });
@@ -339,7 +477,7 @@ class AdminCatalogService {
         }
 
         // Clean name/description and fix markup/price if needed
-        const auditPayloads = ServiceAuditEngine.auditAndFixService(s, liveExt, exchangeRate);
+        const auditPayloads = ServiceAuditEngine.auditAndFixService(s, { rate: rawRate }, exchangeRate);
         if (auditPayloads.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await db.$transaction(auditPayloads as any);
@@ -348,7 +486,7 @@ class AdminCatalogService {
         if (!s.isActive && s.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
           // Check Price Spike before resurrecting
           const oldRate = s.rate;
-          
+
           if (oldRate > 0 && rawRate > oldRate * (1 + QUARANTINE_THRESHOLD)) {
             // Price spiked! Quarantine it
             await db.service.update({
@@ -379,7 +517,6 @@ class AdminCatalogService {
           // Active Service Price Drift Detection
           let oldRate = s.rate;
           const newRate = rawRate;
-          const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
 
           // Self-heal mismatch between service providerCurrency and current provider balanceCurrency on the fly
           if (s.providerCurrency !== providerCurrency) {
@@ -389,7 +526,7 @@ class AdminCatalogService {
               ? (1.0 / usdToRub)
               : 1.0;
             oldRate = oldRate * conversionFactor;
-            
+
             // permanently align in DB
             await db.service.update({
               where: { id: s.id },
@@ -397,12 +534,39 @@ class AdminCatalogService {
             });
           }
 
-          if (oldRate > 0 && newRate !== oldRate) {
-            const driftPercent = (newRate - oldRate) / oldRate;
-            
-            const currentRetailCents = s.pricePer1000Cents;
-            const newCostCents = newRate * exchangeRate * 100;
-            const actualMarkup = newCostCents > 0 ? (currentRetailCents / newCostCents) : s.markup;
+          // Calculate actual markup and check for Loss Prevention breach (unprofitable prices)
+          const currentRetailCents = s.pricePer1000Cents;
+          const newCostCents = newRate * exchangeRate * 100;
+          const actualMarkup = newCostCents > 0 ? (currentRetailCents / newCostCents) : s.markup;
+
+          const pricePerUnitRub = (currentRetailCents / 100) / 1000;
+          const purchaseCostPerUnitRub = (newRate * exchangeRate) / 1000;
+
+          if (pricePerUnitRub < purchaseCostPerUnitRub || actualMarkup < 1.0) {
+            // Loss prevention breach! Deactivate service immediately
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false,
+                lastSeenAt: new Date()
+              }
+            });
+
+            const alertMsg = `🚨 [Loss Prevention] Услуга ${s.id} автоматически отключена! Розничная цена ${pricePerUnitRub.toFixed(4)} ₽/шт меньше себестоимости закупки ${purchaseCostPerUnitRub.toFixed(4)} ₽/шт.`;
+            console.error(alertMsg);
+
+            await db.routingAuditLog.create({
+              data: {
+                serviceId: s.id,
+                action: 'LOSS_PREVENTION_BLOCK',
+                reason: `Retail price ${pricePerUnitRub.toFixed(4)} < Cost ${purchaseCostPerUnitRub.toFixed(4)}`
+              }
+            });
+
+            await sendAdminAlert(alertMsg, 'CRITICAL');
+            priceAnomalies++;
+          } else {
+            const driftPercent = oldRate > 0 ? (newRate - oldRate) / oldRate : 0;
 
             // Retrieve price history to calculate 30-day cumulative drift
             const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -423,7 +587,7 @@ class AdminCatalogService {
 
             let historicalRate = baselineRecord ? baselineRecord.rate : oldRate;
 
-            if (!baselineRecord) {
+            if (!baselineRecord && newRate !== oldRate) {
               await db.servicePriceHistory.create({
                 data: {
                   serviceId: s.id,
@@ -434,7 +598,7 @@ class AdminCatalogService {
               historicalRate = oldRate;
             }
 
-            const cumulativeDrift = (newRate - historicalRate) / historicalRate;
+            const cumulativeDrift = oldRate > 0 ? (newRate - historicalRate) / historicalRate : 0;
 
             if (actualMarkup < SAFETY_FLOOR_MARKUP) {
               // 1. Margin Floor breach -> Quarantine
@@ -442,6 +606,7 @@ class AdminCatalogService {
                 where: { id: s.id },
                 data: {
                   isQuarantined: true,
+                  isActive: false, // Deactivate on quarantine
                   pendingRate: newRate,
                   quarantineReason: `Margin Floor Breach: Наценка упала до ${actualMarkup.toFixed(2)}x (Min: ${SAFETY_FLOOR_MARKUP}x)`,
                   quarantinedAt: new Date()
@@ -455,18 +620,21 @@ class AdminCatalogService {
                 where: { id: s.id },
                 data: {
                   isQuarantined: true,
+                  isActive: false, // Deactivate on quarantine
                   pendingRate: newRate,
-                  quarantineReason: `Price Spike: Цена выросла с ${providerCurrency === 'RUB' ? '₽' : '$'}${oldRate.toFixed(4)} до ${providerCurrency === 'RUB' ? '₽' : '$'}${newRate.toFixed(4)} (+${(driftPercent * 100).toFixed(1)}%)`,
+                  quarantineReason: `Price Spike: Ценовой скачок у провайдера (> 20%)`,
                   quarantinedAt: new Date()
                 }
               });
               priceAnomalies++;
+              await sendAdminAlert(`🚨 [Quarantine] Услуга ${s.id} (${s.name}) ушла в карантин из-за ценового скачка (> 20%)`, 'WARNING');
             } else if (cumulativeDrift > QUARANTINE_THRESHOLD) {
               // 3. Cumulative Price Drift > 20% over 30 days
               await db.service.update({
                 where: { id: s.id },
                 data: {
                   isQuarantined: true,
+                  isActive: false, // Deactivate on quarantine
                   pendingRate: newRate,
                   quarantineReason: `Cumulative Price Drift: Цена выросла с ${providerCurrency === 'RUB' ? '₽' : '$'}${historicalRate.toFixed(4)} до ${providerCurrency === 'RUB' ? '₽' : '$'}${newRate.toFixed(4)} (+${(cumulativeDrift * 100).toFixed(1)}% за последние 30 дней)`,
                   quarantinedAt: new Date()
@@ -474,23 +642,34 @@ class AdminCatalogService {
               });
               priceAnomalies++;
             } else {
-              // 4. Silent update (Drift <= threshold, or Drop)
-              const newPriceCents = Math.round(applyBeautifulRounding(newRate * s.markup * exchangeRate) * 100);
+              const calculatedMarkup = s.markup;
+              const calculatedPriceCents = Math.round(applyBeautifulRounding(newRate * s.markup * exchangeRate) * 100);
+
+              // 5. Silent update (Drift <= threshold, or Drop)
               await db.service.update({
                 where: { id: s.id },
                 data: {
                   rate: newRate,
                   providerCurrency: providerCurrency,
-                  pricePer1000Cents: newPriceCents
+                  pricePer1000Cents: calculatedPriceCents,
+                  markup: calculatedMarkup,
+                  minQty: stagingExt.min,
+                  maxQty: stagingExt.max,
+                  lastSeenAt: new Date(),
+                  isQuarantined: false,
+                  quarantineReason: null
                 }
               });
-              await db.servicePriceHistory.create({
-                data: {
-                  serviceId: s.id,
-                  rate: newRate
-                }
-              });
-              priceUpdatedSilent++;
+
+              if (newRate !== oldRate) {
+                await db.servicePriceHistory.create({
+                  data: {
+                    serviceId: s.id,
+                    rate: newRate
+                  }
+                });
+                priceUpdatedSilent++;
+              }
 
               if (driftPercent >= 0.05 && driftPercent <= QUARANTINE_THRESHOLD) {
                 await db.routingAuditLog.create({
@@ -532,21 +711,39 @@ class AdminCatalogService {
     providerId: string,
     categoryIdMap?: Record<string, string>
   ) {
-    // 1. Fetch from Shadow Catalog (Redis Hash) to get the AI-normalized names and metrics
-    const hashKey = `provider:${providerId}:catalog:details`;
-    const rawShadowServices = await redis.hmget(hashKey, ...externalIds.map(String));
-    
-    const toImportShadow = rawShadowServices
-      .filter(Boolean)
-      .map((str) => {
-        try {
-          return JSON.parse(str!);
-        } catch (err) {
-          console.warn('[CatalogService] shadow parse failed for service detail:', err);
-          return null;
-        }
-      })
-      .filter(Boolean);
+    // 1. Fetch from Shadow Catalog (ShadowService staging table) to get the AI-normalized names and metrics
+    const shadowServices = await db.shadowService.findMany({
+      where: {
+        providerId,
+        externalId: { in: externalIds.map(String) }
+      }
+    });
+
+    const toImportShadow = shadowServices.map((s) => ({
+      service: s.externalId,
+      name: s.name,
+      type: s.type || undefined,
+      category: s.category || undefined,
+      rate: s.rate,
+      min: String(s.min),
+      max: String(s.max),
+      refill: s.refill,
+      cancel: s.cancel,
+      dripfeed: s.dripfeed,
+      cleanName: s.cleanName || undefined,
+      metrics: {
+        platform: s.platform,
+        category: s.normalizedCategory,
+        targetType: s.targetType,
+        customDataType: s.customDataType,
+        isMediaGroupAware: s.isMediaGroupAware,
+        isPrivate: s.isPrivate,
+        warranty: s.warranty,
+        geo: s.geo,
+        velocity: s.velocity,
+        anomalyScore: s.anomalyScore
+      }
+    }));
 
     if (toImportShadow.length === 0) throw new Error('Не найдены услуги для импорта в теневом каталоге (Обновите каталог)');
 
@@ -622,7 +819,7 @@ class AdminCatalogService {
       }
 
       const importedName = shadowExt.cleanName || liveExt.name;
-      const importedDesc = liveExt.description || shadowExt.description || null;
+      const importedDesc = liveExt.desc || null;
 
       servicesToCreate.push({
         name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization

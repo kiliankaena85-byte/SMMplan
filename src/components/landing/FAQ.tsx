@@ -61,7 +61,7 @@ export function FAQ({ companyName = "SMMplan" }: { companyName?: string }) {
   return (
     <section id="faq" aria-labelledby="faq-heading" className="mx-auto max-w-3xl px-4 sm:px-6 py-12 md:py-24">
       <div className="text-center mb-12">
-        <h2 id="faq-heading" className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-normal text-foreground mb-4">
+        <h2 id="faq-heading" className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-normal text-foreground mb-4 text-balance">
           Частые вопросы
         </h2>
         <p className="text-muted-foreground text-lg font-medium mt-2">
@@ -82,7 +82,7 @@ export function FAQ({ companyName = "SMMplan" }: { companyName?: string }) {
               aria-controls={`faq-answer-${i}`}
               className="w-full text-left px-6 py-5 flex justify-between items-center gap-4"
             >
-              <span className="text-base font-bold text-foreground">{item.q}</span>
+              <span className="text-base font-bold text-foreground text-balance pr-4">{item.q}</span>
               <div 
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${open === i ? 'bg-primary/10' : 'bg-content2'}`}
               >
@@ -99,12 +99,12 @@ export function FAQ({ companyName = "SMMplan" }: { companyName?: string }) {
                   id={`faq-answer-${i}`}
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
+                  exit={{ height: 0, opacity: 0, transition: { duration: 0.15 } }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
                   <div className="px-6 pb-6 pr-12 -mt-1">
-                    <p className="text-sm text-muted-foreground font-medium leading-relaxed">{item.a}</p>
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed text-pretty">{item.a}</p>
                   </div>
                 </motion.div>
               )}

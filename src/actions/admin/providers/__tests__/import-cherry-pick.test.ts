@@ -163,47 +163,67 @@ describe('Cherry-Pick Service Import & Shadow Catalog Tests', () => {
       { service: '102', name: 'Instagram Likes HQ', rate: '0.15', min: '50', max: '2000', category: 'Instagram Likes' }
     ]);
 
-    // Cache is initially cold
-    vi.mocked(redis.get).mockResolvedValue(null);
-
     const result = await fetchExternalServices(providerA.id, true);
     const successResult = result as { success: true; count: number; source: string };
     expect(successResult.success).toBe(true);
     expect(successResult.count).toBe(2);
     expect(successResult.source).toBe('api');
 
-    // Verify cache save with correct TTL (86400s)
-    expect(redis.setex).toHaveBeenCalledWith(`provider:${providerA.id}:catalog`, 86400, expect.any(String));
+    // Verify DB entries
+    const shadowServices = await db.shadowService.findMany({
+      where: { providerId: providerA.id }
+    });
+    expect(shadowServices.length).toBe(2);
+    expect(shadowServices.find(s => s.externalId === '101')).toBeDefined();
+    expect(shadowServices.find(s => s.externalId === '102')).toBeDefined();
   });
 
   it('should filter, paginate, sort, and convert currencies correctly in paginated external shadow services', async () => {
     vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-    // Mock Redis returning cached catalog with raw services (with AI normalization metrics already set)
-    const mockShadowCatalog = [
-      {
-        service: '101',
-        name: 'Telegram Subscribers Fast',
-        rate: '0.50',
-        min: '10',
-        max: '5000',
-        category: 'Telegram Subscribers',
-        cleanName: 'Subscribers Fast',
-        metrics: { platform: 'Telegram', category: 'SUBSCRIBERS', targetType: 'CHANNEL', anomalyScore: 0.1 }
-      },
-      {
-        service: '102',
-        name: 'Instagram Likes HQ',
-        rate: '0.15',
-        min: '50',
-        max: '2000',
-        category: 'Instagram Likes',
-        cleanName: 'Likes HQ',
-        metrics: { platform: 'Instagram', category: 'LIKES', targetType: 'POST', anomalyScore: 0.0 }
-      }
-    ];
-
-    vi.mocked(redis.get).mockResolvedValue(JSON.stringify(mockShadowCatalog));
+    // Seed DB with shadow services (with AI normalization metrics already set)
+    await db.shadowService.createMany({
+      data: [
+        {
+          providerId: providerA.id,
+          externalId: '101',
+          name: 'Telegram Subscribers Fast',
+          type: 'default',
+          category: 'Telegram Subscribers',
+          rate: 0.50,
+          rateRub: 50.0,
+          min: 10,
+          max: 5000,
+          cleanName: 'Subscribers Fast',
+          platform: 'telegram',
+          normalizedCategory: 'SUBSCRIBERS',
+          targetType: 'CHANNEL',
+          anomalyScore: 0.1,
+          refill: false,
+          cancel: false,
+          dripfeed: false
+        },
+        {
+          providerId: providerA.id,
+          externalId: '102',
+          name: 'Instagram Likes HQ',
+          type: 'default',
+          category: 'Instagram Likes',
+          rate: 0.15,
+          rateRub: 15.0,
+          min: 50,
+          max: 2000,
+          cleanName: 'Likes HQ',
+          platform: 'instagram',
+          normalizedCategory: 'LIKES',
+          targetType: 'POST',
+          anomalyScore: 0.0,
+          refill: false,
+          cancel: false,
+          dripfeed: false
+        }
+      ]
+    });
 
     // Page 1, Size 10
     const result = await fetchPaginatedExternalServices(providerA.id, { sortBy: 'price_asc' }, 1, 10);
@@ -226,20 +246,28 @@ describe('Cherry-Pick Service Import & Shadow Catalog Tests', () => {
   it('should successfully cherry-pick import services with auto-pricing and safety floor controls, preventing cache poisoning', async () => {
     vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-    // Shadow catalog in Redis
-    const mockShadowCatalog = [
-      {
-        service: '101',
+    // Seed DB with shadow service
+    await db.shadowService.create({
+      data: {
+        providerId: providerA.id,
+        externalId: '101',
         name: 'Telegram Subscribers Fast',
-        rate: '0.50',
-        min: '10',
-        max: '5000',
+        type: 'default',
         category: 'Telegram Subscribers',
+        rate: 0.50,
+        rateRub: 50.0,
+        min: 10,
+        max: 5000,
         cleanName: 'Subscribers Fast',
-        metrics: { platform: 'Telegram', category: 'SUBSCRIBERS', targetType: 'CHANNEL', anomalyScore: 0.1 }
+        platform: 'telegram',
+        normalizedCategory: 'SUBSCRIBERS',
+        targetType: 'CHANNEL',
+        anomalyScore: 0.1,
+        refill: false,
+        cancel: false,
+        dripfeed: false
       }
-    ];
-    vi.mocked(redis.hmget).mockResolvedValue([JSON.stringify(mockShadowCatalog[0])]);
+    });
 
     // Live check api mock - return live prices to ensure no cache poisoning occurs
     mockGetServices.mockResolvedValue([
@@ -270,30 +298,49 @@ describe('Cherry-Pick Service Import & Shadow Catalog Tests', () => {
   it('should support partial ID searching in shadow services', async () => {
     vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-    const mockShadowCatalog = [
-      {
-        service: '101',
-        name: 'Telegram Subscribers Fast',
-        rate: '0.50',
-        min: '10',
-        max: '5000',
-        category: 'Telegram Subscribers',
-        cleanName: 'Subscribers Fast',
-        metrics: { platform: 'Telegram', category: 'SUBSCRIBERS', targetType: 'CHANNEL', anomalyScore: 0.1 }
-      },
-      {
-        service: '202',
-        name: 'Instagram Likes HQ',
-        rate: '0.15',
-        min: '50',
-        max: '2000',
-        category: 'Instagram Likes',
-        cleanName: 'Likes HQ',
-        metrics: { platform: 'Instagram', category: 'LIKES', targetType: 'POST', anomalyScore: 0.0 }
-      }
-    ];
-
-    vi.mocked(redis.get).mockResolvedValue(JSON.stringify(mockShadowCatalog));
+    // Seed DB with shadow services
+    await db.shadowService.createMany({
+      data: [
+        {
+          providerId: providerA.id,
+          externalId: '101',
+          name: 'Telegram Subscribers Fast',
+          type: 'default',
+          category: 'Telegram Subscribers',
+          rate: 0.50,
+          rateRub: 50.0,
+          min: 10,
+          max: 5000,
+          cleanName: 'Subscribers Fast',
+          platform: 'telegram',
+          normalizedCategory: 'SUBSCRIBERS',
+          targetType: 'CHANNEL',
+          anomalyScore: 0.1,
+          refill: false,
+          cancel: false,
+          dripfeed: false
+        },
+        {
+          providerId: providerA.id,
+          externalId: '202',
+          name: 'Instagram Likes HQ',
+          type: 'default',
+          category: 'Instagram Likes',
+          rate: 0.15,
+          rateRub: 15.0,
+          min: 50,
+          max: 2000,
+          cleanName: 'Likes HQ',
+          platform: 'instagram',
+          normalizedCategory: 'LIKES',
+          targetType: 'POST',
+          anomalyScore: 0.0,
+          refill: false,
+          cancel: false,
+          dripfeed: false
+        }
+      ]
+    });
 
     // Search for partial ID '10' -> matches '101'
     const result1 = await fetchPaginatedExternalServices(providerA.id, { search: '10' }, 1, 10);

@@ -265,6 +265,46 @@ model Provider {
   Order           Order[]
   ServiceRoute    ServiceRoute[]
   smartExecutions SmartExecution[]
+  shadowServices  ShadowService[]
+}
+
+model ShadowService {
+  id                String   @id @default(cuid())
+  providerId        String
+  provider          Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  externalId        String
+  name              String
+  type              String?
+  category          String?
+  rate              Float
+  rateRub           Float
+  min               Int
+  max               Int
+  refill            Boolean  @default(false)
+  cancel            Boolean  @default(false)
+  dripfeed          Boolean  @default(false)
+
+  // AI normalisation metrics
+  cleanName         String?
+  platform          String?
+  normalizedCategory String?
+  targetType        String   @default("POST")
+  customDataType    String   @default("NONE")
+  isMediaGroupAware Boolean  @default(false)
+  isPrivate         Boolean  @default(false)
+  warranty          Int      @default(0)
+  geo               String?
+  velocity          Int      @default(0)
+  anomalyScore      Float    @default(0.0)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([providerId, externalId])
+  @@index([providerId])
+  @@index([platform])
+  @@index([normalizedCategory])
+  @@index([rateRub])
 }
 
 model Order {

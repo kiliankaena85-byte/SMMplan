@@ -88,12 +88,19 @@ export function useMultiOrderEngine() {
   useEffect(() => {
     tasks.forEach(task => {
       if (task.categoryId && task.availableServices.length === 0 && task.isLoadingServices) {
-        getServicesByCategoryAction(task.categoryId).then(svcs => {
-          updateTask(task.id, { 
-            availableServices: svcs, 
-            isLoadingServices: false 
+        getServicesByCategoryAction(task.categoryId)
+          .then(svcs => {
+            updateTask(task.id, { 
+              availableServices: svcs, 
+              isLoadingServices: false 
+            });
+          })
+          .catch(err => {
+            console.error("Failed to fetch services:", err);
+            updateTask(task.id, { 
+              isLoadingServices: false 
+            });
           });
-        });
       }
     });
   }, [tasks, updateTask]);

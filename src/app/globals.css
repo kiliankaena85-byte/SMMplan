@@ -130,10 +130,10 @@
   --color-accent: #243042;
   --color-accent-foreground: #f8fafc;
 
-  --color-border: #243042; /* Soft visible border */
+  --color-border: rgba(255, 255, 255, 0.08); /* Luminance Border (blueprint aesthetic) */
   --color-input: #1b2330;
 
-  --color-ring: #243042;
+  --color-ring: rgba(56, 189, 248, 0.35); /* Soft sky blue focus ring glow */
 
   --color-primary: #38bdf8; /* sky-400 */
   --color-primary-foreground: #0f172a;
@@ -161,6 +161,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Premium default smooth transitions for all interactive elements */
+  button, a, input, select, textarea, [role="button"] {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
 }
 
 /* --- THEME: EMERALD LIGHT --- */
@@ -184,7 +191,7 @@
   --color-primary-foreground: #020617;
   --color-secondary: #064e3b; /* emerald-950 */
   --color-secondary-foreground: #34d399; /* emerald-400 */
-  --color-ring: #047857;
+  --color-ring: rgba(16, 185, 129, 0.35); /* Soft emerald green focus ring glow */
   --animate-hover-pulse: hover-pulse-emerald-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -214,7 +221,7 @@
   --color-primary-foreground: #020617;
   --color-secondary: #2e1065; /* violet-950 */
   --color-secondary-foreground: #c084fc; /* violet-400 */
-  --color-ring: #7c3aed;
+  --color-ring: rgba(167, 139, 250, 0.35); /* Soft violet focus ring glow */
   --animate-hover-pulse: hover-pulse-violet-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -257,12 +264,12 @@
   --color-popover-foreground: #FAF9F6;
   --color-muted: #27272A;
   --color-muted-foreground: #A1A1AA;
-  --color-border: #27272A;
+  --color-border: rgba(255, 255, 255, 0.08); /* Luminance Border */
   --color-primary: #F59E0B;
   --color-primary-foreground: #09090B;
   --color-secondary: #78350F;
   --color-secondary-foreground: #FBBF24;
-  --color-ring: #D97706;
+  --color-ring: rgba(245, 158, 11, 0.35); /* Soft amber focus ring glow */
   --animate-hover-pulse: hover-pulse-warm-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -332,12 +339,12 @@
   --color-popover-foreground: #F5F6F7;
   --color-muted: #101921;
   --color-muted-foreground: #7F8C99;
-  --color-border: #101921;
+  --color-border: rgba(255, 255, 255, 0.08); /* Luminance Border */
   --color-primary: #5288C1;
   --color-primary-foreground: #F5F6F7;
   --color-secondary: #2B5278;
   --color-secondary-foreground: #F5F6F7;
-  --color-ring: #2B5278;
+  --color-ring: rgba(82, 136, 193, 0.35); /* Soft telegram blue focus ring glow */
   --radius: 0.625rem;
 }
 

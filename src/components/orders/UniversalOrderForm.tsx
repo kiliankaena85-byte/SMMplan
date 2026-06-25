@@ -260,15 +260,17 @@ export function UniversalOrderForm({
                                       if (!val) return;
                                       const selectedNet = engine.catalog.find(n => n.id === val);
                                       if (selectedNet) {
-                                         let catId = selectedNet.categories[0]?.id || "";
+                                         const catId = selectedNet.categories[0]?.id || "";
                                          engine.updateTask(task.id, { 
                                             platform: (selectedNet.name.toUpperCase().includes("TELEGRAM") ? IntelligencePlatform.TELEGRAM : 
                                                       selectedNet.name.toUpperCase().includes("VK") ? IntelligencePlatform.VK : 
                                                       selectedNet.name.toUpperCase().includes("INSTAGRAM") ? IntelligencePlatform.INSTAGRAM : 
-                                                      IntelligencePlatform.OTHER) as any,
+                                                      IntelligencePlatform.OTHER) as IntelligencePlatform,
                                             categoryId: catId, 
                                             serviceId: "", 
                                             status: 'new',
+                                            priceCents: 0,
+                                            availableServices: [],
                                             isLoadingServices: !!catId
                                          });
                                       }
@@ -297,12 +299,14 @@ export function UniversalOrderForm({
                                      value={task.categoryId}
                                      onValueChange={(val) => {
                                         if (!val) return;
-                                        engine.updateTask(task.id, { 
-                                           categoryId: val, 
-                                           serviceId: "", 
-                                           status: 'new',
-                                           isLoadingServices: true 
-                                        });
+                                      engine.updateTask(task.id, { 
+                                         categoryId: val, 
+                                         serviceId: "", 
+                                         status: 'new',
+                                         priceCents: 0,
+                                         availableServices: [],
+                                         isLoadingServices: true 
+                                      });
                                      }}
                                   >
                                      <SelectTrigger className="w-full h-11 bg-background border-border/80 hover:border-border rounded-2xl text-sm font-semibold transition-all">
@@ -439,7 +443,7 @@ export function UniversalOrderForm({
                       <Select
                          value={gateway}
                          onValueChange={(val) => {
-                           if (val) setGateway(val as any);
+                           if (val) setGateway(val as 'yookassa' | 'cryptobot' | 'balance');
                          }}
                       >
                          <SelectTrigger className="w-full h-11 bg-background border-border/80 hover:border-border rounded-2xl text-sm font-semibold transition-all">

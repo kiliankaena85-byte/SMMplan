@@ -266,6 +266,7 @@ export const WalletOps = {
           reason,
           status: 'APPROVED',
           idempotencyKey,
+          transactionType: 'REFUND',
         }
       });
 

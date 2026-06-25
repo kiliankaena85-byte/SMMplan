@@ -19,7 +19,6 @@ import { WalletOps } from '@/services/financial/wallet-ops';
 import { orderIdSchema } from '@/validators/admin.validators';
 import { ordersQueue } from '@/lib/queue-manager';
 import { SettingsManager } from '@/lib/settings';
-import { redis } from '@/lib/redis';
 import { CompensationService } from '@/services/financial/compensation.service';
 
 /**
@@ -325,19 +324,16 @@ export async function getFailoverPreview(orderId: string) {
     const routesWithPreview = await Promise.all(availableRoutes.map(async (route) => {
       const exchangeRate = route.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
       
-      // Fetch rate from Shadow Catalog details Hash in Redis
-      const hashKey = `provider:${route.providerId}:catalog:details`;
-      const serviceStr = await redis.hget(hashKey, String(route.providerServiceId));
-      let providerRate = 0.0;
-      if (serviceStr) {
-        try {
-          const s = JSON.parse(serviceStr);
-          providerRate = parseFloat(s.rate) || 0.0;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (err) {
-          // ignore
+      // Fetch rate from Database ShadowService staging table
+      const shadowSvc = await db.shadowService.findUnique({
+        where: {
+          providerId_externalId: {
+            providerId: route.providerId,
+            externalId: String(route.providerServiceId)
+          }
         }
-      }
+      });
+      const providerRate = shadowSvc ? shadowSvc.rate : 0.0;
 
       const newCostCents = Math.round(providerRate * exchangeRate * 100);
       const marginCents = Number(order.charge) - newCostCents;
@@ -400,19 +396,16 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
       const usdToRub = await SettingsManager.getExchangeRateUSD();
       const exchangeRate = newRoute.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
       
-      // Fetch rate from Shadow Catalog details Hash in Redis
-      const hashKey = `provider:${newRoute.providerId}:catalog:details`;
-      const serviceStr = await redis.hget(hashKey, String(newRoute.providerServiceId));
-      let providerRate = 0.0;
-      if (serviceStr) {
-        try {
-          const s = JSON.parse(serviceStr);
-          providerRate = parseFloat(s.rate) || 0.0;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (err) {
-          // ignore
+      // Fetch rate from Database ShadowService staging table
+      const shadowSvc = await db.shadowService.findUnique({
+        where: {
+          providerId_externalId: {
+            providerId: newRoute.providerId,
+            externalId: String(newRoute.providerServiceId)
+          }
         }
-      }
+      });
+      const providerRate = shadowSvc ? shadowSvc.rate : 0.0;
 
       const newProviderCostCents = Math.round(providerRate * exchangeRate * 100);
 

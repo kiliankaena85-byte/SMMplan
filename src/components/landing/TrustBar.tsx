@@ -30,7 +30,7 @@ export function TrustBar() {
                <s.icon className="w-5 h-5 drop-shadow-sm" />
             </div>
             <div className="flex flex-col min-w-0">
-               <div className="text-sm md:text-base font-bold tracking-tight text-foreground">{s.value}</div>
+               <div className="text-sm md:text-base font-bold tracking-tight text-foreground tabular-nums">{s.value}</div>
                <div className="text-[10px] md:text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-normal leading-tight">{s.label}</div>
             </div>
           </div>
@@ -57,7 +57,7 @@ export function TrustBar() {
                 <s.icon className="w-5 h-5 drop-shadow-sm" />
               </div>
               <div className="flex flex-col">
-                <div className="text-xl font-bold tracking-tight text-foreground">{s.value}</div>
+                <div className="text-xl font-bold tracking-tight text-foreground tabular-nums">{s.value}</div>
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{s.label}</div>
               </div>
             </div>
