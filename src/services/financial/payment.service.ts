@@ -4,6 +4,15 @@ import { revalidatePath } from 'next/cache';
 import { sendOrderPaidMail } from '@/lib/smtp';
 import { logPromoCodeUsageIfNeeded } from '@/services/marketing.service';
 
+function safeRevalidatePath(path: string, type?: 'layout' | 'page') {
+  try {
+    revalidatePath(path, type);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[Cache] revalidatePath failed for ${path}:`, msg);
+  }
+}
+
 export class PaymentService {
   /**
    * Confirms a payment and activates the linked order.
@@ -212,7 +221,7 @@ export class PaymentService {
       }, { isolationLevel: 'Serializable' });
 
       // Invalidate user dashboard cache so they see the new order & spending immediately
-      revalidatePath('/dashboard', 'layout');
+      safeRevalidatePath('/dashboard', 'layout');
       
       // Dispatch paid orders to processing queue
       if (activatedOrders.length > 0) {
@@ -372,7 +381,7 @@ export class PaymentService {
         }
       });
 
-      revalidatePath('/dashboard', 'layout');
+      safeRevalidatePath('/dashboard', 'layout');
 
       // Dispatch paid orders to processing queue
       if (activatedOrders.length > 0) {

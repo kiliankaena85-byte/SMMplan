@@ -1,12 +1,5 @@
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 
-export interface ExtractedLink {
-  id: string;
-  url: string;
-  platform: IntelligencePlatform;
-  cleanTitle: string;
-}
-
 export function extractLinks(text: string): string[] {
   if (!text) return [];
   

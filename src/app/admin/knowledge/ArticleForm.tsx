@@ -5,37 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createArticle, updateArticle } from "@/actions/knowledge";
 import { ArrowLeft, Eye, Edit2, CheckCircle } from "lucide-react";
+import { slugify } from "@/utils/slugify";
 import Link from "next/link";
-
-interface ArticleFormProps {
-  initialData?: {
-    id: string;
-    title: string;
-    slug: string;
-    description: string;
-    content: string;
-    status: "DRAFT" | "PUBLISHED";
-    category: string;
-    authorName?: string;
-    authorRole?: string;
-  };
-}
-
-// Cyrillic to English transliterator for automated slug generation
-function slugify(text: string): string {
-  const rus = "а б в г д е ё ж з и й к л м н о п р с т у ф х ц ч ш щ ъ ы ь э ю я".split(" ");
-  const eng = "a b v g d e yo zh z i y k l m n o p r s t u f h ts ch sh shch '' y ' e yu ya".split(" ");
-  
-  let result = text.toLowerCase();
-  for (let i = 0; i < rus.length; i++) {
-    result = result.split(rus[i]).join(eng[i]);
-  }
-  
-  return result
-    .replace(/[^a-z0-9-_]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 // Custom safe markdown renderer matching the detail page
 function renderMarkdown(content: string): React.ReactNode[] {
@@ -158,6 +129,20 @@ function renderMarkdown(content: string): React.ReactNode[] {
   }
 
   return elements;
+}
+
+interface ArticleFormProps {
+  initialData?: {
+    id: string;
+    title: string;
+    slug: string;
+    description: string;
+    content: string;
+    status: "DRAFT" | "PUBLISHED";
+    category: string;
+    authorName?: string;
+    authorRole?: string;
+  };
 }
 
 export function ArticleForm({ initialData }: ArticleFormProps) {

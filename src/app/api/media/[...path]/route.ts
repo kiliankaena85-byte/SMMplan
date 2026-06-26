@@ -6,18 +6,7 @@ import path from 'path';
 import fs from 'fs/promises';
 
 import { getEncodedKey } from '@/lib/session';
-
-const MIME_MAP: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
-  gif: 'image/gif',
-  pdf: 'application/pdf',
-  mp4: 'video/mp4',
-  webm: 'video/webm',
-  ogg: 'audio/ogg',
-};
+import { getMimeType } from '@/lib/mime';
 
 export async function GET(
   req: NextRequest,
@@ -60,8 +49,7 @@ export async function GET(
 
     try {
       const file = await fs.readFile(filePath);
-      const ext = path.extname(filePath).slice(1).toLowerCase();
-      const contentType = MIME_MAP[ext] || 'application/octet-stream';
+      const contentType = getMimeType(filePath);
 
       return new NextResponse(file, {
         headers: {

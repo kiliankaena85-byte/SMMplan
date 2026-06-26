@@ -73,4 +73,3 @@ export class CBRRateService {
   }
 }
 
-export const cbrRateService = new CBRRateService();

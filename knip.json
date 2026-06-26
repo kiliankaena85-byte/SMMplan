@@ -1,16 +1,17 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": [
-    "next.config.js",
-    "src/app/**/*.{js,jsx,ts,tsx}",
-    "src/bot/index.ts",
-    "src/workers/index.ts",
-    "scripts/**/*.ts"
+    "src/app/**/*.{js,jsx,ts,tsx}"
   ],
-  "project": ["src/**/*.{js,jsx,ts,tsx}", "scripts/**/*.ts"],
+  "project": ["src/**/*.{js,jsx,ts,tsx}"],
   "ignore": [
-    "scratch-*.js",
-    "test-*.ts",
-    "scripts/test-*.js"
+    ".agents/**/*",
+    "src/components/ui/**"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": [],
+  "ignoreDependencies": [
+    "node-fetch",
+    "@types/node-fetch"
   ]
 }
