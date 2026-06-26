@@ -34,6 +34,7 @@ Phases execute in numeric order: 1, 999.1
 | 1. B2B Reseller API Gateway | 1/1 | Completed | x |
 | 999.1. B2B Promo Banner | 1/1 | Completed | x |
 | 999.7. Shadow Catalog | 1/1 | Completed | x |
+| 999.8. Active Service Price Drift Detection | 1/1 | Completed | x |
 | 999.9. Dark Mode Refactoring | 1/1 | Completed | x |
 | 999.11. Provider Ticket URL | 1/1 | Completed | x |
 
@@ -126,16 +127,16 @@ Plans:
 Plans:
 - [x] Implemented ShadowService PostgreSQL table and cherry-pick import logic (Completed)
 
-### Phase 999.8: Active Service Price Drift Detection (BACKLOG)
+### Phase 999.8: Active Service Price Drift Detection (COMPLETED)
 
 **Goal:** Prevent silent margin erosion by monitoring active services for gradual price increases below the 20% quarantine threshold.
 **Requirements:**
 - Implement a drift-check mechanism within `syncProviderCatalog`.
 - Create alerts for accumulated price increases over time that could silently reduce profitability.
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] Cumulative Price Drift & 30-day Price History verification (Completed)
 
 ### Phase 999.9: Dark Mode UX/UI Refactoring (COMPLETED)
 
