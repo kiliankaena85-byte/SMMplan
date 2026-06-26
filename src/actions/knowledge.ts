@@ -240,44 +240,7 @@ export async function getRecommendedServicesForArticle(articleId: string) {
   }
 }
 
-/**
- * ADMIN: Get all articles (DRAFT & PUBLISHED) for the list view table.
- */
-export async function getAllArticlesAdmin() {
-  return requireStaffPermission('settings', 'view', async () => {
-    try {
-      const articles = await prisma.article.findMany({
-        orderBy: {
-          createdAt: "desc"
-        }
-      });
-      return { success: true, articles };
-    } catch (error) {
-      console.error("Failed to fetch admin articles list:", error);
-      return { success: false, articles: [], error: "Ошибка при получении списка статей" };
-    }
-  });
-}
 
-/**
- * ADMIN: Fetch article by ID for editing.
- */
-export async function getArticleById(id: string) {
-  return requireStaffPermission('settings', 'view', async () => {
-    try {
-      const article = await prisma.article.findUnique({
-        where: { id }
-      });
-      if (!article) {
-        return { success: false, error: "Статья не найдена" };
-      }
-      return { success: true, article };
-    } catch (error) {
-      console.error("Failed to get article by id:", error);
-      return { success: false, error: "Ошибка при получении статьи" };
-    }
-  });
-}
 
 /**
  * ADMIN: Create new knowledge article. Protected by role constraints.

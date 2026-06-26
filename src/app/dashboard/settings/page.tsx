@@ -75,22 +75,22 @@ export default async function ClientSettingsPage() {
 
       {/* Profile card */}
       <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
           {/* Avatar */}
           <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl font-black uppercase shrink-0">
             {user.email.substring(0, 2)}
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-bold text-foreground truncate">{user.email}</p>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase ${tier.color}`}>
+          <div className="flex-1 min-w-0 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-center sm:justify-start gap-2">
+              <p className="font-bold text-foreground truncate max-w-full">{user.email}</p>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase w-fit mx-auto sm:mx-0 shrink-0 ${tier.color}`}>
                 {tier.icon} {tier.name}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-              <Calendar className="w-3.5 h-3.5" />
-              Участник с {memberSince}
+            <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-muted-foreground mt-1.5">
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <span>Участник с {memberSince}</span>
             </div>
           </div>
         </div>

@@ -33,7 +33,7 @@ import {
 
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
-export function ReassignCategoryModal({
+function ReassignCategoryModal({
   selectedIds,
   categories,
   onSuccess,

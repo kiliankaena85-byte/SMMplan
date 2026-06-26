@@ -49,6 +49,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "dotenv": "^17.4.2",
     "framer-motion": "^12.38.0",
     "html-react-parser": "^6.1.1",
     "ioredis": "^5.10.1",
@@ -56,7 +57,7 @@
     "lucide-react": "^0.447.0",
     "next": "^16.2.6",
     "next-themes": "^0.4.6",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^9.0.1",
     "pino": "^10.3.1",
     "prisma": "^5.20.0",
     "react": "19.2.6",
@@ -68,6 +69,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "telegraf": "^4.16.3",
+    "undici": "^7.28.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -84,11 +86,13 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.4",
+    "decimal.js": "^10.6.0",
     "dotenv-cli": "^11.0.0",
     "eslint": "^10.2.0",
     "fast-check": "^4.8.0",
     "jsdom": "^29.0.2",
     "knip": "^6.13.1",
+    "node-fetch": "^2.7.0",
     "pixelmatch": "^7.2.0",
     "playwright": "^1.60.0",
     "pngjs": "^7.0.0",
@@ -100,6 +104,14 @@
     "vitest": "^4.1.4"
   },
   "overrides": {
-    "postcss": "^8.5.10"
+    "postcss": "^8.5.10",
+    "nodemailer": "^9.0.1",
+    "undici": "^7.28.0",
+    "form-data": "^4.0.6",
+    "ws": "^8.21.0",
+    "markdown-it": "^14.2.0",
+    "vite": "^8.1.0",
+    "esbuild": "^0.28.1",
+    "brace-expansion": "^5.0.6"
   }
 }

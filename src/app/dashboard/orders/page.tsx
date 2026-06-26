@@ -186,7 +186,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         </div>
         <Link
           href="/dashboard/new-order"
-          className="h-11 px-4 flex items-center text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all duration-200 shadow-sm animate-hover-pulse"
+          className="h-11 px-4 flex items-center text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all duration-200 shadow-sm animate-hover-pulse whitespace-nowrap shrink-0"
         >
           + Новый заказ
         </Link>
@@ -209,13 +209,13 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           <Table aria-label="Список заказов">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[10%]">ID</TableHead>
-                <TableHead className="w-[30%] min-w-[200px]">Услуга</TableHead>
-                <TableHead className="w-[25%]">Ссылка / Кол-во</TableHead>
-                <TableHead className="w-[12%] text-right">Сумма</TableHead>
-                <TableHead className="w-[15%]">Статус</TableHead>
-                <TableHead className="w-[8%]">Действия</TableHead>
-                <TableHead className="w-[10%] text-right">Дата</TableHead>
+                <TableHead className="w-[8%] px-3">ID</TableHead>
+                <TableHead className="w-[27%] min-w-[200px] px-3">Услуга</TableHead>
+                <TableHead className="w-[25%] px-3">Ссылка / Кол-во</TableHead>
+                <TableHead className="w-[10%] text-right px-3">Сумма</TableHead>
+                <TableHead className="w-[14%] px-3">Статус</TableHead>
+                <TableHead className="w-[8%] px-3">Действия</TableHead>
+                <TableHead className="w-[8%] text-right px-3">Дата</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -227,7 +227,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     key={order.id}
                     className="cursor-pointer hover:bg-muted/40 transition-colors"
                   >
-                    <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                    <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap px-3">
                       <div className="flex items-center gap-1.5">
                         <Link href={`/dashboard/orders/${order.id}`} className="hover:text-primary font-bold transition-colors" aria-label={`Открыть заказ #${order.numericId}`}>
                           #{order.numericId}
@@ -235,7 +235,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                         <CopyText text={order.numericId.toString()} iconOnly={true} tooltipText="Копировать ID заказа" />
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-3">
                       <Link href={`/dashboard/orders/${order.id}`} className="block" tabIndex={-1}>
                         <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 flex items-center gap-1.5">
                           {order.service.category?.network?.slug && (
@@ -256,7 +256,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                         </div>
                       </Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-3">
                       <div className="flex flex-col gap-1">
                         {order.link && (
                           <div className="flex items-center gap-1.5">
@@ -279,13 +279,13 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-black text-foreground tabular-nums whitespace-nowrap">
+                    <TableCell className="text-right font-black text-foreground tabular-nums whitespace-nowrap px-3">
                       {(Number(order.charge) / 100).toLocaleString('ru-RU', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })} ₽
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-3">
                       <div className="flex flex-col gap-1.5">
                         <span
                           className={`inline-flex items-center self-start px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-md border ${color}`}
@@ -316,7 +316,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-3">
                       <div className="flex items-center gap-1.5">
                         {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) ? (
                           <div className="flex flex-col gap-1">
@@ -339,7 +339,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                    <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap px-3">
                       <ClientDate date={order.createdAt.toISOString()} format="datetime" />
                     </TableCell>
                   </TableRow>

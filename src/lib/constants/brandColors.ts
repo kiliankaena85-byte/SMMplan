@@ -32,4 +32,7 @@ export const BRAND_COLORS: Record<string, { bg: string; shadow: string; gradient
   yandex:     { bg: '#FC3F1D', shadow: 'rgba(252,63,29,0.4)',   gradient: 'from-[#FC3F1D] to-[#ca3217]',   text: 'text-[#FC3F1D]' },
 };
 
-export const getBrandColor = (slug: string) => BRAND_COLORS[slug?.toLowerCase()] || BRAND_COLORS.telegram;
+export const getBrandColor = (slug: string | undefined | null) => {
+  if (!slug) return BRAND_COLORS.telegram;
+  return BRAND_COLORS[slug.toLowerCase()] || BRAND_COLORS.telegram;
+};

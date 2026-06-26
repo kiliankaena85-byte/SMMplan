@@ -1,14 +1,12 @@
-# Progress: 2026-06-07T14:10:00Z
-Last visited: 2026-06-07T14:10:00Z
+# Progress Log
 
-## Audit Status
-- Started audit of `src/actions/auth/` and `src/app/(auth)/login/`
-- Checked `password-register.ts`, `password-login.ts`, `request-magic-link.ts`, `login-form.tsx`, `page.tsx`.
-- Found NO hardcoded test results, NO facade implementations.
-- The logic looks solid:
-  - Has IP and Email level rate limiting
-  - Proper transaction for user creation
-  - Hash checking / generation using standard crypto functions
-  - Good UI using tabs (Password, Magic Link, Registration).
-- `npx tsc --noEmit` completed successfully!
-- Currently running `npm run lint` (task-27) and `npm run build` (task-34).
+Last visited: 2026-06-25T13:42:47+03:00
+
+## Active Milestone: Compliance Audit
+
+- [x] Initialize BRIEFING.md and ORIGINAL_REQUEST.md <!-- id: 0 -->
+- [x] Execute compliance check command `node .agent/skills/gsd-russian-legal-watchdog/scripts/check-compliance.js` <!-- id: 1 -->
+- [x] Save stdout/stderr output to `compliance_output.txt` <!-- id: 2 -->
+- [x] Verify if output ends with "AUDIT SUCCESS" <!-- id: 3 -->
+- [x] Message parent conversation ID `d695481e-0374-41f0-aa8b-6081fa906933` with details <!-- id: 4 -->
+- [x] Generate handoff.md report <!-- id: 5 -->

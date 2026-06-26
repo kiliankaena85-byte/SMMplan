@@ -211,7 +211,7 @@ export function UniversalOrderForm({
               <button 
                  onClick={handleAddClick}
                  disabled={!inputText.trim()}
-                 className="h-9 px-4 bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs rounded-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 cursor-pointer shadow-sm"
+                 className="h-9 px-4 bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs rounded-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 cursor-pointer shadow-sm shrink-0 whitespace-nowrap"
               >
                  + Добавить
               </button>

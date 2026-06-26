@@ -117,7 +117,7 @@ export async function getPaymentsAction(params: Partial<PaymentsParams>): Promis
   });
 }
 
-export type DisputePackOrderDTO = {
+type DisputePackOrderDTO = {
   id: string;
   numericId: number;
   serviceName: string;

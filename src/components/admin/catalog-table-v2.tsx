@@ -743,7 +743,7 @@ function ServiceFormSheet({
   );
 }
 
-export function CreateServiceModal({
+function CreateServiceModal({
   categories,
   providers,
   onSuccess,
@@ -784,7 +784,7 @@ export function CreateServiceModal({
   );
 }
 
-export function EditServiceModal({
+function EditServiceModal({
   service,
   categories,
   providers,

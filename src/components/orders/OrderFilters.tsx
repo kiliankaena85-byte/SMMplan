@@ -85,7 +85,7 @@ export function OrderFilters({
   return (
     <div className="space-y-4">
       {/* ── STATUS TABS PANEL (Stripe / Vercel style) ── */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none">
         {statuses.map((stat) => {
           const count = stat.value === 'ALL'
             ? Object.values(statusCounts).reduce((a, b) => a + b, 0)
@@ -135,6 +135,41 @@ export function OrderFilters({
               onChange={(e) => setSearch(e.target.value)}
               className="w-full h-11 md:h-9 pl-9 pr-4 bg-muted border border-border/60 rounded-xl text-xs font-medium placeholder:text-muted-foreground outline-none focus:bg-background focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
             />
+          </div>
+
+          {/* Status filter (Mobile only, hidden on desktop since we have tabs there) */}
+          <div className="block sm:hidden w-full">
+            <Select
+              value={initialStatus || 'ALL'}
+              onValueChange={(val) => handleApplyFilters({ status: val ?? 'ALL' })}
+            >
+              <SelectTrigger 
+                className="h-11 bg-muted border border-border/60 rounded-xl px-3 text-xs font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none transition-all hover:bg-muted/80 flex items-center justify-between gap-1.5 w-full"
+                aria-label="Фильтр по статусу"
+              >
+                <SelectValue placeholder="Все статусы">
+                  {(value: string) => {
+                    if (!value || value === 'ALL') return 'Все статусы';
+                    const matched = statuses.find(s => s.value === value);
+                    if (!matched) return value;
+                    const count = statusCounts[value] || 0;
+                    return count > 0 ? `${matched.label} (${count})` : matched.label;
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-popover text-popover-foreground border border-border rounded-xl shadow-md p-1">
+                {statuses.map((stat) => {
+                  const count = stat.value === 'ALL'
+                    ? Object.values(statusCounts).reduce((a, b) => a + b, 0)
+                    : statusCounts[stat.value] || 0;
+                  return (
+                    <SelectItem key={stat.value} value={stat.value}>
+                      {stat.label} {count > 0 ? `(${count})` : ''}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Social Network filter */}

@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { ProviderComparisonHub } from './ProviderComparisonHub';
 
-export interface RoutingProvider {
+interface RoutingProvider {
   id: string;
   name: string;
 }
@@ -25,7 +25,7 @@ export interface RoutingServiceRoute {
   };
 }
 
-export interface RoutingAuditLog {
+interface RoutingAuditLog {
   id: string;
   action: string;
   reason: string | null;
@@ -34,7 +34,7 @@ export interface RoutingAuditLog {
   toProviderId?: string | null;
 }
 
-export interface RoutingComparisonItem {
+interface RoutingComparisonItem {
   routeId: string;
   limitsMismatch: boolean;
   providerName: string;
@@ -58,7 +58,7 @@ export interface RoutingComparisonItem {
   max?: number;
 }
 
-export interface RoutingService {
+interface RoutingService {
   id: string;
 }
 

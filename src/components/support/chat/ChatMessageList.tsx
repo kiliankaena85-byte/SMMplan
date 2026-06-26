@@ -255,7 +255,7 @@ export function ChatMessageList({
                       <div
                         className={`absolute ${
                           msg.sender === 'USER' ? '-right-20' : '-left-20'
-                        } top-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex gap-1 transition-opacity z-10`}
+                        } top-2 hidden lg:flex opacity-0 lg:group-hover:opacity-100 gap-1 transition-opacity z-10`}
                       >
                         <button
                           onClick={() => onSetReplyingTo(msg)}
@@ -681,26 +681,64 @@ export function ChatMessageList({
                         </div>
                       </div>
                     ) : (
-                      <div className="whitespace-pre-wrap text-sm leading-[1.6] pr-12 pb-1 relative min-w-[50px] min-h-[1.25rem] text-inherit">
-                        {msg.text}
-                        <span className="absolute bottom-0 right-0 text-[10px] opacity-40 select-none flex items-center gap-1 font-medium text-inherit/80">
-                          {msg.sender === 'INTERNAL' && (
-                            <span title="Внутренняя заметка">🔒</span>
-                          )}
-                          {msg.isEdited && (
-                            <span
-                              title={msg.originalText || ''}
-                              className="text-[8px] opacity-75"
+                      <>
+                        <div className="whitespace-pre-wrap text-sm leading-[1.6] pr-12 pb-1 relative min-w-[50px] min-h-[1.25rem] text-inherit">
+                          {msg.text}
+                          <span className="absolute bottom-0 right-0 text-[10px] opacity-40 select-none flex items-center gap-1 font-medium text-inherit/80">
+                            {msg.sender === 'INTERNAL' && (
+                              <span title="Внутренняя заметка">🔒</span>
+                            )}
+                            {msg.isEdited && (
+                              <span
+                                title={msg.originalText || ''}
+                                className="text-[8px] opacity-75"
+                              >
+                                изм.
+                              </span>
+                            )}
+                            <ClientDate date={msg.createdAt} format="time" />
+                            {msg.isHistorical && (
+                              <span className="text-[8px] opacity-75">(Архив)</span>
+                            )}
+                          </span>
+                        </div>
+
+                        {/* Mobile Chat Actions Inline (under message text) */}
+                        {!msg.isDeleted && editingMessageId !== msg.id && (
+                          <div className="flex lg:hidden items-center gap-2 mt-2 pt-1 border-t border-current/10 text-[10px] font-bold opacity-60">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onSetReplyingTo(msg);
+                              }}
+                              className="hover:opacity-100 transition-opacity cursor-pointer flex items-center gap-1 text-inherit"
                             >
-                              изм.
-                            </span>
-                          )}
-                          <ClientDate date={msg.createdAt} format="time" />
-                          {msg.isHistorical && (
-                            <span className="text-[8px] opacity-75">(Архив)</span>
-                          )}
-                        </span>
-                      </div>
+                              Ответить
+                            </button>
+                            {editTicketMessage && msg.sender !== 'USER' && (
+                              isExpired ? null : (
+                                <>
+                                  <span className="opacity-30">•</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setEditingMessageId(msg.id);
+                                      setEditingText(msg.text);
+                                    }}
+                                    className="hover:opacity-100 transition-opacity cursor-pointer flex items-center gap-1 text-inherit"
+                                  >
+                                    Изменить
+                                  </button>
+                                </>
+                              )
+                            )}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   {msg.sender !== 'USER' && (

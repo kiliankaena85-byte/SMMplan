@@ -36,7 +36,7 @@ const structuredMassOrderSchema = z.object({
   expectedTotalRub: z.number().optional(),
 });
 
-export const parseMassOrderText = async (text: string) => {
+const parseMassOrderText = async (text: string) => {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const orders: { 
     serviceId: string; 

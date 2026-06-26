@@ -1,42 +1,39 @@
-# BRIEFING — 2026-06-07T14:06:00Z
+# BRIEFING — 2026-06-25T13:42:47+03:00
 
 ## Mission
-Perform a Forensic Integrity Audit on the Password Registration and Magic Link fixes in `src/actions/auth/` and `src/app/(auth)/login/`.
+Run the compliance check script, save the output to compliance_output.txt, and report the findings back to the parent agent.
 
 ## 🔒 My Identity
 - Archetype: forensic_auditor
-- Roles: critic, specialist, auditor
+- Roles: implementer, qa, specialist
 - Working directory: d:\SMM_plan_2\.agents\forensic_auditor
-- Original parent: 981e52c3-eb2a-4363-accc-404c9acac495
-- Target: Password Registration and Magic Link fixes
+- Original parent: d695481e-0374-41f0-aa8b-6081fa906933
+- Milestone: Compliance Audit
 
 ## 🔒 Key Constraints
-- Audit-only — do NOT modify implementation code
-- Trust NOTHING — verify everything independently
-- Provide verdict (CLEAN or INTEGRITY VIOLATION) and any evidence.
+- Run compliance check script `node .agent/skills/gsd-russian-legal-watchdog/scripts/check-compliance.js` in project root `d:\SMM_plan_2`.
+- Save output (stdout and stderr) to `d:\SMM_plan_2\.agents\forensic_auditor\compliance_output.txt`.
+- Message parent conversation ID `d695481e-0374-41f0-aa8b-6081fa906933` with contents and confirmation of whether it ends with "AUDIT SUCCESS".
 
 ## Current Parent
-- Conversation ID: 981e52c3-eb2a-4363-accc-404c9acac495
-- Updated: 2026-06-07T14:06:00Z
+- Conversation ID: d695481e-0374-41f0-aa8b-6081fa906933
+- Updated: not yet
 
-## Audit Scope
-- **Work product**: `src/actions/auth/` and `src/app/(auth)/login/`
-- **Profile loaded**: General Project
-- **Audit type**: forensic integrity check
-
-## Attack Surface
-- **Hypotheses tested**: [TBD]
-- **Vulnerabilities found**: [TBD]
-- **Untested angles**: [TBD]
-
-## Loaded Skills
-- None yet.
-
-## Audit Progress
-- **Phase**: investigating
-- **Checks completed**: [TBD]
-- **Checks remaining**: Code analysis, Build, Lint, Tests
-- **Findings so far**: [TBD]
+## Task Summary
+- **What to build**: Run a compliance check script and record the results.
+- **Success criteria**: Outputs captured correctly in compliance_output.txt, checked for "AUDIT SUCCESS", and reported to parent.
+- **Interface contracts**: N/A
+- **Code layout**: N/A
 
 ## Key Decisions Made
-- [TBD]
+- None yet.
+
+## Artifact Index
+- d:\SMM_plan_2\.agents\forensic_auditor\ORIGINAL_REQUEST.md — Original request details
+- d:\SMM_plan_2\.agents\forensic_auditor\BRIEFING.md — Current status and constraints
+
+## Loaded Skills
+- **Source**: d:\SMM_plan_2\.agent\skills\gsd-russian-legal-watchdog\SKILL.md
+- **Local copy**: d:\SMM_plan_2\.agents\forensic_auditor\gsd-russian-legal-watchdog-SKILL.md
+- **Core methodology**: Audits website compliance with Russian laws (152-FZ, 54-FZ, consumer protection).
+

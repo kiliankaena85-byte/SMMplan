@@ -4,7 +4,7 @@
  * Обеспечивает строгий детерминированный перевод (без галлюцинаций LLM в продакшене).
  */
 
-export const GeoDictionary: Record<string, string> = {
+const GeoDictionary: Record<string, string> = {
     // СНГ / Россия
     'RU': 'Россия',
     'RUSSIA': 'Россия',
@@ -35,14 +35,14 @@ export const GeoDictionary: Record<string, string> = {
     'GLOBAL': 'Весь мир',
 };
 
-export const QualityTiers = {
+const QualityTiers = {
     REAL: 'Живые',
     PREMIUM: 'Премиум',
     STANDARD: 'Стандарт',
     ECONOMY: 'Эконом',
 };
 
-export const TranslationPatterns = [
+const TranslationPatterns = [
     // Гарантии (Refill)
     { pattern: /no\s*drop/i, translation: 'Без отписок', isRefill: true, warrantyDays: 30 },
     { pattern: /r\s*30/i, translation: 'Гарантия 30 дней', isRefill: true, warrantyDays: 30 },

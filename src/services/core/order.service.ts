@@ -36,7 +36,7 @@ class OrderService {
   async createOrder(userId: string, input: CreateOrderInput, idempotencyKey?: string): Promise<{ success: boolean; error?: string; orderId?: string }> {
     try {
       // 1. [FIN-005] Currency Circuit Breaker: Prevent orders if CBR sync is stale
-      const settings = await SettingsProvider.getCached();
+      const settings = await SettingsProvider.get();
       if (settings.exchangeRateUpdatedAt) {
          const hoursSinceSync = (Date.now() - settings.exchangeRateUpdatedAt.getTime()) / (1000 * 60 * 60);
          if (hoursSinceSync > 48) {

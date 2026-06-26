@@ -5,7 +5,7 @@ import { SmartCampaignStatus, SmartTaskStatus } from '@prisma/client';
 /**
  * Проверяет завершенность кампании и обновляет статус кампании и родительского заказа.
  */
-export async function checkAndCompleteCampaign(campaignId: string) {
+async function checkAndCompleteCampaign(campaignId: string) {
   const campaign = await prisma.smartCampaign.findUnique({
     where: { id: campaignId },
     include: { tasks: true, order: true },

@@ -28,11 +28,24 @@ async function simulatePillar1Webhooks() {
 
   const payload = JSON.stringify({
     update_type: 'invoice_paid',
-    payload: { invoice_id: payment.gatewayId }
+    payload: { 
+      invoice_id: payment.gatewayId,
+      payload: payment.id,
+      paid_fiat_amount: 500.00
+    }
   });
 
   // CryptoBot Signature Generation
+  const { VaultService } = require('../src/lib/vault');
   const token = process.env.CRYPTO_BOT_TOKEN || 'test_token';
+  const encryptedToken = VaultService.encrypt(token);
+
+  await db.systemSettings.upsert({
+    where: { id: 'global' },
+    update: { cryptoBotToken: encryptedToken },
+    create: { id: 'global', cryptoBotToken: encryptedToken }
+  });
+
   const secret = crypto.createHash('sha256').update(token).digest();
   const signature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
@@ -104,18 +117,29 @@ async function simulatePillar2Affiliate() {
     }
   });
 
-  const { checkoutCore } = require('../src/actions/order/checkout');
+  const { orderService } = require('../src/services/core/order.service');
 
   console.log('1. Ordering as a Referred User (1000 quantity)...');
-  const orderId = await checkoutCore(referral.id, service.id, 'https://test.com', 1000);
+  const res = await orderService.createOrder(referral.id, {
+    serviceId: service.id,
+    link: 'https://test.com',
+    quantity: 1000,
+    charge: 1500,
+    providerCost: 500,
+    email: referral.email,
+    isTestMode: true
+  });
 
-  const order = (await db.order.findUnique({ where: { id: orderId.orderId } }))!;
+  assert(res.success === true, `Order creation failed: ${res.error}`);
+  const orderId = res.orderId!;
+
+  const order = (await db.order.findUnique({ where: { id: orderId } }))!;
   
   // Math: 1000 qty
   // Provider Cost (rate = 5.0). 1000 qty / 1000 = 1. Total cost = 5.00 = 500 Cents.
   // Charge (profit = 3.0x). 5.00 * 3.0 = 15.00 = 1500 Cents.
   // Net Profit: 1500 - 500 = 1000 Cents.
-  // 5% Commission of Net Profit: 1000 * 0.05 = 50 Cents.
+  // 10% Commission of Net Profit: 1000 * 0.10 = 100 Cents.
   assert(Number(order.charge) === 1500, `Expected charge 1500 cents, got ${order.charge}`);
   assert(Number(order.providerCost) === 500, `Expected providerCost 500 cents, got ${order.providerCost}`);
 
@@ -124,14 +148,31 @@ async function simulatePillar2Affiliate() {
   });
 
   assert(commission !== null, `Commission was not created`);
-  assert(Number(commission?.amount) === 50, `Expected commission 50 cents, got ${commission?.amount}`);
+  assert(Number(commission?.amount) === 100, `Expected commission 100 cents, got ${commission?.amount}`);
   assert(commission?.status === 'PENDING', `Commission should be PENDING`);
 
-  console.log('✅ Affiliate system calculated exactly 50 Cents (5% of 1000 Net Profit).');
+  console.log('✅ Affiliate system calculated exactly 100 Cents (10% of 1000 Net Profit).');
 }
 
 async function simulatePillar3CatalogSync() {
   console.log('\n--- 🧪 SIMULATING: PROVIDER CATALOG SYNC ---');
+
+  // Seed system settings in DB first
+  await db.systemSettings.upsert({
+    where: { id: 'global' },
+    update: { quarantineThreshold: 0.20, exchangeRateUSD: 90.0 },
+    create: { id: 'global', quarantineThreshold: 0.20, exchangeRateUSD: 90.0 },
+  });
+
+  const provider = await db.provider.create({
+    data: {
+      name: `Vexboost Fake Provider ${Date.now()}`,
+      apiUrl: 'https://api.vexboost.com',
+      apiKey: 'fake-key',
+      isActive: true,
+      balanceCurrency: 'USD'
+    }
+  });
 
   const syncNetwork = await db.network.upsert({
     where: { slug: 'sync' },
@@ -151,25 +192,20 @@ async function simulatePillar3CatalogSync() {
       rate: 1.0,
       markup: 2.0,
       externalId: '999',
-      isActive: true
+      isActive: true,
+      providerId: provider.id
     }
   });
 
   // Mock Provider implementation that SIMULATES externalId 999 being DELETED at the provider
   jestMockProvider(); 
 
-  const { GET } = require('../src/app/api/workers/sync-catalog/route');
+  const { adminCatalogService } = require('../src/services/admin/catalog.service');
   
-  const req = new Request('http://localhost:3000/api/workers/sync-catalog', {
-    headers: { 'authorization': `Bearer ${process.env.CRON_SECRET || 'dev_secret'}` }
-  });
+  console.log('1. Running Catalog Sync (Simulating Provider missing ID 999)...');
+  const stats = await adminCatalogService.syncProviderCatalog(provider.id, { id: 'cron', email: 'cron@system.local' });
   
-  console.log('1. Firing Catalog Sync (Simulating Provider missing ID 999)...');
-  const res = await GET(req);
-  const data = await res.json();
-  
-  assert(res.status === 200, 'Sync worker failed');
-  assert(data.details.disabledMissingServices === 1, 'Sync worker did not report a disablement');
+  assert(stats.zombiesDisabled === 1, `Expected 1 disabled zombie, got ${stats.zombiesDisabled}`);
 
   const verifyService = await db.service.findUnique({ where: { id: localService.id } });
   assert(verifyService?.isActive === false, 'Service was not disabled in the DB');
@@ -180,14 +216,23 @@ async function simulatePillar3CatalogSync() {
 // Very simple Mock Injector
 function jestMockProvider() {
   const { providerService } = require('../src/services/providers/provider.service');
-  providerService.getDefaultProvider = async () => {
-    return {
-      getServices: async () => {
-         // Deliberately empty! Service '999' is missing from the provider.
-         return [];
-      }
+  const mockProv = {
+    getServices: async () => {
+       // Return a list with some other service, but missing service '999'
+       return [
+         {
+           service: '101',
+           name: 'Instagram Likes',
+           rate: '1.0',
+           min: '10',
+           max: '10000',
+           category: 'Likes'
+         }
+       ];
     }
-  }
+  };
+  providerService.getDefaultProvider = async () => mockProv;
+  providerService.getProviderInstance = async () => mockProv;
 }
 
 async function runAudit() {

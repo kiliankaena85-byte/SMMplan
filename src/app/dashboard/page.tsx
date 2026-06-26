@@ -97,7 +97,7 @@ export default async function DashboardPage() {
             </span>
             <Wallet className="w-4 h-4 text-muted-foreground/60" />
           </div>
-          <div className="text-2xl font-black text-foreground tracking-tight font-mono tabular-nums">
+          <div className="text-xl sm:text-2xl font-black text-foreground tracking-tight font-mono tabular-nums whitespace-nowrap">
             {formatBalance(user.balance)}
           </div>
           <Link

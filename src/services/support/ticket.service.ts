@@ -5,7 +5,7 @@ import { SettingsProvider } from '@/lib/settings';
 import { TicketSource, TicketStatus, MessageSender } from '@prisma/client';
 import { getMimeType } from '@/lib/mime';
 
-export interface AddMessageOptions {
+interface AddMessageOptions {
   ticketId: string;
   sender: MessageSender;
   text: string;

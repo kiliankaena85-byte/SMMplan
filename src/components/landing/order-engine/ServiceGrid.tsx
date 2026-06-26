@@ -2,7 +2,6 @@ import React, { useMemo, useState } from "react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { Card } from "@/components/ui/card";
 import { Check, CheckCircle2, ChevronDown } from "lucide-react";
-import { getBrandColor } from "./BrandColors";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -17,8 +16,6 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
   const desktopGridContent = useMemo(() => {
     return services.map((srv, i) => {
       const isSelected = selectedService?.id === srv.id;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const brand = getBrandColor(selectedNetworkObj?.slug);
       const isQuarantined = srv.cooldownUntil && new Date(srv.cooldownUntil) > new Date();
 
       const descriptionText = isQuarantined 

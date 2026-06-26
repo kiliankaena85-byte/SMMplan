@@ -464,7 +464,7 @@ export async function runInProgressTTLSweep(): Promise<void> {
  * These orders have charged the user's balance but never reached a provider.
  * Refunds the full amount and marks as ERROR.
  */
-export async function runPendingCheckTTLSweep(): Promise<void> {
+async function runPendingCheckTTLSweep(): Promise<void> {
   const PENDING_CHECK_TTL_HOURS = 24;
   const threshold = new Date(Date.now() - PENDING_CHECK_TTL_HOURS * 60 * 60 * 1000);
 

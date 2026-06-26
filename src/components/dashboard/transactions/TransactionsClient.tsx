@@ -386,13 +386,13 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border/60 rounded-2xl p-4 shadow-sm print:hidden">
         
         {/* Left: Type and Date Filters */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
           
           {/* Type filters */}
-          <div className="flex bg-muted p-1 rounded-xl border border-border/40 select-none">
+          <div className="flex bg-muted p-1 rounded-xl border border-border/40 select-none w-full sm:w-auto shrink-0">
             <button
               onClick={() => setTypeFilter('ALL')}
-              className={`px-4 py-2.5 text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
+              className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
                 typeFilter === 'ALL' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -400,7 +400,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
             </button>
             <button
               onClick={() => setTypeFilter('DEPOSIT')}
-              className={`px-4 py-2.5 text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
+              className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
                 typeFilter === 'DEPOSIT' ? 'bg-success text-success-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -408,7 +408,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
             </button>
             <button
               onClick={() => setTypeFilter('SPENT')}
-              className={`px-4 py-2.5 text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
+              className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
                 typeFilter === 'SPENT' ? 'bg-background text-foreground shadow-sm border border-rose-500/10' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -416,7 +416,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
             </button>
             <button
               onClick={() => setTypeFilter('REFUND')}
-              className={`px-4 py-2.5 text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
+              className={`flex-1 sm:flex-none px-2 sm:px-4 py-2 text-xs sm:text-sm font-bold min-h-[44px] flex items-center justify-center rounded-lg transition-all ${
                 typeFilter === 'REFUND' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -429,7 +429,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
             value={dateFilter}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onChange={(e) => setDateFilter(e.target.value as any)}
-            className="h-11 bg-content2 border border-border/60 rounded-xl px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
+            className="h-11 w-full sm:w-auto bg-content2 border border-border/60 rounded-xl px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
             aria-label="Фильтр по дате"
           >
             <option value="ALL">За всё время</option>

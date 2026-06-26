@@ -10,7 +10,6 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-export { Card, CardHeader, CardContent } from "@/components/ui/card";
 export { Button } from "@/components/ui/button";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any

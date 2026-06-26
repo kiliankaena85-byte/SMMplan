@@ -126,7 +126,7 @@ export default function AddFundsPage() {
                 aria-pressed={amount === val}
               >
                 {val === 1000 && (
-                  <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] font-bold bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap">
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold bg-amber-400 text-amber-900 px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap">
                     Популярный
                   </span>
                 )}
@@ -169,7 +169,7 @@ export default function AddFundsPage() {
                   if (navigator.vibrate) navigator.vibrate(20);
                   setMethod(id);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 min-h-[44px] md:min-h-[36px] rounded-xl border text-left transition-all duration-200 ${
+                className={`w-full flex items-center gap-3 px-4 py-3 min-h-[72px] rounded-xl border text-left transition-all duration-200 ${
                   method === id
                     ? 'border-primary bg-primary/5 text-foreground'
                     : 'border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted'
@@ -180,9 +180,9 @@ export default function AddFundsPage() {
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${method === id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0 min-h-[38px] flex flex-col justify-center py-0.5">
                   <div className="text-sm font-semibold">{label}</div>
-                  <div className="text-xs text-muted-foreground">{note}</div>
+                  <div className="text-xs text-muted-foreground leading-snug">{note}</div>
                 </div>
                 <div className={`ml-auto w-4 h-4 rounded-full border-2 shrink-0 ${method === id ? 'border-primary bg-primary' : 'border-border'}`} />
               </button>

@@ -40,7 +40,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx dotenv-cli -e .env.test -- npx next dev --webpack --port 3001 --hostname 127.0.0.1',
+    command: 'npx dotenv-cli -e .env.test -- npx next start --port 3001 --hostname 127.0.0.1',
     url: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://127.0.0.1:3001',
     reuseExistingServer: true,
     timeout: 120 * 1000,

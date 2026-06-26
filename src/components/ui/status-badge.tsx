@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export type BadgeStatus = 
+type BadgeStatus = 
   | 'PENDING'
   | 'OPEN'
   | 'IN_PROGRESS'
