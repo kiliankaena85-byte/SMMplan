@@ -28,6 +28,7 @@ ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholde
 
 # Generate prisma client and build next.js
 RUN npx prisma generate
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 RUN npm run build
 RUN rm -rf node_modules/@next/swc-*
 
