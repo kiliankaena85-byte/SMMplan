@@ -39,7 +39,15 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
     setCategory(t.category || 'GENERAL');
     setIsActive(t.isActive !== false);
     setSort(t.sort || 0);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      try {
+        window.scrollTo(0, 0);
+      } catch (e) {
+        // ignore
+      }
+    }
   };
 
   const handleCancel = () => {
@@ -321,7 +329,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                             className="p-1.5 hover:bg-muted text-muted-foreground hover:text-primary transition-colors rounded-lg"
                             title="Редактировать"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-3.5 h-3.5 pointer-events-none" />
                           </button>
                           <button
                             type="button"
@@ -329,7 +337,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                             className="p-1.5 hover:bg-muted text-muted-foreground hover:text-destructive transition-colors rounded-lg"
                             title="Удалить"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5 pointer-events-none" />
                           </button>
                         </div>
                       </td>
