@@ -32,7 +32,7 @@ RUN npm run build
 RUN rm -rf node_modules/@next/swc-*
 
 # Prepare production dependencies only
-FROM base AS prod-deps
+FROM deps AS prod-deps
 WORKDIR /app
 COPY package.json package-lock.json* .npmrc* ./
 COPY prisma ./prisma
