@@ -32,21 +32,32 @@ Phases execute in numeric order: 1, 999.1
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. B2B Reseller API Gateway | 1/1 | Completed | x |
+| 2. Production Hardening | 1/1 | Completed | x |
 | 999.1. B2B Promo Banner | 1/1 | Completed | x |
+| 999.2. Guest Mass Order Demo | 1/1 | Completed | x |
+| 999.3. Mass Order API Gateway | 1/1 | Completed | x |
+| 999.4. Auth-Zone Routes E2E Testing | 1/1 | Completed | x |
+| 999.5. User-Agent Hijack Review | 1/1 | Completed | x |
+| 999.6. Worker Backoff Policy | 1/1 | Completed | x |
 | 999.7. Shadow Catalog | 1/1 | Completed | x |
 | 999.8. Active Service Price Drift Detection | 1/1 | Completed | x |
 | 999.9. Dark Mode Refactoring | 1/1 | Completed | x |
 | 999.11. Provider Ticket URL | 1/1 | Completed | x |
+| 999.12. Knowledge Base & Blog | 1/1 | Completed | x |
+| 999.13. Email Security Setup | 1/1 | Completed | x |
 
-### Phase 2: Production Hardening (Docker, CI/CD, Deployment Architecture)
+### Phase 2: Production Hardening (Docker, CI/CD, Deployment Architecture) (COMPLETED)
 
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 1
-**Plans:** 0 plans
+**Goal:** Ensure safe, rapid, and resilient deployment of the new architecture.
+**Requirements:**
+- CI/CD Pipeline (GitHub Actions linting, typecheck, vitest, security audits).
+- Docker optimization (multi-stage Dockerfile, standalone Next.js build).
+- Production compose configuration (PostgreSQL, Redis, App, Nginx, Certbot, Loki/Promtail/Grafana, Backups).
+- Nginx security settings (rate limits per route type) and secure CSP headers.
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 2 to break down)
+- [x] Dockerized Linux Environment & Production setup (Completed)
 
 ## Backlog
 
@@ -61,60 +72,60 @@ Plans:
 Plans:
 - [x] 1. Bento Card Integration in WhyUs.tsx (Completed)
 
-### Phase 999.2: Guest Mass Order Demo & Pre-Registration Gateway (BACKLOG)
+### Phase 999.2: Guest Mass Order Demo & Pre-Registration Gateway (COMPLETED)
 
 **Goal:** Enable guest users to experience mass link parsing and pricing calculations directly on the landing page, prompting a frictionless registration step only at the moment of payment execution.
 **Requirements:**
 - Add a "Mass Order" tab option to the main [SmartLinkLanding.tsx](file:///d:/SMM_plan_2/src/components/landing/SmartLinkLanding.tsx) header.
 - Provide a bulk text input, parse lines in memory, display structural feedback, and intercept checkout with a premium onboarding modal.
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] Guest mass ordering tab, calculation logic, and email checkouts (Completed)
 
-### Phase 999.3: Mass Order API Gateway Extensions (BACKLOG)
+### Phase 999.3: Mass Order API Gateway Extensions (COMPLETED)
 
 **Goal:** Provide programmatic bulk order submission for pro resellers and external panels using our PerfectPanel-compliant API v2 routing.
 **Requirements:**
 - Extend the API handler in `src/app/api/v2/route.ts` to support multi-order action request payloads (`add_multi`).
 - Verify balance availability atomically and return structured arrays of success order IDs and individual validation errors.
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] PerfectPanel-compliant add_multi implementation in API v2 (Completed)
 
-### Phase 999.4: Auth-Zone Routes E2E Testing (BACKLOG)
+### Phase 999.4: Auth-Zone Routes E2E Testing (COMPLETED)
 
 **Goal:** Provide full automated routing coverage for authenticated zones (dashboard, admin) to ensure no runtime 404/500 errors exist for logged-in users.
 **Requirements:**
 - Implement Playwright E2E fixtures that simulate test-user and test-admin sessions.
 - Crawl all routes protected by verifySession to guarantee zero broken links in protected panels.
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] Crawling all authenticated/admin routes via E2E Playwright setup (Completed)
 
-### Phase 999.5: User-Agent Hijack Protection Review (BACKLOG)
+### Phase 999.5: User-Agent Hijack Protection Review (COMPLETED)
 
 **Goal:** Review and strengthen session hijacking defenses beyond the current User-Agent verification to prevent false-positive logouts and increase security.
 **Requirements:**
 - Perform an independent auth security review.
 - Evaluate alternative or supplementary hijacking protections (e.g. rotating refresh tokens, IP anomaly detection, device fingerprinting).
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] User-Agent self-healing session migration with security event logging (Completed)
 
-### Phase 999.6: Worker Backoff Policy Review (BACKLOG)
+### Phase 999.6: Worker Backoff Policy Review (COMPLETED)
 
 **Goal:** Review and implement backoff strategies and retry limits for BullMQ workers to prevent Storm of Retries (DoS) if external providers or APIs fail.
 **Requirements:**
 - Audit all background queues for exponential backoff config.
 - Add max retry limits to avoid infinite looping.
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] Exponential/fixed backoff settings and retry limits configured globally in queue-manager (Completed)
 
 ### Phase 999.7: Shadow Catalog Memory Optimization (COMPLETED)
 
@@ -168,32 +179,32 @@ Plans:
 Plans:
 - [x] Fully integrated, tested, and committed (Completed)
 
-### Phase 999.12: Guest & Client Knowledge Base & SEO Blog Gateway (BACKLOG)
+### Phase 999.12: Guest & Client Knowledge Base & SEO Blog Gateway (COMPLETED)
 
-**Goal:** [Captured for future planning] Создать встроенную базу знаний и блог для клиентов, ориентированный на SEO/AEO-продвижение Smmplan, информирование об алгоритмах соцсетей, лимитах накрутки, и нативную конверсию читателей в покупателей.
+**Goal:** Создать встроенную базу знаний и блог для клиентов, ориентированный на SEO/AEO-продвижение Smmplan, информирование об алгоритмах соцсетей, лимитах накрутки, и нативную конверсию читателей в покупателей.
 **Requirements:**
 - Спроектировать Prisma-модель `Article` (slug, title, description, content, status, category, viewCount).
 - Разработать динамический SEO-генератор с поддержкой разметки JSON-LD (Schema.org `BlogPosting`) в Next.js 16.
 - Внедрить текстовый редактор Markdown в панель администратора для удобного написания статей контент-менеджерами.
 - Создать воронку конверсий: контекстные виджеты с ценами на подходящие услуги Smmplan прямо внутри обучающих статей.
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] Secure Markdown engine, JSON-LD meta generator, admin ArticleForm and widgets (Completed)
 
-### Phase 999.13: Email Security and Corporate Mailbox Setup (BACKLOG)
+### Phase 999.13: Email Security and Corporate Mailbox Setup (COMPLETED)
 
-**Goal:** [Captured for future planning] Настройка безопасной почты на корпоративном домене support@smmplan.pro через Яндекс 360 для бизнеса и прописывание записей MX, SPF, DKIM, DMARC, CAA на REG.RU для исключения email-спуфинга и попадания писем в спам.
+**Goal:** Настройка безопасной почты на корпоративном домене support@smmplan.pro через Яндекс 360 для бизнеса и прописывание записей MX, SPF, DKIM, DMARC, CAA на REG.RU для исключения email-спуфинга и попадания писем в спам.
 **Requirements:**
 - Зарегистрировать организацию в Яндекс 360 для бизнеса.
 - Подтвердить владение доменом `smmplan.pro`.
 - Настроить DNS-записи (MX, SPF, DKIM, DMARC, CAA) в панели REG.RU.
 - Создать почтовый ящик `support@smmplan.pro` и включить SMTP/IMAP.
 - Сгенерировать пароль приложения и обновить SMTP-переменные в `.env` файле на продакшене.
-**Plans:** 0 plans
+**Plans:** 1/1
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] SMTP settings configuration panel and Nodemailer dynamic dispatch integration (Completed)
 
 
 
