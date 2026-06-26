@@ -83,13 +83,25 @@ const STATUS_OPTIONS = [
 function localizeProviderError(error: string | null): string | null {
   if (!error) return null;
   const errLower = error.toLowerCase();
-  if (errLower.includes('invalid link') || errLower.includes('link') || errLower.includes('bad link')) {
+
+  // Suppress internal/dev-only errors — these are config issues, not provider errors
+  if (
+    errLower.includes('fail-fast') ||
+    errLower.includes('mock_') ||
+    errLower.includes('.env') ||
+    errLower.includes('err_internal_server') ||
+    errLower.includes('configure it in')
+  ) {
+    return null;
+  }
+
+  if (errLower.includes('invalid link') || errLower.includes('bad link')) {
     return 'Неверная ссылка (профиль закрыт или неверный формат)';
   }
-  if (errLower.includes('rate limit') || errLower.includes('limit') || errLower.includes('too many requests')) {
+  if (errLower.includes('rate limit') || errLower.includes('too many requests')) {
     return 'Превышен лимит запросов у провайдера';
   }
-  if (errLower.includes('not enough balance') || errLower.includes('balance') || errLower.includes('low balance')) {
+  if (errLower.includes('not enough balance') || errLower.includes('low balance')) {
     return 'Недостаточный баланс у провайдера';
   }
   return error;
@@ -366,46 +378,52 @@ export function OrderDrawer({
           <div className="p-6 space-y-6">
             {/* Info Grid */}
             <div className="grid grid-cols-2 gap-3 text-xs">
-              {[
-                { label: 'Услуга', value: currentOrder.service?.name || '—' },
-                { label: 'Категория', value: currentOrder.service?.category.name || '—' },
-                { label: 'Соцсеть', value: currentOrder.service?.category.network?.name ?? '—' },
-                { label: 'Количество', value: quantity.toLocaleString('ru-RU') },
-                { label: 'Сумма', value: `${chargeRub.toFixed(2)} ₽` },
-                { label: 'Цена за 1 шт', value: `${pricePerUnitRub.toFixed(4)} ₽` },
-                { label: 'Цена за 1к', value: `${pricePer1kRub.toFixed(2)} ₽` },
-                { label: 'Остаток', value: (currentOrder.remains ?? 0).toLocaleString('ru-RU') },
-                { label: 'Провайдер', value: currentOrder.providerName ?? '—' },
-                { label: 'ID у провайдера', value: currentOrder.externalId ? `#${currentOrder.externalId}` : '—' },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-muted/40 border border-border/40 shadow-sm rounded-xl p-3 transition-colors hover:bg-muted/60">
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">{label}</div>
-                  <div className="text-sm font-semibold text-foreground truncate tabular-nums tracking-tight" title={value}>{value}</div>
-                </div>
-              ))}
+              {(() => {
+                const networkName = currentOrder.service?.category.network?.name ?? null;
+                // Strip redundant network prefix from service/category names to avoid repetition
+                const stripNetwork = (str: string) => {
+                  if (!networkName) return str;
+                  return str.startsWith(networkName + ' ') ? str.slice(networkName.length + 1) : str;
+                };
+                return [
+                  { label: 'Услуга', value: stripNetwork(currentOrder.service?.name || '') || '—' },
+                  { label: 'Категория', value: stripNetwork(currentOrder.service?.category.name || '') || '—' },
+                  { label: 'Соцсеть', value: networkName ?? '—' },
+                  { label: 'Количество', value: quantity.toLocaleString('ru-RU') },
+                  { label: 'Сумма', value: `${chargeRub.toFixed(2)} ₽` },
+                  { label: 'Цена за 1 шт', value: `${pricePerUnitRub.toFixed(4)} ₽` },
+                  { label: 'Цена за 1к', value: `${pricePer1kRub.toFixed(2)} ₽` },
+                  { label: 'Остаток', value: (currentOrder.remains ?? 0).toLocaleString('ru-RU') },
+                  { label: 'Провайдер', value: currentOrder.providerName ?? '—' },
+                  { label: 'ID у провайдера', value: currentOrder.externalId ? `#${currentOrder.externalId}` : '—' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-muted/40 border border-border/40 shadow-sm rounded-xl p-3 transition-colors hover:bg-muted/60">
+                    <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">{label}</div>
+                    <div className="text-sm font-semibold text-foreground truncate tabular-nums tracking-tight" title={value}>{value}</div>
+                  </div>
+                ));
+              })()}
               
-              {canSeeRates && currentOrder.providerCost !== undefined && (
-                <>
-                  <div className="bg-amber-500/10 border border-amber-500/20 shadow-sm rounded-xl p-3 transition-colors hover:bg-amber-500/15">
-                    <div className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider mb-1">Себестоимость</div>
-                    <div className="text-sm font-mono font-bold text-amber-700 dark:text-amber-300 tabular-nums tracking-tight">
-                      {costRub.toFixed(2)} ₽
+              {canSeeRates && currentOrder.providerCost !== undefined && (() => {
+                const marginRub = chargeRub - costRub;
+                const marginPct = chargeRub > 0 ? ((marginRub / chargeRub) * 100).toFixed(1) : '—';
+                return (
+                  <div className="col-span-2 bg-amber-500/10 border border-amber-500/20 shadow-sm rounded-xl p-3 transition-colors hover:bg-amber-500/15 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider mb-1">Себестоимость</div>
+                      <div className="text-sm font-mono font-bold text-amber-700 dark:text-amber-300 tabular-nums tracking-tight">
+                        {costRub.toFixed(2)} ₽
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider mb-1">Маржа</div>
+                      <div className="text-sm font-mono font-bold text-amber-700 dark:text-amber-300 tabular-nums tracking-tight">
+                        {marginRub.toFixed(2)} ₽ <span className="text-[10px] font-semibold opacity-70">({marginPct}%)</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-amber-500/10 border border-amber-500/20 shadow-sm rounded-xl p-3 transition-colors hover:bg-amber-500/15">
-                    <div className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider mb-1">Себестоимость / 1 шт</div>
-                    <div className="text-sm font-mono font-bold text-amber-700 dark:text-amber-300 tabular-nums tracking-tight">
-                      {costPerUnitRub.toFixed(4)} ₽
-                    </div>
-                  </div>
-                  <div className="bg-amber-500/10 border border-amber-500/20 shadow-sm rounded-xl p-3 transition-colors hover:bg-amber-500/15 col-span-2">
-                    <div className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider mb-1">Себестоимость / 1к</div>
-                    <div className="text-sm font-mono font-bold text-amber-700 dark:text-amber-300 tabular-nums tracking-tight">
-                      {costPer1kRub.toFixed(2)} ₽
-                    </div>
-                  </div>
-                </>
-              )}
+                );
+              })()}
             </div>
 
             {/* Link */}
@@ -632,9 +650,9 @@ export function OrderDrawer({
                 </div>
               )}
 
-              {currentOrder.error && (
+              {currentOrder.error && localizedError && !localizedError.includes('MOCK_') && !localizedError.toLowerCase().includes('fail-fast') && !localizedError.includes('.env') && (
                 <div className="bg-warning/10 border border-warning/20 text-warning-foreground text-sm p-3 rounded-lg">
-                  <span className="font-bold text-warning-foreground">⚠️ Причина ошибки:</span> "{currentOrder.error}"<br/>
+                  <span className="font-bold text-warning-foreground">⚠️ Причина ошибки:</span> {localizedError}<br/>
                   <span className="text-muted-foreground mt-1 block">Убедитесь, что ссылка корректна перед перезапуском.</span>
                 </div>
               )}
@@ -649,7 +667,7 @@ export function OrderDrawer({
                 <button
                   onClick={handleConfirmFailover}
                   disabled={isPending || failoverPreview.routes.length === 0 || failoverPreview.currentBalance < failoverPreview.clientPaidCents}
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   {isPending ? 'Запуск...' : 'Подтвердить'}
                 </button>
