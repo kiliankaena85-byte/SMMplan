@@ -81,13 +81,11 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
       { value: 'ALL', label: 'Все' },
       { value: 'ACTIVE', label: 'Активные 🔥' },
       { value: 'PROBLEMATIC', label: 'Проблемные ⚠️' },
-      { value: 'COMPLETED_ALL', label: 'Выполненные (все) ✅' },
+      { value: 'COMPLETED_ALL', label: 'Выполненные ✅' },
       { value: 'PENDING', label: 'В очереди' },
       { value: 'IN_PROGRESS', label: 'В работе' },
-      { value: 'COMPLETED', label: 'Выполнены' },
       { value: 'PARTIAL', label: 'Частично выполнены' },
       { value: 'CANCELED', label: 'Отменены' },
-      { value: 'ERROR', label: 'Ошибки' },
       { value: 'AWAITING_PAYMENT', label: 'Неоплаченные' },
     ];
 
