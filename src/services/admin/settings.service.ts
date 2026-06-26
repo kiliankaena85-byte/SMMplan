@@ -136,11 +136,22 @@ class SettingsService {
     resendApiKey?: string | null;
     usnScheme?: UsnScheme;
   }) {
-    return db.systemSettings.upsert({
+    const result = await db.systemSettings.upsert({
       where: { id: 'global' },
       update: data,
       create: { id: 'global', ...data }
     });
+
+    if (data.maintenanceMode !== undefined) {
+      try {
+        const { redis } = await import('@/lib/redis');
+        await redis.set('settings:maintenanceMode', String(data.maintenanceMode));
+      } catch (err) {
+        console.warn('[SettingsService] Failed to update Redis cache for maintenanceMode:', err);
+      }
+    }
+
+    return result;
   }
 }
 

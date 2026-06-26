@@ -81,17 +81,22 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
                </span>
                <span>{srv.name}</span>
              </h4>
-             <div className="flex-1 mb-6 flex flex-col">
-                <p className={`text-sm font-medium leading-relaxed p-4 rounded-2xl border transition-all duration-300 text-pretty ${
-                  isSelected && !isQuarantined ? 'bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground/90 shadow-inner' 
-                  : isQuarantined ? 'bg-danger/10 border-danger/20 text-danger' 
-                  : 'bg-content2/50 border-border/50 text-muted-foreground'
-                }`}>
-                  <span className="line-clamp-6 whitespace-pre-line">
-                    {descriptionText}
-                  </span>
-                </p>
-             </div>
+              <div className="flex-1 mb-6 flex flex-col">
+                 <p className={`text-sm font-medium leading-relaxed p-4 rounded-2xl border transition-all duration-300 text-pretty h-full ${
+                   isSelected && !isQuarantined ? 'bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground/90 shadow-inner' 
+                   : isQuarantined ? 'bg-danger/10 border-danger/20 text-danger' 
+                   : 'bg-content2/50 border-border/50 text-muted-foreground'
+                 }`}>
+                   <span className="line-clamp-[10] whitespace-pre-line block">
+                     {descriptionText.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+                       if (part.startsWith('**') && part.endsWith('**')) {
+                         return <strong key={index} className="font-extrabold text-foreground">{part.slice(2, -2)}</strong>;
+                       }
+                       return part;
+                     })}
+                   </span>
+                 </p>
+              </div>
              <p className={`text-xs font-bold flex items-center transition-colors duration-300 justify-between mt-auto px-1 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/80'}`}>
                <span>Запуск: <span className={isSelected ? 'text-primary-foreground' : 'text-foreground'}>{srv.speed}</span></span>
                <span>Мин: <span className={isSelected ? 'text-primary-foreground' : 'text-foreground'}>{srv.minQty}</span></span>

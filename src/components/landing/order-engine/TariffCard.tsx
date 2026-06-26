@@ -108,7 +108,12 @@ export function TariffCard({ service, isSelected, onSelect, compact, brandStyle 
                 ? (brandStyle.activeText === "text-black" ? "text-black/70" : "text-white/70")
                 : "text-muted-foreground/70"
             } ${isSelected ? "" : "line-clamp-2"}`}>
-              {service.description}
+              {service.description.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+                if (part.startsWith('**') && part.endsWith('**')) {
+                  return <strong key={index} className="font-extrabold text-foreground">{part.slice(2, -2)}</strong>;
+                }
+                return part;
+              })}
             </p>
           )}
         </div>
