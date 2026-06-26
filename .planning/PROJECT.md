@@ -1,19 +1,21 @@
-## Current Milestone: v3.1 (Post-MVP Enhancements)
+## Current Milestone: v3.2 (Future Expansion)
 
-**Goal:** Resolve technical debt from the accelerated MVP launch, finalize V2 features, and prepare for production deployment.
+**Goal:** Continue adding high-value B2B/B2C features and client engagement tools.
 
 **Target features:**
-- Implement Phase 2: Production Hardening (Docker, CI/CD, Linux Migration).
-- E2E Testing for complete Admin flows (Playwright implementation).
+- Implement Phase 999.10: Dark Mode Manifest Skill Audit.
+- Implement link SMM orders in support chats.
 
-## Current State: v3.0 (SHIPPED)
+## Current State: v3.1 (SHIPPED)
 - **v1.0 Foundation:** Next.js 16 App Router, Prisma, JWT auth, Smart URL Matching, Integer Math, CMS, Volume Tiers, CRON queues.
 - **v2.0 B2B API:** Fully working API v2 (services, add, status, balance, refill, cancel). 317 lines, production-ready.
-- **v3.0 Admin Panel MVP & Infrastructure:** 8-tab comprehensive dashboard (Orders, Clients, Catalog, Tickets, Finance, Settings, Dashboards, Refills). Strict RBAC (OWNER/ADMIN/MANAGER/SUPPORT). Features: 
-  - Omni-Search & Partial Refunds
-  - Financial Ledger & Escrow Quarantine UI (Phase 6 implementation)
-  - Deep Settings Sub-sections (Phase 7 implementation)
-  - Next.js 16.2.4 Build Invatiant Bug Bypassed (via force-dynamic)
+- **v3.0 Admin Panel MVP & Infrastructure:** 8-tab comprehensive dashboard (Orders, Clients, Catalog, Tickets, Finance, Settings, Dashboards, Refills). Strict RBAC (OWNER/ADMIN/MANAGER/SUPPORT).
+- **v3.1 Post-MVP & Production Hardening:**
+  - Automated CI/CD (GitHub Actions) & multi-stage Docker builds.
+  - Full E2E Playwright testing coverage for admin & client dashboards.
+  - Active Service Price Drift Detection (30-day cumulative drift).
+  - Guest Mass Order calculation and onboarding.
+  - B2B API mass ordering extensions (`add_multi`).
 
 ## Archived Concepts
 <details>

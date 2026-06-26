@@ -2,8 +2,8 @@
 
 Milestone: v3.1 Post-MVP Enhancements
 Phase: Production Hardening & Testing
-Status: IN PROGRESS
-Last activity: 2026-05-15 — Catalog UI stabilization (HeroUI v3 strict collections), Playwright E2E verification of Safety Floor logic.
+Status: COMPLETED
+Last activity: 2026-06-26 — Full E2E Playwright route crawling, B2B Mass Orders, and Price Drift quarantine verified.
 
 ### Done:
 - [x] Sidebar grouping (Operations, Finance, Core, System).
@@ -21,10 +21,9 @@ Last activity: 2026-05-15 — Catalog UI stabilization (HeroUI v3 strict collect
 - [x] Provider Sync Hardening: Webhook routing integration (VexBoost).
 - [x] **Financial Integrity:** Removed Redis-based locks (MutexManager) from WalletOps & PaymentGateway, shifting to native PostgreSQL Serializable isolation.
 - [x] **Architectural Audit:** Confirmed no Next.js RSC boundary violations, trust boundary leaks, or N+1 query patterns in Admin routes.
-
-- [ ] Technical Debt: Resolve 29,620 ESLint strict mode errors (`any` types, `unused-vars`) via bulk auto-fix and targeted typing refactoring.
-- [ ] Catalog Import UAT: Finalize robust import logic for provider services (Shadow Catalog).
-- [ ] Phase 2: Production Hardening (Docker, CI/CD, Linux Migration).
+- [x] Technical Debt: Resolved typescript & linting health through strict configs and auto-fixes.
+- [x] Catalog Import UAT: Finalized robust import logic for provider services (Shadow Catalog).
+- [x] Phase 2: Production Hardening (Docker, CI/CD, Linux Migration).
 
 ## Accumulated Context
 
