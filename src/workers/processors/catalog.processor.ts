@@ -1,6 +1,9 @@
 import { Job } from 'bullmq';
 import { CatalogMutationPayload } from '../queues';
 import { adminCatalogService } from '../../services/admin/catalog.service';
+import { logger } from '../../lib/logger';
+
+const log = logger.child({ component: 'CatalogProcessor' });
 
 /**
  * Catalog Processor
@@ -14,15 +17,15 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
     switch (payload.type) {
       case 'SYNC_PRICES': {
         const { usdToRub } = payload;
-        console.info(`[CatalogProcessor] Starting background price sync with rate ${usdToRub}...`);
+        log.info(`[CatalogProcessor] Starting background price sync with rate ${usdToRub}...`);
         await adminCatalogService.syncDenormalizedPrices(usdToRub);
-        console.info(`[CatalogProcessor] Price sync completed successfully.`);
+        log.info(`[CatalogProcessor] Price sync completed successfully.`);
         break;
       }
       
       case 'SYNC_ALL_CATALOGS': {
         const { admin } = payload;
-        console.info(`[CatalogProcessor] Starting background sync for ALL catalogs...`);
+        log.info(`[CatalogProcessor] Starting background sync for ALL catalogs...`);
         const { db } = await import('../../lib/db');
         const { catalogQueue } = await import('../queues');
         const providers = await db.provider.findMany({ where: { isActive: true } });
@@ -33,16 +36,16 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
                 providerId: provider.id,
                 admin
             });
-            console.info(`[CatalogProcessor] Queued SYNC_PROVIDER_CATALOG for ${provider.id} (${provider.name})`);
+            log.info(`[CatalogProcessor] Queued SYNC_PROVIDER_CATALOG for ${provider.id} (${provider.name})`);
         }
         break;
       }
 
       case 'SYNC_PROVIDER_CATALOG': {
         const { providerId, admin } = payload;
-        console.info(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
+        log.info(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
         const stats = await adminCatalogService.syncProviderCatalog(providerId, admin);
-        console.info(`[CatalogProcessor] Catalog sync completed. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
+        log.info(`[CatalogProcessor] Catalog sync completed. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
         
         // Apply blacklists, reclassification, and maxQty caps
         try {
@@ -50,21 +53,21 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
           await applyPostSyncRules();
         } catch (postSyncErr) {
           const errMsg = postSyncErr instanceof Error ? postSyncErr.message : String(postSyncErr);
-          console.error('[CatalogProcessor] applyPostSyncRules failed:', errMsg);
+          log.error(`[CatalogProcessor] applyPostSyncRules failed: ${errMsg}`);
         }
         break;
       }
       
       case 'BULK_MARKUP': {
         const { markupPercent, filter, admin } = payload;
-        console.info(`[CatalogProcessor] Starting background bulk markup...`);
+        log.info(`[CatalogProcessor] Starting background bulk markup...`);
         // We reuse the existing logic, but from a worker context
         const result = await adminCatalogService.bulkUpdateMarkup(
           filter,
           markupPercent,
           admin
         );
-        console.info(`[CatalogProcessor] Bulk markup completed. Updated ${result.updatedCount} services.`);
+        log.info(`[CatalogProcessor] Bulk markup completed. Updated ${result.updatedCount} services.`);
         break;
       }
         
@@ -73,7 +76,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
     }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error(`[CatalogProcessor] Failed processing job ${job.id}:`, error.message);
+    log.error(`[CatalogProcessor] Failed processing job ${job.id}: ${error.message}`);
     throw error; // Let BullMQ retry and eventually DLQ
   }
 }

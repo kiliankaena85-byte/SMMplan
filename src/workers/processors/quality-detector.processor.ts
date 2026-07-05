@@ -1,5 +1,8 @@
 import { db as prisma } from '@/lib/db';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
+
+const log = logger.child({ component: 'QualityDetector' });
 
 /**
  * Тихий детектор качества подписчиков (Mock Scorer Detector)
@@ -14,7 +17,7 @@ export async function scanSubscriberQuality(
   link: string
 ): Promise<void> {
   try {
-    console.info(`[QualityDetector] Запуск тихого сканирования качества для кампании ${campaignId}, порция: ${taskQuantity} шт.`);
+    log.info(`[QualityDetector] Запуск тихого сканирования качества для кампании ${campaignId}, порция: ${taskQuantity} шт.`);
 
     // 1. Проверяем существование кампании
     const campaign = await prisma.smartCampaign.findUnique({
@@ -23,14 +26,14 @@ export async function scanSubscriberQuality(
     });
 
     if (!campaign) {
-      console.warn(`[QualityDetector] Кампания ${campaignId} не найдена для сканирования.`);
+      log.warn(`[QualityDetector] Кампания ${campaignId} не найдена для сканирования.`);
       return;
     }
 
     // 2. Сканируем только Telegram (по требованиям)
     const platformSlug = campaign.service.category?.network?.slug?.toLowerCase() || '';
     if (!platformSlug.includes('telegram') && !campaign.service.name.toLowerCase().includes('telegram')) {
-      console.info(`[QualityDetector] Кампания ${campaignId} не относится к Telegram. Пропуск сканирования.`);
+      log.info(`[QualityDetector] Кампания ${campaignId} не относится к Telegram. Пропуск сканирования.`);
       return;
     }
 
@@ -41,7 +44,7 @@ export async function scanSubscriberQuality(
     });
 
     const previousMembers = lastSnapshot?.members || [];
-    console.info(`[QualityDetector] Предыдущий слепок содержит ${previousMembers.length} подписчиков.`);
+    log.info(`[QualityDetector] Предыдущий слепок содержит ${previousMembers.length} подписчиков.`);
 
     // 4. Генерируем новые "прибывшие" аккаунты (симуляция)
     const newMembers: string[] = [];
@@ -103,13 +106,13 @@ export async function scanSubscriberQuality(
       }
     });
 
-    console.info(
+    log.info(
       `[QualityDetector] Сканирование завершено успешно. Создан новый слепок на ${totalMembers.length} пользователей. ` +
       `Обнаружено подозрительных ботов в порции: ${suspiciousUsers.length} шт.`
     );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     // ВАЖНО: Тихо логируем ошибку в консоль и НЕ выбрасываем ее наружу, чтобы не сломать доставку Dripfeed
-    console.error(`[QualityDetector] Critical error during silent quality scanning for campaign ${campaignId}:`, err.message);
+    log.error(`[QualityDetector] Critical error during silent quality scanning for campaign ${campaignId}:`, err.message);
   }
 }

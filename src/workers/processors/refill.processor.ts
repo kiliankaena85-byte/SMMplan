@@ -2,6 +2,9 @@ import { Job, UnrecoverableError } from 'bullmq';
 import { db } from '../../lib/db';
 import { RefillJobPayload } from '../queues';
 import { providerService } from '../../services/providers/provider.service';
+import { logger } from '../../lib/logger';
+
+const log = logger.child({ component: 'RefillProcessor' });
 
 export default async function refillProcessor(job: Job<RefillJobPayload>) {
   const { refillId } = job.data;
@@ -22,12 +25,12 @@ export default async function refillProcessor(job: Job<RefillJobPayload>) {
   });
 
   if (!refill) {
-    console.error(`[RefillProcessor] Refill ${refillId} not found.`);
+    log.error(`[RefillProcessor] Refill ${refillId} not found.`);
     return;
   }
 
   if (refill.status !== 'PENDING') {
-    console.warn(`[RefillProcessor] Refill ${refillId} is not PENDING (current status: ${refill.status}). Skipping.`);
+    log.warn(`[RefillProcessor] Refill ${refillId} is not PENDING (current status: ${refill.status}). Skipping.`);
     return;
   }
 
@@ -83,10 +86,10 @@ export default async function refillProcessor(job: Job<RefillJobPayload>) {
       }
     });
 
-    console.info(`[RefillProcessor] Successfully dispatched refill ${refill.id} for order ${order.id} | External ID: ${extId}`);
+    log.info(`[RefillProcessor] Successfully dispatched refill ${refill.id} for order ${order.id} | External ID: ${extId}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error(`[RefillProcessor] Failed to process refill ${refill.id}:`, error.message);
+    log.error(`[RefillProcessor] Failed to process refill ${refill.id}: ${error.message}`);
     
     // Throw error so BullMQ will retry this job
     throw error;

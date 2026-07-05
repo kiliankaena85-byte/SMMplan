@@ -5,6 +5,10 @@ import { providerService } from '../../services/providers/provider.service';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { WalletService } from '../../services/financial/wallet.service';
 import { SettingsManager } from '../../lib/settings';
+import { getRedisConnection } from '../../lib/queue-manager';
+import { logger } from '../../lib/logger';
+
+const log = logger.child({ component: 'OrderProcessor' });
 
 export default async function orderProcessor(job: Job<OrderJobPayload>) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -19,13 +23,13 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   });
 
   if (!order) {
-    console.warn(`[OrderProcessor] Order ${orderId} not found.`);
+    log.warn(`[OrderProcessor] Order ${orderId} not found.`);
     return;
   }
 
   // Intercept and activate SmartCampaign if this is a parent order
   if (order.smartCampaign) {
-    console.info(`[OrderProcessor] Intercepted SmartDrip parent order ${orderId}. Activating SmartCampaign.`);
+    log.info(`[OrderProcessor] Intercepted SmartDrip parent order ${orderId}. Activating SmartCampaign.`);
     await db.$transaction([
       db.order.update({
         where: { id: order.id },
@@ -40,20 +44,20 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   }
 
   if (!order.service.provider) {
-    console.warn(`[OrderProcessor] Order ${orderId} missing provider.`);
+    log.warn(`[OrderProcessor] Order ${orderId} missing provider.`);
     return;
   }
 
   // Double execution guard
   if (order.status !== 'PENDING') {
-    console.warn(`[OrderProcessor] Order ${orderId} is not PENDING. Skip.`);
+    log.warn(`[OrderProcessor] Order ${orderId} is not PENDING. Skip.`);
     return;
   }
 
   // TEST ORDER GUARD — предотвращает отправку тестового заказа реальному провайдеру
   const isTestMode = await SettingsManager.isTestMode();
   if (order.isTest && !isTestMode) {
-    console.error(`[OrderProcessor] CRITICAL: Test order ${orderId} picked up in production mode. Failing safely.`);
+    log.error(`[OrderProcessor] CRITICAL: Test order ${orderId} picked up in production mode. Failing safely.`);
     const { orderService } = await import('../../services/core/order.service');
     await orderService.failOrderTerminal(
       orderId,
@@ -64,7 +68,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
 
   // Explicit Idempotency Check Before Provider Call
   if (order.externalId) {
-    console.warn(`[OrderProcessor] Order ${orderId} already has an externalId (${order.externalId}). Skipping to prevent duplicate dispatch.`);
+    log.warn(`[OrderProcessor] Order ${orderId} already has an externalId (${order.externalId}). Skipping to prevent duplicate dispatch.`);
     return;
   }
 
@@ -107,6 +111,38 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       }
     }
 
+    // R2-003: Redis-level Mutex to prevent duplicate dispatch during DB write crashes or BullMQ job retries
+    const connection = getRedisConnection();
+    const redisKey = `order:dispatched:${order.id}`;
+    const alreadyDispatched = await connection.get(redisKey);
+
+    if (alreadyDispatched) {
+      log.warn(`[OrderProcessor] Duplicate Dispatch Guard: Order ${order.id} was already dispatched to provider but DB write failed previously. Shifting to PENDING_CHECK.`);
+      
+      await db.order.update({
+        where: { id: order.id },
+        data: { 
+          status: 'PENDING_CHECK', 
+          error: `Попытка повторной отправки заблокирована: заказ уже был отправлен провайдеру.` 
+        }
+      });
+
+      try {
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        await sendAdminAlert(
+          `🚨 [DUPLICATE DISPATCH PREVENTED] Заказ #${order.numericId} (Услуга: ${order.service.name})\n` +
+          `Обнаружен повторный запуск джобы BullMQ после отправки провайдеру.\n` +
+          `Заказ переведен в PENDING_CHECK. Проверьте статус у провайдера вручную во избежание двойного списания!`,
+          'CRITICAL'
+        );
+      } catch { /* ignore */ }
+
+      throw new UnrecoverableError(`Duplicate dispatch prevented: already sent to provider.`);
+    }
+
+    // Set the dispatch lock in Redis
+    await connection.set(redisKey, '1', 'EX', 3600);
+
     const response = await provider.createOrder(payload);
 
     if (response.error && !response.order) {
@@ -134,7 +170,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       throw dbError;
     }
 
-    console.info(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
+    log.info(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
@@ -153,7 +189,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
                              errMsg.includes('eai_again');
 
     if (isNetworkTimeout) {
-      console.warn(`[OrderProcessor] AMBIGUOUS TIMEOUT for Order ${order.id}. Moving to PENDING_CHECK.`);
+      log.warn(`[OrderProcessor] AMBIGUOUS TIMEOUT for Order ${order.id}. Moving to PENDING_CHECK.`);
       
       await db.order.update({
         where: { id: order.id },
@@ -180,14 +216,14 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     // === FAIL-FAST ARCHITECTURE ===
     // Any explicit provider error (API rejection, bad credentials, insufficient funds)
     // instantly cancels the order and refunds the client. Zero retries.
-    console.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}:`, error.message);
+    log.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}: ${error.message}`);
 
     try {
       const { QuarantineService } = await import('../../services/providers/quarantine.service');
       await QuarantineService.evaluateTriggerA(order.serviceId, error.message);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (quarantineErr: any) {
-      console.error(`[OrderProcessor] Quarantine evaluation failed:`, quarantineErr.message);
+      log.error(`[OrderProcessor] Quarantine evaluation failed: ${quarantineErr.message}`);
     }
 
     const { orderService } = await import('../../services/core/order.service');

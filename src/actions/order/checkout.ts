@@ -1,24 +1,33 @@
 'use server';
 
 import { db } from '@/lib/db';
+import { runSerializableTransaction } from '@/lib/transactions';
 import { marketingService, PricingResult } from '@/services/marketing.service';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SettingsManager } from '@/lib/settings';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { orderService } from '@/services/core/order.service';
 import { verifySession, createSession } from '@/lib/session';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { WalletOps, WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import crypto from 'crypto';
 import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
 import { handleServerError } from '@/utils/error-handler';
 import { sendOrderPaidMail } from "@/lib/smtp";
 import { getBaseUrlSync } from "@/utils/get-base-url";
 import { featureFlagService } from "@/services/system/feature-flag.service";
+import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
+import { inferTargetTypeFromCategory } from '@/utils/target-type';
+import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
+import { SignJWT } from 'jose';
+import { Prisma } from '@prisma/client';
+class IdempotencyConflictError extends Error {
+  constructor(public existingOrder: unknown) {
+    super('Idempotency conflict');
+    this.name = 'IdempotencyConflictError';
+  }
+}
+
+
 
 /**
  * Calculates price for display on the order form (no auth required).
@@ -125,30 +134,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error("Слишком много запросов. Попробуйте через минуту.");
     }
 
-    // 0.5 Idempotency Check (Wave 1)
-    if (idempotencyKey) {
-      const existingOrder = await db.order.findUnique({
-        where: { idempotencyKey },
-        include: { payment: true }
-      });
-      // Bypass idempotency hit if the previous attempt failed/ended in an error
-      if (existingOrder) {
-        if (existingOrder.status !== 'ERROR') {
-          console.info(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);
-          return {
-            orderId: existingOrder.id,
-            paymentId: existingOrder.paymentId,
-            paymentUrl: existingOrder.payment?.checkoutUrl || ''
-          };
-        } else {
-          // Free up the unique constraint on the failed order to allow the new check to proceed
-          await db.order.update({
-            where: { id: existingOrder.id },
-            data: { idempotencyKey: `${idempotencyKey}_failed_${existingOrder.id}` }
-          });
-        }
-      }
-    }
 
     // 0.75 IDOR Prevention: Balance Gateway requires Authorization
     if (gateway === 'balance') {
@@ -219,8 +204,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         throw new Error("Неверный формат ссылки.", { cause: e });
       }
     } else {
-      const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
-      const { inferTargetTypeFromCategory } = await import('@/utils/target-type');
       const targetType = service.targetType === 'POST'
         ? inferTargetTypeFromCategory(service.category?.name)
         : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
@@ -247,8 +230,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           normalizedMediaGroupLink = 'https://' + normalizedMediaGroupLink;
         }
       } else {
-        const { mutateLink, getLinkValidator } = await import('@/validators/link-mutators');
-        const { inferTargetTypeFromCategory } = await import('@/utils/target-type');
         const targetType = service.targetType === 'POST'
           ? inferTargetTypeFromCategory(service.category?.name)
           : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
@@ -265,10 +246,30 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     const isTestMode = await SettingsManager.isTestMode();
 
     // 3. Find or create user by email (SECURITY FIX: Track if new user to prevent IDOR auto-login)
+    const currentSession = await verifySession();
     let user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (user && (user.isDeleted === true || user.isActive === false)) {
-      throw new Error("Ваш аккаунт заблокирован или удален");
+
+    if (user) {
+      if (user.isDeleted === true || user.isActive === false) {
+        throw new Error("Ваш аккаунт заблокирован или удален");
+      }
+      // IDOR / Account Hijacking Prevention:
+      // If user exists but there is no active session OR active session userId doesn't match this user's id:
+      // For balance payments, this is strict. For other gateways, it is allowed as guest payment.
+      if (gateway === 'balance') {
+        if (!currentSession || currentSession.userId !== user.id) {
+          throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
+        }
+      }
     }
+
+    // Role-based validation check for bypass link mode
+    if (isLinkOverridden) {
+      if (!user || (user.role !== 'OWNER' && user.role !== 'MANAGER')) {
+        throw new Error("У вас нет прав для обхода валидации ссылки");
+      }
+    }
+
     let isNewUser = false;
     if (!user) {
       user = await db.user.create({ data: { email: email.toLowerCase() } });
@@ -303,6 +304,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       }
     }
 
+    const { SettingsProvider } = await import('@/lib/settings');
+    const currentUsdRate = await SettingsProvider.getExchangeRateUSD();
+
     // Media Group: double the total for 2 orders
     const mediaGroupMultiplier = hasMediaGroup ? 2 : 1;
     let finalTotalCents = pricing.totalCents * mediaGroupMultiplier;
@@ -332,17 +336,14 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       }
     }
 
-    // W5-1 SECURITY FIX: Explicitly check balance before transaction
-    if (gateway === 'balance' && user.balance < finalTotalCents) {
-      throw new Error("Недостаточно средств на балансе. Пожалуйста, пополните счет.");
-    }
+    // Balance check is now performed atomically inside db.$transaction using WalletOps.charge
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let reqHeaders: any;
     try {
       reqHeaders = await headers();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
+      console.warn('[Checkout] headers() context missing, using fallback', e);
       reqHeaders = {
         get: (key: string) => {
           if (key === 'host') return 'localhost:3000';
@@ -360,113 +361,191 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     });
     const consentVersion = termsDoc ? `terms:${termsDoc.updatedAt.toISOString()}` : `fallback:${new Date().toISOString().split('T')[0]}`;
 
-    // 5. Create Order(s) + Payment atomically
-    const result = await db.$transaction(async (tx) => {
-      // Create primary Order (first media / main link)
-      const newOrder = await tx.order.create({
-        data: {
-          userId: user.id,
-          serviceId,
-          providerId: service.providerId,
-          providerServiceId: service.externalId,
-          link: normalizedLink,
-          isLinkOverridden: isLinkOverridden || false,
-          quantity: totalQuantity,
-          email: email.toLowerCase(),
-          status: 'AWAITING_PAYMENT',
-          charge: isSmartDrip && smartConfig ? Math.round(pricing.totalCents * (1 + smartConfig.markup)) : pricing.totalCents,
-          providerCost: pricing.providerCostCents,
-          runs,
-          interval,
-          isTest: isTestMode,
-          customData,
-          remains: totalQuantity,
-          idempotencyKey,
-          promoCodeId: promoCodeId || null,
-          discountCents: BigInt(pricing.discountCents),
-          abVariant
+    let transactionCompleted = false;
+    let result;
+    try {
+      result = await runSerializableTransaction(async (tx) => {
+        // 5.1 If gateway is balance, atomically deduct balance first
+        if (gateway === 'balance') {
+          await WalletOps.charge(tx, user.id, finalTotalCents, `Оплата заказа с баланса`, {
+            idempotencyKey: idempotencyKey ? `balance-charge-${idempotencyKey}` : undefined
+          });
         }
-      });
 
-      // Create second Order for media group (last media) if applicable
-      let secondOrderId: string | undefined;
-      if (hasMediaGroup && normalizedMediaGroupLink) {
-        const secondOrder = await tx.order.create({
+        const orderStatus = gateway === 'balance' ? 'PENDING' : 'AWAITING_PAYMENT';
+        const paymentStatus = gateway === 'balance' ? 'SUCCEEDED' : 'PENDING';
+
+        let newOrder;
+        
+        // 1. Check idempotency beforehand to avoid aborting the Postgres transaction block on P2002 constraint error
+        let existingOrder = null;
+        if (idempotencyKey) {
+          existingOrder = await tx.order.findUnique({
+            where: { idempotencyKey },
+            include: { payment: true }
+          });
+        }
+
+        if (existingOrder) {
+          if (existingOrder.status !== 'ERROR') {
+            throw new IdempotencyConflictError(existingOrder);
+          } else {
+            // Free up the unique constraint on the failed order to allow the new check to proceed
+            await tx.order.update({
+              where: { id: existingOrder.id },
+              data: { idempotencyKey: `${idempotencyKey}_failed_${existingOrder.id}` }
+            });
+          }
+        }
+
+        // Create primary Order (first media / main link)
+        newOrder = await tx.order.create({
           data: {
             userId: user.id,
             serviceId,
             providerId: service.providerId,
             providerServiceId: service.externalId,
-            link: normalizedMediaGroupLink,
+            link: normalizedLink,
             isLinkOverridden: isLinkOverridden || false,
             quantity: totalQuantity,
             email: email.toLowerCase(),
-            status: 'AWAITING_PAYMENT',
+            status: orderStatus,
             charge: isSmartDrip && smartConfig ? Math.round(pricing.totalCents * (1 + smartConfig.markup)) : pricing.totalCents,
             providerCost: pricing.providerCostCents,
             runs,
             interval,
             isTest: isTestMode,
-            customData: `Медиагруппа: последнее медиа. Основной заказ: ${newOrder.numericId}`,
+            customData,
             remains: totalQuantity,
+            idempotencyKey,
             promoCodeId: promoCodeId || null,
             discountCents: BigInt(pricing.discountCents),
+            abVariant,
+            usdToRubRate: currentUsdRate
+          }
+        });
+
+        // Create second Order for media group (last media) if applicable
+        let secondOrderId: string | undefined;
+        if (hasMediaGroup && normalizedMediaGroupLink) {
+          const secondOrder = await tx.order.create({
+            data: {
+              userId: user.id,
+              serviceId,
+              providerId: service.providerId,
+              providerServiceId: service.externalId,
+              link: normalizedMediaGroupLink,
+              isLinkOverridden: isLinkOverridden || false,
+              quantity: totalQuantity,
+              email: email.toLowerCase(),
+              status: orderStatus,
+              charge: isSmartDrip && smartConfig ? Math.round(pricing.totalCents * (1 + smartConfig.markup)) : pricing.totalCents,
+              providerCost: pricing.providerCostCents,
+              runs,
+              interval,
+              isTest: isTestMode,
+              customData: `Медиагруппа: последнее медиа. Основной заказ: ${newOrder.numericId}`,
+              remains: totalQuantity,
+              promoCodeId: promoCodeId || null,
+              discountCents: BigInt(pricing.discountCents),
+              abVariant,
+              usdToRubRate: currentUsdRate
+            }
+          });
+          secondOrderId = secondOrder.id;
+        }
+
+        // Consume Promo Code if used
+        if (promoCodeStr) {
+          await marketingService.consumePromoCode(tx, promoCodeStr);
+        }
+
+        // Create linked Payment (covers both orders if media group)
+        const payment = await tx.payment.create({
+          data: {
+            userId: user.id,
+            amount: paymentAmount,
+            currency: 'RUB',
+            status: paymentStatus,
+            gateway,
+            consentIp,
+            consentUserAgent,
+            consentVersion,
             abVariant
           }
         });
-        secondOrderId = secondOrder.id;
-      }
 
-      // Consume Promo Code if used
-      if (promoCodeStr) {
-        await marketingService.consumePromoCode(tx, promoCodeStr);
-      }
-
-      // Create linked Payment (covers both orders if media group)
-      const payment = await tx.payment.create({
-        data: {
-          userId: user.id,
-          amount: paymentAmount,
-          currency: 'RUB',
-          status: 'PENDING',
-          gateway,
-          consentIp,
-          consentUserAgent,
-          consentVersion,
-          abVariant
-        }
-      });
-
-      // Link payment to primary order
-      await tx.order.update({
-        where: { id: newOrder.id },
-        data: { paymentId: payment.id }
-      });
-
-      // Link payment to second order if exists
-      if (secondOrderId) {
+        // Link payment to primary order
         await tx.order.update({
-          where: { id: secondOrderId },
+          where: { id: newOrder.id },
           data: { paymentId: payment.id }
         });
-      }
 
-      if (isSmartDrip && smartConfig) {
-        const { SmartDripService } = await import('@/services/dripfeed/smart-drip.service');
-        await SmartDripService.createCampaign(tx, {
+        // Link payment to second order if exists
+        if (secondOrderId) {
+          await tx.order.update({
+            where: { id: secondOrderId },
+            data: { paymentId: payment.id }
+          });
+        }
+
+        const { logPromoCodeUsageIfNeeded } = await import('@/services/marketing-utils');
+        if (gateway === 'balance' && promoCodeId) {
+          await logPromoCodeUsageIfNeeded(tx, newOrder.id, user.id);
+          if (secondOrderId) {
+            await logPromoCodeUsageIfNeeded(tx, secondOrderId, user.id);
+          }
+        }
+
+        transactionCompleted = true;
+        return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId, secondOrderId };
+      });
+    } catch (err: unknown) {
+      if (err instanceof IdempotencyConflictError) {
+        const existingOrder = err.existingOrder as any;
+        console.info(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);
+        return {
+          orderId: existingOrder.id,
+          paymentId: existingOrder.paymentId,
+          paymentUrl: existingOrder.payment?.checkoutUrl || ''
+        };
+      }
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002' && idempotencyKey) {
+        const existingOrder = await db.order.findUnique({
+          where: { idempotencyKey },
+          include: { payment: true }
+        });
+        if (existingOrder) {
+          if (existingOrder.status !== 'ERROR') {
+            console.info(`[Checkout] Parallel idempotency hit for key ${idempotencyKey}, returning existing order.`);
+            return {
+              orderId: existingOrder.id,
+              paymentId: existingOrder.paymentId,
+              paymentUrl: existingOrder.payment?.checkoutUrl || ''
+            };
+          }
+        }
+      }
+      throw err;
+    }
+
+    // Heavy SmartDrip campaigns are created safely outside the Serializable transaction
+    if (isSmartDrip && smartConfig) {
+      try {
+        await SmartDripService.createCampaign(db, {
           userId: user.id,
           serviceId,
           link: normalizedLink,
           quantity: totalQuantity,
           days: smartDripDays!,
-          paymentId: payment.id,
-          orderId: newOrder.id,
+          paymentId: result.paymentId,
+          orderId: result.orderId,
           isTestMode
         });
+      } catch (dripErr) {
+        console.error('[Checkout] Failed to create SmartDrip campaign:', dripErr);
       }
-
-      return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId, secondOrderId };
-    }, { isolationLevel: 'Serializable' });
+    }
 
     // 6. Generate payment URL (gateway-specific API calls)
     let paymentUrl: string | undefined;
@@ -480,7 +559,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     let token = '';
     try {
       const { SignJWT } = await import('jose');
-      const { getEncodedKey } = await import('@/lib/session');
+      const { getEncodedKey } = await import('@/lib/session-edge');
       token = await new SignJWT({ 
         orderId: result.orderId,
         purpose: 'payment_return' 
@@ -497,6 +576,34 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       successUrl += `&token=${token}`;
     }
 
+    // Direct fulfillment for balance payments
+    if (gateway === 'balance') {
+      const { ordersQueue } = await import('@/workers/queues');
+      await ordersQueue.add('order-dispatch', { orderId: result.orderId }, { jobId: `dispatch-${result.orderId}`, delay: 3 * 60 * 1000 });
+      if (result.secondOrderId) {
+        await ordersQueue.add('order-dispatch', { orderId: result.secondOrderId }, { jobId: `dispatch-${result.secondOrderId}`, delay: 3 * 60 * 1000 });
+      }
+
+      void sendOrderPaidMail(
+        user.email,
+        result.numericId.toString(),
+        service.name
+      ).catch((err: unknown) => console.error('[H1] sendOrderPaidMail balance failed', err));
+
+      revalidatePath('/dashboard', 'layout');
+
+      // Auto-Login using cookies (Frictionless checkout)
+      if (isNewUser || (currentSession && currentSession.userId === user!.id)) {
+        await createSession(user.id);
+      }
+
+      return { 
+        orderId: result.orderId, 
+        paymentId: result.paymentId,
+        paymentUrl: successUrl
+      };
+    }
+
     try {
       const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
       const gatewayResult = await gatewaySvc.createPayment({
@@ -506,7 +613,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         amountRub: paymentAmount / 100,
         email: email,
         successUrl,
-        description: `Оплата заказа #${result.numericId} (SMMplan)`,
+        description: `Оплата заказа #${result.numericId} (сдача зачисляется на баланс)`,
         isTestMode: isTestMode || email === 'e2e-tester@test.com'
       });
       
@@ -541,7 +648,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         }).catch(e => console.error('[Checkout] Failed to error order:', e))
       ];
 
-      if (promoCodeStr) {
+      if (promoCodeStr && transactionCompleted) {
         // Atomic rollback: only decrement if uses > 0 to prevent negative counters
         rollbackPromises.push(
           db.promoCode.updateMany({
@@ -567,7 +674,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     // 8. Auto-Login using cookies (Frictionless checkout)
     // SECURITY FIX: Prevent Account Takeover by only auto-logging in NEW users, or already authenticated users
-    const currentSession = await verifySession();
     if (isNewUser || (currentSession && currentSession.userId === user.id)) {
       await createSession(user.id);
     }
@@ -655,8 +761,8 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     let reqHeaders: any;
     try {
       reqHeaders = await headers();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
+      console.warn('[RetryCheckout] headers() context missing, using fallback', e);
       reqHeaders = {
         get: (key: string) => {
           if (key === 'host') return 'localhost:3000';
@@ -707,14 +813,53 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const isTestMode = await SettingsManager.isTestMode();
 
     // Update existing payment or create new
-    const result = await db.$transaction(async (tx) => {
+    const result = await runSerializableTransaction<{ paymentId: string }>(async (tx) => {
+      // If gateway is balance, atomically deduct balance first
+      if (gateway === 'balance') {
+        await WalletOps.charge(tx, order.userId, Number(order.charge), `Оплата заказа с баланса`, {
+          idempotencyKey: `balance-charge-retry-${order.id}`
+        });
+      }
+
+      const orderStatus = gateway === 'balance' ? 'PENDING' : undefined;
+      const paymentStatus = gateway === 'balance' ? 'SUCCEEDED' : 'PENDING';
+
       const existingPayment = order.payment || await tx.payment.findUnique({ where: { orderId: order.id } });
 
-      if (existingPayment) {
+      let processedPaymentId: string;
+
+      if (existingPayment && existingPayment.gateway !== gateway) {
+        // Cancel old payment log to prevent accounting mismatch when gateway switches
+        await tx.payment.update({
+          where: { id: existingPayment.id },
+          data: { status: 'CANCELED' }
+        });
+
+        const newPayment = await tx.payment.create({
+          data: {
+            userId: order.userId,
+            orderId: order.id,
+            amount: order.charge,
+            currency: 'RUB',
+            status: paymentStatus,
+            gateway,
+            consentIp,
+            consentUserAgent,
+            orders: { connect: [{ id: order.id }] }
+          }
+        });
+
+        await tx.order.update({
+          where: { id: order.id },
+          data: { paymentId: newPayment.id }
+        });
+
+        processedPaymentId = newPayment.id;
+      } else if (existingPayment) {
         const updatedPayment = await tx.payment.update({
           where: { id: existingPayment.id },
           data: { 
-            status: 'PENDING',
+            status: paymentStatus,
             gateway,
             consentIp,
             consentUserAgent
@@ -729,25 +874,34 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
           });
         }
 
-        return { paymentId: updatedPayment.id };
+        processedPaymentId = updatedPayment.id;
+      } else {
+        const newPayment = await tx.payment.create({
+          data: {
+            userId: order.userId,
+            orderId: order.id,
+            amount: order.charge,
+            currency: 'RUB',
+            status: paymentStatus,
+            gateway,
+            consentIp,
+            consentUserAgent,
+            orders: { connect: [{ id: order.id }] } // Правильное связывание
+          }
+        });
+
+        processedPaymentId = newPayment.id;
       }
 
-      const newPayment = await tx.payment.create({
-        data: {
-          userId: order.userId,
-          orderId: order.id,
-          amount: order.charge,
-          currency: 'RUB',
-          status: 'PENDING',
-          gateway,
-          consentIp,
-          consentUserAgent,
-          orders: { connect: [{ id: order.id }] } // Правильное связывание
-        }
-      });
+      if (orderStatus) {
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: orderStatus }
+        });
+      }
 
-      return { paymentId: newPayment.id };
-    }, { isolationLevel: 'Serializable' });
+      return { paymentId: processedPaymentId };
+    });
 
     let paymentUrl: string | undefined;
     let remoteGatewayId: string | undefined;
@@ -759,7 +913,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     let token = '';
     try {
       const { SignJWT } = await import('jose');
-      const { getEncodedKey } = await import('@/lib/session');
+      const { getEncodedKey } = await import('@/lib/session-edge');
       token = await new SignJWT({ 
         orderId: order.id,
         purpose: 'payment_return' 
@@ -774,6 +928,26 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
 
     if (token) {
       successUrl += `&token=${token}`;
+    }
+
+    // Direct fulfillment for balance retry payments
+    if (gateway === 'balance') {
+      const { ordersQueue } = await import('@/workers/queues');
+      await ordersQueue.add('order-dispatch', { orderId: order.id }, { jobId: `dispatch-${order.id}`, delay: 3 * 60 * 1000 });
+
+      void sendOrderPaidMail(
+        order.user.email,
+        order.numericId.toString(),
+        order.service.name
+      ).catch((err: unknown) => console.error('[H1] sendOrderPaidMail balance retry failed', err));
+
+      revalidatePath('/dashboard', 'layout');
+
+      return { 
+        orderId: order.id, 
+        paymentId: result.paymentId,
+        paymentUrl: successUrl
+      };
     }
 
     try {
@@ -802,7 +976,20 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (gatewayErr: any) {
       console.error('[RetryCheckout] Gateway failed', gatewayErr);
-      await db.payment.update({ where: { id: result.paymentId }, data: { status: 'CANCELED' } });
+      
+      const rollbackPromises: Promise<any>[] = [
+        db.payment.update({
+          where: { id: result.paymentId },
+          data: { status: 'CANCELED' }
+        }).catch(e => console.error('[RetryCheckout] Failed to cancel payment:', e)),
+        
+        db.order.update({
+          where: { id: order.id },
+          data: { status: 'ERROR', error: gatewayErr.message || 'Ошибка генерации платежа' }
+        }).catch(e => console.error('[RetryCheckout] Failed to error order:', e))
+      ];
+      await Promise.allSettled(rollbackPromises);
+
       throw new Error(gatewayErr.message || 'Ошибка генерации платежа. Попробуйте другой метод', { cause: gatewayErr });
     }
 

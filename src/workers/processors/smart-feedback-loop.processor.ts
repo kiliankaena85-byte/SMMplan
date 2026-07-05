@@ -3,6 +3,10 @@
 // import { SmartCampaignStatus, SmartTaskStatus } from '@prisma/client';
 // import { sendAdminAlert } from '@/lib/notifications';
 
+import { logger } from '../../lib/logger';
+
+const log = logger.child({ component: 'SmartFeedbackLoopProcessor' });
+
 /**
  * Dynamic Feedback-Loop Refill & Auto-Compensation Processor (Smart Dripfeed 2.5)
  * 
@@ -15,13 +19,14 @@ export class SmartFeedbackLoopProcessor {
    * Main cron/tick executor. Checks all running campaigns for drops and compensates if needed.
    */
   static async runSmartFeedbackLoopTick(): Promise<void> {
-    console.info('[Smart Drip 2.5] Smart Feedback-Loop Simulator is disabled by admin request.');
+    log.info('[Smart Drip 2.5] Smart Feedback-Loop Simulator is disabled by admin request.');
     return;
     /*
     try {
       // ... original code
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (globalErr: any) {
-      console.error('[Smart Drip 2.5] Global error in feedback loop tick:', globalErr.message);
+      log.error('[Smart Drip 2.5] Global error in feedback loop tick:', globalErr.message);
     }
     */
   }

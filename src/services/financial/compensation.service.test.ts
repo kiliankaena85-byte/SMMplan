@@ -87,7 +87,6 @@ describe('CompensationService', () => {
     await CompensationService.trackCompensation('order-2', '0.04');
 
     const expectedCost = Math.round(0.04 * 95 * 100); // 380 cents
-
     expect(db.order.update).toHaveBeenCalledWith({
       where: { id: 'order-2' },
       data: {
@@ -96,6 +95,38 @@ describe('CompensationService', () => {
       },
     });
   });
+
+  it('should use historical usdToRubRate from order if present instead of SettingsProvider', async () => {
+    const mockOrder = {
+      id: 'order-2-historical',
+      status: 'COMPLETED',
+      providerCost: BigInt(400),
+      quantity: 1000,
+      remains: 0,
+      usdToRubRate: 88.5, // Historical rate at checkout
+      service: {
+        providerCurrency: 'USD',
+      },
+    };
+
+    vi.mocked(db.order.findUnique).mockResolvedValueOnce(mockOrder as any);
+    vi.mocked(db.ledgerEntry.findMany).mockResolvedValueOnce([]); // No refunds
+
+    // Provider charged 0.04 USD
+    await CompensationService.trackCompensation('order-2-historical', '0.04');
+
+    const expectedCost = Math.round(0.04 * 88.5 * 100); // 354 cents (using 88.5 instead of 95)
+
+    expect(SettingsProvider.getExchangeRateUSD).not.toHaveBeenCalled();
+    expect(db.order.update).toHaveBeenCalledWith({
+      where: { id: 'order-2-historical' },
+      data: {
+        actualProviderCost: BigInt(expectedCost),
+        realMarginDelta: BigInt(400 - expectedCost),
+      },
+    });
+  });
+
 
   it('should calculate actualProviderCost from RUB charge for COMPLETED status', async () => {
     const mockOrder = {

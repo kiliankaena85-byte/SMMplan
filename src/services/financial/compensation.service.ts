@@ -50,7 +50,7 @@ export class CompensationService {
         if (parsedCharge !== null) {
           const isUsd = order.service.providerCurrency === 'USD';
           if (isUsd) {
-            const usdToRub = await SettingsProvider.getExchangeRateUSD();
+            const usdToRub = order.usdToRubRate || (await SettingsProvider.getExchangeRateUSD());
             // Converting USD charge to RUB cents: charge * usdToRub * 100
             actualProviderCostCents = Math.round(parsedCharge * usdToRub * 100);
           } else {

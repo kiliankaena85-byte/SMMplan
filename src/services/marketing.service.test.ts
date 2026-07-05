@@ -146,7 +146,7 @@ describe('MarketingService', () => {
       const tx = { 
         promoCode: { 
           findUnique: vi.fn().mockResolvedValueOnce({ id: 'p1', isActive: true, maxUses: 2, uses: 0, expiresAt: null }),
-          update: vi.fn().mockResolvedValueOnce({ id: 'p1', maxUses: 2, uses: 1 })
+          updateMany: vi.fn().mockResolvedValueOnce({ count: 1 })
         } 
       } as any;
       await expect(marketingService.consumePromoCode(tx, 'CODE')).resolves.toBeUndefined();
@@ -156,7 +156,7 @@ describe('MarketingService', () => {
       const tx = { 
         promoCode: { 
           findUnique: vi.fn().mockResolvedValueOnce({ id: 'p1', isActive: true, maxUses: 1, uses: 0, expiresAt: null }),
-          update: vi.fn().mockResolvedValueOnce({ id: 'p1', maxUses: 1, uses: 2 })
+          updateMany: vi.fn().mockResolvedValueOnce({ count: 0 })
         } 
       } as any;
       await expect(marketingService.consumePromoCode(tx, 'CODE')).rejects.toThrow('Лимит использований промокода исчерпан');

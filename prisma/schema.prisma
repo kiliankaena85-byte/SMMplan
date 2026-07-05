@@ -70,6 +70,8 @@ model User {
   staffRole   StaffRole? @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
 
   b2bConfig B2bConfig?
+  userNotes     UserNote[] @relation("UserNotes")
+  authoredNotes UserNote[] @relation("AuthorNotes")
 }
 
 model B2bConfig {
@@ -331,6 +333,8 @@ model Order {
   isTest            Boolean     @default(false) // Isolation flag for mock environment
   email             String? // Contact email for guest / notification
   customData        String? // Additional payload (comments, answer #, keywords)
+  usdToRubRate      Float?  // Historical CBR exchange rate at checkout time to prevent margin drift
+
 
   // Drip-Feed specifics
   isDripFeed Boolean   @default(false)
@@ -370,6 +374,7 @@ model Order {
   @@index([status, createdAt]) // P2.2: filtered + sorted admin queries
   @@index([userId, status]) // Fast lookup for user orders by status
   @@index([paymentId]) // Fast lookup for orders by payment (Order.paymentId foreign key)
+  userNotes UserNote[]
 }
 
 model Refill {
@@ -551,6 +556,7 @@ model Ticket {
   tags             String[]  @default([]) // NLP Tagging
 
   messages TicketMessage[]
+  userNotes UserNote[]
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
@@ -1096,4 +1102,23 @@ model ServicePriceHistory {
 
   @@index([serviceId])
   @@index([createdAt])
+}
+
+model UserNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserNotes", fields: [userId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("AuthorNotes", fields: [authorId], references: [id], onDelete: SetNull)
+  content   String
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  ticketId  String?
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([authorId])
+  @@index([orderId])
+  @@index([ticketId])
 }
