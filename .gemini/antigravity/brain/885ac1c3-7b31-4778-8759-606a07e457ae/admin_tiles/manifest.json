@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-26T19:24:11.649Z",
+  "generatedAt": "2026-07-05T05:18:30.444Z",
   "user": "pixelrag-admin@smmplan.test",
-  "baseUrl": "http://localhost:3005",
+  "baseUrl": "http://localhost:3000",
   "pages": [
     {
       "name": "dashboard",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/dashboard",
+      "url": "http://localhost:3000/admin/dashboard",
       "screenshots": [
         "dashboard_mobile_top.png",
         "dashboard_mobile_full.png"
@@ -16,7 +16,7 @@
     {
       "name": "orders",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/orders",
+      "url": "http://localhost:3000/admin/orders",
       "screenshots": [
         "orders_mobile_top.png",
         "orders_mobile_full.png"
@@ -26,7 +26,7 @@
     {
       "name": "refills",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/refills",
+      "url": "http://localhost:3000/admin/refills",
       "screenshots": [
         "refills_mobile_top.png",
         "refills_mobile_full.png"
@@ -36,7 +36,7 @@
     {
       "name": "tickets",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/tickets",
+      "url": "http://localhost:3000/admin/tickets",
       "screenshots": [
         "tickets_mobile_top.png",
         "tickets_mobile_full.png"
@@ -46,7 +46,7 @@
     {
       "name": "clients",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/clients",
+      "url": "http://localhost:3000/admin/clients",
       "screenshots": [
         "clients_mobile_top.png",
         "clients_mobile_full.png"
@@ -56,7 +56,7 @@
     {
       "name": "finance",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/finance",
+      "url": "http://localhost:3000/admin/finance",
       "screenshots": [
         "finance_mobile_top.png",
         "finance_mobile_full.png"
@@ -66,7 +66,7 @@
     {
       "name": "marketing",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/marketing",
+      "url": "http://localhost:3000/admin/marketing",
       "screenshots": [
         "marketing_mobile_top.png",
         "marketing_mobile_full.png"
@@ -76,7 +76,7 @@
     {
       "name": "catalog",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/catalog",
+      "url": "http://localhost:3000/admin/catalog",
       "screenshots": [
         "catalog_mobile_top.png",
         "catalog_mobile_full.png"
@@ -86,7 +86,7 @@
     {
       "name": "quarantine",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/catalog/quarantine",
+      "url": "http://localhost:3000/admin/catalog/quarantine",
       "screenshots": [
         "quarantine_mobile_top.png",
         "quarantine_mobile_full.png"
@@ -96,7 +96,7 @@
     {
       "name": "smart",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/smart",
+      "url": "http://localhost:3000/admin/smart",
       "screenshots": [
         "smart_mobile_top.png",
         "smart_mobile_full.png"
@@ -106,7 +106,7 @@
     {
       "name": "providers",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/providers",
+      "url": "http://localhost:3000/admin/providers",
       "screenshots": [
         "providers_mobile_top.png",
         "providers_mobile_full.png"
@@ -116,7 +116,7 @@
     {
       "name": "pages",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/pages",
+      "url": "http://localhost:3000/admin/pages",
       "screenshots": [
         "pages_mobile_top.png",
         "pages_mobile_full.png"
@@ -126,7 +126,7 @@
     {
       "name": "knowledge",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/knowledge",
+      "url": "http://localhost:3000/admin/knowledge",
       "screenshots": [
         "knowledge_mobile_top.png",
         "knowledge_mobile_full.png"
@@ -136,7 +136,7 @@
     {
       "name": "settings",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/settings",
+      "url": "http://localhost:3000/admin/settings",
       "screenshots": [
         "settings_mobile_top.png",
         "settings_mobile_full.png"
@@ -146,7 +146,7 @@
     {
       "name": "features",
       "viewport": "mobile",
-      "url": "http://localhost:3005/admin/system/features",
+      "url": "http://localhost:3000/admin/system/features",
       "screenshots": [
         "features_mobile_top.png",
         "features_mobile_full.png"
@@ -156,7 +156,7 @@
     {
       "name": "dashboard",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/dashboard",
+      "url": "http://localhost:3000/admin/dashboard",
       "screenshots": [
         "dashboard_tablet_top.png",
         "dashboard_tablet_full.png"
@@ -166,7 +166,7 @@
     {
       "name": "orders",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/orders",
+      "url": "http://localhost:3000/admin/orders",
       "screenshots": [
         "orders_tablet_top.png",
         "orders_tablet_full.png"
@@ -176,7 +176,7 @@
     {
       "name": "refills",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/refills",
+      "url": "http://localhost:3000/admin/refills",
       "screenshots": [
         "refills_tablet_top.png",
         "refills_tablet_full.png"
@@ -186,7 +186,7 @@
     {
       "name": "tickets",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/tickets",
+      "url": "http://localhost:3000/admin/tickets",
       "screenshots": [
         "tickets_tablet_top.png",
         "tickets_tablet_full.png"
@@ -196,7 +196,7 @@
     {
       "name": "clients",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/clients",
+      "url": "http://localhost:3000/admin/clients",
       "screenshots": [
         "clients_tablet_top.png",
         "clients_tablet_full.png"
@@ -206,7 +206,7 @@
     {
       "name": "finance",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/finance",
+      "url": "http://localhost:3000/admin/finance",
       "screenshots": [
         "finance_tablet_top.png",
         "finance_tablet_full.png"
@@ -216,7 +216,7 @@
     {
       "name": "marketing",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/marketing",
+      "url": "http://localhost:3000/admin/marketing",
       "screenshots": [
         "marketing_tablet_top.png",
         "marketing_tablet_full.png"
@@ -226,7 +226,7 @@
     {
       "name": "catalog",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/catalog",
+      "url": "http://localhost:3000/admin/catalog",
       "screenshots": [
         "catalog_tablet_top.png",
         "catalog_tablet_full.png"
@@ -236,7 +236,7 @@
     {
       "name": "quarantine",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/catalog/quarantine",
+      "url": "http://localhost:3000/admin/catalog/quarantine",
       "screenshots": [
         "quarantine_tablet_top.png",
         "quarantine_tablet_full.png"
@@ -246,7 +246,7 @@
     {
       "name": "smart",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/smart",
+      "url": "http://localhost:3000/admin/smart",
       "screenshots": [
         "smart_tablet_top.png",
         "smart_tablet_full.png"
@@ -256,7 +256,7 @@
     {
       "name": "providers",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/providers",
+      "url": "http://localhost:3000/admin/providers",
       "screenshots": [
         "providers_tablet_top.png",
         "providers_tablet_full.png"
@@ -266,7 +266,7 @@
     {
       "name": "pages",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/pages",
+      "url": "http://localhost:3000/admin/pages",
       "screenshots": [
         "pages_tablet_top.png",
         "pages_tablet_full.png"
@@ -276,7 +276,7 @@
     {
       "name": "knowledge",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/knowledge",
+      "url": "http://localhost:3000/admin/knowledge",
       "screenshots": [
         "knowledge_tablet_top.png",
         "knowledge_tablet_full.png"
@@ -286,7 +286,7 @@
     {
       "name": "settings",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/settings",
+      "url": "http://localhost:3000/admin/settings",
       "screenshots": [
         "settings_tablet_top.png",
         "settings_tablet_full.png"
@@ -296,7 +296,7 @@
     {
       "name": "features",
       "viewport": "tablet",
-      "url": "http://localhost:3005/admin/system/features",
+      "url": "http://localhost:3000/admin/system/features",
       "screenshots": [
         "features_tablet_top.png",
         "features_tablet_full.png"
@@ -306,7 +306,7 @@
     {
       "name": "dashboard",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/dashboard",
+      "url": "http://localhost:3000/admin/dashboard",
       "screenshots": [
         "dashboard_desktop_top.png",
         "dashboard_desktop_full.png"
@@ -316,7 +316,7 @@
     {
       "name": "orders",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/orders",
+      "url": "http://localhost:3000/admin/orders",
       "screenshots": [
         "orders_desktop_top.png",
         "orders_desktop_full.png"
@@ -326,7 +326,7 @@
     {
       "name": "refills",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/refills",
+      "url": "http://localhost:3000/admin/refills",
       "screenshots": [
         "refills_desktop_top.png",
         "refills_desktop_full.png"
@@ -336,7 +336,7 @@
     {
       "name": "tickets",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/tickets",
+      "url": "http://localhost:3000/admin/tickets",
       "screenshots": [
         "tickets_desktop_top.png",
         "tickets_desktop_full.png"
@@ -346,7 +346,7 @@
     {
       "name": "clients",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/clients",
+      "url": "http://localhost:3000/admin/clients",
       "screenshots": [
         "clients_desktop_top.png",
         "clients_desktop_full.png"
@@ -356,7 +356,7 @@
     {
       "name": "finance",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/finance",
+      "url": "http://localhost:3000/admin/finance",
       "screenshots": [
         "finance_desktop_top.png",
         "finance_desktop_full.png"
@@ -366,7 +366,7 @@
     {
       "name": "marketing",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/marketing",
+      "url": "http://localhost:3000/admin/marketing",
       "screenshots": [
         "marketing_desktop_top.png",
         "marketing_desktop_full.png"
@@ -376,7 +376,7 @@
     {
       "name": "catalog",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/catalog",
+      "url": "http://localhost:3000/admin/catalog",
       "screenshots": [
         "catalog_desktop_top.png",
         "catalog_desktop_full.png"
@@ -386,7 +386,7 @@
     {
       "name": "quarantine",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/catalog/quarantine",
+      "url": "http://localhost:3000/admin/catalog/quarantine",
       "screenshots": [
         "quarantine_desktop_top.png",
         "quarantine_desktop_full.png"
@@ -396,7 +396,7 @@
     {
       "name": "smart",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/smart",
+      "url": "http://localhost:3000/admin/smart",
       "screenshots": [
         "smart_desktop_top.png",
         "smart_desktop_full.png"
@@ -406,7 +406,7 @@
     {
       "name": "providers",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/providers",
+      "url": "http://localhost:3000/admin/providers",
       "screenshots": [
         "providers_desktop_top.png",
         "providers_desktop_full.png"
@@ -416,7 +416,7 @@
     {
       "name": "pages",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/pages",
+      "url": "http://localhost:3000/admin/pages",
       "screenshots": [
         "pages_desktop_top.png",
         "pages_desktop_full.png"
@@ -426,7 +426,7 @@
     {
       "name": "knowledge",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/knowledge",
+      "url": "http://localhost:3000/admin/knowledge",
       "screenshots": [
         "knowledge_desktop_top.png",
         "knowledge_desktop_full.png"
@@ -436,7 +436,7 @@
     {
       "name": "settings",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/settings",
+      "url": "http://localhost:3000/admin/settings",
       "screenshots": [
         "settings_desktop_top.png",
         "settings_desktop_full.png"
@@ -446,7 +446,7 @@
     {
       "name": "features",
       "viewport": "desktop",
-      "url": "http://localhost:3005/admin/system/features",
+      "url": "http://localhost:3000/admin/system/features",
       "screenshots": [
         "features_desktop_top.png",
         "features_desktop_full.png"
