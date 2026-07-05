@@ -126,7 +126,7 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-6">
         
         {/* Card 1: Выручка */}
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-success/40 hover:-translate-y-1 relative overflow-hidden group">
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-layered animate-fade-in-up stagger-1 transition-all duration-300 hover:border-success/40 hover:-translate-y-1 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-success to-success opacity-80" />
           <div className="flex justify-between items-start mb-3">
             <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Поступило (Выручка)</span>
@@ -140,7 +140,7 @@ export default async function AdminDashboardPage({
         </div>
 
         {/* Card 2: Комиссии */}
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-warning/40 hover:-translate-y-1 relative overflow-hidden group">
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-layered animate-fade-in-up stagger-2 transition-all duration-300 hover:border-warning/40 hover:-translate-y-1 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-warning to-warning opacity-80" />
           <div className="flex justify-between items-start mb-3">
             <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Комиссии кассы</span>
@@ -154,7 +154,7 @@ export default async function AdminDashboardPage({
         </div>
 
         {/* Card 3: Закупки */}
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-danger/40 hover:-translate-y-1 relative overflow-hidden group">
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-layered animate-fade-in-up stagger-3 transition-all duration-300 hover:border-danger/40 hover:-translate-y-1 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-danger to-danger opacity-80" />
           <div className="flex justify-between items-start mb-3">
             <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Закупки (Расход)</span>
@@ -168,7 +168,7 @@ export default async function AdminDashboardPage({
         </div>
 
         {/* Card 4: Расчетный налог */}
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary/40 hover:-translate-y-1 relative overflow-hidden group">
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-layered animate-fade-in-up stagger-4 transition-all duration-300 hover:border-primary/40 hover:-translate-y-1 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-primary opacity-80" />
           <div className="flex justify-between items-start mb-3">
             <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Расчетный налог</span>
@@ -188,7 +188,7 @@ export default async function AdminDashboardPage({
         </div>
 
         {/* Card 5: Чистая прибыль */}
-        <div className={`bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 relative overflow-hidden group ${
+        <div className={`bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-layered animate-fade-in-up stagger-5 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group ${
           metrics.profitNet <= 0 
             ? 'hover:border-danger/40' 
             : profitMargin < 15 
@@ -260,7 +260,7 @@ export default async function AdminDashboardPage({
         <div className="lg:col-span-8 space-y-6">
            
            {/* Total Balance Card */}
-           <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-6 lg:p-7 shadow-sm border border-border/50 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:border-primary/30 relative overflow-hidden group">
+           <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-6 lg:p-7 shadow-layered animate-fade-in-up stagger-1 border border-border/50 flex flex-col justify-between transition-all duration-300 hover:border-primary/30 relative overflow-hidden group">
              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors pointer-events-none -translate-y-1/2 translate-x-1/3" />
              <div className="relative z-10">
                <div className="flex items-center justify-between mb-4">
@@ -310,7 +310,7 @@ export default async function AdminDashboardPage({
          </div>
 
          {/* Orders Dynamics Chart */}
-         <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-6 lg:p-7 shadow-sm border border-border/50 transition-all duration-300 hover:shadow-lg">
+         <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-6 lg:p-7 shadow-layered animate-fade-in-up stagger-2 border border-border/50 transition-all duration-300">
            <div className="flex justify-between items-start mb-1">
              <h3 className="font-bold text-foreground">
                Динамика заказов {
@@ -329,7 +329,7 @@ export default async function AdminDashboardPage({
          </div>
 
          {/* Recent Activities Table */}
-         <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-6 shadow-sm border border-border/50 transition-all duration-300 hover:shadow-lg">
+         <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-6 shadow-layered animate-fade-in-up stagger-3 border border-border/50 transition-all duration-300">
            <div className="flex justify-between items-center mb-6">
              <h3 className="font-bold text-foreground">Журнал безопасности (Audit Log)</h3>
              <Link href="/admin/settings?tab=audit" className="flex items-center gap-2 bg-background/80 hover:bg-muted px-3 py-1.5 rounded-full border border-border/50 text-xs font-bold text-muted-foreground shadow-sm transition-all hover:scale-[1.02]">
@@ -346,8 +346,8 @@ export default async function AdminDashboardPage({
         <div className="lg:col-span-4 flex flex-col gap-6">
            
            {/* KPI 2x2 Grid */}
-           <div className="grid grid-cols-2 gap-4">
-             <Link href="/admin/orders?status=IN_PROGRESS" className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-5 shadow-sm border border-border/50 hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 group">
+           <div className="grid grid-cols-2 gap-4 animate-fade-in-up stagger-4">
+             <Link href="/admin/orders?status=IN_PROGRESS" className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-5 shadow-layered border border-border/50 hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 group">
                <div className="flex justify-between items-start mb-6">
                  <span className="text-muted-foreground text-sm font-medium">В работе</span>
                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 group-hover:scale-110 transition-all">
@@ -374,7 +374,7 @@ export default async function AdminDashboardPage({
                </div>
              </Link>
 
-             <Link href="/admin/clients" className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-5 shadow-sm border border-border/50 flex flex-col hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 group">
+             <Link href="/admin/clients" className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-5 shadow-layered border border-border/50 flex flex-col hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 group">
                <div className="flex justify-between items-start mb-6">
                  <span className="text-muted-foreground text-sm font-medium">Клиенты</span>
                  <div className="w-8 h-8 rounded-full bg-primary/10 group-hover:bg-primary/20 group-hover:scale-110 transition-all flex items-center justify-center">
@@ -387,7 +387,7 @@ export default async function AdminDashboardPage({
                </div>
              </Link>
 
-             <Link href="/admin/catalog" className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-5 shadow-sm border border-border/50 flex flex-col hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 group">
+             <Link href="/admin/catalog" className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-5 shadow-layered border border-border/50 flex flex-col hover:-translate-y-1 hover:border-primary/30 transition-all duration-300 group">
                <div className="flex justify-between items-start mb-6">
                  <span className="text-muted-foreground text-sm font-medium">Каталог</span>
                  <div className="w-8 h-8 rounded-full bg-success/10 group-hover:bg-success/20 group-hover:scale-110 transition-all flex items-center justify-center">
@@ -403,7 +403,7 @@ export default async function AdminDashboardPage({
            
            <ProviderLiquidityWidget />
 
-           <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-6 shadow-sm border border-border/50 transition-all duration-300 hover:shadow-lg">
+           <div className="bg-card/60 backdrop-blur-md text-card-foreground rounded-2xl p-6 shadow-layered animate-fade-in-up stagger-5 border border-border/50 transition-all duration-300">
              <h3 className="font-bold text-foreground mb-1">Маржинальность</h3>
              <p className="text-[11px] text-muted-foreground mb-6 font-medium">Отношение прибыли к выручке</p>
              
@@ -422,7 +422,7 @@ export default async function AdminDashboardPage({
              </div>
            </div>
 
-           <Link href="/admin/tickets" className="bg-card/60 backdrop-blur-md text-card-foreground transition-all duration-300 hover:-translate-y-1 rounded-2xl p-6 shadow-sm border border-border/50 flex flex-col hover:shadow-lg group">
+           <Link href="/admin/tickets" className="bg-card/60 backdrop-blur-md text-card-foreground transition-all duration-300 hover:-translate-y-1 rounded-2xl p-6 shadow-layered animate-fade-in-up stagger-5 border border-border/50 flex flex-col group">
              <div className="flex justify-between items-center mb-5">
                <h3 className="font-bold text-foreground flex items-center gap-2">
                  <Bell className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors"/> 

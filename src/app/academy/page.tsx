@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = {
   title: 'Академия SMM & База знаний | SMMplan',
   description: 'Экспертные руководства, лайфхаки и инструкции по безопасному продвижению в Telegram, Instagram, VK. Узнайте, как копировать ссылки и обходить списания.',
+  alternates: { canonical: '/academy' },
 };
 
 export default async function AcademyPage() {

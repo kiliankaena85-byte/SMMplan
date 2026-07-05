@@ -333,10 +333,16 @@ export function useCheckoutOrchestrator({
           ...checkoutParams,
           gateway: directGateway
         });
-        setIsSubmitting(false);
-        if (res.success && res.data?.paymentUrl) {
-          window.location.href = res.data.paymentUrl;
-        } else if (!res.success) {
+        if (res.success) {
+          if (res.data?.paymentUrl) {
+            window.location.href = res.data.paymentUrl;
+          } else if (res.data?.orderId) {
+            window.location.href = `/success?orderId=${res.data.orderId}`;
+          } else if (res.data?.paymentId) {
+            window.location.href = `/success?paymentId=${res.data.paymentId}`;
+          }
+          return;
+        } else {
           if (res.error?.includes("Telegram-аккаунт") || res.error?.includes("привяжите ваш Telegram-аккаунт")) {
             toast.error(res.error, {
               position: 'top-center',

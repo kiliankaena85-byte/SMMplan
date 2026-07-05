@@ -3,6 +3,7 @@ import { checkoutAction } from '@/actions/order/checkout';
 import { db } from '@/lib/db';
 import { MutexManager } from '@/lib/redis-lock';
 import { WalletOps } from '@/services/financial/wallet-ops';
+import { Prisma } from '@prisma/client';
 
 // Mocking dependencies
 vi.mock('@/lib/db', () => ({
@@ -111,16 +112,25 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
       category: { network: { name: 'Telegram' } }
     } as any);
 
-    let firstCall = true;
+    let findUniqueCount = 0;
     vi.mocked(db.order.findUnique as any).mockImplementation(async () => {
-      if (firstCall) {
-        firstCall = false;
-        return null;
-      }
-      return { id: 'order_existing', paymentId: 'pay_existing' } as any;
+      findUniqueCount++;
+      if (findUniqueCount <= 2) return null;
+      return {
+        id: 'order_existing',
+        paymentId: 'pay_existing',
+        payment: { checkoutUrl: 'https://yookassa.ru/checkout' }
+      } as any;
     });
 
-    vi.mocked(db.order.create).mockResolvedValue({ id: 'order_new', charge: BigInt(1000) } as any);
+    let isSecondCreate = false;
+    vi.mocked(db.order.create).mockImplementation(async () => {
+      if (isSecondCreate) {
+        throw new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: '5.0.0' });
+      }
+      isSecondCreate = true;
+      return { id: 'order_new', charge: BigInt(1000) } as any;
+    });
     vi.mocked(db.payment.create).mockResolvedValue({ id: 'pay_new' } as any);
     vi.mocked(db.user.upsert).mockResolvedValue({ id: 'user_123', balance: BigInt(5000), totalSpent: BigInt(0) } as any);
     vi.mocked(db.user.create).mockResolvedValue({ id: 'user_123', balance: BigInt(5000), totalSpent: BigInt(0) } as any);
@@ -131,7 +141,7 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
       checkoutAction(input)
     ]);
 
-    expect(db.order.create).toHaveBeenCalledTimes(1);
+    expect(db.order.create).toHaveBeenCalledTimes(2);
     expect((res1 as any).data?.orderId).toBe('order_new');
     expect((res2 as any).data?.orderId).toBe('order_existing');
   });

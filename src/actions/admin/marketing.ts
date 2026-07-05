@@ -18,7 +18,7 @@ const promoCodeSchema = z.object({
   utmSource: z.string().optional(),
   utmMedium: z.string().optional(),
   utmCampaign: z.string().optional(),
-  budget: z.coerce.number().optional().default(0),
+  budget: z.coerce.number().min(0, "Бюджет не может быть отрицательным").max(20000000, "Максимальный бюджет 20 000 000 ₽").optional().default(0),
   isSuspicious: z.coerce.boolean().optional().default(false)
 }).refine((data) => {
   if (data.expiresAt) {

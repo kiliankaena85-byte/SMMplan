@@ -26,7 +26,7 @@ export interface AnalyzedService {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
+const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'WIBES', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CATEGORIES = ['SUBSCRIBERS', 'GROUPS', 'LIKES', 'VIEWS', 'COMMENTS', 'REACTIONS', 'REPOSTS', 'AUTO_VIEWS', 'AUTO_LIKES', 'AUTO_REACTIONS', 'AUTO_REPOSTS', 'AUTO_COMMENTS', 'BOOSTS', 'POLLS', 'STORIES', 'BOTS', 'REFERRALS', 'FRIENDS', 'PLAYS', 'TRAFFIC', 'DISLIKES', 'STARS', 'SAVES', 'COMPLAINTS', 'STREAMS', 'PREMIUM', 'RECOVER', 'OTHER'];
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -63,6 +63,7 @@ const PLATFORM_LABELS: Record<string, string> = {
     APPLE: 'Apple Music/Podcast',
     YANDEX: 'Яндекс (Дзен/Maps/Music)',
     STEAM: 'Steam',
+    WIBES: 'Wibes',
     RUMBLE: 'Rumble',
     TUMBLR: 'Tumblr',
     VIMEO: 'Vimeo',
@@ -160,6 +161,7 @@ const PLATFORM_KEYWORDS: Record<string, string[]> = {
     APPLE: ['apple', 'podcast', 'itunes'],
     YANDEX: ['yandex', 'яндекс', 'ya.ru'],
     STEAM: ['steam', 'стим'],
+    WIBES: ['wibes', 'вайбс'],
     RUMBLE: ['rumble'],
     TUMBLR: ['tumblr'],
     VIMEO: ['vimeo'],

@@ -25,7 +25,8 @@
     "audit:visual": "npx dotenv -e .env tsx scripts/synthetic-ux-lab/visual-audit-cli.ts",
     "db:seed-mock": "tsx prisma/seed-mock.ts",
     "seed:legal": "tsx scripts/seed-legal-cms.ts",
-    "check-balances": "dotenv -e .env -- tsx src/utils/balance-verifier.ts"
+    "check-balances": "dotenv -e .env -- tsx src/utils/balance-verifier.ts",
+    "pixelrag:admin": "dotenv -e .env -- tsx scripts/pixelrag-admin-audit.ts && dotenv -e .env -- tsx scripts/pixelrag-admin-analyze.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

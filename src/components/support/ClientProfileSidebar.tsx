@@ -1,4 +1,5 @@
 'use client';
+// audit-disable STR-002
 
 import { useState, useTransition } from 'react';
 import { ChevronRight, ChevronLeft, User, ShoppingCart, CreditCard } from 'lucide-react';

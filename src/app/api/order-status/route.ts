@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { SettingsManager } from '@/lib/settings';
+import { RateLimitService } from '@/services/core/rate-limit.service';
 
 /**
  * GET /api/order-status?orderId=xxx
@@ -12,6 +13,12 @@ import { SettingsManager } from '@/lib/settings';
  */
 export async function GET(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+    const isAllowed = await RateLimitService.check(`order_status:${ip}`, 30, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const session = await verifySession();
     const orderId = req.nextUrl.searchParams.get('orderId');
     const paymentId = req.nextUrl.searchParams.get('paymentId');
@@ -121,6 +128,14 @@ export async function GET(req: NextRequest) {
           });
           if (updatedOrder) order = updatedOrder;
         }
+      }
+
+      if (!session && !isTokenValid) {
+        return NextResponse.json({
+          orderId: order.id,
+          numericId: order.numericId,
+          status: order.status,
+        });
       }
 
       return NextResponse.json({

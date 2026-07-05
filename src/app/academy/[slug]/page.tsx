@@ -27,6 +27,7 @@ export async function generateMetadata({ params }: AcademyArticlePageProps) {
   return {
     title: `${article.title} | Академия SMMplan`,
     description: article.excerpt || article.metaDescription || `Методическое руководство: ${article.title}. Безопасное SMM-продвижение.`,
+    alternates: { canonical: `/academy/${slug}` },
   };
 }
 

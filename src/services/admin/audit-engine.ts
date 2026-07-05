@@ -97,7 +97,7 @@ export class ServiceAuditEngine {
     const newCostCents = rate * exchangeRate * 100;
     const actualMarkup = newCostCents > 0 ? (originalPrice / newCostCents) : originalMarkup;
 
-    if (originalMarkup < 5.0 || actualMarkup < 5.0) {
+    if (!service.isQuarantined && (originalMarkup < 5.0 || actualMarkup < 5.0)) {
       newMarkup = Math.max(originalMarkup, 5.0);
       newPrice = Math.round(applyBeautifulRounding(rate * newMarkup * exchangeRate) * 100);
     }

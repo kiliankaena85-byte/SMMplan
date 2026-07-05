@@ -122,6 +122,13 @@ describe('Checkout Validation Bypass Override', () => {
     vi.mocked(db.order.create).mockResolvedValue({ id: 'order_new', charge: BigInt(1000), numericId: 1001 } as any);
     vi.mocked(db.payment.create).mockResolvedValue({ id: 'pay_new' } as any);
     vi.mocked(db.user.create).mockResolvedValue({ id: 'user_123' } as any);
+    vi.mocked(db.user.findUnique).mockResolvedValue({
+      id: 'user_123',
+      email: 'bypass@test.com',
+      role: 'OWNER',
+      isActive: true,
+      isDeleted: false,
+    } as any);
 
     const res = await checkoutAction(input);
     expect(res.success).toBe(true);

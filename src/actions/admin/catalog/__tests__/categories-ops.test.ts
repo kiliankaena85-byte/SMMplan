@@ -54,6 +54,7 @@ describe('Milestone 5: Catalog CRUD & Categories Operations Test Suite', () => {
     await db.provider.deleteMany();
     await db.adminAuditLog.deleteMany();
     await db.auditLog.deleteMany();
+    await db.ledgerEntry.deleteMany();
     await db.user.deleteMany();
 
     // 2. Enable test mode in systemSettings

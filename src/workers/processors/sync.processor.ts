@@ -10,6 +10,22 @@ import { logger } from '../../lib/logger';
 import { CompensationService } from '../../services/financial/compensation.service';
 
 const log = logger.child({ component: 'SyncProcessor' });
+
+async function safeUpdateOrderStatus(
+  tx: any, 
+  orderId: string, 
+  data: any
+): Promise<any> {
+  const fresh = await tx.order.findUnique({ where: { id: orderId } });
+  if (!fresh || !['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'].includes(fresh.status)) {
+    return null; // already terminal or not found
+  }
+  return await tx.order.update({
+    where: { id: orderId },
+    data
+  });
+}
+
 export default async function syncProcessor(job: Job<SyncJobPayload>) {
   if (job.name === 'dripfeed-tick') {
     log.info('Starting Smart Dripfeed Tick processing...');
@@ -109,17 +125,26 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
              totalRemainsText += parseInt(s.remains || "0", 10);
           }
 
-          if (allCompleted && order.currentRun >= (order.runs || 1)) {
-              await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });
-              sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(err => log.error('Failed to send completion email', { cause: err }));
-              CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on completed dripfeed', { cause: err }));
+             if (allCompleted && order.currentRun >= (order.runs || 1)) {
+              await db.$transaction(async (tx) => {
+                const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'COMPLETED', remains: 0 });
+                if (updated) {
+                  const { LoyaltyService } = await import('../../services/users/loyalty.service');
+                  await LoyaltyService.confirmCommission(tx, order.id);
+                  
+                  sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(err => log.error('Failed to send completion email', { cause: err }));
+                  CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on completed dripfeed', { cause: err }));
+                }
+              }, { isolationLevel: 'Serializable' });
           } else if (anyCanceled) {
               // Canceled mini-run -> We mark generic Drip-Feed as Partial
               await db.$transaction(async (tx) => {
-                const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: totalRemainsText } });
-                await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, undefined, tx);
-              });
-              CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on partial dripfeed', { cause: err }));
+                const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'PARTIAL', remains: totalRemainsText });
+                if (updated) {
+                  await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, undefined, tx);
+                  CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on partial dripfeed', { cause: err }));
+                }
+              }, { isolationLevel: 'Serializable' });
           }
 
         } else {
@@ -132,10 +157,12 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
               if (orderAgeHours > 72) {
                   log.warn(`Order ${order.externalId} missing from provider for >72h. Marking ERROR.`);
                   await db.$transaction(async (tx) => {
-                    const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: 'Орфан-заказ: провайдер удалил заказ' } });
-                    await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Орфан-заказ: провайдер удалил заказ)', tx);
-                  });
-                  CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on orphan ERROR order', { cause: err }));
+                    const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'ERROR', error: 'Орфан-заказ: провайдер удалил заказ' });
+                    if (updated) {
+                      await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Орфан-заказ: провайдер удалил заказ)', tx);
+                      CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on orphan ERROR order', { cause: err }));
+                    }
+                  }, { isolationLevel: 'Serializable' });
               }
               continue;
           }
@@ -148,10 +175,12 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
               }
               log.warn(`Order ${order.externalId} returned string error: ${s}`);
               await db.$transaction(async (tx) => {
-                const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'ERROR', error: s } });
-                await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Ошибка синхронизации или истек таймер)', tx);
-              });
-              CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on string ERROR order', { cause: err }));
+                const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'ERROR', error: s });
+                if (updated) {
+                  await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Ошибка синхронизации или истек таймер)', tx);
+                  CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on string ERROR order', { cause: err }));
+                }
+              }, { isolationLevel: 'Serializable' });
               continue;
           }
 
@@ -161,31 +190,47 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           if (['CANCELED'].includes(providerStatus)) {
             // Full Canceled -> Full Refund
             await db.$transaction(async (tx) => {
-              const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'CANCELED', remains: parsedRemains } });
-              await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Отмена на стороне провайдера)', tx);
-            });
-            CompensationService.trackCompensation(order.id, s.charge).catch(err => log.error('Failed to track compensation on CANCELED order', { cause: err }));
-            
-            // WAVE 4.1: TRIGGER B (SILENT FAILURE QUARANTINE)
-            const { QuarantineService } = await import('@/services/providers/quarantine.service');
-            QuarantineService.evaluateTriggerB(order.serviceId).catch(err => log.error('Quarantine trigger B failed', { cause: err })); // Fire and forget
+              const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'CANCELED', remains: parsedRemains });
+              if (updated) {
+                await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Отмена на стороне провайдера)', tx);
+                
+                CompensationService.trackCompensation(order.id, s.charge).catch(err => log.error('Failed to track compensation on CANCELED order', { cause: err }));
+                
+                // WAVE 4.1: TRIGGER B (SILENT FAILURE QUARANTINE)
+                const { QuarantineService } = await import('@/services/providers/quarantine.service');
+                QuarantineService.evaluateTriggerB(order.serviceId).catch(err => log.error('Quarantine trigger B failed', { cause: err })); // Fire and forget
+              }
+            }, { isolationLevel: 'Serializable' });
           } 
           else if (['PARTIAL'].includes(providerStatus)) {
             // Partial -> Mathematical Proportional Refund
             await db.$transaction(async (tx) => {
-              const updated = await tx.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: parsedRemains } });
-              await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, undefined, tx);
-            });
-            CompensationService.trackCompensation(order.id, s.charge).catch(err => log.error('Failed to track compensation on PARTIAL order', { cause: err }));
+              const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'PARTIAL', remains: parsedRemains });
+              if (updated) {
+                await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, undefined, tx);
+                
+                CompensationService.trackCompensation(order.id, s.charge).catch(err => log.error('Failed to track compensation on PARTIAL order', { cause: err }));
+              }
+            }, { isolationLevel: 'Serializable' });
           } 
           else if (['COMPLETED'].includes(providerStatus)) {
-            await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });
-            sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(err => log.error('Failed to send completion email', { cause: err }));
-            CompensationService.trackCompensation(order.id, s.charge).catch(err => log.error('Failed to track compensation on COMPLETED order', { cause: err }));
+            await db.$transaction(async (tx) => {
+              const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'COMPLETED', remains: 0 });
+              if (updated) {
+                const { LoyaltyService } = await import('../../services/users/loyalty.service');
+                await LoyaltyService.confirmCommission(tx, order.id);
+                
+                sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(err => log.error('Failed to send completion email', { cause: err }));
+                CompensationService.trackCompensation(order.id, s.charge).catch(err => log.error('Failed to track compensation on COMPLETED order', { cause: err }));
+              }
+            }, { isolationLevel: 'Serializable' });
           }
           // PENDING / PROCESSING etc -> just update remains
           else {
-            await db.order.update({ where: { id: order.id }, data: { remains: parsedRemains } });
+            await db.order.update({
+              where: { id: order.id },
+              data: { remains: parsedRemains }
+            });
           }
 
         }

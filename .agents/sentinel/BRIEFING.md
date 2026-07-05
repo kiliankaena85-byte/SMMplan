@@ -1,24 +1,25 @@
-# BRIEFING — 2026-06-25T13:26:05+03:00
+# BRIEFING — 2026-07-04T14:18:15Z
 
 ## Mission
-Expand the Smmplan Support Examples Library to an exhaustive training manual with 50+ cases using parallel researchers and legal subagents.
+Conduct an external security and business logic audit of the SMMplan project across three critical areas (promo codes/referrals, BullMQ/order lifecycle, and Ledger balances/verifier) to find real bugs, race conditions, financial leaks, and logical errors.
 
 ## 🔒 My Identity
 - Archetype: sentinel
 - Working directory: d:\SMM_plan_2\.agents\sentinel
-- Orchestrator: 4f285496-2358-4de1-a5cf-d4f08524a84f
-- Victory Auditor: fa3db7f6-4a8f-4db3-a93b-84bb7d504be3
+- Orchestrator: 82143d6c-1da8-40c1-92f0-f5e4c13f5b58
+- Victory Auditor: 20d61887-0643-4176-9180-21b746fd5394
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
 - Victory Audit is MANDATORY before reporting completion
-- Must generate 50+ unique support conflict cases across 5 categories in artifacts/smmplan_support_examples_library.md
-- Compliance script and typescript checks must pass cleanly
+- Verify balance decrement, order state progression, support ticketing with SSE, Loss Prevention, and compensation limits.
+- Find at least 3 real P0/P1 defects with code references.
+- Structure findings into R1, R2, R3 domains.
 
 ## User Context
-- **Last user request**: Expand the Smmplan Support Examples Library to 50+ unique conflict cases across 5 specific categories in artifacts/smmplan_support_examples_library.md. Ensure Dual-Core structure, no platform guilt, and passing build & compliance.
-- **Pending clarifications**: none
-- **Delivered results**: none
+- **Last user request**: Conduct security and business logic audit of SMMplan for promo codes/referral fraud, BullMQ race-to-cancel/failover, and Ledger concurrency/double rounding.
+- **Pending clarifications**: [none]
+- **Delivered results**: Security Audit Report for SMMplan (R1, R2, R3 findings verified)
 
 ## Project Status
 - **Phase**: complete
@@ -29,12 +30,6 @@ Expand the Smmplan Support Examples Library to an exhaustive training manual wit
 - **Retry count**: 0
 
 ## Artifact Index
-- d:\SMM_plan_2\ORIGINAL_REQUEST.md — Authoritative record of user requests
+- d:\SMM_plan_2\.agents\ORIGINAL_REQUEST.md — Authoritative record of user requests
 - d:\SMM_plan_2\.agents\sentinel\BRIEFING.md — My working memory
 - d:\SMM_plan_2\.agents\sentinel\handoff.md — My handoff memory
-- d:\SMM_plan_2\artifacts\smmplan_support_examples_library.md — Support examples library to be created
-- Cron 1 Task ID — d695481e-0374-41f0-aa8b-6081fa906933/task-63
-- Cron 2 Task ID — d695481e-0374-41f0-aa8b-6081fa906933/task-65
-
-
-

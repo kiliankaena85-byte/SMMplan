@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 2. Auth Route Protection
-  const protectedPaths = ['/admin', '/dashboard'];
+  const protectedPaths = ['/admin', '/dashboard', '/operator'];
   if (protectedPaths.some(p => pathname.startsWith(p))) {
     const sessionToken = request.cookies.get('session_token')?.value;
     const explicitLogout = request.cookies.get('explicit_logout')?.value;
@@ -49,8 +49,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url));
     }
 
-    // Role verification for /admin
-    if (pathname.startsWith('/admin')) {
+    // Role verification for /admin and /operator
+    if (pathname.startsWith('/admin') || pathname.startsWith('/operator')) {
       const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
       if (!payload.role || !ADMIN_ROLES.includes(payload.role)) {
         if (isRSC) {

@@ -10,7 +10,6 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
 import { WalletOps, WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
-import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
 import { handleServerError } from '@/utils/error-handler';
 import { sendOrderPaidMail } from "@/lib/smtp";
 import { getBaseUrlSync } from "@/utils/get-base-url";
@@ -18,7 +17,7 @@ import { featureFlagService } from "@/services/system/feature-flag.service";
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
-import { SignJWT } from 'jose';
+
 import { Prisma } from '@prisma/client';
 class IdempotencyConflictError extends Error {
   constructor(public existingOrder: unknown) {
@@ -605,8 +604,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     }
 
     try {
-      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
-      const gatewayResult = await gatewaySvc.createPayment({
+      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
+      await paymentGatewayQueue.add('generate-gateway-payment', {
         paymentId: result.paymentId,
         orderId: result.orderId,
         userId: user.id,
@@ -614,26 +613,17 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         email: email,
         successUrl,
         description: `Оплата заказа #${result.numericId} (сдача зачисляется на баланс)`,
-        isTestMode: isTestMode || email === 'e2e-tester@test.com'
+        isTestMode: isTestMode || email === 'e2e-tester@test.com',
+        gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
+        metadata: { type: 'checkout' }
       });
       
-      paymentUrl = gatewayResult.paymentUrl;
-      remoteGatewayId = gatewayResult.remoteGatewayId;
+      paymentUrl = `/payment-redirect?id=${result.paymentId}`;
 
-      // 7. Store the remoteGatewayId and checkoutUrl on the Payment record so Webhooks can match it and Users can resume payment
-      if (remoteGatewayId || paymentUrl) {
-        await db.payment.update({
-          where: { id: result.paymentId },
-          data: { 
-            gatewayId: remoteGatewayId || undefined,
-            checkoutUrl: paymentUrl || undefined
-          }
-        });
-      }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (gatewayErr: any) {
-      // 7.b ROLLBACK: If Gateway failed, restore PromoCode and mark Payment as ERROR safely
-      console.error('[Checkout] Gateway sequence failed, rolling back sequence', gatewayErr);
+      // 7.b ROLLBACK: If Queue push failed, restore PromoCode and mark Payment as ERROR safely
+      console.error('[Checkout] Queue sequence failed, rolling back sequence', gatewayErr);
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rollbackPromises: Promise<any>[] = [
@@ -951,9 +941,10 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     }
 
     try {
-      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
       const isTestMode = await SettingsManager.isTestMode();
-      const gatewayResult = await gatewaySvc.createPayment({
+      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
+      
+      await paymentGatewayQueue.add('generate-gateway-payment', {
         paymentId: result.paymentId,
         orderId: order.id,
         userId: order.userId,
@@ -961,18 +952,13 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         email: order.email || order.user.email,
         successUrl,
         description: `Оплата заказа #${order.numericId} (SMMplan)`,
-        isTestMode
+        isTestMode,
+        gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
+        metadata: { type: 'checkout' }
       });
 
-      paymentUrl = gatewayResult.paymentUrl;
-      remoteGatewayId = gatewayResult.remoteGatewayId;
+      paymentUrl = `/payment-redirect?id=${result.paymentId}`;
 
-      if (remoteGatewayId || paymentUrl) {
-        await db.payment.update({
-          where: { id: result.paymentId },
-          data: { gatewayId: remoteGatewayId || undefined, checkoutUrl: paymentUrl || undefined }
-        });
-      }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (gatewayErr: any) {
       console.error('[RetryCheckout] Gateway failed', gatewayErr);

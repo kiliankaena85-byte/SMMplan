@@ -45,6 +45,26 @@ export function handleServerError(error: any): LocalizedError {
     };
   }
 
+  // 1.b Wallet Balance Errors
+  if (error.name === 'WalletInsufficientFundsError') {
+    return {
+      code: 'ERR_BUSINESS_LOGIC',
+      message: `[ERR_BUSINESS_LOGIC] Недостаточно средств на балансе. Пожалуйста, пополните счет.`
+    };
+  }
+  if (error.name === 'WalletUserNotFoundError') {
+    return {
+      code: 'ERR_BUSINESS_LOGIC',
+      message: `[ERR_BUSINESS_LOGIC] Пользователь не найден. Пожалуйста, авторизуйтесь заново.`
+    };
+  }
+  if (error.name === 'WalletInvalidAmountError') {
+    return {
+      code: 'ERR_BUSINESS_LOGIC',
+      message: `[ERR_BUSINESS_LOGIC] Некорректная сумма операции.`
+    };
+  }
+
   // 2. Prisma Database Errors (Serialization / Integrity)
   if (message.includes('PrismaClientKnownRequestError') || code.startsWith('P')) {
     return {

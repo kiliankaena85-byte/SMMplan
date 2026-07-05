@@ -317,7 +317,7 @@ export class UniversalProvider implements BaseProvider {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await this.request<any>(payload);
+    const res = await this.request<any>(payload, 0);
     
     if (this.mapping && this.mapping.response) {
        const err = this.extractNested(res, this.mapping.response.errorField);
@@ -351,7 +351,7 @@ export class UniversalProvider implements BaseProvider {
 
   async refill(orderId: string | number): Promise<{ refill?: string | number; error?: string }> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await this.request<any>({ action: 'refill', order: orderId });
+    const res = await this.request<any>({ action: 'refill', order: orderId }, 0);
     if (res.error) return { error: res.error };
     return res as { refill?: string | number; error?: string };
   }

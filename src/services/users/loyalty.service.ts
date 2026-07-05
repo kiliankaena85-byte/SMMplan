@@ -70,18 +70,12 @@ export class LoyaltyService {
       }
     });
 
-    // Increment referrer's pending referral balance
-    await tx.user.update({
-      where: { id: user.referredById },
-      data: { referralBalance: { increment: commissionCents } }
-    });
-
-    // Log the event for the user
+    // Log the event for the user - status pending, balance not credited yet
     await tx.auditLog.create({
       data: {
         userId: user.referredById,
-        action: 'REFERRAL_COMMISSION',
-        details: `Получена комиссия ${percent}% (${commissionCents / 100} руб) за пополнение от привлеченного пользователя.`
+        action: 'REFERRAL_PENDING',
+        details: `Ожидается комиссия ${percent}% (${commissionCents / 100} руб) за пополнение от привлеченного пользователя.`
       }
     });
   }
@@ -101,39 +95,109 @@ export class LoyaltyService {
         where: { id: comm.id },
         data: { status: 'CONFIRMED' }
       });
-      // The amount is already in referralBalance. No need to increment it again.
-      // But we can create an audit log.
+
+      // Increment referrer's referral balance ONLY upon confirmation
+      await tx.user.update({
+        where: { id: comm.referrerId },
+        data: { referralBalance: { increment: comm.amount } }
+      });
+
       await tx.auditLog.create({
         data: {
           userId: comm.referrerId,
           action: 'REFERRAL_CONFIRMED',
-          details: `Комиссия за заказ переведена в статус подтвержденной.`
+          details: `Комиссия за заказ подтверждена и начислена: ${(Number(comm.amount) / 100).toFixed(2)} руб.`
         }
       });
     }
   }
 
   /**
-   * Reverses a pending commission if the order fails.
-   * Moves it from PENDING to REVERSED and decrements referralBalance.
+   * Partially confirms a commission proportional to the delivered quantity.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async reverseCommission(tx: any, orderId: string): Promise<void> {
+  static async handlePartialCommission(tx: any, orderId: string, remains: number, quantity: number): Promise<void> {
     const commissions = await tx.commission.findMany({
       where: { orderId, status: 'PENDING' }
     });
 
     for (const comm of commissions) {
+      if (quantity <= 0 || remains >= quantity) {
+        // If nothing was delivered or invalid numbers, reverse the entire pending commission
+        await tx.commission.update({
+          where: { id: comm.id },
+          data: { status: 'REVERSED' }
+        });
+        
+        await tx.auditLog.create({
+          data: {
+            userId: comm.referrerId,
+            action: 'REFERRAL_REVERSED',
+            details: `Комиссия отозвана полностью (0 выполненных запусков).`
+          }
+        });
+        continue;
+      }
+
+      const originalAmount = Number(comm.amount);
+      const confirmedAmount = Math.round((originalAmount * (quantity - remains)) / quantity);
+
+      if (confirmedAmount > 0) {
+        await tx.commission.update({
+          where: { id: comm.id },
+          data: { 
+            status: 'CONFIRMED',
+            amount: confirmedAmount
+          }
+        });
+
+        // Increment balance by the partial confirmed amount
+        await tx.user.update({
+          where: { id: comm.referrerId },
+          data: { referralBalance: { increment: confirmedAmount } }
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId: comm.referrerId,
+            action: 'REFERRAL_CONFIRMED',
+            details: `Комиссия за заказ подтверждена частично: ${confirmedAmount / 100} руб (оригинальная сумма: ${originalAmount / 100} руб).`
+          }
+        });
+      } else {
+        await tx.commission.update({
+          where: { id: comm.id },
+          data: { status: 'REVERSED' }
+        });
+      }
+    }
+  }
+
+  /**
+   * Reverses a pending or confirmed commission if the order fails.
+   * Moves it to REVERSED and decrements referralBalance only if it was confirmed.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static async reverseCommission(tx: any, orderId: string): Promise<void> {
+    const commissions = await tx.commission.findMany({
+      where: { orderId, status: { in: ['PENDING', 'CONFIRMED'] } }
+    });
+
+    for (const comm of commissions) {
+      const wasConfirmed = comm.status === 'CONFIRMED';
+
       await tx.commission.update({
         where: { id: comm.id },
         data: { status: 'REVERSED' }
       });
       
-      // Withdraw the amount from the referrer's referral balance
-      await tx.user.update({
-        where: { id: comm.referrerId },
-        data: { referralBalance: { decrement: comm.amount } }
-      });
+      // Only withdraw if it was already credited to the spendable balance
+      if (wasConfirmed) {
+        await tx.user.update({
+          where: { id: comm.referrerId },
+          data: { referralBalance: { decrement: comm.amount } }
+        });
+      }
 
       await tx.auditLog.create({
         data: {

@@ -395,6 +395,8 @@ class AdminCatalogService {
     if (!providerDbRecord) throw new Error('Провайдер не найден');
     if (providerDbRecord.syncLock) throw new Error('Синхронизация отключена (syncLock)');
 
+    console.log(`[DEBUG] syncProviderCatalog started. providerId: ${providerId}`);
+
     // 1. Refresh shadow catalog in database (chunked and memory-safe)
     await this.refreshShadowCatalog(providerId);
 
@@ -402,6 +404,7 @@ class AdminCatalogService {
     const ourServices = await db.service.findMany({
       where: { providerId }
     });
+    console.log(`[DEBUG] ourServices count: ${ourServices.length}, ids: ${JSON.stringify(ourServices.map(s => s.id))}`);
 
     // 3. Query only corresponding staging services from ShadowService table
     const activeExternalIds = ourServices.map(s => s.externalId).filter(Boolean) as string[];
@@ -414,6 +417,7 @@ class AdminCatalogService {
 
     // Map by externalId for fast O(1) lookup
     const stagingMap = new Map(stagingServices.map((s) => [s.externalId, s]));
+    console.log(`[DEBUG] stagingServices count: ${stagingServices.length}, keys: ${JSON.stringify(Array.from(stagingMap.keys()))}`);
 
     let zombiesDisabled = 0;
     let resurrected = 0;
@@ -434,6 +438,7 @@ class AdminCatalogService {
 
       if (!stagingExt) {
         // ZOMBIE DETECTION: Service was deleted by the provider
+        console.log(`[DEBUG] Zombie candidate: externalId=${s.externalId}, isActive=${s.isActive}`);
         if (s.isActive) {
           await db.service.update({
             where: { id: s.id },
@@ -700,7 +705,9 @@ class AdminCatalogService {
       newValue: { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches },
     });
 
-    return { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches };
+    const syncResult = { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches };
+    console.log(`[DEBUG] syncProviderCatalog finished. Result:`, syncResult);
+    return syncResult;
   }
 
   async importServices(

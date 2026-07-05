@@ -60,7 +60,10 @@ vi.mock('@/services/providers/provider.service', () => ({
     })),
     getDefaultProvider: vi.fn().mockImplementation(() => ({
       getServices: mockGetServices
-    }))
+    })),
+    getServicesWithCache: vi.fn().mockImplementation(async (config: any, providerInstance: any) => {
+      return providerInstance.getServices();
+    })
   }
 }));
 

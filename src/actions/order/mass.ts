@@ -8,7 +8,6 @@ import { marketingService } from '@/services/marketing.service';
 import { getBaseUrlSync } from "@/utils/get-base-url";
 import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
-import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SettingsManager } from '@/lib/settings';
 import { WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
@@ -333,8 +332,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       return { paymentId: payment.id };
     });
 
-    let paymentUrl: string | undefined;
-    let remoteGatewayId: string | undefined;
+    let paymentUrl = '';
     const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
@@ -362,32 +360,24 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     }
 
     try {
-      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
-      const gatewayResult = await gatewaySvc.createPayment({
+      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
+      await paymentGatewayQueue.add('generate-gateway-payment', {
         paymentId: result.paymentId,
         userId: user.id,
         amountRub: paymentAmount / 100,
         email: user.email,
         successUrl,
         description: `Массовый заказ (Payment #${result.paymentId})`,
-        isTestMode: isTestMode || user.email === 'e2e-tester@test.com'
+        isTestMode: isTestMode || user.email === 'e2e-tester@test.com',
+        gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
+        metadata: { type: 'checkout' }
       });
       
-      paymentUrl = gatewayResult.paymentUrl || '';
-      remoteGatewayId = gatewayResult.remoteGatewayId || '';
+      paymentUrl = `/payment-redirect?id=${result.paymentId}`;
 
-      if (remoteGatewayId || paymentUrl) {
-        await db.payment.update({
-          where: { id: result.paymentId },
-          data: { 
-            gatewayId: remoteGatewayId || undefined,
-            checkoutUrl: paymentUrl || undefined
-          }
-        });
-      }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (gatewayErr: any) {
-      console.error('[MassCheckout] Gateway failed', gatewayErr);
+      console.error('[MassCheckout] Queue push failed', gatewayErr);
       await db.payment.update({
         where: { id: result.paymentId },
         data: { status: 'CANCELED' }
@@ -591,7 +581,6 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     });
 
     let paymentUrl: string | undefined;
-    let remoteGatewayId: string | undefined;
     const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
@@ -618,29 +607,21 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     }
 
     try {
-      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
-      const gatewayResult = await gatewaySvc.createPayment({
+      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
+      await paymentGatewayQueue.add('generate-gateway-payment', {
         paymentId: result.paymentId,
         userId: user.id,
         amountRub: paymentAmount / 100,
         email: user.email,
         successUrl,
         description: `Массовый заказ (Payment #${result.paymentId})`,
-        isTestMode: isTestMode || user.email === 'e2e-tester@test.com'
+        isTestMode: isTestMode || user.email === 'e2e-tester@test.com',
+        gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
+        metadata: { type: 'checkout' }
       });
       
-      paymentUrl = gatewayResult.paymentUrl || '';
-      remoteGatewayId = gatewayResult.remoteGatewayId || '';
+      paymentUrl = `/payment-redirect?id=${result.paymentId}`;
 
-      if (remoteGatewayId || paymentUrl) {
-        await db.payment.update({
-          where: { id: result.paymentId },
-          data: { 
-            gatewayId: remoteGatewayId || undefined,
-            checkoutUrl: paymentUrl || undefined
-          }
-        });
-      }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (gatewayErr: any) {
       console.error('[MassCheckout] Gateway failed', gatewayErr);

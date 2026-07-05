@@ -11,10 +11,17 @@ import { db } from '@/lib/db';
  */
 export async function GET(req: NextRequest) {
   // Basic security: require CRON_SECRET token
-  const authHeader = req.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization') || '';
+  const cronSecret = process.env.CRON_SECRET || '';
+  const expectedAuth = `Bearer ${cronSecret}`;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  let isAuthorized = false;
+  if (cronSecret && authHeader.length === expectedAuth.length) {
+    const crypto = await import('crypto');
+    isAuthorized = crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth));
+  }
+
+  if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

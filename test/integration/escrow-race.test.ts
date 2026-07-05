@@ -38,21 +38,29 @@ describe('Admin Escrow Service (Security)', () => {
 
     const outcomes = await Promise.allSettled(promises);
 
-    let successCount = 0;
+    let approvedCount = 0;
+    let quarantineCount = 0;
     let failCount = 0;
 
     for (const outcome of outcomes) {
       if (outcome.status === 'fulfilled') {
-        successCount++;
+        const val = outcome.value;
+        if (val.status === 'APPROVED') {
+          approvedCount++;
+        } else if (val.status === 'QUARANTINE') {
+          quarantineCount++;
+        }
       } else {
-        // We expect P2034 (Write conflict) or standard "Daily limit exceeded" error
         failCount++;
       }
     }
 
-    // Only strictly 1 transaction should have succeeded because of Serializable Isolation
-    expect(successCount).toBe(1);
-    expect(failCount).toBe(4);
+    // With retry-capable serializable transactions, none of the executions fail due to DB conflicts.
+    // Instead, they are gracefully serialized: the first one uses the limit and gets APPROVED,
+    // and the subsequent 4 are evaluated sequentially, exceed the budget, and go to QUARANTINE.
+    expect(approvedCount).toBe(1);
+    expect(quarantineCount).toBe(4);
+    expect(failCount).toBe(0);
 
     // Verify DB State
     const checkDbUser = await db.user.findUnique({ where: { id: targetUser.id } });
@@ -60,9 +68,9 @@ describe('Admin Escrow Service (Security)', () => {
     // Admin was authorized to send 900. Only 1 request succeeded, so target balance must be 900.
     expect(Number(checkDbUser!.balance)).toBe(900);
     
-    // Furthermore, checking daily volume should confirm it is 900.
+    // Furthermore, checking daily approved volume should confirm it is 900.
     const ledgers = await db.ledgerEntry.findMany({
-      where: { adminId: adminUser.id, amount: { gt: 0 } }
+      where: { adminId: adminUser.id, amount: { gt: 0 }, status: 'APPROVED' }
     });
     
     const sum = ledgers.reduce((acc, l) => acc + Number(l.amount), 0);

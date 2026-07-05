@@ -25,9 +25,9 @@ interface Props {
 }
 
 const STATE_CONFIG: Record<FlagState, { label: string; badge: string; next: FlagState }> = {
-  ON:   { label: 'Включён', badge: 'bg-success/15 text-success border border-emerald-500/30', next: 'OFF' },
-  TEST: { label: 'Тест',    badge: 'bg-warning/15 text-warning border border-amber-500/30', next: 'ON' },
-  OFF:  { label: 'Выключен', badge: 'bg-muted text-muted-foreground border border-border', next: 'TEST' },
+  ON:   { label: 'Включён', badge: 'bg-success/15 text-success border border-emerald-500/30 font-bold shadow-sm', next: 'OFF' },
+  TEST: { label: 'Тест',    badge: 'bg-warning/15 text-warning border border-amber-500/30 font-bold shadow-sm', next: 'ON' },
+  OFF:  { label: 'Выключен', badge: 'bg-muted/60 text-muted-foreground border border-border font-medium', next: 'TEST' },
 };
 
 const GROUPS = [
@@ -59,16 +59,16 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Legend */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground bg-card border border-border rounded-xl p-4">
-        <span className="font-medium text-foreground">Состояния:</span>
-        <span className="px-2 py-0.5 rounded-full text-xs bg-success/15 text-success border border-emerald-500/30">Включён</span>
-        <span>— работает для всех клиентов</span>
-        <span className="px-2 py-0.5 rounded-full text-xs bg-warning/15 text-warning border border-amber-500/30">Тест</span>
-        <span>— только для тестовых аккаунтов</span>
-        <span className="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground border border-border">Выключен</span>
-        <span>— полностью отключён</span>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground bg-card/60 backdrop-blur-md border border-border rounded-xl p-3">
+        <span className="font-bold text-foreground">Режимы:</span>
+        <span className="px-2 py-0.5 rounded-md font-bold bg-success/15 text-success border border-emerald-500/30">Включён</span>
+        <span>для всех</span>
+        <span className="px-2 py-0.5 rounded-md font-bold bg-warning/15 text-warning border border-amber-500/30">Тест</span>
+        <span>для тестовых аккаунтов</span>
+        <span className="px-2 py-0.5 rounded-md font-medium bg-muted text-muted-foreground border border-border">Выключен</span>
+        <span>отключён</span>
       </div>
 
       {/* Groups */}
@@ -77,9 +77,9 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
         if (!groupFlags.length) return null;
 
         return (
-          <div key={group.label} className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="px-6 py-3 border-b border-border bg-muted/30">
-              <h2 className="text-sm font-semibold text-foreground">{group.label}</h2>
+          <div key={group.label} className="bg-card/60 backdrop-blur-md border border-border/60 rounded-xl overflow-hidden shadow-sm">
+            <div className="px-4 py-2 border-b border-border/60 bg-muted/40">
+              <h2 className="text-xs font-black text-foreground tracking-wide uppercase">{group.label}</h2>
             </div>
             <Table aria-label={`Группа флагов: ${group.label}`}>
               <Table.ScrollContainer>

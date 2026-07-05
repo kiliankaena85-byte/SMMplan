@@ -10,6 +10,7 @@
 
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
+import { runSerializableTransaction } from '@/lib/transactions';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -105,7 +106,7 @@ export async function setOrderStatusAction(
     if (!parsed.success) throw new Error(parsed.error.errors[0].message);
     const { orderId: validatedOrderId, status: validatedStatus, remains: validatedRemains } = parsed.data;
 
-    const result = await db.$transaction(async (tx) => {
+    const result = await runSerializableTransaction(async (tx) => {
       const order = await tx.order.findUniqueOrThrow({
         where: { id: validatedOrderId },
         include: { user: { select: { id: true, balance: true } } },
@@ -148,7 +149,7 @@ export async function setOrderStatusAction(
       }
 
       return { oldStatus, refundCents, numericId: order.numericId };
-    }, { isolationLevel: 'Serializable' });
+    });
 
     // SD-13 SECURITY FIX: Await audit for refund-bearing status override
     await auditAdminAwaitable({
@@ -173,7 +174,7 @@ export async function setOrderStatusAction(
  */
 export async function forceCompleteOrderAction(orderId: string) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
-    const result = await db.$transaction(async (tx) => {
+    const result = await runSerializableTransaction(async (tx) => {
       const order = await tx.order.findUniqueOrThrow({
         where: { id: orderId },
       });
@@ -199,7 +200,7 @@ export async function forceCompleteOrderAction(orderId: string) {
       }
 
       return { numericId: order.numericId, refundCents };
-    }, { isolationLevel: 'Serializable' });
+    });
 
     // SD-13 SECURITY FIX: Await audit for force complete with potential refund
     await auditAdminAwaitable({
@@ -238,7 +239,7 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
     for (const order of orders) {
       if (!['COMPLETED', 'CANCELED', 'ERROR'].includes(order.status)) {
         try {
-          await db.$transaction(async (tx) => {
+          await runSerializableTransaction(async (tx) => {
             // Re-fetch inside transaction to ensure isolation
             const safeOrder = await tx.order.findUnique({
               where: { id: order.id }
@@ -263,7 +264,7 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
             }
             totalRefunded += refundCents;
             count++;
-          }, { isolationLevel: 'Serializable' });
+          });
 
           CompensationService.trackCompensation(order.id).catch(err => console.error('[Orders] Failed to track compensation', err));
         } catch (e) {
@@ -362,7 +363,7 @@ export async function getFailoverPreview(orderId: string) {
 
 export async function manualRerouteOrder(orderId: string, newRouteId: string) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
-    const result = await db.$transaction(async (tx) => {
+    const result = await runSerializableTransaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
         select: { id: true, numericId: true, status: true, charge: true, userId: true, serviceId: true, providerId: true }
@@ -442,7 +443,7 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
       });
 
       return { numericId: order.numericId, newProviderId: newRoute.providerId };
-    }, { isolationLevel: 'Serializable' });
+    });
 
     // После транзакции — отправка в BullMQ
     const jobId = `dispatch-${orderId}`;

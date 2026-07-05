@@ -1,10 +1,11 @@
 import { Provider } from '@prisma/client';
-import { BaseProvider } from './base-provider';
+import { BaseProvider, ProviderServiceDto } from './base-provider';
 import { getBaseUrlAsync } from '@/utils/get-base-url';
 import { db } from '@/lib/db';
 import { SettingsManager } from '@/lib/settings';
 import { UniversalProvider } from './universal.provider';
 import { VaultService } from '@/lib/vault';
+import { redis } from '@/lib/redis';
 
 export class ProviderService {
   /**
@@ -24,6 +25,39 @@ export class ProviderService {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, config.metadata as any);
+  }
+
+  /**
+   * Retrieves services from the provider, utilizing a Redis cache (24-hour expiration)
+   * unless forceRefresh is true.
+   */
+  async getServicesWithCache(
+    config: Provider,
+    providerInstance: BaseProvider,
+    forceRefresh = false
+  ): Promise<ProviderServiceDto[]> {
+    const cacheKey = `provider:${config.id}:catalog`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached) as ProviderServiceDto[];
+        }
+      } catch (err) {
+        console.warn(`[Redis Cache] Failed to read ${cacheKey}:`, err);
+      }
+    }
+
+    const rawServices = await providerInstance.getServices();
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(rawServices), 'EX', 24 * 60 * 60);
+    } catch (err) {
+      console.warn(`[Redis Cache] Failed to write ${cacheKey}:`, err);
+    }
+
+    return rawServices;
   }
 
   /**

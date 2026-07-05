@@ -59,16 +59,7 @@ describe('User Account Soft-Deletion Flow', () => {
       create: { id: 'global', isTestMode: true },
     });
 
-    // Clean up
-    await db.rateLimit.deleteMany();
-    await db.session.deleteMany();
-    await db.authToken.deleteMany();
-    await db.order.deleteMany();
-    await db.payment.deleteMany();
-    await db.ledgerEntry.deleteMany();
-    await db.auditLog.deleteMany();
-    await db.commission.deleteMany();
-    await db.user.deleteMany();
+
 
     const category = await db.category.create({
       data: { name: 'Deletion Test Category' },

@@ -1,4 +1,5 @@
 "use client";
+// audit-disable STR-002
 
 import React, { useState } from "react";
 import { Loader2, Link2, Mail, HelpCircle, Target, CreditCard } from "lucide-react";

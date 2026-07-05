@@ -26,6 +26,7 @@ export async function generateMetadata({ params }: PageProps) {
   return {
     title: post.metaTitle || post.title,
     description: post.metaDescription || "",
+    alternates: { canonical: `/p/${resolvedParams.slug}` },
     openGraph: {
       title: post.metaTitle || post.title,
       images: post.coverImage ? [post.coverImage] : [],

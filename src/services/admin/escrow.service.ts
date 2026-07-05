@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { runSerializableTransaction } from '@/lib/transactions';
 import { WalletOps } from '../financial/wallet-ops';
 import { auditAdmin } from '@/lib/admin-audit';
 import { sendAdminAlert } from '@/lib/notifications';
@@ -43,8 +44,26 @@ export class EscrowService {
   ) {
     const isOwnerOrAdmin = admin.role === 'OWNER' || admin.role === 'ADMIN';
 
-    // 2. Owners and Admins bypass all Escrow trust limits
+    // 2. Owners and Admins bypass all Escrow trust limits except for extreme anomalies (e.g. > 100k RUB)
     if (isOwnerOrAdmin) {
+      const ANOMALOUS_LIMIT_CENTS = 10000000; // 100,000 RUB
+      if (amountCents > ANOMALOUS_LIMIT_CENTS) {
+        await db.$transaction(async (tx) => {
+          await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+        });
+
+        // Trigger critical alert for Owner/Admin anomalous action
+        try {
+          sendAdminAlert(
+            `🚨 [ANOMALY DETECTED] Администратор ${admin.email} (${admin.role}) попытался вручную начислить крупную сумму: ${(amountCents/100).toFixed(2)} ₽.\n` +
+            `Операция заблокирована и отправлена в карантин на согласование!`,
+            'CRITICAL'
+          );
+        } catch { /* ignore */ }
+
+        return { status: 'QUARANTINE' as const };
+      }
+
       await this.executeApprovedAdjustment(targetUserId, amountCents, reason, admin);
       return { status: 'APPROVED' as const };
     }
@@ -58,7 +77,7 @@ export class EscrowService {
 
       if (absAmount > LARGE_DEDUCTION_THRESHOLD) {
         try {
-          return await db.$transaction(async (tx) => {
+          return await runSerializableTransaction(async (tx) => {
             const largeDeductionsToday = await tx.ledgerEntry.count({
               where: {
                 adminId: admin.id,
@@ -76,10 +95,9 @@ export class EscrowService {
             // Отправляем крупное списание в Карантин (требует аппрува Владельца)
             await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
             return { status: 'QUARANTINE' as const };
-          }, { isolationLevel: 'Serializable' });
+          });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
-          if (error.code === 'P2034') throw new Error("Транзакция отклонена: Баланс пользователя изменяется в данный момент.", { cause: error });
           throw error;
         }
       }
@@ -93,7 +111,7 @@ export class EscrowService {
     // 3. To prevent state-bypass (race conditions), we must evaluate and execute 
     // the trust budget check atomically using Serializable isolation.
     try {
-      return await db.$transaction(async (tx) => {
+      return await runSerializableTransaction(async (tx) => {
         const dailyAdjustments = await tx.ledgerEntry.aggregate({
           _sum: { amount: true },
           where: {
@@ -112,12 +130,9 @@ export class EscrowService {
 
         await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
         return { status: 'APPROVED' as const };
-      }, { isolationLevel: 'Serializable' });
+      });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      if (error.code === 'P2034') {
-        throw new Error("Транзакция отклонена: Баланс пользователя изменяется в данный момент. Повторите попытку.", { cause: error });
-      }
       throw error;
     }
   }
@@ -128,9 +143,9 @@ export class EscrowService {
     reason: string,
     admin: AdminContext
   ) {
-    return db.$transaction(async (tx) => {
+    return runSerializableTransaction(async (tx) => {
       return await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
-    }, { isolationLevel: 'Serializable' });
+    });
   }
 
   private async executeApprovedAdjustmentTx(
@@ -249,7 +264,7 @@ export class EscrowService {
     const ip = ipAddress || (await getClientIp('unknown'));
     // Atomic check-and-update: only proceed if status is still QUARANTINE.
     // This prevents the race condition where two Owners click Approve simultaneously.
-    await db.$transaction(async (tx) => {
+    await runSerializableTransaction(async (tx) => {
       const updatedEntries = await tx.ledgerEntry.updateMany({
         where: { id: entryId, status: 'QUARANTINE' },
         data: { status: resolution },

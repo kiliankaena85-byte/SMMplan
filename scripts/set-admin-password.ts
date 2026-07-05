@@ -5,6 +5,12 @@ import { hashPassword } from "../src/lib/auth/password";
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    console.error("Error: Running this script in production is strictly forbidden.");
+    process.exitCode = 1;
+    return;
+  }
+
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
     options: {

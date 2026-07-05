@@ -29,12 +29,16 @@ export default defineConfig({
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
+      use: {
+        channel: 'chrome',
+      },
     },
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/playwright/.auth/user.json',
+        channel: 'chrome',
       },
       dependencies: ['setup'],
     },

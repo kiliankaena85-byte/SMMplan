@@ -6,7 +6,7 @@ export async function getBaseUrlAsync(reqHost?: string | null, reqProto?: string
   const envUrl = process.env.WEBAPP_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
 
   // 1. If we have a valid public URL in env, use it.
-  if (envUrl && !envUrl.includes("0.0.0.0") && !envUrl.includes("127.0.0.1")) {
+  if (envUrl && !envUrl.includes("0.0.0.0") && !envUrl.includes("127.0.0.1") && !envUrl.includes("localhost")) {
     return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
   }
 
@@ -43,7 +43,7 @@ export async function getBaseUrlAsync(reqHost?: string | null, reqProto?: string
 export function getBaseUrlSync(reqHost?: string | null, reqProto?: string | null): string {
   const envUrl = process.env.WEBAPP_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
 
-  if (envUrl && !envUrl.includes("0.0.0.0") && !envUrl.includes("127.0.0.1")) {
+  if (envUrl && !envUrl.includes("0.0.0.0") && !envUrl.includes("127.0.0.1") && !envUrl.includes("localhost")) {
     return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
   }
 

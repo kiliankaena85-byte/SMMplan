@@ -294,4 +294,37 @@ Integrity mode: benchmark
 ### 6. Deliverables
 - Markdown-отчёт со всеми дефектами (severity + скриншоты до/после + файл:строка)
 - Код-фиксы всех P0 и P1 дефектов
-- `npm run lint` = 0 errors, `npx tsc --noEmit` = clean
+- [ ] `npm run lint` = 0 errors, `npx tsc --noEmit` = clean
+
+## Follow-up — 2026-07-03T21:27:12Z
+
+The goal is to test and verify all critical user flows of SMMplan in the local production environment (http://localhost:3000) using a browser-driven agent. The agent will interact with the real site, verify SSE connections, support limits, and Loss Prevention guards, producing screenshots and videos for visual proof.
+
+Working directory: d:/SMM_plan_2
+Integrity mode: development
+
+## Requirements
+
+### R1. Client Registration & Ordering Flow
+- Register a new client user at http://localhost:3000/login (or signup page).
+- Log in, navigate the cabinet, and place a new order using one of the imported Vexboost services (Instagram or Telegram).
+- Verify the balance decrement and order state progression (should become PENDING/IN_PROGRESS).
+
+### R2. Ticket Support & SSE Flow
+- Create a support ticket as the client user.
+- Log in as the support operator (support@smmplan.test / SupportPassword2026!).
+- Access the operator tickets workspace at http://localhost:3000/operator/tickets.
+- Send a reply and verify real-time message delivery (via SSE) and change ticket status to CLOSED.
+
+### R3. Loss Prevention & Support Limits Verification
+- As support operator, attempt to cancel an active order (IN_PROGRESS) whose service has `isCancelEnabled = false`. Verify that the cancellation is blocked and the specific warning message is displayed.
+- Verify support compensation limit guards (e.g. attempting to refund beyond daily support limits is blocked).
+
+## Acceptance Criteria
+
+### Visual Evidence & Reporting
+- Save browser videos (WebP) or screenshots of the user flow steps into the artifacts directory.
+- Verify client ordering decrements balance correctly.
+- Verify support operator sees the ticket and reply is sent successfully.
+- Verify Loss Prevention error message appears upon active order cancellation attempt by SUPPORT.
+- Produce a structured markdown walkthrough report summarizing the verification status of all tested flows.

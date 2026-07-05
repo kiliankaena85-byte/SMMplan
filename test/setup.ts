@@ -35,10 +35,12 @@ vi.mock('@/services/system/feature-flag.service', () => {
 });
 
 // Mock ioredis globally to prevent attempting actual Redis connections during tests
+export const mockRedisStore = new Map<string, any>();
+
 vi.mock('ioredis', () => {
   class MockRedis {
     status = 'ready';
-    store = new Map<string, any>();
+    store = mockRedisStore;
     constructor() {}
     on = vi.fn().mockReturnThis();
     get = vi.fn().mockImplementation(async (key: string) => this.store.get(key) ?? null);
@@ -224,25 +226,42 @@ beforeAll(async () => {
     );
   }
 
-  // Terminate other active connections to avoid lock-wait deadlocks with zombie connections
-  /*
-  try {
-    await db.$executeRawUnsafe(`
-      SELECT pg_terminate_backend(pid) 
-      FROM pg_stat_activity 
-      WHERE datname = current_database() 
-        AND pid <> pg_backend_pid();
-    `);
-  } catch (err) {
-    // Ignore errors if the database is in a state where pg_stat_activity isn't queried or user lacks permission
-  }
-  */
+  // Terminate other active connections disabled to prevent killing current Prisma Client pool connection sessions
 
   // Provide test encryption key so EncryptionService doesn't fail
   process.env.APP_ENCRYPTION_KEY = '0000000000000000000000000000000000000000000000000000000000000000';
   
   // Use the default Docker port for Redis
   process.env.REDIS_URL = 'redis://127.0.0.1:6379';
+
+  // Patch block_ledger_mutation trigger function to use IS NOT DISTINCT FROM for nullable fields
+  try {
+    await db.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION block_ledger_mutation()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        IF (TG_OP = 'UPDATE' AND OLD.status = 'QUARANTINE') THEN
+          -- Strict security check: only the "status" field may change
+          IF (NEW.id = OLD.id AND
+              NEW."userId" = OLD."userId" AND
+              NEW."adminId" IS NOT DISTINCT FROM OLD."adminId" AND
+              NEW.amount = OLD.amount AND
+              NEW.reason = OLD.reason AND
+              NEW."idempotencyKey" IS NOT DISTINCT FROM OLD."idempotencyKey" AND
+              NEW."transactionType" = OLD."transactionType" AND
+              NEW."createdAt" = OLD."createdAt") THEN
+            RETURN NEW;
+          ELSE
+            RAISE EXCEPTION 'Financial Ledger is immutable. When status is QUARANTINE, only status updates are permitted.';
+          END IF;
+        END IF;
+        RAISE EXCEPTION 'Financial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.';
+      END;
+      $$ LANGUAGE plpgsql;
+    `);
+  } catch (err) {
+    console.error('[setup.ts] Failed to patch block_ledger_mutation function:', err);
+  }
   
   // Mock external fetch to avoid real network requests to YooKassa/CryptoBot
   vi.stubGlobal('fetch', vi.fn());
@@ -261,20 +280,23 @@ async function sleep(ms: number) {
 
 async function resetTestDb() {
   const MAX_RETRIES = 3;
+  const ALL_TABLES = [
+    'LedgerEntry', 'UrlPattern', 'StaffPermission', 'Refill', 'AnalyticsEvent', 'AdminAuditLog',
+    'StaffRole', 'User', 'AuthToken', 'ContentCategory', 'SystemSettings', 'B2bConfig',
+    'SecurityEvent', 'PromoCodeUsage', 'SmartSnapshot', 'Payment', 'Session', 'MessageAttachment',
+    'ShadowService', 'RoutingAuditLog', 'SmartDetectedUser', 'SmartChannelMetric', 'SupportTemplate',
+    'ContentItem', 'SmartExecution', 'SystemSetting', 'Page', 'Service', 'ServicePriceHistory',
+    'Network', 'Commission', 'Ticket', 'TicketMessage', 'PromoCode', 'Order', 'UserNote',
+    'Article', 'ServiceRoute', 'SmartCampaign', 'RateLimit', 'ServiceSmartConfig', 'FeatureFlag',
+    'Provider', 'AuditLog', 'Category', 'SmartTask', 'LoginLog', 'Invoice'
+  ];
+  const tables = ALL_TABLES.map(t => `"${t}"`).join(', ');
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const tablenames = await db.$queryRaw<Array<{ tablename: string }>>`
-        SELECT tablename FROM pg_tables WHERE schemaname=current_schema() AND tablename != '_prisma_migrations';
-      `;
-      
-      const tables = tablenames
-          .map(({ tablename }) => `"${tablename}"`)
-          .join(', ');
+      // Terminate other connections disabled to prevent killing current Prisma Client pool connection sessions
 
-      if (tables.length > 0) {
-        await db.$executeRawUnsafe(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE;`);
-      }
+      await db.$executeRawUnsafe(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE;`);
 
       // Pre-create singleton settings to avoid P2002 race conditions in getCached
       await db.systemSettings.upsert({
@@ -316,6 +338,7 @@ async function resetTestDb() {
 }
 
 beforeEach(async () => {
+  mockRedisStore.clear();
   let shouldReset = true;
   try {
     const testPath = expect.getState().testPath;

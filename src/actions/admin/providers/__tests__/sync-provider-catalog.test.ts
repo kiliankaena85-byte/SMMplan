@@ -22,7 +22,10 @@ vi.mock('@/services/providers/provider.service', () => ({
     })),
     getDefaultProvider: vi.fn().mockImplementation(() => ({
       getServices: mockGetServices
-    }))
+    })),
+    getServicesWithCache: vi.fn().mockImplementation(async (config: any, providerInstance: any) => {
+      return providerInstance.getServices();
+    })
   }
 }));
 
@@ -34,19 +37,6 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
   let serviceB: any;
 
   beforeEach(async () => {
-    // 1. Clean database tables
-    await db.ledgerEntry.deleteMany().catch(() => {});
-    await db.payment.deleteMany().catch(() => {});
-    await db.order.deleteMany().catch(() => {});
-    await db.serviceRoute.deleteMany().catch(() => {});
-    await db.routingAuditLog.deleteMany().catch(() => {});
-    await db.adminAuditLog.deleteMany().catch(() => {});
-    await db.service.deleteMany().catch(() => {});
-    await db.category.deleteMany().catch(() => {});
-    await db.network.deleteMany().catch(() => {});
-    await db.provider.deleteMany().catch(() => {});
-    await db.user.deleteMany().catch(() => {});
-
     // 2. Setup systemSettings with exchange rates
     await db.systemSettings.upsert({
       where: { id: 'global' },

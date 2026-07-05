@@ -50,16 +50,15 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let rawBody: Record<string, any>;
 
+    if (!providedSignature && process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Signature required' }, { status: 401 });
+    }
+
     if (providedSignature) {
-      let webhookSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
+      const webhookSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
       if (!webhookSecret) {
-        // Only allow hardcoded secret during actual unit tests, not development/preview
-        if (process.env.NODE_ENV === 'test') {
-          webhookSecret = 'test_webhook_secret_key_123456';
-        } else {
-          console.error('[CRITICAL] YOOKASSA_WEBHOOK_SECRET is not set, but signature header is present.');
-          return NextResponse.json({ error: 'Webhook signature validation not configured' }, { status: 500 });
-        }
+        console.error('[CRITICAL] YOOKASSA_WEBHOOK_SECRET is not set.');
+        return NextResponse.json({ error: 'Webhook signature validation not configured' }, { status: 500 });
       }
 
       const rawText = await req.text();
@@ -139,6 +138,19 @@ export async function POST(req: NextRequest) {
 
       if (!userId || !gatewayId) {
         return NextResponse.json({ error: 'Missing userId or gatewayId in metadata' }, { status: 400 });
+      }
+
+      // Early status checking on the DB payment model to ensure idempotency and prevent double-credit
+      let existingPayment = null;
+      if (internalPaymentId) {
+        existingPayment = await db.payment.findUnique({ where: { id: internalPaymentId } });
+      }
+      if (!existingPayment && gatewayId) {
+        existingPayment = await db.payment.findUnique({ where: { gatewayId } });
+      }
+      if (existingPayment && existingPayment.status === 'SUCCEEDED') {
+        console.info(`[YooKassa Webhook] Payment ${existingPayment.id} already processed (idempotency hit)`);
+        return NextResponse.json({ success: true, status: 'Payment processed strictly (idempotent)' }, { status: 200 });
       }
 
       // Safe confirmation using Double-Check Logic (forces double-check in prod regardless of isTestMode)

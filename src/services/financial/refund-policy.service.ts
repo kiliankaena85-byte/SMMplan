@@ -18,6 +18,18 @@ export class RefundPolicyService {
       return null;
     }
 
+    // Process referral commission adjustments
+    try {
+      const { LoyaltyService } = await import('../users/loyalty.service');
+      if (order.status === 'CANCELED' || order.status === 'ERROR') {
+        await LoyaltyService.reverseCommission(txClient, order.id);
+      } else if (order.status === 'PARTIAL') {
+        await LoyaltyService.handlePartialCommission(txClient, order.id, order.remains, order.quantity);
+      }
+    } catch (err: any) {
+      console.error(`[RefundPolicyService] Failed to process referral commission for order ${order.id}:`, err.message);
+    }
+
     let refundCents = 0;
     let reason = `Возврат Заказ #${order.id}`;
 

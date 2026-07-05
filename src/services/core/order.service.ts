@@ -6,6 +6,7 @@ import { WalletService } from '../financial/wallet.service';
 import { WalletOps } from '../financial/wallet-ops';
 import { calculatePartialRefund } from '@/utils/refund';
 import { CompensationService } from '@/services/financial/compensation.service';
+import { runSerializableTransaction } from '@/lib/transactions';
 
 import { ordersQueue } from '../../workers/queues';
 
@@ -47,7 +48,7 @@ class OrderService {
       const isDripFeed = input.runs ? input.runs > 1 : false;
 
       // 2. Atomic Charge & Creation (Prevents Ghost Deductions)
-      const newOrder = await db.$transaction(async (tx) => {
+      const newOrder = await runSerializableTransaction(async (tx) => {
         // 2a. Unconditionally attempt charge (Double spreading & Race condition protected)
         await WalletOps.charge(
           tx,
@@ -111,7 +112,7 @@ class OrderService {
         }
 
         return createdOrder;
-      }, { isolationLevel: 'Serializable' });
+      });
 
       // 3. Dispatch to Queues (Drip-feed is now passed natively to the provider)
       try {
@@ -153,7 +154,7 @@ class OrderService {
    */
   async cancelPendingOrderClient(orderId: string, userId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      return await db.$transaction(async (tx) => {
+      return await runSerializableTransaction(async (tx) => {
         const order = await tx.order.findUnique({
           where: { id: orderId }
         });
@@ -210,7 +211,7 @@ class OrderService {
         });
 
         return { success: true };
-      }, { isolationLevel: 'Serializable' });
+      });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[OrderService] cancelPendingOrderClient failed:', e.message);
@@ -246,7 +247,7 @@ class OrderService {
       }
 
       // 2. Run Atomic Transaction
-      return await db.$transaction(async (tx) => {
+      return await runSerializableTransaction(async (tx) => {
         const order = await tx.order.findFirst({
           where: { externalId },
           include: { user: true }
@@ -321,7 +322,7 @@ class OrderService {
         }
 
         return { success: true, orderId: order.id, status: internalStatus };
-      }, { isolationLevel: 'Serializable' });
+      });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
@@ -336,7 +337,7 @@ class OrderService {
    */
   async failOrderTerminal(orderId: string, reason: string, isRawReason: boolean = false): Promise<void> {
     try {
-      const txResult = await db.$transaction(async (tx) => {
+      const txResult = await runSerializableTransaction(async (tx) => {
         const order = await tx.order.findUnique({
           where: { id: orderId },
           include: { user: true, service: true }
@@ -378,7 +379,7 @@ class OrderService {
           numericId: order.numericId.toString(),
           serviceName: order.service?.name
         };
-      }, { isolationLevel: 'Serializable' });
+      });
 
       // Email Notification for Failed/Canceled
       if (txResult?.email && txResult?.serviceName) {
@@ -419,7 +420,7 @@ class OrderService {
    */
   async failOrderTerminalFast(orderId: string, reason: string): Promise<void> {
     try {
-      const txResult = await db.$transaction(async (tx) => {
+      const txResult = await runSerializableTransaction(async (tx) => {
         const order = await tx.order.findUnique({
           where: { id: orderId },
           include: { user: true, service: true }
@@ -465,7 +466,7 @@ class OrderService {
           serviceName: order.service?.name || 'Неизвестная услуга',
           email: order.user?.email
         };
-      }, { isolationLevel: 'Serializable' });
+      });
 
       // 4. Fire-and-forget notifications (outside transaction)
       if (txResult) {

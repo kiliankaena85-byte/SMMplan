@@ -116,17 +116,62 @@ bot.start(async (ctx: any) => {
               data: { userId: webUserId }
             });
             
-            // Merge other relational tables
+            // Merge other relational tables (excluding LedgerEntries because of block trigger)
             await tx.order.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
             await tx.payment.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
-            await tx.ledgerEntry.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
             await tx.invoice.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
             await tx.auditLog.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
             
-            // Delete temp user if it's a pure bot stub
+            // 1.5. Balance Transfer to preserve financial integrity and keep ledger immutable
+            if (tempUser.balance > BigInt(0)) {
+              const amount = Number(tempUser.balance);
+              const reasonDebit = `Списание баланса при авто-слиянии Telegram ${tempUser.email} с ${webUserId}`;
+              const reasonCredit = `Перенос баланса со старого аккаунта Telegram ${tempUser.email}`;
+              
+              // Debit tempUser
+              await tx.user.update({
+                where: { id: tempUser.id },
+                data: { balance: BigInt(0) }
+              });
+              await tx.ledgerEntry.create({
+                data: {
+                  userId: tempUser.id,
+                  amount: -amount,
+                  reason: reasonDebit,
+                  status: 'APPROVED',
+                  transactionType: 'PAYMENT',
+                  idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}`
+                }
+              });
+
+              // Credit webUser
+              await tx.user.update({
+                where: { id: webUserId },
+                data: { balance: { increment: amount } }
+              });
+              await tx.ledgerEntry.create({
+                data: {
+                  userId: webUserId,
+                  amount: amount,
+                  reason: reasonCredit,
+                  status: 'APPROVED',
+                  transactionType: 'COMPENSATION',
+                  idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}`
+                }
+              });
+            }
+
+            // Deactivate and archive the temp user instead of deleting, because of onDelete: Restrict on LedgerEntry
             if (tempUser.email.startsWith('tg_')) {
-              // Delete dependencies first if needed, but tickets are moved, sessions deleted by cascade
-              await tx.user.delete({ where: { id: tempUser.id } });
+              await tx.user.update({
+                where: { id: tempUser.id },
+                data: {
+                  isActive: false,
+                  isDeleted: true,
+                  telegramId: null,
+                  email: `merged_tg_${tempUser.id}@smmplan.stub`
+                }
+              });
             } else {
               await tx.user.update({ where: { id: tempUser.id }, data: { telegramId: null } });
             }

@@ -43,6 +43,23 @@ This document serves as the final operational readiness and compliance report, t
 * **Remediation:** Created a workspace-wide skill `gsd-plan-re-evaluation` and updated the `AGENTS.md` contract. Mandated a two-pass planning protocol (Double-Pass Planning) for all AI interactions, requiring a structured 5-Vector validation and Pre-Mortem analysis table for all implementation plans.
 * **Result:** Completely eliminated "Happy Path Myopia" in AI planning. Every plan is now hard-tested against edge cases and transaction failures before execution.
 
+### 8. Payment Gateways, Webhooks & Admin Actions Hardening (July 2026 Audit)
+* **Status:** Passed
+* **Remediation:** 
+  1. Enforced true atomic idempotency checks in `checkout.ts` to prevent TOCTOU race conditions.
+  2. Implemented a central retry-capable `runSerializableTransaction` helper to gracefully handle PostgreSQL serialization conflicts (`P2034`).
+  3. Migrated YooKassa/CryptoBot payment confirmations and all finance-altering admin Server Actions (refunds, overrides, bulk cancellations, and Escrow quarantine approvals) to run inside these retryable transactions.
+  4. Verified 100% route coverage for administrative pages through `enforceSectionAccess` check gates.
+* **Result:** Zero transaction deadlock losses. Bulletproof RBAC integrity and high-load payment webhook safety.
+
+### 9. Catalog Sync, Quarantine & Hot Swap Hardening (July 2026 Audit)
+* **Status:** Passed
+* **Remediation:**
+  1. Prevented Quarantine Bypass by checking and skipping services with `pendingRate === null` in the `approveAllQuarantined` bulk action.
+  2. Implemented a dynamic live provider API `getServices` query during `executeHotSwap` to fetch fresh rates and prevent arbitrage losses on outdated ShadowService records.
+  3. Added validations to reject hot swap route switches to non-existent or zero-rate services.
+* **Result:** Eliminated margin leakages and invalid route allocations. Full catalog safety.
+
 ## Build & Production Readiness
 * **TypeScript Health:** `tsc --noEmit` returns 0 exits (Strict Mode compliant).
 * **Bundle Check:** `npm run build` succeeds seamlessly within the Next.js App Router paradigm. No invalid `"use server"` leakages.

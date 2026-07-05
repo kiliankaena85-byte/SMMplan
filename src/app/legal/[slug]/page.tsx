@@ -20,6 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: post.metaTitle || post.title,
     description: post.metaDescription || "",
+    alternates: { canonical: `/legal/${resolvedParams.slug}` },
   };
 }
 

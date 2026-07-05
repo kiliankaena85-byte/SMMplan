@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { db } from '../../src/lib/db';
 import { adminMarketingService } from '../../src/services/admin/marketing.service';
-import { logPromoCodeUsageIfNeeded } from '../../src/services/marketing.service';
+import { logPromoCodeUsageIfNeeded } from '../../src/services/marketing-utils';
 
 describe('Smmplan Ads Analytics Module Tests', () => {
   it('should create promo codes with UTM tags, budget, isSuspicious and map BigInt values to number in listPromoCodes', async () => {

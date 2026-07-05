@@ -19,6 +19,9 @@ export enum IntelligencePlatform {
   FACEBOOK = 'FACEBOOK',
   THREADS = 'THREADS',
   MAX = 'MAX',
+  STEAM = 'STEAM',
+  WIBES = 'WIBES',
+  TROVO = 'TROVO',
   OTHER = 'OTHER'
 }
 
@@ -292,6 +295,51 @@ export const LINK_RULES: LinkRule[] = [
       pattern: /(?:max\.ru)\/([\w_.-]+)/i,
       suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.BOTS],
       context: 'networking'
+  },
+  // ===================== STEAM =====================
+  {
+      platform: IntelligencePlatform.STEAM,
+      type: 'post',
+      pattern: /steamcommunity\.com\/sharedfiles\/filedetails\/\?id=(\d+)/i,
+      suggestedCategories: [CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.LIKES],
+      context: 'social_reach'
+  },
+  {
+      platform: IntelligencePlatform.STEAM,
+      type: 'profile',
+      pattern: /steamcommunity\.com\/(?:id\/([\w.-]+)|profiles\/(\d+))/i,
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS],
+      context: 'networking'
+  },
+  // ===================== WIBES =====================
+  {
+      platform: IntelligencePlatform.WIBES,
+      type: 'post',
+      pattern: /wibes\.ru\/[\w.-]+\/([\w.-]+)/i,
+      suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
+      context: 'social_reach'
+  },
+  {
+      platform: IntelligencePlatform.WIBES,
+      type: 'profile',
+      pattern: /wibes\.ru\/([\w.-]+)/i,
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+      context: 'networking'
+  },
+  // ===================== TROVO =====================
+  {
+      platform: IntelligencePlatform.TROVO,
+      type: 'live',
+      pattern: /trovo\.live\/([\w.-]+)\/(\d+)/i,
+      suggestedCategories: [CATEGORY_LABELS.STREAMS],
+      context: 'live_stream'
+  },
+  {
+      platform: IntelligencePlatform.TROVO,
+      type: 'channel',
+      pattern: /trovo\.live\/([\w.-]+)/i,
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS],
+      context: 'streaming_growth'
   },
   // ===================== FALLBACK WEBSITE =====================
   {

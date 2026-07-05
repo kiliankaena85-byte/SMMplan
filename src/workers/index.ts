@@ -32,6 +32,7 @@ import { runCleanup, runOrphanSweep } from './processors/cleanup.processor';
 import { runETARecalculation } from './processors/eta.processor';
 import catalogProcessor from './processors/catalog.processor';
 import paymentSyncProcessor from './processors/payment-sync';
+import paymentGatewayProcessor from './processors/payment-gateway.processor';
 import refillProcessor from './processors/refill.processor';
 import articlePublishProcessor from './processors/article-publish.processor';
 import { orderService } from '../services/core/order.service';
@@ -70,6 +71,7 @@ const telegramWorker = new Worker('telegram-notifications', async (job) => {
 });
 const etaWorker = new Worker('eta-recalc', async () => { await runETARecalculation(); }, workerConfig);
 const paymentSyncWorker = new Worker('paymentSyncQueue', paymentSyncProcessor, workerConfig);
+const paymentGatewayWorker = new Worker('paymentGatewayQueue', paymentGatewayProcessor, workerConfig);
 const refillWorker = new Worker('refillQueue', refillProcessor, workerConfig);
 const articlePublishWorker = new Worker('articlePublishQueue', articlePublishProcessor, workerConfig);
 
@@ -148,6 +150,7 @@ catalogWorker.on('failed', (job, err) => { handleDeadLetter('catalogQueue', job,
 cleanupWorker.on('failed', (job, err) => { log.error('Cleanup job failed', { error: err.message }); });
 telegramWorker.on('failed', (job, err) => { log.error('Telegram notification failed', { error: err.message }); });
 paymentSyncWorker.on('failed', (job, err) => { handleDeadLetter('paymentSyncQueue', job, err); });
+paymentGatewayWorker.on('failed', (job, err) => { handleDeadLetter('paymentGatewayQueue', job, err); });
 refillWorker.on('failed', (job, err) => { handleDeadLetter('refillQueue', job, err); });
 articlePublishWorker.on('failed', (job, err) => { handleDeadLetter('articlePublishQueue', job, err); });
 etaWorker.on('failed', (job, err) => {
@@ -200,6 +203,7 @@ const shutdown = async () => {
     telegramWorker.close(),
     etaWorker.close(),
     paymentSyncWorker.close(),
+    paymentGatewayWorker.close(),
     articlePublishWorker.close(),
   ]);
   await db.$disconnect();

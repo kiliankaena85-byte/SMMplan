@@ -66,7 +66,7 @@ class AnalyticsService {
       let cogs = Number(order.providerCost);
 
       if (order.quantity > 0) {
-        const deliveredQty = order.quantity - order.remains;
+        const deliveredQty = Math.max(0, order.quantity - order.remains);
         revenue = Math.round((deliveredQty / order.quantity) * Number(order.charge));
         cogs = Math.round((deliveredQty / order.quantity) * Number(order.providerCost));
       } else if (order.status === 'CANCELED') {

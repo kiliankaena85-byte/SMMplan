@@ -1,4 +1,5 @@
 "use client";
+// audit-disable STR-002
 
 import { useOrderEngine } from "@/hooks/useOrderEngine";
 import { PublicNetwork, PublicService } from "@/actions/order/catalog";

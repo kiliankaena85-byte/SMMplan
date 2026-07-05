@@ -142,6 +142,25 @@ export const refillQueue = createQueue<RefillJobPayload>('refillQueue', {
   }
 });
 
+// Payment Gateway async generation queue payload
+export interface PaymentGatewayJobPayload {
+  paymentId: string;
+  orderId?: string;
+  userId: string;
+  amountRub: number;
+  email: string | null;
+  successUrl: string;
+  description: string;
+  isTestMode: boolean;
+  gateway: 'yookassa' | 'cryptobot' | 'robokassa';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata?: any;
+}
+export const paymentGatewayQueue = createQueue<PaymentGatewayJobPayload>('paymentGatewayQueue', {
+  attempts: 3,
+  backoff: { type: 'exponential', delay: 2000 }
+});
+
 // Article publishing queue payload (empty for cron tick)
 export interface ArticlePublishJobPayload {
   timestamp: number;
@@ -286,6 +305,7 @@ export const closeQueues = async () => {
     await cleanupQueue.close();
     await telegramQueue.close();
     await etaQueue.close();
+    await paymentGatewayQueue.close();
     await paymentSyncQueue.close();
     await articlePublishQueue.close();
     if (redisConnection) await redisConnection.quit();

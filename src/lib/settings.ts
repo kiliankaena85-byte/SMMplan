@@ -99,6 +99,7 @@ export class SettingsProvider {
   static async get(): Promise<SystemSettings> {
     try {
       if (SettingsProvider.isTestEnvironment()) {
+        localSettingsCache = null;
         const fresh = await db.systemSettings.findUnique({ where: { id: "global" } });
         if (fresh) return fresh;
         return await db.systemSettings.upsert({

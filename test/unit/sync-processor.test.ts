@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // vi.hoisted() ensures these are available when vi.mock is hoisted
 const { mockOrderDb, mockGetMultiOrderStatus, mockProcessRefund, mockGetWorkerProviderInstance } = vi.hoisted(() => ({
-  mockOrderDb: { findMany: vi.fn(), update: vi.fn() },
+  mockOrderDb: { findMany: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
   mockGetMultiOrderStatus: vi.fn(),
   mockProcessRefund: vi.fn(),
   mockGetWorkerProviderInstance: vi.fn(),
@@ -93,6 +93,7 @@ describe('SyncProcessor (QA-2: Order Lifecycle Engineer)', () => {
     mockOrderDb.update.mockImplementation(async (args: any) => {
       return { ...createMockOrder(), ...args.data };
     });
+    mockOrderDb.findUnique.mockImplementation(async () => createMockOrder());
     // Default: factory returns a mock provider with getMultiOrderStatus
     mockGetWorkerProviderInstance.mockResolvedValue({
       getMultiOrderStatus: mockGetMultiOrderStatus,

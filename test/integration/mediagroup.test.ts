@@ -92,6 +92,7 @@ describe('Server Actions: MediaGroup Order Checkout Integration Flow', () => {
     // Cleanup
     await db.order.deleteMany();
     await db.payment.deleteMany();
+    await db.ledgerEntry.deleteMany();
     await db.user.deleteMany();
     await db.service.deleteMany();
     await db.category.deleteMany();

@@ -41,10 +41,10 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
     setSort(t.sort || 0);
     try {
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err) {
+    } catch {
       try {
         window.scrollTo(0, 0);
-      } catch (e) {
+      } catch {
         // ignore
       }
     }

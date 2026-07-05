@@ -14,6 +14,7 @@ export async function generateMetadata() {
   return {
     title: `Продвижение подписчиков и просмотров в Telegram, Instagram, VK | ${siteName}`,
     description: settings.SITE_DESCRIPTION || "Оптовая B2B платформа продвижения в соцсетях. Надежно и конфиденциально. Мгновенный старт.",
+    alternates: { canonical: '/' },
     openGraph: {
       title: `${siteName} — Продвижение в соцсетях`,
       description: settings.SITE_DESCRIPTION || "Профессиональная продвижение подписчиков, просмотров, лайков для бизнеса.",

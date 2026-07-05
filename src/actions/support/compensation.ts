@@ -76,17 +76,21 @@ export async function logManualCompensation(formData: FormData) {
         { adminId: user.id, idempotencyKey }
       );
     } else {
-      // 3. Write to LedgerEntry for manual refill (no balance change)
-      await tx.ledgerEntry.create({
-        data: {
-          userId: ticket.userId,
-          adminId: user.id,
-          amount: -costCents,
-          reason: `Компенсация (Докрут): ${note}`,
-          status: 'APPROVED',
-          idempotencyKey
-        }
-      });
+      // 3. For manual refill, credit user and then debit them back (net balance change = 0, but ledger invariant is preserved)
+      const creditKey = `compensation-credit-${ticket.id}-${idempotencyHash}`;
+      const chargeKey = `compensation-charge-${ticket.id}-${idempotencyHash}`;
+
+      // Credit the compensation (amount > 0)
+      await WalletOps.credit(tx, ticket.userId, costCents,
+        `Компенсация (Докрут): ${note}`,
+        { adminId: user.id, idempotencyKey: creditKey }
+      );
+
+      // Charge the cost of the refill (amount < 0) as system charge to prevent double-spending the admin's daily budget limit
+      await WalletOps.charge(tx, ticket.userId, costCents,
+        `Списание за ручной докрут: ${note}`,
+        { idempotencyKey: chargeKey }
+      );
     }
 
     // 4. Write AdminAuditLog

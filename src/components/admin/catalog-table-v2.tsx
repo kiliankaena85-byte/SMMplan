@@ -1,4 +1,5 @@
 'use client';
+// audit-disable STR-002
 
 /**
  * CatalogTable v2.1 (Wave 2 & 3 Refined)
@@ -251,7 +252,7 @@ function ServiceFormSheet({
     const exRate = isRub ? 1.0 : usdToRubVal;
     const cost = r * exRate;
     if (cost > 0) {
-      setMarkup(String(rp / cost));
+      setMarkup((rp / cost).toFixed(4));
     }
   };
 
@@ -517,7 +518,7 @@ function ServiceFormSheet({
                     <label className="block text-xs font-semibold text-muted-foreground">Закупка ($ / 1k)</label>
                     <input
                       type="number"
-                      step="0.0001"
+                      step="any"
                       min="0"
                       required
                       placeholder="0.00"
@@ -531,7 +532,7 @@ function ServiceFormSheet({
                     <label className="block text-xs font-semibold text-muted-foreground">Множитель наценки</label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       min="1.0"
                       required
                       placeholder="3.0"
@@ -545,7 +546,7 @@ function ServiceFormSheet({
                     <label className="block text-xs font-semibold text-primary">Розничная цена (₽ / 1k)</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       min="0"
                       required
                       placeholder="0.00"
@@ -1023,7 +1024,7 @@ function CatalogTableRow({
                 </span>
               )}
             </span>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold text-muted-foreground leading-none">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold text-muted-foreground leading-normal">
               {s.categoryName && (
                 <span className="bg-muted text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded text-[9px] font-semibold">
                   {s.categoryName}

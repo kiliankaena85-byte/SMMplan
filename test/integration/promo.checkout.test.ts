@@ -176,7 +176,7 @@ describe('Checkout Voucher Rejection', () => {
     expect(order?.promoCodeId).toBe(promo.id);
     expect(order?.discountCents).toBe(2900n); // 10% of 29000 cents is 2900 cents
 
-    const { logPromoCodeUsageIfNeeded } = await import('../../src/services/marketing.service');
+    const { logPromoCodeUsageIfNeeded } = await import('../../src/services/marketing-utils');
     await db.$transaction(async (tx) => {
       await logPromoCodeUsageIfNeeded(tx, orderId, userId);
     });

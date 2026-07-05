@@ -62,7 +62,10 @@ export async function approveQuarantinedService(serviceId: string) {
 
     const usdToRub = await SettingsManager.getExchangeRateUSD();
     const exchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
-    const targetRate = service.pendingRate !== null ? service.pendingRate : service.rate;
+    if (service.pendingRate === null) {
+      return { success: false, error: "Невозможно одобрить карантин: отсутствует новый тариф (ошибка невалидного тарифа от провайдера)" };
+    }
+    const targetRate = service.pendingRate;
     
     if (targetRate <= 0) {
       return { success: false, error: "Cannot approve quarantine: target rate is invalid (<= 0)" };
@@ -139,10 +142,10 @@ export async function approveAllQuarantined() {
 
     await db.$transaction(async (tx) => {
       for (const s of quarantined) {
-        const targetRate = s.pendingRate !== null ? s.pendingRate : s.rate;
-        if (targetRate <= 0) {
+        if (s.pendingRate === null || s.pendingRate <= 0) {
           continue;
         }
+        const targetRate = s.pendingRate;
         const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
         const newPricePer1000Cents = Math.round(
           applyBeautifulRounding(targetRate * Math.max(s.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100

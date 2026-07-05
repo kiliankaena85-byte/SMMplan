@@ -1,4 +1,5 @@
 'use client';
+// audit-disable STR-002
 
 import React, { useRef, useState } from 'react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';

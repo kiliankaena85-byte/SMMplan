@@ -6,10 +6,17 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization') || '';
+  const cronSecret = process.env.CRON_SECRET || '';
+  const expectedAuth = `Bearer ${cronSecret}`;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  let isAuthorized = false;
+  if (cronSecret && authHeader.length === expectedAuth.length) {
+    const crypto = await import('crypto');
+    isAuthorized = crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth));
+  }
+
+  if (!isAuthorized) {
     console.warn('[SyncOrdersCron] Unauthorized access attempt blocked');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

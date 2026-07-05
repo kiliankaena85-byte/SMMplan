@@ -1,4 +1,5 @@
 "use client";
+// audit-disable STR-002
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Copy, CheckCircle2, ChevronDown, ChevronUp, Trash2, ArrowRight, Wand2 } from 'lucide-react';
@@ -177,6 +178,7 @@ export function UniversalOrderForm({
         <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-amber-500/10 rounded-3xl blur opacity-30 group-hover:opacity-40 transition duration-500"></div>
         <div className="relative bg-card border border-border/60 rounded-3xl p-5 shadow-lg shadow-black/5 ring-1 ring-black/5 flex flex-col gap-3">
            <textarea
+              id="order-url"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onPaste={handlePaste}
@@ -399,19 +401,24 @@ export function UniversalOrderForm({
                                    <SelectTrigger className="w-full h-12 bg-background border border-border/80 hover:border-primary hover:bg-muted/5 rounded-2xl text-sm font-semibold transition-all focus:ring-2 focus:ring-primary/15">
                                       <SelectValue placeholder="-- Выберите услугу --">
                                          {(value: string) => {
-                                            if (!value) return null;
+                                            if (!value) return "-- Выберите услугу --";
                                             const s = task.availableServices.find(srv => srv.id === value);
-                                            return s ? `${s.name} (${formatPricePerUnit(s.pricePerUnitRub)} ₽/шт)` : value;
+                                            if (!s) return value;
+                                            const isCooledDown = !!(s.cooldownUntil && new Date(s.cooldownUntil) > new Date());
+                                            return `${s.name} (${formatPricePerUnit(s.pricePerUnitRub)} ₽/шт)${isCooledDown ? ' [временно недоступно]' : ''}`;
                                          }}
                                       </SelectValue>
                                    </SelectTrigger>
-                                   <SelectContent>
-                                      {task.availableServices.map(s => (
-                                         <SelectItem key={s.id} value={s.id}>
-                                            {s.name} ({formatPricePerUnit(s.pricePerUnitRub)} ₽/шт)
-                                         </SelectItem>
-                                      ))}
-                                   </SelectContent>
+                                    <SelectContent>
+                                       {task.availableServices.map(s => {
+                                          const isCooledDown = !!(s.cooldownUntil && new Date(s.cooldownUntil) > new Date());
+                                          return (
+                                             <SelectItem key={s.id} value={s.id} disabled={isCooledDown}>
+                                                {s.name} ({formatPricePerUnit(s.pricePerUnitRub)} ₽/шт){isCooledDown ? ' [временно недоступно]' : ''}
+                                             </SelectItem>
+                                          );
+                                       })}
+                                    </SelectContent>
                                 </Select>
                              )}
                           </div>

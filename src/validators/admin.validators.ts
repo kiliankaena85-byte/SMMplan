@@ -1,10 +1,52 @@
 import { z } from 'zod';
 
+function validateInn(inn: string): boolean {
+  if (!/^\d{10}$|^\d{12}$/.test(inn)) return false;
+
+  const digits = inn.split('').map(Number);
+
+  if (inn.length === 10) {
+    const coefficients = [2, 4, 10, 3, 5, 9, 4, 6, 8];
+    const sum = coefficients.reduce((acc, coef, idx) => acc + coef * digits[idx], 0);
+    const checksum = (sum % 11) % 10;
+    return checksum === digits[9];
+  } else if (inn.length === 12) {
+    const coefficients11 = [7, 2, 4, 10, 3, 5, 9, 4, 6, 8];
+    const sum11 = coefficients11.reduce((acc, coef, idx) => acc + coef * digits[idx], 0);
+    const checksum11 = (sum11 % 11) % 10;
+
+    const coefficients12 = [3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8];
+    const sum12 = coefficients12.reduce((acc, coef, idx) => acc + coef * digits[idx], 0);
+    const checksum12 = (sum12 % 11) % 10;
+
+    return checksum11 === digits[10] && checksum12 === digits[11];
+  }
+
+  return false;
+}
+
+function validateOgrn(ogrn: string): boolean {
+  if (!/^\d{13}$|^\d{15}$/.test(ogrn)) return false;
+
+  if (ogrn.length === 13) {
+    const num = BigInt(ogrn.slice(0, 12));
+    const checksum = Number(num % BigInt(11)) % 10;
+    return checksum === Number(ogrn[12]);
+  } else if (ogrn.length === 15) {
+    const num = BigInt(ogrn.slice(0, 14));
+    const checksum = Number(num % BigInt(13)) % 10;
+    return checksum === Number(ogrn[14]);
+  }
+
+  return false;
+}
+
+
 // Users / Finance
 export const updateBalanceSchema = z.object({
   userId: z.string().min(1),
   amount: z.coerce.number().int().min(-50000000, "Превышен лимит списания (500 тыс. руб)").max(50000000, "Превышен лимит начисления (500 тыс. руб)"),
-  reason: z.string().trim().min(3, "Причина должна быть не менее 3 символов").max(500, "Описание причины не должно превышать 500 символов")
+  reason: z.string().trim().min(5, "Причина должна быть содержательной (не менее 5 символов)").max(500, "Описание причины не должно превышать 500 символов")
 });
 
 export const userIdSchema = z.object({
@@ -72,8 +114,16 @@ export const globalSettingsSchema = z.object({
   contactWhatsApp: z.string().trim().max(150).nullable().optional(),
   contactVk: z.string().trim().max(150).nullable().optional(),
   legalCompanyName: z.string().trim().max(250).nullable().optional(),
-  legalCompanyInn: z.string().trim().regex(/^(\d{10}|\d{12})$/, "ИНН должен состоять строго из 10 или 12 цифр").or(z.literal("")).nullable().optional(),
-  legalCompanyOgrnip: z.string().trim().regex(/^(\d{13}|\d{15})$/, "ОГРН/ОГРНИП должен состоять строго из 13 или 15 цифр").or(z.literal("")).nullable().optional(),
+  legalCompanyInn: z.string().trim().regex(/^(\d{10}|\d{12})$/, "ИНН должен состоять строго из 10 или 12 цифр").or(z.literal("")).nullable().optional()
+    .refine((val) => {
+      if (!val) return true;
+      return validateInn(val);
+    }, "Некорректная контрольная сумма ИНН"),
+  legalCompanyOgrnip: z.string().trim().regex(/^(\d{13}|\d{15})$/, "ОГРН/ОГРНИП должен состоять строго из 13 или 15 цифр").or(z.literal("")).nullable().optional()
+    .refine((val) => {
+      if (!val) return true;
+      return validateOgrn(val);
+    }, "Некорректная контрольная сумма ОГРН/ОГРНИП"),
   legalCompanyAddress: z.string().trim().max(1000).nullable().optional(),
   robokassaLogin: z.string().trim().max(150).nullable().optional(),
   robokassaPassword: z.string().trim().max(300).nullable().optional(),

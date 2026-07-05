@@ -76,5 +76,12 @@ class SSEBroadcaster {
   }
 }
 
-// Singleton — shared across all SSE route handlers in the same process
-export const sseBroadcaster = new SSEBroadcaster();
+// Singleton — shared across all SSE route handlers in the same process (stored on globalThis for Next.js hot-reloading)
+const globalForSSE = globalThis as unknown as {
+  sseBroadcaster?: SSEBroadcaster;
+};
+
+export const sseBroadcaster = globalForSSE.sseBroadcaster ?? new SSEBroadcaster();
+
+globalForSSE.sseBroadcaster = sseBroadcaster;
+

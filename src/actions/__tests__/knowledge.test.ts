@@ -53,6 +53,7 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
     await db.service.deleteMany();
     await db.category.deleteMany();
     await db.network.deleteMany();
+    await db.ledgerEntry.deleteMany();
     await db.user.deleteMany();
 
     // 2. Set settings

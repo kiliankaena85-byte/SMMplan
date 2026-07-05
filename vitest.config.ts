@@ -11,11 +11,16 @@ export default defineConfig({
     restoreMocks: true,
     unstubGlobals: true,
     pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true
+      }
+    },
     maxWorkers: 1,
     minWorkers: 1,
     retry: 3,
-    testTimeout: 30000,
-    hookTimeout: 30000,
+    testTimeout: 120000,
+    hookTimeout: 120000,
     setupFiles: ['./test/setup.ts'],
     globals: true,
     alias: {

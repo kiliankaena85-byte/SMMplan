@@ -1,6 +1,9 @@
 import { db as prisma } from '@/lib/db';
 import { providerService } from '@/services/providers/provider.service';
 import { SmartCampaignStatus, SmartTaskStatus } from '@prisma/client';
+import { logger } from '@/lib/logger';
+
+const log = logger.child({ component: 'DripfeedProcessor' });
 
 /**
  * Проверяет завершенность кампании и обновляет статус кампании и родительского заказа.
@@ -73,7 +76,7 @@ async function checkAndCompleteCampaign(campaignId: string) {
       }, { isolationLevel: 'Serializable' });
     }
 
-    console.info(`[Dripfeed] SmartCampaign ${campaignId} завершена со статусом ${finalStatus}.`);
+    log.info(`[Dripfeed] SmartCampaign ${campaignId} завершена со статусом ${finalStatus}.`);
   }
 }
 
@@ -130,7 +133,7 @@ export async function runSmartDripfeedTick() {
           // Запуск тихого сканирования качества подписчиков (неблокирующий вызов)
           const { scanSubscriberQuality } = await import('./quality-detector.processor');
           void scanSubscriberQuality(campaign.id, exec.qtySent, campaign.link).catch((err) =>
-            console.error('[Dripfeed] Failed to run silent quality scanner:', err)
+            log.error('[Dripfeed] Failed to run silent quality scanner:', err)
           );
 
           await checkAndCompleteCampaign(campaign.id);
@@ -163,7 +166,7 @@ export async function runSmartDripfeedTick() {
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error(
+      log.error(
         `[Dripfeed Status Sync] Не удалось синхронизировать статус выполнения ${exec.id}:`,
         err.message
       );
@@ -197,7 +200,7 @@ export async function runSmartDripfeedTick() {
       });
 
       if (affected.count === 0) {
-        console.warn(`[Dripfeed Worker] Задача ${task.id} уже запущена другим инстансом воркера. Пропускаем.`);
+        log.warn(`[Dripfeed Worker] Задача ${task.id} уже запущена другим инстансом воркера. Пропускаем.`);
         continue;
       }
 
@@ -218,12 +221,12 @@ export async function runSmartDripfeedTick() {
           where: { id: task.id },
           data: { status: SmartTaskStatus.COMPLETED },
         });
-        console.info(`[Dripfeed Worker] Тестовая задача ${task.id} имитирована успешно.`);
+        log.info(`[Dripfeed Worker] Тестовая задача ${task.id} имитирована успешно.`);
 
         // Запуск тихого сканирования качества подписчиков (неблокирующий вызов)
         const { scanSubscriberQuality } = await import('./quality-detector.processor');
         void scanSubscriberQuality(campaign.id, task.quantity, campaign.link).catch((err) =>
-          console.error('[Dripfeed] Failed to run silent quality scanner:', err)
+          log.error('[Dripfeed] Failed to run silent quality scanner:', err)
         );
 
         await checkAndCompleteCampaign(campaign.id);
@@ -263,12 +266,12 @@ export async function runSmartDripfeedTick() {
         },
       });
 
-      console.info(
+      log.info(
         `[Dripfeed Worker] Задача ${task.id} успешно отправлена провайдеру. External ID: ${extOrderId}`
       );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error(`[Dripfeed Worker] Ошибка обработки задачи ${task.id}:`, err.message);
+      log.error(`[Dripfeed Worker] Ошибка обработки задачи ${task.id}:`, err.message);
       await prisma.smartTask.update({
         where: { id: task.id },
         data: { status: SmartTaskStatus.ERROR, error: err.message },

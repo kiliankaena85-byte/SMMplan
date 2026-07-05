@@ -6,7 +6,7 @@ import { providerService } from '../../../services/providers/provider.service';
 vi.mock('../../../lib/db', () => ({
   db: {
     provider: { findMany: vi.fn(), update: vi.fn() },
-    order: { findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    order: { findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn() },
     $transaction: vi.fn(async (cb: any) => cb(db)),
   }
 }));
@@ -52,6 +52,7 @@ describe('Sync Processor', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(db.order.findUnique).mockResolvedValue({ id: 'o1', status: 'PENDING' } as any);
   });
 
   it('Normal status transition (PENDING -> COMPLETED)', async () => {

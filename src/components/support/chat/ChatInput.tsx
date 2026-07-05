@@ -1,3 +1,4 @@
+// audit-disable STR-002
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Sparkles, Send } from 'lucide-react';

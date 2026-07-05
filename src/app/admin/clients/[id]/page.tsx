@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { ClientDetailClient } from './client-detail-client';
-import { banUserAction, unbanUserAction, loginAsAction } from '@/actions/admin/users';
+import { banUserAction, unbanUserAction, loginAsAction, adminDeleteUserAction } from '@/actions/admin/users';
 import { SubmitButton } from '@/components/admin/submit-button';
 import { ActionForm } from '@/components/admin/action-form';
 import { ClientOrdersTable } from './client-orders-table';
@@ -164,9 +164,21 @@ export default async function ClientDetailPage({ params }: Props) {
               {user.role}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            ID: <code className="font-mono tracking-tight text-xs bg-muted/50 border border-border/40 shadow-sm px-1.5 py-0.5 rounded">{user.id}</code>
-            <span className="mx-2 text-border">·</span>
+          <p className="text-sm text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
+            <span>ID: <code className="font-mono tracking-tight text-xs bg-muted/50 border border-border/40 shadow-sm px-1.5 py-0.5 rounded">{user.id}</code></span>
+            {user.telegramId && (
+              <>
+                <span className="text-border">·</span>
+                <span>TG: <code className="font-mono tracking-tight text-xs bg-muted/50 border border-border/40 shadow-sm px-1.5 py-0.5 rounded">{user.telegramId}</code></span>
+              </>
+            )}
+            {user.referralCode && (
+              <>
+                <span className="text-border">·</span>
+                <span>Реф: <code className="font-mono tracking-tight text-xs bg-violet-100 text-violet-800 border border-violet-200 px-1.5 py-0.5 rounded">{user.referralCode}</code></span>
+              </>
+            )}
+            <span className="text-border">·</span>
             <span className="tabular-nums tracking-tight">Зарегистрирован {new Date(user.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </p>
         </div>
@@ -202,6 +214,18 @@ export default async function ClientDetailPage({ params }: Props) {
               </SubmitButton>
             </ActionForm>
           )}
+          {isOwner || currentUser?.role === 'ADMIN' ? (
+            <ActionForm action={adminDeleteUserAction}>
+              <input type="hidden" name="userId" value={user.id} />
+              <SubmitButton
+                variant="outline"
+                className="text-xs h-9 text-destructive border-rose-300 hover:bg-destructive/10 shadow-sm active:scale-95 transition-all"
+                confirmMessage="Удалить профиль пользователя? Это действие необратимо (Soft Delete)."
+              >
+                🗑️ Удалить профиль
+              </SubmitButton>
+            </ActionForm>
+          ) : null}
         </div>
       </div>
 
@@ -213,10 +237,10 @@ export default async function ClientDetailPage({ params }: Props) {
           { label: 'Заказов', value: ordersCount.toString(), accent: 'text-foreground', note: `${ticketsCount} тикетов` },
           { label: 'Реф. баланс', value: canSeeFinances ? formatBalance(user.referralBalance) : '🔒 *** ₽', accent: 'text-violet-600', note: user.referralCode ? `Код: ${user.referralCode}` : 'Нет кода' },
         ].map(s => (
-          <div key={s.label} className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 transition-all hover:shadow-md hover:border-border">
+          <div key={s.label} className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 transition-all hover:shadow-md hover:border-border flex flex-col justify-between">
             <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">{s.label}</div>
-            <div className={`text-xl font-bold tabular-nums tracking-tight font-mono ${s.accent}`}>{s.value}</div>
-            {s.note && <div className="text-[10px] text-muted-foreground mt-1.5 font-medium">{s.note}</div>}
+            <div className={`text-xl font-bold tabular-nums text-right tracking-tight font-mono ${s.accent}`}>{s.value}</div>
+            {s.note && <div className="text-[10px] text-muted-foreground text-right mt-1.5 font-medium">{s.note}</div>}
           </div>
         ))}
       </div>

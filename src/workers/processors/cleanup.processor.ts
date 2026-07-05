@@ -95,6 +95,7 @@ export async function runCleanup(): Promise<void> {
         id: true,
         numericId: true,
         paymentId: true,
+        promoCodeId: true,
         user: { select: { email: true } },
         service: { select: { name: true } }
       },
@@ -119,6 +120,15 @@ export async function runCleanup(): Promise<void> {
         
         if (updated.count > 0) {
           await LoyaltyService.reverseCommission(tx, zombie.id);
+
+          // R1-003 Fix: Roll back promo code uses if it was never paid
+          if (zombie.promoCodeId) {
+            await tx.promoCode.updateMany({
+              where: { id: zombie.promoCodeId, uses: { gt: 0 } },
+              data: { uses: { decrement: 1 } }
+            });
+          }
+
           canceledCount++;
           if (zombie.paymentId) {
             shouldSendEmail = true;
@@ -349,7 +359,13 @@ export async function runInProgressTTLSweep(): Promise<void> {
         charge: true,
         quantity: true,
         remains: true,
-        serviceId: true
+        serviceId: true,
+        externalId: true,
+        service: {
+          select: {
+            provider: true
+          }
+        }
       },
       take: IN_PROGRESS_TTL_BATCH_SIZE
     });
@@ -359,7 +375,34 @@ export async function runInProgressTTLSweep(): Promise<void> {
     }
 
     for (const order of stuckOrders) {
-      const remains = order.remains ?? order.quantity;
+      let remains = order.remains ?? order.quantity;
+      let statusFromProvider: string | null = null;
+
+      if (order.externalId && order.service.provider) {
+        try {
+          const { providerService } = await import('@/services/providers/provider.service');
+          const provider = await providerService.getWorkerProviderInstance(order.service.provider);
+          const providerStatus = await provider.getOrderStatus(order.externalId);
+          statusFromProvider = providerStatus.status?.toLowerCase() || null;
+          
+          if (providerStatus.remains !== undefined && providerStatus.remains !== null) {
+            const parsedRemains = parseInt(providerStatus.remains, 10);
+            if (!isNaN(parsedRemains)) {
+              remains = parsedRemains;
+            }
+          }
+        } catch (apiErr: any) {
+          log.error('Failed to get status from provider during TTL sweep, falling back to local database values', { orderId: order.id, error: apiErr.message });
+          if (apiErr.message?.includes('Incorrect order ID') || apiErr.message?.includes('not found') || apiErr.message?.includes('not exist')) {
+            remains = order.quantity;
+            statusFromProvider = 'error';
+          } else {
+            log.warn(`Skipping order ${order.id} TTL sweep due to transient provider API error: ${apiErr.message}`);
+            continue;
+          }
+        }
+      }
+
       const quantity = order.quantity;
       const charge = order.charge;
 
@@ -368,21 +411,33 @@ export async function runInProgressTTLSweep(): Promise<void> {
       let delivered = 0;
 
       let reasonText = '';
-      if (remains <= 0) {
+      if (statusFromProvider === 'completed') {
         targetStatus = 'COMPLETED';
         refundCents = 0;
         delivered = quantity;
-        reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}.`;
-      } else if (remains >= quantity) {
+        reasonText = `Заказ завершён (подтверждено провайдером). Выполнено ${delivered} из ${quantity}.`;
+      } else if (statusFromProvider === 'canceled' || statusFromProvider === 'error') {
         targetStatus = 'ERROR';
         refundCents = Number(charge);
         delivered = 0;
-        reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено 0 из ${quantity}. Стоимость возвращена на баланс.`;
+        reasonText = `Заказ отменён провайдером. Стоимость полностью возвращена на баланс.`;
       } else {
-        targetStatus = 'PARTIAL';
-        refundCents = calculatePartialRefund({ remains, quantity, charge });
-        delivered = Math.max(0, quantity - remains);
-        reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}. Невыполненный остаток возвращён на баланс.`;
+        if (remains <= 0) {
+          targetStatus = 'COMPLETED';
+          refundCents = 0;
+          delivered = quantity;
+          reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}.`;
+        } else if (remains >= quantity) {
+          targetStatus = 'ERROR';
+          refundCents = Number(charge);
+          delivered = 0;
+          reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено 0 из ${quantity}. Стоимость возвращена на баланс.`;
+        } else {
+          targetStatus = 'PARTIAL';
+          refundCents = calculatePartialRefund({ remains, quantity, charge });
+          delivered = Math.max(0, quantity - remains);
+          reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}. Невыполненный остаток возвращён на баланс.`;
+        }
       }
 
       try {
@@ -478,6 +533,12 @@ async function runPendingCheckTTLSweep(): Promise<void> {
       numericId: true,
       userId: true,
       charge: true,
+      externalId: true,
+      service: {
+        select: {
+          provider: true
+        }
+      }
     },
     take: 100
   });
@@ -491,6 +552,30 @@ async function runPendingCheckTTLSweep(): Promise<void> {
   let processedCount = 0;
 
   for (const order of stuckOrders) {
+    let statusFromProvider: string | null = null;
+
+    if (order.externalId && order.service.provider) {
+      try {
+        const { providerService } = await import('@/services/providers/provider.service');
+        const provider = await providerService.getWorkerProviderInstance(order.service.provider);
+        const providerStatus = await provider.getOrderStatus(order.externalId);
+        statusFromProvider = providerStatus.status?.toLowerCase() || null;
+      } catch (apiErr: any) {
+        log.error('Failed to get status from provider during PENDING_CHECK TTL sweep', { orderId: order.id, error: apiErr.message });
+        if (apiErr.message?.includes('Incorrect order ID') || apiErr.message?.includes('not found') || apiErr.message?.includes('not exist')) {
+          statusFromProvider = 'error';
+        } else {
+          log.warn(`Skipping order ${order.id} PENDING_CHECK TTL sweep due to transient provider API error: ${apiErr.message}`);
+          continue;
+        }
+      }
+    }
+
+    if (statusFromProvider === 'completed' || statusFromProvider === 'processing' || statusFromProvider === 'in progress') {
+      log.warn(`Order ${order.id} is active at provider (status: ${statusFromProvider}). Skipping auto-refund to prevent loss.`);
+      continue;
+    }
+
     try {
       await db.$transaction(async (tx) => {
         const updated = await tx.order.updateMany({

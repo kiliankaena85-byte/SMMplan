@@ -80,6 +80,7 @@ describe('M5 & M2 Bugs Integration Test', () => {
   afterAll(async () => {
     await db.order.deleteMany();
     await db.payment.deleteMany();
+    await db.ledgerEntry.deleteMany();
     await db.user.deleteMany();
     await db.service.deleteMany();
     await db.category.deleteMany();

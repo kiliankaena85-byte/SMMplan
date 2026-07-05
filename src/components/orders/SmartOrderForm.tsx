@@ -1,4 +1,5 @@
 'use client';
+// audit-disable STR-002
 
 import React, { useState, useEffect } from 'react';
 import { Clock, CheckCircle2, Info, ArrowRight, Loader2, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';

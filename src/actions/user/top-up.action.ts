@@ -60,43 +60,20 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
       }
     });
 
-    const payload = {
-      currency_type: "fiat",
-      fiat: "RUB",
-      amount: amountRub.toString(),
+    const { paymentGatewayQueue } = await import('@/lib/queue-manager');
+    await paymentGatewayQueue.add('generate-cryptobot', {
+      paymentId: payment.id,
+      userId: session.userId,
+      amountRub,
+      email: null,
+      successUrl: `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
       description: `Услуги IT-консалтинга (ID: ${payment.id})`,
-      // BUG-008 FIX: Передаём type:'deposit' + userId для корректной обработки в webhook
-      payload: JSON.stringify({ paymentId: payment.id, userId: session.userId, type: 'deposit' }),
-      paid_btn_name: 'openChannel',
-      paid_btn_url: `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`
-    };
-
-    const resp = await fetch(`https://${process.env.NODE_ENV === 'production' ? 'pay' : 'testnet-pay'}.crypt.bot/api/createInvoice`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Crypto-Pay-API-Token": token
-      },
-      body: JSON.stringify(payload)
+      isTestMode: false,
+      gateway: 'cryptobot',
+      metadata: { type: 'deposit' }
     });
 
-    if (!resp.ok) {
-      console.error("[CryptoBot Error]", await resp.text());
-      throw new Error("Ошибка создания платежа в CryptoBot");
-    }
-
-    const data = await resp.json();
-    if (!data.ok) {
-      console.error("[CryptoBot Error]", data);
-      throw new Error("Ошибка API CryptoBot");
-    }
-
-    await db.payment.update({
-      where: { id: payment.id },
-      data: { gatewayId: data.result.invoice_id.toString() }
-    });
-
-    return { success: true, paymentUrl: data.result.bot_invoice_url || data.result.pay_url };
+    return { success: true, paymentUrl: `/payment-redirect?id=${payment.id}` };
   }
 
   if (gateway === 'robokassa') {
@@ -118,7 +95,7 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
     });
 
     const isDummyKeys = !login || !password || login === 'test_login';
-    const isE2ETest = dbUser.email === 'e2e-tester@test.com';
+    const isE2ETest = process.env.NODE_ENV !== 'production' && !!process.env.E2E_TEST_EMAIL && dbUser.email === process.env.E2E_TEST_EMAIL;
 
     if (isE2ETest || isDummyKeys) {
       const mockGatewayId = `mock_${payment.id}`;
@@ -129,30 +106,22 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
       return { success: true, paymentUrl: `/api/dev/mock-payment?paymentId=${payment.id}` };
     }
 
-    const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
-    const gatewaySvc = PaymentGatewayFactory.getGateway('robokassa');
+    const { paymentGatewayQueue } = await import('@/lib/queue-manager');
     const successUrl = `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`;
-    const gatewayResult = await gatewaySvc.createPayment({
+    
+    await paymentGatewayQueue.add('generate-robokassa', {
       paymentId: payment.id,
       userId: session.userId,
       amountRub,
       email: dbUser.email,
       successUrl,
       description: `Пополнение баланса (Счёт: ${payment.id})`,
-      isTestMode: false
+      isTestMode: false,
+      gateway: 'robokassa',
+      metadata: { type: 'deposit' }
     });
 
-    if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
-      await db.payment.update({
-        where: { id: payment.id },
-        data: { 
-          gatewayId: gatewayResult.remoteGatewayId || undefined,
-          checkoutUrl: gatewayResult.paymentUrl || undefined
-        }
-      });
-    }
-
-    return { success: true, paymentUrl: gatewayResult.paymentUrl };
+    return { success: true, paymentUrl: `/payment-redirect?id=${payment.id}` };
   }
 
   // --- YooKassa logic ---
@@ -174,7 +143,7 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
   });
 
   const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test';
-  const isE2ETest = dbUser.email === 'e2e-tester@test.com';
+  const isE2ETest = process.env.NODE_ENV !== 'production' && !!process.env.E2E_TEST_EMAIL && dbUser.email === process.env.E2E_TEST_EMAIL;
 
   if (isE2ETest || isDummyKeys) {
     const mockGatewayId = `mock_${payment.id}`;
@@ -185,11 +154,10 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
     return { success: true, paymentUrl: `/api/dev/mock-payment?paymentId=${payment.id}` };
   }
 
-  const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
-  const gatewaySvc = PaymentGatewayFactory.getGateway('yookassa');
+  const { paymentGatewayQueue } = await import('@/lib/queue-manager');
   const successUrl = `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`;
   
-  const gatewayResult = await gatewaySvc.createPayment({
+  await paymentGatewayQueue.add('generate-yookassa', {
     paymentId: payment.id,
     userId: session.userId,
     amountRub,
@@ -197,18 +165,9 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
     successUrl,
     description: `Оплата услуг IT-агентства (Digital Consulting, Счёт: ${payment.id})`,
     isTestMode: false,
+    gateway: 'yookassa',
     metadata: { type: "deposit" }
   });
 
-  if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
-    await db.payment.update({
-      where: { id: payment.id },
-      data: { 
-        gatewayId: gatewayResult.remoteGatewayId || undefined,
-        checkoutUrl: gatewayResult.paymentUrl || undefined
-      }
-    });
-  }
-
-  return { success: true, paymentUrl: gatewayResult.paymentUrl };
+  return { success: true, paymentUrl: `/payment-redirect?id=${payment.id}` };
 }

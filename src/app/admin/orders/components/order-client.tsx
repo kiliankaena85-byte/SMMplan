@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { formatEta } from '@/utils/format-eta';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { XCircle } from 'lucide-react';
+import { XCircle, Copy } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { bulkCancelOrdersAction } from '@/actions/admin/orders';
@@ -292,11 +292,17 @@ export function OrderClient({ data, canSeeRates = true }: { data: OrderColumn[];
         searchKey="user_email"
         searchPlaceholder="Фильтр по email на этой странице..."
         hideClientPagination={true}
-        initialColumnVisibility={{ select: false, user_email: false }}
+        initialColumnVisibility={{ select: true, user_email: false }}
         renderMobileView={renderMobileView}
         renderToolbar={(table) => {
           const selectedRows = table.getFilteredSelectedRowModel().rows;
           if (selectedRows.length === 0) return null;
+
+          function handleCopyIds() {
+            const ids = selectedRows.map(r => r.original.numericId ?? r.original.id).join(', ');
+            navigator.clipboard.writeText(ids);
+            toast.success(`ID заказов скопированы (${selectedRows.length} шт)`);
+          }
 
           return (
             <div className="fixed bottom-6 inset-x-0 mx-auto w-max max-w-[90vw] z-50 animate-in slide-in-from-bottom-10 fade-in flex items-center gap-4 bg-card border border-border px-6 py-3 rounded-full shadow-2xl">
@@ -310,11 +316,22 @@ export function OrderClient({ data, canSeeRates = true }: { data: OrderColumn[];
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
+                  intent="secondary"
+                  onClick={handleCopyIds}
+                  aria-label="Скопировать ID выбранных заказов"
+                  className="transition-all duration-200 cursor-pointer shadow-sm"
+                >
+                  <Copy className="w-3.5 h-3.5 mr-1.5" />
+                  Скопировать ID
+                </Button>
+
+                <Button
+                  size="sm"
                   intent="ghost"
                   disabled={isPendingBulk}
                   onClick={() => handleBulkCancel(selectedRows)}
                   aria-label="Отменить выбранные заказы"
-                  className="text-destructive hover:bg-destructive/10 transition-all duration-200"
+                  className="text-destructive hover:bg-destructive/10 transition-all duration-200 cursor-pointer"
                 >
                   <XCircle className="w-4 h-4 mr-1.5" />
                   {isPendingBulk ? 'Отмена...' : 'Отменить'}
@@ -325,7 +342,7 @@ export function OrderClient({ data, canSeeRates = true }: { data: OrderColumn[];
                   intent="ghost"
                   onClick={() => table.toggleAllPageRowsSelected(false)}
                   aria-label="Сбросить выделение"
-                  className="text-muted-foreground hover:text-foreground transition-all duration-200"
+                  className="text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
                 >
                   Сбросить
                 </Button>

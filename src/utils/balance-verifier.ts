@@ -38,30 +38,34 @@ export class BalanceVerifier {
 
       for (const user of users) {
         try {
-          // 2. Query all approved ledger entries for this user
-          const aggregateResult = await prisma.ledgerEntry.aggregate({
-            _sum: {
-              amount: true,
-            },
-            where: {
-              userId: user.id,
-              status: 'APPROVED',
-            },
-          });
+          // Wrap verification of each user in a single Serializable transaction to prevent TOCTOU Race Condition.
+          const res = await prisma.$transaction(async (tx) => {
+            const freshUser = await tx.user.findUniqueOrThrow({
+              where: { id: user.id },
+              select: { id: true, email: true, balance: true, isActive: true, adminNote: true }
+            });
 
-          const ledgerSum = aggregateResult._sum.amount ?? BigInt(0);
-          const discrepancy = user.balance - ledgerSum;
-          const isDiscrepancy = discrepancy !== BigInt(0);
+            const aggregateResult = await tx.ledgerEntry.aggregate({
+              _sum: {
+                amount: true,
+              },
+              where: {
+                userId: freshUser.id,
+                status: 'APPROVED',
+              },
+            });
 
-          let lockedSuccessfully = false;
+            const ledgerSum = aggregateResult._sum.amount ?? BigInt(0);
+            const discrepancy = freshUser.balance - ledgerSum;
+            const isDiscrepancy = discrepancy !== BigInt(0);
 
-          if (isDiscrepancy) {
-            const adminNoteText = `[CRITICAL DISCREPANCY] Автоматическая блокировка: баланс (${user.balance.toString()}) не сходится с реестром (${ledgerSum.toString()}). Разница: ${discrepancy.toString()} центов.`;
+            let lockedSuccessfully = false;
 
-            // Lock the user's account inside a transaction
-            await prisma.$transaction(async (tx) => {
+            if (isDiscrepancy) {
+              const adminNoteText = `[CRITICAL DISCREPANCY] Автоматическая блокировка: баланс (${freshUser.balance.toString()}) не сходится с реестром (${ledgerSum.toString()}). Разница: ${discrepancy.toString()} центов.`;
+
               await tx.user.update({
-                where: { id: user.id },
+                where: { id: freshUser.id },
                 data: {
                   isActive: false,
                   adminNote: adminNoteText,
@@ -75,25 +79,37 @@ export class BalanceVerifier {
                   adminId: 'SYSTEM',
                   adminEmail: 'system@smmplan.pro',
                   action: 'USER_BALANCE_DISCREPANCY',
-                  target: user.id,
+                  target: freshUser.id,
                   targetType: 'USER',
                   oldValue: JSON.stringify({
-                    isActive: user.isActive,
-                    balance: user.balance.toString(),
-                    adminNote: user.adminNote,
+                    isActive: freshUser.isActive,
+                    balance: freshUser.balance.toString(),
+                    adminNote: freshUser.adminNote,
                   }),
                   newValue: adminNoteText,
                   ipAddress: '127.0.0.1',
                 },
               });
-            });
 
-            lockedSuccessfully = true;
+              lockedSuccessfully = true;
+            }
 
+            return {
+              freshUser,
+              ledgerSum,
+              discrepancy,
+              isDiscrepancy,
+              lockedSuccessfully
+            };
+          }, { isolationLevel: 'Serializable' });
+
+          const { freshUser, ledgerSum, discrepancy, isDiscrepancy, lockedSuccessfully } = res;
+
+          if (isDiscrepancy) {
             // Send a critical admin alert
             const alertMessage = `🚨 [CRITICAL BALANCE DISCREPANCY]
-User: ${user.email} (ID: ${user.id})
-User Balance: ${user.balance.toString()} cents (${(Number(user.balance) / 100).toFixed(2)} ₽)
+User: ${freshUser.email} (ID: ${freshUser.id})
+User Balance: ${freshUser.balance.toString()} cents (${(Number(freshUser.balance) / 100).toFixed(2)} ₽)
 Ledger Sum: ${ledgerSum.toString()} cents (${(Number(ledgerSum) / 100).toFixed(2)} ₽)
 Discrepancy: ${discrepancy.toString()} cents (${(Number(discrepancy) / 100).toFixed(2)} ₽)
 Action: Account LOCKED, logged in AdminAuditLog.`;
@@ -102,9 +118,9 @@ Action: Account LOCKED, logged in AdminAuditLog.`;
           }
 
           results.push({
-            userId: user.id,
-            email: user.email,
-            userBalance: user.balance,
+            userId: freshUser.id,
+            email: freshUser.email,
+            userBalance: freshUser.balance,
             ledgerSum,
             discrepancy,
             isDiscrepancy,

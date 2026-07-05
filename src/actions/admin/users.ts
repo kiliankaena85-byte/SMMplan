@@ -217,3 +217,96 @@ export async function rejectQuarantineAction(formData: FormData) {
     return { success: true as const };
   });
 }
+
+export async function adminChangeUserPasswordAction(userId: string, newPass: string) {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
+    if (!userId || !newPass || newPass.length < 8) {
+      return { success: false as const, error: 'Пароль должен содержать минимум 8 символов' };
+    }
+
+    const { hashPassword } = await import('@/lib/auth/password');
+    const hashed = await hashPassword(newPass);
+
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    await db.user.update({
+      where: { id: userId },
+      data: { passwordHash: hashed }
+    });
+
+    // Сброс всех сессий пользователя ради безопасности
+    await db.session.deleteMany({ where: { userId } });
+
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'ADMIN_CHANGE_USER_PASSWORD',
+      target: userId,
+      targetType: 'USER',
+      newValue: { targetEmail: targetUser.email },
+      ipAddress
+    });
+
+    revalidatePath(`/admin/clients/${userId}`);
+    return { success: true as const };
+  });
+}
+
+export async function adminDeleteUserAction(formData: FormData) {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
+    const userId = formData.get('userId') as string;
+    if (!userId) return { success: false as const, error: 'Missing userId' };
+
+    if (!['OWNER', 'ADMIN'].includes(admin.role)) {
+      return { success: false as const, error: 'Только Владелец и Админ могут удалять профили' };
+    }
+
+    if (userId === admin.id) {
+      return { success: false as const, error: 'Вы не можете удалить собственный профиль' };
+    }
+
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          email: `deleted_${userId}@smmplan.local`,
+          telegramId: null,
+          phoneHash: null,
+          apiKeyHash: null,
+          referralCode: null,
+          companyName: null,
+          inn: null,
+          kpp: null,
+          legalAddress: null,
+          passwordHash: null,
+          referredById: null,
+          isDeleted: true,
+          isActive: false,
+          role: 'BANNED'
+        }
+      });
+      await tx.session.deleteMany({ where: { userId } });
+      await tx.authToken.deleteMany({ where: { userId } });
+    });
+
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'ADMIN_DELETE_USER',
+      target: userId,
+      targetType: 'USER',
+      oldValue: { email: targetUser.email },
+      newValue: { isDeleted: true },
+      ipAddress
+    });
+
+    revalidatePath('/admin/clients');
+    return { success: true as const };
+  });
+}

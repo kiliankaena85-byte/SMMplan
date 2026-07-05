@@ -1,7 +1,6 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import { OnboardingSection, AdminTabs } from './tabbed-header-client';
 
 interface BreadcrumbItem {
   label: string;
@@ -32,7 +31,7 @@ interface AdminTabbedHeaderProps {
   action?: React.ReactNode;
   breadcrumbs?: BreadcrumbItem[];
   tabs?: TabItem[];
-  onboardingKey: string;
+  onboardingKey?: string;
   onboarding?: OnboardingData;
 }
 
@@ -42,13 +41,10 @@ export function AdminTabbedHeader({
   description,
   action,
   breadcrumbs,
-  tabs,
-  onboardingKey,
-  onboarding,
 }: AdminTabbedHeaderProps) {
   return (
-    <div className="w-full flex flex-col gap-4 mb-6 border-b border-border/50 pb-5">
-      {/* Breadcrumbs */}
+    <div className="w-full flex flex-col gap-3 mb-5 border-b border-border/50 pb-4">
+      {/* Breadcrumbs & Header Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
           {breadcrumbs && breadcrumbs.length > 0 && (
@@ -84,19 +80,14 @@ export function AdminTabbedHeader({
           )}
         </div>
 
-        {/* Global actions and help togglers */}
-        <OnboardingSection
-          onboardingKey={onboardingKey}
-          onboarding={onboarding}
-        >
-          {action}
-        </OnboardingSection>
+        {/* Action Slot */}
+        {action && (
+          <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+            {action}
+          </div>
+        )}
       </div>
-
-      {/* Sub tabs navigation */}
-      {tabs && tabs.length > 0 && (
-        <AdminTabs tabs={tabs} />
-      )}
     </div>
   );
 }
+

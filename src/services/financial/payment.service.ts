@@ -1,8 +1,9 @@
 import { db } from '@/lib/db';
+import { runSerializableTransaction } from '@/lib/transactions';
 import { WalletOps } from './wallet-ops';
 import { revalidatePath } from 'next/cache';
 import { sendOrderPaidMail } from '@/lib/smtp';
-import { logPromoCodeUsageIfNeeded } from '@/services/marketing.service';
+import { logPromoCodeUsageIfNeeded } from '@/services/marketing-utils';
 
 function safeRevalidatePath(path: string, type?: 'layout' | 'page') {
   try {
@@ -73,7 +74,7 @@ export class PaymentService {
       }
 
       // 2. Atomic transaction: confirm payment + activate order
-      await db.$transaction(async (tx) => {
+      await runSerializableTransaction(async (tx) => {
         // Find payment by internal ID (preferred) or gateway ID
         let payment = null;
         if (internalPaymentId) {
@@ -218,7 +219,7 @@ export class PaymentService {
             { idempotencyKey: `deposit-${processedPaymentId}` }
           );
         }
-      }, { isolationLevel: 'Serializable' });
+      });
 
       // Invalidate user dashboard cache so they see the new order & spending immediately
       safeRevalidatePath('/dashboard', 'layout');

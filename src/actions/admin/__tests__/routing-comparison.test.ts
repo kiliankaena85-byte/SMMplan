@@ -22,15 +22,7 @@ describe('Operational Routing: Comparison Matrix & SLA Analytics Tests', () => {
   let routeB: any;
 
   beforeEach(async () => {
-    // 1. Clean up database tables
-    await db.order.deleteMany();
-    await db.serviceRoute.deleteMany();
-    await db.routingAuditLog.deleteMany();
-    await db.service.deleteMany();
-    await db.category.deleteMany();
-    await db.network.deleteMany();
-    await db.provider.deleteMany();
-    await db.user.deleteMany();
+
 
     // 2. Enable test mode and set USD/RUB rate in systemSettings
     await db.systemSettings.upsert({

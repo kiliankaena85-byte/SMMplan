@@ -5,6 +5,7 @@ import { RefundPolicyService } from "@/services/financial/refund-policy.service"
 import { sendOrderCompletedMail } from "@/lib/smtp";
 import { QuarantineService } from "@/services/providers/quarantine.service";
 import { CompensationService } from "@/services/financial/compensation.service";
+import { runSerializableTransaction } from "@/lib/transactions";
 
 /**
  * MANDATORY INTEGRITY WARNING:
@@ -109,28 +110,56 @@ export async function POST(req: Request) {
 
     // 4. Single Order Logic
     if (['CANCELED'].includes(providerStatus)) {
-      const updated = await db.order.update({ where: { id: order.id }, data: { status: 'CANCELED', remains: parsedRemains } });
-      await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Отмена на стороне провайдера)');
-      
-      // Trigger Quarantine Check (Silent Failures)
-      QuarantineService.evaluateTriggerB(order.serviceId).catch(console.error);
-      
-      CompensationService.trackCompensation(order.id, s.charge).catch(err => console.error('[Webhook] Failed to track compensation', err));
+      await runSerializableTransaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+          data: { status: 'CANCELED', remains: parsedRemains }
+        });
+        if (updated.count > 0) {
+          const freshOrder = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+          await RefundPolicyService.processRefund({ ...freshOrder, charge: Number(freshOrder.charge) }, '(Отмена на стороне провайдера)', tx);
+          
+          // Trigger Quarantine Check (Silent Failures)
+          QuarantineService.evaluateTriggerB(order.serviceId).catch(console.error);
+          
+          CompensationService.trackCompensation(order.id, s.charge).catch(err => console.error('[Webhook] Failed to track compensation', err));
+        }
+      });
       
     } else if (['PARTIAL'].includes(providerStatus)) {
-      const updated = await db.order.update({ where: { id: order.id }, data: { status: 'PARTIAL', remains: parsedRemains } });
-      await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) });
-      
-      CompensationService.trackCompensation(order.id, s.charge).catch(err => console.error('[Webhook] Failed to track compensation', err));
+      await runSerializableTransaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+          data: { status: 'PARTIAL', remains: parsedRemains }
+        });
+        if (updated.count > 0) {
+          const freshOrder = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+          await RefundPolicyService.processRefund({ ...freshOrder, charge: Number(freshOrder.charge) }, '', tx);
+          
+          CompensationService.trackCompensation(order.id, s.charge).catch(err => console.error('[Webhook] Failed to track compensation', err));
+        }
+      });
       
     } else if (['COMPLETED'].includes(providerStatus)) {
-      await db.order.update({ where: { id: order.id }, data: { status: 'COMPLETED', remains: 0 } });
-      sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(console.error);
-      
-      CompensationService.trackCompensation(order.id, s.charge).catch(err => console.error('[Webhook] Failed to track compensation', err));
+      await runSerializableTransaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+          data: { status: 'COMPLETED', remains: 0 }
+        });
+        if (updated.count > 0) {
+          const { LoyaltyService } = await import('@/services/users/loyalty.service');
+          await LoyaltyService.confirmCommission(tx, order.id);
+          
+          sendOrderCompletedMail(order.user.email, order.numericId.toString(), order.service.name).catch(console.error);
+          CompensationService.trackCompensation(order.id, s.charge).catch(err => console.error('[Webhook] Failed to track compensation', err));
+        }
+      });
       
     } else {
-      await db.order.update({ where: { id: order.id }, data: { remains: parsedRemains } });
+      await db.order.updateMany({
+        where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+        data: { remains: parsedRemains }
+      });
     }
 
     return NextResponse.json({ success: true, verifiedStatus: providerStatus });

@@ -14,6 +14,11 @@ function inferTargetTypeForSeed(categoryName: string): string {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Error: Running this seed script in production is strictly forbidden.');
+    process.exit(1);
+  }
+
   console.log('Seeding massive mock data for Enterprise UX testing...');
 
   console.log('Clearing old mock records...');

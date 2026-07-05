@@ -46,6 +46,8 @@ export default async function AdminSettingsPage({
     resendApiKey: settings.resendApiKey ? '••••••••••••••••' : null,
     smtpPassword: settings.smtpPassword ? '••••••••••••••••' : null,
     inboundEmailWebhookSecret: settings.inboundEmailWebhookSecret ? '••••••••••••••••' : null,
+    robokassaPassword: settings.robokassaPassword ? '••••••••••••••••' : null,
+    robokassaWebhookPassword: settings.robokassaWebhookPassword ? '••••••••••••••••' : null,
   };
 
   const regularUsers = users.filter((u) => u.id !== admin.id);

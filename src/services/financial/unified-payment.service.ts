@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { getBaseUrlAsync } from '@/utils/get-base-url';
 import { SettingsManager } from '@/lib/settings';
-import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
+import {  } from '@/services/financial/payment-gateway.service';
 
 type PaymentMetadata = {
   source?: string;
@@ -41,9 +41,10 @@ export class UnifiedPaymentService {
       const supportDomain = await SettingsProvider.getSupportEmailDomain();
       const successUrl = `${await getBaseUrlAsync(supportDomain)}/dashboard`;
 
-      // 2. Generate Payment Link using standard Gateway Factory
-      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway);
-      const gatewayResult = await gatewaySvc.createPayment({
+      // 2. Generate Payment Link asynchronously using BullMQ
+      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
+      
+      await paymentGatewayQueue.add('generate-gateway-payment', {
         paymentId: payment.id,
         userId,
         amountRub,
@@ -51,24 +52,14 @@ export class UnifiedPaymentService {
         successUrl,
         description,
         metadata,
+        gateway,
         isTestMode: await SettingsManager.isTestMode()
       });
-
-      // 3. Save remote ID and URL for Webhook mapping / client resumption
-      if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
-        await db.payment.update({
-          where: { id: payment.id },
-          data: { 
-            gatewayId: gatewayResult.remoteGatewayId || undefined,
-            checkoutUrl: gatewayResult.paymentUrl || undefined
-          }
-        });
-      }
 
       return {
         success: true,
         paymentId: payment.id,
-        confirmationUrl: gatewayResult.paymentUrl
+        confirmationUrl: `/payment-redirect?id=${payment.id}`
       };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

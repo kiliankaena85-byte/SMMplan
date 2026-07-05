@@ -11,8 +11,14 @@ const WORKER_STALE_THRESHOLD_MS = 130_000; // 130s: 60s interval + 70s tolerance
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
-  const secret = authHeader?.replace('Bearer ', '');
-  const isAuthorized = secret === process.env.CRON_SECRET;
+  const secret = authHeader?.replace('Bearer ', '') || '';
+  const cronSecret = process.env.CRON_SECRET || '';
+  
+  let isAuthorized = false;
+  if (cronSecret && secret.length === cronSecret.length) {
+    const crypto = await import('crypto');
+    isAuthorized = crypto.timingSafeEqual(Buffer.from(secret), Buffer.from(cronSecret));
+  }
 
   const startTime = Date.now();
 

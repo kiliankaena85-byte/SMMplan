@@ -169,14 +169,17 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
        else if (s.name.toLowerCase().includes('гарант')) badge = "ГАРАНТИЯ";
        else if (s.rate < 0.1) badge = "ХИТ";
 
+       const pricePer1kRub = applyBeautifulRounding(s.rate * s.markup * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub));
+       const pricePerUnitRub = pricePer1kRub / 1000;
+
        return {
           id: s.id,
           numericId: s.numericId,
           categoryId: s.categoryId,
           name: s.name,
           description: s.description,
-          pricePer1kRub: applyBeautifulRounding(s.rate * s.markup * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub)),
-          pricePerUnitRub: applyBeautifulRounding(s.rate * s.markup * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub)) / 1000,
+          pricePer1kRub,
+          pricePerUnitRub,
           minQty: s.minQty,
           maxQty: s.maxQty,
           speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',

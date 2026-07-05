@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { calculatePartialRefund } from '@/utils/refund';
 import { WalletOps } from '../financial/wallet-ops';
+import { runSerializableTransaction } from '@/lib/transactions';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
 import type { Order, User, Service, Category, Network } from '@prisma/client';
@@ -231,17 +232,31 @@ class AdminOrderService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const orderBefore = await db.order.findUniqueOrThrow({ where: { id: orderId } });
 
-    const result = await db.$transaction(async (tx) => {
+    const result = await runSerializableTransaction(async (tx) => {
       const order = await tx.order.findUniqueOrThrow({
         where: { id: orderId },
-        include: { user: true },
+        include: { user: true, service: true },
       });
 
-      if (['COMPLETED', 'CANCELED'].includes(order.status)) {
-        throw new Error(`Order ${order.numericId} is already in state ${order.status} and cannot be canceled.`);
+      if (['COMPLETED', 'CANCELED', 'ERROR', 'PARTIAL'].includes(order.status)) {
+        throw new Error(`Order ${order.numericId} is already in terminal state ${order.status} and cannot be canceled.`);
       }
 
-      const refundCents = ['AWAITING_PAYMENT', 'PENDING', 'PENDING_CHECK'].includes(order.status)
+      // Loss Prevention: Support cannot cancel active orders if upstream provider has disabled cancellations
+      const isPendingState = ['AWAITING_PAYMENT', 'PENDING', 'PENDING_CHECK'].includes(order.status);
+      if (!isPendingState && !order.service.isCancelEnabled) {
+        const caller = await tx.user.findUniqueOrThrow({
+          where: { id: admin.id },
+          select: { role: true },
+        });
+        if (caller.role === 'SUPPORT') {
+          throw new Error(
+            `Отмена невозможна: услуга "${order.service.name}" не поддерживает отмену на стороне провайдера. Только Администратор или Владелец могут принудительно отменить этот заказ.`
+          );
+        }
+      }
+
+      const refundCents = isPendingState
         ? Number(order.charge)
         : calculatePartialRefund(order);
 
@@ -249,6 +264,18 @@ class AdminOrderService {
         where: { id: orderId },
         data: { status: 'CANCELED' },
       });
+
+      // Handle Referral Commissions (Reverse since canceled)
+      const { LoyaltyService } = await import('../users/loyalty.service');
+      await LoyaltyService.reverseCommission(tx, orderId);
+
+      // R1-003 Fix: Roll back promo code uses if it was never paid
+      if (order.status === 'AWAITING_PAYMENT' && order.promoCodeId) {
+        await tx.promoCode.updateMany({
+          where: { id: order.promoCodeId, uses: { gt: 0 } },
+          data: { uses: { decrement: 1 } }
+        });
+      }
 
       if (refundCents > 0) {
         await WalletOps.refund(tx, order.userId, refundCents,
@@ -258,7 +285,7 @@ class AdminOrderService {
       }
 
       return { refundCents, orderNumericId: order.numericId, statusBefore: order.status, remainsBefore: order.remains };
-    }, { isolationLevel: 'Serializable' });
+    });
 
     auditAdmin({
       adminId: admin.id,
@@ -280,7 +307,7 @@ class AdminOrderService {
    * The provision worker will pick it up on next cycle.
    */
   async restartOrder(orderId: string, admin: { id: string; email: string }) {
-    const result = await db.$transaction(async (tx) => {
+    const result = await runSerializableTransaction(async (tx) => {
       const order = await tx.order.findUniqueOrThrow({
         where: { id: orderId },
         include: { user: true }
@@ -309,7 +336,7 @@ class AdminOrderService {
       });
 
       return { orderNumericId: order.numericId, oldStatus: order.status, oldError: order.error, charge: order.charge };
-    }, { isolationLevel: 'Serializable' });
+    });
 
     auditAdmin({
       adminId: admin.id,

@@ -215,8 +215,8 @@ export async function adminReplyTicket(formData: FormData) {
       ipAddress
     });
 
-    // Broadcast STAFF replies to SSE stream (NOT internal notes)
-    if (sender === 'STAFF') {
+    // Broadcast STAFF replies and INTERNAL notes to SSE stream (INTERNAL notes are safely filtered out route-side for non-staff)
+    if (sender === 'STAFF' || sender === 'INTERNAL') {
       await publishMessageSSE(ticketId, savedMsg.id);
     }
 
@@ -417,16 +417,62 @@ export async function adminManualTelegramBind(formData: FormData) {
 
       const ipAddress = await getClientIp('unknown');
       await db.$transaction(async (tx) => {
-        // 1. Move all relational data from tempUser to webUser
+        // 1. Move all relational data from tempUser to webUser (excluding LedgerEntries because of block trigger)
         await tx.ticket.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
         await tx.order.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
         await tx.payment.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
-        await tx.ledgerEntry.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
         await tx.invoice.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
         await tx.auditLog.updateMany({ where: { userId: tempUser.id }, data: { userId: webUser.id } });
 
-        // 2. Delete temp user to free up the unique telegramId
-        await tx.user.delete({ where: { id: tempUser.id } });
+        // 1.5. Balance Transfer to preserve financial integrity and keep ledger immutable
+        if (tempUser.balance > BigInt(0)) {
+          const amount = Number(tempUser.balance);
+          const reasonDebit = `Списание баланса при слиянии аккаунта ${tempUser.email} с ${webUser.email}`;
+          const reasonCredit = `Перенос баланса со старого аккаунта ${tempUser.email}`;
+          
+          // Debit tempUser
+          await tx.user.update({
+            where: { id: tempUser.id },
+            data: { balance: BigInt(0) }
+          });
+          await tx.ledgerEntry.create({
+            data: {
+              userId: tempUser.id,
+              amount: -amount,
+              reason: reasonDebit,
+              status: 'APPROVED',
+              transactionType: 'PAYMENT',
+              idempotencyKey: `merge-debit-${tempUser.id}-${webUser.id}`
+            }
+          });
+
+          // Credit webUser
+          await tx.user.update({
+            where: { id: webUser.id },
+            data: { balance: { increment: amount } }
+          });
+          await tx.ledgerEntry.create({
+            data: {
+              userId: webUser.id,
+              amount: amount,
+              reason: reasonCredit,
+              status: 'APPROVED',
+              transactionType: 'COMPENSATION',
+              idempotencyKey: `merge-credit-${tempUser.id}-${webUser.id}`
+            }
+          });
+        }
+
+        // 2. Archive temp user instead of deleting, because of onDelete: Restrict on LedgerEntry
+        await tx.user.update({
+          where: { id: tempUser.id },
+          data: {
+            isActive: false,
+            isDeleted: true,
+            telegramId: null,
+            email: `merged_${tempUser.id}@smmplan.stub`
+          }
+        });
 
         // 3. Bind telegramId to the target web user
         await tx.user.update({
@@ -492,6 +538,19 @@ export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[
 
           if (!order.service.isRefillEnabled) {
             errors.push(`Заказ #${order.numericId}: Докрутка не поддерживается для этой услуги`);
+            continue;
+          }
+
+          // R2-004 Fix: Check for existing active refill
+          const activeRefill = await tx.refill.findFirst({
+            where: {
+              orderId: order.id,
+              status: { in: ['PENDING', 'IN_PROGRESS'] }
+            }
+          });
+
+          if (activeRefill) {
+            errors.push(`Заказ #${order.numericId}: Уже есть активный запрос на докрутку`);
             continue;
           }
 

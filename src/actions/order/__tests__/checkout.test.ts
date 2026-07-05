@@ -1,16 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { checkoutAction } from '../checkout';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { verifySession, createSession } from '@/lib/session';
 import { PaymentGatewayFactory } from '@/services/financial/payment-gateway.service';
+import { WalletOps, WalletInsufficientFundsError } from '@/services/financial/wallet-ops';
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    $transaction: vi.fn((cb) => cb(db)),
+vi.mock('@/services/financial/wallet-ops', () => ({
+  WalletOps: {
+    charge: vi.fn().mockResolvedValue({ success: true }),
+  },
+  WalletInsufficientFundsError: class extends Error {
+    readonly code = 'INSUFFICIENT_FUNDS';
+    constructor() {
+      super('Недостаточно средств');
+      this.name = 'WalletInsufficientFundsError';
+    }
+  },
+  WalletUserNotFoundError: class extends Error {},
+  WalletInvalidAmountError: class extends Error {},
+}));
+
+vi.mock('@/lib/db', () => {
+  const mockDb = {
+    $transaction: vi.fn((cb) => cb(mockDb)),
     user: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     service: {
       findUnique: vi.fn(),
@@ -34,8 +53,15 @@ vi.mock('@/lib/db', () => ({
     serviceSmartConfig: {
       findUnique: vi.fn(),
     },
-  },
-}));
+    ledgerEntry: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: 'ledger-1' }),
+    },
+  };
+  return {
+    db: mockDb,
+  };
+});
 
 vi.mock('@/services/core/rate-limit.service', () => ({
   RateLimitService: {
@@ -66,6 +92,7 @@ vi.mock('@/services/marketing.service', () => ({
     }),
     consumePromoCode: vi.fn(),
   },
+  logPromoCodeUsageIfNeeded: vi.fn(),
 }));
 
 vi.mock('@/validators/link-mutators', () => ({
@@ -165,7 +192,7 @@ describe('checkoutAction', () => {
       expect(result.data.paymentId).toBe('payment-1');
       expect(db.$transaction).toHaveBeenCalled();
       expect(db.order.create).toHaveBeenCalled();
-      expect(mockGateway.createPayment).toHaveBeenCalled();
+      expect(mockGateway.createPayment).not.toHaveBeenCalled();
     }
   });
 
@@ -178,6 +205,8 @@ describe('checkoutAction', () => {
       isActive: true,
       isDeleted: false,
     } as any);
+    
+    vi.mocked(WalletOps.charge).mockRejectedValue(new WalletInsufficientFundsError(100, 0));
     
     vi.mocked(db.service.findUnique).mockResolvedValue({
       id: 'service-1',
@@ -256,6 +285,12 @@ describe('checkoutAction', () => {
       status: 'PENDING',
       payment: { checkoutUrl: 'https://existing-url' },
     } as any);
+
+    const prismaError = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: '5.0.0'
+    });
+    vi.mocked(db.order.create).mockRejectedValue(prismaError);
 
     const result = await checkoutAction({
       ...validData,

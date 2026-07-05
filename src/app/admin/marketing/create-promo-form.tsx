@@ -159,7 +159,9 @@ export function CreatePromoForm({ onSuccess }: CreatePromoFormProps) {
         <Label className="text-xs uppercase tracking-wider text-muted-foreground font-extrabold">Фрод-изоляция (Подозрительный)</Label>
         <Select name="isSuspicious" defaultValue="false" disabled={isPending}>
           <SelectTrigger className="w-full bg-muted/60 border-border text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 h-[44px]">
-            <SelectValue placeholder="Выберите статус" />
+            <SelectValue placeholder="Выберите статус">
+              {(value: string) => value === "true" ? "Да (Подозрительный)" : "Нет (Обычный)"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-card border-border text-foreground">
             <SelectItem value="false" label="Нет (Обычный)">Нет (Обычный)</SelectItem>

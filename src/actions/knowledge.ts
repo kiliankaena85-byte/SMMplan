@@ -226,7 +226,8 @@ export async function getRecommendedServicesForArticle(articleId: string) {
 
     return services.map(s => {
       const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
-      const pricePerUnitRub = applyBeautifulRounding(s.rate * s.markup * exchangeRate) / 1000;
+      const pricePer1kRub = applyBeautifulRounding(s.rate * s.markup * exchangeRate);
+      const pricePerUnitRub = pricePer1kRub / 1000;
       return {
         id: s.id,
         name: s.name,

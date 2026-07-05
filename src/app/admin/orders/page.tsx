@@ -1,12 +1,11 @@
 import { adminOrderService } from '@/services/admin/order.service';
-import { Package, Download, RefreshCw } from 'lucide-react';
+import { Package, Download } from 'lucide-react';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { OrderClient } from './components/order-client';
 import { OrdersFilterForm } from './components/orders-filter-form';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
-import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -158,30 +157,6 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
           </a>
         )}
       />
-
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-xl w-max border border-border">
-        <Link 
-          href="/admin/orders" 
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all",
-            "bg-background text-primary shadow-sm border border-border"
-          )}
-        >
-          <Package className="w-4 h-4" />
-          Заказы
-        </Link>
-        <Link 
-          href="/admin/refills" 
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all",
-            "text-muted-foreground hover:text-foreground hover:bg-background/50"
-          )}
-        >
-          <RefreshCw className="w-4 h-4" />
-          Докрутки
-        </Link>
-      </div>
 
       {/* Search + Filters & Orders Table Container */}
       <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 overflow-hidden flex flex-col">

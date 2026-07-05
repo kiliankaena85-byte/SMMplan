@@ -6,6 +6,7 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { revalidatePath } from 'next/cache';
 import { SettingsProvider } from '@/lib/settings';
 import { applyBeautifulRounding } from '@/lib/financial-constants';
+import { providerService } from '@/services/providers/provider.service';
 
 const swapSchema = z.object({
   serviceId: z.string(),
@@ -101,7 +102,24 @@ export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
 
       const oldProviderId = service.providerId;
 
-      // Fetch new rate from database ShadowService staging table to prevent arbitrage
+      // 1. LIVE-check: Fetch fresh services from Provider API to prevent arbitrage and verify availability
+      if (!targetRoute.provider) throw new Error("У целевого маршрута отсутствует конфигурация провайдера");
+      const providerInstance = await providerService.getProviderInstance(targetRoute.provider);
+      const liveServices = await providerService.getServicesWithCache(targetRoute.provider, providerInstance, false);
+      const liveSvc = liveServices.find(s => s.service.toString() === targetRoute.providerServiceId.toString());
+
+      if (!liveSvc) {
+        throw new Error(`Целевой провайдер не предоставляет услугу с внешним ID ${targetRoute.providerServiceId}`);
+      }
+
+      const rawRate = parseFloat(liveSvc.rate);
+      if (isNaN(rawRate) || rawRate <= 0) {
+        throw new Error(`Целевой провайдер вернул невалидный тариф ${liveSvc.rate} для услуги ${targetRoute.providerServiceId}`);
+      }
+
+      const newRate = rawRate;
+
+      // 2. Fetch shadow catalog record in DB to keep it updated as well
       const shadowSvc = await tx.shadowService.findUnique({
         where: {
           providerId_externalId: {
@@ -110,9 +128,11 @@ export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
           }
         }
       });
-      let newRate = service.rate;
-      if (shadowSvc && shadowSvc.rate > 0) {
-        newRate = shadowSvc.rate;
+      if (shadowSvc) {
+        await tx.shadowService.update({
+          where: { id: shadowSvc.id },
+          data: { rate: newRate }
+        });
       }
 
       const usdToRub = await SettingsProvider.getExchangeRateUSD();
@@ -437,7 +457,8 @@ export async function getProviderComparisonData(serviceId: string) {
         procurementCostPerUnitUsd = procurementRatePer1kUsd / 1000;
         procurementCostPerUnitRub = procurementRatePer1kRub / 1000;
 
-        const retailPricePerUnitRub = applyBeautifulRounding(service.rate * service.markup * usdToRub) / 1000;
+        const rateExchange = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+        const retailPricePerUnitRub = applyBeautifulRounding(service.rate * service.markup * rateExchange) / 1000;
         marginPerUnitRub = retailPricePerUnitRub - procurementCostPerUnitRub;
         markupPercent = procurementCostPerUnitRub > 0 ? (marginPerUnitRub / procurementCostPerUnitRub) * 100 : 0;
       }
