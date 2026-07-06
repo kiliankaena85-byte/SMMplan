@@ -168,6 +168,7 @@ model Category {
   sort           Int       @default(0)
   requireWarning Boolean   @default(false)
   warningMessage String?
+  analyzerTags   String?   // Comma-separated list of Link Analyzer types (e.g. "private_post,channel")
   services       Service[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -224,12 +225,14 @@ model Service {
   customDataLabel   String? // Optional custom text prompt for the input field
   isMediaGroupAware Boolean @default(false) // If false, backend splits "123-125" into separate orders
 
-  requireWarning    Boolean  @default(false)
-  warningMessage    String?
-  isActive          Boolean  @default(true)
-  pricePer1000Cents Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  requireWarning     Boolean  @default(false)
+  warningMessage     String?
+  clientRequirement  String?  // Legal/Marketing requirement for the service (e.g. "Profile must be public")
+  clientConfirmation String?  // JIT confirmation toggle text (e.g. "My profile is public")
+  isActive           Boolean  @default(true)
+  pricePer1000Cents  Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   orders         Order[]
   routes         ServiceRoute[]

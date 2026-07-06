@@ -11,12 +11,13 @@ const categorySchema = z.object({
   networkId: z.string().min(1, "Network ID required"),
   sort: z.coerce.number().int().default(0),
   requireWarning: z.coerce.boolean().default(false),
-  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable()
+  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable(),
+  analyzerTags: z.string().max(255).optional().nullable()
 });
 
 const idSchema = z.string().min(1);
 
-export async function createCategory(rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null }) {
+export async function createCategory(rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const data = categorySchema.parse(rawData);
     const cat = await db.category.create({
@@ -25,7 +26,8 @@ export async function createCategory(rawData: { name: string; networkId: string;
         networkId: data.networkId,
         sort: data.sort,
         requireWarning: data.requireWarning,
-        warningMessage: data.warningMessage
+        warningMessage: data.warningMessage,
+        analyzerTags: data.analyzerTags
       }
     });
 
@@ -35,7 +37,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
       action: "CATEGORY_CREATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage }
+      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
     });
 
     revalidatePath("/admin/catalog/categories");
@@ -47,7 +49,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
   });
 }
 
-export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null }) {
+export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     const data = categorySchema.parse(rawData);
@@ -58,7 +60,8 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
         networkId: data.networkId,
         sort: data.sort,
         requireWarning: data.requireWarning,
-        warningMessage: data.warningMessage
+        warningMessage: data.warningMessage,
+        analyzerTags: data.analyzerTags
       }
     });
 
@@ -68,7 +71,7 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
       action: "CATEGORY_UPDATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage }
+      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
     });
 
     revalidatePath("/admin/catalog/categories");

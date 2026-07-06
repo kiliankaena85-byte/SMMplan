@@ -97,6 +97,16 @@
     }
   }
 
+  /* ── Form Error Shake ── */
+  --animate-shake: shake 0.5s ease-in-out;
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
   /* ── CTA Hover Pulse (Fintech Soft) ── */
   --animate-hover-pulse: hover-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   

@@ -104,8 +104,17 @@ function isAutoService(name: string): boolean {
  */
 export function matchesSuggestedCategory(
   dbCategoryName: string, 
-  suggestedCategories: string[]
+  suggestedCategories: string[],
+  analyzerTags?: string | null,
+  detectedType?: string | null
 ): boolean {
+  if (detectedType && analyzerTags) {
+    const tags = analyzerTags.split(',').map(t => t.trim().toLowerCase());
+    if (tags.includes(detectedType.toLowerCase())) {
+      return true;
+    }
+  }
+
   if (suggestedCategories.length === 0) return true; // no filter = show all
   
   const dbIsAuto = isAutoService(dbCategoryName);

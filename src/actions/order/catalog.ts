@@ -80,6 +80,7 @@ export type PublicCategory = {
   networkId: string | null;
   requireWarning?: boolean;
   warningMessage?: string | null;
+  analyzerTags?: string | null;
 };
 
 export type PublicNetwork = {
@@ -128,7 +129,8 @@ export async function getPublicCatalogAction() {
           slug: cat.slug,
           networkId: cat.networkId,
           requireWarning: cat.requireWarning,
-          warningMessage: cat.warningMessage
+          warningMessage: cat.warningMessage,
+          analyzerTags: (cat as any).analyzerTags
         }))
       };
     });

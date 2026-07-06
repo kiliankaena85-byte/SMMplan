@@ -29,7 +29,9 @@ const serviceSchema = z.object({
   isCancelEnabled: z.coerce.boolean().default(false),
   isActive: z.coerce.boolean().default(true),
   requireWarning: z.coerce.boolean().default(false),
-  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable()
+  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable(),
+  clientRequirement: z.string().max(2000, "Требование слишком длинное").optional().nullable(),
+  clientConfirmation: z.string().max(200, "Текст подтверждения слишком длинный").optional().nullable()
 });
 
 /**
@@ -98,6 +100,8 @@ export async function createServiceAction(rawData: any) {
           isActive: data.isActive,
           requireWarning: data.requireWarning,
           warningMessage: data.warningMessage,
+          clientRequirement: data.clientRequirement,
+          clientConfirmation: data.clientConfirmation,
           providerCurrency,
           pricePer1000Cents
         }
@@ -117,7 +121,9 @@ export async function createServiceAction(rawData: any) {
         markup: service.markup,
         pricePer1000Cents: service.pricePer1000Cents,
         requireWarning: service.requireWarning,
-        warningMessage: service.warningMessage
+        warningMessage: service.warningMessage,
+        clientRequirement: service.clientRequirement,
+        clientConfirmation: service.clientConfirmation
       }
     });
 
@@ -210,6 +216,8 @@ export async function updateServiceAction(id: string, rawData: any) {
           isActive: data.isActive,
           requireWarning: data.requireWarning,
           warningMessage: data.warningMessage,
+          clientRequirement: data.clientRequirement,
+          clientConfirmation: data.clientConfirmation,
           providerCurrency,
           pricePer1000Cents
         }
@@ -238,7 +246,9 @@ export async function updateServiceAction(id: string, rawData: any) {
         markup: updatedService.markup,
         pricePer1000Cents: updatedService.pricePer1000Cents,
         requireWarning: updatedService.requireWarning,
-        warningMessage: updatedService.warningMessage
+        warningMessage: updatedService.warningMessage,
+        clientRequirement: updatedService.clientRequirement,
+        clientConfirmation: updatedService.clientConfirmation
       }
     });
 

@@ -95,12 +95,13 @@ const checkoutSchema = z.object({
   isLinkOverridden: z.boolean().optional(),
   isSmartDrip: z.boolean().optional(),
   smartDripDays: z.number().int().min(1).max(30).optional(),
-  abVariant: z.enum(['A', 'B', 'C']).optional()
+  abVariant: z.enum(['A', 'B', 'C']).optional(),
+  isRequirementsConfirmed: z.boolean().optional()
 });
 
 export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
-    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant } = data;
+    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant, isRequirementsConfirmed } = data;
     const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
 
     // Feature Flags Validation
@@ -158,6 +159,11 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     });
     if (!service || !service.isActive) {
       throw new Error("Услуга не найдена или неактивна");
+    }
+
+    // JIT Validation Check: enforce custom requirements if configured
+    if (service.clientRequirement && !isRequirementsConfirmed) {
+      throw new Error("Необходимо подтвердить выполнение условий для старта услуги");
     }
 
     // Wave 4.1: Elastic Quarantine Check

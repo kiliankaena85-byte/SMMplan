@@ -160,6 +160,7 @@ export function useOrderEngine(
   const [promoPricing, setPromoPricing] = useState<PricingResult | null>(null);
   const [pricingError, setPricingError] = useState<'voucher' | null>(null);
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
+  const [detectedType, setDetectedType] = useState<string | null>(null);
   
   // Mass Order states
   const [massCalculation, setMassCalculation] = useState<{
@@ -261,6 +262,7 @@ export function useOrderEngine(
       setPlatform(null);
       setManualPlatform(null);
       setSuggestedCategories([]);
+      setDetectedType(null);
       setIsLoading(false);
       return;
     }
@@ -274,6 +276,7 @@ export function useOrderEngine(
         setPlatform(res.data.platform !== IntelligencePlatform.OTHER ? res.data.platform : null);
         setManualPlatform(null); // Reset manual platform on new analysis
         setSuggestedCategories(res.data.suggestedCategories || []);
+        setDetectedType(res.data.type || null);
         
         const activePlatformStr = res.data.platform !== IntelligencePlatform.OTHER ? res.data.platform.toLowerCase() : null;
         
@@ -289,7 +292,7 @@ export function useOrderEngine(
                 const catsForNet = matchedNet.categories;
                 let filteredCats = catsForNet;
                 if (res.data.suggestedCategories && res.data.suggestedCategories.length > 0) {
-                    const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, res.data.suggestedCategories));
+                    const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, res.data.suggestedCategories, c.analyzerTags, res.data.type));
                     if (f.length > 0) filteredCats = f;
                 }
                 if (filteredCats.length > 0) {
@@ -330,8 +333,8 @@ export function useOrderEngine(
         setNetworkId(matchedNet.id);
         const catsForNet = matchedNet.categories;
         let filteredCats = catsForNet;
-        if (suggestedCategories.length > 0) {
-          const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, suggestedCategories));
+        if (suggestedCategories.length > 0 || detectedType) {
+          const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, c.analyzerTags, detectedType));
           if (f.length > 0) filteredCats = f;
         }
         if (filteredCats.length > 0) {
