@@ -66,3 +66,8 @@ If facts need verifying:
 
 ### Step 4: Synthesis
 Present the final validated proposal in a beautiful Markdown artifact.
+
+### Step 5: Test Implementation (Execution Phase)
+Once the code architecture is approved and implemented, explicitly invoke the `gsd-qa-tester` skill agent to finalize the testing.
+- Action: Spawn `gsd-qa-tester` (via `define_subagent` if needed, or by following its SKILL.md rules).
+- Task: "The new feature has been implemented based on the approved architecture. Your task is to write, update, and maintain E2E (Playwright) and unit/integration tests (Vitest) to cover these changes. Ensure strict typing, update data seeders, and fix any broken visual regression screenshots."
