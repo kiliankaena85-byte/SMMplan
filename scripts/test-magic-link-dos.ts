@@ -5,9 +5,9 @@ async function testAttack() {
   const email = 'victim@example.com';
   
   // Create victim
-  let user = await db.user.findUnique({ where: { email } });
+  let user = await db.user.findUnique({ where: { email_tenantId: { email, tenantId: 'smmplan' } } });
   if (!user) {
-    user = await db.user.create({ data: { email, role: 'USER' } });
+    user = await db.user.create({ data: { email, role: 'USER', tenantId: 'smmplan' } });
   }
 
   // Simulate attacker requesting 50 tokens (bypassing IP limit)

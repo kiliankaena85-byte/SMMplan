@@ -4,41 +4,76 @@ import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
 import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvider';
 
-export const metadata: Metadata = {
-  title: {
-    default: 'SMMplan — продвижение в социальных сетях',
-    template: '%s | SMMplan',
-  },
-  description:
-    'Продвижение подписчиков, лайков, просмотров для Instagram, TikTok, VK, YouTube. Быстрый старт, надежные исполнители, поддержка 9-21 МСК.',
-  keywords: ['smm', 'продвижение', 'подписчики', 'лайки', 'продвижение', 'instagram', 'tiktok', 'youtube', 'vk'],
-  openGraph: {
-    type: 'website',
-    locale: 'ru_RU',
-    siteName: 'SMMplan',
-    title: 'SMMplan — продвижение в социальных сетях',
-    description:
-      'Продвижение подписчиков, лайков, просмотров. Быстрый старт, профессиональное выполнение, поддержка 9-21 МСК.',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'SMMplan — продвижение в социальных сетях',
-    description: 'B2B платформа продвижения: продвижение подписчиков, лайков, просмотров.',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  metadataBase: new URL(
-    process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL
-      ? (process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL)?.startsWith('http')
-        ? (process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL)!
-        : `https://${process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL}`
-      : 'https://smmplan.pro'
-  ),
-};
-
 import { headers } from 'next/headers';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const reqHeaders = await headers();
+  const host = reqHeaders.get('host') || '';
+  const tenantId = host.includes('lovable') ? 'lovable' : 'smmplan';
+  
+  if (tenantId === 'lovable') {
+    return {
+      title: {
+        default: 'Lovable — Premium Social Growth Platform',
+        template: '%s | Lovable',
+      },
+      description: 'Grow your social presence with premium delivery and absolute privacy.',
+      keywords: ['smm', 'growth', 'followers', 'likes', 'instagram', 'tiktok', 'youtube'],
+      openGraph: {
+        type: 'website',
+        locale: 'en_US',
+        siteName: 'Lovable',
+        title: 'Lovable — Premium Social Growth Platform',
+        description: 'Grow your social presence with premium delivery and absolute privacy.',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'Lovable — Premium Social Growth Platform',
+        description: 'Grow your social presence with premium delivery and absolute privacy.',
+      },
+      robots: {
+        index: true,
+        follow: true,
+      },
+      metadataBase: new URL(process.env.LOVABLE_APP_URL || 'https://lovable.pro'),
+    };
+  }
+
+  return {
+    title: {
+      default: 'SMMplan — продвижение в социальных сетях',
+      template: '%s | SMMplan',
+    },
+    description:
+      'Продвижение подписчиков, лайков, просмотров для Instagram, TikTok, VK, YouTube. Быстрый старт, надежные исполнители, поддержка 9-21 МСК.',
+    keywords: ['smm', 'продвижение', 'подписчики', 'лайки', 'продвижение', 'instagram', 'tiktok', 'youtube', 'vk'],
+    openGraph: {
+      type: 'website',
+      locale: 'ru_RU',
+      siteName: 'SMMplan',
+      title: 'SMMplan — продвижение в социальных сетях',
+      description:
+        'Продвижение подписчиков, лайков, просмотров. Быстрый старт, профессиональное выполнение, поддержка 9-21 МСК.',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'SMMplan — продвижение в социальных сетях',
+      description: 'B2B платформа продвижения: продвижение подписчиков, лайков, просмотров.',
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    metadataBase: new URL(
+      process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL
+        ? (process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL)?.startsWith('http')
+          ? (process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL)!
+          : `https://${process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL}`
+        : 'https://smmplan.pro'
+    ),
+  };
+}
+
 import { SettingsProvider } from '@/lib/settings';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
@@ -75,6 +110,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     }
   }
 
+  const tenantId = reqHeaders.get('x-tenant-id') || 'smmplan';
+  const isLovable = tenantId === 'lovable';
+  const siteName = isLovable ? 'Lovable' : (settings.siteName || 'SMMplan');
+  const supportTelegram = isLovable
+    ? (process.env.LOVABLE_TELEGRAM_BOT || 'lovable_support_bot')
+    : (settings.contactTelegramBot || 'smmplan_support_bot');
+  const supportEmail = isLovable
+    ? 'support@lovable.pro'
+    : (settings.contactSupportEmail || 'support@smmplan.pro');
+
   const showMaintenance = isMaintenanceMode && !isStaff && !isExcluded;
 
   if (showMaintenance) {
@@ -88,9 +133,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </head>
         <body className="font-sans antialiased bg-background text-foreground" suppressHydrationWarning>
           <MaintenanceScreen
-            siteName={settings.siteName || 'SMMplan'}
-            supportTelegram={settings.contactTelegramBot || 'smmplan_support_bot'}
-            supportEmail={settings.contactSupportEmail || 'support@smmplan.pro'}
+            siteName={siteName}
+            supportTelegram={supportTelegram}
+            supportEmail={supportEmail}
           />
         </body>
       </html>

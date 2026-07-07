@@ -8,11 +8,17 @@ import { SettingsProvider } from '@/lib/settings';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  const hostHeader = req.headers.get('host') || '';
+  const tenantId = hostHeader.includes('lovable') ? 'lovable' : 'smmplan';
+
   const contactSettings = await SettingsProvider.getContactAndLegalSettings();
-  const botUsername = contactSettings.TELEGRAM_SUPPORT_BOT;
+  let botUsername = contactSettings.TELEGRAM_SUPPORT_BOT;
+  if (tenantId === 'lovable') {
+    botUsername = process.env.LOVABLE_TELEGRAM_BOT || 'lovable_support_bot';
+  }
 
   if (!botUsername) {
-    console.error('[TelegramSupport] TELEGRAM_SUPPORT_BOT not configured in settings');
+    console.error('[TelegramSupport] botUsername not resolved or configured');
     const appUrl = await getBaseUrlAsync();
     return NextResponse.redirect(`${appUrl}/dashboard`);
   }

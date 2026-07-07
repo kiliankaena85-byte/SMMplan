@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { getClientIp } from '@/utils/ip';
+import { headers } from 'next/headers';
 
 const offlineTicketSchema = z.object({
   serviceId: z.string().max(255).optional().nullable(),
@@ -63,8 +64,10 @@ export async function createOfflineTicketAction(input: OfflineTicketInput) {
     }
 
     // 3. Squatting Guard & Shadow User Creation
+    const reqHeaders = await headers();
+    const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
     const existingUser = await db.user.findUnique({
-      where: { email: lowerEmail },
+      where: { email_tenantId: { email: lowerEmail, tenantId } },
       select: { id: true, passwordHash: true, telegramId: true }
     });
     
@@ -81,10 +84,11 @@ export async function createOfflineTicketAction(input: OfflineTicketInput) {
     }
 
     const shadowUser = await db.user.upsert({
-      where: { email: lowerEmail },
+      where: { email_tenantId: { email: lowerEmail, tenantId } },
       update: {},
       create: {
         email: lowerEmail,
+        tenantId,
         adminNote: "Создан автоматически при обращении с ошибкой платежа"
       }
     });
@@ -161,6 +165,7 @@ export async function createOfflineTicketAction(input: OfflineTicketInput) {
       const ticket = await tx.ticket.create({
         data: {
           userId: finalUserId,
+          tenantId,
           subject: `Ошибка оплаты [Шлюз: ${gateway.toUpperCase()}]`,
           source: 'WEB',
           status: 'OPEN',

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { paymentService } from '@/services/financial/payment.service';
 import { db } from '@/lib/db';
+import { MutexManager } from '@/lib/redis-lock';
 
 const MAX_BODY_SIZE = 1024 * 64; // 64KB
 
@@ -140,28 +141,38 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Missing userId or gatewayId in metadata' }, { status: 400 });
       }
 
-      // Early status checking on the DB payment model to ensure idempotency and prevent double-credit
-      let existingPayment = null;
-      if (internalPaymentId) {
-        existingPayment = await db.payment.findUnique({ where: { id: internalPaymentId } });
-      }
-      if (!existingPayment && gatewayId) {
-        existingPayment = await db.payment.findUnique({ where: { gatewayId } });
-      }
-      if (existingPayment && existingPayment.status === 'SUCCEEDED') {
-        console.info(`[YooKassa Webhook] Payment ${existingPayment.id} already processed (idempotency hit)`);
-        return NextResponse.json({ success: true, status: 'Payment processed strictly (idempotent)' }, { status: 200 });
-      }
+      // Wrap the critical idempotency check and confirmation in a distributed Redis lock
+      // TTL: 15s (15000ms), Wait Time: 10s (10000ms)
+      try {
+        const result = await MutexManager.withLock(`webhook_payment_${gatewayId}`, 15000, 10000, async () => {
+          let existingPayment = null;
+          if (internalPaymentId) {
+            existingPayment = await db.payment.findUnique({ where: { id: internalPaymentId } });
+          }
+          if (!existingPayment && gatewayId) {
+            existingPayment = await db.payment.findUnique({ where: { gatewayId } });
+          }
+          if (existingPayment && existingPayment.status === 'SUCCEEDED') {
+            console.info(`[YooKassa Webhook] Payment ${existingPayment.id} already processed (idempotency hit)`);
+            return NextResponse.json({ success: true, status: 'Payment processed strictly (idempotent)' }, { status: 200 });
+          }
 
-      // Safe confirmation using Double-Check Logic (forces double-check in prod regardless of isTestMode)
-      const success = await paymentService.confirmPayment(
-        gatewayId, amount, userId, isTestMode, 'yookassa', internalPaymentId, metadataType, receiptId
-      );
+          // Safe confirmation using Double-Check Logic
+          const success = await paymentService.confirmPayment(
+            gatewayId, amount, userId, isTestMode, 'yookassa', internalPaymentId, metadataType, receiptId
+          );
 
-      if (success) {
-        return NextResponse.json({ success: true, status: 'Payment processed strictly' }, { status: 200 });
-      } else {
-        return NextResponse.json({ error: 'Payment double-check validation failed' }, { status: 400 });
+          if (success) {
+            return NextResponse.json({ success: true, status: 'Payment processed strictly' }, { status: 200 });
+          } else {
+            return NextResponse.json({ error: 'Payment double-check validation failed' }, { status: 400 });
+          }
+        });
+        
+        return result;
+      } catch (lockError) {
+        console.error(`[YooKassa Webhook] Failed to acquire lock for payment ${gatewayId}:`, lockError);
+        return NextResponse.json({ error: 'Concurrent processing lock timeout' }, { status: 429 });
       }
     }
 

@@ -168,6 +168,7 @@ interface FinanceClientProps {
   initialLedger: LedgerPageResult;
   initialPayments: PaymentsPageResult;
   initialPeriod: string;
+  tenantId?: string;
 }
 
 function fmt(cents: number, showSign = false): string {
@@ -176,7 +177,7 @@ function fmt(cents: number, showSign = false): string {
 }
 
 // ── Ledger Tab ──────────────────────────────────────────────────────────────
-function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult; period: string }) {
+function LedgerTab({ initial, period: initPeriod, tenantId }: { initial: LedgerPageResult; period: string; tenantId?: string }) {
   const [period, setPeriod]       = useState(initPeriod);
   const [data,   setData]         = useState<LedgerPageResult>(initial);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -187,6 +188,7 @@ function LedgerTab({ initial, period: initPeriod }: { initial: LedgerPageResult;
       const r = await getLedgerAction({
         period:   newPeriod as 'today' | 'week' | 'month' | 'all',
         pageSize: 100, // Load more for DataTable
+        tenantId,
       });
       if (!('error' in r)) {
         setData(r);
@@ -374,7 +376,7 @@ function BalanceCorrectionTab() {
 }
 
 // ── Payments Tab ────────────────────────────────────────────────────────────
-function PaymentsTab({ initial, period: initPeriod }: { initial: PaymentsPageResult; period: string }) {
+function PaymentsTab({ initial, period: initPeriod, tenantId }: { initial: PaymentsPageResult; period: string; tenantId?: string }) {
   const [period, setPeriod]       = useState(initPeriod);
   const [data,   setData]         = useState<PaymentsPageResult>(initial);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -385,6 +387,7 @@ function PaymentsTab({ initial, period: initPeriod }: { initial: PaymentsPageRes
       const r = await getPaymentsAction({
         period:   newPeriod as 'today' | 'week' | 'month' | 'all',
         pageSize: 100,
+        tenantId,
       });
       if (!('error' in r)) {
         setData(r);
@@ -436,7 +439,7 @@ function PaymentsTab({ initial, period: initPeriod }: { initial: PaymentsPageRes
 }
 
 // ── Main Export ─────────────────────────────────────────────────────────────
-export function FinanceClient({ initialLedger, initialPayments, initialPeriod }: FinanceClientProps) {
+export function FinanceClient({ initialLedger, initialPayments, initialPeriod, tenantId }: FinanceClientProps) {
   return (
     <Tabs defaultValue="ledger" className="w-full">
       <TabsList variant="line" className="gap-6 border-b border-divider w-full justify-start rounded-none h-auto p-0">
@@ -461,11 +464,11 @@ export function FinanceClient({ initialLedger, initialPayments, initialPeriod }:
       </TabsList>
       
       <TabsContent value="ledger" className="pt-6">
-        <LedgerTab initial={initialLedger} period={initialPeriod} />
+        <LedgerTab initial={initialLedger} period={initialPeriod} tenantId={tenantId} />
       </TabsContent>
       
       <TabsContent value="payments" className="pt-6">
-        <PaymentsTab initial={initialPayments} period={initialPeriod} />
+        <PaymentsTab initial={initialPayments} period={initialPeriod} tenantId={tenantId} />
       </TabsContent>
       
       <TabsContent value="topup" className="pt-6">

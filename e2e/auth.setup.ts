@@ -19,10 +19,11 @@ setup('authenticate', async ({ page, context }) => {
   const email = `e2e-tester@test.com`;
 
   const user = await prisma.user.upsert({
-    where: { email },
+    where: { email_tenantId: { email, tenantId: 'smmplan' } },
     update: { balance: 200000_00, role: 'OWNER' },
     create: {
       email,
+      tenantId: 'smmplan',
       balance: 200000_00, // 200K RUB to fit within PostgreSQL INT4 and avoid test errors
       role: 'OWNER',
     }
@@ -35,7 +36,7 @@ setup('authenticate', async ({ page, context }) => {
     }
   });
 
-  const sessionToken = await new SignJWT({ sessionId: session.id, userId: user.id, role: user.role })
+  const sessionToken = await new SignJWT({ sessionId: session.id, userId: user.id, role: user.role, tenantId: 'smmplan' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')

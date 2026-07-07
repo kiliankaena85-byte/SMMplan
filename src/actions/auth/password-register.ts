@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { hashPassword } from '@/lib/auth/password';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { logger } from '@/lib/logger';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import crypto from 'crypto';
 import { sendMagicLink } from '@/lib/smtp';
 
@@ -38,9 +38,12 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
 
     // 2. Transaction for atomic user creation
     const result = await db.$transaction(async (tx) => {
-      // Check if user already exists
+      const reqHeaders = await headers();
+      const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+
+      // Check if user already exists in this tenant
       const existingUser = await tx.user.findUnique({
-        where: { email: cleanEmail },
+        where: { email_tenantId: { email: cleanEmail, tenantId } },
         select: { id: true, isDeleted: true, isActive: true }
       });
 
@@ -73,6 +76,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           referredById,
           isActive: true,
           isEmailVerified: false,
+          tenantId,
         }
       });
 

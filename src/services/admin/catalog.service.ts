@@ -431,6 +431,8 @@ class AdminCatalogService {
     const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
     const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
 
+    const zombieIds: string[] = [];
+
     for (const s of ourServices) {
       if (!s.externalId) continue;
 
@@ -440,26 +442,7 @@ class AdminCatalogService {
         // ZOMBIE DETECTION: Service was deleted by the provider
         console.log(`[DEBUG] Zombie candidate: externalId=${s.externalId}, isActive=${s.isActive}`);
         if (s.isActive) {
-          await db.service.update({
-            where: { id: s.id },
-            data: { 
-              isActive: false, 
-              cooldownReason: 'ZOMBIE_AUTO_DISABLED',
-              cooldownUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-            }
-          });
-
-          await db.routingAuditLog.create({
-            data: {
-              serviceId: s.id,
-              action: 'ZOMBIE_AUTO_DISABLED',
-              reason: 'Услуга удалена провайдером из API'
-            }
-          });
-
-          const alertMsg = `🧟 [Zombie Eraser] Услуга #${s.numericId} - "${s.name}" автоматически отключена, так как она была удалена провайдером из API.`;
-          await sendAdminAlert(alertMsg, 'WARNING');
-
+          zombieIds.push(s.id);
           zombiesDisabled++;
         }
       } else {
@@ -694,6 +677,33 @@ class AdminCatalogService {
           }
         }
       }
+    }
+
+    // Process zombies in batches of 500 to avoid N+1 query spam and connection pool exhaustion
+    const ZOMBIE_BATCH_SIZE = 500;
+    for (let i = 0; i < zombieIds.length; i += ZOMBIE_BATCH_SIZE) {
+      const batchIds = zombieIds.slice(i, i + ZOMBIE_BATCH_SIZE);
+      
+      await db.service.updateMany({
+        where: { id: { in: batchIds } },
+        data: {
+          isActive: false,
+          cooldownReason: 'ZOMBIE_AUTO_DISABLED',
+          cooldownUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        }
+      });
+
+      await db.routingAuditLog.createMany({
+        data: batchIds.map(id => ({
+          serviceId: id,
+          adminId: admin.id,
+          action: 'ZOMBIE_AUTO_DISABLED',
+          reason: 'Услуга удалена провайдером из API'
+        }))
+      });
+
+      const alertMsg = `🧟 [Zombie Eraser] Автоматически отключено ${batchIds.length} мертвых услуг (Пакет ${Math.floor(i / ZOMBIE_BATCH_SIZE) + 1}).`;
+      await sendAdminAlert(alertMsg, 'WARNING');
     }
 
     auditAdmin({

@@ -40,6 +40,7 @@ type OrderSearchParams = {
   maxPrice?: number;
   minQuantity?: number;
   maxQuantity?: number;
+  tenantId?: string;
 };
 
 // ── Service ──
@@ -75,6 +76,10 @@ class AdminOrderService {
 
     if (userId && userId.trim()) {
       where.userId = userId.trim();
+    }
+
+    if (params.tenantId && params.tenantId !== 'all') {
+      where.tenantId = params.tenantId;
     }
 
     if (status && status !== 'ALL') {

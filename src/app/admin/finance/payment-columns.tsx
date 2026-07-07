@@ -95,6 +95,22 @@ export const columns: ColumnDef<PaymentDTO>[] = [
     },
   },
   {
+    accessorKey: 'tenantId',
+    header: 'Бренд',
+    cell: ({ row }) => {
+      const u = row.original;
+      const isSmmplan = u.tenantId === 'smmplan';
+      const bg = isSmmplan 
+        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20' 
+        : 'bg-purple-500/10 text-purple-500 border-purple-500/20 hover:bg-purple-500/20';
+      return (
+        <Badge intent="outline" className={`shadow-sm px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${bg}`}>
+          {isSmmplan ? 'SMMplan' : 'Lovable'}
+        </Badge>
+      );
+    },
+  },
+  {
     accessorKey: 'amount',
     header: () => <div className="text-right">Сумма</div>,
     cell: ({ row }) => {

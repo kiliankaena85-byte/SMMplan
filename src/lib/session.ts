@@ -25,12 +25,13 @@ export async function createSession(userId: string, canResetPassword: boolean = 
 
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { role: true }
+    select: { role: true, tenantId: true }
   });
   const role = user?.role || 'USER';
+  const tenantId = user?.tenantId || 'smmplan';
 
   // Шифруем ID сессии в JWT
-  const sessionToken = await new SignJWT({ sessionId: session.id, userId, canResetPassword, role })
+  const sessionToken = await new SignJWT({ sessionId: session.id, userId, canResetPassword, role, tenantId })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -70,22 +71,7 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
   const sessionToken = (await cookies()).get('session_token')?.value;
 
   if (!sessionToken) {
-    // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.
-    // Prevents accidental OWNER access on misconfigured staging/preview deployments.
-    if (isLocalhostRequest && process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
-      const bypassEmail = process.env.DEV_BYPASS_EMAIL;
-      if (process.env.NODE_ENV === 'development') {
-        console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
-      }
-      const devUser = await db.user.findFirst({ 
-        where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
-      });
-      if (process.env.NODE_ENV === 'development') {
-        console.info("[verifySession] devUser found:", !!devUser);
-      }
-      if (devUser) return { userId: devUser.id, canResetPassword: false, role: devUser.role };
-    }
-    return null;
+    return handleDevAutoLogin(isLocalhostRequest);
   }
 
   try {
@@ -107,6 +93,13 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
     const user = session.user;
     if (!user || user.isDeleted === true || user.isActive === false) {
       console.warn('[verifySession] null because: user missing or deleted/inactive');
+      return null;
+    }
+
+    // Verify tenant context match
+    const currentTenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+    if (user.tenantId !== currentTenantId) {
+      console.warn(`[verifySession] null because: user tenant "${user.tenantId}" does not match request tenant "${currentTenantId}"`);
       return null;
     }
 
@@ -156,22 +149,29 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
     };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
-    // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.
-    if (isLocalhostRequest && process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
-      const bypassEmail = process.env.DEV_BYPASS_EMAIL;
-      if (process.env.NODE_ENV === 'development') {
-        console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
-      }
-      const devUser = await db.user.findFirst({ 
-        where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
-      });
-      if (process.env.NODE_ENV === 'development') {
-        console.info("[verifySession] devUser found:", !!devUser);
-      }
-      if (devUser) return { userId: devUser.id, role: devUser.role };
-    }
-    return null;
+    return handleDevAutoLogin(isLocalhostRequest);
   }
+}
+
+async function handleDevAutoLogin(isLocalhostRequest: boolean) {
+  if (
+    isLocalhostRequest &&
+    process.env.NODE_ENV !== 'production' &&
+    (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')
+  ) {
+    const bypassEmail = process.env.DEV_BYPASS_EMAIL;
+    if (process.env.NODE_ENV === 'development') {
+      console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
+    }
+    const devUser = await db.user.findFirst({ 
+      where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
+    });
+    if (process.env.NODE_ENV === 'development') {
+      console.info("[verifySession] devUser found:", !!devUser);
+    }
+    if (devUser) return { userId: devUser.id, role: devUser.role };
+  }
+  return null;
 }
 
 

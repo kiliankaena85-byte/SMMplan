@@ -33,4 +33,6 @@ export interface CatalogServiceDTO {
   requireWarning?: boolean;
   warningMessage?: string | null;
   cooldownReason?: string | null;
+  clientRequirement?: string | null;
+  clientConfirmation?: string | null;
 }

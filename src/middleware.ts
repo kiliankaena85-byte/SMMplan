@@ -15,7 +15,11 @@ const legacyRedirects: Record<string, string> = {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Check legacy redirects
+  // 1. Multi-Tenancy Host Detection (Moved to top)
+  const host = request.headers.get('host') || '';
+  const tenantId = host.includes('lovable') ? 'lovable' : 'smmplan';
+
+  // 2. Check legacy redirects
   const newPath = legacyRedirects[pathname];
   if (newPath) {
     const redirectUrl = new URL(newPath, request.url);
@@ -27,7 +31,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301); // 301 Permanent Redirect
   }
 
-  // 2. Auth Route Protection
+  // 3. Auth Route Protection
   const protectedPaths = ['/admin', '/dashboard', '/operator'];
   if (protectedPaths.some(p => pathname.startsWith(p))) {
     const sessionToken = request.cookies.get('session_token')?.value;
@@ -42,11 +46,14 @@ export async function middleware(request: NextRequest) {
     }
 
     const payload = await decryptSessionToken(sessionToken);
-    if (!payload) {
+    // Enforce tenant isolation for the session token
+    if (!payload || payload.tenantId !== tenantId) {
       if (isRSC) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
       }
-      return NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url));
+      const response = NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url));
+      response.cookies.delete('session_token');
+      return response;
     }
 
     // Role verification for /admin and /operator
@@ -61,9 +68,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Set x-pathname header for layout detection
+  // Set headers for layout detection and tenant isolation
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', pathname);
+  requestHeaders.set('x-tenant-id', tenantId);
 
   // Handle ref cookie if present in URL query
   const ref = request.nextUrl.searchParams.get('ref');

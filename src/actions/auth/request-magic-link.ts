@@ -6,7 +6,7 @@ import { sendMagicLink, sendWelcomeLetter } from "@/lib/smtp";
 import { RateLimitService } from "@/services/core/rate-limit.service";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 const log = logger.child({ component: 'MagicLink' });
 
@@ -44,7 +44,9 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
     const txResult = await db.$transaction(async (tx) => {
       let isNewUser = false;
-      let user = await tx.user.findUnique({ where: { email: cleanEmail } });
+      const reqHeaders = await headers();
+      const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+      let user = await tx.user.findUnique({ where: { email_tenantId: { email: cleanEmail, tenantId } } });
 
       if (user && (user.isDeleted || !user.isActive)) {
         return { type: 'blocked' as const };
@@ -59,7 +61,7 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
         const ownerCount = await tx.user.count({ where: { role: "OWNER" } });
         const role = ownerCount === 0 ? "OWNER" : "USER";
-        user = await tx.user.create({ data: { email: cleanEmail, role, referredById } });
+        user = await tx.user.create({ data: { email: cleanEmail, role, referredById, tenantId } });
       }
 
       const rawToken = crypto.randomBytes(32).toString("hex");

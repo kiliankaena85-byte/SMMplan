@@ -104,7 +104,7 @@ describe.sequential('createGuestTicketAction', () => {
     expect(result.success).toBe(true);
 
     const shadowUser = await db.user.findUnique({
-      where: { email: 'guest_user@smmplan.local' },
+      where: { email_tenantId: { email: 'guest_user@smmplan.local', tenantId: 'smmplan' } },
       include: {
         tickets: {
           include: {

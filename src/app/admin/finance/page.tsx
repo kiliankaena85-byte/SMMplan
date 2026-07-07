@@ -11,18 +11,35 @@ import { VatThresholdWidget } from './vat-threshold-widget';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Wallet, TrendingUp, TrendingDown, DollarSign, PieChart, Calculator, AlertTriangle } from 'lucide-react';
 
+import { verifySession } from '@/lib/session';
+import { db } from '@/lib/db';
+import { resolveAdminTenantContext } from '@/utils/admin-tenant';
+import { TenantSelector } from '@/components/admin/tenant-selector';
+
 export const dynamic = 'force-dynamic';
 
 type Props = {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; tenant?: string }>;
 };
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(n / 100);
 
 export default async function FinanceDashboard({ searchParams }: Props) {
+  const session = await verifySession();
+  const user = session ? await db.user.findUnique({ 
+    where: { id: session.userId },
+    include: { staffRole: { include: { permissions: true } } }
+  }) : null;
+
+  const isOwner = user?.role === 'OWNER';
+  const isSupport = user?.role === 'SUPPORT';
+  const canSeeFinances = isOwner || !isSupport;
+
   const params = await searchParams;
   const period = (params.period as 'today' | 'week' | 'month' | 'all') ?? 'month';
+  const selectedTenant = params.tenant;
+  const activeTenantId = resolveAdminTenantContext(user, selectedTenant);
 
   const now = new Date();
   let periodStart: Date | undefined;
@@ -30,13 +47,16 @@ export default async function FinanceDashboard({ searchParams }: Props) {
   else if (period === 'week') { periodStart = new Date(Date.now() - 7*86400000); }
   else if (period === 'month') { periodStart = new Date(Date.now() - 30*86400000); }
 
-  const [metrics, settings, quarantineList, ledgerResult, paymentsResult] = await Promise.all([
-    accountingService.getMetrics(periodStart, periodStart ? new Date() : undefined),
-    accountingService.getSettings(),
+  const [metrics, settings, quarantineList, ledgerResult, paymentsResult, tenants] = await Promise.all([
+    accountingService.getMetrics(periodStart, periodStart ? new Date() : undefined, activeTenantId),
+    accountingService.getSettings(activeTenantId),
     escrowService.getQuarantineEntries(),
-    getLedgerAction({ period, pageSize: 50 }),
-    getPaymentsAction({ period, pageSize: 50 }),
+    getLedgerAction({ period, pageSize: 50, tenantId: activeTenantId }),
+    getPaymentsAction({ period, pageSize: 50, tenantId: activeTenantId }),
+    db.tenant.findMany({ where: { isActive: true }, select: { id: true, name: true, slug: true } }),
   ]);
+
+  const showTenantSelector = isOwner || user?.role === 'ADMIN' || user?.tenantId === 'all';
 
   if ('error' in ledgerResult) {
     return (
@@ -106,6 +126,9 @@ export default async function FinanceDashboard({ searchParams }: Props) {
         icon={Wallet}
         title="Финансовый учёт"
         description="Метрики эффективности, балансы и история транзакций"
+        action={showTenantSelector ? (
+          <TenantSelector tenants={tenants} activeFilter={selectedTenant || 'all'} />
+        ) : undefined}
         tabs={FINANCE_TABS}
         onboardingKey="finance"
         onboarding={ONBOARDING_CONFIGS.finance}
@@ -190,7 +213,12 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       </div>
 
       {/* ── Tabs: Ledger & Topup ── */}
-      <FinanceClient initialLedger={initialLedger} initialPayments={initialPayments} initialPeriod={period} />
+      <FinanceClient 
+        initialLedger={initialLedger} 
+        initialPayments={initialPayments} 
+        initialPeriod={period} 
+        tenantId={activeTenantId} 
+      />
     </div>
   );
 }

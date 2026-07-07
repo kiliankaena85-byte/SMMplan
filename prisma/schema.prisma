@@ -10,7 +10,7 @@ datasource db {
 
 model User {
   id                String    @id @default(cuid())
-  email             String    @unique
+  email             String
   passwordHash      String?
   role              String    @default("USER") // USER, SUPPORT, MANAGER, OWNER
   balance           BigInt    @default(0)
@@ -72,6 +72,11 @@ model User {
   b2bConfig B2bConfig?
   userNotes     UserNote[] @relation("UserNotes")
   authoredNotes UserNote[] @relation("AuthorNotes")
+
+  tenantId String @default("smmplan")
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
 }
 
 model B2bConfig {
@@ -369,8 +374,12 @@ model Order {
   idempotencyKey String? @unique // Wave 1: Token to prevent double order creation
 
   abVariant      String? // A/B test variant tag: A, B, C
+  tenantId       String  @default("smmplan")
 
   @@index([userId])
+  @@index([tenantId])
+  @@index([tenantId, userId])
+  @@index([tenantId, status, createdAt])
   @@index([serviceId]) // Fast lookup for orders by service
   @@index([status])
   @@index([createdAt]) // P2.2: temporal queries & analytics
@@ -426,11 +435,15 @@ model Payment {
 
   abVariant String? // A/B test variant tag: A, B, C
 
+  tenantId String @default("smmplan")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([gatewayId])
+  @@index([tenantId])
+  @@index([tenantId, userId])
 }
 
 // ── B2B Accounting ──
@@ -456,8 +469,23 @@ enum UsnScheme {
   INCOME_EXPENSES
 }
 
+model Tenant {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  domain       String   @unique
+  customDomain String?  @unique
+  isActive     Boolean  @default(true)
+  vaultSalt    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  systemSettings SystemSettings?
+}
+
 model SystemSettings {
-  id              String    @id @default("global")
+  id              String    @id
+  tenant          Tenant    @relation(fields: [id], references: [id], onDelete: Cascade)
   isTestMode      Boolean   @default(false)
   taxRate         Float     @default(6.0) // % tax rate
   usnScheme       UsnScheme @default(INCOME_EXPENSES)
@@ -564,7 +592,12 @@ model Ticket {
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
+  tenantId String @default("smmplan")
+
   @@index([userId])
+  @@index([tenantId])
+  @@index([tenantId, userId])
+  @@index([tenantId, status, createdAt])
   @@index([source])
   @@index([orderId])
   @@index([paymentId])

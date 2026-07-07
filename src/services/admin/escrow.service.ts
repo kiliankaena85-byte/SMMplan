@@ -76,30 +76,25 @@ export class EscrowService {
       const LARGE_DEDUCTION_THRESHOLD = 1000000; // 10,000 RUB в копейках
 
       if (absAmount > LARGE_DEDUCTION_THRESHOLD) {
-        try {
-          return await runSerializableTransaction(async (tx) => {
-            const largeDeductionsToday = await tx.ledgerEntry.count({
-              where: {
-                adminId: admin.id,
-                createdAt: { gte: todayMSK },
-                amount: { lte: -LARGE_DEDUCTION_THRESHOLD } // Отрицательные суммы <= -1000000
-              }
-            });
-
-            if (largeDeductionsToday >= 3) {
-              const alertMsg = `🚨 [Escrow Guard] Сотрудник ${admin.email} пытался провести более 3 крупных списаний за день. Операция списания на ${(absAmount/100).toFixed(2)} ₽ заблокирована.`;
-              sendAdminAlert(alertMsg, 'CRITICAL');
-              throw new Error("Превышен дневной лимит крупных списаний. Операция заблокирована.");
+        return await runSerializableTransaction(async (tx) => {
+          const largeDeductionsToday = await tx.ledgerEntry.count({
+            where: {
+              adminId: admin.id,
+              createdAt: { gte: todayMSK },
+              amount: { lte: -LARGE_DEDUCTION_THRESHOLD } // Отрицательные суммы <= -1000000
             }
-
-            // Отправляем крупное списание в Карантин (требует аппрува Владельца)
-            await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
-            return { status: 'QUARANTINE' as const };
           });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (error: any) {
-          throw error;
-        }
+
+          if (largeDeductionsToday >= 3) {
+            const alertMsg = `🚨 [Escrow Guard] Сотрудник ${admin.email} пытался провести более 3 крупных списаний за день. Операция списания на ${(absAmount/100).toFixed(2)} ₽ заблокирована.`;
+            sendAdminAlert(alertMsg, 'CRITICAL');
+            throw new Error("Превышен дневной лимит крупных списаний. Операция заблокирована.");
+          }
+
+          // Отправляем крупное списание в Карантин (требует аппрува Владельца)
+          await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+          return { status: 'QUARANTINE' as const };
+        });
       }
 
       // Небольшие списания (до 10,000 руб) одобряются автоматически
@@ -110,31 +105,26 @@ export class EscrowService {
 
     // 3. To prevent state-bypass (race conditions), we must evaluate and execute 
     // the trust budget check atomically using Serializable isolation.
-    try {
-      return await runSerializableTransaction(async (tx) => {
-        const dailyAdjustments = await tx.ledgerEntry.aggregate({
-          _sum: { amount: true },
-          where: {
-            adminId: admin.id,
-            createdAt: { gte: todayMSK },
-            amount: { gt: 0 } 
-          },
-        });
-
-        const totalVolumeToday = Number(dailyAdjustments._sum.amount || 0);
-
-        if (totalVolumeToday + amountCents > admin.supportLimitCents) {
-          await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
-          return { status: 'QUARANTINE' as const };
-        }
-
-        await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
-        return { status: 'APPROVED' as const };
+    return await runSerializableTransaction(async (tx) => {
+      const dailyAdjustments = await tx.ledgerEntry.aggregate({
+        _sum: { amount: true },
+        where: {
+          adminId: admin.id,
+          createdAt: { gte: todayMSK },
+          amount: { gt: 0 } 
+        },
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      throw error;
-    }
+
+      const totalVolumeToday = Number(dailyAdjustments._sum.amount || 0);
+
+      if (totalVolumeToday + amountCents > admin.supportLimitCents) {
+        await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+        return { status: 'QUARANTINE' as const };
+      }
+
+      await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+      return { status: 'APPROVED' as const };
+    });
   }
 
   private async executeApprovedAdjustment(

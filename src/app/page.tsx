@@ -4,6 +4,7 @@ import { SmartLinkLanding } from "@/components/landing/SmartLinkLanding";
 import { SettingsProvider } from "@/lib/settings";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
     }
   }
 
+  const reqHeaders = await headers();
+  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+
+  const userBalanceCents = 0;
   const catalogResult = await getPublicCatalogAction();
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
@@ -103,6 +108,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
           initialServiceId={initialServiceId} 
           initialCategoryId={initialCategoryId}
           initialNetworkId={initialNetworkId}
+          userBalanceCents={userBalanceCents}
+          tenantId={tenantId}
         />
       </main>
     </>

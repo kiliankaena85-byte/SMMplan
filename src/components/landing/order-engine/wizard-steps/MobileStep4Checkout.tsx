@@ -80,7 +80,10 @@ export function MobileStep4Checkout({
           value={quantity}
           min={selectedService.minQty}
           max={selectedService.maxQty}
-          onFocus={(e) => e.target.select()}
+          onFocus={(e) => {
+            const target = e.target;
+            setTimeout(() => target.select(), 0);
+          }}
           onChange={e => {
             let val = Number(e.target.value);
             if (selectedService.maxQty && val > selectedService.maxQty) val = selectedService.maxQty;

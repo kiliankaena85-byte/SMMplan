@@ -393,7 +393,7 @@ export async function adminManualTelegramBind(formData: FormData) {
       }
 
       const webUser = await db.user.findUnique({ 
-        where: { email: targetEmail },
+        where: { email_tenantId: { email: targetEmail, tenantId: tempUser.tenantId } },
         include: { _count: { select: { orders: true } } }
       });
       if (!webUser) {
@@ -410,7 +410,7 @@ export async function adminManualTelegramBind(formData: FormData) {
             tempUserOrders: tempUserOrders,
             targetEmail: webUser.email,
             targetBalance: (Number(webUser.balance) / 100).toFixed(2),
-            targetOrders: webUser._count.orders
+            targetOrders: (webUser as any)._count?.orders || 0
           }
         };
       }

@@ -201,13 +201,15 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     if (!userId) {
        if (!email) throw new Error("Email обязателен для гостей");
        const lowerEmail = email.toLowerCase();
-       let user = await db.user.findUnique({ where: { email: lowerEmail } });
+       const reqHeaders = await headers();
+       const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+       let user = await db.user.findUnique({ where: { email_tenantId: { email: lowerEmail, tenantId } } });
        if (user && (user.isDeleted === true || user.isActive === false)) {
          throw new Error("Ваш аккаунт заблокирован или удален");
        }
        if (!user) {
          user = await db.user.create({
-           data: { email: lowerEmail, role: 'USER' }
+           data: { email: lowerEmail, tenantId, role: 'USER' }
          });
          isNewUser = true;
        }
@@ -271,6 +273,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
        totalCents += pricing.totalCents;
        orderCreationData.push({
          userId: user.id,
+         tenantId: user.tenantId,
          serviceId: order.serviceId,
          providerId: order.providerId,
          providerServiceId: order.providerServiceId,
@@ -315,6 +318,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       const payment = await tx.payment.create({
         data: {
           userId: user.id,
+          tenantId: user.tenantId,
           amount: paymentAmount,
           currency: 'RUB',
           status: 'PENDING',
@@ -332,7 +336,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       return { paymentId: payment.id };
     });
 
-    let paymentUrl = '';
+
     const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
@@ -340,6 +344,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
 
     // [Phase 3 Surgeon] Generate capability token for sessionless payment return validation
     let token = '';
+    let paymentUrl: string | undefined;
     try {
       const { SignJWT } = await import('jose');
       const { getEncodedKey } = await import('@/lib/session');
@@ -429,13 +434,15 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     if (!userId) {
        if (!email) throw new Error("Email обязателен для гостей");
        const lowerEmail = email.toLowerCase();
-       let user = await db.user.findUnique({ where: { email: lowerEmail } });
+       const reqHeaders = await headers();
+       const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+       let user = await db.user.findUnique({ where: { email_tenantId: { email: lowerEmail, tenantId } } });
        if (user && (user.isDeleted === true || user.isActive === false)) {
          throw new Error("Ваш аккаунт заблокирован или удален");
        }
        if (!user) {
          user = await db.user.create({
-           data: { email: lowerEmail, role: 'USER' }
+           data: { email: lowerEmail, tenantId, role: 'USER' }
          });
          isNewUser = true;
        }
@@ -524,6 +531,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
        totalCents += pricing.totalCents;
        orderCreationData.push({
          userId: user.id,
+         tenantId: user.tenantId,
          serviceId: order.serviceId,
          providerId: service.providerId,
          providerServiceId: service.externalId,
@@ -564,6 +572,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       const payment = await tx.payment.create({
         data: {
           userId: user.id,
+          tenantId: user.tenantId,
           amount: paymentAmount,
           currency: 'RUB',
           status: 'PENDING',

@@ -110,12 +110,16 @@ export interface RefillJobPayload {
 
 // Instantiate queues using NextJS-safe singleton
 export const ordersQueue = createQueue<OrderJobPayload>('ordersQueue', {
-  attempts: 5
+  attempts: 5,
+  backoff: { type: 'exponential', delay: 60000 }
 });
-export const syncQueue = createQueue<SyncJobPayload>('syncQueue');
+export const syncQueue = createQueue<SyncJobPayload>('syncQueue', {
+  attempts: 5,
+  backoff: { type: 'exponential', delay: 60000 }
+});
 export const catalogQueue = createQueue<CatalogMutationPayload>('catalogQueue', {
   attempts: 2,
-  backoff: { type: 'exponential', delay: 5000 }
+  backoff: { type: 'exponential', delay: 60000 }
 });
 
 // P2.1: Dead Letter Queue — removeOnFail: false to preserve failed jobs for inspection

@@ -1,8 +1,9 @@
 import { getPublicCatalogAction } from "@/actions/order/catalog";
-import { getBaseUrlAsync } from "@/utils/get-base-url";
+
 import { SettingsProvider } from "@/lib/settings";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
+import { headers } from "next/headers";
 import { LovableOrderClient } from "@/components/ab-test/LovableOrderClient";
 
 import { Header } from "@/components/landing/Header";
@@ -43,6 +44,9 @@ export default async function LovablePage() {
     }
   }
 
+  const reqHeaders = await headers();
+  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
       
@@ -79,7 +83,7 @@ export default async function LovablePage() {
         <LovableFAQ companyName={siteName} />
       </div>
       
-      <MegaFooter contactSettings={settings} />
+      <MegaFooter contactSettings={settings} tenantId={tenantId} />
     </div>
   );
 

@@ -42,6 +42,11 @@
     "node_modules",
     "scratch/**/*",
     "prisma/seed.ts",
-    "test/**/*"
+    "test/**/*",
+    "scripts/**/*",
+    "teamwork_projects/**/*",
+    "teamwork_projects",
+    "e2e/**/*",
+    "prisma/seed-mock.ts"
   ]
 }

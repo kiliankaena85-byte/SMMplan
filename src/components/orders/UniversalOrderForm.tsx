@@ -452,6 +452,10 @@ export function UniversalOrderForm({
                                       const svc = task.availableServices.find(s => s.id === task.serviceId);
                                       engine.setTaskConfig(task.id, task.serviceId, val, svc?.pricePerUnitRub || 0);
                                    }}
+                                   onFocus={(e) => {
+                                     const target = e.target;
+                                     setTimeout(() => target.select(), 0);
+                                   }}
                                    className="flex-1 h-12 px-4 bg-background border border-border/80 hover:border-primary rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/15 transition-all shadow-sm text-center tabular-nums"
                                 />
 

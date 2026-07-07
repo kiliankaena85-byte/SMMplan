@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import React from "react";
 import { db } from "@/lib/db";
+
+import { headers } from "next/headers";
 import { SettingsProvider } from "@/lib/settings";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { UrlMatcherWidget } from "./UrlMatcherWidget";
@@ -177,16 +179,12 @@ export default async function ArticleDetailPage({ params }: PageProps) {
 
   // Resolve user session and email
   const session = await verifySession();
-  let userEmail: string | undefined = undefined;
-  if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true }
-    });
-    if (user) {
-      userEmail = user.email;
-    }
-  }
+  const userEmail = session?.userId 
+    ? (await db.user.findUnique({ where: { id: session.userId }, select: { email: true } }))?.email 
+    : undefined;
+
+  const reqHeaders = await headers();
+  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
 
   // Resolve settings and siteName
   const settings = await SettingsProvider.getContactAndLegalSettings();
@@ -483,7 +481,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       </main>
 
       {/* ── Секция 3: Подвал ── */}
-      <MegaFooter contactSettings={settings} />
+      <MegaFooter contactSettings={settings} tenantId={tenantId} />
     </div>
   );
 }

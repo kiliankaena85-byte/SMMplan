@@ -250,9 +250,25 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     const isTestMode = await SettingsManager.isTestMode();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let reqHeaders: any;
+    try {
+      reqHeaders = await headers();
+    } catch (e) {
+      console.warn('[Checkout] headers() context missing, using fallback', e);
+      reqHeaders = {
+        get: (key: string) => {
+          if (key === 'host') return 'localhost:3000';
+          if (key === 'x-forwarded-proto') return 'http';
+          return null;
+        }
+      };
+    }
+    const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+
     // 3. Find or create user by email (SECURITY FIX: Track if new user to prevent IDOR auto-login)
     const currentSession = await verifySession();
-    let user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
+    let user = await db.user.findUnique({ where: { email_tenantId: { email: email.toLowerCase(), tenantId } } });
 
     if (user) {
       if (user.isDeleted === true || user.isActive === false) {
@@ -277,7 +293,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     let isNewUser = false;
     if (!user) {
-      user = await db.user.create({ data: { email: email.toLowerCase() } });
+      user = await db.user.create({ data: { email: email.toLowerCase(), tenantId } });
       isNewUser = true;
     }
 
@@ -343,20 +359,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     // Balance check is now performed atomically inside db.$transaction using WalletOps.charge
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let reqHeaders: any;
-    try {
-      reqHeaders = await headers();
-    } catch (e) {
-      console.warn('[Checkout] headers() context missing, using fallback', e);
-      reqHeaders = {
-        get: (key: string) => {
-          if (key === 'host') return 'localhost:3000';
-          if (key === 'x-forwarded-proto') return 'http';
-          return null;
-        }
-      };
-    }
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
@@ -380,7 +382,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         const orderStatus = gateway === 'balance' ? 'PENDING' : 'AWAITING_PAYMENT';
         const paymentStatus = gateway === 'balance' ? 'SUCCEEDED' : 'PENDING';
 
-        let newOrder;
+
         
         // 1. Check idempotency beforehand to avoid aborting the Postgres transaction block on P2002 constraint error
         let existingOrder = null;
@@ -404,7 +406,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         }
 
         // Create primary Order (first media / main link)
-        newOrder = await tx.order.create({
+        const newOrder = await tx.order.create({
           data: {
             userId: user.id,
             serviceId,
@@ -426,7 +428,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             promoCodeId: promoCodeId || null,
             discountCents: BigInt(pricing.discountCents),
             abVariant,
-            usdToRubRate: currentUsdRate
+            usdToRubRate: currentUsdRate,
+            tenantId
           }
         });
 
@@ -454,7 +457,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
               promoCodeId: promoCodeId || null,
               discountCents: BigInt(pricing.discountCents),
               abVariant,
-              usdToRubRate: currentUsdRate
+              usdToRubRate: currentUsdRate,
+              tenantId
             }
           });
           secondOrderId = secondOrder.id;
@@ -476,7 +480,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             consentIp,
             consentUserAgent,
             consentVersion,
-            abVariant
+            abVariant,
+            tenantId
           }
         });
 
@@ -554,7 +559,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     // 6. Generate payment URL (gateway-specific API calls)
     let paymentUrl: string | undefined;
-    let remoteGatewayId: string | undefined;
+
     const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
@@ -900,7 +905,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     });
 
     let paymentUrl: string | undefined;
-    let remoteGatewayId: string | undefined;
+
     const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { verifyPassword } from '@/lib/auth/password';
 import { createSession } from '@/lib/session';
+import { headers } from 'next/headers';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { logger } from '@/lib/logger';
 
@@ -43,8 +44,11 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
     }
 
     // 3. Find User
+    const reqHeaders = await headers();
+    const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+    
     const user = await db.user.findUnique({
-      where: { email: cleanEmail },
+      where: { email_tenantId: { email: cleanEmail, tenantId } },
       select: { id: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
     });
 

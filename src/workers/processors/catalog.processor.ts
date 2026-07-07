@@ -2,6 +2,7 @@ import { Job } from 'bullmq';
 import { CatalogMutationPayload } from '../queues';
 import { adminCatalogService } from '../../services/admin/catalog.service';
 import { logger } from '../../lib/logger';
+import { triggerCacheRevalidation } from '../../lib/revalidate-cache';
 
 const log = logger.child({ component: 'CatalogProcessor' });
 
@@ -20,6 +21,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
         log.info(`[CatalogProcessor] Starting background price sync with rate ${usdToRub}...`);
         await adminCatalogService.syncDenormalizedPrices(usdToRub);
         log.info(`[CatalogProcessor] Price sync completed successfully.`);
+        await triggerCacheRevalidation(['catalog', 'services']);
         break;
       }
       
@@ -55,6 +57,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
           const errMsg = postSyncErr instanceof Error ? postSyncErr.message : String(postSyncErr);
           log.error(`[CatalogProcessor] applyPostSyncRules failed: ${errMsg}`);
         }
+        await triggerCacheRevalidation(['catalog', 'services']);
         break;
       }
       
@@ -68,6 +71,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
           admin
         );
         log.info(`[CatalogProcessor] Bulk markup completed. Updated ${result.updatedCount} services.`);
+        await triggerCacheRevalidation(['catalog', 'services']);
         break;
       }
         

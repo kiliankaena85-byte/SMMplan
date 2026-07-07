@@ -22,7 +22,7 @@ export async function decryptSessionToken(token: string) {
     const { payload } = await jwtVerify(token, getEncodedKey(), {
       algorithms: ['HS256'],
     });
-    return payload as { sessionId: string; userId: string; role: string; canResetPassword?: boolean };
+    return payload as { sessionId: string; userId: string; role: string; tenantId: string; canResetPassword?: boolean };
   } catch (error) {
     if (error instanceof Error && error.message.includes('FATAL:')) {
       console.error(error.message);

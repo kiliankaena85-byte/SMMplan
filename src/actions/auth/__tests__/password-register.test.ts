@@ -56,7 +56,7 @@ describe('Password Registration Tests', () => {
     expect(res.error).toBeNull();
     expect(res.message).toBeDefined();
 
-    const createdUser = await db.user.findUnique({ where: { email: 'reg_new@smmplan.local' } });
+    const createdUser = await db.user.findUnique({ where: { email_tenantId: { email: 'reg_new@smmplan.local', tenantId: 'smmplan' } } });
     expect(createdUser).not.toBeNull();
     expect(createdUser?.role).toBeDefined();
     expect(createdUser?.isEmailVerified).toBe(false);

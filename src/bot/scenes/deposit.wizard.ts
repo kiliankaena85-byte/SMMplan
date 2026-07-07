@@ -14,9 +14,11 @@ export const DEPOSIT_WIZARD = 'deposit-wizard';
 /**
  * Resolve Lite User from Telegram context.
  */
+const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
+
 async function resolveUser(tgId: number) {
   return db.user.findFirst({
-    where: { telegramId: String(tgId) }
+    where: { telegramId: String(tgId), tenantId: botTenantId }
   });
 }
 
@@ -115,11 +117,12 @@ depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: any) => {
 
     await ctx.editMessageText('🔄 Создаю платеж, подождите...');
 
+    const siteName = botTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan';
     const res = await UnifiedPaymentService.createPayment(
       undefined,
       user.id,
       amount,
-      `Пополнение баланса SMMplan (TG)`,
+      `Пополнение баланса ${siteName} (TG)`,
       { source: 'BOT', type: 'deposit' },
       gateway
     );
