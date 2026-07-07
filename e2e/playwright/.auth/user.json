@@ -2,7 +2,7 @@
   "cookies": [
     {
       "name": "session_token",
-      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzZXNzaW9uSWQiOiJjbXI1d3V5MHEwMDAybGUxbW45eHB3bmJ1IiwidXNlcklkIjoiY21yNXR3N2hmMDAwMG5peXB6OHI4amNlYyIsInJvbGUiOiJPV05FUiIsImlhdCI6MTc4MzE0MjI1NSwiZXhwIjoxNzgzNzQ3MDU1fQ.Z91I0eWy3socxw5p0ycZ3edrMF8A3Y8VbF9MsSYgSUU",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzZXNzaW9uSWQiOiJjbXJhejgwb3EwMDAyd2kxMjdhaWtsdXd2IiwidXNlcklkIjoiY21yYXo4MG9mMDAwMHdpMTJtZzFwanpkdCIsInJvbGUiOiJPV05FUiIsInRlbmFudElkIjoic21tcGxhbiIsImlhdCI6MTc4MzQ0ODU1NSwiZXhwIjoxNzg0MDUzMzU1fQ.3cn--yeoj884uwJOklZtYj_pLY1dDjS4j9eq1Vp2gOM",
       "domain": "127.0.0.1",
       "path": "/",
       "expires": -1,

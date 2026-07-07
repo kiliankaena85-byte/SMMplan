@@ -16,7 +16,7 @@ test.describe('Visual Regression QA for Admin Panel', () => {
       const localPrisma = new PrismaClient();
       try {
         const user = await localPrisma.user.upsert({
-          where: { email },
+          where: { email_tenantId: { email, tenantId: 'smmplan' } },
           update: {
             role: 'OWNER',
             isActive: true,
@@ -24,6 +24,7 @@ test.describe('Visual Regression QA for Admin Panel', () => {
           },
           create: {
             email,
+            tenantId: 'smmplan',
             role: 'OWNER',
             isActive: true,
             isDeleted: false,
