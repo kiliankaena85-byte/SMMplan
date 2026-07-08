@@ -118,11 +118,16 @@ export async function getPublicCatalogAction() {
       if (net.slug.includes('youtube')) icon = "/brands/youtube.svg";
       if (net.slug.includes('tiktok')) icon = "/brands/tiktok.svg";
 
+      let finalIcon = net.icon && (net.icon.startsWith('/') || net.icon.startsWith('http')) ? net.icon : icon;
+      if (finalIcon.startsWith('/icons/')) {
+        finalIcon = finalIcon.replace('/icons/', '/brands/');
+      }
+
       return {
         id: net.id,
         name: net.name,
         slug: net.slug,
-        icon: net.icon && (net.icon.startsWith('/') || net.icon.startsWith('http')) ? net.icon : icon, // prefer valid absolute/relative SVG custom icons or fallback
+        icon: finalIcon, // prefer valid absolute/relative SVG custom icons or fallback
         categories: net.categories.map(cat => ({
           id: cat.id,
           name: cat.name,

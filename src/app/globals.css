@@ -449,9 +449,9 @@
 }
 
 .google-border-shimmer {
-  background: linear-gradient(90deg, #0369a1, #6366f1, #d946ef, #10b981, #0369a1);
+  background: linear-gradient(90deg, #38bdf8, #818cf8, #d946ef, #34d399, #38bdf8);
   background-size: 300% 300%;
-  animation: border-shimmer 6s ease infinite;
+  animation: border-shimmer 8s ease infinite;
 }
 
 .dark .google-border-shimmer,

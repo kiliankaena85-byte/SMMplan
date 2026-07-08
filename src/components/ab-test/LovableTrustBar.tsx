@@ -16,9 +16,6 @@ export function LovableTrustBar() {
 
   return (
     <section aria-label="Статистика платформы" className="w-full py-12 bg-transparent overflow-hidden relative">
-      <div className="absolute left-0 top-0 w-32 h-full bg-gradient-to-r from-background to-transparent z-10 pointer-events-none hidden md:block" />
-      <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-background to-transparent z-10 pointer-events-none hidden md:block" />
-      
       {/* Mobile Grid Layout (< md) */}
       <div className="grid grid-cols-2 gap-3.5 px-4 w-full max-w-lg sm:max-w-2xl mx-auto md:hidden">
         {stats.map((s, idx) => (
@@ -38,7 +35,10 @@ export function LovableTrustBar() {
       </div>
 
       {/* Desktop Marquee (>= md) */}
-      <div className="hidden md:flex w-full overflow-hidden">
+      <div 
+        className="hidden md:flex w-full overflow-hidden"
+        style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 128px, black calc(100% - 128px), transparent)', maskImage: 'linear-gradient(to right, transparent, black 128px, black calc(100% - 128px), transparent)' }}
+      >
         <motion.div
           animate={{ x: [0, -1920] }} // Assuming roughly 1920px width of the single set. Motion will loop it.
           transition={{

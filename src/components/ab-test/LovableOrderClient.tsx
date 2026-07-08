@@ -209,7 +209,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
   const price = selectedService ? (selectedService.pricePerUnitRub * numericQuantity).toFixed(2) : "0.00";
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center font-sans min-h-[60vh] pb-32 pt-8 px-4 relative overflow-hidden">
+    <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center font-sans min-h-[60vh] pb-12 pt-8 px-4 relative overflow-hidden">
       {step !== 'link' && (
         <motion.div 
           layoutId="hero-input"
@@ -256,34 +256,56 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
               Что хотите <span className="inline-block px-2 sm:px-3 py-1 bg-foreground text-background rounded-[1rem] sm:rounded-2xl rotate-[-2deg] mx-1 shadow-md">продвигать</span> сегодня?
             </h1>
             <div className="relative group w-full max-w-2xl px-2 sm:px-0">
-              <motion.div layoutId="hero-input" className="relative flex items-center bg-background/80 backdrop-blur-3xl border border-border/20 shadow-[0_8px_40px_rgb(0,0,0,0.04)] h-14 sm:h-16 rounded-[1.5rem] sm:rounded-[2rem] px-2 sm:px-3 focus-within:ring-4 focus-within:ring-primary/10 focus-within:border-primary/30 transition-all duration-500 hover:shadow-[0_8px_50px_rgb(0,0,0,0.06)]">
-                <LinkIcon className="text-muted-foreground w-5 h-5 sm:w-6 sm:h-6 ml-2 sm:ml-3 flex-shrink-0" />
-                <input
-                  autoFocus
-                  className="flex-1 text-base sm:text-lg py-2 sm:py-3 px-3 sm:px-4 bg-transparent outline-none w-full font-medium text-foreground placeholder:text-muted-foreground/50"
-                  placeholder="Вставьте ссылку..."
-                  value={link}
-                  onChange={(e) => setLink(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && link) handleAnalyzeLink(link);
-                  }}
-                  onPaste={(e) => {
-                    const text = e.clipboardData.getData("text");
-                    setTimeout(() => handleAnalyzeLink(text), 100);
-                  }}
+              <motion.div 
+                layoutId="hero-input"
+                className={`relative w-full group rounded-[2rem] transition-all duration-500 select-text ${isAnalyzing ? 'p-[3px] scale-[1.01]' : 'p-[2px] scale-100'}`}
+              >
+                {/* Shimmer Border */}
+                <div
+                  className="absolute inset-0 rounded-[2rem] transition-opacity duration-500 pointer-events-none google-border-shimmer opacity-100 blur-[1px]"
                 />
-                <Button 
-                  className="rounded-[1rem] sm:rounded-[1.2rem] bg-foreground text-background shadow-md mr-0.5 sm:mr-1 w-10 h-10 sm:w-11 sm:h-11 flex-shrink-0 flex items-center justify-center p-0 min-w-0 hover:bg-foreground/90 transition-all hover:-translate-y-0.5"
-                  isPending={isAnalyzing}
-                  onPress={() => handleAnalyzeLink(link)}
+                
+                {/* Soft backdrop blur glow */}
+                <div
+                  className={`absolute inset-0 rounded-[2rem] transition-all duration-500 pointer-events-none blur-xl ${
+                    isAnalyzing
+                      ? "google-border-shimmer opacity-60 scale-[1.03]"
+                      : "google-border-shimmer opacity-30 group-hover:opacity-50 scale-[1.01]"
+                  }`}
+                />
+                
+                <div
+                  className="relative flex items-center w-full bg-content1 rounded-[calc(2rem-1.5px)] p-1.5 sm:p-2 h-14 sm:h-16 md:h-[68px] z-10 shadow-inner"
                 >
-                  <ArrowRightIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                </Button>
+                  <LinkIcon className="text-muted-foreground w-5 h-5 sm:w-6 sm:h-6 ml-2 sm:ml-3 flex-shrink-0 group-focus-within:text-foreground transition-colors" />
+                  <input
+                    autoFocus
+                    className="flex-1 text-base sm:text-lg py-2 sm:py-3 px-3 sm:px-4 bg-transparent outline-none w-full font-medium text-foreground placeholder:text-muted-foreground/50"
+                    placeholder="Вставьте ссылку..."
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && link) handleAnalyzeLink(link);
+                    }}
+                    onPaste={(e) => {
+                      const text = e.clipboardData.getData("text");
+                      setTimeout(() => handleAnalyzeLink(text), 100);
+                    }}
+                  />
+                  <Button 
+                    className="rounded-[1rem] sm:rounded-[1.2rem] bg-foreground text-background shadow-md mr-0.5 sm:mr-1 w-10 h-10 sm:w-11 sm:h-11 flex-shrink-0 flex items-center justify-center p-0 min-w-0 hover:bg-foreground/90 transition-all hover:-translate-y-0.5"
+                    isPending={isAnalyzing}
+                    onPress={() => handleAnalyzeLink(link)}
+                  >
+                    <ArrowRightIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </Button>
+                </div>
               </motion.div>
             </div>
             
             <div className="mt-12 flex justify-center w-full">
               <button 
+                type="button"
                 onClick={() => navigateTo('network')}
                 className="mt-6 sm:mt-8 text-foreground/80 hover:text-foreground bg-background/80 hover:bg-background px-4 sm:px-6 py-2.5 sm:py-3 rounded-full backdrop-blur-md border border-border/40 transition-all font-medium text-sm sm:text-base flex items-center gap-2 sm:gap-3 group shadow-sm hover:shadow-md"
               >

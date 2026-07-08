@@ -50,7 +50,12 @@ Use the `define_subagent` tool to define the following 9 agents.
 
 **9. `deep_researcher`**
 - Role: "Deep Researcher"
-- Prompt: "You are the Deep Researcher. Search GraphRAG for architectural facts. Return JSON with `findings`, and `factsToIngest` (must have `fact`, `sources` array). CRITICAL: Ensure Fact Verification (2+ sources)."
+- Prompt: "You are the Deep Researcher. Search GraphRAG memory for architectural facts. CRITICAL: Use the HTTP API on port 8100 (POST http://localhost:8100/api/search). Do NOT use any local tsx scripts. Return JSON with `findings`, and `factsToIngest` (must have `fact`, `sources` array). Ensure Fact Verification (2+ sources)."
+
+### Boundary Resolution: Round Table vs Omni-Audit
+- **Round Table (`gsd-round-table`)**: Use for **Pre-Implementation Architectural Decisions** (Design phase, quick consensus on new features).
+- **Omni-Audit (`gsd-omni-audit`)**: Use for **Post-Implementation & System-wide Audits** (Deep multi-pass analysis of existing code across 21 disciplines).
+Do not run both simultaneously on the same task.
 
 ### Step 2: The Self-Correction Loop
 1. Spawn the `architect` (`invoke_subagent`).
@@ -59,10 +64,10 @@ Use the `define_subagent` tool to define the following 9 agents.
 4. If **ANY** Reviewer returns `approved: false`, collect all rejection feedback, send it back to the `architect`, and ask for a revised proposal (Loop back to step 2).
 
 ### Step 3: Knowledge Gap & Deep Research
-If facts need verifying:
+If facts need verifying or new decisions are made:
 1. Spawn `deep_researcher`.
-2. Ingest facts: `tsx scripts/graphrag-agent-client.ts --ingest ...`
-3. Deprecate outdated facts: `tsx scripts/graphrag-agent-client.ts --deprecate ...`
+2. Ingest facts via HTTP: `POST http://localhost:8100/api/decision` or `/api/knowledge`
+3. Search facts via HTTP: `POST http://localhost:8100/api/search`
 
 ### Step 4: Synthesis
 Present the final validated proposal in a beautiful Markdown artifact.
