@@ -52,12 +52,12 @@ export default async function LovablePage() {
       
       {/* LOVABLE VIBRANT HERO BACKGROUND (Full Bleed) */}
       <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[50%] rounded-full bg-blue-500/80 blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute top-[0%] right-[-10%] w-[50%] h-[50%] rounded-full bg-sky-300/60 blur-[120px] animate-pulse" style={{ animationDuration: '12s' }} />
-        <div className="absolute bottom-[20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-rose-500/80 blur-[130px] animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute bottom-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-orange-500/80 blur-[140px] animate-pulse" style={{ animationDuration: '14s' }} />
-        <div className="absolute top-[20%] left-[20%] w-[60%] h-[60%] rounded-full bg-fuchsia-500/70 blur-[150px] animate-pulse" style={{ animationDuration: '11s' }} />
-        <div className="absolute top-[30%] right-[20%] w-[50%] h-[50%] rounded-full bg-purple-500/70 blur-[120px] animate-pulse" style={{ animationDuration: '9s' }} />
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[50%] rounded-full bg-blue-500/90 blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-[0%] right-[-10%] w-[50%] h-[50%] rounded-full bg-sky-300/75 blur-[120px] animate-pulse" style={{ animationDuration: '12s' }} />
+        <div className="absolute bottom-[20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-rose-500/90 blur-[130px] animate-pulse" style={{ animationDuration: '10s' }} />
+        <div className="absolute bottom-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-orange-500/90 blur-[140px] animate-pulse" style={{ animationDuration: '14s' }} />
+        <div className="absolute top-[20%] left-[20%] w-[60%] h-[60%] rounded-full bg-fuchsia-500/85 blur-[150px] animate-pulse" style={{ animationDuration: '11s' }} />
+        <div className="absolute top-[30%] right-[20%] w-[50%] h-[50%] rounded-full bg-purple-500/85 blur-[120px] animate-pulse" style={{ animationDuration: '9s' }} />
         
         {/* Fade to background color at the bottom */}
         <div className="absolute bottom-0 inset-x-0 h-[400px] bg-gradient-to-t from-background via-background/80 to-transparent" />
