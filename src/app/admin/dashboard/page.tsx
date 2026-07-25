@@ -16,6 +16,7 @@ import { RecentAuditTable } from './recent-audit-table';
 import { ProviderLiquidityWidget } from './ProviderLiquidityWidget';
 import { PeriodSelector } from './PeriodSelector';
 import { formatEta } from '@/utils/format-eta';
+import { formatKopecks } from '@/utils/format-kopecks';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,8 +100,8 @@ export default async function AdminDashboardPage({
     marginPercentage = 0;
   }
 
-  const netPositionBigInt = revenueGross - totalLiability;
-  const netPositionStr = (Number(netPositionBigInt) / 100).toLocaleString('ru-RU');
+  const netPositionBigInt = BigInt(revenueGross) - BigInt(totalLiability);
+  const netPositionStr = formatKopecks(netPositionBigInt);
 
   const checkoutCommission = metrics.gatewayFees;
   const cumulativeProviderCost = metrics.cogs;
