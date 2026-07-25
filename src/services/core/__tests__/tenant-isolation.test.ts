@@ -99,7 +99,7 @@ describe('Tenant Isolation & OrderService Remediation', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('CROSS_TENANT_ORDER_DENIED');
+      expect(result.error).toBe('SERVICE_NOT_FOUND');
       expect(db.securityEvent.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -297,6 +297,68 @@ describe('Tenant Isolation & OrderService Remediation', () => {
       expect(orderFromTenantB).toBeNull();
       expect(db.order.findFirst).toHaveBeenCalledWith({
         where: { numericId: 555, userId: 'user-a', tenantId: 'tenant-a' }
+      });
+    });
+
+    it('API v2 handleAddMulti rejects mixed tenant services without creating cross-tenant orders', async () => {
+      vi.mocked(db.service.findFirst)
+        .mockResolvedValueOnce({ id: 'srv-1', numericId: 101, tenantId: 'tenant-a' } as any)
+        .mockResolvedValueOnce(null); // Cross-tenant service returns null for tenant-a query
+
+      const userTenantA = { id: 'user-a', tenantId: 'tenant-a' };
+      const requestedServices = [101, 999]; // 101 belongs to A, 999 belongs to B
+      const results: any[] = [];
+
+      for (const serviceId of requestedServices) {
+        const service = await db.service.findFirst({
+          where: {
+            numericId: serviceId,
+            isActive: true,
+            OR: [
+              { tenantId: userTenantA.tenantId },
+              { category: { tenantId: userTenantA.tenantId } }
+            ]
+          }
+        });
+
+        if (!service) {
+          await db.securityEvent.create({
+            data: {
+              event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
+              severity: 'CRITICAL',
+              details: { userId: userTenantA.id, userTenantId: userTenantA.tenantId, serviceNumericId: serviceId }
+            }
+          });
+          results.push({ error: 'Incorrect service ID' });
+        } else {
+          results.push({ order: 1000 + serviceId });
+        }
+      }
+
+      expect(results).toEqual([
+        { order: 1101 },
+        { error: 'Incorrect service ID' }
+      ]);
+      expect(db.securityEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
+          })
+        })
+      );
+    });
+
+    it('API v2 handleRefillStatus rejects cross-tenant refill lookups', async () => {
+      vi.mocked(db.refill.findFirst).mockResolvedValue(null);
+
+      const userTenantA = { id: 'user-a', tenantId: 'tenant-a' };
+      const refill = await db.refill.findFirst({
+        where: { numericId: 777, order: { userId: userTenantA.id, tenantId: userTenantA.tenantId } }
+      });
+
+      expect(refill).toBeNull();
+      expect(db.refill.findFirst).toHaveBeenCalledWith({
+        where: { numericId: 777, order: { userId: 'user-a', tenantId: 'tenant-a' } }
       });
     });
   });

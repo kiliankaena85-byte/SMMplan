@@ -87,7 +87,8 @@ class OrderService {
 
         const serviceTenantId = service.tenantId || service.category?.tenantId || 'smmplan';
         if (serviceTenantId !== userTenantId) {
-          await tx.securityEvent.create({
+          // REMEDIATION HARDENING: Write SecurityEvent via root db so event persists regardless of tx rollback
+          db.securityEvent.create({
             data: {
               event: 'CROSS_TENANT_ORDER_ATTEMPT',
               severity: 'CRITICAL',
@@ -99,8 +100,10 @@ class OrderService {
                 charge: input.charge
               }
             }
-          });
-          throw new Error('CROSS_TENANT_ORDER_DENIED');
+          }).catch(err => console.error('[SecurityEvent] Async log error:', err));
+
+          // REMEDIATION HARDENING: Return normalized error to prevent tenant enumeration
+          throw new Error('SERVICE_NOT_FOUND');
         }
 
         if (input.quantity < service.minQty || input.quantity > service.maxQty) {
