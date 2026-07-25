@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { 
   Home, Users, Package, RefreshCw, ShoppingCart, 
   MessageSquare, CreditCard, Link as LinkIcon, Gift, FileText, Settings,
-  PanelLeftClose, PanelLeftOpen, ArrowLeft, BarChart, AlertTriangle, ToggleLeft, Activity, Cpu, BookOpen,
+  PanelLeftClose, PanelLeftOpen, ArrowLeft, BarChart, BarChart3, Inbox, Shield, AlertTriangle, ToggleLeft, Activity, Cpu, BookOpen,
   Sun, Moon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,7 @@ interface SidebarProps {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICON_MAP: Record<string, any> = {
   Home, Users, Package, RefreshCw, ShoppingCart, AlertTriangle,
-  MessageSquare, CreditCard, Link: LinkIcon, Gift, FileText, Settings, BarChart,
+  MessageSquare, CreditCard, Link: LinkIcon, Gift, FileText, Settings, BarChart, BarChart3, Inbox, Shield,
   ToggleLeft, Activity, Cpu, BookOpen
 };
 

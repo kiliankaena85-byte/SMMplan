@@ -134,12 +134,15 @@ export async function enforcePageRole(allowedRoles: string[]) {
 
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true }
+    select: { id: true, role: true, isDeleted: true, isActive: true }
   });
 
-  if (!user || !allowedRoles.includes(user.role)) {
-    // We seamlessly redirect unauthorized (SUPPORT) roles to their home workspace
-    redirect('/admin/orders');
+  if (!user || user.isDeleted || !user.isActive) {
+    redirect('/login');
+  }
+
+  if (!allowedRoles.includes(user.role)) {
+    redirect('/admin/forbidden');
   }
 
   return user;
@@ -175,20 +178,14 @@ export async function enforceSectionAccess(section: string) {
   }
 
   if (!user.staffRole) {
-    redirect('/dashboard/new-order');
+    redirect('/admin/forbidden');
   }
 
   const normalizedSection = section.toUpperCase();
   const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === normalizedSection);
 
   if (!permission || (!permission.canView && !permission.canEdit)) {
-    const fallbackPermission = user.staffRole.permissions.find(p => p.canView || p.canEdit);
-    if (fallbackPermission) {
-      const sec = fallbackPermission.section.toLowerCase();
-      redirect(`/admin/${sec}`);
-    } else {
-      redirect('/dashboard/new-order');
-    }
+    redirect('/admin/forbidden');
   }
 
   return user;

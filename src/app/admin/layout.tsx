@@ -27,8 +27,10 @@ const ADMIN_NAVIGATION = [
   {
     group: 'Финансы',
     items: [
-      { href: '/admin/finance',   icon: 'CreditCard',    label: 'Биллинг',    section: 'finance' },
-      { href: '/admin/marketing', icon: 'Gift',          label: 'Маркетинг',  section: 'marketing' },
+      { href: '/admin/finance', icon: 'CreditCard', label: 'Биллинг', section: 'finance' },
+      { href: '/admin/finance/balance-requests', icon: 'Inbox', label: 'Заявки баланса', section: 'balance_requests' },
+      { href: '/admin/finance/balance-requests/stats', icon: 'BarChart3', label: 'Статистика заявок', section: 'balance_stats' },
+      { href: '/admin/marketing', icon: 'Gift', label: 'Маркетинг', section: 'marketing' },
     ]
   },
   {
@@ -45,8 +47,9 @@ const ADMIN_NAVIGATION = [
   {
     group: 'Система',
     items: [
-      { href: '/admin/settings',        icon: 'Settings',   label: 'Настройки',     section: 'settings' },
-      { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фичи',          section: 'features' },
+      { href: '/admin/settings', icon: 'Settings', label: 'Настройки', section: 'settings' },
+      { href: '/admin/settings/balance-policies', icon: 'Shield', label: 'Политики баланса', section: 'balance_policy' },
+      { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фичи', section: 'features' },
     ]
   }
 ];
@@ -93,6 +96,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     'clients': 'finance',
     'finance': 'finance',
     'marketing': 'finance',
+    'balance_requests': 'balance_requests',
+    'balance_stats': 'balance_stats',
+    'balance_policy': 'balance_policy',
     'catalog': 'catalog',
     'quarantine': 'catalog',
     'providers': 'catalog',

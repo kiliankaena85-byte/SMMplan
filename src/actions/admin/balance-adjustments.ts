@@ -17,14 +17,29 @@ import {
 const createRequestSchema = z.object({
   userId: z.string().min(1, "Пользователь не выбран"),
   direction: z.enum([BALANCE_ADJUSTMENT_DIRECTION.CREDIT, BALANCE_ADJUSTMENT_DIRECTION.DEBIT]),
-  amount: z.string().regex(/^\d+$/, "Сумма должна быть положительным числом в копейках"),
+  amount: z.string().min(1, "Сумма не указана"),
   reasonCode: z.string().min(1, "Причина не выбрана"),
   reasonNote: z.string().min(10, "Примечание должно содержать минимум 10 символов").max(2000),
   ticketId: z.string().optional().nullable(),
   orderId: z.string().optional().nullable(),
   paymentId: z.string().optional().nullable(),
-  idempotencyKey: z.string().uuid("Невалидный ключа идемпотентности")
+  idempotencyKey: z.string().uuid("Невалидный ключ идемпотентности")
 });
+
+function parseAmountToKopecks(input: string): bigint {
+  const normalized = input.trim();
+  const decMatch = /^(\d+)\.(\d{1,2})$/.exec(normalized);
+  if (decMatch) {
+    const intPart = BigInt(decMatch[1]) * BigInt(100);
+    const decPart = BigInt(decMatch[2].padEnd(2, '0'));
+    return intPart + decPart;
+  }
+  const intMatch = /^(\d+)$/.exec(normalized);
+  if (intMatch) {
+    return BigInt(intMatch[1]);
+  }
+  throw new Error("INVALID_AMOUNT_FORMAT");
+}
 
 export async function createBalanceAdjustmentRequestAction(formData: FormData) {
   return requireStaffPermission('balance_requests', 'edit', async (staffUser) => {
@@ -46,7 +61,12 @@ export async function createBalanceAdjustmentRequestAction(formData: FormData) {
     }
 
     const data = parsed.data;
-    const amountBigInt = BigInt(data.amount);
+    let amountBigInt: bigint;
+    try {
+      amountBigInt = parseAmountToKopecks(data.amount);
+    } catch {
+      return { success: false, error: "Указана некорректная сумма" };
+    }
 
     if (amountBigInt <= BigInt(0)) {
       return { success: false, error: "Сумма должна быть строго больше нуля" };
