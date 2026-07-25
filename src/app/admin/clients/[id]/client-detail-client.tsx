@@ -280,9 +280,15 @@ export function ClientDetailClient({ user, loginLogs, canSeeFinances }: Props) {
 
             <button
               type="button"
-              onClick={savePassword}
-              disabled={isPendingPass || !newPass || newPass.length < 8}
-              className="w-full h-10 rounded-xl text-sm font-medium bg-amber-600 text-white shadow-sm hover:bg-amber-700 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:active:scale-100"
+              onClick={() => {
+                if (!newPass || newPass.length < 8) {
+                  toast.error('Пароль должен содержать не менее 8 символов');
+                  return;
+                }
+                savePassword();
+              }}
+              disabled={isPendingPass}
+              className="w-full h-10 rounded-xl text-sm font-medium bg-warning text-warning-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:active:scale-100"
             >
               {isPendingPass ? 'Сохранение...' : 'Установить новый пароль'}
             </button>
