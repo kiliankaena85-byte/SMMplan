@@ -56,18 +56,8 @@ export class VaultService {
     
     const parts = encryptedPayload.split(':');
     if (parts.length !== 3) {
-      console.warn(
-        `[VaultService] Non-encrypted value detected (legacy format). ` +
-        `Length: ${encryptedPayload.length}. ` +
-        `Run migration: npx tsx scripts/re-encrypt-secrets.ts`
-      );
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error(
-          '[VaultService] Plaintext secret detected in production. ' +
-          'Run re-encryption migration immediately.'
-        );
-      }
-      return encryptedPayload;
+      console.error(`[VaultService] Non-encrypted or malformed secret payload detected. Rejecting access.`);
+      throw new Error('[VaultService] Plaintext or malformed secret payload detected. Access denied.');
     }
     
     try {

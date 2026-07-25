@@ -149,7 +149,7 @@ export async function enforceSectionAccess(section: string) {
     }
   });
 
-  if (!user || user.role === 'BANNED') {
+  if (!user || user.role === 'BANNED' || user.role === 'USER' || user.isDeleted || !user.isActive) {
     redirect('/login');
   }
 
