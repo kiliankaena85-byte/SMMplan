@@ -44,6 +44,7 @@ lovable_ui_spec.md
 test8_*.js
 test9_*.js
 test-smtp.mjs
+knowledge-service/data/indexer_state.json
 
 # ── Data dumps (one-off, not source code) ──
 stream-promotion-services.json
