@@ -150,12 +150,12 @@ export class PaymentService {
               id: order.id, 
               isDripFeed: order.isDripFeed, 
               userId: targetUserId, 
-              amount: creditAmount,
+              amount: Number(creditAmount),
               userEmail: order.user?.email ?? null,
               serviceName: order.service?.name ?? null,
               numericId: order.numericId 
             });
-            await WalletOps.credit(tx, targetUserId, creditAmount,
+            await WalletOps.credit(tx, targetUserId, Number(creditAmount),
               `Оплата заказа #${order.numericId} через шлюз`,
               { idempotencyKey: `gateway-credit-${processedPaymentId}` }
             );
@@ -191,7 +191,7 @@ export class PaymentService {
            }
 
             // Credit full expected paid amount first to currentPayment.userId
-            await WalletOps.credit(tx, targetUserId, creditAmount,
+            await WalletOps.credit(tx, targetUserId, Number(creditAmount),
               `Оплата корзины заказов через шлюз`,
               { idempotencyKey: `gateway-credit-${processedPaymentId}` }
             );
@@ -211,7 +211,7 @@ export class PaymentService {
 
         if (!isOrderPayment && basketOrders.length === 0) {
           // Direct top-up (Deposit) - Increment User Balance securely via targetUserId and expected creditAmount!
-          await WalletOps.credit(tx, targetUserId, creditAmount,
+          await WalletOps.credit(tx, targetUserId, Number(creditAmount),
             `Пополнение баланса через ${gatewayType}`,
             { idempotencyKey: `deposit-${processedPaymentId}` }
           );
