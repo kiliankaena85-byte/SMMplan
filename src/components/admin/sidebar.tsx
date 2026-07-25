@@ -31,6 +31,8 @@ interface SidebarProps {
   userEmail: string;
   roleInfo: { label: string; color: string };
   navigation: NavGroup[];
+  siteName?: string;
+  tenantId?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

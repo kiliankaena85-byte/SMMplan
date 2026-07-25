@@ -59,7 +59,7 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
           return { type: 'rate_limit_reg' as const };
         }
 
-        const ownerCount = await tx.user.count({ where: { role: "OWNER" } });
+        const ownerCount = await tx.user.count({ where: { role: "OWNER", tenantId } });
         const role = ownerCount === 0 ? "OWNER" : "USER";
         user = await tx.user.create({ data: { email: cleanEmail, role, referredById, tenantId } });
       }

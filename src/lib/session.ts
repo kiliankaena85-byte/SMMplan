@@ -57,7 +57,7 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   return { sessionToken, expiresAt };
 }
 
-export async function verifySession(): Promise<{ userId: string; canResetPassword?: boolean; role?: string } | null> {
+export async function verifySession(): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
   const reqHeaders = await headers();
   const rawIp = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || '';
   // Very basic localhost sanity check if headers are present
@@ -71,7 +71,7 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
   const sessionToken = (await cookies()).get('session_token')?.value;
 
   if (!sessionToken) {
-    return handleDevAutoLogin(isLocalhostRequest);
+    return handleDevAutoLogin();
   }
 
   try {
@@ -145,17 +145,17 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
     return { 
       userId: user.id,
       canResetPassword: payload.canResetPassword === true,
-      role: user.role
+      role: user.role,
+      tenantId: user.tenantId
     };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
-    return handleDevAutoLogin(isLocalhostRequest);
+    return handleDevAutoLogin();
   }
 }
 
-async function handleDevAutoLogin(isLocalhostRequest: boolean) {
+async function handleDevAutoLogin() {
   if (
-    isLocalhostRequest &&
     process.env.NODE_ENV !== 'production' &&
     (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')
   ) {
@@ -169,7 +169,7 @@ async function handleDevAutoLogin(isLocalhostRequest: boolean) {
     if (process.env.NODE_ENV === 'development') {
       console.info("[verifySession] devUser found:", !!devUser);
     }
-    if (devUser) return { userId: devUser.id, role: devUser.role };
+    if (devUser) return { userId: devUser.id, role: devUser.role, tenantId: devUser.tenantId };
   }
   return null;
 }

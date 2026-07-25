@@ -8,9 +8,13 @@ import { redirect } from "next/navigation";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
+  const tenant = url.searchParams.get("tenant") || "smmplan";
+  const customRedirect = url.searchParams.get("redirectTo");
+
+  const loginBase = tenant === "lovable" ? "/login?tenant=lovable&" : "/login?";
 
   if (!token) {
-    redirect("/login?error=InvalidToken");
+    redirect(`${loginBase}error=InvalidToken`);
   }
 
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -19,42 +23,31 @@ export async function GET(request: Request) {
     where: { token: hashedToken },
   });
 
-  console.log('DEBUG_VERIFY:', {
-    tokenFound: !!authToken,
-    expiresAt: authToken?.expiresAt,
-    now: new Date(),
-    isExpired: authToken ? authToken.expiresAt < new Date() : null
-  });
-
   if (!authToken || authToken.expiresAt < new Date()) {
-    redirect("/login?error=ExpiredToken");
+    redirect(`${loginBase}error=ExpiredToken`);
   }
 
-  // Помечаем как использованный, атомарная проверка (Race Condition Guard)
+  // Atomic race-condition guard
   const result = await db.authToken.updateMany({
     where: { id: authToken.id, used: false },
     data: { used: true },
   });
 
   if (result.count === 0) {
-    redirect("/login?error=AlreadyUsed");
+    redirect(`${loginBase}error=AlreadyUsed`);
   }
 
   const user = await db.user.findUnique({ where: { id: authToken.userId } });
   if (!user || user.isDeleted || !user.isActive) {
-    redirect("/login?error=AccountBlocked");
+    redirect(`${loginBase}error=AccountBlocked`);
   }
 
-  // Устанавливаем куку сессии и даем разрешение на сброс пароля (через JWT)
   if (!user.isEmailVerified) {
     await db.user.update({ where: { id: user.id }, data: { isEmailVerified: true } });
   }
+
   const { sessionToken, expiresAt } = await createSession(authToken.userId, true);
   
-  const redirectPath = ["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role)
-    ? "/admin/dashboard"
-    : "/dashboard";
-
   const cookieStore = await cookies();
   cookieStore.set('session_token', sessionToken, {
     httpOnly: true,
@@ -64,5 +57,22 @@ export async function GET(request: Request) {
     path: '/',
   });
 
-  redirect(redirectPath);
+  function isSafeRedirect(url: string | null): url is string {
+    if (!url) return false;
+    if (!url.startsWith('/')) return false;
+    if (url.startsWith('//')) return false;
+    if (url.includes('\\')) return false;
+    return true;
+  }
+
+  let destination = '/dashboard';
+  if (isSafeRedirect(customRedirect)) {
+    destination = customRedirect;
+  }
+  const isLovable = user.tenantId === 'lovable' || tenant === 'lovable';
+  if (isLovable && !destination.includes('tenant=lovable')) {
+    destination += (destination.includes('?') ? '&' : '?') + 'tenant=lovable';
+  }
+
+  redirect(destination);
 }

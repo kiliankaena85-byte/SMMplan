@@ -1,0 +1,762 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  ShoppingCart, 
+  Link2, 
+  Users, 
+  Send, 
+  HelpCircle, 
+  AlertCircle, 
+  Gauge, 
+  CheckCircle2, 
+  Activity, 
+  Zap, 
+  ShieldCheck, 
+  Sparkles, 
+  Coins,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+import { 
+  getPublicCatalogAction, 
+  getServicesByCategoryAction, 
+  PublicNetwork, 
+  PublicCategory, 
+  PublicService 
+} from '@/actions/order/catalog';
+import { detectPlatformLite } from '@/utils/link-extractor';
+import { IntelligencePlatform } from '@/services/analyzer/link-rules';
+import { inferTargetTypeFromCategory } from '@/utils/target-type';
+import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
+
+function formatPricePerUnit(price: number): string {
+  if (price === 0) return '0.00';
+  let formatted: string;
+  if (price < 0.01) {
+    formatted = price.toFixed(6);
+  } else if (price < 0.1) {
+    formatted = price.toFixed(4);
+  } else {
+    formatted = price.toFixed(2);
+  }
+  
+  if (formatted.includes('.')) {
+    while (formatted.endsWith('0') && formatted.split('.')[1].length > 2) {
+      formatted = formatted.slice(0, -1);
+    }
+  }
+  return formatted;
+}
+
+export function LovableNewOrderWorkspace({
+  userBalanceCents = 0,
+  userEmail = "",
+  initialReorderData = null
+}: {
+  userBalanceCents?: number;
+  userEmail?: string;
+  initialReorderData?: { serviceId: string; categoryId: string; link: string; quantity: number } | null;
+}) {
+  const [catalog, setCatalog] = useState<PublicNetwork[]>([]);
+  const [link, setLink] = useState('');
+  const [detectedPlatform, setDetectedPlatform] = useState<IntelligencePlatform>(IntelligencePlatform.OTHER);
+  
+  // Wizard Steps (1: Platform/Link, 2: Category, 3: Service, 4: Checkout)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  
+  // Selection States
+  const [selectedNetwork, setSelectedNetwork] = useState<PublicNetwork | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<PublicCategory | null>(null);
+  const [selectedService, setSelectedService] = useState<PublicService | null>(null);
+  const [services, setServices] = useState<PublicService[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+  
+  const [quantity, setQuantity] = useState(100);
+  const [email, setEmail] = useState(userEmail);
+  const [gateway, setGateway] = useState<'yookassa' | 'cryptobot' | 'balance'>('yookassa');
+  
+  // Validation / Error states
+  const [isPending, setIsPending] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [validationTimestamp, setValidationTimestamp] = useState(0);
+  const [success, setSuccess] = useState(false);
+
+  // Refs for auto-scroll on validation error
+  const linkRef = useRef<HTMLInputElement>(null);
+  const qtyRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  // Load catalog
+  useEffect(() => {
+    getPublicCatalogAction().then(res => {
+      if (res.success && res.data) {
+        setCatalog(res.data);
+      }
+    });
+  }, []);
+
+  // Preload reorder data
+  useEffect(() => {
+    if (initialReorderData && catalog.length > 0) {
+      const { serviceId, categoryId, link: initialLink, quantity: initialQty } = initialReorderData;
+      setLink(initialLink);
+      setQuantity(initialQty);
+
+      const network = catalog.find(net => net.categories.some(cat => cat.id === categoryId));
+      if (network) {
+        setSelectedNetwork(network);
+        const category = network.categories.find(cat => cat.id === categoryId);
+        if (category) {
+          setSelectedCategory(category);
+          setIsLoadingServices(true);
+          getServicesByCategoryAction(categoryId).then(res => {
+            const srvList = res || [];
+            setServices(srvList);
+            const service = srvList.find(s => s.id === serviceId);
+            if (service) {
+              setSelectedService(service);
+            }
+            setIsLoadingServices(false);
+          });
+        }
+      }
+      setCurrentStep(4);
+    }
+  }, [initialReorderData, catalog]);
+
+  // Detect platform on link change
+  useEffect(() => {
+    if (!link) {
+      setDetectedPlatform(IntelligencePlatform.OTHER);
+      return;
+    }
+    const plat = detectPlatformLite(link);
+    setDetectedPlatform(plat);
+
+    // Auto-select network based on link detection
+    if (plat !== IntelligencePlatform.OTHER) {
+      const matchedNet = catalog.find(n => n.slug.toLowerCase().includes(plat.toLowerCase()));
+      if (matchedNet) {
+        setSelectedNetwork(matchedNet);
+        // Clear child states if network changes
+        if (selectedNetwork?.id !== matchedNet.id) {
+          setSelectedCategory(null);
+          setSelectedService(null);
+          setServices([]);
+        }
+      }
+    }
+  }, [link, catalog, selectedNetwork]);
+
+  // Load services when category changes
+  useEffect(() => {
+    if (!selectedCategory) {
+      setServices([]);
+      setSelectedService(null);
+      return;
+    }
+    setIsLoadingServices(true);
+    getServicesByCategoryAction(selectedCategory.id).then(res => {
+      const srvList = res || [];
+      setServices(srvList);
+      if (srvList.length > 0) {
+        setSelectedService(srvList[0]);
+        setQuantity(srvList[0].minQty || 100);
+      } else {
+        setSelectedService(null);
+      }
+      setIsLoadingServices(false);
+    });
+  }, [selectedCategory]);
+
+  const handleNetworkSelect = (net: PublicNetwork) => {
+    setSelectedNetwork(net);
+    setSelectedCategory(null);
+    setSelectedService(null);
+    setServices([]);
+    
+    // Auto-advance to Step 2
+    setCurrentStep(2);
+  };
+
+  const handleCategorySelect = (cat: PublicCategory) => {
+    setSelectedCategory(cat);
+    
+    // Auto-advance to Step 3
+    setCurrentStep(3);
+  };
+
+  const handleServiceSelect = (srv: PublicService) => {
+    setSelectedService(srv);
+    setQuantity(srv.minQty || 100);
+    
+    // Auto-advance to Step 4
+    setCurrentStep(4);
+  };
+
+  // Prices
+  const pricePerUnit = selectedService ? (selectedService.pricePerUnitRub || 0) : 0;
+  const totalPrice = (pricePerUnit * quantity).toFixed(2);
+
+  // Zod & Custom Validations
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // 1. Link validation
+    if (!link) {
+      newErrors.link = "Укажите ссылку для продвижения";
+    } else if (selectedService && selectedNetwork) {
+      try {
+        const catName = selectedCategory?.name || '';
+        const targetType = selectedService.targetType === 'POST' ? 'POST' : (selectedService.targetType || inferTargetTypeFromCategory(catName));
+        const normalizedLink = mutateLink(link, selectedNetwork.slug, targetType);
+        const validator = getLinkValidator(selectedNetwork.slug, targetType);
+        const parsed = validator.safeParse(normalizedLink);
+        
+        if (!parsed.success) {
+          newErrors.link = parsed.error.errors[0].message;
+        }
+      } catch {
+        // Fallback standard URL match if validator is missing
+        if (!link.startsWith('http://') && !link.startsWith('https://')) {
+          newErrors.link = "Ссылка должна начинаться с https://";
+        }
+      }
+    }
+
+    // 2. Quantity validation
+    if (selectedService) {
+      if (quantity < selectedService.minQty) {
+        newErrors.quantity = `Минимальный заказ: ${selectedService.minQty} шт.`;
+      } else if (quantity > selectedService.maxQty) {
+        newErrors.quantity = `Максимальный заказ: ${selectedService.maxQty} шт.`;
+      }
+    }
+
+    // 3. Email validation
+    if (!email) {
+      newErrors.email = "Укажите Email адрес";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "Введите корректный адрес электронной почты";
+    }
+
+    setErrors(newErrors);
+    
+    if (Object.keys(newErrors).length > 0) {
+      // Re-trigger shake animations using timestamp
+      setValidationTimestamp(Date.now());
+      
+      // Auto scroll to first error field
+      setTimeout(() => {
+        if (newErrors.link && linkRef.current) {
+          linkRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          linkRef.current.focus();
+        } else if (newErrors.quantity && qtyRef.current) {
+          qtyRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          qtyRef.current.focus();
+        } else if (newErrors.email && emailRef.current) {
+          emailRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          emailRef.current.focus();
+        }
+      }, 50);
+
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Always validate first, intercept submit if not valid
+    if (!validateForm()) {
+      return;
+    }
+
+    if (!selectedService || !link) return;
+    
+    setIsPending(true);
+    setErrors({});
+    setSuccess(false);
+
+    try {
+      const { structuredMassOrderCheckoutAction } = await import('@/actions/order/mass');
+      const res = await structuredMassOrderCheckoutAction({
+        orders: [{
+          serviceId: selectedService.id,
+          link: link,
+          quantity: quantity
+        }],
+        email: email,
+        gateway: gateway,
+        idempotencyKey: Math.random().toString(36).substring(7),
+        expectedTotalRub: parseFloat(totalPrice)
+      });
+
+      if (res && res.success) {
+        setSuccess(true);
+        setLink('');
+        setCurrentStep(1);
+      } else {
+        setErrors({ general: res?.error || "Произошла ошибка при оформлении заказа" });
+        setValidationTimestamp(Date.now());
+      }
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Не удалось создать заказ";
+      setErrors({ general: errMsg });
+      setValidationTimestamp(Date.now());
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-12 gap-8 items-start">
+      
+      {/* LEFT COLUMN: 4-STEP WIZARD (7 COLS) */}
+      <div className="col-span-12 lg:col-span-7 space-y-6">
+        
+        {success ? (
+          <div className="bg-card border border-success/20 rounded-[2rem] p-8 text-center space-y-4 animate-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">Заказ успешно оформлен!</h2>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+              Запуск произойдет в течение нескольких минут. Вы можете отслеживать статус заказа в разделе активности на главной.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSuccess(false)}
+              className="px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-2xl transition-all"
+            >
+              Создать новый заказ
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            
+            {/* Step Navigation Tabs indicator */}
+            <div className="flex justify-between items-center bg-card/60 backdrop-blur-md p-3.5 border border-border/25 rounded-2xl">
+              {[1, 2, 3, 4].map((step) => {
+                const isCurrent = currentStep === step;
+                const isPassed = currentStep > step;
+                return (
+                  <div key={step} className="flex items-center gap-1.5">
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      isCurrent 
+                        ? 'bg-primary text-primary-foreground scale-110 shadow-sm' 
+                        : isPassed 
+                          ? 'bg-success/10 text-success border border-success/30' 
+                          : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {step}
+                    </span>
+                    <span className={`text-[10px] font-bold hidden sm:inline ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {step === 1 ? 'Цель' : step === 2 ? 'Категория' : step === 3 ? 'Услуга' : 'Оплата'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* STEP 1: Platform & Target Link */}
+            {currentStep === 1 && (
+              <div 
+                key={`step1-${validationTimestamp}`}
+                className={`bg-card border border-border/30 rounded-[2rem] p-6 space-y-5 transition-all duration-300 ${errors.link ? 'animate-shake border-destructive/40 shadow-[0_0_20px_rgba(244,63,94,0.05)]' : ''}`}
+              >
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-sm text-foreground">Шаг 1: Укажите ссылку и сеть</h3>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <input
+                      ref={linkRef}
+                      type="text"
+                      placeholder="Вставьте ссылку на пост, канал или профиль..."
+                      value={link}
+                      onChange={(e) => setLink(e.target.value)}
+                      className={`w-full pl-11 focus:ring-0 focus:outline-none ${errors.link ? 'border-destructive/60' : ''}`}
+                      required
+                    />
+                    <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                  </div>
+                  
+                  {errors.link && (
+                    <p className="text-xs font-bold text-destructive flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.link}
+                    </p>
+                  )}
+
+                  {detectedPlatform !== IntelligencePlatform.OTHER && (
+                    <div className="text-xs text-primary font-bold flex items-center gap-1.5 px-1">
+                      <Zap className="w-3.5 h-3.5 text-primary" /> Автоопределение: {detectedPlatform}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                    {catalog.map(net => {
+                      const isSelected = selectedNetwork?.id === net.id;
+                      return (
+                        <button
+                          key={net.id}
+                          type="button"
+                          onClick={() => handleNetworkSelect(net)}
+                          className={`p-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 border text-center transition-all ${
+                            isSelected 
+                              ? 'bg-primary/10 border-primary text-foreground shadow-sm'
+                              : 'bg-background/40 border-border/30 text-muted-foreground hover:border-primary/20 hover:text-foreground'
+                          }`}
+                        >
+                          <span className="text-xs font-bold truncate max-w-[100px]">{net.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    disabled={!selectedNetwork}
+                    className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-2xl flex items-center gap-1 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    Далее <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Category Selection */}
+            {currentStep === 2 && selectedNetwork && (
+              <div className="bg-card border border-border/30 rounded-[2rem] p-6 space-y-5 transition-all duration-300">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-sm text-foreground">Шаг 2: Выберите категорию ({selectedNetwork.name})</h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
+                  {selectedNetwork.categories.map(cat => {
+                    const isSelected = selectedCategory?.id === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => handleCategorySelect(cat)}
+                        className={`p-4 rounded-2xl border text-left flex justify-between items-center gap-2 transition-all ${
+                          isSelected 
+                            ? 'bg-primary/10 border-primary text-foreground shadow-sm'
+                            : 'bg-background/40 border-border/20 hover:border-primary/20 hover:text-foreground'
+                        }`}
+                      >
+                        <span className="text-xs font-bold text-foreground">{cat.name}</span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    className="px-4 py-2.5 border border-border/40 text-muted-foreground hover:text-foreground font-bold rounded-2xl flex items-center gap-1 hover:bg-background transition-all"
+                  >
+                    <ChevronLeft className="w-4 h-4" /> Назад
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(3)}
+                    disabled={!selectedCategory}
+                    className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-2xl flex items-center gap-1 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    Далее <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Service Selection */}
+            {currentStep === 3 && selectedCategory && (
+              <div className="bg-card border border-border/30 rounded-[2rem] p-6 space-y-5 transition-all duration-300">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-sm text-foreground">Шаг 3: Выберите конкретную услугу</h3>
+                </div>
+
+                <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
+                  {isLoadingServices ? (
+                    <div className="py-8 text-center text-xs text-muted-foreground animate-pulse">Загрузка тарифов...</div>
+                  ) : services.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-muted-foreground">Нет доступных услуг</div>
+                  ) : (
+                    services.map(srv => {
+                      const isSelected = selectedService?.id === srv.id;
+                      return (
+                        <button
+                          key={srv.id}
+                          type="button"
+                          onClick={() => handleServiceSelect(srv)}
+                          className={`w-full p-4 rounded-2xl border text-left flex flex-col justify-between gap-2.5 transition-all ${
+                            isSelected 
+                              ? 'bg-primary/5 border-primary shadow-sm'
+                              : 'bg-background/40 border-border/20 hover:border-primary/20'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start gap-3 w-full">
+                            <span className="font-bold text-xs text-foreground leading-snug">{srv.name}</span>
+                            <span className="font-mono font-bold text-xs text-foreground shrink-0 bg-background px-2 py-0.5 rounded-lg border border-border/20">
+                              {formatPricePerUnit(srv.pricePerUnitRub || 0)} ₽/шт
+                            </span>
+                          </div>
+                          {srv.description && (
+                            <p className="text-[10px] text-muted-foreground/80 line-clamp-2 leading-relaxed">{srv.description}</p>
+                          )}
+                          <div className="flex items-center gap-3 text-[9px] text-muted-foreground font-semibold">
+                            <span className="flex items-center gap-0.5 text-primary"><Zap className="w-3 h-3" /> {srv.speed || 'Быстрая'}</span>
+                            {srv.badge && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary uppercase font-bold text-[8px]">{srv.badge}</span>}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="flex justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="px-4 py-2.5 border border-border/40 text-muted-foreground hover:text-foreground font-bold rounded-2xl flex items-center gap-1 hover:bg-background transition-all"
+                  >
+                    <ChevronLeft className="w-4 h-4" /> Назад
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(4)}
+                    disabled={!selectedService}
+                    className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-2xl flex items-center gap-1 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    Далее <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: Checkout configuration */}
+            {currentStep === 4 && selectedService && (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                
+                {/* Quantity config */}
+                <div 
+                  key={`step4-qty-${validationTimestamp}`}
+                  className={`bg-card border border-border/30 rounded-[2rem] p-6 space-y-4 transition-all duration-300 ${errors.quantity ? 'animate-shake border-destructive/40 shadow-[0_0_20px_rgba(244,63,94,0.05)]' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-sm text-foreground">Количество</h3>
+                    <span className="text-[10px] text-muted-foreground font-semibold">
+                      Минимум: {selectedService.minQty} - Максимум: {selectedService.maxQty} шт
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between bg-background/50 p-4 rounded-2xl border border-border/20">
+                      <span className="text-xs font-bold text-muted-foreground">Заказать:</span>
+                      <input
+                        ref={qtyRef}
+                        type="number"
+                        min={selectedService.minQty || 10}
+                        max={selectedService.maxQty || 100000}
+                        value={quantity}
+                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+                        className={`w-32 text-right font-mono font-extrabold text-lg bg-transparent border-none p-0 focus:ring-0 ${errors.quantity ? 'text-destructive' : 'text-foreground'}`}
+                      />
+                    </div>
+                    
+                    {errors.quantity && (
+                      <p className="text-xs font-bold text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.quantity}
+                      </p>
+                    )}
+
+                    <input
+                      type="range"
+                      min={selectedService.minQty || 10}
+                      max={Math.min(10000, selectedService.maxQty || 100000)}
+                      step={10}
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value))}
+                      className="w-full accent-primary bg-muted rounded-lg h-2 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {/* Email and Gateway config */}
+                <div 
+                  key={`step4-checkout-${validationTimestamp}`}
+                  className={`bg-card border border-border/30 rounded-[2rem] p-6 space-y-4 transition-all duration-300 ${errors.email ? 'animate-shake border-destructive/40 shadow-[0_0_20px_rgba(244,63,94,0.05)]' : ''}`}
+                >
+                  <h3 className="font-extrabold text-sm text-foreground">Детали оплаты</h3>
+                  
+                  <div className="grid grid-cols-3 gap-3">
+                    {['yookassa', 'cryptobot', 'balance'].map((gatewayOpt) => {
+                      const isActive = gateway === gatewayOpt;
+                      return (
+                        <button
+                          key={gatewayOpt}
+                          type="button"
+                          onClick={() => setGateway(gatewayOpt as any)}
+                          className={`py-2 text-center rounded-xl border text-xs font-bold transition-all ${
+                            isActive ? 'bg-primary/10 border-primary text-foreground shadow-sm' : 'bg-background/40 border-border/30 text-muted-foreground hover:border-primary/20'
+                          }`}
+                        >
+                          {gatewayOpt === 'yookassa' ? 'YooKassa' : gatewayOpt === 'cryptobot' ? 'CryptoBot' : 'Баланс'}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2">
+                    <input
+                      ref={emailRef}
+                      type="email"
+                      placeholder="Ваш Email для отправки чеков"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`w-full focus:ring-0 focus:outline-none ${errors.email ? 'border-destructive/60' : ''}`}
+                      required
+                    />
+                    {errors.email && (
+                      <p className="text-xs font-bold text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  {errors.general && (
+                    <div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold rounded-2xl flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{errors.general}</span>
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex items-center justify-between border-t border-border/10">
+                    <span className="text-xs font-bold text-muted-foreground">Итого к оплате:</span>
+                    <span className="text-xl font-black text-foreground font-mono">{totalPrice} ₽</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(3)}
+                    className="px-5 py-4 border border-border/40 text-muted-foreground hover:text-foreground font-bold rounded-2xl flex items-center gap-1 hover:bg-background transition-all shrink-0"
+                  >
+                    <ChevronLeft className="w-4 h-4" /> Назад
+                  </button>
+                  
+                  <button
+                    type="submit"
+                    className="flex-1 py-4 bg-primary text-primary-foreground font-bold rounded-2xl hover:scale-[1.01] active:scale-98 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isPending ? 'Оформление заказа...' : 'Оплатить заказ'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+          </div>
+        )}
+
+      </div>
+
+      {/* RIGHT COLUMN: PREVIEW SCREEN (5 COLS) */}
+      <div className="col-span-12 lg:col-span-5 lg:sticky lg:top-24">
+        <div className="bg-card/85 backdrop-blur-3xl border border-border/30 rounded-[2rem] p-6 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:border-primary/20 transition-all duration-300 min-h-[480px]">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <h3 className="font-extrabold text-sm text-foreground">Анализ цели</h3>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Preview Engine</span>
+            </div>
+
+            {/* Target Card Visual representation */}
+            <div className="p-6 bg-background/50 border border-border/20 rounded-3xl flex flex-col items-center text-center space-y-4 shadow-sm relative overflow-hidden">
+              <div className="absolute top-2 right-2 flex gap-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
+                <div className="w-2 h-2 rounded-full bg-green-500 absolute" />
+              </div>
+
+              {/* Avatar placeholder with visual design */}
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-primary text-3xl font-black shadow-inner">
+                {selectedNetwork ? selectedNetwork.name.substring(0, 1) : '?'}
+              </div>
+
+              <div className="space-y-1 w-full min-w-0">
+                <h4 className="font-bold text-sm text-foreground truncate">
+                  {link ? (link.includes('t.me/') ? `@${link.split('t.me/')[1].split('/')[0]}` : 'Аккаунт продвижения') : 'Ожидание ссылки...'}
+                </h4>
+                <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[200px] mx-auto">
+                  {link || 'ссылка не указана'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 w-full pt-3 border-t border-border/10">
+                <div className="bg-background/80 p-2.5 rounded-xl border border-border/10 text-center">
+                  <span className="block text-[9px] text-muted-foreground font-bold uppercase">Канал</span>
+                  <span className="text-xs font-bold text-foreground truncate block mt-0.5">
+                    {selectedNetwork ? selectedNetwork.name : '—'}
+                  </span>
+                </div>
+                <div className="bg-background/80 p-2.5 rounded-xl border border-border/10 text-center">
+                  <span className="block text-[9px] text-muted-foreground font-bold uppercase">Объем</span>
+                  <span className="text-xs font-bold text-foreground block mt-0.5">{quantity} шт</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Platform rules / Warnings */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-foreground">Характеристики запуска:</h4>
+              <div className="grid grid-cols-1 gap-2.5">
+                <div className="p-3 bg-background/40 border border-border/20 rounded-2xl flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Gauge className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="block text-[9px] text-muted-foreground font-bold">Скорость старта</span>
+                    <span className="text-xs font-bold text-foreground">Мгновенный (1-5 минут)</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-background/40 border border-border/20 rounded-2xl flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="block text-[9px] text-muted-foreground font-bold">Гарантия на списания</span>
+                    <span className="text-xs font-bold text-foreground">30 дней (автопополнение)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div className="mt-8 pt-4 border-t border-border/10 flex items-center gap-2 text-[10px] text-muted-foreground">
+            <Coins className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span>Ваш баланс: <strong className="text-foreground">{formatPricePerUnit(userBalanceCents / 100)} ₽</strong></span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  );
+}

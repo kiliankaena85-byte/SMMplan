@@ -56,7 +56,17 @@ export class VaultService {
     
     const parts = encryptedPayload.split(':');
     if (parts.length !== 3) {
-      // Legacy unencrypted data or invalid format - return as-is
+      console.warn(
+        `[VaultService] Non-encrypted value detected (legacy format). ` +
+        `Length: ${encryptedPayload.length}. ` +
+        `Run migration: npx tsx scripts/re-encrypt-secrets.ts`
+      );
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+          '[VaultService] Plaintext secret detected in production. ' +
+          'Run re-encryption migration immediately.'
+        );
+      }
       return encryptedPayload;
     }
     

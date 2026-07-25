@@ -23,7 +23,7 @@ const getCachedNetworks = unstable_cache(
       orderBy: { sort: 'asc' }
     });
   },
-  ['public-catalog-networks'],
+  ['public-catalog-networks-v2'],
   { revalidate: 60, tags: ['catalog'] }
 );
 
@@ -36,7 +36,7 @@ const getCachedServices = (catId: string) => unstable_cache(
       take: 100
     });
   },
-  ['public-services-by-category', catId],
+  ['public-services-by-category-v2', catId],
   { revalidate: 60, tags: ['catalog', 'services'] }
 )();
 

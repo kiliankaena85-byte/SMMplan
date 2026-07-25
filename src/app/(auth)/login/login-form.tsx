@@ -9,9 +9,9 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 
 const inputCls =
-  'w-full rounded-xl border border-border bg-background text-foreground px-4 py-3 ' +
-  'text-sm outline-none placeholder:text-muted-foreground ' +
-  'focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200';
+  'w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-foreground px-4 py-3.5 ' +
+  'text-sm font-semibold outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ' +
+  'focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm';
 
 export function LoginForm() {
   const [activeTab, setActiveTab] = useState<'magic' | 'password' | 'register'>('password'); // Password by default
@@ -80,8 +80,12 @@ export function LoginForm() {
           return;
         }
 
-        toast.success(res.message || 'Регистрация успешна! Проверьте почту.');
-        setActiveTab('password');
+        toast.success(res.message || 'Регистрация успешна!');
+        if (res.redirectTo) {
+          window.location.href = res.redirectTo;
+        } else {
+          setActiveTab('password');
+        }
       } catch {
         toast.error('Произошла непредвиденная ошибка при регистрации.');
         setRegisterPending(false);
@@ -91,16 +95,16 @@ export function LoginForm() {
 
   if (activeTab === 'magic' && magicState?.success) {
     return (
-      <div className="rounded-2xl bg-success/10 border border-success/20 p-6 text-center space-y-3">
+      <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-6 text-center space-y-3">
         <div className="flex justify-center">
-          <CheckCircle2 className="w-10 h-10 text-success" />
+          <CheckCircle2 className="w-10 h-10 text-emerald-500" />
         </div>
         <h3 className="font-bold text-foreground">Проверьте почту</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-foreground/80 leading-relaxed">
           Мы отправили волшебную ссылку для входа.
           Письмо придёт в течение 1–2 минут.
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground font-medium">
           Не получили? Проверьте папку «Спам»
         </p>
         <button
@@ -108,7 +112,7 @@ export function LoginForm() {
             // Reset success state to try again
             window.location.reload();
           }}
-          className="text-xs font-semibold text-primary underline mt-2"
+          className="text-xs font-bold text-blue-500 underline mt-2 hover:opacity-80 transition-opacity"
         >
           Вернуться на страницу входа
         </button>
@@ -118,15 +122,15 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
-      {/* Premium Tabs control */}
-      <div className="flex p-1 bg-muted/30 border border-border/40 rounded-xl">
+      {/* High Contrast Tabs control */}
+      <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 rounded-2xl">
         <button
           type="button"
           onClick={() => setActiveTab('password')}
-          className={`flex-1 py-2 px-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+          className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-xl transition-all duration-200 ${
             activeTab === 'password'
-              ? 'bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm'
+              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white font-semibold'
           }`}
         >
           Войти по паролю
@@ -134,10 +138,10 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setActiveTab('magic')}
-          className={`flex-1 py-2 px-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+          className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-xl transition-all duration-200 ${
             activeTab === 'magic'
-              ? 'bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm'
+              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white font-semibold'
           }`}
         >
           Войти по ссылке
@@ -145,10 +149,10 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setActiveTab('register')}
-          className={`flex-1 py-2 px-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+          className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-xl transition-all duration-200 ${
             activeTab === 'register'
-              ? 'bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm'
+              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white font-semibold'
           }`}
         >
           Регистрация
@@ -159,11 +163,11 @@ export function LoginForm() {
       {activeTab === 'password' && (
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="login-email" className="block text-sm font-medium text-foreground">
+            <label htmlFor="login-email" className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
               Email адрес
             </label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
               <input
                 id="login-email"
                 type="email"
@@ -179,12 +183,12 @@ export function LoginForm() {
 
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <label htmlFor="login-password" className="block text-sm font-medium text-foreground">
+              <label htmlFor="login-password" className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                 Пароль
               </label>
             </div>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
               <input
                 id="login-password"
                 type={showPassword ? 'text' : 'password'}
@@ -198,7 +202,7 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={toggleShowPassword}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
                 aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -209,7 +213,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={isPending || !email || !password}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all duration-200 shadow-sm cursor-pointer font-bold"
+            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-2xl text-sm font-black bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-all duration-200 shadow-lg shadow-blue-600/30 cursor-pointer active:scale-[0.98]"
           >
             {isPending ? (
               <>
@@ -224,14 +228,14 @@ export function LoginForm() {
             )}
           </button>
 
-          <p className="text-center text-[11px] leading-tight text-muted-foreground px-2">
-            Нажимая кнопку, вы принимаете условия{' '}
-            <Link href="/legal/terms" className="underline hover:text-foreground transition-colors">
-              Публичной оферты
+          <p className="text-center text-[11px] font-medium text-foreground/70 leading-relaxed px-2 mt-3">
+            Нажимая кнопку, вы соглашаетесь с{' '}
+            <Link href="/legal/terms" className="underline font-bold text-foreground hover:text-blue-500 transition-colors">
+              Условиями сервиса
             </Link>{' '}
-            и даете согласие на обработку данных согласно{' '}
-            <Link href="/legal/privacy" className="underline hover:text-foreground transition-colors">
-              Политике конфиденциальности
+            и{' '}
+            <Link href="/legal/privacy" className="underline font-bold text-foreground hover:text-blue-500 transition-colors">
+              Политикой конфиденциальности
             </Link>
           </p>
         </form>

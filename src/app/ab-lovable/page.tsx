@@ -16,12 +16,14 @@ import { MegaFooter } from "@/components/landing/MegaFooter";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-  const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "SMMplan";
+  const reqHeaders = await headers();
+  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+  const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
+  const siteName = settings.SITE_NAME || (tenantId === 'lovable' ? "SMMflux" : "SMMplan");
   
   return {
-    title: `Lovable A/B Test | ${siteName}`,
-    description: "Экспериментальный A/B тест нового интерфейса SMMplan (Lovable Edition).",
+    title: `SMMflux | Продвижение социальных сетей`,
+    description: "Современная платформа продвижения SMMflux (Next-Gen AI Growth).",
   };
 }
 
@@ -29,8 +31,11 @@ export default async function LovablePage() {
   const catalogResult = await getPublicCatalogAction();
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
-  const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "SMMplan";
+  const reqHeaders = await headers();
+  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+
+  const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
+  const siteName = settings.SITE_NAME || (tenantId === 'lovable' ? "SMMflux" : "SMMplan");
 
   const session = await verifySession();
   let userEmail: string | undefined = undefined;
@@ -44,8 +49,7 @@ export default async function LovablePage() {
     }
   }
 
-  const reqHeaders = await headers();
-  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">

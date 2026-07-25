@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server';
 import { decryptSessionToken } from '@/lib/session-edge';
 import { ROUTES } from '@/lib/routes';
 
+import { resolveTenantFromHostEdge } from '@/lib/tenant-resolver';
+
 // Map of legacy routes to new static routes
 const legacyRedirects: Record<string, string> = {
   '/p/offer': ROUTES.LEGAL.TERMS,
@@ -15,9 +17,18 @@ const legacyRedirects: Record<string, string> = {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Multi-Tenancy Host Detection (Moved to top)
+  // 0. Strip any client-supplied x-tenant-id to prevent spoofing
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete('x-tenant-id');
+
+  // 1. Multi-Tenancy Host Detection via tenant-resolver
   const host = request.headers.get('host') || '';
-  const tenantId = host.includes('lovable') ? 'lovable' : 'smmplan';
+  const tenantId = resolveTenantFromHostEdge(host);
+  const tenantParam = request.nextUrl.searchParams.get('tenant');
+  const finalTenantId = (process.env.NODE_ENV !== 'production' && tenantParam) 
+    ? tenantParam 
+    : tenantId;
+  requestHeaders.set('x-tenant-id', finalTenantId);
 
   // 2. Check legacy redirects
   const newPath = legacyRedirects[pathname];
@@ -31,7 +42,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301); // 301 Permanent Redirect
   }
 
-  // 3. Auth Route Protection
+  // 3. Tenant-based rewrites
+  if (pathname === '/' && tenantId === 'lovable') {
+    const rewriteUrl = new URL('/ab-lovable', request.url);
+    // Preserve query parameters (like ?tenant=lovable)
+    request.nextUrl.searchParams.forEach((val, key) => {
+      rewriteUrl.searchParams.set(key, val);
+    });
+    requestHeaders.set('x-pathname', '/ab-lovable');
+    return NextResponse.rewrite(rewriteUrl, {
+      request: {
+        headers: requestHeaders,
+      }
+    });
+  }
+
+  // 4. Auth Route Protection
   const protectedPaths = ['/admin', '/dashboard', '/operator'];
   if (protectedPaths.some(p => pathname.startsWith(p))) {
     const sessionToken = request.cookies.get('session_token')?.value;
@@ -42,6 +68,13 @@ export async function middleware(request: NextRequest) {
       if (isRSC) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
       }
+      // Dev mode auto-login bypass for local environment
+      if (process.env.NODE_ENV !== 'production') {
+        const autoLoginUrl = new URL('/api/dev/login-direct', request.url);
+        autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
+        autoLoginUrl.searchParams.set('tenant', tenantId);
+        return NextResponse.redirect(autoLoginUrl);
+      }
       return NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url));
     }
 
@@ -50,6 +83,15 @@ export async function middleware(request: NextRequest) {
     if (!payload || payload.tenantId !== tenantId) {
       if (isRSC) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+      }
+      // Dev mode auto-login bypass on tenant mismatch in local environment
+      if (process.env.NODE_ENV !== 'production' && explicitLogout !== 'true') {
+        const autoLoginUrl = new URL('/api/dev/login-direct', request.url);
+        autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
+        autoLoginUrl.searchParams.set('tenant', tenantId);
+        const response = NextResponse.redirect(autoLoginUrl);
+        response.cookies.delete('session_token');
+        return response;
       }
       const response = NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url));
       response.cookies.delete('session_token');
@@ -69,9 +111,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Set headers for layout detection and tenant isolation
-  const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', pathname);
-  requestHeaders.set('x-tenant-id', tenantId);
 
   // Handle ref cookie if present in URL query
   const ref = request.nextUrl.searchParams.get('ref');

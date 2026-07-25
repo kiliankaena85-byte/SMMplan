@@ -1,6 +1,6 @@
-# AEARH Anti-Patterns Repository
+# AEARH & ALSH Anti-Patterns Repository
 
-The following 15 anti-patterns are strictly prohibited during audits and remediations:
+The following anti-patterns are strictly prohibited during audits, remediations, and left-shift development:
 
 1. **Model exists != control works:** Assuming a Prisma model definition enforces business constraints without checking runtime logic.
 2. **Field exists != field enforced:** Having a field like `tenantId` in schema without checking if queries filter by it.
@@ -17,3 +17,7 @@ The following 15 anti-patterns are strictly prohibited during audits and remedia
 13. **Mutex exists != mutex safe:** Using simple locks without token-based ownership release guards.
 14. **IP header exists != IP trusted:** Reading `x-forwarded-for` header without IP whitelist validation.
 15. **Currency field exists != currency validated:** Storing currency strings without cross-checking exchange rates and amount types.
+16. **Date.now() in idempotency key (SC02):** Using timestamps in idempotency key constructors causing distinct non-repeatable keys on retry attempts.
+17. **Fail-open webhook signature checks (SC04):** Using `if (secret && signature)` patterns that skip verification if headers or environment secrets are missing.
+18. **Untrusted ownership from metadata (SC07):** Trusting `metadata.userId` or request body `userId` for wallet credits/debits instead of database payment records.
+19. **Unsafe mutex release (SC08):** Issuing raw `redis.del(lockKey)` without validating ownership token via Lua script.

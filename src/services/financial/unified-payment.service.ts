@@ -41,10 +41,11 @@ export class UnifiedPaymentService {
       const supportDomain = await SettingsProvider.getSupportEmailDomain();
       const successUrl = `${await getBaseUrlAsync(supportDomain)}/dashboard`;
 
-      // 2. Generate Payment Link asynchronously using BullMQ
-      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
+      // 2. Generate Payment Link synchronously
+      const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway);
       
-      await paymentGatewayQueue.add('generate-gateway-payment', {
+      const gatewayResult = await gatewaySvc.createPayment({
         paymentId: payment.id,
         userId,
         amountRub,
@@ -52,14 +53,23 @@ export class UnifiedPaymentService {
         successUrl,
         description,
         metadata,
-        gateway,
         isTestMode: await SettingsManager.isTestMode()
       });
+
+      if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
+        await db.payment.update({
+          where: { id: payment.id },
+          data: {
+            gatewayId: gatewayResult.remoteGatewayId || undefined,
+            checkoutUrl: gatewayResult.paymentUrl || undefined
+          }
+        });
+      }
 
       return {
         success: true,
         paymentId: payment.id,
-        confirmationUrl: `/payment-redirect?id=${payment.id}`
+        confirmationUrl: gatewayResult.paymentUrl || `/payment-redirect?id=${payment.id}`
       };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

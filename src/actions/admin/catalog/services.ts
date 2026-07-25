@@ -37,8 +37,7 @@ const serviceSchema = z.object({
 /**
  * Manually create a new catalog Service
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function createServiceAction(rawData: any) {
+export async function createServiceAction(rawData: unknown) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const parsed = serviceSchema.safeParse(rawData);
     if (!parsed.success) {
@@ -140,8 +139,7 @@ export async function createServiceAction(rawData: any) {
 /**
  * Manually update an existing catalog Service
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function updateServiceAction(id: string, rawData: any) {
+export async function updateServiceAction(id: string, rawData: unknown) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     if (!id || typeof id !== 'string') {
       return { success: false as const, error: 'ID услуги обязателен' };

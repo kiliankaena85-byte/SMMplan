@@ -38,7 +38,8 @@ export const WalletOps = {
     reason: string,
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
-    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    const MAX_SINGLE_CHARGE_CENTS = 100_000_000; // 1M RUB safety cap
+    if (typeof amountCents !== 'number' || !Number.isFinite(amountCents) || Number.isNaN(amountCents) || amountCents <= 0 || amountCents > MAX_SINGLE_CHARGE_CENTS) {
       throw new WalletInvalidAmountError('Charge');
     }
 

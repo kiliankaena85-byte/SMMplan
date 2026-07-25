@@ -162,9 +162,9 @@ export function UniversalOrderForm({
           <Loader2 className="w-9 h-9 animate-spin text-primary" />
         </div>
         <div className="space-y-2 max-w-sm relative z-10">
-          <h3 className="text-xl font-black text-foreground uppercase tracking-widest leading-none">Синхронизация</h3>
+          <h3 className="text-lg font-black text-foreground uppercase tracking-widest leading-none">Загрузка каталога</h3>
           <p className="text-xs text-muted-foreground/80 leading-relaxed">
-            Загружаем актуальные платформы, категории и вычисляем динамическую маржу в режиме реального времени...
+            Подготавливаем актуальные платформы, категории и тарифы для оформления заказа...
           </p>
         </div>
       </div>

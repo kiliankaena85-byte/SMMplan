@@ -1,13 +1,16 @@
-# Antigravity Evidence-First Audit & Remediation Harness (AEARH v1.1)
+# Antigravity Evidence-First Audit & Remediation Harness (AEARH v1.1) & Left-Shift Harness (ALSH v1.0)
 
 AEARH is an enterprise high-assurance framework designed to audit, remediate, verify, and enforce security and financial integrity across complex microservice & monolith architectures.
 
+ALSH (Left-Shift Secure Coding Harness) prevents vulnerable code from being committed or merged by placing golden path primitives, static prohibitions (SC01-SC12), test-first gates, invariant gates, and an adversarial Breaker agent directly into the development cycle.
+
 ---
 
-## 1. What is AEARH
-AEARH enforces strict evidence level requirements (L0 to L8) and automated validation gates. It prevents premature risk closure, unevidenced claims, and placeholder verification reports.
+## 1. What is AEARH & ALSH
+- **AEARH:** Audits evidence packs, verifies baseline hashes, and enforces level requirements (L0 to L8).
+- **ALSH:** Left-shift code protection blocking insecure code *before* merge via static rules, test-first gates, invariant checks, and Breaker attack simulations.
 
-## 2. Evidence Levels
+## 2. Evidence Levels (AEARH)
 - **L0_CLAIMED:** Declarative claim without code or test proof.
 - **L1_DESIGN_PRESENT:** Architecture design document present.
 - **L2_CODE_IMPLEMENTED:** Source code implemented with exact file/line references.
@@ -18,62 +21,47 @@ AEARH enforces strict evidence level requirements (L0 to L8) and automated valid
 - **L7_MONITORED:** Real-time production telemetry and alerts configured.
 - **L8_PRODUCTION_PROVEN:** Incident-free execution verified in production over time.
 
-## 3. Status Taxonomy
-`VERIFIED_PASS`, `VERIFIED_WITH_CONDITIONS`, `PARTIAL`, `UNVERIFIED`, `NOT_IMPLEMENTED`, `NOT_APPLICABLE`, `RISK_ACCEPTED`, `NEEDS_REMEDIATION`, `NEEDS_TEST`, `NEEDS_INFRA_PROOF`.
+## 3. Golden Path Primitives (ALSH)
+- `IdempotencyKeys` (`src/services/financial/idempotency-keys.ts`): Factory functions producing stable, deterministic business idempotency keys.
+- `TenantScope` (`src/lib/tenant-scope.ts`): Helpers `requireTenantId`, `tenantWhere`, `assertSameTenant` enforcing tenant isolation.
+- `verifyWebhook` (`src/lib/webhook-verify.ts`): Fail-closed HMAC & IP verification function.
+- `RefundPolicy` (`src/services/financial/refund-policy.ts`): Mathematical over-refund protection clamping refund amounts.
 
-## 4. Baseline Gate
-Inspects working tree state (`git status`), commit SHA (`git rev-parse HEAD`), branch, log, schema hash (`prisma/schema.prisma`), and package versions. Rejects uncommitted dirty working tree by default unless `--allow-dirty` flag is passed.
+## 4. Static Prohibitions (ALSH SC01–SC12)
+- **SC01_DIRECT_BALANCE_MUTATION:** Direct balance/totalSpent/referralBalance increments outside WalletOps.
+- **SC02_UNSTABLE_IDEMPOTENCY_KEY:** Date.now() / Math.random() in idempotency keys.
+- **SC03_TENANTLESS_LOOKUP:** Tenant-scoped model queries missing tenantId filter.
+- **SC04_WEBHOOK_FAIL_OPEN:** Fail-open `if (secret && signature)` webhook checks.
+- **SC05_REFUND_OVERCHARGE:** WalletOps.refund calls lacking idempotencyKey.
+- **SC06_COMMISSION_NO_UNIQUE:** Commission creation without unique constraint or upsert.
+- **SC07_OWNER_FROM_METADATA:** WalletOps user ownership loaded from untrusted metadata/body.
+- **SC08_UNSAFE_MUTEX_RELEASE:** Redis lock release without ownership token.
+- **SC09_FLOAT_MONEY:** Floating point operations on money values without integer cents parsing.
+- **SC10_CAMPAIGN_OUTSIDE_TX:** Smart Drip campaign creation outside serializable checkout transaction.
+- **SC11_MISSING_CURRENCY_CHECK:** Payment confirmation missing explicit currency check.
+- **SC12_LOG_SECRET:** Logging passwords, tokens, API keys, or signatures.
 
-## 5. Evidence Validator
-Validates evidence pack JSON documents against machine-readable JSON schemas and level requirements. Rejects overclaimed statuses, missing negative tests for security controls, missing reconciliation for financial controls, and missing concurrency tests for race controls.
-
-## 6. Scanners
-Static code and schema analysis scripts:
-- `route-scanner.ts`: Scans Next.js App Router pages, API routes, layouts, webhooks, and cron jobs.
-- `schema-scanner.ts`: Analyzes Prisma models, unique constraints, relations, and indexes.
-- `balance-mutations.ts`: Detects direct balance mutations vs `WalletOps` calls.
-- `idempotency-keys.ts`: Detects unstable idempotency key patterns (`Date.now()`, `Math.random()`).
-- `dev-routes.ts`: Scans `/api/dev/*` endpoints for production guards.
-- `tenant-filters.ts`: Analyzes multi-tenant query scoping.
-- `ownership-filters.ts`: Scans detail queries for user ownership verification (IDOR protection).
-- `security-events.ts`: Scans security logging calls.
-
-## 7. Reconciliation
-Automated SQL invariant checks for user balance vs ledger match, duplicate idempotency keys, duplicate referral commissions, negative balances, orphan records, stuck tasks, and refund overcharges.
-
-## 8. Evals
-Golden evaluation test cases (`.antigravity/evals/golden/`) verifying that the evidence validator accurately detects and rejects flawed evidence reports (e.g. `008-smart-drip-overclaim.json`).
-
-## 9. Commands
+## 5. Commands
 ```bash
-npm run harness:baseline     # Runs baseline gate
-npm run harness:validate     # Runs evidence validator against report JSON
-npm run harness:scan         # Runs all 8 static code & schema scanners
-npm run harness:reconcile    # Runs 13 financial & data reconciliation SQL checks
-npm run harness:test         # Runs automated integration tests
-npm run harness:evals        # Runs golden eval test cases
-npm run harness:selftest     # Runs harness Vitest self-test suite
-npm run harness:all          # Executes complete baseline, scan, reconcile, test & eval pipeline
+# AEARH Commands
+npm run harness:baseline       # Runs baseline gate
+npm run harness:validate       # Runs evidence validator against report JSON
+npm run harness:scan           # Runs static surface scanners
+npm run harness:reconcile      # Runs 13 financial reconciliation SQL checks
+npm run harness:test           # Runs Vitest integration suite
+npm run harness:evals          # Runs golden eval test cases
+npm run harness:selftest       # Runs harness Vitest self-test suite
+npm run harness:all            # Runs complete AEARH pipeline
+
+# ALSH Left-Shift Commands
+npm run harness:leftshift            # Runs 8-step blocking Merge Gate
+npm run harness:leftshift:rules      # Runs static prohibition rules SC01-SC12 on codebase
+npm run harness:leftshift:testgate   # Runs Test-First Gate on git diff
+npm run harness:leftshift:invariants # Runs Invariant Gate on seeded test DB
 ```
 
-## 10. How to Run Audit
-1. Execute `npm run harness:baseline` to capture clean commit SHA and schema hash.
-2. Execute `npm run harness:scan` to generate surface maps in `.antigravity/evidence/scanners/`.
-3. Analyze architecture and generate evidence pack report JSON in `.antigravity/reports/`.
-4. Validate report using `npm run harness:validate <report.json>`.
-
-## 11. How to Remediate
-1. Implement fixes in `src/` according to threat model requirements.
-2. Create automated negative/concurrency tests under `test/integration/`.
-3. Commit remediation changes to git.
-
-## 12. How to Verify
-1. Run Vitest test suite (`npm run harness:test`).
-2. Run SQL reconciliation (`npm run harness:reconcile`).
-3. Re-run `npm run harness:validate` to ensure zero validator errors.
-
-## 13. How to Close Risk
-A risk can only be marked `CLOSED` when all associated controls are `VERIFIED_PASS` at required evidence levels (L4 security, L6 financial, L5 race) and verified by clean commit.
-
-## 14. How to Accept Residual Risk
-Low/Medium risks that cannot be immediately remediated may be marked `RISK_ACCEPTED` if documented with impact assessment, mitigation strategy, and sign-off in residual risks backlog.
+## 6. How to Add a New Static Rule
+1. Add rule handler function in `.antigravity/scripts/leftshift/rules/index.ts`.
+2. Add positive fixture `.antigravity/evals/leftshift/<CODE>.positive.ts` (anti-pattern).
+3. Add negative fixture `.antigravity/evals/leftshift/<CODE>.negative.ts` (safe code).
+4. Register rule test assertion in `.antigravity/tests/leftshift.test.ts`.

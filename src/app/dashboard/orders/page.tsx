@@ -8,6 +8,10 @@ import { MobileOrderList } from '@/components/orders/MobileOrderList';
 import { ClientDate } from '@/components/ui/client-date';
 import { OrderFilters } from '@/components/orders/OrderFilters';
 import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
+import { CopyText } from '@/components/ui/CopyText';
+import { SocialIcon } from '@/components/ui/SocialIcon';
+import { getTenantDashboardViews } from '@/tenants/factory';
+import { getTenantScopedDb } from '@/lib/prisma-tenant-scope';
 import { Metadata } from 'next';
 import {
   Table,
@@ -17,8 +21,6 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
-import { CopyText } from '@/components/ui/CopyText';
-import { SocialIcon } from '@/components/ui/SocialIcon';
 
 export const metadata: Metadata = {
   title: 'Мои заказы | SMMplan',
@@ -73,10 +75,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    select: { balance: true }
+    select: { balance: true, tenantId: true }
   });
 
   if (!user) redirect('/login');
+
 
   // Build the DB where filter dynamically
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -174,6 +177,25 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     acc[curr.status] = curr._count;
     return acc;
   }, {} as Record<string, number>);
+
+  const { OrdersView } = await getTenantDashboardViews(user.tenantId);
+
+  if (OrdersView) {
+    return (
+      <OrdersView
+        orders={orders}
+        totalCount={totalCount}
+        userBalanceCents={Number(user.balance)}
+        search={search}
+        status={status}
+        network={network}
+        networks={networks}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        countsMap={countsMap}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

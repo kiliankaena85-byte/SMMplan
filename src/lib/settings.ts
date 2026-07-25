@@ -71,7 +71,7 @@ export class SettingsProvider {
         });
       }
 
-      const defaultName = tenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan';
+      const defaultName = tenantId === 'lovable' ? 'SMMflux' : 'SMMplan';
       const defaultEmail = tenantId === 'lovable' ? 'support@lovable.pro' : 'support@smmplan.pro';
       const defaultPrivacyEmail = tenantId === 'lovable' ? 'privacy@lovable.pro' : 'privacy@smmplan.pro';
       const defaultBot = tenantId === 'lovable' ? 'lovable_support_bot' : 'smmplan_support_bot';
@@ -100,7 +100,7 @@ export class SettingsProvider {
         }
       });
     },
-    ['system-settings-tenant'],
+    ['system-settings-tenant-v2'],
     { revalidate: 300, tags: ['settings'] }
   );
 
@@ -128,7 +128,7 @@ export class SettingsProvider {
         return await db.systemSettings.upsert({
           where: { id: activeTenantId },
           update: {},
-          create: { id: activeTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: activeTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan', exchangeRateUSD: 95 }
+          create: { id: activeTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
         });
       }
       try {
@@ -149,7 +149,7 @@ export class SettingsProvider {
             settings = await db.systemSettings.upsert({
               where: { id: activeTenantId },
               update: {},
-              create: { id: activeTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: activeTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan', exchangeRateUSD: 95 }
+              create: { id: activeTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
             });
           }
 
@@ -161,7 +161,7 @@ export class SettingsProvider {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (dbErr: any) {
       console.warn(`[SettingsProvider] Failed to fetch system settings for ${activeTenantId} from DB, using fallback:`, dbErr.message);
-      const defaultName = activeTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan';
+      const defaultName = activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan';
       const defaultEmail = activeTenantId === 'lovable' ? 'support@lovable.pro' : 'support@smmplan.pro';
       const defaultPrivacyEmail = activeTenantId === 'lovable' ? 'privacy@lovable.pro' : 'privacy@smmplan.pro';
       const defaultBot = activeTenantId === 'lovable' ? 'lovable_support_bot' : 'smmplan_support_bot';
@@ -296,7 +296,7 @@ export class SettingsProvider {
     const activeTenantId = tenantId || await this.getTenantId();
     const settings = await this.get(activeTenantId);
     return {
-      SITE_NAME: settings.siteName || (activeTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan'),
+      SITE_NAME: settings.siteName || (activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan'),
       SITE_DESCRIPTION: settings.siteDescription || "",
       SUPPORT_EMAIL: settings.contactSupportEmail || (activeTenantId === 'lovable' ? 'support@lovable.pro' : 'support@smmplan.pro'),
       PRIVACY_EMAIL: settings.contactPrivacyEmail || (activeTenantId === 'lovable' ? 'privacy@lovable.pro' : 'privacy@smmplan.pro'),
@@ -304,7 +304,7 @@ export class SettingsProvider {
       TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || (activeTenantId === 'lovable' ? 'lovable_support' : 'smmplan_support'),
       WHATSAPP: settings.contactWhatsApp || "",
       VK: settings.contactVk || "",
-      COMPANY_NAME: settings.legalCompanyName || (activeTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan'),
+      COMPANY_NAME: settings.legalCompanyName || (activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan'),
       COMPANY_INN: settings.legalCompanyInn || "Укажите ИНН",
       COMPANY_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
       COMPANY_ADDRESS: settings.legalCompanyAddress || "г. Москва",

@@ -20,19 +20,26 @@ export async function adminSyncProviderCatalog() {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
     return MutexManager.withLock('catalog-sync', 60000, 100, async () => {
       try {
-        const pDbRecord = await db.provider.findFirst({ where: { isActive: true } });
-        if (!pDbRecord) return { success: false, error: "No primary provider found." };
+        const activeProviders = await db.provider.findMany({ where: { isActive: true } });
+        if (!activeProviders.length) return { success: false, error: "Нет активных провайдеров." };
         
-        const stats = await adminCatalogService.syncProviderCatalog(pDbRecord.id, admin);
-        
-        const updatedCount = stats.priceUpdatedSilent;
-        const disabledCount = stats.priceAnomalies + stats.zombiesDisabled;
-        const unchangedCount = 0;
+        let updatedCount = 0;
+        let disabledCount = 0;
+
+        for (const provider of activeProviders) {
+          try {
+            const stats = await adminCatalogService.syncProviderCatalog(provider.id, admin);
+            updatedCount += stats.priceUpdatedSilent;
+            disabledCount += stats.priceAnomalies + stats.zombiesDisabled;
+          } catch (pErr: unknown) {
+            console.error(`[CatalogSync] Provider ${provider.name} (${provider.id}) sync error:`, pErr);
+          }
+        }
 
         return {
           success: true,
-          message: `Синхронизация Бутика завершена: 🔄${updatedCount} цен обновлено, 🧟${disabledCount} мертвых душ отключено, ⚡${unchangedCount} без изменений.`,
-          stats: { updatedCount, disabledCount, unchangedCount },
+          message: `Синхронизация Бутика завершена (${activeProviders.length} провайд.): 🔄${updatedCount} цен обновлено, 🧟${disabledCount} мертвых душ отключено.`,
+          stats: { updatedCount, disabledCount, unchangedCount: 0 },
         };
       } catch (err: unknown) {
         console.error("Critical Sync Error:", err);

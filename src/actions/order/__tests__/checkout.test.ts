@@ -74,6 +74,18 @@ vi.mock('@/lib/settings', () => ({
     isTestMode: vi.fn().mockResolvedValue(false),
     getPaymentSecrets: vi.fn().mockResolvedValue({}),
   },
+  SettingsProvider: {
+    getCached: vi.fn().mockResolvedValue({
+      isTestMode: false,
+      siteName: 'Smmplan',
+      globalMarkup: 3.0,
+      safetyFloor: 1.0,
+      exchangeRateUSD: 90.0,
+    }),
+    getExchangeRateUSD: vi.fn().mockResolvedValue(90.0),
+    getTenantId: vi.fn().mockResolvedValue('smmplan'),
+    isTestEnvironment: vi.fn().mockReturnValue(true),
+  },
 }));
 
 vi.mock('@/lib/session', () => ({

@@ -821,7 +821,7 @@ function CreateServiceModal({
   );
 }
 
-function EditServiceModal({
+export function EditServiceModal({
   service,
   categories,
   providers,
