@@ -67,6 +67,16 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     orderBy: { slug: 'asc' }
   });
 
+  const isDripFeed = params.isDripFeed === 'true';
+  const noProvider = params.noProvider === 'true';
+  const staleMinutes = params.stale ? parseInt(params.stale, 10) : undefined;
+
+  let dateFrom: Date | undefined = undefined;
+  if (params.datePreset === 'today') {
+    const now = new Date();
+    dateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  }
+
   const { items: orders, nextCursor, hasMore } = await adminOrderService.searchOrders({
     query: query || undefined,
     status: statusFilter,
@@ -83,6 +93,12 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     maxPrice: params.maxPrice ? parseFloat(params.maxPrice) : undefined,
     minQuantity: params.minQuantity ? parseInt(params.minQuantity, 10) : undefined,
     maxQuantity: params.maxQuantity ? parseInt(params.maxQuantity, 10) : undefined,
+    isDripFeed: params.isDripFeed ? isDripFeed : undefined,
+    noProvider: params.noProvider ? noProvider : undefined,
+    staleMinutes: !isNaN(staleMinutes || NaN) ? staleMinutes : undefined,
+    dateFrom,
+    sortField: params.sort || undefined,
+    sortOrder: (params.order === 'asc' || params.order === 'desc') ? params.order : undefined,
   });
 
   // Если передан edit_order_id, гарантируем, что этот заказ есть на первой странице (в начале списка)
