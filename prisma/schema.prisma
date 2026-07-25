@@ -693,6 +693,7 @@ model Commission {
 
   referrer User @relation("ReferredCommissions", fields: [referrerId], references: [id], onDelete: Cascade)
 
+  @@unique([orderId, referrerId])
   @@index([referrerId])
 }
 

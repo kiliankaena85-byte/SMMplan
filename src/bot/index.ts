@@ -14,6 +14,7 @@ dotenv.config();
 
 import { Scenes, session, Telegraf, Markup } from 'telegraf';
 import { db } from '@/lib/db';
+import { WalletOps } from '@/services/financial/wallet-ops';
 
 // Scenes — only import wizards that have been migrated to Lite core
 import { orderWizard, ORDER_WIZARD } from './scenes/order.wizard';
@@ -132,35 +133,14 @@ bot.start(async (ctx: any) => {
               const reasonCredit = `Перенос баланса со старого аккаунта Telegram ${tempUser.email}`;
               
               // Debit tempUser
-              await tx.user.update({
-                where: { id: tempUser.id },
-                data: { balance: BigInt(0) }
-              });
-              await tx.ledgerEntry.create({
-                data: {
-                  userId: tempUser.id,
-                  amount: -amount,
-                  reason: reasonDebit,
-                  status: 'APPROVED',
-                  transactionType: 'PAYMENT',
-                  idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}`
-                }
+              // Debit tempUser
+              await WalletOps.charge(tx, tempUser.id, amount, reasonDebit, {
+                idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}`
               });
 
               // Credit webUser
-              await tx.user.update({
-                where: { id: webUserId },
-                data: { balance: { increment: amount } }
-              });
-              await tx.ledgerEntry.create({
-                data: {
-                  userId: webUserId,
-                  amount: amount,
-                  reason: reasonCredit,
-                  status: 'APPROVED',
-                  transactionType: 'COMPENSATION',
-                  idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}`
-                }
+              await WalletOps.credit(tx, webUserId, amount, reasonCredit, {
+                idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}`
               });
             }
 

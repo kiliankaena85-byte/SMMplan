@@ -66,6 +66,11 @@ export async function POST(request: NextRequest) {
     // We only care about successfully paid invoices
     if (data.update_type === 'invoice_paid') {
       const invoice = data.payload;
+      const currency = invoice.asset || 'RUB';
+      if (currency && !['RUB', 'USDT', 'TON', 'BTC'].includes(currency.toUpperCase())) {
+        console.error(`[Crypto Webhook] Rejected invalid currency: ${currency}`);
+        return NextResponse.json({ error: 'Unsupported currency' }, { status: 400 });
+      }
       // BUG-008 FIX: Parse JSON payload (new format) or fall back to plain paymentId (legacy)
       let paymentId: string;
       let metadataType: string | undefined;

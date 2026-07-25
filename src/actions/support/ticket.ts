@@ -431,35 +431,13 @@ export async function adminManualTelegramBind(formData: FormData) {
           const reasonCredit = `Перенос баланса со старого аккаунта ${tempUser.email}`;
           
           // Debit tempUser
-          await tx.user.update({
-            where: { id: tempUser.id },
-            data: { balance: BigInt(0) }
-          });
-          await tx.ledgerEntry.create({
-            data: {
-              userId: tempUser.id,
-              amount: -amount,
-              reason: reasonDebit,
-              status: 'APPROVED',
-              transactionType: 'PAYMENT',
-              idempotencyKey: `merge-debit-${tempUser.id}-${webUser.id}`
-            }
+          await WalletOps.charge(tx, tempUser.id, amount, reasonDebit, {
+            idempotencyKey: `merge-debit-${tempUser.id}-${webUser.id}`
           });
 
           // Credit webUser
-          await tx.user.update({
-            where: { id: webUser.id },
-            data: { balance: { increment: amount } }
-          });
-          await tx.ledgerEntry.create({
-            data: {
-              userId: webUser.id,
-              amount: amount,
-              reason: reasonCredit,
-              status: 'APPROVED',
-              transactionType: 'COMPENSATION',
-              idempotencyKey: `merge-credit-${tempUser.id}-${webUser.id}`
-            }
+          await WalletOps.credit(tx, webUser.id, amount, reasonCredit, {
+            idempotencyKey: `merge-credit-${tempUser.id}-${webUser.id}`
           });
         }
 

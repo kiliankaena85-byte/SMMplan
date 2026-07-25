@@ -273,5 +273,57 @@ export const WalletOps = {
 
       return { success: true, balance: updatedUser.balance, cached: false, entry };
     // Removed Mutex wrapper closing bracket
+  },
+
+  /**
+   * Add funds to user quarantine balance bubble instead of main balance.
+   */
+  async quarantineAdd(
+    tx: PrismaTx,
+    userId: string,
+    amountCents: number,
+    reason: string,
+    opts?: { idempotencyKey?: string; adminId?: string }
+  ) {
+    const { idempotencyKey, adminId } = opts || {};
+    const absAmount = Math.abs(amountCents);
+
+    await tx.user.update({
+      where: { id: userId },
+      data: { quarantineBalance: { increment: absAmount } }
+    });
+
+    return await tx.ledgerEntry.create({
+      data: {
+        userId,
+        adminId,
+        amount: amountCents,
+        reason,
+        status: 'QUARANTINE',
+        idempotencyKey
+      }
+    });
+  },
+
+  /**
+   * Release or clear quarantine balance for a user.
+   */
+  async quarantineRelease(
+    tx: PrismaTx,
+    userId: string,
+    amountCents: number
+  ) {
+    const absAmount = Math.abs(amountCents);
+    const updated = await tx.user.updateMany({
+      where: { id: userId, quarantineBalance: { gte: absAmount } },
+      data: { quarantineBalance: { decrement: absAmount } }
+    });
+
+    if (updated.count === 0) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { quarantineBalance: 0 }
+      });
+    }
   }
 };

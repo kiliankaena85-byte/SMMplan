@@ -45,6 +45,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
+    const currency = urlObj.searchParams.get('OutSumCurrency') || 'RUB';
+    if (currency !== 'RUB') {
+      console.error(`[Robokassa Webhook] Rejected invalid currency: ${currency}`);
+      return NextResponse.json({ error: 'Unsupported currency' }, { status: 400 });
+    }
+
     // 2. Fetch system secrets
     const secrets = await SettingsProvider.getPaymentSecrets();
     const password = secrets.robokassaWebhookPassword;

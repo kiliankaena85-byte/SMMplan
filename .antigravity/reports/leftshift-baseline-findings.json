@@ -1,142 +1,6 @@
 {
   "findings": [
     {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/batch.ts",
-      "line": 134,
-      "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/batch.ts",
-      "line": 213,
-      "snippet": "const targetCategory = await db.category.findUnique({",
-      "message": "Tenant-scoped model query (category) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/categories.ts",
-      "line": 127,
-      "snippet": "const sourceCat = await db.category.findUnique({ where: { id: sourceCategoryId } });",
-      "message": "Tenant-scoped model query (category) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/categories.ts",
-      "line": 132,
-      "snippet": "const targetCat = await db.category.findUnique({ where: { id: targetCategoryId } });",
-      "message": "Tenant-scoped model query (category) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/price-drift.ts",
-      "line": 135,
-      "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/services.ts",
-      "line": 49,
-      "snippet": "const category = await db.category.findUnique({",
-      "message": "Tenant-scoped model query (category) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/services.ts",
-      "line": 155,
-      "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/services.ts",
-      "line": 163,
-      "snippet": "const category = await db.category.findUnique({",
-      "message": "Tenant-scoped model query (category) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/__tests__/categories-ops.test.ts",
-      "line": 121,
-      "snippet": "const updatedS1 = await db.service.findUnique({ where: { id: s1.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/__tests__/categories-ops.test.ts",
-      "line": 122,
-      "snippet": "const updatedS2 = await db.service.findUnique({ where: { id: s2.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/__tests__/categories-ops.test.ts",
-      "line": 208,
-      "snippet": "const updatedS1 = await db.service.findUnique({ where: { id: s1.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/__tests__/categories-ops.test.ts",
-      "line": 209,
-      "snippet": "const updatedS2 = await db.service.findUnique({ where: { id: s2.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/__tests__/categories-ops.test.ts",
-      "line": 214,
-      "snippet": "const deletedCat = await db.category.findUnique({ where: { id: catA.id } });",
-      "message": "Tenant-scoped model query (category) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/__tests__/categories-ops.test.ts",
-      "line": 454,
-      "snippet": "const service = await db.service.findUnique({ where: { id: serviceId } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/__tests__/categories-ops.test.ts",
-      "line": 511,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/__tests__/services-crud.test.ts",
-      "line": 146,
-      "snippet": "const created = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/catalog/__tests__/services-crud.test.ts",
-      "line": 210,
-      "snippet": "const updated = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/actions/admin/finance/ledger.ts",
@@ -214,7 +78,15 @@
       "file": "D:/SMM_plan_2/src/actions/admin/orders.ts",
       "line": 329,
       "snippet": "const shadowSvc = await db.shadowService.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
+    },
+    {
+      "ruleId": "SC03_TENANTLESS_LOOKUP",
+      "severity": "CRITICAL",
+      "file": "D:/SMM_plan_2/src/actions/admin/orders.ts",
+      "line": 329,
+      "snippet": "const shadowSvc = await db.shadowService.findUnique({",
+      "message": "Master catalog model query (shadowservice) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -230,7 +102,15 @@
       "file": "D:/SMM_plan_2/src/actions/admin/orders.ts",
       "line": 401,
       "snippet": "const shadowSvc = await db.shadowService.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
+    },
+    {
+      "ruleId": "SC03_TENANTLESS_LOOKUP",
+      "severity": "CRITICAL",
+      "file": "D:/SMM_plan_2/src/actions/admin/orders.ts",
+      "line": 401,
+      "snippet": "const shadowSvc = await db.shadowService.findUnique({",
+      "message": "Master catalog model query (shadowservice) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -307,134 +187,6 @@
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/providers/sync-action.ts",
-      "line": 54,
-      "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/providers/sync-action.ts",
-      "line": 198,
-      "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/providers/sync-action.ts",
-      "line": 233,
-      "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/providers/__tests__/import-cherry-pick.test.ts",
-      "line": 287,
-      "snippet": "const importedService = await db.service.findFirst({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/providers/__tests__/sync-provider-catalog.test.ts",
-      "line": 127,
-      "snippet": "const serviceADb = await db.service.findUnique({ where: { id: serviceA.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/providers/__tests__/sync-provider-catalog.test.ts",
-      "line": 132,
-      "snippet": "const serviceBDb = await db.service.findUnique({ where: { id: serviceB.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/providers/__tests__/sync-provider-catalog.test.ts",
-      "line": 152,
-      "snippet": "const serviceBDb = await db.service.findUnique({ where: { id: serviceB.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/providers/__tests__/sync-provider-catalog.test.ts",
-      "line": 185,
-      "snippet": "const serviceADb = await db.service.findUnique({ where: { id: serviceA.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/providers/__tests__/sync-provider-catalog.test.ts",
-      "line": 202,
-      "snippet": "const serviceADb = await db.service.findUnique({ where: { id: serviceA.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/routing.actions.ts",
-      "line": 22,
-      "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/routing.actions.ts",
-      "line": 42,
-      "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/routing.actions.ts",
-      "line": 91,
-      "snippet": "const service = await tx.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/routing.actions.ts",
-      "line": 123,
-      "snippet": "const shadowSvc = await tx.shadowService.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/routing.actions.ts",
-      "line": 200,
-      "snippet": "const service = await tx.service.findUnique({ where: { id: serviceId } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/routing.actions.ts",
-      "line": 373,
-      "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/admin/routing.actions.ts",
-      "line": 414,
-      "snippet": "const shadowSvc = await db.shadowService.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/actions/admin/smart.ts",
       "line": 55,
       "snippet": "const campaign = await db.smartCampaign.findUnique({",
@@ -446,15 +198,7 @@
       "file": "D:/SMM_plan_2/src/actions/admin/smart.ts",
       "line": 117,
       "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC12_LOG_SECRET",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/actions/auth/password-login.ts",
-      "line": 72,
-      "snippet": "log.info('Password login: User has no password set', { email: cleanEmail });",
-      "message": "Sensitive secret (password, secret, apiKey, token, signature) logged in logger invocation."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -510,7 +254,7 @@
       "file": "D:/SMM_plan_2/src/actions/order/checkout.ts",
       "line": 43,
       "snippet": "const service = await db.service.findUnique({ where: { id: serviceId } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -518,7 +262,7 @@
       "file": "D:/SMM_plan_2/src/actions/order/checkout.ts",
       "line": 158,
       "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -622,7 +366,7 @@
       "file": "D:/SMM_plan_2/src/actions/support/offline-ticket.ts",
       "line": 100,
       "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -647,14 +391,6 @@
       "line": 135,
       "snippet": "const recentOrder = await db.order.findFirst({",
       "message": "Tenant-scoped model query (order) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/support/ticket.ts",
-      "line": 452,
-      "snippet": "data: { balance: { increment: amount } }",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -732,7 +468,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/actions/support/ticket.ts",
-      "line": 509,
+      "line": 487,
       "snippet": "const ticket = await db.ticket.findUnique({ where: { id: ticketId } });",
       "message": "Tenant-scoped model query (ticket) missing tenantId filter or tenantWhere guard."
     },
@@ -740,7 +476,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/actions/support/ticket.ts",
-      "line": 519,
+      "line": 497,
       "snippet": "const order = await tx.order.findFirst({",
       "message": "Tenant-scoped model query (order) missing tenantId filter or tenantWhere guard."
     },
@@ -748,7 +484,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/actions/support/ticket.ts",
-      "line": 598,
+      "line": 576,
       "snippet": "const ticket = await db.ticket.findUnique({",
       "message": "Tenant-scoped model query (ticket) missing tenantId filter or tenantWhere guard."
     },
@@ -756,17 +492,9 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/actions/support/ticket.ts",
-      "line": 624,
+      "line": 602,
       "snippet": "const order = await tx.order.findUnique({ where: { id: orderId } });",
       "message": "Tenant-scoped model query (order) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC05_REFUND_OVERCHARGE",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/actions/support/ticket.ts",
-      "line": 664,
-      "snippet": "await WalletOps.refund(tx, ticket.userId, item.calculatedAmount,",
-      "message": "WalletOps.refund invocation missing required idempotencyKey parameter."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -780,57 +508,17 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/actions/support/ticket.ts",
-      "line": 720,
+      "line": 698,
       "snippet": "const amt = Number(entry.amount);",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
     {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/support/__tests__/offline-ticket.test.ts",
-      "line": 67,
-      "snippet": "const ticket = await db.ticket.findUnique({",
-      "message": "Tenant-scoped model query (ticket) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/support/__tests__/offline-ticket.test.ts",
-      "line": 171,
-      "snippet": "const ticket = await db.ticket.findUnique({",
-      "message": "Tenant-scoped model query (ticket) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/support/__tests__/offline-ticket.test.ts",
-      "line": 226,
-      "snippet": "const ticket = await db.ticket.findUnique({",
-      "message": "Tenant-scoped model query (ticket) missing tenantId filter or tenantWhere guard."
-    },
-    {
       "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/actions/user/referral.action.ts",
-      "line": 31,
-      "snippet": "referralBalance: { decrement: transferAmount },",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
-    },
-    {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/actions/user/referral.action.ts",
-      "line": 32,
-      "snippet": "balance: { increment: transferAmount }",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
-    },
-    {
-      "ruleId": "SC02_UNSTABLE_IDEMPOTENCY_KEY",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/actions/user/referral.action.ts",
-      "line": 53,
-      "snippet": "idempotencyKey: `referral-transfer-${session.userId}-${transferAmount}-${Date.now()}`",
-      "message": "Unstable idempotency key constructor detected using Date.now(), Math.random(), or timestamp."
+      "line": 34,
+      "snippet": "referralBalance: { decrement: transferAmount }",
+      "message": "Direct balance/totalSpent/referralBalance/quarantineBalance mutation detected outside WalletOps service."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -910,7 +598,7 @@
       "file": "D:/SMM_plan_2/src/app/admin/services/[id]/routing/page.tsx",
       "line": 11,
       "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -1017,20 +705,12 @@
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
     {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/app/api/dev/sandbox/yookassa/route.ts",
-      "line": 47,
-      "snippet": "data: { balance: { increment: amountCents } }",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
-    },
-    {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/app/api/dev/test-checkout/route.ts",
       "line": 25,
       "snippet": "const service = await db.service.findFirst();",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -1196,17 +876,9 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/app/api/webhooks/crypto/route.ts",
-      "line": 82,
+      "line": 87,
       "snippet": "const payment = await db.payment.findUnique({ where: { id: paymentId } });",
       "message": "Tenant-scoped model query (payment) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC11_MISSING_CURRENCY_CHECK",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/app/api/webhooks/crypto/route.ts",
-      "line": 10,
-      "snippet": "export async function POST(request: NextRequest) {",
-      "message": "Payment confirmation/webhook handler missing explicit currency verification."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -1217,20 +889,20 @@
       "message": "Tenant-scoped model query (ticket) missing tenantId filter or tenantWhere guard."
     },
     {
-      "ruleId": "SC11_MISSING_CURRENCY_CHECK",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/app/api/webhooks/inbound-email/route.ts",
-      "line": 52,
-      "snippet": "export async function POST(req: NextRequest) {",
-      "message": "Payment confirmation/webhook handler missing explicit currency verification."
-    },
-    {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/app/api/webhooks/provider/route.ts",
       "line": 61,
       "snippet": "const order = await db.order.findFirst({",
       "message": "Tenant-scoped model query (order) missing tenantId filter or tenantWhere guard."
+    },
+    {
+      "ruleId": "SC03_TENANTLESS_LOOKUP",
+      "severity": "CRITICAL",
+      "file": "D:/SMM_plan_2/src/app/api/webhooks/provider/route.ts",
+      "line": 82,
+      "snippet": "const providerDef = await db.provider.findUnique({ where: { id: order.providerId } });",
+      "message": "Master catalog model query (provider) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -1249,50 +921,18 @@
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
     {
-      "ruleId": "SC11_MISSING_CURRENCY_CHECK",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/app/api/webhooks/provider/route.ts",
-      "line": 25,
-      "snippet": "export async function POST(req: Request) {",
-      "message": "Payment confirmation/webhook handler missing explicit currency verification."
-    },
-    {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/app/api/webhooks/robokassa/route.ts",
-      "line": 89,
+      "line": 95,
       "snippet": "const payment = await db.payment.findUnique({",
       "message": "Tenant-scoped model query (payment) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC11_MISSING_CURRENCY_CHECK",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/app/api/webhooks/robokassa/route.ts",
-      "line": 9,
-      "snippet": "export async function POST(req: NextRequest) {",
-      "message": "Payment confirmation/webhook handler missing explicit currency verification."
-    },
-    {
-      "ruleId": "SC11_MISSING_CURRENCY_CHECK",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/app/api/webhooks/vexboost/route.ts",
-      "line": 13,
-      "snippet": "export async function POST(request: Request) {",
-      "message": "Payment confirmation/webhook handler missing explicit currency verification."
-    },
-    {
-      "ruleId": "SC11_MISSING_CURRENCY_CHECK",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/app/api/webhooks/vexboost/route.ts",
-      "line": 67,
-      "snippet": "export async function GET() {",
-      "message": "Payment confirmation/webhook handler missing explicit currency verification."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/app/api/webhooks/yookassa/route.ts",
-      "line": 150,
+      "line": 154,
       "snippet": "existingPayment = await db.payment.findUnique({ where: { id: internalPaymentId } });",
       "message": "Tenant-scoped model query (payment) missing tenantId filter or tenantWhere guard."
     },
@@ -1300,17 +940,9 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/app/api/webhooks/yookassa/route.ts",
-      "line": 153,
+      "line": 157,
       "snippet": "existingPayment = await db.payment.findUnique({ where: { gatewayId } });",
       "message": "Tenant-scoped model query (payment) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC11_MISSING_CURRENCY_CHECK",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/app/api/webhooks/yookassa/route.ts",
-      "line": 9,
-      "snippet": "export async function POST(req: NextRequest) {",
-      "message": "Payment confirmation/webhook handler missing explicit currency verification."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -1422,7 +1054,7 @@
       "file": "D:/SMM_plan_2/src/app/page.tsx",
       "line": 34,
       "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -1430,39 +1062,23 @@
       "file": "D:/SMM_plan_2/src/app/support/payment-error/page.tsx",
       "line": 67,
       "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/bot/bot.test.ts",
-      "line": 75,
-      "snippet": "const service = await db.service.findUnique({ where: { id: serviceId } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/bot/index.ts",
-      "line": 153,
-      "snippet": "data: { balance: { increment: amount } }",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/bot/index.ts",
-      "line": 373,
+      "line": 352,
       "snippet": "const category = await db.category.findUnique({",
-      "message": "Tenant-scoped model query (category) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (category) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/bot/index.ts",
-      "line": 446,
+      "line": 425,
       "snippet": "const service = await db.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -1476,7 +1092,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/bot/index.ts",
-      "line": 504,
+      "line": 483,
       "snippet": "`   ${o.quantity} шт. | ${(Number(o.charge) / 100).toFixed(2)}₽ | ${o.status}\\n\\n`;",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -1519,14 +1135,6 @@
       "line": 37,
       "snippet": "charge: Number(o.charge) / 100,",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
-    },
-    {
-      "ruleId": "SC02_UNSTABLE_IDEMPOTENCY_KEY",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/components/dashboard/LovableNewOrderWorkspace.tsx",
-      "line": 294,
-      "snippet": "idempotencyKey: Math.random().toString(36).substring(7),",
-      "message": "Unstable idempotency key constructor detected using Date.now(), Math.random(), or timestamp."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -1575,22 +1183,6 @@
       "line": 296,
       "snippet": "charge={Number(selectedOrder.charge)}",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
-    },
-    {
-      "ruleId": "SC02_UNSTABLE_IDEMPOTENCY_KEY",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/components/orders/UnifiedOrderWizard.tsx",
-      "line": 93,
-      "snippet": "idempotencyKey: Math.random().toString(36).substring(7),",
-      "message": "Unstable idempotency key constructor detected using Date.now(), Math.random(), or timestamp."
-    },
-    {
-      "ruleId": "SC02_UNSTABLE_IDEMPOTENCY_KEY",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/components/orders/UniversalOrderForm.tsx",
-      "line": 125,
-      "snippet": "idempotencyKey: Math.random().toString(36).substring(7),",
-      "message": "Unstable idempotency key constructor detected using Date.now(), Math.random(), or timestamp."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -1673,20 +1265,28 @@
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
     {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
+      "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/admin/escrow.service.ts",
-      "line": 184,
-      "snippet": "data: { quarantineBalance: { increment: Math.abs(amountCents) } },",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
+      "file": "D:/SMM_plan_2/src/services/admin/catalog.service.ts",
+      "line": 284,
+      "snippet": "const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });",
+      "message": "Master catalog model query (provider) missing tenantId filter in customer-facing path."
     },
     {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
+      "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/admin/escrow.service.ts",
-      "line": 274,
-      "snippet": "data: { quarantineBalance: { decrement: absAmount } },",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
+      "file": "D:/SMM_plan_2/src/services/admin/catalog.service.ts",
+      "line": 394,
+      "snippet": "const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });",
+      "message": "Master catalog model query (provider) missing tenantId filter in customer-facing path."
+    },
+    {
+      "ruleId": "SC03_TENANTLESS_LOOKUP",
+      "severity": "CRITICAL",
+      "file": "D:/SMM_plan_2/src/services/admin/catalog.service.ts",
+      "line": 768,
+      "snippet": "const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });",
+      "message": "Master catalog model query (provider) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -1700,7 +1300,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/admin/escrow.service.ts",
-      "line": 205,
+      "line": 192,
       "snippet": "quarantineBalance: Number(user.quarantineBalance) + Math.abs(amountCents),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -1708,7 +1308,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/admin/escrow.service.ts",
-      "line": 239,
+      "line": 226,
       "snippet": "amount: Number(entry.amount),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -1716,7 +1316,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/admin/escrow.service.ts",
-      "line": 270,
+      "line": 257,
       "snippet": "const absAmount = Math.abs(Number(entry.amount));",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -1724,7 +1324,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/admin/escrow.service.ts",
-      "line": 285,
+      "line": 262,
       "snippet": "const amount = Number(entry.amount);",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -1733,30 +1333,14 @@
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/services/admin/marketing.service.ts",
       "line": 158,
-      "snippet": "referralBalance: { decrement: amountToPayCents },",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
-    },
-    {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/admin/marketing.service.ts",
-      "line": 159,
-      "snippet": "balance: { increment: amountToPayCents },",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
-    },
-    {
-      "ruleId": "SC02_UNSTABLE_IDEMPOTENCY_KEY",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/services/admin/marketing.service.ts",
-      "line": 181,
-      "snippet": "idempotencyKey: `referral-payout-${userId}-${Date.now()}`",
-      "message": "Unstable idempotency key constructor detected using Date.now(), Math.random(), or timestamp."
+      "snippet": "data: { referralBalance: { decrement: amountToPayCents } },",
+      "message": "Direct balance/totalSpent/referralBalance/quarantineBalance mutation detected outside WalletOps service."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/admin/marketing.service.ts",
-      "line": 113,
+      "line": 114,
       "snippet": "monthlyData[month] += Number(commission.amount);",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -1775,6 +1359,14 @@
       "line": 325,
       "snippet": "await WalletOps.charge(tx, order.userId, Number(order.charge),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
+    },
+    {
+      "ruleId": "SC03_TENANTLESS_LOOKUP",
+      "severity": "CRITICAL",
+      "file": "D:/SMM_plan_2/src/services/admin/provider.service.ts",
+      "line": 106,
+      "snippet": "const p = await db.provider.findUnique({",
+      "message": "Master catalog model query (provider) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -1825,20 +1417,12 @@
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
     {
-      "ruleId": "SC09_FLOAT_MONEY",
-      "severity": "MEDIUM",
-      "file": "D:/SMM_plan_2/src/services/admin/__tests__/escrow.test.ts",
-      "line": 76,
-      "snippet": "expect(Number(ledger!.amount)).toBe(15000000);",
-      "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
-    },
-    {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/services/core/order.service.ts",
       "line": 206,
       "snippet": "db.service.findUnique({ where: { id: input.serviceId }, select: { name: true } }).then(s => {",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -1854,7 +1438,7 @@
       "file": "D:/SMM_plan_2/src/services/core/order.service.ts",
       "line": 278,
       "snippet": "db.service.findUnique({ where: { id: order.serviceId }, select: { name: true } }).then(s => {",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -1918,7 +1502,7 @@
       "file": "D:/SMM_plan_2/src/services/dripfeed/smart-drip.service.ts",
       "line": 82,
       "snippet": "const service = await prisma.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -1926,119 +1510,7 @@
       "file": "D:/SMM_plan_2/src/services/dripfeed/smart-drip.service.ts",
       "line": 135,
       "snippet": "const service = await tx.service.findUnique({",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 89,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 111,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 129,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 149,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 171,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 189,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 232,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 268,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 284,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 308,
-      "snippet": "const updated = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 327,
-      "snippet": "const first = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 330,
-      "snippet": "const second = await db.service.findUnique({ where: { id: service.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 372,
-      "snippet": "const fast = await db.service.findUnique({ where: { id: fastService.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/eta/eta.service.test.ts",
-      "line": 373,
-      "snippet": "const slow = await db.service.findUnique({ where: { id: slowService.id } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -2097,38 +1569,6 @@
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
     {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 196,
-      "snippet": "balance: { decrement: totalChargeCents },",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
-    },
-    {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 197,
-      "snippet": "totalSpent: { increment: totalChargeCents }",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
-    },
-    {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 357,
-      "snippet": "balance: { decrement: totalChargeCents },",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
-    },
-    {
-      "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 358,
-      "snippet": "totalSpent: { increment: totalChargeCents }",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
-    },
-    {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
@@ -2172,7 +1612,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 290,
+      "line": 275,
       "snippet": "const order = await tx.order.findUnique({",
       "message": "Tenant-scoped model query (order) missing tenantId filter or tenantWhere guard."
     },
@@ -2204,15 +1644,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 206,
-      "snippet": "amount: -Number(order.charge),",
-      "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
-    },
-    {
-      "ruleId": "SC09_FLOAT_MONEY",
-      "severity": "MEDIUM",
-      "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 309,
+      "line": 294,
       "snippet": "await WalletOps.credit(tx, payment.userId, Number(payment.amount),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -2220,7 +1652,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 313,
+      "line": 298,
       "snippet": "await WalletOps.charge(tx, payment.userId, Number(order.charge),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -2228,7 +1660,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 343,
+      "line": 328,
       "snippet": "await WalletOps.credit(tx, payment.userId, Number(payment.amount),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -2236,7 +1668,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 349,
+      "line": 334,
       "snippet": "const totalChargeCents = basketOrders.reduce((sum, order) => sum + Number(order.charge), 0);",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -2244,41 +1676,9 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 367,
-      "snippet": "amount: -Number(order.charge),",
-      "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
-    },
-    {
-      "ruleId": "SC09_FLOAT_MONEY",
-      "severity": "MEDIUM",
-      "file": "D:/SMM_plan_2/src/services/financial/payment.service.ts",
-      "line": 378,
+      "line": 348,
       "snippet": "await WalletOps.credit(tx, payment.userId, Number(payment.amount),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
-    },
-    {
-      "ruleId": "SC08_UNSAFE_MUTEX_RELEASE",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/services/financial/refund-parallel.test.ts",
-      "line": 20,
-      "snippet": "await redis.del('lock:wallet_ops:parallel_user');",
-      "message": "Mutex release without ownership token validation or Lua script guard."
-    },
-    {
-      "ruleId": "SC08_UNSAFE_MUTEX_RELEASE",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/services/financial/refund-parallel.test.ts",
-      "line": 114,
-      "snippet": "await redis.del('lock:wallet_ops:fuzz_user');",
-      "message": "Mutex release without ownership token validation or Lua script guard."
-    },
-    {
-      "ruleId": "SC05_REFUND_OVERCHARGE",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/services/financial/refund-policy.service.ts",
-      "line": 60,
-      "snippet": "return await WalletOps.refund(txClient, order.userId, refundCents, reason, { idempotencyKey });",
-      "message": "WalletOps.refund invocation missing required idempotencyKey parameter."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -2297,14 +1697,6 @@
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
     {
-      "ruleId": "SC05_REFUND_OVERCHARGE",
-      "severity": "HIGH",
-      "file": "D:/SMM_plan_2/src/services/financial/wallet.service.ts",
-      "line": 67,
-      "snippet": "async (tx) => WalletOps.refund(tx, userId, amountCents, reason, { idempotencyKey, adminId }),",
-      "message": "WalletOps.refund invocation missing required idempotencyKey parameter."
-    },
-    {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/services/marketing-utils.ts",
@@ -2318,7 +1710,7 @@
       "file": "D:/SMM_plan_2/src/services/marketing.service.ts",
       "line": 69,
       "snippet": ": await db.service.findUnique({ where: { id: serviceId } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -2326,7 +1718,7 @@
       "file": "D:/SMM_plan_2/src/services/providers/post-sync-rules.ts",
       "line": 140,
       "snippet": "let category = await db.category.findFirst({",
-      "message": "Tenant-scoped model query (category) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (category) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -2334,7 +1726,15 @@
       "file": "D:/SMM_plan_2/src/services/providers/post-sync-rules.ts",
       "line": 195,
       "snippet": "let category = await db.category.findFirst({",
-      "message": "Tenant-scoped model query (category) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (category) missing tenantId filter in customer-facing path."
+    },
+    {
+      "ruleId": "SC03_TENANTLESS_LOOKUP",
+      "severity": "CRITICAL",
+      "file": "D:/SMM_plan_2/src/services/providers/provider.service.ts",
+      "line": 92,
+      "snippet": "const provider = await db.provider.findFirst({",
+      "message": "Master catalog model query (provider) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -2342,7 +1742,7 @@
       "file": "D:/SMM_plan_2/src/services/providers/quarantine.service.ts",
       "line": 23,
       "snippet": "const service = await db.service.findUnique({ where: { id: serviceId }, select: { id: true, name: true, cooldownUntil: true }});",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -2350,7 +1750,7 @@
       "file": "D:/SMM_plan_2/src/services/providers/quarantine.service.ts",
       "line": 72,
       "snippet": "const service = await db.service.findUnique({ where: { id: serviceId } });",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
@@ -2358,7 +1758,7 @@
       "file": "D:/SMM_plan_2/src/services/providers/quarantine.service.ts",
       "line": 131,
       "snippet": "const service = await db.service.findUnique({ where: { id: group.serviceId }, select: { id: true, name: true }});",
-      "message": "Tenant-scoped model query (service) missing tenantId filter or tenantWhere guard."
+      "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -2396,39 +1796,39 @@
       "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/services/users/loyalty.service.ts",
-      "line": 102,
+      "line": 108,
       "snippet": "data: { referralBalance: { increment: comm.amount } }",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
+      "message": "Direct balance/totalSpent/referralBalance/quarantineBalance mutation detected outside WalletOps service."
     },
     {
       "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/services/users/loyalty.service.ts",
-      "line": 157,
+      "line": 163,
       "snippet": "data: { referralBalance: { increment: confirmedAmount } }",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
+      "message": "Direct balance/totalSpent/referralBalance/quarantineBalance mutation detected outside WalletOps service."
     },
     {
       "ruleId": "SC01_DIRECT_BALANCE_MUTATION",
       "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/services/users/loyalty.service.ts",
-      "line": 198,
+      "line": 204,
       "snippet": "data: { referralBalance: { decrement: comm.amount } }",
-      "message": "Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service."
+      "message": "Direct balance/totalSpent/referralBalance/quarantineBalance mutation detected outside WalletOps service."
     },
     {
-      "ruleId": "SC06_COMMISSION_NO_UNIQUE",
-      "severity": "HIGH",
+      "ruleId": "SC03_TENANTLESS_LOOKUP",
+      "severity": "CRITICAL",
       "file": "D:/SMM_plan_2/src/services/users/loyalty.service.ts",
       "line": 64,
-      "snippet": "await tx.commission.create({",
-      "message": "Commission creation using raw create() without idempotent upsert or unique constraint check."
+      "snippet": "const existingComm = await tx.commission.findFirst({",
+      "message": "Tenant-scoped model query (commission) missing tenantId filter or tenantWhere guard."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/users/loyalty.service.ts",
-      "line": 109,
+      "line": 115,
       "snippet": "details: `Комиссия за заказ подтверждена и начислена: ${(Number(comm.amount) / 100).toFixed(2)} руб.`",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -2436,17 +1836,9 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "D:/SMM_plan_2/src/services/users/loyalty.service.ts",
-      "line": 142,
+      "line": 148,
       "snippet": "const originalAmount = Number(comm.amount);",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
-    },
-    {
-      "ruleId": "SC03_TENANTLESS_LOOKUP",
-      "severity": "CRITICAL",
-      "file": "D:/SMM_plan_2/src/services/users/__tests__/deletion.test.ts",
-      "line": 294,
-      "snippet": "const orderCheck = await db.order.findUnique({ where: { id: order.id } });",
-      "message": "Tenant-scoped model query (order) missing tenantId filter or tenantWhere guard."
     },
     {
       "ruleId": "SC09_FLOAT_MONEY",
@@ -2593,5 +1985,5 @@
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     }
   ],
-  "timestamp": "2026-07-25T14:38:06.132Z"
+  "timestamp": "2026-07-25T16:06:25.021Z"
 }

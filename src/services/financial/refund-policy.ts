@@ -31,13 +31,13 @@ export const RefundPolicy = {
    */
   calcRefund(
     order: OrderRefundInput,
-    previousRefundsCents: bigint | number = 0n,
+    previousRefundsCents: bigint | number = BigInt(0),
     unfulfilledQty?: number,
     statusVariant: string = 'final'
   ): RefundCalcResult {
     const totalCharge = BigInt(order.charge);
     const prevRefunds = BigInt(previousRefundsCents);
-    const maxAvailableRefund = totalCharge > prevRefunds ? totalCharge - prevRefunds : 0n;
+    const maxAvailableRefund = totalCharge > prevRefunds ? totalCharge - prevRefunds : BigInt(0);
 
     const totalQty = order.quantity > 0 ? order.quantity : 1;
     const remainingQty = typeof unfulfilledQty === 'number' ? Math.min(totalQty, Math.max(0, unfulfilledQty)) : totalQty;

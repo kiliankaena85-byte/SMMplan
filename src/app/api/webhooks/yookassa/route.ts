@@ -123,8 +123,12 @@ export async function POST(req: NextRequest) {
     if (rawBody.event === 'payment.succeeded' && rawBody.object) {
       const gatewayId = rawBody.object.id;
       
-      // Strict Integer parsing complying with IEEE 754 financial rules
       const rawAmountStr = String(rawBody.object.amount?.value || '0.00');
+      const currency = rawBody.object.amount?.currency || 'RUB';
+      if (currency !== 'RUB') {
+        console.error(`[YooKassa Webhook] Rejected invalid currency: ${currency}`);
+        return NextResponse.json({ error: 'Unsupported currency' }, { status: 400 });
+      }
       const [intPart, decPart] = rawAmountStr.split('.');
       const amount = parseInt(intPart || '0', 10) * 100 + parseInt((decPart || '00').padEnd(2, '0').slice(0, 2), 10);
       

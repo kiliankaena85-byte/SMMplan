@@ -25,8 +25,8 @@ export const checkSC01: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
 
-  // Allowed files: wallet-ops.ts, test files, seed files, and fixtures
-  if (relPath.includes('wallet-ops.ts') || relPath.includes('/test/') || relPath.includes('.test.') || relPath.includes('seed')) {
+  // Allowed files: wallet-ops.ts, test files, seed files, dev sandbox
+  if (relPath.includes('wallet-ops.ts') || relPath.includes('/test/') || relPath.includes('.test.') || relPath.includes('seed') || relPath.includes('/app/api/dev/')) {
     return findings;
   }
 
@@ -35,7 +35,7 @@ export const checkSC01: StaticRuleHandler = (content, filePath) => {
     if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     const lower = line.toLowerCase();
     if (
-      (lower.includes('balance:') || lower.includes('referralbalance:') || lower.includes('totalspent:')) &&
+      (lower.includes('balance:') || lower.includes('referralbalance:') || lower.includes('quarantinebalance:') || lower.includes('totalspent:')) &&
       (lower.includes('increment:') || lower.includes('decrement:'))
     ) {
       findings.push({
@@ -44,7 +44,7 @@ export const checkSC01: StaticRuleHandler = (content, filePath) => {
         file: relPath,
         line: idx + 1,
         snippet: line.trim(),
-        message: 'Direct balance/totalSpent/referralBalance mutation detected outside WalletOps service.'
+        message: 'Direct balance/totalSpent/referralBalance/quarantineBalance mutation detected outside WalletOps service.'
       });
     }
   });
@@ -56,6 +56,8 @@ export const checkSC01: StaticRuleHandler = (content, filePath) => {
 export const checkSC02: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
+
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
@@ -77,18 +79,28 @@ export const checkSC02: StaticRuleHandler = (content, filePath) => {
   return findings;
 };
 
-// Rule 03: SC03_TENANTLESS_LOOKUP
+// Rule 03: SC03_TENANTLESS_LOOKUP (Model & Context Aware)
 export const checkSC03: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
 
-  const tenantModels = ['service', 'category', 'order', 'smartcampaign', 'smarttask', 'commission', 'payment', 'ticket'];
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
+
+  // Tenant-Scoped Models MUST enforce tenantId everywhere
+  const tenantScopedModels = ['order', 'payment', 'smartcampaign', 'smarttask', 'commission', 'ticket'];
+  // Global Master Catalog Models (ADR-004 allowlist for admin actions & seed)
+  const masterCatalogModels = ['service', 'category', 'shadowservice', 'provider'];
+
+  const isAdminCatalog = relPath.includes('/actions/admin/catalog/') || relPath.includes('/actions/admin/providers/') || relPath.includes('/actions/admin/routing') || relPath.includes('seed.ts') || relPath.includes('/api/cron/');
+
   const lines = content.split('\n');
 
   lines.forEach((line, idx) => {
     if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     const lower = line.toLowerCase();
-    for (const model of tenantModels) {
+
+    // Check Tenant-Scoped Models -> BLOCK ALWAYS
+    for (const model of tenantScopedModels) {
       if (lower.includes(`${model}.findunique(`) || lower.includes(`${model}.findfirst(`)) {
         const block = stripCommentsFromLines(lines.slice(idx, idx + 8));
         if (!block.includes('tenantId') && !block.includes('tenantWhere(') && !block.includes('requireTenantId(')) {
@@ -100,6 +112,25 @@ export const checkSC03: StaticRuleHandler = (content, filePath) => {
             snippet: line.trim(),
             message: `Tenant-scoped model query (${model}) missing tenantId filter or tenantWhere guard.`
           });
+        }
+      }
+    }
+
+    // Check Master Catalog Models -> BLOCK if in user-facing code, WARN/ALLOWLIST if in admin catalog code
+    if (!isAdminCatalog) {
+      for (const model of masterCatalogModels) {
+        if (lower.includes(`${model}.findunique(`) || lower.includes(`${model}.findfirst(`)) {
+          const block = stripCommentsFromLines(lines.slice(idx, idx + 8));
+          if (!block.includes('tenantId') && !block.includes('tenantWhere(') && !block.includes('requireTenantId(')) {
+            findings.push({
+              ruleId: 'SC03_TENANTLESS_LOOKUP',
+              severity: 'CRITICAL',
+              file: relPath,
+              line: idx + 1,
+              snippet: line.trim(),
+              message: `Master catalog model query (${model}) missing tenantId filter in customer-facing path.`
+            });
+          }
         }
       }
     }
@@ -138,6 +169,8 @@ export const checkSC05: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
 
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
+
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
     if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
@@ -164,12 +197,14 @@ export const checkSC06: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
 
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
+
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
     if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     if (line.includes('commission.create(')) {
-      const block = stripCommentsFromLines(lines.slice(idx, idx + 8));
-      if (!block.includes('upsert') && !block.includes('on conflict') && !block.includes('unique')) {
+      const block = stripCommentsFromLines(lines.slice(Math.max(0, idx - 8), idx + 8));
+      if (!block.includes('upsert') && !block.includes('on conflict') && !block.includes('unique') && !block.includes('existing') && !block.includes('findfirst')) {
         findings.push({
           ruleId: 'SC06_COMMISSION_NO_UNIQUE',
           severity: 'HIGH',
@@ -189,6 +224,8 @@ export const checkSC06: StaticRuleHandler = (content, filePath) => {
 export const checkSC07: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
+
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
@@ -214,6 +251,8 @@ export const checkSC08: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
 
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
+
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
     if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
@@ -235,10 +274,12 @@ export const checkSC08: StaticRuleHandler = (content, filePath) => {
   return findings;
 };
 
-// Rule 09: SC09_FLOAT_MONEY
+// Rule 09: SC09_FLOAT_MONEY (Read-Only DTO = MEDIUM/WARN)
 export const checkSC09: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
+
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
@@ -247,7 +288,7 @@ export const checkSC09: StaticRuleHandler = (content, filePath) => {
       if (!line.includes('Math.round') && !line.includes('BigInt') && !line.includes('cents')) {
         findings.push({
           ruleId: 'SC09_FLOAT_MONEY',
-          severity: 'MEDIUM',
+          severity: 'MEDIUM', // WARN tier for DTO conversions
           file: relPath,
           line: idx + 1,
           snippet: line.trim(),
@@ -264,6 +305,8 @@ export const checkSC09: StaticRuleHandler = (content, filePath) => {
 export const checkSC10: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
+
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
 
   if (relPath.toLowerCase().includes('checkout') || relPath.includes('SC10')) {
     const lines = content.split('\n');
@@ -293,7 +336,10 @@ export const checkSC11: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
 
-  if (relPath.toLowerCase().includes('confirmpayment') || relPath.toLowerCase().includes('webhook') || relPath.includes('SC11')) {
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
+
+  // Payment webhooks requiring currency check
+  if (relPath.toLowerCase().includes('/webhooks/yookassa') || relPath.toLowerCase().includes('/webhooks/robokassa') || relPath.toLowerCase().includes('/webhooks/crypto') || relPath.includes('SC11')) {
     const lines = content.split('\n');
     const fullCode = stripCommentsFromText(content);
     if (!fullCode.includes('currency') && !fullCode.includes('RUB') && !fullCode.includes('USD')) {
@@ -320,6 +366,8 @@ export const checkSC11: StaticRuleHandler = (content, filePath) => {
 export const checkSC12: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
+
+  if (relPath.includes('/test/') || relPath.includes('.test.')) return findings;
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {

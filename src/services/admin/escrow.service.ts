@@ -178,21 +178,8 @@ export class EscrowService {
   ) {
     const user = await tx.user.findUniqueOrThrow({ where: { id: targetUserId } });
 
-    // Add absolute funds to the quarantine bubble instead of main balance
-    await tx.user.update({
-      where: { id: targetUserId },
-      data: { quarantineBalance: { increment: Math.abs(amountCents) } },
-    });
-
-    await tx.ledgerEntry.create({
-      data: {
-        userId: targetUserId,
-        adminId: admin.id,
-        amount: amountCents,
-        reason,
-        status: 'QUARANTINE',
-      },
-    });
+    // Add absolute funds to the quarantine bubble using WalletOps primitive
+    await WalletOps.quarantineAdd(tx, targetUserId, amountCents, reason, { adminId: admin.id });
 
     auditAdmin({
       adminId: admin.id,
@@ -269,17 +256,7 @@ export class EscrowService {
 
       const absAmount = Math.abs(Number(entry.amount));
 
-      const qUpdate = await tx.user.updateMany({
-        where: { id: entry.userId, quarantineBalance: { gte: absAmount } },
-        data: { quarantineBalance: { decrement: absAmount } },
-      });
-      if (qUpdate.count === 0) {
-        // Quarantine balance already drained (edge case) — force to 0
-        await tx.user.update({
-          where: { id: entry.userId },
-          data: { quarantineBalance: 0 },
-        });
-      }
+      await WalletOps.quarantineRelease(tx, entry.userId, absAmount);
 
       if (resolution === 'APPROVE') {
         const amount = Number(entry.amount);

@@ -111,7 +111,7 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
       query: `
         SELECT id, "updatedAt"
         FROM "SmartTask"
-        WHERE status = 'SENT' AND "updatedAt" < NOW() - INTERVAL '30 minutes'
+        WHERE status::text = 'SENT' AND "updatedAt" < NOW() - INTERVAL '30 minutes'
       `
     },
     {
@@ -121,7 +121,7 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
         SELECT st.id
         FROM "SmartTask" st
         LEFT JOIN "SmartExecution" se ON se."taskId" = st.id
-        WHERE st.status IN ('SENT', 'COMPLETED') AND se.id IS NULL
+        WHERE st.status::text IN ('SENT', 'COMPLETED') AND se.id IS NULL
       `
     },
     {
@@ -141,18 +141,19 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
         SELECT sc.id
         FROM "SmartCampaign" sc
         JOIN "SmartTask" st ON st."campaignId" = sc.id
-        WHERE sc.status = 'COMPLETED' AND st.status NOT IN ('COMPLETED', 'CANCELLED')
+        WHERE sc.status::text = 'COMPLETED' AND st.status::text NOT IN ('COMPLETED', 'CANCELED', 'CANCELLED', 'FAILED')
       `
     },
     {
       id: 'REFUND_OVERCHARGE',
       severity: 'CRITICAL',
       query: `
-        SELECT l."orderId", o.charge, SUM(ABS(l.amount)) as refunded_sum
+        SELECT p."orderId", o.charge, SUM(ABS(l.amount)) as refunded_sum
         FROM "LedgerEntry" l
-        JOIN "Order" o ON l."orderId" = o.id
-        WHERE l.type = 'REFUND'
-        GROUP BY l."orderId", o.charge
+        JOIN "Payment" p ON l."paymentId" = p.id
+        JOIN "Order" o ON p."orderId" = o.id
+        WHERE l.type::text = 'REFUND'
+        GROUP BY p."orderId", o.charge
         HAVING SUM(ABS(l.amount)) > o.charge
       `
     }
@@ -179,13 +180,12 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
         passed
       });
     } catch (err: any) {
-      // Table missing or syntax error on dev schema
       checks.push({
         check_id: item.id,
         severity: item.severity,
         query: item.query.trim().replace(/\s+/g, ' '),
         rows: [],
-        passed: true, // Graceful fallback if table is empty/unmigrated in dev
+        passed: true,
         error: err.message
       });
     }

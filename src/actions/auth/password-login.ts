@@ -69,7 +69,7 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
     }
 
     if (!user.passwordHash) {
-      log.info('Password login: User has no password set', { email: cleanEmail });
+      log.info('Auth login: Account authentication method check', { userId: user.id });
       
       const isSmtpConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD;
       if (!isSmtpConfigured) {

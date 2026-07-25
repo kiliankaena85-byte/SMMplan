@@ -291,7 +291,7 @@ export function LovableNewOrderWorkspace({
         }],
         email: email,
         gateway: gateway,
-        idempotencyKey: Math.random().toString(36).substring(7),
+        idempotencyKey: `order-${selectedService.id}-${encodeURIComponent(link.trim())}-${quantity}`,
         expectedTotalRub: parseFloat(totalPrice)
       });
 

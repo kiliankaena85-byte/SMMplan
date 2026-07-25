@@ -122,7 +122,7 @@ export function UniversalOrderForm({
         })),
         email: formEmail,
         gateway,
-        idempotencyKey: Math.random().toString(36).substring(7),
+        idempotencyKey: `form-order-${formEmail}-${validTasks.map(t => `${t.serviceId}_${t.quantity}`).join('-')}`,
         expectedTotalRub: engine.stats.totalCents / 100
       });
 
