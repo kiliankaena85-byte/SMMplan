@@ -1,0 +1,623 @@
+"use server";
+
+import { z } from "zod";
+import { db } from "@/lib/db";
+import { requireStaffPermission } from "@/lib/server/rbac";
+import { auditAdminAwaitable } from "@/lib/admin-audit";
+import { getEffectiveBalancePolicy, parsePolicyReasonCodes } from "@/services/admin/balance-policy.service";
+import { WalletOps } from "@/services/financial/wallet-ops";
+import {
+  BALANCE_ADJUSTMENT_DIRECTION,
+  BALANCE_ADJUSTMENT_REASONS,
+  BALANCE_ADJUSTMENT_STATUS,
+  BalanceAdjustmentDirection,
+  BalanceAdjustmentStatus
+} from "@/constants/balance-adjustments";
+
+const createRequestSchema = z.object({
+  userId: z.string().min(1, "Пользователь не выбран"),
+  direction: z.enum([BALANCE_ADJUSTMENT_DIRECTION.CREDIT, BALANCE_ADJUSTMENT_DIRECTION.DEBIT]),
+  amount: z.string().regex(/^\d+$/, "Сумма должна быть положительным числом в копейках"),
+  reasonCode: z.string().min(1, "Причина не выбрана"),
+  reasonNote: z.string().min(10, "Примечание должно содержать минимум 10 символов").max(2000),
+  ticketId: z.string().optional().nullable(),
+  orderId: z.string().optional().nullable(),
+  paymentId: z.string().optional().nullable(),
+  idempotencyKey: z.string().uuid("Невалидный ключа идемпотентности")
+});
+
+export async function createBalanceAdjustmentRequestAction(formData: FormData) {
+  return requireStaffPermission('balance_requests', 'edit', async (staffUser) => {
+    const rawData = {
+      userId: formData.get("userId") as string,
+      direction: formData.get("direction") as string,
+      amount: formData.get("amount") as string,
+      reasonCode: formData.get("reasonCode") as string,
+      reasonNote: formData.get("reasonNote") as string,
+      ticketId: (formData.get("ticketId") as string) || null,
+      orderId: (formData.get("orderId") as string) || null,
+      paymentId: (formData.get("paymentId") as string) || null,
+      idempotencyKey: formData.get("idempotencyKey") as string
+    };
+
+    const parsed = createRequestSchema.safeParse(rawData);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || "Ошибка валидации" };
+    }
+
+    const data = parsed.data;
+    const amountBigInt = BigInt(data.amount);
+
+    if (amountBigInt <= BigInt(0)) {
+      return { success: false, error: "Сумма должна быть строго больше нуля" };
+    }
+
+    // Prevents self-adjustment
+    if (data.userId === staffUser.id) {
+      return { success: false, error: "Запрещено создавать заявку на изменение собственного баланса" };
+    }
+
+    const policy = await getEffectiveBalancePolicy(staffUser.id);
+    if (!policy || !policy.enabled || !policy.isActive) {
+      return { success: false, error: "Политика корректировки баланса не настроена или отключена" };
+    }
+
+    const { allowedCreditReasonCodes, allowedDebitReasonCodes, allowedTargetRoles } = parsePolicyReasonCodes(policy);
+
+    // Direction check
+    if (data.direction === BALANCE_ADJUSTMENT_DIRECTION.CREDIT) {
+      if (!policy.canRequestCredit) {
+        return { success: false, error: "Вам запрещено запрашивать начисление баланса" };
+      }
+      if (!allowedCreditReasonCodes.includes(data.reasonCode)) {
+        return { success: false, error: `Недопустимый код причины начисления: ${data.reasonCode}` };
+      }
+      if (policy.maxCreditPerRequest > BigInt(0) && amountBigInt > policy.maxCreditPerRequest) {
+        return { success: false, error: `Превышен разовый лимит начисления: макс. ${policy.maxCreditPerRequest.toString()} коп.` };
+      }
+    } else {
+      if (!policy.canRequestDebit) {
+        return { success: false, error: "Вам запрещено запрашивать списание баланса" };
+      }
+      if (!allowedDebitReasonCodes.includes(data.reasonCode)) {
+        return { success: false, error: `Недопустимый код причины списания: ${data.reasonCode}` };
+      }
+      if (policy.maxDebitPerRequest > BigInt(0) && amountBigInt > policy.maxDebitPerRequest) {
+        return { success: false, error: `Превышен разовый лимит списания: макс. ${policy.maxDebitPerRequest.toString()} коп.` };
+      }
+    }
+
+    // Check target user
+    const targetUser = await db.user.findUnique({
+      where: { id: data.userId },
+      select: { id: true, email: true, role: true, balance: true, isDeleted: true, isActive: true }
+    });
+
+    if (!targetUser) {
+      return { success: false, error: "Целевой пользователь не найден" };
+    }
+
+    if (policy.blockDeletedTargets && targetUser.isDeleted) {
+      return { success: false, error: "Запрещено изменять баланс удаленного пользователя" };
+    }
+
+    if (policy.blockBannedTargets && targetUser.role === 'BANNED') {
+      return { success: false, error: "Запрещено изменять баланс заблокированного пользователя" };
+    }
+
+    if (!allowedTargetRoles.includes(targetUser.role)) {
+      return { success: false, error: `Запрещено создавать заявку для пользователя с ролью ${targetUser.role}` };
+    }
+
+    // Ticket requirement
+    if (policy.requireTicket && (!data.ticketId || data.ticketId.trim().length === 0)) {
+      return { success: false, error: "Для создания заявки требуется указать ID тикета поддержки" };
+    }
+
+    // Debit balance check
+    if (data.direction === BALANCE_ADJUSTMENT_DIRECTION.DEBIT) {
+      if (policy.requireOrderForDebit && (!data.orderId || data.orderId.trim().length === 0)) {
+        return { success: false, error: "Для списания требуется указать ID связанного заказа" };
+      }
+      if (targetUser.balance < amountBigInt) {
+        return { success: false, error: `Недостаточно средств у клиента: баланс ${targetUser.balance.toString()} коп., запрошено ${amountBigInt.toString()} коп.` };
+      }
+    }
+
+    // Daily limit calculations for this staff member
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const todayAdjustments = await db.manualBalanceAdjustment.findMany({
+      where: {
+        requestedBy: staffUser.id,
+        createdAt: { gte: startOfDay },
+        status: { in: [BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL, BALANCE_ADJUSTMENT_STATUS.APPROVED, BALANCE_ADJUSTMENT_STATUS.EXECUTED] }
+      },
+      select: { direction: true, amount: true }
+    });
+
+    let todayCreditSum = BigInt(0);
+    let todayDebitSum = BigInt(0);
+
+    for (const adj of todayAdjustments) {
+      if (adj.direction === BALANCE_ADJUSTMENT_DIRECTION.CREDIT) {
+        todayCreditSum += adj.amount;
+      } else {
+        todayDebitSum += adj.amount;
+      }
+    }
+
+    if (data.direction === BALANCE_ADJUSTMENT_DIRECTION.CREDIT && policy.maxCreditPerDay > BigInt(0)) {
+      if (todayCreditSum + amountBigInt > policy.maxCreditPerDay) {
+        return { success: false, error: `Превышен дневной лимит начислений (${policy.maxCreditPerDay.toString()} коп.)` };
+      }
+    }
+
+    if (data.direction === BALANCE_ADJUSTMENT_DIRECTION.DEBIT && policy.maxDebitPerDay > BigInt(0)) {
+      if (todayDebitSum + amountBigInt > policy.maxDebitPerDay) {
+        return { success: false, error: `Превышен дневной лимит списаний (${policy.maxDebitPerDay.toString()} коп.)` };
+      }
+    }
+
+    if (policy.maxTotalPerDay > BigInt(0)) {
+      if (todayCreditSum + todayDebitSum + amountBigInt > policy.maxTotalPerDay) {
+        return { success: false, error: `Превышен суммарный дневной лимит заявок (${policy.maxTotalPerDay.toString()} коп.)` };
+      }
+    }
+
+    // Create adjustment request
+    const adjustment = await db.manualBalanceAdjustment.create({
+      data: {
+        userId: data.userId,
+        requestedBy: staffUser.id,
+        direction: data.direction,
+        amount: amountBigInt,
+        reasonCode: data.reasonCode,
+        reasonNote: data.reasonNote,
+        ticketId: data.ticketId,
+        orderId: data.orderId,
+        paymentId: data.paymentId,
+        status: BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL,
+        idempotencyKey: data.idempotencyKey,
+        policySnapshot: JSON.stringify({
+          policyId: policy.id,
+          scopeType: policy.scopeType,
+          maxCreditPerRequest: policy.maxCreditPerRequest.toString(),
+          maxDebitPerRequest: policy.maxDebitPerRequest.toString()
+        })
+      }
+    });
+
+    await auditAdminAwaitable({
+      adminId: staffUser.id,
+      adminEmail: staffUser.email,
+      action: 'BALANCE_ADJUSTMENT_REQUESTED',
+      target: adjustment.id,
+      targetType: 'ManualBalanceAdjustment',
+      newValue: {
+        targetUserId: data.userId,
+        targetEmail: targetUser.email,
+        direction: data.direction,
+        amountCents: amountBigInt.toString(),
+        reasonCode: data.reasonCode,
+        ticketId: data.ticketId
+      }
+    });
+
+    return {
+      success: true,
+      id: adjustment.id,
+      status: adjustment.status
+    };
+  });
+}
+
+export async function cancelBalanceAdjustmentRequestAction(formData: FormData) {
+  return requireStaffPermission('balance_requests', 'edit', async (staffUser) => {
+    const id = formData.get("id") as string;
+    if (!id) return { success: false, error: "ID не указан" };
+
+    const adjustment = await db.manualBalanceAdjustment.findUnique({ where: { id } });
+    if (!adjustment) return { success: false, error: "Заявка не найдена" };
+
+    if (adjustment.requestedBy !== staffUser.id && staffUser.role !== 'OWNER' && staffUser.role !== 'ADMIN') {
+      return { success: false, error: "Вы можете отменять только свои собственные заявки" };
+    }
+
+    if (adjustment.status !== BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL) {
+      return { success: false, error: `Нельзя отменить заявку в статусе ${adjustment.status}` };
+    }
+
+    const updated = await db.manualBalanceAdjustment.update({
+      where: { id },
+      data: { status: BALANCE_ADJUSTMENT_STATUS.CANCELED }
+    });
+
+    await auditAdminAwaitable({
+      adminId: staffUser.id,
+      adminEmail: staffUser.email,
+      action: 'BALANCE_ADJUSTMENT_CANCELED',
+      target: adjustment.id,
+      targetType: 'ManualBalanceAdjustment',
+      oldValue: { status: adjustment.status },
+      newValue: { status: updated.status }
+    });
+
+    return { success: true, id: updated.id, status: updated.status };
+  });
+}
+
+export async function approveBalanceAdjustmentAction(formData: FormData) {
+  return requireStaffPermission('balance_approvals', 'edit', async (approver) => {
+    const id = formData.get("id") as string;
+    if (!id) return { success: false, error: "ID не указан" };
+
+    const adjustment = await db.manualBalanceAdjustment.findUnique({
+      where: { id },
+      include: { user: true, requester: true }
+    });
+
+    if (!adjustment) return { success: false, error: "Заявка не найдена" };
+
+    if (adjustment.status !== BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL) {
+      return { success: false, error: `Заявка находится в статусе ${adjustment.status} и не может быть подтверждена` };
+    }
+
+    // Prevent self-approval
+    if (adjustment.requestedBy === approver.id) {
+      return { success: false, error: "Запрещено подтверждать собственную заявку" };
+    }
+
+    const policy = await getEffectiveBalancePolicy(approver.id);
+    if (!policy || !policy.canApprove) {
+      return { success: false, error: "Вам не разрешено подтверждать заявки корректировки баланса" };
+    }
+
+    // Approval limit check
+    if (policy.maxApprovalPerRequest > BigInt(0) && adjustment.amount > policy.maxApprovalPerRequest) {
+      if (approver.role !== 'OWNER' && approver.role !== 'ADMIN') {
+        return { success: false, error: `Превышен лимит утверждения: макс. ${policy.maxApprovalPerRequest.toString()} коп.` };
+      }
+    }
+
+    if (!adjustment.user || adjustment.user.isDeleted || !adjustment.user.isActive) {
+      return { success: false, error: "Целевой пользователь удален или неактивен" };
+    }
+
+    if (adjustment.direction === BALANCE_ADJUSTMENT_DIRECTION.DEBIT && adjustment.user.balance < adjustment.amount) {
+      return { success: false, error: "У целевого пользователя недостаточно средств для списания" };
+    }
+
+    // Atomic Status Transition: PENDING_APPROVAL -> APPROVED
+    const updatedCount = await db.manualBalanceAdjustment.updateMany({
+      where: {
+        id: adjustment.id,
+        status: BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL
+      },
+      data: {
+        status: BALANCE_ADJUSTMENT_STATUS.APPROVED,
+        approvedBy: approver.id,
+        approvedAt: new Date()
+      }
+    });
+
+    if (updatedCount.count === 0) {
+      return { success: false, error: "Заявка уже обрабатывается или статус был изменен" };
+    }
+
+    // Execute balance operation inside atomic transaction
+    try {
+      const executionResult = await db.$transaction(async (tx) => {
+        let res;
+        if (adjustment.direction === BALANCE_ADJUSTMENT_DIRECTION.CREDIT) {
+          res = await WalletOps.credit(
+            tx,
+            adjustment.userId,
+            adjustment.amount,
+            `Корректировка баланса (заявка #${adjustment.id.slice(-6)}): ${adjustment.reasonCode}`,
+            { idempotencyKey: `manual_adjustment:${adjustment.id}`, adminId: approver.id }
+          );
+        } else {
+          res = await WalletOps.charge(
+            tx,
+            adjustment.userId,
+            adjustment.amount,
+            `Корректировка баланса (заявка #${adjustment.id.slice(-6)}): ${adjustment.reasonCode}`,
+            { idempotencyKey: `manual_adjustment:${adjustment.id}`, adminId: approver.id }
+          );
+        }
+
+        await tx.manualBalanceAdjustment.update({
+          where: { id: adjustment.id },
+          data: {
+            status: BALANCE_ADJUSTMENT_STATUS.EXECUTED,
+            ledgerEntryId: res.entry.id
+          }
+        });
+
+        return res;
+      });
+
+      await auditAdminAwaitable({
+        adminId: approver.id,
+        adminEmail: approver.email,
+        action: 'BALANCE_ADJUSTMENT_EXECUTED',
+        target: adjustment.id,
+        targetType: 'ManualBalanceAdjustment',
+        newValue: {
+          targetUserId: adjustment.userId,
+          requestedBy: adjustment.requestedBy,
+          approvedBy: approver.id,
+          direction: adjustment.direction,
+          amountCents: adjustment.amount.toString(),
+          ledgerEntryId: executionResult.entry.id
+        }
+      });
+
+      return { success: true, id: adjustment.id, status: BALANCE_ADJUSTMENT_STATUS.EXECUTED };
+    } catch (err: any) {
+      console.error("[ApproveBalanceAdjustment] Execution failed:", err);
+
+      await db.manualBalanceAdjustment.update({
+        where: { id: adjustment.id },
+        data: {
+          status: BALANCE_ADJUSTMENT_STATUS.EXECUTION_FAILED,
+          executionError: err.message || "Ошибка исполнения транзакции"
+        }
+      });
+
+      await auditAdminAwaitable({
+        adminId: approver.id,
+        adminEmail: approver.email,
+        action: 'BALANCE_ADJUSTMENT_EXECUTION_FAILED',
+        target: adjustment.id,
+        targetType: 'ManualBalanceAdjustment',
+        newValue: { error: err.message }
+      });
+
+      return { success: false, error: `Сбой при зачислении/списании: ${err.message}` };
+    }
+  });
+}
+
+export async function rejectBalanceAdjustmentAction(formData: FormData) {
+  return requireStaffPermission('balance_approvals', 'edit', async (rejecter) => {
+    const id = formData.get("id") as string;
+    const rejectionReason = formData.get("rejectionReason") as string;
+
+    if (!id) return { success: false, error: "ID не указан" };
+    if (!rejectionReason || rejectionReason.trim().length < 5) {
+      return { success: false, error: "Причина отклонения должна содержать минимум 5 символов" };
+    }
+
+    const adjustment = await db.manualBalanceAdjustment.findUnique({ where: { id } });
+    if (!adjustment) return { success: false, error: "Заявка не найдена" };
+
+    if (adjustment.status !== BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL) {
+      return { success: false, error: `Заявка находится в статусе ${adjustment.status} и не может быть отклонена` };
+    }
+
+    if (adjustment.requestedBy === rejecter.id && rejecter.role !== 'OWNER' && rejecter.role !== 'ADMIN') {
+      return { success: false, error: "Запрещено отклонять собственную заявку" };
+    }
+
+    const updated = await db.manualBalanceAdjustment.update({
+      where: { id },
+      data: {
+        status: BALANCE_ADJUSTMENT_STATUS.REJECTED,
+        rejectedBy: rejecter.id,
+        rejectedAt: new Date(),
+        rejectionReason: rejectionReason.trim()
+      }
+    });
+
+    await auditAdminAwaitable({
+      adminId: rejecter.id,
+      adminEmail: rejecter.email,
+      action: 'BALANCE_ADJUSTMENT_REJECTED',
+      target: adjustment.id,
+      targetType: 'ManualBalanceAdjustment',
+      newValue: {
+        rejectedBy: rejecter.id,
+        rejectionReason: rejectionReason.trim()
+      }
+    });
+
+    return { success: true, id: updated.id, status: updated.status };
+  });
+}
+
+export async function getBalanceAdjustmentsAction(formData: FormData) {
+  return requireStaffPermission('balance_requests', 'view', async (staffUser) => {
+    const policy = await getEffectiveBalancePolicy(staffUser.id);
+    const canViewAll = staffUser.role === 'OWNER' || staffUser.role === 'ADMIN' || (policy?.canViewAll ?? false);
+
+    const status = (formData.get("status") as string) || undefined;
+    const direction = (formData.get("direction") as string) || undefined;
+    const userId = (formData.get("userId") as string) || undefined;
+    const requestedBy = (formData.get("requestedBy") as string) || undefined;
+    const reasonCode = (formData.get("reasonCode") as string) || undefined;
+    const ticketId = (formData.get("ticketId") as string) || undefined;
+    const page = parseInt((formData.get("page") as string) || "1", 10);
+    const pageSize = parseInt((formData.get("pageSize") as string) || "20", 10);
+
+    // Filter construction
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+
+    if (!canViewAll) {
+      where.requestedBy = staffUser.id;
+    } else if (requestedBy) {
+      where.requestedBy = requestedBy;
+    }
+
+    if (status) where.status = status;
+    if (direction) where.direction = direction;
+    if (userId) where.userId = userId;
+    if (reasonCode) where.reasonCode = reasonCode;
+    if (ticketId) where.ticketId = ticketId;
+
+    const total = await db.manualBalanceAdjustment.count({ where });
+    const items = await db.manualBalanceAdjustment.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        user: { select: { id: true, email: true, role: true, balance: true } },
+        requester: { select: { id: true, email: true } },
+        approver: { select: { id: true, email: true } },
+        rejecter: { select: { id: true, email: true } }
+      }
+    });
+
+    const serializedItems = items.map(item => ({
+      ...item,
+      amount: item.amount.toString(),
+      user: item.user ? { ...item.user, balance: item.user.balance.toString() } : null,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      approvedAt: item.approvedAt ? item.approvedAt.toISOString() : null,
+      rejectedAt: item.rejectedAt ? item.rejectedAt.toISOString() : null
+    }));
+
+    return {
+      success: true,
+      items: serializedItems,
+      total,
+      page,
+      pageSize
+    };
+  });
+}
+
+export async function getBalanceAdjustmentStatsAction(formData: FormData) {
+  return requireStaffPermission('balance_stats', 'view', async (staffUser) => {
+    const policy = await getEffectiveBalancePolicy(staffUser.id);
+    const canViewAll = staffUser.role === 'OWNER' || staffUser.role === 'ADMIN' || (policy?.canViewStats ?? false);
+
+    const requestedBy = (formData.get("requestedBy") as string) || undefined;
+    const direction = (formData.get("direction") as string) || undefined;
+    const reasonCode = (formData.get("reasonCode") as string) || undefined;
+    const status = (formData.get("status") as string) || undefined;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+    if (!canViewAll) {
+      where.requestedBy = staffUser.id;
+    } else if (requestedBy) {
+      where.requestedBy = requestedBy;
+    }
+
+    if (direction) where.direction = direction;
+    if (reasonCode) where.reasonCode = reasonCode;
+    if (status) where.status = status;
+
+    const items = await db.manualBalanceAdjustment.findMany({
+      where,
+      select: {
+        id: true,
+        requestedBy: true,
+        direction: true,
+        amount: true,
+        status: true,
+        reasonCode: true,
+        createdAt: true,
+        requester: { select: { email: true } }
+      }
+    });
+
+    let totalCount = 0;
+    let pendingCount = 0;
+    let approvedCount = 0;
+    let rejectedCount = 0;
+    let executedCount = 0;
+
+    let creditSum = BigInt(0);
+    let debitSum = BigInt(0);
+
+    const staffMap: Record<string, { email: string; count: number; creditSum: bigint; debitSum: bigint }> = {};
+    const reasonMap: Record<string, { count: number; creditSum: bigint; debitSum: bigint }> = {};
+    const dayMap: Record<string, { count: number; creditSum: bigint; debitSum: bigint }> = {};
+
+    for (const item of items) {
+      totalCount++;
+      if (item.status === BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL) pendingCount++;
+      if (item.status === BALANCE_ADJUSTMENT_STATUS.APPROVED) approvedCount++;
+      if (item.status === BALANCE_ADJUSTMENT_STATUS.REJECTED) rejectedCount++;
+      if (item.status === BALANCE_ADJUSTMENT_STATUS.EXECUTED) executedCount++;
+
+      if (item.status === BALANCE_ADJUSTMENT_STATUS.EXECUTED || item.status === BALANCE_ADJUSTMENT_STATUS.APPROVED) {
+        if (item.direction === BALANCE_ADJUSTMENT_DIRECTION.CREDIT) {
+          creditSum += item.amount;
+        } else {
+          debitSum += item.amount;
+        }
+      }
+
+      // Group by Staff
+      const staffKey = item.requestedBy;
+      const staffEmail = item.requester?.email || 'Unknown';
+      if (!staffMap[staffKey]) {
+        staffMap[staffKey] = { email: staffEmail, count: 0, creditSum: BigInt(0), debitSum: BigInt(0) };
+      }
+      staffMap[staffKey].count++;
+      if (item.direction === BALANCE_ADJUSTMENT_DIRECTION.CREDIT) staffMap[staffKey].creditSum += item.amount;
+      else staffMap[staffKey].debitSum += item.amount;
+
+      // Group by Reason
+      const reasonKey = item.reasonCode;
+      if (!reasonMap[reasonKey]) {
+        reasonMap[reasonKey] = { count: 0, creditSum: BigInt(0), debitSum: BigInt(0) };
+      }
+      reasonMap[reasonKey].count++;
+      if (item.direction === BALANCE_ADJUSTMENT_DIRECTION.CREDIT) reasonMap[reasonKey].creditSum += item.amount;
+      else reasonMap[reasonKey].debitSum += item.amount;
+
+      // Group by Day
+      const dayKey = item.createdAt.toISOString().slice(0, 10);
+      if (!dayMap[dayKey]) {
+        dayMap[dayKey] = { count: 0, creditSum: BigInt(0), debitSum: BigInt(0) };
+      }
+      dayMap[dayKey].count++;
+      if (item.direction === BALANCE_ADJUSTMENT_DIRECTION.CREDIT) dayMap[dayKey].creditSum += item.amount;
+      else dayMap[dayKey].debitSum += item.amount;
+    }
+
+    const netSum = creditSum - debitSum;
+
+    return {
+      success: true,
+      summary: {
+        totalCount,
+        pendingCount,
+        approvedCount,
+        rejectedCount,
+        executedCount,
+        creditSum: creditSum.toString(),
+        debitSum: debitSum.toString(),
+        netSum: netSum.toString()
+      },
+      byStaff: Object.entries(staffMap).map(([id, val]) => ({
+        id,
+        email: val.email,
+        count: val.count,
+        creditSum: val.creditSum.toString(),
+        debitSum: val.debitSum.toString()
+      })),
+      byReason: Object.entries(reasonMap).map(([code, val]) => ({
+        code,
+        count: val.count,
+        creditSum: val.creditSum.toString(),
+        debitSum: val.debitSum.toString()
+      })),
+      byDay: Object.entries(dayMap).map(([day, val]) => ({
+        day,
+        count: val.count,
+        creditSum: val.creditSum.toString(),
+        debitSum: val.debitSum.toString()
+      })).sort((a, b) => b.day.localeCompare(a.day))
+    };
+  });
+}

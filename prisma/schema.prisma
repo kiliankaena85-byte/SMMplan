@@ -74,6 +74,11 @@ model User {
   userNotes     UserNote[] @relation("UserNotes")
   authoredNotes UserNote[] @relation("AuthorNotes")
 
+  targetBalanceAdjustments    ManualBalanceAdjustment[] @relation("targetBalanceAdjustments")
+  requestedBalanceAdjustments ManualBalanceAdjustment[] @relation("requestedBalanceAdjustments")
+  approvedBalanceAdjustments  ManualBalanceAdjustment[] @relation("approvedBalanceAdjustments")
+  rejectedBalanceAdjustments  ManualBalanceAdjustment[] @relation("rejectedBalanceAdjustments")
+
   tenantId String @default("smmplan")
 
   @@unique([email, tenantId])
@@ -1165,5 +1170,104 @@ model UserNote {
   @@index([userId])
   @@index([authorId])
   @@index([orderId])
+  @@index([ticketId])
+}
+
+model BalanceAdjustmentPolicy {
+  id String @id @default(cuid())
+
+  scopeType String // GLOBAL | ROLE | USER
+
+  staffRoleId String?
+  userId      String?
+
+  isActive Boolean @default(true)
+
+  enabled Boolean @default(false)
+
+  canRequestCredit Boolean @default(false)
+  canRequestDebit  Boolean @default(false)
+
+  canApprove Boolean @default(false)
+  canReject  Boolean @default(false)
+
+  canViewAll   Boolean @default(false)
+  canViewStats Boolean @default(false)
+
+  maxCreditPerRequest BigInt @default(0)
+  maxDebitPerRequest  BigInt @default(0)
+
+  maxCreditPerDay BigInt @default(0)
+  maxDebitPerDay  BigInt @default(0)
+  maxTotalPerDay  BigInt @default(0)
+
+  maxApprovalPerRequest BigInt @default(0)
+
+  allowedCreditReasonCodes Json
+  allowedDebitReasonCodes  Json
+  allowedTargetRoles       Json
+
+  requireTicket        Boolean @default(true)
+  requireOrderForDebit Boolean @default(false)
+
+  blockBannedTargets  Boolean @default(true)
+  blockDeletedTargets Boolean @default(true)
+
+  autoExecuteBelow BigInt @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scopeType, staffRoleId])
+  @@index([scopeType, userId])
+}
+
+model ManualBalanceAdjustment {
+  id String @id @default(cuid())
+
+  userId      String
+  requestedBy String
+
+  direction String // CREDIT | DEBIT
+
+  amount BigInt
+
+  reasonCode String
+  reasonNote String
+
+  ticketId  String?
+  orderId   String?
+  paymentId String?
+
+  status String @default("PENDING_APPROVAL")
+  // PENDING_APPROVAL | APPROVED | REJECTED | EXECUTED | EXECUTION_FAILED | CANCELED
+
+  idempotencyKey String @unique
+
+  approvedBy      String?
+  approvedAt      DateTime?
+
+  rejectedBy      String?
+  rejectedAt      DateTime?
+  rejectionReason String?
+
+  executionError String?
+
+  ledgerEntryId String?
+
+  policySnapshot Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User  @relation("targetBalanceAdjustments", fields: [userId], references: [id], onDelete: Cascade)
+  requester User  @relation("requestedBalanceAdjustments", fields: [requestedBy], references: [id], onDelete: Cascade)
+  approver  User? @relation("approvedBalanceAdjustments", fields: [approvedBy], references: [id], onDelete: SetNull)
+  rejecter  User? @relation("rejectedBalanceAdjustments", fields: [rejectedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([requestedBy, createdAt])
+  @@index([status, createdAt])
+  @@index([direction, status, createdAt])
   @@index([ticketId])
 }

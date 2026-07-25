@@ -9,12 +9,28 @@ async function getSessionUserId(): Promise<string | null> {
   return sessionUser ? sessionUser.userId : null;
 }
 
+export type StaffPermissionSection = 
+  | 'clients'
+  | 'orders'
+  | 'catalog'
+  | 'providers'
+  | 'finance'
+  | 'content'
+  | 'support'
+  | 'marketing'
+  | 'analytics'
+  | 'settings'
+  | 'balance_requests'
+  | 'balance_approvals'
+  | 'balance_stats'
+  | 'balance_policy';
+
 /**
  * Strict RBAC Wrapper for Server Actions
  * Protects actions based on the user's assigned StaffRole and granular permissions.
  */
 export async function requireStaffPermission<T>(
-  section: string,
+  section: StaffPermissionSection | string,
   actionMode: 'view' | 'edit',
   action: (user: User, role?: StaffRole | null) => Promise<T>
 ): Promise<T | { success: false; error: string }> {
