@@ -147,6 +147,7 @@ export function BalanceAdjustmentRequestForm({ userId, userEmail, userBalanceCen
             Причина (Reason Code) *
           </label>
           <select
+            name="reasonCode"
             value={reasonCode}
             onChange={(e) => setReasonCode(e.target.value)}
             className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"

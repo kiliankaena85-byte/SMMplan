@@ -36,7 +36,7 @@ function parseAmountToKopecks(input: string): bigint {
   }
   const intMatch = /^(\d+)$/.exec(normalized);
   if (intMatch) {
-    return BigInt(intMatch[1]);
+    return BigInt(intMatch[1]) * BigInt(100);
   }
   throw new Error("INVALID_AMOUNT_FORMAT");
 }
