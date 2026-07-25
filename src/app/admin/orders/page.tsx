@@ -190,6 +190,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
           </div>
           <OrderClient 
             canSeeRates={canSeeRates}
+            userRole={user?.role}
             data={orders.map(o => ({
               id: o.id,
               numericId: o.numericId,

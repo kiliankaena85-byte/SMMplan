@@ -221,26 +221,39 @@ export async function forceCompleteOrderAction(orderId: string) {
 
 // ── Bulk Actions ──
 
-export async function bulkCancelOrdersAction(orderIds: string[]) {
+export async function bulkCancelOrdersAction(
+  orderIds: string[],
+  reason?: string,
+  ticketId?: string
+) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
+    // RBAC Safety: Bulk cancel is strictly restricted to OWNER & ADMIN
+    if (!['OWNER', 'ADMIN'].includes(admin.role)) {
+      return {
+        success: false as const,
+        error: 'Недостаточно прав: массовая отмена с возвратом доступна только Администраторам и Владельцу'
+      };
+    }
+
     const parsed = bulkCancelSchema.safeParse({ orderIds });
     if (!parsed.success) throw new Error('Invalid IDs or too many items');
 
+    // Hard ceiling: max 100 items per execution batch
+    const BATCH_LIMIT = 100;
+    const targetIds = parsed.data.orderIds.slice(0, BATCH_LIMIT);
+    const skippedCount = parsed.data.orderIds.length - targetIds.length;
+
     const orders = await db.order.findMany({
-      where: { id: { in: parsed.data.orderIds } },
+      where: { id: { in: targetIds } },
     });
 
     let totalRefunded = 0;
     let count = 0;
 
-    // 🌊 WAVE 2.1: Atomized transactions instead of a global blanket
-    // We iterate outside of the transaction to prevent holding the lock
-    // on `user.balance` for multiple seconds, avoiding Database Contention.
     for (const order of orders) {
       if (!['COMPLETED', 'CANCELED', 'ERROR'].includes(order.status)) {
         try {
           await runSerializableTransaction(async (tx) => {
-            // Re-fetch inside transaction to ensure isolation
             const safeOrder = await tx.order.findUnique({
               where: { id: order.id }
             });
@@ -258,7 +271,7 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
 
             if (refundCents > 0) {
               await WalletOps.refund(tx, safeOrder.userId, refundCents,
-                `Массовая отмена заказа #${safeOrder.numericId}`,
+                `Массовая отмена заказа #${safeOrder.numericId}${reason ? ` (${reason})` : ''}`,
                 { adminId: admin.id, idempotencyKey: `refund_${safeOrder.id}_CANCELED` }
               );
             }
@@ -269,27 +282,64 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
           CompensationService.trackCompensation(order.id).catch(err => console.error('[Orders] Failed to track compensation', err));
         } catch (e) {
           console.error(`[bulkCancelOrdersAction] Failed to cancel order ${order.id}:`, e);
-          // We continue to the next order rather than failing the entire batch
         }
       }
     }
 
-    // SD-13 SECURITY FIX: Await audit for bulk cancel with aggregated refund total
     await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_BULK_CANCEL',
       target: 'batch',
       targetType: 'ORDER',
-      newValue: { count, totalRefunded },
+      newValue: { count, totalRefunded, skippedCount, reason, ticketId },
     });
 
     revalidatePath('/admin/orders');
     return { 
       success: true as const, 
-      cancelledCount: count, 
+      cancelledCount: count,
+      skippedCount,
       totalRefundCents: totalRefunded 
     };
+  });
+}
+
+export async function bulkRestartOrdersAction(orderIds: string[]) {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
+    const BATCH_LIMIT = 100;
+    const targetIds = orderIds.slice(0, BATCH_LIMIT);
+
+    const orders = await db.order.findMany({
+      where: { id: { in: targetIds } }
+    });
+
+    let restartedCount = 0;
+    for (const order of orders) {
+      if (['ERROR', 'PENDING'].includes(order.status)) {
+        try {
+          await adminOrderService.restartOrder(order.id, {
+            id: admin.id,
+            email: admin.email,
+          });
+          restartedCount++;
+        } catch (e) {
+          console.error(`[bulkRestartOrdersAction] Error restarting order ${order.id}:`, e);
+        }
+      }
+    }
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'ORDER_BULK_RESTART',
+      target: 'batch',
+      targetType: 'ORDER',
+      newValue: { count: restartedCount }
+    });
+
+    revalidatePath('/admin/orders');
+    return { success: true as const, restartedCount };
   });
 }
 
