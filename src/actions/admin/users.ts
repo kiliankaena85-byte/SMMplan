@@ -25,6 +25,12 @@ export async function updateBalanceAction(formData: FormData) {
 
     const { userId, amount, reason } = parsed.data;
 
+    // SECURITY GUARD: Block self-balance modification to prevent insider fraud
+    if (userId === admin.id && admin.role !== 'OWNER') {
+      console.warn(`[SECURITY] Blocked self-balance modification attempt by admin ${admin.id}`);
+      return { success: false as const, error: 'Запрещено изменять собственный баланс' };
+    }
+
     // Additional safeguard: only OWNER and ADMIN for large balance updates if needed, 
     // but here we follow RBAC 'edit' permission for 'clients' section.
     // If SUPPORT has 'edit' permission for 'clients', they can update balance. 

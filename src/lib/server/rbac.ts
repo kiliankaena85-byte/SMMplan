@@ -35,13 +35,14 @@ export async function requireStaffPermission<T>(
       }
     });
 
-    if (!user) {
-      return { success: false, error: "Forbidden: User not found" };
+    if (!user || user.role === 'BANNED' || user.role === 'USER') {
+      console.warn(`[RBAC] Blocked unauthorized role "${user?.role}" for userId ${userId}`);
+      return { success: false, error: "Forbidden: Administrator/Staff context required" };
     }
 
     // OWNER & ADMIN bypass
     if (user.role === 'OWNER' || user.role === 'ADMIN') {
-        return await action(user, user.staffRole);
+      return await action(user, user.staffRole);
     }
 
     // Requires StaffRole for granular permissions
@@ -148,7 +149,7 @@ export async function enforceSectionAccess(section: string) {
     }
   });
 
-  if (!user) {
+  if (!user || user.role === 'BANNED') {
     redirect('/login');
   }
 
