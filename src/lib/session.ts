@@ -160,20 +160,21 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
 
 async function handleDevAutoLogin() {
   if (
-    process.env.NODE_ENV !== 'production' &&
+    process.env.NODE_ENV === 'development' &&
     (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')
   ) {
     const bypassEmail = process.env.DEV_BYPASS_EMAIL;
-    if (process.env.NODE_ENV === 'development') {
-      console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
-    }
+    console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
+    
     const devUser = await db.user.findFirst({ 
-      where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
+      where: bypassEmail 
+        ? { email: bypassEmail, isDeleted: false, isActive: true } 
+        : { role: 'OWNER', isDeleted: false, isActive: true } 
     });
-    if (process.env.NODE_ENV === 'development') {
-      console.info("[verifySession] devUser found:", !!devUser);
+    console.info("[verifySession] devUser found:", !!devUser);
+    if (devUser && devUser.role !== 'BANNED') {
+      return { userId: devUser.id, role: devUser.role, tenantId: devUser.tenantId };
     }
-    if (devUser) return { userId: devUser.id, role: devUser.role, tenantId: devUser.tenantId };
   }
   return null;
 }

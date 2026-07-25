@@ -23,7 +23,7 @@ export class PaymentService {
    */
   async confirmPayment(
     gatewayId: string, 
-    amount: number, 
+    amount: number | bigint, 
     userId: string, 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isDevSandbox = false,
@@ -94,6 +94,18 @@ export class PaymentService {
         if (currentPayment && currentPayment.status === 'SUCCEEDED') {
           console.info(`[Payment] ${gatewayId} already processed (atomic idempotency hit)`);
           return;
+        }
+
+        // [SECURITY CR-4 FIX] Gateway ID Consistency Guard
+        if (currentPayment && currentPayment.gatewayId && currentPayment.gatewayId !== gatewayId) {
+          console.error(`[Payment] Gateway ID mismatch for payment ${currentPayment.id}: expected ${currentPayment.gatewayId}, got ${gatewayId}`);
+          throw new Error('PAYMENT_GATEWAY_ID_MISMATCH: Gateway ID mismatch detected.');
+        }
+
+        // [SECURITY CR-4 FIX] Currency Consistency Guard
+        if (currentPayment && currentPayment.currency && currentPayment.currency !== 'RUB') {
+          console.error(`[Payment] Currency mismatch for payment ${currentPayment.id}: expected RUB, got ${currentPayment.currency}`);
+          throw new Error('PAYMENT_CURRENCY_MISMATCH: Unsupported payment currency.');
         }
 
         // [SECURITY CR-4 FIX] Exact Amount Verification: Reject both underpayment and overpayment exploits
