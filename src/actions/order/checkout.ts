@@ -17,6 +17,7 @@ import { featureFlagService } from "@/services/system/feature-flag.service";
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
+import { randomUUID } from 'crypto';
 
 import { Prisma } from '@prisma/client';
 class IdempotencyConflictError extends Error {
@@ -102,6 +103,7 @@ const checkoutSchema = z.object({
 export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
     const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant, isRequirementsConfirmed } = data;
+    const effectiveIdempotencyKey = idempotencyKey || randomUUID();
     const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
 
     // Feature Flags Validation
@@ -375,7 +377,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         // 5.1 If gateway is balance, atomically deduct balance first
         if (gateway === 'balance') {
           await WalletOps.charge(tx, user.id, finalTotalCents, `Оплата заказа с баланса`, {
-            idempotencyKey: idempotencyKey ? `balance-charge-${idempotencyKey}` : undefined
+            idempotencyKey: `balance-charge-${effectiveIdempotencyKey}`
           });
         }
 
@@ -386,9 +388,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         
         // 1. Check idempotency beforehand to avoid aborting the Postgres transaction block on P2002 constraint error
         let existingOrder = null;
-        if (idempotencyKey) {
+        if (effectiveIdempotencyKey) {
           existingOrder = await tx.order.findUnique({
-            where: { idempotencyKey },
+            where: { idempotencyKey: effectiveIdempotencyKey },
             include: { payment: true }
           });
         }
@@ -400,7 +402,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             // Free up the unique constraint on the failed order to allow the new check to proceed
             await tx.order.update({
               where: { id: existingOrder.id },
-              data: { idempotencyKey: `${idempotencyKey}_failed_${existingOrder.id}` }
+              data: { idempotencyKey: `${effectiveIdempotencyKey}_failed_${existingOrder.id}` }
             });
           }
         }
@@ -424,7 +426,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             isTest: isTestMode,
             customData,
             remains: totalQuantity,
-            idempotencyKey,
+            idempotencyKey: effectiveIdempotencyKey,
             promoCodeId: promoCodeId || null,
             discountCents: BigInt(pricing.discountCents),
             abVariant,
@@ -507,6 +509,19 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           }
         }
 
+        if (isSmartDrip && smartConfig) {
+          await SmartDripService.createCampaign(tx, {
+            userId: user.id,
+            serviceId,
+            link: normalizedLink,
+            quantity: totalQuantity,
+            days: smartDripDays!,
+            paymentId: payment.id,
+            orderId: newOrder.id,
+            isTestMode
+          });
+        }
+
         transactionCompleted = true;
         return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId, secondOrderId };
       });
@@ -537,24 +552,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         }
       }
       throw err;
-    }
-
-    // Heavy SmartDrip campaigns are created safely outside the Serializable transaction
-    if (isSmartDrip && smartConfig) {
-      try {
-        await SmartDripService.createCampaign(db, {
-          userId: user.id,
-          serviceId,
-          link: normalizedLink,
-          quantity: totalQuantity,
-          days: smartDripDays!,
-          paymentId: result.paymentId,
-          orderId: result.orderId,
-          isTestMode
-        });
-      } catch (dripErr) {
-        console.error('[Checkout] Failed to create SmartDrip campaign:', dripErr);
-      }
     }
 
     // 6. Generate payment URL (gateway-specific API calls)
@@ -615,8 +612,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     }
 
     try {
-      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
-      await paymentGatewayQueue.add('generate-gateway-payment', {
+      const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
+      const gatewayResult = await gatewaySvc.createPayment({
         paymentId: result.paymentId,
         orderId: result.orderId,
         userId: user.id,
@@ -625,11 +623,20 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         successUrl,
         description: `Оплата заказа #${result.numericId} (сдача зачисляется на баланс)`,
         isTestMode: isTestMode || email === 'e2e-tester@test.com',
-        gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
         metadata: { type: 'checkout' }
       });
-      
-      paymentUrl = `/payment-redirect?id=${result.paymentId}`;
+
+      if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
+        await db.payment.update({
+          where: { id: result.paymentId },
+          data: {
+            gatewayId: gatewayResult.remoteGatewayId || undefined,
+            checkoutUrl: gatewayResult.paymentUrl || undefined
+          }
+        });
+      }
+
+      paymentUrl = gatewayResult.paymentUrl || `/payment-redirect?id=${result.paymentId}`;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (gatewayErr: any) {
@@ -953,9 +960,10 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
 
     try {
       const isTestMode = await SettingsManager.isTestMode();
-      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
+      const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
       
-      await paymentGatewayQueue.add('generate-gateway-payment', {
+      const gatewayResult = await gatewaySvc.createPayment({
         paymentId: result.paymentId,
         orderId: order.id,
         userId: order.userId,
@@ -964,11 +972,20 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         successUrl,
         description: `Оплата заказа #${order.numericId} (SMMplan)`,
         isTestMode,
-        gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
         metadata: { type: 'checkout' }
       });
 
-      paymentUrl = `/payment-redirect?id=${result.paymentId}`;
+      if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
+        await db.payment.update({
+          where: { id: result.paymentId },
+          data: {
+            gatewayId: gatewayResult.remoteGatewayId || undefined,
+            checkoutUrl: gatewayResult.paymentUrl || undefined
+          }
+        });
+      }
+
+      paymentUrl = gatewayResult.paymentUrl || `/payment-redirect?id=${result.paymentId}`;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (gatewayErr: any) {

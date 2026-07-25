@@ -46,7 +46,7 @@ async function checkAndCompleteCampaign(campaignId: string) {
 
         if (updated.count === 0) return; // Status already changed by sync processor
 
-        // Handle refund for ERROR campaigns
+        // Handle proportional refund for ERROR campaigns
         if (orderTargetStatus === 'ERROR') {
           const order = await tx.order.findUnique({
             where: { id: parentOrderId },
@@ -54,24 +54,47 @@ async function checkAndCompleteCampaign(campaignId: string) {
           });
           
           if (order && order.charge > 0) {
-            const { WalletOps } = await import('@/services/financial/wallet-ops');
-            const refundKey = `refund-dripfeed-error-${parentOrderId}`;
-            const existing = await tx.ledgerEntry.findFirst({ where: { idempotencyKey: refundKey } });
-            if (!existing) {
-              await WalletOps.refund(tx, order.userId, Number(order.charge),
-                `Авто-возврат: SmartCampaign #${order.numericId} завершилась с ошибкой`,
-                { idempotencyKey: refundKey }
-              );
+            const totalQty = campaign.totalQuantity || allTasks.reduce((acc, t) => acc + t.quantity, 0);
+            const errorQty = allTasks
+              .filter((t) => t.status === SmartTaskStatus.ERROR)
+              .reduce((acc, t) => acc + t.quantity, 0);
+
+            const refundRatio = totalQty > 0 ? errorQty / totalQty : 1;
+            const refundCents = Math.floor(Number(order.charge) * refundRatio);
+
+            if (refundCents > 0) {
+              const { WalletOps } = await import('@/services/financial/wallet-ops');
+              const refundKey = `refund-dripfeed-final-${parentOrderId}`;
+              const existing = await tx.ledgerEntry.findFirst({ where: { idempotencyKey: refundKey } });
+              if (!existing) {
+                await WalletOps.refund(
+                  tx,
+                  order.userId,
+                  refundCents,
+                  `Авто-возврат (${errorQty}/${totalQty} шт): SmartCampaign #${order.numericId} не полностью выполнена`,
+                  { idempotencyKey: refundKey }
+                );
+              }
             }
           }
         }
 
-        // Handle commission
+        // Handle commission proportionally
         const { LoyaltyService } = await import('@/services/users/loyalty.service');
         if (orderTargetStatus === 'COMPLETED') {
           await LoyaltyService.confirmCommission(tx, parentOrderId);
         } else {
-          await LoyaltyService.reverseCommission(tx, parentOrderId);
+          const totalQty = campaign.totalQuantity || allTasks.reduce((acc, t) => acc + t.quantity, 0);
+          const errorQty = allTasks
+            .filter((t) => t.status === SmartTaskStatus.ERROR)
+            .reduce((acc, t) => acc + t.quantity, 0);
+          const deliveredQty = Math.max(0, totalQty - errorQty);
+
+          if (deliveredQty > 0) {
+            await LoyaltyService.handlePartialCommission(tx, parentOrderId, errorQty, totalQty);
+          } else {
+            await LoyaltyService.reverseCommission(tx, parentOrderId);
+          }
         }
       }, { isolationLevel: 'Serializable' });
     }
@@ -233,14 +256,23 @@ export async function runSmartDripfeedTick() {
         continue;
       }
 
-      // Реальный режим отправки провайдеру
+      // Реальный режим отправки провайдеру: предсоздаем запись PENDING для идемпотентности
       if (!service.provider) {
         throw new Error(`Услуга ${service.id} не привязана к провайдеру`);
       }
 
+      const execution = await prisma.smartExecution.create({
+        data: {
+          taskId: task.id,
+          providerId: service.provider.id,
+          qtySent: task.quantity,
+          status: 'PENDING',
+        },
+      });
+
       const provider = await providerService.getWorkerProviderInstance(service.provider);
 
-      // Отправляем чанк провайдеру
+      // Отправляем чанк провайдеру с таски как ref / custom_id
       const response = await provider.createOrder({
         service: service.externalId || '',
         link: campaign.link,
@@ -250,18 +282,20 @@ export async function runSmartDripfeedTick() {
       });
 
       if (response.error && !response.order) {
+        await prisma.smartExecution.update({
+          where: { id: execution.id },
+          data: { status: 'FAILED', error: response.error },
+        });
         throw new Error(response.error);
       }
 
       const extOrderId = response.order ? response.order.toString() : '';
 
-      // Создаем SmartExecution запись
-      await prisma.smartExecution.create({
+      // Обновляем SmartExecution запись на IN_PROGRESS
+      await prisma.smartExecution.update({
+        where: { id: execution.id },
         data: {
-          taskId: task.id,
-          providerId: service.provider.id,
           externalOrderId: extOrderId,
-          qtySent: task.quantity,
           status: 'IN_PROGRESS',
         },
       });
