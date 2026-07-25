@@ -1,10 +1,40 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { paymentService } from '@/services/financial/payment.service';
 import { db } from '@/lib/db';
 import { MutexManager } from '@/lib/redis-lock';
 
 const MAX_BODY_SIZE = 1024 * 64; // 64KB
+
+function safeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+  return timingSafeEqual(bufA, bufB);
+}
+
+function rubToKopecks(value: unknown): bigint {
+  if (typeof value !== 'string') {
+    throw new Error('INVALID_AMOUNT_FORMAT');
+  }
+
+  const normalized = value.trim();
+
+  const decimalMatch = /^(\d+)\.(\d{2})$/.exec(normalized);
+  if (decimalMatch) {
+    return BigInt(decimalMatch[1]) * BigInt(100) + BigInt(decimalMatch[2]);
+  }
+
+  const integerMatch = /^(\d+)$/.exec(normalized);
+  if (integerMatch) {
+    return BigInt(integerMatch[1]) * BigInt(100);
+  }
+
+  throw new Error('INVALID_AMOUNT_FORMAT');
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,30 +45,26 @@ export async function POST(req: NextRequest) {
     const { SettingsProvider } = await import('@/lib/settings');
     const isTestMode = await SettingsProvider.isTestMode();
 
+    const isDev = process.env.NODE_ENV === 'development';
+
     // VULN-025 Mitigation: Enforce webhook secret via query parameter to prevent IP spoofing/SSRF
     const secret = req.nextUrl.searchParams.get('secret');
     const expectedSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
 
-    if (process.env.NODE_ENV === 'production') {
-      if (!secret || secret !== expectedSecret) {
+    if (!isDev) {
+      if (!secret || !expectedSecret || !safeCompare(secret, expectedSecret)) {
         console.error(`[YooKassa Webhook] BLOCKED: Missing or invalid secret parameter from IP ${ip}`);
         await db.securityEvent.create({ data: { event: 'INVALID_WEBHOOK_SECRET', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
-        // Return generic error to obscure the actual check failure
-        return NextResponse.json({ error: 'Unauthorized IP' }, { status: 403 });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
     }
 
     // --- SECURITY GUARD: Yookassa Official IP Range Validation ---
-    // P1: Сверка IP-адреса с официальными подсетями YooKassa
     if (ip) {
       const isLocalhost = ip === '::1' || ip === '127.0.0.1' || ip.startsWith('127.0.0.');
 
-      console.info(`[YooKassa Webhook Debug] ip: ${ip}, rawIp: ${rawIp}, isLocalhost: ${isLocalhost}, isTestMode: ${isTestMode}, NODE_ENV: ${process.env.NODE_ENV}, APP_ENV: ${process.env.APP_ENV}`);
-
       const allowedPrefixes = ['185.75.120.', '185.75.121.', '185.75.122.', '185.75.123.', '185.75.124.', '185.75.125.', '185.75.126.', '185.75.127.', '37.110.12.', '37.110.13.', '37.110.14.', '37.110.15.', '37.110.16.', '37.110.17.', '37.110.18.', '37.110.19.'];
-      const isAllowedIp = allowedPrefixes.some(prefix => ip.startsWith(prefix)) || 
-                          process.env.NODE_ENV !== 'production' || 
-                          (isLocalhost && isTestMode);
+      const isAllowedIp = isDev || allowedPrefixes.some(prefix => ip.startsWith(prefix)) || (isLocalhost && isTestMode);
       
       if (!isAllowedIp) {
         console.error(`[YooKassa Webhook] BLOCKED: IP spoofing attempt from ${ip}`);
@@ -51,13 +77,12 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let rawBody: Record<string, any>;
 
-    if (!providedSignature && process.env.NODE_ENV === 'production') {
+    if (!providedSignature && !isDev) {
       return NextResponse.json({ error: 'Signature required' }, { status: 401 });
     }
 
     if (providedSignature) {
-      const webhookSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
-      if (!webhookSecret) {
+      if (!expectedSecret) {
         console.error('[CRITICAL] YOOKASSA_WEBHOOK_SECRET is not set.');
         return NextResponse.json({ error: 'Webhook signature validation not configured' }, { status: 500 });
       }
@@ -71,7 +96,7 @@ export async function POST(req: NextRequest) {
 
       const crypto = (await import('crypto')).default;
       const expectedSig = crypto
-        .createHmac('sha256', webhookSecret)
+        .createHmac('sha256', expectedSecret)
         .update(rawText, 'utf8')
         .digest('hex');
 
@@ -83,10 +108,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid signature format' }, { status: 403 });
       }
 
-      const expectedBuf = Buffer.from(expectedSig, 'hex');
-      const providedBuf = Buffer.from(signatureHex, 'hex');
-
-      if (expectedBuf.length !== providedBuf.length || !crypto.timingSafeEqual(expectedBuf, providedBuf)) {
+      if (!safeCompare(expectedSig, signatureHex)) {
         console.error('[YooKassa] HMAC signature mismatch — possible webhook forgery attempt');
         await db.securityEvent.create({ data: { event: 'SIGNATURE_FAILED', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
         return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
@@ -94,12 +116,8 @@ export async function POST(req: NextRequest) {
 
       rawBody = JSON.parse(rawText);
     } else {
-      // Signature bypass is secure because confirmPayment performs a real-time GET request to YooKassa's official API
-      const allowedPrefixes = ['185.75.120.', '185.75.121.', '185.75.122.', '185.75.123.', '185.75.124.', '185.75.125.', '185.75.126.', '185.75.127.', '37.110.12.', '37.110.13.', '37.110.14.', '37.110.15.', '37.110.16.', '37.110.17.', '37.110.18.', '37.110.19.'];
-      const isAllowedIpBypass = ip && (allowedPrefixes.some(prefix => ip.startsWith(prefix)) || process.env.NODE_ENV !== 'production');
-
-      if (isAllowedIpBypass) {
-        console.info(`[YooKassa Webhook] Signature bypass granted for IP ${ip}. Verifying via double-check API.`);
+      if (isDev) {
+        console.info(`[YooKassa Webhook] Signature bypass granted in DEV mode for IP ${ip}.`);
         rawBody = await req.json();
       } else {
         await db.securityEvent.create({ data: { event: 'MISSING_SIGNATURE', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
@@ -117,36 +135,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // YooKassa Webhook Payload Example:
-    // { type: 'notification', event: 'payment.succeeded', object: { id: '2abc', amount: { value: '100.00' }, metadata: { userId: '123' } } }
-    
     if (rawBody.event === 'payment.succeeded' && rawBody.object) {
       const gatewayId = rawBody.object.id;
-      
-      const rawAmountStr = String(rawBody.object.amount?.value || '0.00');
-      const currency = rawBody.object.amount?.currency || 'RUB';
-      if (currency !== 'RUB') {
-        console.error(`[YooKassa Webhook] Rejected invalid currency: ${currency}`);
-        return NextResponse.json({ error: 'Unsupported currency' }, { status: 400 });
+      if (typeof gatewayId !== 'string' || gatewayId.trim().length === 0) {
+        console.error('[YooKassa Webhook] Missing or invalid gatewayId');
+        return NextResponse.json({ error: 'Invalid gatewayId' }, { status: 400 });
       }
-      const [intPart, decPart] = rawAmountStr.split('.');
-      const amount = parseInt(intPart || '0', 10) * 100 + parseInt((decPart || '00').padEnd(2, '0').slice(0, 2), 10);
+
+      const currency = String(rawBody.object.amount?.currency || '').toUpperCase();
+      if (currency !== 'RUB') {
+        console.error(`[YooKassa Webhook] Invalid currency: ${currency}`);
+        return NextResponse.json({ error: 'Invalid currency' }, { status: 400 });
+      }
+
+      let amountCents: bigint;
+      try {
+        amountCents = rubToKopecks(rawBody.object.amount?.value);
+      } catch {
+        console.error('[YooKassa Webhook] Failed to parse amount via rubToKopecks');
+        return NextResponse.json({ error: 'Invalid amount format' }, { status: 400 });
+      }
       
       const userId = rawBody.object.metadata?.userId;
       const internalPaymentId = rawBody.object.metadata?.paymentId;
       const metadataType = rawBody.object.metadata?.type;
 
-      // Extract FZ-54 receipt registration info if available
       const receiptId = rawBody.object.receipt_registration === 'succeeded' 
         ? `yookassa_receipt_${gatewayId}` 
         : undefined;
 
-      if (!userId || !gatewayId) {
-        return NextResponse.json({ error: 'Missing userId or gatewayId in metadata' }, { status: 400 });
+      if (!userId) {
+        return NextResponse.json({ error: 'Missing userId in metadata' }, { status: 400 });
       }
 
-      // Wrap the critical idempotency check and confirmation in a distributed Redis lock
-      // TTL: 15s (15000ms), Wait Time: 10s (10000ms)
       try {
         const result = await MutexManager.withLock(`webhook_payment_${gatewayId}`, 15000, 10000, async () => {
           let existingPayment = null;
@@ -161,9 +182,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: true, status: 'Payment processed strictly (idempotent)' }, { status: 200 });
           }
 
-          // Safe confirmation using Double-Check Logic
           const success = await paymentService.confirmPayment(
-            gatewayId, amount, userId, isTestMode, 'yookassa', internalPaymentId, metadataType, receiptId
+            gatewayId, amountCents, userId, isTestMode, 'yookassa', internalPaymentId, metadataType, receiptId
           );
 
           if (success) {

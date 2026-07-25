@@ -4,8 +4,8 @@ type PrismaTx = Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on
 
 export class WalletInsufficientFundsError extends Error {
   readonly code = 'INSUFFICIENT_FUNDS';
-  constructor(needed: number, got: number | bigint) {
-    super(`Insufficient funds: needed ${needed}, got ${got}`);
+  constructor(needed: number | bigint, got: number | bigint) {
+    super(`Insufficient funds: needed ${needed.toString()}, got ${got.toString()}`);
     this.name = 'WalletInsufficientFundsError';
   }
 }
@@ -75,7 +75,7 @@ export const WalletOps = {
       if (!checkUser) {
         throw new WalletUserNotFoundError(userId);
       }
-      throw new WalletInsufficientFundsError(Number(rawCents), checkUser.balance);
+      throw new WalletInsufficientFundsError(rawCents, checkUser.balance);
     }
 
     const finalUser = await tx.user.findUniqueOrThrow({
@@ -108,7 +108,8 @@ export const WalletOps = {
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
     const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
-    if (rawCents <= BigInt(0)) {
+    const MAX_SINGLE_CREDIT_CENTS = BigInt(100_000_000); // 1M RUB safety cap
+    if (rawCents <= BigInt(0) || rawCents > MAX_SINGLE_CREDIT_CENTS) {
       throw new WalletInvalidAmountError('Credit');
     }
 

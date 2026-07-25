@@ -130,7 +130,16 @@ export class PaymentService {
             where: { id: currentPayment.id, status: 'PENDING' },
             data: { status: 'SUCCEEDED', gatewayId, receiptId: receiptId || undefined }
           });
-          if (updated.count === 0) return; // DB lock idempotency
+          if (updated.count === 0) {
+            const fresh = await tx.payment.findUnique({
+              where: { id: currentPayment.id },
+              select: { status: true }
+            });
+            console.warn(
+              `[Payment] No transition for ${currentPayment.id}. Current status: ${fresh?.status}`
+            );
+            return true;
+          }
           processedPaymentId = currentPayment.id;
           isOrderPayment = !!currentPayment.orderId;
           linkedOrderId = currentPayment.orderId || '';

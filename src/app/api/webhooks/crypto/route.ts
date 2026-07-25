@@ -97,8 +97,14 @@ export async function POST(request: NextRequest) {
       // W4-2 SECURITY FIX: Use actual fiat paid amount instead of crypto amount
       const resolvedAmount = invoice.paid_fiat_amount ?? (invoice.amount * (invoice.paid_fiat_rate || 1));
       const rawAmountStr = String(resolvedAmount || '0.00');
-      const [intPart, decPart] = rawAmountStr.split('.');
-      const amount = parseInt(intPart || '0', 10) * 100 + parseInt((decPart || '00').padEnd(2, '0').slice(0, 2), 10);
+      const amountMatch = /^(\d+)(?:\.(\d{1,2}))?$/.exec(rawAmountStr.trim());
+      if (!amountMatch) {
+        console.error(`[Crypto Webhook] Invalid amount format: ${rawAmountStr}`);
+        return NextResponse.json({ error: 'Invalid amount format' }, { status: 400 });
+      }
+      const intCents = BigInt(amountMatch[1]) * BigInt(100);
+      const decCents = BigInt((amountMatch[2] || '00').padEnd(2, '0').slice(0, 2));
+      const amount = intCents + decCents;
 
       const success = await paymentService.confirmPayment(
         gatewayId, 
