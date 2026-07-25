@@ -66,11 +66,18 @@ export async function POST(request: NextRequest) {
     // We only care about successfully paid invoices
     if (data.update_type === 'invoice_paid') {
       const invoice = data.payload;
-      const currency = invoice.asset || 'RUB';
-      if (currency && !['RUB', 'USDT', 'TON', 'BTC'].includes(currency.toUpperCase())) {
-        console.error(`[Crypto Webhook] Rejected invalid currency: ${currency}`);
-        return NextResponse.json({ error: 'Unsupported currency' }, { status: 400 });
+
+      if (!invoice || typeof invoice.invoice_id !== 'number' || invoice.invoice_id <= 0) {
+        console.error('[Crypto Webhook] Invalid or missing invoice_id');
+        return NextResponse.json({ error: 'Invalid invoice_id' }, { status: 400 });
       }
+
+      const fiatCurrency = String(invoice.fiat_currency || invoice.paid_asset || 'RUB').toUpperCase();
+      if (fiatCurrency !== 'RUB') {
+        console.error(`[Crypto Webhook] Rejected unsupported fiat currency: ${fiatCurrency}`);
+        return NextResponse.json({ error: 'Unsupported fiat currency' }, { status: 400 });
+      }
+      
       // BUG-008 FIX: Parse JSON payload (new format) or fall back to plain paymentId (legacy)
       let paymentId: string;
       let metadataType: string | undefined;
@@ -93,11 +100,14 @@ export async function POST(request: NextRequest) {
 
       const gatewayId = invoice.invoice_id.toString();
       
-      // Strict Integer parsing complying with IEEE 754 financial rules
-      // W4-2 SECURITY FIX: Use actual fiat paid amount instead of crypto amount
-      const resolvedAmount = invoice.paid_fiat_amount ?? (invoice.amount * (invoice.paid_fiat_rate || 1));
-      const rawAmountStr = String(resolvedAmount || '0.00');
-      const amountMatch = /^(\d+)(?:\.(\d{1,2}))?$/.exec(rawAmountStr.trim());
+      // Strict Integer parsing from exact paid_fiat_amount string (no float multiplication!)
+      if (typeof invoice.paid_fiat_amount !== 'string' && typeof invoice.paid_fiat_amount !== 'number') {
+        console.error('[Crypto Webhook] Missing paid_fiat_amount in payload');
+        return NextResponse.json({ error: 'Missing paid_fiat_amount' }, { status: 400 });
+      }
+
+      const rawAmountStr = String(invoice.paid_fiat_amount).trim();
+      const amountMatch = /^(\d+)(?:\.(\d{1,2}))?$/.exec(rawAmountStr);
       if (!amountMatch) {
         console.error(`[Crypto Webhook] Invalid amount format: ${rawAmountStr}`);
         return NextResponse.json({ error: 'Invalid amount format' }, { status: 400 });

@@ -109,9 +109,14 @@ export async function createBalanceAdjustmentRequestAction(formData: FormData) {
       return { success: false, error: `Запрещено создавать заявку для пользователя с ролью ${targetUser.role}` };
     }
 
-    // Ticket requirement
-    if (policy.requireTicket && (!data.ticketId || data.ticketId.trim().length === 0)) {
-      return { success: false, error: "Для создания заявки требуется указать ID тикета поддержки" };
+    // Ticket requirement & existence check
+    if (data.ticketId && data.ticketId.trim().length > 0) {
+      const ticket = await db.ticket.findUnique({ where: { id: data.ticketId } });
+      if (!ticket) {
+        return { success: false, error: "Указанный тикет поддержки не существует" };
+      }
+    } else if (policy.requireTicket) {
+      return { success: false, error: "Для создания заявки требуется указать ID существующего тикета поддержки" };
     }
 
     // Debit balance check
@@ -124,7 +129,7 @@ export async function createBalanceAdjustmentRequestAction(formData: FormData) {
       }
     }
 
-    // Daily limit calculations for this staff member
+    // Daily limit aggregate calculations for this staff member
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -281,12 +286,18 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
       }
     }
 
-    if (!adjustment.user || adjustment.user.isDeleted || !adjustment.user.isActive) {
-      return { success: false, error: "Целевой пользователь удален или неактивен" };
+    // Fresh Target User Revalidation before approval execution
+    const freshTargetUser = await db.user.findUnique({
+      where: { id: adjustment.userId },
+      select: { id: true, balance: true, isDeleted: true, isActive: true, role: true }
+    });
+
+    if (!freshTargetUser || freshTargetUser.isDeleted || !freshTargetUser.isActive || freshTargetUser.role === 'BANNED') {
+      return { success: false, error: "Целевой пользователь заблокирован, удален или неактивен" };
     }
 
-    if (adjustment.direction === BALANCE_ADJUSTMENT_DIRECTION.DEBIT && adjustment.user.balance < adjustment.amount) {
-      return { success: false, error: "У целевого пользователя недостаточно средств для списания" };
+    if (adjustment.direction === BALANCE_ADJUSTMENT_DIRECTION.DEBIT && freshTargetUser.balance < adjustment.amount) {
+      return { success: false, error: `У целевого пользователя недостаточно средств для списания: баланс ${freshTargetUser.balance.toString()} коп., требуется ${adjustment.amount.toString()} коп.` };
     }
 
     // Atomic Status Transition: PENDING_APPROVAL -> APPROVED

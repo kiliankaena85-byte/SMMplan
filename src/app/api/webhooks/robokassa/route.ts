@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     const isMatch = a.length === b.length && timingSafeEqual(a, b);
 
     if (!isMatch) {
-      console.error(`[Robokassa Webhook] Cryptographic signature mismatch. Expected: ${expectedSig}, Got: ${signatureHex}`);
+      console.error(`[Robokassa Webhook] Cryptographic signature mismatch for payment ${shp_paymentId}`);
       if (ip) {
         await db.securityEvent.create({
           data: {
