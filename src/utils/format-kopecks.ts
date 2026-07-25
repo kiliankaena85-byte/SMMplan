@@ -13,11 +13,11 @@ export function formatKopecks(kopecks: bigint | number | string | null | undefin
     return '0,00 ₽';
   }
 
-  const isNegative = totalKopecks < 0n;
+  const isNegative = totalKopecks < BigInt(0);
   const absKopecks = isNegative ? -totalKopecks : totalKopecks;
 
-  const rubles = absKopecks / 100n;
-  const cents = absKopecks % 100n;
+  const rubles = absKopecks / BigInt(100);
+  const cents = absKopecks % BigInt(100);
 
   const rublesFormatted = rubles.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   const centsFormatted = cents.toString().padStart(2, '0');

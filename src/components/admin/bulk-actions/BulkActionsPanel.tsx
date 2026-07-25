@@ -45,7 +45,7 @@ export function BulkActionsPanel({ selectedOrders, canSeeRates, userRole = 'SUPP
 
   const estimatedRefundKopecks = cancellableOrders.reduce((sum, o) => {
     return sum + (['PENDING', 'AWAITING_PAYMENT'].includes(o.status) ? BigInt(o.charge) : BigInt(Math.round(o.charge * (o.remains / o.quantity))));
-  }, 0n);
+  }, BigInt(0));
 
   // Determine dynamic primary button
   const hasErrors = errorCount > 0;

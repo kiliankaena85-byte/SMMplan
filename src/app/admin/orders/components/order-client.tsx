@@ -102,7 +102,7 @@ function InfoStack({ order, canSeeRates }: { order: OrderColumn; canSeeRates: bo
           <span>Закупка: <strong>{formatKopecks(order.providerCost)}</strong></span>
           <span>·</span>
           <span>
-            Маржа: <strong className={marginKopecks >= 0n ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+            Маржа: <strong className={marginKopecks >= BigInt(0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
               {formatKopecks(marginKopecks)} ({marginPercent}%)
             </strong>
           </span>
@@ -504,7 +504,6 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
       {/* Order Drawer Component */}
       <OrderDrawer
         order={selectedOrder}
-        isOpen={!!editOrderId}
         onClose={closeDrawer}
         canSeeRates={canSeeRates}
       />
@@ -516,10 +515,13 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
           onClose={() => setCancelModalOrder(null)}
           onConfirm={executeSingleCancel}
           title={`Отмена заказа #${cancelModalOrder.numericId}`}
-          description={`Вы уверены, что хотите отменить заказ #${cancelModalOrder.numericId} и произвести возврат средств клиенту (${cancelModalOrder.user.email})?`}
           confirmText="Отменить и вернуть"
-          variant="danger"
-        />
+          isDanger={true}
+        >
+          <p className="text-xs text-muted-foreground">
+            Вы уверены, что хотите отменить заказ #{cancelModalOrder.numericId} и произвести возврат средств клиенту ({cancelModalOrder.user.email})?
+          </p>
+        </ConfirmModal>
       )}
     </div>
   );

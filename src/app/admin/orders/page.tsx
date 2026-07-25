@@ -38,6 +38,12 @@ type Props = {
     maxPrice?: string;
     minQuantity?: string;
     maxQuantity?: string;
+    isDripFeed?: string;
+    noProvider?: string;
+    stale?: string;
+    datePreset?: string;
+    sort?: string;
+    order?: string;
   }>;
 };
 

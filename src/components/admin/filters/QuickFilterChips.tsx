@@ -9,7 +9,7 @@ import {
   Banknote, 
   RefreshCw, 
   Unplug, 
-  CalendarDay, 
+  CalendarDays, 
   Undo2 
 } from 'lucide-react';
 
@@ -65,7 +65,7 @@ export const QUICK_FILTERS = [
   {
     id: 'today',
     label: 'Сегодня',
-    icon: CalendarDay,
+    icon: CalendarDays,
     params: { datePreset: 'today' },
     color: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20'
   },
