@@ -59,7 +59,11 @@ class OrderService {
           throw new Error('USER_NOT_FOUND');
         }
 
-        const userTenantId = user.tenantId || 'smmplan';
+        if (!user.tenantId) {
+          throw new Error('USER_TENANT_MISSING');
+        }
+
+        const userTenantId = user.tenantId;
 
         const service = await tx.service.findUnique({
           where: { id: input.serviceId },
@@ -81,26 +85,34 @@ class OrderService {
           throw new Error('SERVICE_NOT_FOUND');
         }
 
+        if (!service.tenantId) {
+          throw new Error('SERVICE_TENANT_MISSING');
+        }
+
         if (!service.isActive) {
           throw new Error('SERVICE_INACTIVE');
         }
 
-        const serviceTenantId = service.tenantId || service.category?.tenantId || 'smmplan';
+        const serviceTenantId = service.tenantId;
         if (serviceTenantId !== userTenantId) {
-          // REMEDIATION HARDENING: Write SecurityEvent via root db so event persists regardless of tx rollback
-          db.securityEvent.create({
-            data: {
-              event: 'CROSS_TENANT_ORDER_ATTEMPT',
-              severity: 'CRITICAL',
-              details: {
-                userId,
-                userTenantId,
-                serviceId: input.serviceId,
-                serviceTenantId,
-                charge: input.charge
+          // REMEDIATION HARDENING: Await SecurityEvent via root db to guarantee audit trail persistence
+          try {
+            await db.securityEvent.create({
+              data: {
+                event: 'CROSS_TENANT_ORDER_ATTEMPT',
+                severity: 'CRITICAL',
+                details: {
+                  userId,
+                  userTenantId,
+                  serviceId: input.serviceId,
+                  serviceTenantId,
+                  charge: input.charge
+                }
               }
-            }
-          }).catch(err => console.error('[SecurityEvent] Async log error:', err));
+            });
+          } catch (err) {
+            console.error('[SecurityEvent] failed to persist:', err);
+          }
 
           // REMEDIATION HARDENING: Return normalized error to prevent tenant enumeration
           throw new Error('SERVICE_NOT_FOUND');

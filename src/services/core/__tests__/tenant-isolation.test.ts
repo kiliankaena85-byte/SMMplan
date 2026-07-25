@@ -218,20 +218,17 @@ describe('Tenant Isolation & OrderService Remediation', () => {
   });
 
   describe('API v2 Tenant Isolation Negative Tests', () => {
-    it('API v2 handleServices scopes query by user tenantId', async () => {
+    it('API v2 handleServices scopes query strictly by user tenantId and category tenantId', async () => {
       vi.mocked(db.service.findMany).mockResolvedValue([
-        { id: 'srv-tenant-a', numericId: 101, tenantId: 'tenant-a', category: { name: 'Cat A' } },
+        { id: 'srv-tenant-a', numericId: 101, tenantId: 'tenant-a', category: { name: 'Cat A', tenantId: 'tenant-a' } },
       ] as any);
 
       const userTenantA = { id: 'user-a', tenantId: 'tenant-a' };
-      // Simulate API v2 query structure
       const services = await db.service.findMany({
         where: {
           isActive: true,
-          OR: [
-            { tenantId: userTenantA.tenantId },
-            { category: { tenantId: userTenantA.tenantId } }
-          ]
+          tenantId: userTenantA.tenantId,
+          category: { tenantId: userTenantA.tenantId }
         }
       });
 
@@ -239,10 +236,8 @@ describe('Tenant Isolation & OrderService Remediation', () => {
       expect(db.service.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: expect.arrayContaining([
-              { tenantId: 'tenant-a' },
-              { category: { tenantId: 'tenant-a' } }
-            ])
+            tenantId: 'tenant-a',
+            category: { tenantId: 'tenant-a' }
           })
         })
       );
@@ -258,10 +253,8 @@ describe('Tenant Isolation & OrderService Remediation', () => {
         where: {
           numericId: crossTenantServiceId,
           isActive: true,
-          OR: [
-            { tenantId: userTenantA.tenantId },
-            { category: { tenantId: userTenantA.tenantId } }
-          ]
+          tenantId: userTenantA.tenantId,
+          category: { tenantId: userTenantA.tenantId }
         }
       });
 
@@ -303,10 +296,10 @@ describe('Tenant Isolation & OrderService Remediation', () => {
     it('API v2 handleAddMulti rejects mixed tenant services without creating cross-tenant orders', async () => {
       vi.mocked(db.service.findFirst)
         .mockResolvedValueOnce({ id: 'srv-1', numericId: 101, tenantId: 'tenant-a' } as any)
-        .mockResolvedValueOnce(null); // Cross-tenant service returns null for tenant-a query
+        .mockResolvedValueOnce(null);
 
       const userTenantA = { id: 'user-a', tenantId: 'tenant-a' };
-      const requestedServices = [101, 999]; // 101 belongs to A, 999 belongs to B
+      const requestedServices = [101, 999];
       const results: any[] = [];
 
       for (const serviceId of requestedServices) {
@@ -314,10 +307,8 @@ describe('Tenant Isolation & OrderService Remediation', () => {
           where: {
             numericId: serviceId,
             isActive: true,
-            OR: [
-              { tenantId: userTenantA.tenantId },
-              { category: { tenantId: userTenantA.tenantId } }
-            ]
+            tenantId: userTenantA.tenantId,
+            category: { tenantId: userTenantA.tenantId }
           }
         });
 
@@ -359,6 +350,22 @@ describe('Tenant Isolation & OrderService Remediation', () => {
       expect(refill).toBeNull();
       expect(db.refill.findFirst).toHaveBeenCalledWith({
         where: { numericId: 777, order: { userId: 'user-a', tenantId: 'tenant-a' } }
+      });
+    });
+
+    it('API v2 handleRefill rejects cross-tenant order refill attempts', async () => {
+      vi.mocked(db.order.findFirst).mockResolvedValue(null);
+
+      const userTenantA = { id: 'user-a', tenantId: 'tenant-a' };
+      const targetOrderId = 888;
+
+      const orderToRefill = await db.order.findFirst({
+        where: { numericId: targetOrderId, userId: userTenantA.id, tenantId: userTenantA.tenantId }
+      });
+
+      expect(orderToRefill).toBeNull();
+      expect(db.order.findFirst).toHaveBeenCalledWith({
+        where: { numericId: targetOrderId, userId: 'user-a', tenantId: 'tenant-a' }
       });
     });
   });

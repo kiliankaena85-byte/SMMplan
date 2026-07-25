@@ -119,10 +119,8 @@ async function handleServices(user: any, formData: FormData) {
     include: { category: true },
     where: {
       isActive: true,
-      OR: [
-        { tenantId: userTenantId },
-        { category: { tenantId: userTenantId } }
-      ]
+      tenantId: userTenantId,
+      category: { tenantId: userTenantId }
     },
     take: 100,
     skip: safeSkip
@@ -156,10 +154,8 @@ async function handleAdd(user: any, formData: FormData) {
     where: {
       numericId: serviceNumericId,
       isActive: true,
-      OR: [
-        { tenantId: userTenantId },
-        { category: { tenantId: userTenantId } }
-      ]
+      tenantId: userTenantId,
+      category: { tenantId: userTenantId }
     },
     include: { category: true }
   });
@@ -283,10 +279,8 @@ async function handleAddMulti(user: any, formData: FormData) { // Justified: use
         where: {
           numericId: serviceNumericId,
           isActive: true,
-          OR: [
-            { tenantId: userTenantId },
-            { category: { tenantId: userTenantId } }
-          ]
+          tenantId: userTenantId,
+          category: { tenantId: userTenantId }
         }
       });
 
