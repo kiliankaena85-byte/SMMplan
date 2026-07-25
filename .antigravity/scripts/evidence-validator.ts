@@ -75,11 +75,47 @@ function isPlaceholderText(text: string | undefined | null): boolean {
   return trimmed === '' || PLACEHOLDERS.includes(trimmed);
 }
 
+function validateJsonSchema(pack: any): string[] {
+  const schemaErrors: string[] = [];
+  if (!pack || typeof pack !== 'object') {
+    schemaErrors.push('E014_SCHEMA_VIOLATION: Root evidence pack must be a valid JSON object.');
+    return schemaErrors;
+  }
+
+  if (typeof pack.module !== 'string' || isPlaceholderText(pack.module)) {
+    schemaErrors.push('E014_SCHEMA_VIOLATION: Property "module" is required and must be a non-empty string.');
+  }
+
+  if (typeof pack.baseline_commit !== 'string') {
+    schemaErrors.push('E014_SCHEMA_VIOLATION: Property "baseline_commit" is required and must be a string.');
+  }
+
+  if (typeof pack.schema_sha256 !== 'string') {
+    schemaErrors.push('E014_SCHEMA_VIOLATION: Property "schema_sha256" is required and must be a string.');
+  }
+
+  if (typeof pack.closure_status !== 'string') {
+    schemaErrors.push('E014_SCHEMA_VIOLATION: Property "closure_status" is required and must be a string.');
+  }
+
+  if (!Array.isArray(pack.controls)) {
+    schemaErrors.push('E014_SCHEMA_VIOLATION: Property "controls" must be an array.');
+  }
+
+  return schemaErrors;
+}
+
 export function validateEvidencePack(pack: EvidencePack): ValidationReport {
   const errors: string[] = [];
   const warnings: string[] = [];
   const rejectedControls: string[] = [];
   const rejectedRisks: string[] = [];
+
+  // 0. SCHEMA VALIDATION (E014)
+  const schemaViolations = validateJsonSchema(pack);
+  if (schemaViolations.length > 0) {
+    errors.push(...schemaViolations);
+  }
 
   // 1. BASELINE CHECKS
   if (!pack.baseline_commit || pack.baseline_commit === 'UNCOMMITTED' || isPlaceholderText(pack.baseline_commit)) {
@@ -95,7 +131,7 @@ export function validateEvidencePack(pack: EvidencePack): ValidationReport {
   }
 
   // 2. CONTROL CHECKS
-  if (!pack.controls || pack.controls.length === 0) {
+  if (!pack.controls || !Array.isArray(pack.controls) || pack.controls.length === 0) {
     warnings.push('W003_NO_CONTROLS: Evidence pack contains no control definitions.');
   } else {
     for (const ctrl of pack.controls) {
@@ -133,6 +169,24 @@ export function validateEvidencePack(pack: EvidencePack): ValidationReport {
       if (ctrl.status === 'VERIFIED_PASS' && snippets.some(s => s.toLowerCase().includes('model exists') || s.toLowerCase().includes('schema definition only'))) {
         errors.push(`E007_MODEL_EXISTENCE_AS_PROOF: Control ${ctrl.control_id} attempts to use model existence as proof of active control enforcement.`);
         ctrlRejected = true;
+      }
+
+      // E011, E012, E013: Unstable / Random Idempotency Keys in code snippets
+      for (const snippet of snippets) {
+        if (snippet.includes('idempotency') || snippet.includes('idempotencyKey') || snippet.includes('key')) {
+          if (snippet.includes('Date.now()')) {
+            errors.push(`E011_UNSTABLE_IDEMPOTENCY_KEY: Control ${ctrl.control_id} uses unstable Date.now() timestamp in idempotency key constructor.`);
+            ctrlRejected = true;
+          }
+          if (snippet.includes('Math.random()')) {
+            errors.push(`E012_RANDOM_IDEMPOTENCY_KEY: Control ${ctrl.control_id} uses random Math.random() in idempotency key constructor.`);
+            ctrlRejected = true;
+          }
+          if (snippet.includes('randomUUID()') && !snippet.includes('.id')) {
+            errors.push(`E013_NON_PERSISTED_RANDOM_KEY: Control ${ctrl.control_id} uses unpersisted randomUUID() in idempotency key constructor.`);
+            ctrlRejected = true;
+          }
+        }
       }
 
       // L3 Positive Tests

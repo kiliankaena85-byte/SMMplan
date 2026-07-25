@@ -34,7 +34,7 @@
     "harness:reconcile": "tsx .antigravity/scripts/reconciliation.ts",
     "harness:test": "tsx .antigravity/scripts/test-runner.ts",
     "harness:evals": "tsx .antigravity/scripts/run-evals.ts",
-    "harness:selftest": "vitest run .antigravity/tests/harness.test.ts",
+    "harness:selftest": "vitest run .antigravity/tests/",
     "harness:all": "npm run harness:baseline && npm run harness:scan && npm run harness:reconcile && npm run harness:test && npm run harness:evals"
   },
   "prisma": {

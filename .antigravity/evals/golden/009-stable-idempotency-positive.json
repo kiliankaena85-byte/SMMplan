@@ -6,19 +6,19 @@
   "closure_status": "CLOSED",
   "controls": [
     {
-      "control_id": "SEC-IDEM-01",
+      "control_id": "SEC-IDEM-09",
       "category": "security",
       "status": "VERIFIED_PASS",
       "evidence_level": "L4_NEGATIVE_TEST_PASSED",
       "files": ["src/app/api/webhooks/route.ts"],
-      "code_snippets": ["const idempotencyKey = `webhook-${paymentId}-${Date.now()}`;"],
+      "code_snippets": ["const idempotencyKey = `webhook-confirm-${payment.id}`;"],
       "positive_tests": ["webhook.test.ts > processes webhook"],
       "negative_tests": ["webhook.test.ts > rejects invalid signature"]
     }
   ],
   "risks": [
     {
-      "risk_id": "SEC-IDEM-RISK-01",
+      "risk_id": "SEC-IDEM-RISK-09",
       "severity": "HIGH",
       "status": "CLOSED"
     }
