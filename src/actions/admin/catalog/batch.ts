@@ -114,6 +114,48 @@ export async function batchSetMarkupAction(
   });
 }
 
+/** Preview price changes before applying batch markup */
+export async function previewBatchMarkupAction(
+  serviceIds: string[],
+  newMarkup: number
+) {
+  return requireStaffPermission('catalog', 'view', async () => {
+    const ids = batchIdsSchema.safeParse(serviceIds);
+    if (!ids.success) return { success: false as const, error: 'Invalid service IDs' };
+
+    const markupValidation = markupSchema.safeParse(newMarkup);
+    if (!markupValidation.success) {
+      return { success: false as const, error: `Минимальная маржа ${MIN_MARKUP.toFixed(2)}x` };
+    }
+
+    const m = markupValidation.data;
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+
+    const services = await db.service.findMany({
+      where: { id: { in: ids.data } },
+      select: { id: true, name: true, rate: true, markup: true, pricePer1000Cents: true, providerCurrency: true },
+      take: 10
+    });
+
+    const samples = services.map(s => {
+      const oldPriceRub = s.pricePer1000Cents / 100;
+      const rateRub = s.providerCurrency === 'RUB' ? s.rate : s.rate * usdToRub;
+      const newPriceRub = applyBeautifulRounding(rateRub * m);
+      return {
+        id: s.id,
+        name: s.name,
+        oldMarkup: s.markup,
+        newMarkup: m,
+        oldPriceRub,
+        newPriceRub,
+        diffPercent: Math.round(((newPriceRub - oldPriceRub) / (oldPriceRub || 1)) * 100)
+      };
+    });
+
+    return { success: true as const, samples, totalCount: ids.data.length };
+  });
+}
+
 /** Update single service markup (inline edit) */
 export async function updateServiceMarkupAction(
   serviceId: string,

@@ -176,6 +176,29 @@ export function OrderDrawer({
     setConfirmAction(null);
   }, [fullOrder]);
 
+  // Keyboard Shortcuts: Alt+C (Cancel), Alt+R (Restart), Alt+M (Failover)
+  useEffect(() => {
+    if (!order) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.altKey) {
+        if (e.code === 'KeyC') {
+          e.preventDefault();
+          setConfirmAction('cancel');
+          setConfirmOpen(true);
+        } else if (e.code === 'KeyR') {
+          e.preventDefault();
+          setConfirmAction('restart');
+          setConfirmOpen(true);
+        } else if (e.code === 'KeyM') {
+          e.preventDefault();
+          setIsFailoverModalOpen(prev => !prev);
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [order]);
+
   if (!order) return null;
 
   const currentOrder = fullOrder || order;
@@ -532,7 +555,7 @@ export function OrderDrawer({
                 onClick={handleForceComplete}
                 disabled={isPending || currentOrder.status === 'COMPLETED'}
                 aria-label="Принудительно завершить заказ"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-emerald-300 bg-success/10 text-emerald-700 hover:bg-success/20 transition-all duration-200 disabled:opacity-40"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-emerald-500/30 bg-success/10 text-success hover:bg-success/20 transition-all duration-200 disabled:opacity-40"
               >
                 <CheckCircle className="w-4 h-4" />
                 Завершить
@@ -541,29 +564,29 @@ export function OrderDrawer({
                 onClick={handleRestart}
                 disabled={isPending || currentOrder.status !== 'ERROR'}
                 aria-label="Перезапустить заказ"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all duration-200 disabled:opacity-40"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 disabled:opacity-40"
               >
                 <RotateCcw className="w-4 h-4" />
-                Перезапустить
+                Перезапустить <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">Alt+R</kbd>
               </button>
               <button
                 onClick={handleCancel}
                 disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL', 'IN_PROGRESS', 'ERROR'].includes(currentOrder.status)}
                 aria-label="Отменить заказ"
-                className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-rose-300 bg-destructive/10 text-rose-700 hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40"
+                className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40"
               >
                 <XCircle className="w-4 h-4" />
-                Отменить заказ
+                Отменить заказ <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">Alt+C</kbd>
               </button>
               {['ERROR', 'CANCELED'].includes(currentOrder.status) && (
                 <button
                   onClick={handleFailoverClick}
                   disabled={isPending}
                   aria-label="Ручной перезапуск (Failover)"
-                  className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all duration-200 disabled:opacity-40"
+                  className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 transition-all duration-200 disabled:opacity-40"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  Failover (Сменить провайдера)
+                  Failover (Сменить провайдера) <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">Alt+M</kbd>
                 </button>
               )}
             </div>

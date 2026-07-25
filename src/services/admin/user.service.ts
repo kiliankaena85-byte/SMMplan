@@ -155,10 +155,15 @@ class AdminUserService {
 
     if (user.id === admin.id) throw new Error('Cannot ban yourself');
 
-    await db.user.update({
-      where: { id: userId },
-      data: { role: 'BANNED' },
-    });
+    await db.$transaction([
+      db.user.update({
+        where: { id: userId },
+        data: { role: 'BANNED' },
+      }),
+      db.session.deleteMany({
+        where: { userId },
+      }),
+    ]);
 
     auditAdmin({
       adminId: admin.id,
