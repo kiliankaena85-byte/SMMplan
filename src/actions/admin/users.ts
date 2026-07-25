@@ -145,6 +145,9 @@ export async function loginAsAction(formData: FormData) {
     }
 
     const targetUser = await db.user.findUniqueOrThrow({ where: { id: userId } });
+    if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN')) {
+      return { success: false as const, error: 'Запрещено входить от имени администраторов и владельцев' };
+    }
     const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
 
     // SD-07 SECURITY FIX: Record impersonation origin for audit trail integrity.

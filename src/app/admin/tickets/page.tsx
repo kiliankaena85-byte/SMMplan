@@ -21,7 +21,7 @@ import { enforceSectionAccess } from '@/lib/server/rbac';
 import { getMSKMidnightUTC } from '@/services/admin/escrow.service';
 
 export default async function AdminTicketsPage({ searchParams }: Props) {
-  await enforceSectionAccess('orders');
+  await enforceSectionAccess('tickets');
   const params = await searchParams;
   const search = params.q || '';
   const statusFilter = params.status || 'ALL';

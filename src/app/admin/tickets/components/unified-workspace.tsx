@@ -351,9 +351,9 @@ export function UnifiedTicketsWorkspace({
                         </span>
                         <span className="hidden sm:inline w-1 h-1 rounded-full bg-border shrink-0" />
                         <span className="text-foreground flex items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0 w-max">
-                          <Wallet className="w-3 h-3 shrink-0 text-muted-foreground" /> {formatBalance(activeTicket.user.balance)}
+                          <Wallet className="w-3 h-3 shrink-0 text-muted-foreground" /> {canSeeRates ? formatBalance(activeTicket.user.balance) : '🔒 *** ₽'}
                         </span>
-                        {activeTicket.user.totalSpent !== undefined && (
+                        {canSeeRates && activeTicket.user.totalSpent !== undefined && (
                           <>
                             <span className="hidden sm:inline w-1 h-1 rounded-full bg-border shrink-0" />
                             <span className="text-foreground flex items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0 w-max" title="Общий объем покупок клиента (LTV)">

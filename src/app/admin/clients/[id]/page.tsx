@@ -35,7 +35,7 @@ type Props = { params: Promise<{ id: string }> };
 import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export default async function ClientDetailPage({ params }: Props) {
-  await enforceSectionAccess('finance');
+  await enforceSectionAccess('clients');
   const session = await verifySession();
   const currentUser = session ? await db.user.findUnique({ 
     where: { id: session.userId },
