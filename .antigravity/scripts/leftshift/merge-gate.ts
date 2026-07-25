@@ -33,6 +33,9 @@ export interface MergeGateReport {
   timestamp: string;
 }
 
+const safeJsonStringify = (obj: any) =>
+  JSON.stringify(obj, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2);
+
 export async function runMergeGate(allowDirtyFlag: boolean = false): Promise<MergeGateReport> {
   const block_reasons: string[] = [];
   const steps: MergeGateStepResult[] = [];
@@ -167,8 +170,8 @@ export async function runMergeGate(allowDirtyFlag: boolean = false): Promise<Mer
   const outDir = path.resolve(process.cwd(), '.antigravity/reports');
   fs.mkdirSync(outDir, { recursive: true });
   const fileTimestamp = timestamp.replace(/[:.]/g, '-');
-  fs.writeFileSync(path.join(outDir, `leftshift-merge-gate-${fileTimestamp}.json`), JSON.stringify(report, null, 2));
-  fs.writeFileSync(path.join(outDir, `leftshift-merge-gate-latest.json`), JSON.stringify(report, null, 2));
+  fs.writeFileSync(path.join(outDir, `leftshift-merge-gate-${fileTimestamp}.json`), safeJsonStringify(report));
+  fs.writeFileSync(path.join(outDir, `leftshift-merge-gate-latest.json`), safeJsonStringify(report));
 
   return report;
 }
@@ -178,14 +181,14 @@ if (require.main === module) {
   const allowDirty = process.argv.includes('--allow-dirty');
   runMergeGate(allowDirty)
     .then(report => {
-      console.log(JSON.stringify({
+      console.log(safeJsonStringify({
         blocked: report.blocked,
         block_reasons: report.block_reasons,
         recalibrated_critical_count: report.recalibrated_critical_count,
         total_static_findings: report.static_findings.length,
         steps: report.steps.map(s => ({ step: s.step, name: s.name, passed: s.passed })),
         timestamp: report.timestamp
-      }, null, 2));
+      }));
 
       if (report.blocked) {
         console.error('\n🛑 MERGE BLOCKED: The pull request / commit contains security violations or unverified changes!');

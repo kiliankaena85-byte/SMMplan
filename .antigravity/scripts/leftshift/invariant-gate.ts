@@ -11,6 +11,9 @@ export interface InvariantGateResult {
   timestamp: string;
 }
 
+const safeJsonStringify = (obj: any) =>
+  JSON.stringify(obj, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2);
+
 export async function runInvariantGate(): Promise<InvariantGateResult> {
   const report = await runReconciliation();
   const passed = report.passed;
@@ -30,7 +33,7 @@ export async function runInvariantGate(): Promise<InvariantGateResult> {
     timestamp: new Date().toISOString()
   };
 
-  fs.writeFileSync(evidenceFile, JSON.stringify(result, null, 2));
+  fs.writeFileSync(evidenceFile, safeJsonStringify(result));
 
   return result;
 }
@@ -39,7 +42,7 @@ if (require.main === module) {
   console.log('=== ALSH INVARIANT GATE ===');
   runInvariantGate()
     .then(res => {
-      console.log(JSON.stringify({ passed: res.passed, criticalFailuresCount: res.criticalFailuresCount, evidenceFile: res.evidenceFile }, null, 2));
+      console.log(safeJsonStringify({ passed: res.passed, criticalFailuresCount: res.criticalFailuresCount, evidenceFile: res.evidenceFile }));
       if (!res.passed) {
         console.error('\nBLOCKED: Invariant gate failed! Critical database invariants violated.');
         process.exit(1);
