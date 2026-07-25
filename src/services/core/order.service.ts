@@ -49,7 +49,65 @@ class OrderService {
 
       // 2. Atomic Charge & Creation (Prevents Ghost Deductions)
       const newOrder = await runSerializableTransaction(async (tx) => {
-        // 2a. Unconditionally attempt charge (Double spreading & Race condition protected)
+        // 2a. Fetch User tenant and validate service tenant isolation
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: { id: true, tenantId: true }
+        });
+
+        if (!user) {
+          throw new Error('USER_NOT_FOUND');
+        }
+
+        const userTenantId = user.tenantId || 'smmplan';
+
+        const service = await tx.service.findUnique({
+          where: { id: input.serviceId },
+          select: {
+            id: true,
+            providerId: true,
+            externalId: true,
+            tenantId: true,
+            isActive: true,
+            minQty: true,
+            maxQty: true,
+            category: {
+              select: { tenantId: true }
+            }
+          }
+        });
+
+        if (!service) {
+          throw new Error('SERVICE_NOT_FOUND');
+        }
+
+        if (!service.isActive) {
+          throw new Error('SERVICE_INACTIVE');
+        }
+
+        const serviceTenantId = service.tenantId || service.category?.tenantId || 'smmplan';
+        if (serviceTenantId !== userTenantId) {
+          await tx.securityEvent.create({
+            data: {
+              event: 'CROSS_TENANT_ORDER_ATTEMPT',
+              severity: 'CRITICAL',
+              details: {
+                userId,
+                userTenantId,
+                serviceId: input.serviceId,
+                serviceTenantId,
+                charge: input.charge
+              }
+            }
+          });
+          throw new Error('CROSS_TENANT_ORDER_DENIED');
+        }
+
+        if (input.quantity < service.minQty || input.quantity > service.maxQty) {
+          throw new Error(`QUANTITY_OUT_OF_BOUNDS: Allowed ${service.minQty}-${service.maxQty}`);
+        }
+
+        // 2b. Unconditionally attempt charge (Double spreading & Race condition protected)
         await WalletOps.charge(
           tx,
           userId, 
@@ -58,17 +116,15 @@ class OrderService {
           { idempotencyKey }
         );
 
-        // 2b. Snapshot Routing
-        const service = await tx.service.findUnique({
-          where: { id: input.serviceId },
-          select: { providerId: true, externalId: true }
-        });
-        
+        // 2c. Snapshot Routing (Filtered by active provider)
         const primaryRoute = await tx.serviceRoute.findFirst({
           where: {
             serviceId: input.serviceId,
             isPrimary: true,
             isActive: true,
+            provider: {
+              isActive: true
+            }
           },
           select: {
             providerId: true,
@@ -79,10 +135,11 @@ class OrderService {
         const resolvedProviderId = primaryRoute?.providerId ?? service?.providerId;
         const resolvedExternalId = primaryRoute?.providerServiceId ?? service?.externalId;
 
-        // 2c. Create Order in DB
+        // 2d. Create Order in DB
         const createdOrder = await tx.order.create({
           data: {
             userId,
+            tenantId: userTenantId,
             serviceId: input.serviceId,
             providerId: resolvedProviderId,
             providerServiceId: resolvedExternalId,
@@ -104,7 +161,7 @@ class OrderService {
           }
         });
 
-        // 2c. Award pending commission based on Margin
+        // 2e. Award pending commission based on Margin
         const margin = input.charge - input.providerCost;
         if (margin > 0) {
           const { LoyaltyService } = await import('../users/loyalty.service');

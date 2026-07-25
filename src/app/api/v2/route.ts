@@ -102,6 +102,7 @@ export async function POST(request: NextRequest) {
 }
 
 // ----------------------------------------------------------------------
+// ----------------------------------------------------------------------
 // ACTION HANDLERS
 // ----------------------------------------------------------------------
 
@@ -111,12 +112,18 @@ async function handleServices(user: any, formData: FormData) {
   const skip = parseInt(offset, 10);
 
   // SD-15 SECURITY FIX: Cap offset at 1000 and limit at 100 to reduce scraping attractiveness.
-  // Scrapers would need many requests (hitting rate limits) instead of bulk-dumping the catalog.
   const safeSkip = isNaN(skip) ? 0 : Math.min(skip, 1000);
+  const userTenantId = user.tenantId || 'smmplan';
 
   const services = await db.service.findMany({
     include: { category: true },
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      OR: [
+        { tenantId: userTenantId },
+        { category: { tenantId: userTenantId } }
+      ]
+    },
     take: 100,
     skip: safeSkip
   });
@@ -143,9 +150,28 @@ async function handleAdd(user: any, formData: FormData) {
   }
 
   const { service: serviceNumericId, link, quantity, runs, interval } = parsed.data;
+  const userTenantId = user.tenantId || 'smmplan';
 
-  const service = await db.service.findUnique({ where: { numericId: serviceNumericId } });
-  if (!service || !service.isActive) {
+  const service = await db.service.findFirst({
+    where: {
+      numericId: serviceNumericId,
+      isActive: true,
+      OR: [
+        { tenantId: userTenantId },
+        { category: { tenantId: userTenantId } }
+      ]
+    },
+    include: { category: true }
+  });
+
+  if (!service) {
+    await db.securityEvent.create({
+      data: {
+        event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
+        severity: 'CRITICAL',
+        details: { userId: user.id, userTenantId, serviceNumericId }
+      }
+    });
     return NextResponse.json({ error: 'Incorrect service ID' }, { status: 400 });
   }
 
@@ -241,6 +267,7 @@ async function handleAddMulti(user: any, formData: FormData) { // Justified: use
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results: any[] = []; // Justified: dynamic results array containing orders or errors
+  const userTenantId = user.tenantId || 'smmplan';
 
   for (const rawOrder of rawOrders) {
     const parsed = addSchema.safeParse(rawOrder);
@@ -252,8 +279,25 @@ async function handleAddMulti(user: any, formData: FormData) { // Justified: use
     const { service: serviceNumericId, link, quantity, runs, interval } = parsed.data;
 
     try {
-      const service = await db.service.findUnique({ where: { numericId: serviceNumericId } });
-      if (!service || !service.isActive) {
+      const service = await db.service.findFirst({
+        where: {
+          numericId: serviceNumericId,
+          isActive: true,
+          OR: [
+            { tenantId: userTenantId },
+            { category: { tenantId: userTenantId } }
+          ]
+        }
+      });
+
+      if (!service) {
+        await db.securityEvent.create({
+          data: {
+            event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
+            severity: 'CRITICAL',
+            details: { userId: user.id, userTenantId, serviceNumericId }
+          }
+        });
         results.push({ error: 'Incorrect service ID' });
         continue;
       }
@@ -306,15 +350,23 @@ async function handleAddMulti(user: any, formData: FormData) { // Justified: use
 async function handleStatus(user: User, formData: FormData) {
   const orderStr = formData.get('order')?.toString();
   const ordersStr = formData.get('orders')?.toString();
+  const userTenantId = user.tenantId || 'smmplan';
 
   if (orderStr) {
     // Single
     const numericId = parseInt(orderStr, 10);
-    const order = isNaN(numericId) ? null : await db.order.findUnique({
-      where: { numericId }
+    const order = isNaN(numericId) ? null : await db.order.findFirst({
+      where: { numericId, userId: user.id, tenantId: userTenantId }
     });
 
-    if (!order || order.userId !== user.id) {
+    if (!order) {
+      await db.securityEvent.create({
+        data: {
+          event: 'API_V2_UNAUTHORIZED_ORDER_ACCESS',
+          severity: 'WARNING',
+          details: { userId: user.id, userTenantId, numericId }
+        }
+      });
       return NextResponse.json({ error: 'Incorrect order ID' }, { status: 400 });
     }
 
@@ -334,7 +386,8 @@ async function handleStatus(user: User, formData: FormData) {
     const orders = await db.order.findMany({
       where: {
         numericId: { in: ids },
-        userId: user.id
+        userId: user.id,
+        tenantId: userTenantId
       }
     });
 
@@ -375,11 +428,12 @@ async function handleCancel(user: User, formData: FormData) {
     return NextResponse.json({ error: 'Missing order parameter' }, { status: 400 });
   }
 
+  const userTenantId = user.tenantId || 'smmplan';
   const ids = ordersStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)).slice(0, 100);
   
-  // Fetch orders
+  // Fetch orders with tenant check
   const orders = await db.order.findMany({
-    where: { numericId: { in: ids }, userId: user.id }
+    where: { numericId: { in: ids }, userId: user.id, tenantId: userTenantId }
   });
 
   const resultMap: Record<string, string> = {};
@@ -425,13 +479,15 @@ async function handleRefill(user: User, formData: FormData) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleRefillStatus(user: any, formData: FormData) {
   const refillStr = formData.get('refill')?.toString();
+  const userTenantId = user.tenantId || 'smmplan';
+
   if (!refillStr) {
     const refillsStr = formData.get('refills')?.toString();
     if (refillsStr) {
       // Multiple
       const ids = refillsStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)).slice(0, 100);
       const refills = await db.refill.findMany({
-        where: { numericId: { in: ids }, order: { userId: user.id } }
+        where: { numericId: { in: ids }, order: { userId: user.id, tenantId: userTenantId } }
       });
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -451,15 +507,16 @@ async function handleRefillStatus(user: any, formData: FormData) {
   const numericId = parseInt(refillStr, 10);
   if (isNaN(numericId)) return NextResponse.json({ error: 'Incorrect refill ID' }, { status: 400 });
 
-  const refill = await db.refill.findUnique({
-    where: { numericId },
+  const refill = await db.refill.findFirst({
+    where: { numericId, order: { userId: user.id, tenantId: userTenantId } },
     include: { order: true }
   });
 
-  if (!refill || refill.order.userId !== user.id) {
+  if (!refill) {
     return NextResponse.json({ error: 'Incorrect refill ID' }, { status: 400 });
   }
 
   return NextResponse.json({ status: mapRefillStatus(refill.status) });
 }
+
 

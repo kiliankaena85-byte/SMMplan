@@ -13,6 +13,7 @@ model User {
   email             String
   passwordHash      String?
   role              String    @default("USER") // USER, SUPPORT, MANAGER, OWNER
+  preferredDashboard String   @default("CLASSIC") // "CLASSIC" or "LOVABLE"
   balance           BigInt    @default(0)
   quarantineBalance BigInt    @default(0) // Funds pending Owner approval (Escrow)
   totalSpent        BigInt    @default(0) // Lifetime value in Cents
@@ -145,10 +146,13 @@ model Network {
   icon        String? // SVG content or name
   sort        Int          @default(0)
   isActive    Boolean      @default(true)
+  tenantId    String       @default("smmplan")
   categories  Category[]
   urlPatterns UrlPattern[] // Link detection patterns
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  @@index([tenantId])
 }
 
 // URL patterns for link detection (two-level: network + content type)
@@ -170,6 +174,7 @@ model Category {
   slug           String    @unique @default(cuid())
   networkId      String?
   network        Network?  @relation(fields: [networkId], references: [id], onDelete: Restrict)
+  tenantId       String    @default("smmplan")
   sort           Int       @default(0)
   requireWarning Boolean   @default(false)
   warningMessage String?
@@ -179,6 +184,7 @@ model Category {
   updatedAt      DateTime  @updatedAt
 
   @@index([networkId])
+  @@index([tenantId])
 }
 
 model Service {
@@ -189,6 +195,7 @@ model Service {
   features         Json? // Structured metadata extracted by AI (geo, speed, warranty)
   categoryId       String
   category         Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  tenantId         String    @default("smmplan")
   providerId       String? // Link to Provider who fulfills this service
   provider         Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
   rate             Float // provider rate per 1000
@@ -249,6 +256,7 @@ model Service {
   @@index([providerId])
   @@index([isQuarantined])
   @@index([externalId])
+  @@index([tenantId])
 }
 
 model Provider {
@@ -476,7 +484,7 @@ model Tenant {
   domain       String   @unique
   customDomain String?  @unique
   isActive     Boolean  @default(true)
-  vaultSalt    String
+  vaultSalt    String   @default("") // TODO: Implement per-tenant HKDF key derivation (P2)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
