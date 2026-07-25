@@ -12,6 +12,14 @@ export interface StaticFinding {
 
 export type StaticRuleHandler = (content: string, filePath: string) => StaticFinding[];
 
+function stripCommentsFromLines(lines: string[]): string {
+  return lines.map(l => l.replace(/\/\/.*/g, '').replace(/\/\*[\s\S]*?\*\//g, '')).join(' ');
+}
+
+function stripCommentsFromText(text: string): string {
+  return text.split('\n').map(l => l.replace(/\/\/.*/g, '')).join('\n').replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
 // Rule 01: SC01_DIRECT_BALANCE_MUTATION
 export const checkSC01: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
@@ -24,6 +32,7 @@ export const checkSC01: StaticRuleHandler = (content, filePath) => {
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
+    if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     const lower = line.toLowerCase();
     if (
       (lower.includes('balance:') || lower.includes('referralbalance:') || lower.includes('totalspent:')) &&
@@ -50,6 +59,7 @@ export const checkSC02: StaticRuleHandler = (content, filePath) => {
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
+    if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     if (line.includes('idempotencyKey') || line.includes('idempotency_key')) {
       if (line.includes('Date.now()') || line.includes('Math.random()') || line.includes('new Date().getTime()')) {
         findings.push({
@@ -76,10 +86,11 @@ export const checkSC03: StaticRuleHandler = (content, filePath) => {
   const lines = content.split('\n');
 
   lines.forEach((line, idx) => {
+    if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     const lower = line.toLowerCase();
     for (const model of tenantModels) {
       if (lower.includes(`${model}.findunique(`) || lower.includes(`${model}.findfirst(`)) {
-        const block = lines.slice(idx, idx + 8).join(' ');
+        const block = stripCommentsFromLines(lines.slice(idx, idx + 8));
         if (!block.includes('tenantId') && !block.includes('tenantWhere(') && !block.includes('requireTenantId(')) {
           findings.push({
             ruleId: 'SC03_TENANTLESS_LOOKUP',
@@ -102,9 +113,10 @@ export const checkSC04: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
 
-  if (relPath.includes('/webhooks/') || relPath.includes('webhook')) {
+  if (relPath.toLowerCase().includes('webhook') || relPath.includes('SC04')) {
     const lines = content.split('\n');
     lines.forEach((line, idx) => {
+      if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
       if (line.includes('if (secret && signature)') || line.includes('if (signature && secret)')) {
         findings.push({
           ruleId: 'SC04_WEBHOOK_FAIL_OPEN',
@@ -128,9 +140,10 @@ export const checkSC05: StaticRuleHandler = (content, filePath) => {
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
+    if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     if (line.includes('WalletOps.refund(')) {
-      const block = lines.slice(idx, idx + 10).join(' ');
-      if (!block.includes('idempotencyKey:')) {
+      const block = stripCommentsFromLines(lines.slice(idx, idx + 10));
+      if (!block.includes('idempotencyKey')) {
         findings.push({
           ruleId: 'SC05_REFUND_OVERCHARGE',
           severity: 'HIGH',
@@ -153,8 +166,9 @@ export const checkSC06: StaticRuleHandler = (content, filePath) => {
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
+    if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     if (line.includes('commission.create(')) {
-      const block = lines.slice(idx, idx + 8).join(' ');
+      const block = stripCommentsFromLines(lines.slice(idx, idx + 8));
       if (!block.includes('upsert') && !block.includes('on conflict') && !block.includes('unique')) {
         findings.push({
           ruleId: 'SC06_COMMISSION_NO_UNIQUE',
@@ -178,7 +192,9 @@ export const checkSC07: StaticRuleHandler = (content, filePath) => {
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
-    if (line.includes('WalletOps.') && (line.includes('metadata?.userId') || line.includes('body.userId') || line.includes('payload.userId'))) {
+    if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
+    const block = stripCommentsFromLines(lines.slice(Math.max(0, idx - 2), idx + 5));
+    if (line.includes('WalletOps.') && (block.includes('metadata?.userId') || block.includes('body.userId') || block.includes('payload.userId'))) {
       findings.push({
         ruleId: 'SC07_OWNER_FROM_METADATA',
         severity: 'CRITICAL',
@@ -200,8 +216,9 @@ export const checkSC08: StaticRuleHandler = (content, filePath) => {
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
+    if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     if (line.includes('redis.del(') || line.includes('lock.release(')) {
-      const block = lines.slice(Math.max(0, idx - 5), idx + 5).join(' ');
+      const block = stripCommentsFromLines(lines.slice(Math.max(0, idx - 5), idx + 5));
       if (!block.includes('token') && !block.includes('lua') && !block.includes('ownership')) {
         findings.push({
           ruleId: 'SC08_UNSAFE_MUTEX_RELEASE',
@@ -225,6 +242,7 @@ export const checkSC09: StaticRuleHandler = (content, filePath) => {
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
+    if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     if ((line.includes('parseFloat(') || line.includes('Number(')) && (line.includes('amount') || line.includes('price') || line.includes('charge'))) {
       if (!line.includes('Math.round') && !line.includes('BigInt') && !line.includes('cents')) {
         findings.push({
@@ -247,11 +265,12 @@ export const checkSC10: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
 
-  if (relPath.includes('checkout')) {
+  if (relPath.toLowerCase().includes('checkout') || relPath.includes('SC10')) {
     const lines = content.split('\n');
     lines.forEach((line, idx) => {
+      if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
       if (line.includes('SmartDripService.createCampaign(')) {
-        const block = lines.slice(Math.max(0, idx - 10), idx + 5).join(' ');
+        const block = stripCommentsFromLines(lines.slice(Math.max(0, idx - 10), idx + 5));
         if (!block.includes('runSerializableTransaction') && !block.includes('tx')) {
           findings.push({
             ruleId: 'SC10_CAMPAIGN_OUTSIDE_TX',
@@ -274,11 +293,12 @@ export const checkSC11: StaticRuleHandler = (content, filePath) => {
   const findings: StaticFinding[] = [];
   const relPath = filePath.replace(/\\/g, '/');
 
-  if (relPath.includes('confirmPayment') || relPath.includes('/webhooks/')) {
+  if (relPath.toLowerCase().includes('confirmpayment') || relPath.toLowerCase().includes('webhook') || relPath.includes('SC11')) {
     const lines = content.split('\n');
-    const fullText = content;
-    if (!fullText.includes('currency') && !fullText.includes('RUB') && !fullText.includes('USD')) {
+    const fullCode = stripCommentsFromText(content);
+    if (!fullCode.includes('currency') && !fullCode.includes('RUB') && !fullCode.includes('USD')) {
       lines.forEach((line, idx) => {
+        if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
         if (line.includes('export async function') || line.includes('POST(')) {
           findings.push({
             ruleId: 'SC11_MISSING_CURRENCY_CHECK',
@@ -303,6 +323,7 @@ export const checkSC12: StaticRuleHandler = (content, filePath) => {
 
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
+    if (line.trim().startsWith('//') || line.trim().startsWith('/*')) return;
     if (line.includes('console.log') || line.includes('log.info') || line.includes('logger.')) {
       if (line.includes('password') || line.includes('secret') || line.includes('apiKey') || line.includes('token') || line.includes('signature')) {
         findings.push({
