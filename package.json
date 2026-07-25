@@ -27,7 +27,15 @@
     "seed:legal": "tsx scripts/seed-legal-cms.ts",
     "seed:graphrag": "dotenv -e .env -- tsx scripts/seed-graphrag-stack.ts",
     "check-balances": "dotenv -e .env -- tsx src/utils/balance-verifier.ts",
-    "pixelrag:admin": "dotenv -e .env -- tsx scripts/pixelrag-admin-audit.ts && dotenv -e .env -- tsx scripts/pixelrag-admin-analyze.ts"
+    "pixelrag:admin": "dotenv -e .env -- tsx scripts/pixelrag-admin-audit.ts && dotenv -e .env -- tsx scripts/pixelrag-admin-analyze.ts",
+    "harness:baseline": "tsx .antigravity/scripts/baseline.ts",
+    "harness:validate": "tsx .antigravity/scripts/evidence-validator.ts",
+    "harness:scan": "tsx .antigravity/scripts/run-scanners.ts",
+    "harness:reconcile": "tsx .antigravity/scripts/reconciliation.ts",
+    "harness:test": "tsx .antigravity/scripts/test-runner.ts",
+    "harness:evals": "tsx .antigravity/scripts/run-evals.ts",
+    "harness:selftest": "vitest run .antigravity/tests/harness.test.ts",
+    "harness:all": "npm run harness:baseline && npm run harness:scan && npm run harness:reconcile && npm run harness:test && npm run harness:evals"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -114,6 +122,7 @@
     "markdown-it": "^14.2.0",
     "vite": "^8.1.0",
     "esbuild": "^0.28.1",
-    "brace-expansion": "^5.0.6"
+    "brace-expansion": "^5.0.6",
+    "sharp": "^0.33.5"
   }
 }
