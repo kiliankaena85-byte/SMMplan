@@ -25,8 +25,10 @@ const nextConfig = {
   // OSAD-V2: Distributed Cache Sync for Redis (Resolves C4.1)
   cacheHandler: (process.env.NODE_ENV === 'production' && !process.env.DISABLE_REDIS_CACHE) ? process.cwd() + '/cache-handler.js' : undefined,
 
-  // OSAD-V2: Security Headers (OWASP A05) are now handled exclusively by Nginx.
-  // We removed async headers() to prevent duplicate X-Frame-Options and other conflicts.
+  // User-uploaded files use raw buffer response via /api/media/ (never _next/image), keeping static image optimization intact.
+  images: {
+    unoptimized: false,
+  },
   poweredByHeader: false,
 };
 
