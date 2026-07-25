@@ -31,6 +31,16 @@ export async function updateBalanceAction(formData: FormData) {
       return { success: false as const, error: 'Запрещено изменять собственный баланс' };
     }
 
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
+    if (!targetUser) {
+      return { success: false as const, error: 'Пользователь не найден' };
+    }
+
+    if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN')) {
+      console.warn(`[SECURITY] Non-owner ${admin.id} (${admin.role}) attempted balance adjustment on target ${targetUser.id} (${targetUser.role})`);
+      return { success: false as const, error: 'Только OWNER может изменять баланс руководства' };
+    }
+
     // Additional safeguard: only OWNER and ADMIN for large balance updates if needed, 
     // but here we follow RBAC 'edit' permission for 'clients' section.
     // If SUPPORT has 'edit' permission for 'clients', they can update balance. 

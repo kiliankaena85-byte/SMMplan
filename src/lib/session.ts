@@ -89,10 +89,14 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
       console.warn(`[verifySession] null because: session "${sessionId}" not found in DB`);
       return null;
     }
+    if (session.expiresAt < new Date()) {
+      console.warn(`[verifySession] null because: session "${sessionId}" expired at ${session.expiresAt.toISOString()}`);
+      return null;
+    }
 
     const user = session.user;
-    if (!user || user.isDeleted === true || user.isActive === false) {
-      console.warn('[verifySession] null because: user missing or deleted/inactive');
+    if (!user || user.isDeleted === true || user.isActive === false || user.role === 'BANNED') {
+      console.warn('[verifySession] null because: user missing, deleted, inactive, or banned');
       return null;
     }
 
