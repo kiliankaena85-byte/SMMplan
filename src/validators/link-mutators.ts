@@ -281,3 +281,17 @@ export const getLinkValidator = (platform: string, targetType: string) => {
     // Default fallback validator if we don't have strict rules
     return z.string().url("Укажите корректную ссылку (URL), начинающуюся с https://");
 };
+
+export const getCustomValidator = (customDataType?: string | null) => {
+  const type = customDataType?.toUpperCase() || 'NONE';
+  if (type === 'NUMBER') {
+    return z.string().trim().regex(/^\d+$/, "Значение должно состоять только из цифр");
+  }
+  if (type === 'TEXTAREA') {
+    return z.string().trim()
+      .min(1, "Поле не может быть пустым")
+      .max(10000, "Текст слишком длинный (максимум 10000 символов)")
+      .refine(val => !/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(val), "Текст содержит недопустимые управляющие символы");
+  }
+  return z.string().trim().min(1, "Поле не может быть пустым");
+};
