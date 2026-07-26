@@ -19,8 +19,8 @@ export type OrderColumn = {
   quantity: number;
   remains: number;
   status: string;
-  charge: number;
-  providerCost: number;
+  charge: string;
+  providerCost: string;
   createdAt: Date;
   updatedAt: Date;
   isDripFeed: boolean;
@@ -315,13 +315,13 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
               <div className="flex justify-between gap-2">
                 <span className="text-muted-foreground select-none">Цена за 1 шт:</span>
                 <span className="font-mono text-foreground tabular-nums">
-                  {(order.quantity > 0 ? (order.charge / 100) / order.quantity : 0).toFixed(4)} ₽
+                  {(order.quantity > 0 ? (Number(BigInt(order.charge)) / 100) / order.quantity : 0).toFixed(4)} ₽
                 </span>
               </div>
               <div className="flex justify-between gap-2">
                 <span className="text-muted-foreground select-none">Цена за 1к:</span>
                 <span className="font-mono text-foreground tabular-nums">
-                  {(order.quantity > 0 ? ((order.charge / 100) / order.quantity) * 1000 : 0).toFixed(2)} ₽
+                  {(order.quantity > 0 ? ((Number(BigInt(order.charge)) / 100) / order.quantity) * 1000 : 0).toFixed(2)} ₽
                 </span>
               </div>
               {canSeeRates && (
@@ -351,19 +351,19 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground select-none">Себестоимость:</span>
                     <span className="tabular-nums tracking-tight font-semibold text-foreground font-mono">
-                      {(order.providerCost / 100).toFixed(2)} ₽
+                      {(Number(BigInt(order.providerCost)) / 100).toFixed(2)} ₽
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground select-none">Себестоимость за 1 шт:</span>
                     <span className="font-mono text-foreground tabular-nums">
-                      {(order.quantity > 0 ? (order.providerCost / 100) / order.quantity : 0).toFixed(4)} ₽
+                      {(order.quantity > 0 ? (Number(BigInt(order.providerCost)) / 100) / order.quantity : 0).toFixed(4)} ₽
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
                     <span className="text-muted-foreground select-none">Себестоимость за 1к:</span>
                     <span className="font-mono text-foreground tabular-nums">
-                      {(order.quantity > 0 ? ((order.providerCost / 100) / order.quantity) * 1000 : 0).toFixed(2)} ₽
+                      {(order.quantity > 0 ? ((Number(BigInt(order.providerCost)) / 100) / order.quantity) * 1000 : 0).toFixed(2)} ₽
                     </span>
                   </div>
                 </>
@@ -428,7 +428,6 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
   },
   {
     accessorKey: 'charge',
-
     header: ({ column }) => (
       <div className="flex justify-end">
         <button
@@ -442,23 +441,26 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     ),
     cell: ({ row }) => {
       const order = row.original;
-      const charge = order.charge;
-      const cost = order.providerCost;
-      const margin = charge - cost;
-      const marginPercent = charge > 0 ? Math.round((margin / charge) * 100) : 0;
-      const isPositive = margin >= 0;
- 
+      const chargeBig = BigInt(order.charge || '0');
+      const costBig = BigInt(order.providerCost || '0');
+      const marginBig = chargeBig - costBig;
+      const chargeNum = Number(chargeBig) / 100;
+      const costNum = Number(costBig) / 100;
+      const marginNum = Number(marginBig) / 100;
+      const marginPercent = chargeBig > 0n ? Math.round((Number(marginBig) / Number(chargeBig)) * 100) : 0;
+      const isPositive = marginBig >= 0n;
+
       return (
         <div className="flex flex-col items-end text-xs leading-normal py-1 font-semibold text-right min-w-[90px] font-mono">
-          <div className="font-bold text-foreground tabular-nums tracking-tight text-sm">{(charge / 100).toFixed(2)} <span className="font-sans text-xs">₽</span></div>
+          <div className="font-bold text-foreground tabular-nums tracking-tight text-sm">{chargeNum.toFixed(2)} <span className="font-sans text-xs">₽</span></div>
           {canSeeRates && (
             <div className="text-muted-foreground text-[10px] mt-0.5 font-normal select-none tabular-nums tracking-tight">
-              Закупка: {(cost / 100).toFixed(2)} <span className="font-sans">₽</span>
+              Закупка: {costNum.toFixed(2)} <span className="font-sans">₽</span>
             </div>
           )}
           {canSeeRates && (
             <div className={`text-[10px] font-bold mt-0.5 select-none tabular-nums tracking-tight ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              Маржа: {marginPercent}% ({(margin / 100).toFixed(2)} <span className="font-sans">₽</span>)
+              Маржа: {marginPercent}% ({marginNum.toFixed(2)} <span className="font-sans">₽</span>)
             </div>
           )}
         </div>

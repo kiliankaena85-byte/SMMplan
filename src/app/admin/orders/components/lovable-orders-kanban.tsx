@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useOrderManagement } from '@/hooks/admin/use-orders';
 import { Package, Search, Filter, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatKopecks } from '@/utils/format-kopecks';
 
 export function LovableOrdersKanban({ 
   initialOrders, 
@@ -103,7 +104,7 @@ function KanbanColumn({ title, count, orders, type }: { title: string, count: nu
                 </div>
                 <div className="flex flex-col gap-0.5 text-right">
                   <span className="text-[9px] text-muted-foreground uppercase font-semibold">Total</span>
-                  <span className="font-mono text-foreground/80">{Number(o.charge).toFixed(2)} ₽</span>
+                  <span className="font-mono text-foreground/80">{formatKopecks(BigInt(o.charge || 0))} ₽</span>
                 </div>
               </div>
             </motion.div>
