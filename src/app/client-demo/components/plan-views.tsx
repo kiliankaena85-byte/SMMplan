@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import { DASHBOARD_DATA } from './dashboards';
 
-export type PlanTab = 'dashboard' | 'orders' | 'new-order' | 'deposit' | 'referrals' | 'support' | 'settings';
+export type PlanTab = 'dashboard' | 'orders' | 'new-order' | 'transactions' | 'deposit' | 'referrals' | 'support' | 'settings';
 
 export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: PlanTab }) {
   const [activeTab, setActiveTab] = useState<PlanTab>(initialTab);
@@ -95,6 +95,7 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
                 { id: 'dashboard', label: 'Главная' },
                 { id: 'new-order', label: 'Быстрый заказ' },
                 { id: 'orders', label: 'Мои заказы' },
+                { id: 'transactions', label: 'Транзакции & Возвраты' },
                 { id: 'deposit', label: 'Пополнение' },
                 { id: 'referrals', label: 'Рефералы' },
                 { id: 'support', label: 'Поддержка' },
@@ -150,6 +151,7 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
                 { id: 'dashboard', label: 'Главная' },
                 { id: 'new-order', label: 'Быстрый заказ' },
                 { id: 'orders', label: 'Мои заказы' },
+                { id: 'transactions', label: 'Транзакции & Возвраты' },
                 { id: 'deposit', label: 'Пополнение' },
                 { id: 'referrals', label: 'Рефералы' },
                 { id: 'support', label: 'Поддержка' },
@@ -559,6 +561,110 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
                         </td>
                       </tr>
                     ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── PAGE: TRANSACTIONS & REFUNDS LEDGER ── */}
+        {activeTab === 'transactions' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#e2e8f0] pb-4 gap-4">
+              <div>
+                <h1 className="font-heading text-xl sm:text-2xl font-bold text-[#0e131a]">
+                  Движение средств и Возвраты
+                </h1>
+                <p className="text-xs text-[#8b94a3]">Полный финансовый аудит списаний, пополнений и автоматических возвратов</p>
+              </div>
+
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#e6f7f0] border border-[#1f9d6b]/20 text-[#1f9d6b] text-xs font-bold">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Авто-возврат при отмене 100%</span>
+              </div>
+            </div>
+
+            {/* Financial Summary Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 bg-[#e9edf2] rounded-xl border border-[#e2e8f0] space-y-1">
+                <span className="text-[11px] font-bold text-[#8b94a3] uppercase block">Текущий баланс</span>
+                <span className="font-mono-data text-2xl font-extrabold text-[#0e131a]">{DASHBOARD_DATA.balance}</span>
+              </div>
+
+              <div className="p-4 bg-[#e6f7f0]/60 rounded-xl border border-[#1f9d6b]/30 space-y-1">
+                <span className="text-[11px] font-bold text-[#1f9d6b] uppercase block">Всего пополнено (+)</span>
+                <span className="font-mono-data text-2xl font-extrabold text-[#1f9d6b]">{DASHBOARD_DATA.transactionsSummary.totalCredited}</span>
+              </div>
+
+              <div className="p-4 bg-[#e7f2fe]/80 rounded-xl border border-[#1f9bf0]/30 space-y-1">
+                <span className="text-[11px] font-bold text-[#1f9bf0] uppercase block">Возвращено за отмены (🔄)</span>
+                <span className="font-mono-data text-2xl font-extrabold text-[#1f9bf0]">+{DASHBOARD_DATA.transactionsSummary.totalRefunded}</span>
+              </div>
+
+              <div className="p-4 bg-[#e9edf2] rounded-xl border border-[#e2e8f0] space-y-1">
+                <span className="text-[11px] font-bold text-[#8b94a3] uppercase block">Списано за заказы (-)</span>
+                <span className="font-mono-data text-2xl font-extrabold text-[#0e131a]">{DASHBOARD_DATA.transactionsSummary.totalDebited}</span>
+              </div>
+            </div>
+
+            {/* Trust Assurance Banner */}
+            <div className="p-4 rounded-xl bg-[#e7f2fe] border border-[#1f9bf0]/20 flex items-start gap-3 text-xs text-[#0e131a]">
+              <ShieldCheck className="w-5 h-5 text-[#1f9bf0] shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-bold block">100% защита от потерянных средств</span>
+                <p className="text-[#414a59]">
+                  Если заказ отменяется или выполняется частично, неотработанная сумма <b>мгновенно возвращается</b> на ваш баланс без комиссий. Ни одна копейка не пропадает.
+                </p>
+              </div>
+            </div>
+
+            {/* Ledger Transactions Table */}
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-[#e2e8f0] text-[11px] font-bold text-[#8b94a3] uppercase">
+                    <th className="py-3 px-4">ID транзакции</th>
+                    <th className="py-3 px-4">Дата / Время</th>
+                    <th className="py-3 px-4">Назначение платежа</th>
+                    <th className="py-3 px-4">Тип</th>
+                    <th className="py-3 px-4 text-right">Сумма</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e2e8f0] text-xs font-mono-data">
+                  {DASHBOARD_DATA.transactions.map((tx) => {
+                    const isCredit = tx.type === 'CREDIT';
+                    const isRefund = tx.category === 'REFUND';
+                    return (
+                      <tr key={tx.id} className="hover:bg-[#e9edf2]/40 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-[#0e131a]">{tx.id}</td>
+                        <td className="py-3.5 px-4 text-[#8b94a3]">{tx.date}</td>
+                        <td className="py-3.5 px-4 font-sans font-semibold text-[#0e131a]">
+                          {tx.title}
+                          {tx.orderId && (
+                            <span className="ml-2 font-mono text-[11px] text-[#1f9bf0] underline cursor-pointer">
+                              [Заказ {tx.orderId}]
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 font-sans">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                            isRefund 
+                              ? 'bg-[#e7f2fe] text-[#1f9bf0] border border-[#1f9bf0]/20'
+                              : isCredit 
+                              ? 'bg-[#e6f7f0] text-[#1f9d6b] border border-[#1f9d6b]/20'
+                              : 'bg-[#e9edf2] text-[#414a59]'
+                          }`}>
+                            {isRefund ? '🔄 Возврат средств' : isCredit ? '💳 Пополнение' : '📦 Списание'}
+                          </span>
+                        </td>
+                        <td className={`py-3.5 px-4 text-right font-extrabold text-sm ${
+                          isCredit ? (isRefund ? 'text-[#1f9bf0]' : 'text-[#1f9d6b]') : 'text-[#0e131a]'
+                        }`}>
+                          {tx.amount}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

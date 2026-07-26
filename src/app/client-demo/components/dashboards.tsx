@@ -30,6 +30,86 @@ export const DASHBOARD_DATA = {
   refCode: 'ART-7F2K',
   refBalance: '1 240 ₽',
   supportHours: '09:00 – 21:00 МСК',
+  transactionsSummary: {
+    totalCredited: '96 690.00 ₽',
+    totalDebited: '84 210.00 ₽',
+    totalRefunded: '5 940.00 ₽',
+    refEarned: '1 240.00 ₽'
+  },
+  transactions: [
+    {
+      id: 'TX-90425',
+      date: '26 июля, 13:14',
+      type: 'DEBIT',
+      category: 'ORDER',
+      title: 'Списание: Заказ #381920 (TG Подписчики)',
+      amount: '-3.38 ₽',
+      rawAmount: -3.38,
+      status: 'SUCCESS',
+      statusText: 'Списано',
+      orderId: '#381920'
+    },
+    {
+      id: 'TX-90412',
+      date: '26 июля, 12:00',
+      type: 'CREDIT',
+      category: 'DEPOSIT',
+      title: 'Пополнение баланса (ЮKassa / СБП)',
+      amount: '+10 000.00 ₽',
+      rawAmount: 10000.00,
+      status: 'SUCCESS',
+      statusText: 'Зачислено'
+    },
+    {
+      id: 'TX-90381',
+      date: '22 июля, 16:06',
+      type: 'CREDIT',
+      category: 'REFUND',
+      title: 'Авто-возврат за отменённый заказ #381750 (YT Просмотры)',
+      amount: '+24.00 ₽',
+      rawAmount: 24.00,
+      status: 'REFUNDED',
+      statusText: 'Возвращено на баланс',
+      orderId: '#381750',
+      isRefund: true
+    },
+    {
+      id: 'TX-90380',
+      date: '22 июля, 16:05',
+      type: 'DEBIT',
+      category: 'ORDER',
+      title: 'Списание: Заказ #381750 (YT Просмотры)',
+      amount: '-24.00 ₽',
+      rawAmount: -24.00,
+      status: 'CANCELED',
+      statusText: 'Отменён (Списание отменено)',
+      orderId: '#381750'
+    },
+    {
+      id: 'TX-90310',
+      date: '20 июля, 11:30',
+      type: 'CREDIT',
+      category: 'REFERRAL',
+      title: 'Реферальное вознаграждение 10% (Партнёрство)',
+      amount: '+124.00 ₽',
+      rawAmount: 124.00,
+      status: 'SUCCESS',
+      statusText: 'Зачислено'
+    },
+    {
+      id: 'TX-90200',
+      date: '15 июля, 09:15',
+      type: 'CREDIT',
+      category: 'REFUND',
+      title: 'Частичный возврат за остаток заказа #381200 (IG Лайки)',
+      amount: '+1 500.00 ₽',
+      rawAmount: 1500.00,
+      status: 'REFUNDED',
+      statusText: 'Возвращено на баланс',
+      orderId: '#381200',
+      isRefund: true
+    }
+  ],
   recentOrders: [
     {
       id: '#381920',

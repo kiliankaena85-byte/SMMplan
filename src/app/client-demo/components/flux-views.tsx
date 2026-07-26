@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { DASHBOARD_DATA } from './dashboards';
 
-export type FluxTab = 'dashboard' | 'orders' | 'new-order' | 'deposit' | 'referrals' | 'support' | 'settings';
+export type FluxTab = 'dashboard' | 'orders' | 'new-order' | 'transactions' | 'deposit' | 'referrals' | 'support' | 'settings';
 
 export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: FluxTab }) {
   const [activeTab, setActiveTab] = useState<FluxTab>(initialTab);
@@ -83,13 +83,14 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
           {/* Navigation Links */}
           <nav className="space-y-2">
             {[
-              { id: 'dashboard', label: 'Дашборд', icon: '⚡', color: 'bg-[#e0218a]' },
-              { id: 'new-order', label: 'Создать заказ', icon: '🚀', color: 'bg-[#7c3aed]' },
-              { id: 'orders', label: 'Мои заказы', icon: '📦', color: 'bg-[#06b6a4]' },
-              { id: 'deposit', label: 'Пополнение', icon: '💎', color: 'bg-[#3b82f6]' },
-              { id: 'referrals', label: 'Рефералы', icon: '🎁', color: 'bg-[#e0218a]' },
-              { id: 'support', label: 'Поддержка', icon: '💬', color: 'bg-[#7c3aed]' },
-              { id: 'settings', label: 'Настройки', icon: '⚙️', color: 'bg-[#100d18]' },
+              { id: 'dashboard', label: 'Дашборд', icon: '⚡' },
+              { id: 'new-order', label: 'Создать заказ', icon: '🚀' },
+              { id: 'orders', label: 'Мои заказы', icon: '📦' },
+              { id: 'transactions', label: 'Транзакции', icon: '🔄' },
+              { id: 'deposit', label: 'Пополнение', icon: '💎' },
+              { id: 'referrals', label: 'Рефералы', icon: '🎁' },
+              { id: 'support', label: 'Поддержка', icon: '💬' },
+              { id: 'settings', label: 'Настройки', icon: '⚙️' },
             ].map((nav) => {
               const isActive = activeTab === nav.id;
               return (
@@ -132,8 +133,8 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
           { id: 'dashboard', label: 'Главная', icon: '⚡' },
           { id: 'new-order', label: 'Заказ', icon: '🚀' },
           { id: 'orders', label: 'Заказы', icon: '📦' },
-          { id: 'deposit', label: 'Баланс', icon: '💎' },
-          { id: 'support', label: 'Чат', icon: '💬' },
+          { id: 'transactions', label: 'Баланс', icon: '🔄' },
+          { id: 'deposit', label: 'Пополнить', icon: '💎' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -438,6 +439,85 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
                     </div>
                   </div>
                 ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── PAGE: TRANSACTIONS & REFUNDS LEDGER ── */}
+        {activeTab === 'transactions' && (
+          <section className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[#100d18]">
+                  История <span className="marker-highlight">транзакций</span>
+                </h1>
+                <p className="text-xs text-[#79748c]">Все списания, пополнения и гарантированные авто-возвраты</p>
+              </div>
+
+              <div className="bg-[#e0218a]/10 border border-[#e0218a]/20 text-[#e0218a] px-4 py-2 rounded-full text-xs font-extrabold flex items-center gap-2">
+                <span>🔄 100% честный возврат средств</span>
+              </div>
+            </div>
+
+            {/* Metric Strips */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-5 rounded-3xl bg-[#f6f5fb] border border-[#ece9f5] space-y-1">
+                <span className="text-[10px] font-extrabold uppercase text-[#79748c] block">Всего пополнено</span>
+                <span className="font-heading text-2xl font-black text-emerald-600">{DASHBOARD_DATA.transactionsSummary.totalCredited}</span>
+              </div>
+              <div className="p-5 rounded-3xl bg-[#f6f5fb] border border-[#ece9f5] space-y-1">
+                <span className="text-[10px] font-extrabold uppercase text-[#79748c] block">Возвращено за отмены</span>
+                <span className="font-heading text-2xl font-black text-[#e0218a]">+{DASHBOARD_DATA.transactionsSummary.totalRefunded}</span>
+              </div>
+              <div className="p-5 rounded-3xl bg-[#f6f5fb] border border-[#ece9f5] space-y-1">
+                <span className="text-[10px] font-extrabold uppercase text-[#79748c] block">Списано на заказы</span>
+                <span className="font-heading text-2xl font-black text-[#100d18]">{DASHBOARD_DATA.transactionsSummary.totalDebited}</span>
+              </div>
+            </div>
+
+            {/* Transactions Cards */}
+            <div className="space-y-3">
+              {DASHBOARD_DATA.transactions.map((tx) => {
+                const isCredit = tx.type === 'CREDIT';
+                const isRefund = tx.category === 'REFUND';
+                return (
+                  <div
+                    key={tx.id}
+                    className="bg-white p-5 rounded-3xl border border-[#ece9f5] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
+                        isRefund ? 'bg-pink-500/10 text-pink-600' : isCredit ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-100 text-slate-800'
+                      }`}>
+                        {isRefund ? '🔄' : isCredit ? '💳' : '📦'}
+                      </div>
+
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-heading text-base font-bold text-[#100d18]">
+                            {tx.title}
+                          </span>
+                          <span className="text-xs font-mono text-[#79748c]">{tx.id}</span>
+                        </div>
+                        <p className="text-xs text-[#79748c]">{tx.date}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 border-[#ece9f5] pt-2 sm:pt-0">
+                      <span className={`px-3 py-1 rounded-full text-xs font-extrabold ${
+                        isRefund ? 'bg-[#e0218a]/10 text-[#e0218a]' : isCredit ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {tx.statusText}
+                      </span>
+                      <span className={`font-heading text-xl font-black ${
+                        isRefund ? 'text-[#e0218a]' : isCredit ? 'text-emerald-600' : 'text-[#100d18]'
+                      }`}>
+                        {tx.amount}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
