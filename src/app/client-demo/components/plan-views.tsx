@@ -141,12 +141,12 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1 lg:gap-1.5">
+            <nav className="hidden md:flex items-center gap-0.5 lg:gap-1 overflow-x-auto custom-scrollbar">
               {[
                 { id: 'dashboard', label: 'Главная' },
                 { id: 'new-order', label: 'Быстрый заказ' },
                 { id: 'orders', label: 'Мои заказы' },
-                { id: 'transactions', label: 'Транзакции & Возвраты' },
+                { id: 'transactions', label: 'Транзакции' },
                 { id: 'deposit', label: 'Пополнение' },
                 { id: 'referrals', label: 'Рефералы' },
                 { id: 'support', label: 'Поддержка' },
@@ -157,7 +157,7 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as PlanTab)}
-                    className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                    className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                       isActive 
                         ? 'text-[#1f9bf0] bg-[#e7f2fe] font-bold' 
                         : 'text-[#414a59] hover:bg-[#e9edf2]'
@@ -170,17 +170,17 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
             </nav>
 
             {/* Right Quick Balance */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <div 
                 onClick={() => setActiveTab('deposit')}
-                className="bg-[#e9edf2] hover:bg-[#d3dce8] px-3.5 py-1.5 rounded-full border border-[#d3dce8] flex items-center gap-2 cursor-pointer transition-colors"
+                className="bg-[#e9edf2] hover:bg-[#d3dce8] px-3.5 py-1.5 rounded-full border border-[#d3dce8] flex items-center gap-2 cursor-pointer transition-colors whitespace-nowrap shrink-0"
               >
-                <span className="text-xs font-semibold text-[#8b94a3] uppercase hidden sm:inline">Баланс:</span>
-                <span className="font-mono-data font-bold text-[#0e131a] text-sm sm:text-base">{DASHBOARD_DATA.balance}</span>
+                <span className="text-xs font-semibold text-[#8b94a3] uppercase hidden sm:inline whitespace-nowrap">Баланс:</span>
+                <span className="font-mono-data font-bold text-[#0e131a] text-xs sm:text-sm lg:text-base whitespace-nowrap">{DASHBOARD_DATA.balance}</span>
               </div>
               <button 
                 onClick={() => setActiveTab('deposit')}
-                className="hidden sm:flex items-center gap-1.5 bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                className="hidden sm:flex items-center gap-1.5 bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap shrink-0"
               >
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>Пополнить</span>
