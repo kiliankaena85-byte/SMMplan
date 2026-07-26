@@ -30,6 +30,33 @@ export const DASHBOARD_DATA = {
   refCode: 'ART-7F2K',
   refBalance: '1 240 ₽',
   supportHours: '09:00 – 21:00 МСК',
+  chatHistory: [
+    {
+      id: 'msg-1',
+      sender: 'operator',
+      operatorName: 'Александр (Служба поддержки)',
+      avatar: 'АА',
+      text: 'Здравствуйте! Я дежурный инженер службы поддержки. Чем могу вам помочь?',
+      time: '13:00',
+      read: true
+    },
+    {
+      id: 'msg-2',
+      sender: 'user',
+      text: 'Привет! Подскажите по заказу #381920, как скоро завершится накрутка подписчиков?',
+      time: '13:05',
+      read: true
+    },
+    {
+      id: 'msg-3',
+      sender: 'operator',
+      operatorName: 'Александр (Служба поддержки)',
+      avatar: 'АА',
+      text: 'Заказ #381920 находится в фазе безопасной подачи (скорость ~500 под/час, чтобы избежать фильтров соцсети). Выполнено уже 420 из 1000. Всё идёт строго по графику!',
+      time: '13:07',
+      read: true
+    }
+  ],
   transactionsSummary: {
     totalCredited: '96 690.00 ₽',
     totalDebited: '84 210.00 ₽',

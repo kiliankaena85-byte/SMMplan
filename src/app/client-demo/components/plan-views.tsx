@@ -55,6 +55,44 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
 
+  // Telegram Chat States
+  const [chatMessages, setChatMessages] = useState<any[]>(DASHBOARD_DATA.chatHistory);
+  const [chatInput, setChatInput] = useState('');
+  const [isOperatorTyping, setIsOperatorTyping] = useState(false);
+
+  const handleSendChatMessage = (textToSend?: string) => {
+    const msgText = textToSend || chatInput;
+    if (!msgText.trim()) return;
+
+    const newMsg = {
+      id: `msg-${Date.now()}`,
+      sender: 'user',
+      text: msgText.trim(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      read: true
+    };
+
+    setChatMessages(prev => [...prev, newMsg]);
+    if (!textToSend) setChatInput('');
+    setIsOperatorTyping(true);
+
+    setTimeout(() => {
+      setIsOperatorTyping(false);
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: `msg-reply-${Date.now()}`,
+          sender: 'operator',
+          operatorName: 'Александр (Служба поддержки)',
+          avatar: 'АА',
+          text: 'Спасибо за ваше обращение! Информация передана инженеру. Проверяем параметры выполнения вашего заказа.',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          read: true
+        }
+      ]);
+    }, 1200);
+  };
+
   const handleCopyRef = () => {
     navigator.clipboard?.writeText(`https://smmplan.ru/ref/${DASHBOARD_DATA.refCode}`);
     setIsCopied(true);
@@ -801,62 +839,174 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
           </div>
         )}
 
-        {/* ── PAGE 6: SUPPORT & TICKETS ── */}
+        {/* ── PAGE 6: TELEGRAM STYLE SUPPORT CHAT ── */}
         {activeTab === 'support' && (
-          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] space-y-6">
-            <div className="border-b border-[#e2e8f0] pb-4 flex items-center justify-between">
-              <div>
-                <h1 className="font-heading text-xl sm:text-2xl font-bold text-[#0e131a]">
-                  Служба поддержки клиентам
-                </h1>
-                <p className="text-xs text-[#8b94a3]">Время работы операторов: {DASHBOARD_DATA.supportHours}</p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1f9d6b]">
-                <span className="w-2 h-2 rounded-full bg-[#1f9d6b] animate-ping" />
-                Операторы онлайн
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-6 bg-[#e9edf2]/60 rounded-2xl border border-[#e2e8f0] space-y-4">
-                <h3 className="font-heading text-base font-bold text-[#0e131a]">Создать новый тикет</h3>
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-[#414a59] font-bold mb-1">Тема обращения</label>
-                    <input
-                      type="text"
-                      placeholder="Задержка выполнения заказа #381920..."
-                      className="w-full bg-white border border-[#e2e8f0] rounded-xl px-4 py-2 text-xs"
-                    />
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] overflow-hidden flex flex-col h-[700px] max-h-[85vh]">
+            
+            {/* Telegram Header */}
+            <div className="bg-white border-b border-[#e2e8f0] px-6 py-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3.5">
+                <div className="relative">
+                  <div className="w-11 h-11 rounded-full bg-[#1f9bf0] text-white font-black text-sm flex items-center justify-center shadow-sm">
+                    АА
                   </div>
-                  <div>
-                    <label className="block text-[#414a59] font-bold mb-1">Сообщение</label>
-                    <textarea
-                      rows={4}
-                      placeholder="Опишите подробности вашей проблемы..."
-                      className="w-full bg-white border border-[#e2e8f0] rounded-xl p-3 text-xs"
-                    />
-                  </div>
-                  <button className="w-full bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white py-2.5 rounded-xl font-bold text-xs">
-                    Отправить запрос в поддержку
-                  </button>
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-[#1f9d6b] border-2 border-white" />
                 </div>
-              </div>
-
-              <div className="p-6 bg-[#0e131a] text-white rounded-2xl space-y-4 flex flex-col justify-between">
-                <div className="space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#1f9bf0]">Прямая связь</span>
-                  <h3 className="font-heading text-xl font-bold">Быстрая помощь в Telegram</h3>
-                  <p className="text-xs text-[#8b94a3]">
-                    Если вам нужен мгновенный ответ по заказу или индивидуальный расчёт большой партии, напишите дежурному инженеру.
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-base font-bold text-[#0e131a]">
+                      Александр (Служба поддержки)
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full bg-[#e6f7f0] text-[#1f9d6b] text-[10px] font-extrabold uppercase">
+                      В сети
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#8b94a3] flex items-center gap-1.5">
+                    <span>отвечает в среднем за 2–3 минуты</span>
+                    <span>•</span>
+                    <span>{DASHBOARD_DATA.supportHours}</span>
                   </p>
                 </div>
-                <button className="bg-[#1f9bf0] text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#0b7fd4]">
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href="https://t.me/smmplan_support"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#e7f2fe] text-[#1f9bf0] text-xs font-bold hover:bg-[#d5e7fd] transition-colors"
+                >
                   <Send className="w-4 h-4" />
-                  <span>Открыть диалог в Telegram (@smmplan_support)</span>
-                </button>
+                  <span>Открыть в Telegram ↗</span>
+                </a>
               </div>
             </div>
+
+            {/* Telegram Wallpaper Message Feed */}
+            <div className="flex-1 bg-[#f4f6f9] p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-4">
+              
+              {/* Central Date Badge */}
+              <div className="flex justify-center">
+                <span className="bg-[#0e131a]/10 backdrop-blur-md text-[#414a59] text-[11px] font-bold px-3 py-1 rounded-full">
+                  Сегодня, 26 июля
+                </span>
+              </div>
+
+              {/* Pinned Active Order Context */}
+              <div className="bg-white/90 border border-[#e2e8f0] p-3 rounded-xl max-w-md mx-auto flex items-center justify-between text-xs shadow-sm">
+                <div className="flex items-center gap-2 font-mono-data">
+                  <span className="w-2 h-2 rounded-full bg-[#1f9bf0] animate-pulse" />
+                  <span className="font-bold text-[#0e131a]">Прикреплённый заказ:</span>
+                  <span className="text-[#1f9bf0] font-bold">#381920</span>
+                </div>
+                <span className="text-[11px] text-[#8b94a3] font-semibold">TG Подписчики</span>
+              </div>
+
+              {/* Messages list */}
+              {chatMessages.map((msg) => {
+                const isUser = msg.sender === 'user';
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex items-end gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}
+                  >
+                    {!isUser && (
+                      <div className="w-8 h-8 rounded-full bg-[#1f9bf0] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                        АА
+                      </div>
+                    )}
+                    
+                    <div
+                      className={`relative p-3.5 rounded-2xl max-w-[85%] sm:max-w-[70%] space-y-1 shadow-sm text-xs ${
+                        isUser
+                          ? 'bg-[#1f9bf0] text-white rounded-br-none'
+                          : 'bg-white text-[#0e131a] border border-[#e2e8f0] rounded-bl-none'
+                      }`}
+                    >
+                      {!isUser && (
+                        <span className="text-[11px] font-bold text-[#1f9bf0] block">
+                          {msg.operatorName}
+                        </span>
+                      )}
+                      <p className="leading-relaxed font-sans font-medium whitespace-pre-wrap">{msg.text}</p>
+                      
+                      <div className={`flex items-center justify-end gap-1 text-[10px] ${
+                        isUser ? 'text-white/80' : 'text-[#8b94a3]'
+                      }`}>
+                        <span className="font-mono-data">{msg.time}</span>
+                        {isUser && <span>✓✓</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Operator Typing Indicator */}
+              {isOperatorTyping && (
+                <div className="flex items-center gap-2 text-xs text-[#8b94a3] font-semibold">
+                  <div className="w-7 h-7 rounded-full bg-[#1f9bf0] text-white font-bold text-[10px] flex items-center justify-center">
+                    АА
+                  </div>
+                  <span className="animate-pulse">Александр печатает...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Telegram Quick Prompt Chips */}
+            <div className="bg-[#f4f6f9] px-4 py-2 border-t border-[#e2e8f0] flex items-center gap-2 overflow-x-auto custom-scrollbar shrink-0">
+              <span className="text-[10px] font-bold text-[#8b94a3] shrink-0 uppercase">Частые вопросы:</span>
+              {[
+                '📦 Где мой заказ #381920?',
+                '🔄 Запросить докрутку',
+                '💳 Не пришло пополнение',
+                '⚡ Какая скорость выполнения?'
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSendChatMessage(chip)}
+                  className="bg-white hover:bg-[#e7f2fe] hover:text-[#1f9bf0] text-[#414a59] text-xs font-semibold px-3 py-1.5 rounded-full border border-[#e2e8f0] shrink-0 transition-colors shadow-xs"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+
+            {/* Telegram Input Bar */}
+            <div className="bg-white border-t border-[#e2e8f0] p-3 sm:p-4 shrink-0">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendChatMessage();
+                }}
+                className="flex items-center gap-2"
+              >
+                <button
+                  type="button"
+                  title="Прикрепить номер заказа"
+                  onClick={() => setChatInput(prev => `${prev} [Заказ #381920]`)}
+                  className="p-2 text-[#8b94a3] hover:text-[#1f9bf0] hover:bg-[#e7f2fe] rounded-xl transition-colors shrink-0"
+                >
+                  📎
+                </button>
+
+                <input
+                  type="text"
+                  placeholder="Напишите сообщение поддержке (Enter для отправки)..."
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  className="flex-1 bg-[#e9edf2] border border-transparent focus:border-[#1f9bf0] focus:bg-white rounded-xl px-4 py-3 text-xs text-[#0e131a] outline-none transition-all"
+                />
+
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim()}
+                  className="w-10 h-10 rounded-xl bg-[#1f9bf0] hover:bg-[#0b7fd4] disabled:opacity-40 text-white flex items-center justify-center transition-all shadow-sm shrink-0 active:scale-95"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </div>
+
           </div>
         )}
 

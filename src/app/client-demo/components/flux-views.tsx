@@ -46,6 +46,44 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
 
+  // Telegram Chat States
+  const [chatMessages, setChatMessages] = useState<any[]>(DASHBOARD_DATA.chatHistory);
+  const [chatInput, setChatInput] = useState('');
+  const [isOperatorTyping, setIsOperatorTyping] = useState(false);
+
+  const handleSendChatMessage = (textToSend?: string) => {
+    const msgText = textToSend || chatInput;
+    if (!msgText.trim()) return;
+
+    const newMsg = {
+      id: `msg-${Date.now()}`,
+      sender: 'user',
+      text: msgText.trim(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      read: true
+    };
+
+    setChatMessages(prev => [...prev, newMsg]);
+    if (!textToSend) setChatInput('');
+    setIsOperatorTyping(true);
+
+    setTimeout(() => {
+      setIsOperatorTyping(false);
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: `msg-reply-${Date.now()}`,
+          sender: 'operator',
+          operatorName: 'Александр (Служба поддержки)',
+          avatar: 'АА',
+          text: 'Спасибо за сообщение! Дежурный инженер SMMflux проверяет параметры вашего обращения.',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          read: true
+        }
+      ]);
+    }, 1200);
+  };
+
   const handleCopyRef = () => {
     navigator.clipboard?.writeText(`https://smmflux.ru/ref/${DASHBOARD_DATA.refCode}`);
     setIsCopied(true);
@@ -604,31 +642,168 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
           </section>
         )}
 
-        {/* ── PAGE 6: SUPPORT ── */}
+        {/* ── PAGE 6: TELEGRAM STYLE CHAT ── */}
         {activeTab === 'support' && (
-          <section className="bg-[#f6f5fb] rounded-3xl p-6 sm:p-8 border border-[#ece9f5] space-y-6">
-            <div className="border-b border-[#ece9f5] pb-4 flex items-center justify-between">
-              <div>
-                <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[#100d18]">
-                  Чат с <span className="marker-highlight">поддержкой</span>
-                </h1>
-                <p className="text-xs text-[#79748c]">Решаем любые вопросы по заказам за 3 минуты</p>
+          <section className="bg-white rounded-3xl border border-[#ece9f5] shadow-lg overflow-hidden flex flex-col h-[700px] max-h-[85vh]">
+            
+            {/* Telegram Header */}
+            <div className="bg-[#14121d] text-white px-6 py-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3.5">
+                <div className="relative">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#3b82f6] via-[#7c3aed] to-[#e0218a] text-white font-black text-sm flex items-center justify-center shadow-lg">
+                    АА
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-[#06b6a4] border-2 border-[#14121d]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-heading text-base font-extrabold text-white">
+                      Александр (Поддержка Flux)
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#e0218a] text-white text-[10px] font-extrabold uppercase">
+                      В сети
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/70 flex items-center gap-1.5 mt-0.5">
+                    <span>отвечает за 2 минуты</span>
+                    <span>•</span>
+                    <span>{DASHBOARD_DATA.supportHours}</span>
+                  </p>
+                </div>
               </div>
+
+              <a
+                href="https://t.me/smmplan_support"
+                target="_blank"
+                rel="noreferrer"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-extrabold transition-all"
+              >
+                <Send className="w-4 h-4 text-[#e0218a]" />
+                <span>Чат в Telegram ↗</span>
+              </a>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-[#ece9f5] space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[#423f54]">Ваше сообщение:</label>
-                <textarea
-                  rows={4}
-                  placeholder="Опишите вопрос по заказу..."
-                  className="w-full bg-[#f6f5fb] border border-[#ece9f5] rounded-2xl p-4 text-xs outline-none focus:border-[#e0218a]"
-                />
+            {/* Telegram Wallpaper Feed */}
+            <div className="flex-1 bg-[#f6f5fb] p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-4">
+              
+              <div className="flex justify-center">
+                <span className="bg-[#14121d]/10 backdrop-blur-md text-[#423f54] text-[11px] font-extrabold px-4 py-1.5 rounded-full">
+                  Сегодня, 26 июля
+                </span>
               </div>
-              <button className="bg-[#14121d] hover:bg-[#e0218a] text-white px-6 py-3 rounded-full font-extrabold text-xs transition-all">
-                Отправить в поддержку
-              </button>
+
+              <div className="bg-white border border-[#ece9f5] p-3.5 rounded-2xl max-w-md mx-auto flex items-center justify-between text-xs shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#e0218a] animate-pulse" />
+                  <span className="font-bold text-[#100d18]">Активный заказ:</span>
+                  <span className="text-[#e0218a] font-mono font-bold">#381920</span>
+                </div>
+                <span className="text-[11px] text-[#79748c] font-bold">Telegram Подписчики</span>
+              </div>
+
+              {chatMessages.map((msg) => {
+                const isUser = msg.sender === 'user';
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex items-end gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}
+                  >
+                    {!isUser && (
+                      <div className="w-8 h-8 rounded-full bg-[#7c3aed] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                        АА
+                      </div>
+                    )}
+                    
+                    <div
+                      className={`relative p-4 rounded-3xl max-w-[85%] sm:max-w-[70%] space-y-1 shadow-md text-xs ${
+                        isUser
+                          ? 'bg-gradient-to-r from-[#7c3aed] to-[#e0218a] text-white rounded-br-sm'
+                          : 'bg-white text-[#100d18] border border-[#ece9f5] rounded-bl-sm'
+                      }`}
+                    >
+                      {!isUser && (
+                        <span className="text-[11px] font-extrabold text-[#7c3aed] block">
+                          {msg.operatorName}
+                        </span>
+                      )}
+                      <p className="leading-relaxed font-medium whitespace-pre-wrap">{msg.text}</p>
+                      
+                      <div className={`flex items-center justify-end gap-1 text-[10px] ${
+                        isUser ? 'text-white/80' : 'text-[#79748c]'
+                      }`}>
+                        <span className="font-mono">{msg.time}</span>
+                        {isUser && <span>✓✓</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {isOperatorTyping && (
+                <div className="flex items-center gap-2 text-xs text-[#79748c] font-bold">
+                  <div className="w-7 h-7 rounded-full bg-[#7c3aed] text-white font-bold text-[10px] flex items-center justify-center">
+                    АА
+                  </div>
+                  <span className="animate-pulse">Александр печатает...</span>
+                </div>
+              )}
             </div>
+
+            {/* Quick Chips */}
+            <div className="bg-[#f6f5fb] px-4 py-2 border-t border-[#ece9f5] flex items-center gap-2 overflow-x-auto custom-scrollbar shrink-0">
+              <span className="text-[10px] font-extrabold text-[#79748c] shrink-0 uppercase">Вопросы:</span>
+              {[
+                '📦 Где заказ #381920?',
+                '🔄 Хочу докрутку',
+                '💳 Зачисление баланса',
+                '🚀 Увеличить скорость'
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSendChatMessage(chip)}
+                  className="bg-white hover:bg-[#e0218a] hover:text-white text-[#423f54] text-xs font-bold px-3.5 py-1.5 rounded-full border border-[#ece9f5] shrink-0 transition-all shadow-xs"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+
+            {/* Input Bar */}
+            <div className="bg-white border-t border-[#ece9f5] p-3 sm:p-4 shrink-0">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendChatMessage();
+                }}
+                className="flex items-center gap-2"
+              >
+                <button
+                  type="button"
+                  title="Прикрепить заказ"
+                  onClick={() => setChatInput(prev => `${prev} [Заказ #381920]`)}
+                  className="p-2 text-[#79748c] hover:text-[#e0218a] hover:bg-[#f6f5fb] rounded-full transition-colors shrink-0 text-base"
+                >
+                  📎
+                </button>
+
+                <input
+                  type="text"
+                  placeholder="Напишите сообщение в чат поддержки..."
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  className="flex-1 bg-[#f6f5fb] border border-transparent focus:border-[#e0218a] focus:bg-white rounded-full px-5 py-3 text-xs text-[#100d18] outline-none transition-all font-semibold"
+                />
+
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim()}
+                  className="w-10 h-10 rounded-full bg-[#14121d] hover:bg-[#e0218a] disabled:opacity-40 text-white flex items-center justify-center transition-all shadow-md shrink-0 active:scale-90"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </div>
+
           </section>
         )}
 
