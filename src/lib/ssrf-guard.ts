@@ -72,12 +72,30 @@ export async function isPublicHost(hostname: string): Promise<boolean> {
 }
 
 export async function resolveShortLink(rawUrl: string): Promise<string> {
-  let currentUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
+  let currentUrl = rawUrl.trim();
+  if (!currentUrl) return rawUrl;
+
+  try {
+    const initialTest = new URL(currentUrl.includes('://') ? currentUrl : `https://${currentUrl}`);
+    if (initialTest.protocol !== 'http:' && initialTest.protocol !== 'https:') {
+      return rawUrl;
+    }
+  } catch {
+    return rawUrl;
+  }
+
+  if (!currentUrl.startsWith('http')) {
+    currentUrl = `https://${currentUrl}`;
+  }
+
   const maxHops = 5;
 
   for (let hop = 0; hop < maxHops; hop++) {
     try {
       const parsed = new URL(currentUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return currentUrl;
+      }
       const isAllowedHost = await isPublicHost(parsed.hostname);
       if (!isAllowedHost) {
         return currentUrl;
