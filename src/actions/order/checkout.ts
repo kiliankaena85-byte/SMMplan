@@ -83,7 +83,7 @@ import { MutexManager } from '@/lib/redis-lock';
 
 const checkoutSchema = z.object({
   serviceId: z.string(),
-  link: z.string().min(3, "Ссылка слишком короткая").refine(val => !val.includes(' '), "Ссылка не должна содержать пробелов"),
+  link: z.string().min(3, "Ссылка слишком короткая").max(2048, "Ссылка слишком длинная").refine(val => !val.includes(' '), "Ссылка не должна содержать пробелов"),
   quantity: z.number().min(1),
   email: z.string().email("Неверный email"),
   promoCodeStr: z.string().optional(),
@@ -131,7 +131,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     }
     
     // 0. Rate limit
-    const isAllowed = await RateLimitService.check("checkoutCore", 15, 60);
+    const isAllowed = await RateLimitService.check("checkoutCore", 15, 60, true);
     if (!isAllowed) {
       throw new Error("Слишком много запросов. Попробуйте через минуту.");
     }
@@ -277,12 +277,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         throw new Error("Ваш аккаунт заблокирован или удален");
       }
       // IDOR / Account Hijacking Prevention:
-      // If user exists but there is no active session OR active session userId doesn't match this user's id:
-      // For balance payments, this is strict. For other gateways, it is allowed as guest payment.
-      if (gateway === 'balance') {
-        if (!currentSession || currentSession.userId !== user.id) {
-          throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
-        }
+      // Prevent order injection / guest orders binding to existing accounts without session
+      if (!currentSession || currentSession.userId !== user.id) {
+        throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
       }
     }
 
@@ -762,7 +759,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const session = await verifySession();
     if (!session) throw new Error("Необходима авторизация");
 
-    const isAllowed = await RateLimitService.check("retryCheckoutCore", 10, 60);
+    const isAllowed = await RateLimitService.check("retryCheckoutCore", 10, 60, true);
     if (!isAllowed) throw new Error("Слишком много запросов. Попробуйте через минуту.");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -16,7 +16,7 @@ import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 
 const massOrderSchema = z.object({
-  text: z.string().min(1, 'Введите данные для заказа'),
+  text: z.string().min(1, 'Введите данные для заказа').max(20480, 'Текст заказа слишком длинный'),
   email: z.string().email('Введите корректный email').nullable().optional(),
   gateway: z.enum(['yookassa', 'cryptobot', 'balance']).default('yookassa'),
   idempotencyKey: z.string().optional(),
@@ -26,7 +26,7 @@ const massOrderSchema = z.object({
 const structuredMassOrderSchema = z.object({
   orders: z.array(z.object({
     serviceId: z.string(),
-    link: z.string(),
+    link: z.string().max(2048, 'Ссылка слишком длинная'),
     quantity: z.number().positive(),
   })).min(1, 'Заказы не найдены'),
   email: z.string().email('Введите корректный email').nullable().optional(),

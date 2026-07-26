@@ -26,10 +26,11 @@ export class IntelligenceLinkAnalyzer {
         }
         let cleanUrl = rawUrl.trim();
         // If it's a plain handle without slash or dot, e.g. "durov" or "@durov"
-        if (!cleanUrl.includes('/') && !cleanUrl.includes('.') && /^[a-zA-Z0-9_@]+$/.test(cleanUrl)) {
-            const handle = cleanUrl.startsWith('@') ? cleanUrl.substring(1) : cleanUrl;
-            // Reconstruct it as a Telegram link by default because Telegram is 70% of SMM orders
-            cleanUrl = `https://t.me/${handle}`;
+        if (!cleanUrl.includes('/') && !cleanUrl.includes('.')) {
+            const rawHandle = cleanUrl.startsWith('@') ? cleanUrl.substring(1) : cleanUrl;
+            if (/^[a-zA-Z0-9_]+$/.test(rawHandle)) {
+                cleanUrl = `https://t.me/${rawHandle}`;
+            }
         }
         const sanitizedUrl = this.sanitize(cleanUrl);
         const expandedUrl = await this.resolve(sanitizedUrl);
@@ -83,7 +84,10 @@ export class IntelligenceLinkAnalyzer {
 
             // 2. Convert plain @username to proper URL if it starts with @
             if (cleanUrl.startsWith('@')) {
-                cleanUrl = `https://t.me/${cleanUrl.substring(1)}`;
+                const handle = cleanUrl.substring(1);
+                if (/^[a-zA-Z0-9_]+$/.test(handle)) {
+                    cleanUrl = `https://t.me/${handle}`;
+                }
             }
 
             // Only parse full URL if it has http scheme
@@ -97,30 +101,28 @@ export class IntelligenceLinkAnalyzer {
         } catch (_e) {
             const cleanUrl = url.trim().replace(/%40/g, '@');
             if (cleanUrl.startsWith('@')) {
-                return `https://t.me/${cleanUrl.substring(1)}`;
+                const handle = cleanUrl.substring(1);
+                if (/^[a-zA-Z0-9_]+$/.test(handle)) {
+                    return `https://t.me/${handle}`;
+                }
             }
             return cleanUrl;
         }
     }
 
     private async resolve(url: string): Promise<string> {
-        const shortDomains = ['bit.ly', 'youtu.be', 'vm.tiktok.com', 't.co', 'cutt.ly'];
-        if (shortDomains.some(d => url.includes(d))) {
-            if (url.includes('youtu.be/')) {
-                return url.replace('youtu.be/', 'youtube.com/watch?v=');
+        try {
+            const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+            const { SHORT_LINK_HOSTS, resolveShortLink } = await import('@/lib/ssrf-guard');
+            if (SHORT_LINK_HOSTS.has(parsed.hostname.toLowerCase())) {
+                if (url.includes('youtu.be/')) {
+                    return url.replace('youtu.be/', 'youtube.com/watch?v=');
+                }
+                return await resolveShortLink(url);
             }
-            try {
-                const fetchUrl = url.startsWith('http') ? url : `https://${url}`;
-                const res = await fetch(fetchUrl, {
-                    method: 'HEAD', 
-                    redirect: 'follow',
-                    signal: AbortSignal.timeout(1500)
-                });
-                if (res.url) return res.url;
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (e) {
-                // Silent fallback on timeout/error
-            }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (e) {
+            // Silent fallback
         }
         return url;
     }

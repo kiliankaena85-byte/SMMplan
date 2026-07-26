@@ -30,14 +30,14 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
 
   try {
     // 1. IP-level Rate Limit (Max 20 attempts per hour)
-    const isIpAllowed = await RateLimitService.check('auth:password:ip', 20, 3600);
+    const isIpAllowed = await RateLimitService.check('auth:password:ip', 20, 3600, true);
     if (!isIpAllowed) {
       log.warn('Password login IP rate limit exceeded', { email: cleanEmail });
       return { error: "Слишком много попыток входа с этого IP-адреса. Пожалуйста, подождите 1 час.", success: false };
     }
 
     // 2. Email-level Rate Limit (Max 5 attempts per 15 minutes to prevent brute-forcing)
-    const isEmailAllowed = await RateLimitService.checkCustomKey(`password-attempts:${cleanEmail}`, 5, 900);
+    const isEmailAllowed = await RateLimitService.checkCustomKey(`password-attempts:${cleanEmail}`, 5, 900, true);
     if (!isEmailAllowed) {
       log.warn('Password login email rate limit exceeded', { email: cleanEmail });
       return { error: "Аккаунт временно заблокирован из-за большого числа неверных попыток. Попробуйте через 15 минут.", success: false };
