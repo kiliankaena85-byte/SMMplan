@@ -68,8 +68,8 @@ interface UnifiedTicketsWorkspaceProps {
   currentStatus: string;
   currentSource: string;
   currentIsB2b: boolean;
-  currentSearch: string;
   canSeeRates?: boolean;
+  canSeeFinances?: boolean;
 }
 
 import { TicketsSidebar } from './tickets-sidebar';
@@ -87,7 +87,8 @@ export function UnifiedTicketsWorkspace({
   currentSource,
   currentIsB2b,
   currentSearch,
-  canSeeRates = true
+  canSeeRates = true,
+  canSeeFinances = canSeeRates
 }: UnifiedTicketsWorkspaceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -351,7 +352,7 @@ export function UnifiedTicketsWorkspace({
                         </span>
                         <span className="hidden sm:inline w-1 h-1 rounded-full bg-border shrink-0" />
                         <span className="text-foreground flex items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0 w-max">
-                          <Wallet className="w-3 h-3 shrink-0 text-muted-foreground" /> {canSeeRates ? formatBalance(activeTicket.user.balance) : '🔒 *** ₽'}
+                          <Wallet className="w-3 h-3 shrink-0 text-muted-foreground" /> {canSeeFinances ? formatBalance(activeTicket.user.balance) : '🔒 *** ₽'}
                         </span>
                         {canSeeRates && activeTicket.user.totalSpent !== undefined && (
                           <>
@@ -554,6 +555,7 @@ export function UnifiedTicketsWorkspace({
                     supportSpentTodayCents={supportSpentTodayCents}
                     onClose={() => setShowProfile(false)}
                     isMobile={false}
+                    canSeeFinances={canSeeFinances}
                     user={{
                       ...activeTicket.user,
                       balance: Number(activeTicket.user.balance),
@@ -579,6 +581,7 @@ export function UnifiedTicketsWorkspace({
                           supportSpentTodayCents={supportSpentTodayCents}
                           onClose={() => setShowProfile(false)}
                           isMobile={true}
+                          canSeeFinances={canSeeFinances}
                           user={{
                             ...activeTicket.user,
                             balance: Number(activeTicket.user.balance),
