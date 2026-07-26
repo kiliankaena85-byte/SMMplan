@@ -84,10 +84,11 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
       }
     });
 
-    supportSpentTodayCents = ledgerCompensations.reduce((acc, entry) => {
-      const amt = Number(entry.amount);
-      return acc + Math.abs(amt);
-    }, 0);
+    const supportSpentTodayBigInt = ledgerCompensations.reduce((acc, entry) => {
+      const amt = entry.amount < 0n ? -entry.amount : entry.amount;
+      return acc + amt;
+    }, 0n);
+    supportSpentTodayCents = Number(supportSpentTodayBigInt);
   }
 
   const templates = Array.isArray(templatesResult) ? templatesResult : [];
