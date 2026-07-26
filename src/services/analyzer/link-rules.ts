@@ -126,7 +126,7 @@ export const LINK_RULES: LinkRule[] = [
   {
       platform: IntelligencePlatform.VK,
       type: 'comment',
-      pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|photo|clip)(-?\d+_\d+)\?(?:[^#]*&)?reply=(\d+)/i,
+      pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|photo|clip)(-?\d+_\d+)\?(?:[^#&]*&)*reply=(\d+)/i,
       suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REACTIONS],
       context: 'social_reach'
   },

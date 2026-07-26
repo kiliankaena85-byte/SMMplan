@@ -215,15 +215,25 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         ? inferTargetTypeFromCategory(service.category?.name)
         : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
 
-      // 1. Clean the link according to provider rules
-      normalizedLink = mutateLink(link, platformSlug, targetType);
+      if (targetType === 'CUSTOM' || service.targetType === 'CUSTOM') {
+        const { getCustomValidator } = await import('@/validators/link-mutators');
+        const customValidator = getCustomValidator(service.customDataType);
+        const customValue = customData || link;
+        const customResult = customValidator.safeParse(customValue);
+        if (!customResult.success) {
+          throw new Error(customResult.error.errors[0].message);
+        }
+      } else {
+        // 1. Clean the link according to provider rules
+        normalizedLink = mutateLink(link, platformSlug, targetType);
 
-      // 2. Validate the cleaned link
-      const validator = getLinkValidator(platformSlug, targetType);
-      const linkResult = validator.safeParse(normalizedLink);
-      
-      if (!linkResult.success) {
-        throw new Error(linkResult.error.errors[0].message);
+        // 2. Validate the cleaned link
+        const validator = getLinkValidator(platformSlug, targetType);
+        const linkResult = validator.safeParse(normalizedLink);
+        
+        if (!linkResult.success) {
+          throw new Error(linkResult.error.errors[0].message);
+        }
       }
     }
 
