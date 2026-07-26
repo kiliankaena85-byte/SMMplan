@@ -172,6 +172,20 @@ export function matchesSuggestedCategory(
       }
     }
   }
+
+  try {
+    import('@/lib/admin-audit').then(({ auditAdmin }) => {
+      auditAdmin({
+        adminId: 'system',
+        adminEmail: 'system@smmplan.pro',
+        action: 'CATEGORY_UNMAPPED',
+        target: dbCategoryName,
+        targetType: 'CATEGORY',
+      });
+    }).catch(() => {});
+  } catch {
+    // Non-blocking observability alert
+  }
   
   return false;
 }
