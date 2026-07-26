@@ -1,11 +1,11 @@
 import React from 'react';
-import { SmmFluxDashboard } from '../components/dashboards';
+import { SmmFluxFullApp } from '../components/flux-views';
 
 export const metadata = {
-  title: 'SMMflux — Личный кабинет клиента (Full Screen)',
+  title: 'SMMflux — Личный кабинет (Главная)',
   description: 'Приложение SMMflux Aurora App',
 };
 
 export default function FullScreenFluxPage() {
-  return <SmmFluxDashboard isPreviewMode={false} />;
+  return <SmmFluxFullApp initialTab="dashboard" />;
 }

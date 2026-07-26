@@ -1,0 +1,821 @@
+'use client';
+
+import React, { useState } from 'react';
+import '../dashboards.css';
+import { 
+  Send, 
+  Instagram, 
+  Youtube, 
+  Video, 
+  Share2, 
+  CreditCard, 
+  Zap, 
+  ShieldCheck, 
+  ArrowUpRight,
+  Menu,
+  X,
+  Copy,
+  Award,
+  Search,
+  Filter,
+  RefreshCw,
+  PlusCircle,
+  MessageSquare,
+  User,
+  Key,
+  Bell,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  HelpCircle,
+  ExternalLink,
+  Wallet,
+  Gift,
+  ChevronRight,
+  Check
+} from 'lucide-react';
+import { DASHBOARD_DATA } from './dashboards';
+
+export type PlanTab = 'dashboard' | 'orders' | 'new-order' | 'deposit' | 'referrals' | 'support' | 'settings';
+
+export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: PlanTab }) {
+  const [activeTab, setActiveTab] = useState<PlanTab>(initialTab);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Form states
+  const [selectedNetwork, setSelectedNetwork] = useState('tg');
+  const [selectedCategory, setSelectedCategory] = useState('subs');
+  const [selectedTariff, setSelectedTariff] = useState('std');
+  const [quantity, setQuantity] = useState('1000');
+  const [targetLink, setTargetLink] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('1000');
+  const [paymentGateway, setPaymentGateway] = useState('yookassa');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
+
+  const handleCopyRef = () => {
+    navigator.clipboard?.writeText(`https://smmplan.ru/ref/${DASHBOARD_DATA.refCode}`);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const calculateTotalCost = () => {
+    const tariff = DASHBOARD_DATA.tariffs.find(t => t.id === selectedTariff);
+    const rate = parseFloat(tariff?.price || '0.03');
+    const qty = parseInt(quantity || '0', 10);
+    return (qty * rate).toFixed(2);
+  };
+
+  return (
+    <div className="smmplan-scope w-full min-h-screen pb-16 bg-[#e9edf2]">
+      
+      {/* ── 1. TOP HEADER NAVIGATION ── */}
+      <header className="bg-white border-b border-[#e2e8f0] sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 gap-4">
+            
+            {/* Brand Logo */}
+            <div className="flex items-center gap-3 shrink-0 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+              <div className="w-9 h-9 rounded-xl bg-[#1f9bf0] flex items-center justify-center text-white font-black text-lg shadow-sm">
+                P
+              </div>
+              <span className="font-heading text-xl text-[#0e131a] tracking-tight font-extrabold">
+                SMMplan
+              </span>
+              <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold bg-[#e7f2fe] text-[#1f9bf0] rounded-full uppercase tracking-wider">
+                Terminal
+              </span>
+            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1 lg:gap-1.5">
+              {[
+                { id: 'dashboard', label: 'Главная' },
+                { id: 'new-order', label: 'Быстрый заказ' },
+                { id: 'orders', label: 'Мои заказы' },
+                { id: 'deposit', label: 'Пополнение' },
+                { id: 'referrals', label: 'Рефералы' },
+                { id: 'support', label: 'Поддержка' },
+                { id: 'settings', label: 'Настройки' },
+              ].map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as PlanTab)}
+                    className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                      isActive 
+                        ? 'text-[#1f9bf0] bg-[#e7f2fe] font-bold' 
+                        : 'text-[#414a59] hover:bg-[#e9edf2]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Right Quick Balance */}
+            <div className="flex items-center gap-3">
+              <div 
+                onClick={() => setActiveTab('deposit')}
+                className="bg-[#e9edf2] hover:bg-[#d3dce8] px-3.5 py-1.5 rounded-full border border-[#d3dce8] flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <span className="text-xs font-semibold text-[#8b94a3] uppercase hidden sm:inline">Баланс:</span>
+                <span className="font-mono-data font-bold text-[#0e131a] text-sm sm:text-base">{DASHBOARD_DATA.balance}</span>
+              </div>
+              <button 
+                onClick={() => setActiveTab('deposit')}
+                className="hidden sm:flex items-center gap-1.5 bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Пополнить</span>
+              </button>
+
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 text-[#414a59] hover:bg-[#e9edf2] rounded-lg"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Menu Dropdown */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden border-t border-[#e2e8f0] py-3 space-y-1 animate-in slide-in-from-top duration-200">
+              {[
+                { id: 'dashboard', label: 'Главная' },
+                { id: 'new-order', label: 'Быстрый заказ' },
+                { id: 'orders', label: 'Мои заказы' },
+                { id: 'deposit', label: 'Пополнение' },
+                { id: 'referrals', label: 'Рефералы' },
+                { id: 'support', label: 'Поддержка' },
+                { id: 'settings', label: 'Настройки' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id as PlanTab);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`block w-full text-left px-3 py-2 rounded-lg text-sm ${
+                    activeTab === tab.id ? 'font-bold text-[#1f9bf0] bg-[#e7f2fe]' : 'font-medium text-[#414a59]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ── 2. TICKER CAPSULE BAR ── */}
+      <div className="bg-[#0e131a] text-white py-2 overflow-hidden border-b border-[#e2e8f0]">
+        <div className="ticker-track text-xs font-semibold space-x-8 px-4">
+          <span className="inline-flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#1f9d6b] animate-pulse" />
+            <span>Платформа работает в штатном режиме</span>
+          </span>
+          <span>⚡ 15+ соцсетей</span>
+          <span>• 500+ услуг</span>
+          <span>• Авто-выполнение 24/7</span>
+          <span>• 9–21 Поддержка МСК</span>
+          <span>• Сберегли клиентам 5 940 ₽</span>
+          <span>• Выполнено заказов: 1 420 000+</span>
+        </div>
+      </div>
+
+      {/* ── 3. MAIN TABBED WORKSPACE ── */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+
+        {/* ── PAGE 1: DASHBOARD OVERVIEW ── */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Balance Hero Card */}
+              <div className="lg:col-span-7 bg-white rounded-2xl p-6 sm:p-8 border border-[#e2e8f0] border-l-4 border-l-[#1f9bf0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] flex flex-col justify-between min-w-0">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#8b94a3]">Текущий баланс</span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#e6f7f0] text-[#1f9d6b] text-xs font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1f9d6b]" />
+                      Активен
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-baseline gap-3">
+                    <h1 className="font-mono-data text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#0e131a] tracking-tight">
+                      {DASHBOARD_DATA.balance}
+                    </h1>
+                    <span className="text-xs font-semibold text-[#8b94a3]">ID счёта: #USR-8491</span>
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-6 border-t border-[#e2e8f0] flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                    <div>
+                      <span className="text-[11px] font-semibold text-[#8b94a3] block">Всего потрачено</span>
+                      <span className="font-mono-data text-sm sm:text-base font-bold text-[#0e131a]">{DASHBOARD_DATA.spent}</span>
+                    </div>
+                    <div className="w-px h-8 bg-[#e2e8f0] hidden sm:block" />
+                    <div>
+                      <span className="text-[11px] font-semibold text-[#8b94a3] block">Сэкономлено</span>
+                      <span className="font-mono-data text-sm sm:text-base font-bold text-[#1f9d6b]">+{DASHBOARD_DATA.savings}</span>
+                    </div>
+                    <div className="w-px h-8 bg-[#e2e8f0] hidden sm:block" />
+                    <div>
+                      <span className="text-[11px] font-semibold text-[#8b94a3] block">Заказов</span>
+                      <span className="font-mono-data text-sm sm:text-base font-bold text-[#0e131a]">{DASHBOARD_DATA.ordersCount} шт</span>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setActiveTab('deposit')}
+                    className="w-full sm:w-auto bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    <span>Пополнить баланс</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Side Card */}
+              <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] flex flex-col justify-between space-y-4 min-w-0">
+                <div className="flex items-center justify-between border-b border-[#e2e8f0] pb-3">
+                  <h3 className="font-heading text-sm font-bold text-[#0e131a] flex items-center gap-2">
+                    <Award className="w-4 h-4 text-[#1f9bf0]" />
+                    Статус: <span className="text-[#1f9bf0]">PRO Клиент</span>
+                  </h3>
+                  <span className="text-xs font-mono-data text-[#8b94a3]">Скидка 5%</span>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="bg-[#e9edf2] p-3 rounded-xl flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[#414a59]">Реферальный доход:</span>
+                    <span className="font-mono-data font-bold text-[#0e131a]">{DASHBOARD_DATA.refBalance}</span>
+                  </div>
+                  <div className="bg-[#e9edf2] p-3 rounded-xl flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[#414a59]">Приоритет задач:</span>
+                    <span className="font-semibold text-[#1f9d6b] flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5" /> Мгновенный отклик
+                    </span>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setActiveTab('new-order')}
+                  className="w-full text-center block bg-[#0e131a] text-white py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800"
+                >
+                  Перейти к созданию заказа →
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Orders Summary */}
+            <div className="bg-white rounded-2xl p-6 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] space-y-4">
+              <div className="flex items-center justify-between border-b border-[#e2e8f0] pb-4">
+                <h2 className="font-heading text-lg font-bold text-[#0e131a]">Последние 4 заказа</h2>
+                <button onClick={() => setActiveTab('orders')} className="text-xs font-bold text-[#1f9bf0] hover:underline">
+                  Перейти в полный список ({DASHBOARD_DATA.ordersCount}) →
+                </button>
+              </div>
+
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse min-w-[640px]">
+                  <thead>
+                    <tr className="border-b border-[#e2e8f0] text-[11px] font-bold text-[#8b94a3] uppercase">
+                      <th className="py-3 px-4">ID</th>
+                      <th className="py-3 px-4">Услуга</th>
+                      <th className="py-3 px-4">Ссылка</th>
+                      <th className="py-3 px-4">Статус</th>
+                      <th className="py-3 px-4 text-right">Сумма</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e2e8f0] text-xs">
+                    {DASHBOARD_DATA.recentOrders.map((ord) => (
+                      <tr key={ord.id} className="hover:bg-[#e9edf2]/40 transition-colors">
+                        <td className="py-3 px-4 font-mono-data font-bold text-[#0e131a]">{ord.id}</td>
+                        <td className="py-3 px-4 font-semibold text-[#0e131a]">{ord.service}</td>
+                        <td className="py-3 px-4 font-mono-data text-[#8b94a3] max-w-[180px] truncate">{ord.link}</td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                            ord.status === 'COMPLETED'
+                              ? 'bg-[#e6f7f0] text-[#1f9d6b] border-[#1f9d6b]/20'
+                              : ord.status === 'IN_PROGRESS'
+                              ? 'bg-[#e7f2fe] text-[#1f9bf0] border-[#1f9bf0]/20'
+                              : 'bg-[#fdeeee] text-[#d6453d] border-[#d6453d]/20'
+                          }`}>
+                            {ord.statusText}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono-data font-extrabold text-[#0e131a]">{ord.amount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PAGE 2: NEW ORDER WIZARD ── */}
+        {activeTab === 'new-order' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] space-y-6">
+            <div className="border-b border-[#e2e8f0] pb-4">
+              <h1 className="font-heading text-xl sm:text-2xl font-bold text-[#0e131a]">
+                Форма создания нового заказа
+              </h1>
+              <p className="text-xs text-[#8b94a3]">Выберите соцсеть, категорию и тариф для мгновенного старта</p>
+            </div>
+
+            {/* STEP 1 */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-[#8b94a3] block">
+                1. Социальная сеть
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                {[
+                  { id: 'tg', name: 'Telegram', icon: Send, color: 'text-[#1f9bf0]' },
+                  { id: 'ig', name: 'Instagram', icon: Instagram, color: 'text-pink-600' },
+                  { id: 'yt', name: 'YouTube', icon: Youtube, color: 'text-red-600' },
+                  { id: 'tt', name: 'TikTok', icon: Video, color: 'text-slate-900' },
+                  { id: 'vk', name: 'VKontakte', icon: Share2, color: 'text-blue-600' },
+                  { id: 'rt', name: 'Rutube', icon: Zap, color: 'text-emerald-600' },
+                ].map((net) => {
+                  const IconComp = net.icon;
+                  const isSelected = selectedNetwork === net.id;
+                  return (
+                    <button
+                      key={net.id}
+                      onClick={() => setSelectedNetwork(net.id)}
+                      className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition-all ${
+                        isSelected 
+                          ? 'border-[#1f9bf0] bg-[#e7f2fe] ring-2 ring-[#1f9bf0]/20' 
+                          : 'border-[#e2e8f0] bg-white hover:border-[#d3dce8]'
+                      }`}
+                    >
+                      <IconComp className={`w-5 h-5 ${net.color}`} />
+                      <span className="text-xs font-bold text-[#0e131a]">{net.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* STEP 2 */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-[#8b94a3] block">
+                2. Категория услуги
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'subs', name: 'Подписчики / Участники' },
+                  { id: 'views', name: 'Просмотры постов / видео' },
+                  { id: 'likes', name: 'Лайки и одобрения' },
+                  { id: 'react', name: 'Реакции (🔥👍🎉)' },
+                  { id: 'comments', name: 'Комментарии с текстом' },
+                  { id: 'stars', name: 'Звёзды и бусты канала' },
+                ].map((cat) => {
+                  const isSelected = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        isSelected
+                          ? 'bg-[#0e131a] text-white shadow-sm'
+                          : 'bg-[#e9edf2] text-[#414a59] hover:bg-[#d3dce8]'
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* STEP 3 */}
+            <div className="space-y-4 pt-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-[#8b94a3] block">
+                3. Тариф и качество
+              </label>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {DASHBOARD_DATA.tariffs.map((t) => {
+                  const isSelected = selectedTariff === t.id;
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => setSelectedTariff(t.id)}
+                      className={`p-5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between space-y-4 ${
+                        isSelected 
+                          ? 'border-[#1f9bf0] bg-white ring-2 ring-[#1f9bf0]/20 shadow-md' 
+                          : 'border-[#e2e8f0] bg-white hover:border-[#d3dce8]'
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${t.badgeBg}`}>
+                            {t.badge}
+                          </span>
+                          {t.popular && (
+                            <span className="text-[10px] font-bold text-[#1f9bf0] bg-[#e7f2fe] px-2 py-0.5 rounded-md">
+                              ХИТ ПРОДАЖ
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-heading text-base font-bold text-[#0e131a]">{t.name}</h4>
+                        <p className="text-xs text-[#8b94a3]">Скорость: {t.speed}</p>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#e2e8f0] flex items-baseline justify-between">
+                        <span className="text-xs text-[#414a59]">Цена за 1 шт:</span>
+                        <span className="font-mono-data text-lg font-extrabold text-[#0e131a]">{t.price}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* INPUT FORM */}
+              <div className="bg-[#e9edf2]/70 p-6 rounded-2xl border border-[#e2e8f0] grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div className="md:col-span-6 space-y-1.5 min-w-0">
+                  <label className="text-xs font-bold text-[#414a59] block">Ссылка на объект (канал/пост/видео)</label>
+                  <input
+                    type="url"
+                    placeholder="https://t.me/my_channel"
+                    value={targetLink}
+                    onChange={(e) => setTargetLink(e.target.value)}
+                    className="w-full bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-xs text-[#0e131a] focus:outline-none focus:border-[#1f9bf0] font-mono-data"
+                  />
+                </div>
+
+                <div className="md:col-span-3 space-y-1.5 min-w-0">
+                  <label className="text-xs font-bold text-[#414a59] block">Количество (мин. 10)</label>
+                  <input
+                    type="number"
+                    min="10"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="w-full bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-xs text-[#0e131a] focus:outline-none focus:border-[#1f9bf0] font-mono-data"
+                  />
+                </div>
+
+                <div className="md:col-span-3 min-w-0">
+                  <button className="w-full bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
+                    <span>Подтвердить и оплатить ({calculateTotalCost()} ₽)</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PAGE 3: ORDERS LIST ── */}
+        {activeTab === 'orders' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#e2e8f0] pb-4 gap-4">
+              <div>
+                <h1 className="font-heading text-xl sm:text-2xl font-bold text-[#0e131a]">
+                  История заказов ({DASHBOARD_DATA.ordersCount})
+                </h1>
+                <p className="text-xs text-[#8b94a3]">Полный реестр ваших заказов с отслеживанием прогресса</p>
+              </div>
+
+              {/* Status Filters */}
+              <div className="flex flex-wrap gap-1.5 bg-[#e9edf2] p-1 rounded-xl text-xs font-bold">
+                {['ALL', 'IN_PROGRESS', 'COMPLETED', 'ERROR'].map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setOrderStatusFilter(st)}
+                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                      orderStatusFilter === st ? 'bg-white text-[#0e131a] shadow-sm' : 'text-[#8b94a3]'
+                    }`}
+                  >
+                    {st === 'ALL' ? 'Все' : st === 'IN_PROGRESS' ? 'В работе' : st === 'COMPLETED' ? 'Выполнены' : 'Ошибки'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Search Input */}
+            <div className="flex items-center gap-3 bg-[#e9edf2]/50 border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-xs">
+              <Search className="w-4 h-4 text-[#8b94a3]" />
+              <input
+                type="text"
+                placeholder="Поиск по ID заказа или ссылке..."
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                className="w-full bg-transparent outline-none text-[#0e131a]"
+              />
+            </div>
+
+            {/* Orders Table */}
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-[#e2e8f0] text-[11px] font-bold text-[#8b94a3] uppercase">
+                    <th className="py-3 px-4">ID</th>
+                    <th className="py-3 px-4">Дата и Время</th>
+                    <th className="py-3 px-4">Услуга</th>
+                    <th className="py-3 px-4">Ссылка</th>
+                    <th className="py-3 px-4">Статус</th>
+                    <th className="py-3 px-4 text-right">Стоимость</th>
+                    <th className="py-3 px-4 text-center">Действия</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e2e8f0] text-xs font-mono-data">
+                  {DASHBOARD_DATA.recentOrders
+                    .filter(o => orderStatusFilter === 'ALL' || o.status === orderStatusFilter)
+                    .map((ord) => (
+                      <tr key={ord.id} className="hover:bg-[#e9edf2]/40 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-[#0e131a]">{ord.id}</td>
+                        <td className="py-3.5 px-4 text-[#8b94a3]">{ord.date}</td>
+                        <td className="py-3.5 px-4 font-sans font-semibold text-[#0e131a]">{ord.service}</td>
+                        <td className="py-3.5 px-4 text-[#8b94a3] max-w-[180px] truncate">{ord.link}</td>
+                        <td className="py-3.5 px-4 font-sans">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                            ord.status === 'COMPLETED'
+                              ? 'bg-[#e6f7f0] text-[#1f9d6b] border-[#1f9d6b]/20'
+                              : ord.status === 'IN_PROGRESS'
+                              ? 'bg-[#e7f2fe] text-[#1f9bf0] border-[#1f9bf0]/20'
+                              : 'bg-[#fdeeee] text-[#d6453d] border-[#d6453d]/20'
+                          }`}>
+                            {ord.statusText}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-extrabold text-[#0e131a]">{ord.amount}</td>
+                        <td className="py-3.5 px-4 text-center font-sans">
+                          <button 
+                            onClick={() => setSelectedOrderDetails(ord)}
+                            className="text-[#1f9bf0] font-bold hover:underline"
+                          >
+                            Детали
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── PAGE 4: DEPOSIT / ADD FUNDS ── */}
+        {activeTab === 'deposit' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] space-y-6">
+            <div className="border-b border-[#e2e8f0] pb-4">
+              <h1 className="font-heading text-xl sm:text-2xl font-bold text-[#0e131a]">
+                Пополнение баланса
+              </h1>
+              <p className="text-xs text-[#8b94a3]">Выберите способ оплаты. Зачисление происходят автоматически в течение 1 минуты</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+              {/* Payment Form */}
+              <div className="md:col-span-7 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#8b94a3] block">
+                    1. Выберите платёжную систему
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { id: 'yookassa', name: 'ЮKassa (Карты РФ, СБП)', badge: '0% КОМИССИЯ' },
+                      { id: 'robokassa', name: 'Robokassa (Карты мира)', badge: 'БЫСТРО' },
+                      { id: 'cryptobot', name: 'CryptoBot (USDT / TON / BTC)', badge: 'КРИПТА' },
+                      { id: 'sbp', name: 'СБП (Система быстрых платежей)', badge: 'ПОПУЛЯРНО' },
+                    ].map((gw) => (
+                      <button
+                        key={gw.id}
+                        onClick={() => setPaymentGateway(gw.id)}
+                        className={`p-4 rounded-xl border text-left flex flex-col justify-between gap-2 transition-all ${
+                          paymentGateway === gw.id
+                            ? 'border-[#1f9bf0] bg-[#e7f2fe] ring-2 ring-[#1f9bf0]/20'
+                            : 'border-[#e2e8f0] bg-white hover:border-[#d3dce8]'
+                        }`}
+                      >
+                        <span className="text-xs font-bold text-[#0e131a]">{gw.name}</span>
+                        <span className="text-[10px] font-extrabold text-[#1f9bf0] bg-white px-2 py-0.5 rounded w-max border border-[#1f9bf0]/20">
+                          {gw.badge}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-[#414a59] block">Сумма пополнения (в рублях)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={depositAmount}
+                      onChange={(e) => setDepositAmount(e.target.value)}
+                      className="flex-1 bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm font-bold text-[#0e131a] font-mono-data"
+                    />
+                    <button className="bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm">
+                      Оплатить {depositAmount} ₽
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bonus Info */}
+              <div className="md:col-span-5 bg-[#e9edf2]/60 p-6 rounded-2xl border border-[#e2e8f0] space-y-4">
+                <h3 className="font-heading text-sm font-bold text-[#0e131a]">Бонусы при пополнении</h3>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between p-2.5 bg-white rounded-xl border border-[#e2e8f0]">
+                    <span>От 3 000 ₽</span>
+                    <span className="font-bold text-[#1f9d6b]">+3% на баланс</span>
+                  </div>
+                  <div className="flex justify-between p-2.5 bg-white rounded-xl border border-[#e2e8f0]">
+                    <span>От 5 000 ₽</span>
+                    <span className="font-bold text-[#1f9d6b]">+5% на баланс</span>
+                  </div>
+                  <div className="flex justify-between p-2.5 bg-white rounded-xl border border-[#e2e8f0]">
+                    <span>От 10 000 ₽</span>
+                    <span className="font-bold text-[#1f9d6b]">+10% на баланс</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PAGE 5: REFERRALS ── */}
+        {activeTab === 'referrals' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] space-y-6">
+            <div className="border-b border-[#e2e8f0] pb-4 flex items-center justify-between">
+              <div>
+                <h1 className="font-heading text-xl sm:text-2xl font-bold text-[#0e131a]">
+                  Партнёрская программа (10%)
+                </h1>
+                <p className="text-xs text-[#8b94a3]">Получайте постоянные пожизненные отчисления с заказов приглашённых друзей</p>
+              </div>
+              <span className="font-mono-data text-sm font-bold text-[#1f9d6b] bg-[#e6f7f0] px-3 py-1 rounded-full">
+                Заработано: {DASHBOARD_DATA.refBalance}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 bg-[#e9edf2] rounded-xl border border-[#e2e8f0] space-y-1">
+                <span className="text-[#8b94a3] block font-semibold">Переходов по ссылке</span>
+                <span className="font-mono-data text-2xl font-bold text-[#0e131a]">34</span>
+              </div>
+              <div className="p-4 bg-[#e9edf2] rounded-xl border border-[#e2e8f0] space-y-1">
+                <span className="text-[#8b94a3] block font-semibold">Регистраций</span>
+                <span className="font-mono-data text-2xl font-bold text-[#0e131a]">12</span>
+              </div>
+              <div className="p-4 bg-[#e9edf2] rounded-xl border border-[#e2e8f0] space-y-1">
+                <span className="text-[#8b94a3] block font-semibold">Начислено выплат</span>
+                <span className="font-mono-data text-2xl font-bold text-[#1f9d6b]">{DASHBOARD_DATA.refBalance}</span>
+              </div>
+            </div>
+
+            <div className="bg-[#e9edf2]/60 p-6 rounded-2xl border border-[#e2e8f0] space-y-3">
+              <label className="text-xs font-bold text-[#414a59] block">Ваша реферальная ссылка</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={`https://smmplan.ru/ref/${DASHBOARD_DATA.refCode}`}
+                  className="flex-1 bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-xs font-mono-data text-[#0e131a]"
+                />
+                <button
+                  onClick={handleCopyRef}
+                  className="bg-[#1f9bf0] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#0b7fd4]"
+                >
+                  {isCopied ? 'Скопировано!' : 'Копировать'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PAGE 6: SUPPORT & TICKETS ── */}
+        {activeTab === 'support' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] space-y-6">
+            <div className="border-b border-[#e2e8f0] pb-4 flex items-center justify-between">
+              <div>
+                <h1 className="font-heading text-xl sm:text-2xl font-bold text-[#0e131a]">
+                  Служба поддержки клиентам
+                </h1>
+                <p className="text-xs text-[#8b94a3]">Время работы операторов: {DASHBOARD_DATA.supportHours}</p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1f9d6b]">
+                <span className="w-2 h-2 rounded-full bg-[#1f9d6b] animate-ping" />
+                Операторы онлайн
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-6 bg-[#e9edf2]/60 rounded-2xl border border-[#e2e8f0] space-y-4">
+                <h3 className="font-heading text-base font-bold text-[#0e131a]">Создать новый тикет</h3>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-[#414a59] font-bold mb-1">Тема обращения</label>
+                    <input
+                      type="text"
+                      placeholder="Задержка выполнения заказа #381920..."
+                      className="w-full bg-white border border-[#e2e8f0] rounded-xl px-4 py-2 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#414a59] font-bold mb-1">Сообщение</label>
+                    <textarea
+                      rows={4}
+                      placeholder="Опишите подробности вашей проблемы..."
+                      className="w-full bg-white border border-[#e2e8f0] rounded-xl p-3 text-xs"
+                    />
+                  </div>
+                  <button className="w-full bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white py-2.5 rounded-xl font-bold text-xs">
+                    Отправить запрос в поддержку
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 bg-[#0e131a] text-white rounded-2xl space-y-4 flex flex-col justify-between">
+                <div className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#1f9bf0]">Прямая связь</span>
+                  <h3 className="font-heading text-xl font-bold">Быстрая помощь в Telegram</h3>
+                  <p className="text-xs text-[#8b94a3]">
+                    Если вам нужен мгновенный ответ по заказу или индивидуальный расчёт большой партии, напишите дежурному инженеру.
+                  </p>
+                </div>
+                <button className="bg-[#1f9bf0] text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#0b7fd4]">
+                  <Send className="w-4 h-4" />
+                  <span>Открыть диалог в Telegram (@smmplan_support)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PAGE 7: SETTINGS ── */}
+        {activeTab === 'settings' && (
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#e2e8f0] shadow-[0_16px_40px_rgba(23,43,77,0.07)] space-y-6">
+            <div className="border-b border-[#e2e8f0] pb-4">
+              <h1 className="font-heading text-xl sm:text-2xl font-bold text-[#0e131a]">
+                Настройки аккаунта
+              </h1>
+              <p className="text-xs text-[#8b94a3]">Управление профилем, безопасностью и ключами доступа</p>
+            </div>
+
+            <div className="space-y-6 max-w-2xl text-xs">
+              <div className="space-y-3">
+                <h3 className="font-heading text-base font-bold text-[#0e131a]">Личная информация</h3>
+                <div>
+                  <label className="block text-[#414a59] font-bold mb-1">Email адрес</label>
+                  <input
+                    type="email"
+                    readOnly
+                    value="client@smmplan.ru"
+                    className="w-full bg-[#e9edf2] border border-[#e2e8f0] rounded-xl px-4 py-2.5 font-mono-data text-[#0e131a]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-[#e2e8f0]">
+                <h3 className="font-heading text-base font-bold text-[#0e131a]">Смена пароля</h3>
+                <div className="space-y-2">
+                  <input
+                    type="password"
+                    placeholder="Текущий пароль"
+                    className="w-full bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Новый пароль (мин. 12 символов)"
+                    className="w-full bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5"
+                  />
+                </div>
+                <button className="bg-[#0e131a] text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-slate-800">
+                  Сохранить новый пароль
+                </button>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-[#e2e8f0]">
+                <h3 className="font-heading text-base font-bold text-[#0e131a]">API Ключ для разработчиков</h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value="smmplan_api_9f81a7b6c5d4e3f2a1b0"
+                    className="flex-1 bg-[#e9edf2] border border-[#e2e8f0] rounded-xl px-4 py-2.5 font-mono-data"
+                  />
+                  <button className="bg-[#1f9bf0] text-white px-4 py-2.5 rounded-xl font-bold">
+                    Обновить ключ
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+    </div>
+  );
+}

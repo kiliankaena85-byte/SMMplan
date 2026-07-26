@@ -1,11 +1,11 @@
 import React from 'react';
-import { SmmPlanDashboard } from '../components/dashboards';
+import { SmmPlanFullApp } from '../components/plan-views';
 
 export const metadata = {
-  title: 'SMMplan — Личный кабинет клиента (Full Screen)',
+  title: 'SMMplan — Личный кабинет клиента (Главная)',
   description: 'Терминал профессионала SMMplan',
 };
 
 export default function FullScreenPlanPage() {
-  return <SmmPlanDashboard isPreviewMode={false} />;
+  return <SmmPlanFullApp initialTab="dashboard" />;
 }
