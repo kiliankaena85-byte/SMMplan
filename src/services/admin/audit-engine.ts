@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
+import { sanitizeServiceDescription } from "@/lib/sanitize";
 
 export class ServiceAuditEngine {
   /**
@@ -87,18 +88,17 @@ export class ServiceAuditEngine {
     const originalPrice = service.pricePer1000Cents;
 
     const cleanedName = this.cleanText(originalName);
-    const cleanedDescription = service.description ? this.cleanText(service.description) : null;
+    const cleanedDescription = service.description ? sanitizeServiceDescription(this.cleanText(service.description)) : null;
 
     let newMarkup = originalMarkup;
     let newPrice = originalPrice;
 
-    // Check if markup is below 5.0 or if actual markup falls below 5.0
+    // Owner directive: Enforce owner minimum margin floor (3.0x multiplier = 200% margin)
     const rate = parseFloat(String(external.rate)) || 0;
-    const newCostCents = rate * exchangeRate * 100;
-    const actualMarkup = newCostCents > 0 ? (originalPrice / newCostCents) : originalMarkup;
+    const MIN_MARKUP = 3.0; // 200% minimum margin standard
 
-    if (!service.isQuarantined && (originalMarkup < 5.0 || actualMarkup < 5.0)) {
-      newMarkup = Math.max(originalMarkup, 5.0);
+    if (!service.isQuarantined && (originalMarkup < MIN_MARKUP)) {
+      newMarkup = Math.max(originalMarkup, MIN_MARKUP);
       newPrice = Math.round(applyBeautifulRounding(rate * newMarkup * exchangeRate) * 100);
     }
 

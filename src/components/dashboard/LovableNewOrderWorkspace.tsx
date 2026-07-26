@@ -25,6 +25,8 @@ import {
   PublicCategory, 
   PublicService 
 } from '@/actions/order/catalog';
+import { checkoutAction } from '@/actions/order/checkout';
+import { formatEtaSpeedBadge } from '@/utils/format-eta';
 import { detectPlatformLite } from '@/utils/link-extractor';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
@@ -76,6 +78,13 @@ export function LovableNewOrderWorkspace({
   const [email, setEmail] = useState(userEmail);
   const [gateway, setGateway] = useState<'yookassa' | 'cryptobot' | 'balance'>('yookassa');
   
+  // Drip-Feed & Custom Data & Requirement states
+  const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(false);
+  const [dripRuns, setDripRuns] = useState(5);
+  const [dripInterval, setDripInterval] = useState(60);
+  const [customData, setCustomData] = useState("");
+  const [isRequirementsConfirmed, setIsRequirementsConfirmed] = useState(false);
+
   // Validation / Error states
   const [isPending, setIsPending] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -86,6 +95,8 @@ export function LovableNewOrderWorkspace({
   const linkRef = useRef<HTMLInputElement>(null);
   const qtyRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
+  const customDataRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
+  const requirementRef = useRef<HTMLDivElement>(null);
 
   // Load catalog
   useEffect(() => {
@@ -190,6 +201,11 @@ export function LovableNewOrderWorkspace({
   const handleServiceSelect = (srv: PublicService) => {
     setSelectedService(srv);
     setQuantity(srv.minQty || 100);
+    setIsDripFeedEnabled(false);
+    setDripRuns(5);
+    setDripInterval(60);
+    setCustomData("");
+    setIsRequirementsConfirmed(false);
     
     // Auto-advance to Step 4
     setCurrentStep(4);
@@ -197,7 +213,8 @@ export function LovableNewOrderWorkspace({
 
   // Prices
   const pricePerUnit = selectedService ? (selectedService.pricePerUnitRub || 0) : 0;
-  const totalPrice = (pricePerUnit * quantity).toFixed(2);
+  const effectiveQuantity = isDripFeedEnabled ? quantity * dripRuns : quantity;
+  const totalPrice = (pricePerUnit * effectiveQuantity).toFixed(2);
 
   // Zod & Custom Validations
   const validateForm = (): boolean => {
@@ -234,7 +251,20 @@ export function LovableNewOrderWorkspace({
       }
     }
 
-    // 3. Email validation
+    // 3. Custom Data validation
+    if (selectedService?.customDataType && selectedService.customDataType !== 'NONE') {
+      if (!customData.trim()) {
+        newErrors.customData = selectedService.customDataLabel || "Пожалуйста, заполните пользовательские данные";
+      }
+    }
+
+    // 4. Requirement confirmation check (JIT)
+    const hasReq = selectedService?.clientRequirement || selectedService?.clientConfirmation || selectedService?.requireWarning;
+    if (hasReq && !isRequirementsConfirmed) {
+      newErrors.requirement = "Необходимо подтвердить выполнение условий для старта услуги";
+    }
+
+    // 5. Email validation
     if (!email) {
       newErrors.email = "Укажите Email адрес";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -252,9 +282,14 @@ export function LovableNewOrderWorkspace({
         if (newErrors.link && linkRef.current) {
           linkRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
           linkRef.current.focus();
+        } else if (newErrors.customData && customDataRef.current) {
+          customDataRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          customDataRef.current.focus();
         } else if (newErrors.quantity && qtyRef.current) {
           qtyRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
           qtyRef.current.focus();
+        } else if (newErrors.requirement && requirementRef.current) {
+          requirementRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else if (newErrors.email && emailRef.current) {
           emailRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
           emailRef.current.focus();
@@ -282,23 +317,26 @@ export function LovableNewOrderWorkspace({
     setSuccess(false);
 
     try {
-      const { structuredMassOrderCheckoutAction } = await import('@/actions/order/mass');
-      const res = await structuredMassOrderCheckoutAction({
-        orders: [{
-          serviceId: selectedService.id,
-          link: link,
-          quantity: quantity
-        }],
+      const res = await checkoutAction({
+        serviceId: selectedService.id,
+        link: link.trim(),
+        quantity: effectiveQuantity,
         email: email,
         gateway: gateway,
-        idempotencyKey: `order-${selectedService.id}-${encodeURIComponent(link.trim())}-${quantity}`,
-        expectedTotalRub: parseFloat(totalPrice)
+        runs: isDripFeedEnabled ? dripRuns : undefined,
+        interval: isDripFeedEnabled ? dripInterval : undefined,
+        customData: selectedService.customDataType !== 'NONE' ? customData : undefined,
+        isRequirementsConfirmed: isRequirementsConfirmed
       });
 
       if (res && res.success) {
-        setSuccess(true);
-        setLink('');
-        setCurrentStep(1);
+        if (res.data?.paymentUrl) {
+          window.location.href = res.data.paymentUrl;
+        } else {
+          setSuccess(true);
+          setLink('');
+          setCurrentStep(1);
+        }
       } else {
         setErrors({ general: res?.error || "Произошла ошибка при оформлении заказа" });
         setValidationTimestamp(Date.now());
@@ -516,7 +554,7 @@ export function LovableNewOrderWorkspace({
                             <p className="text-[10px] text-muted-foreground/80 line-clamp-2 leading-relaxed">{srv.description}</p>
                           )}
                           <div className="flex items-center gap-3 text-[9px] text-muted-foreground font-semibold">
-                            <span className="flex items-center gap-0.5 text-primary"><Zap className="w-3 h-3" /> {srv.speed || 'Быстрая'}</span>
+                            <span className="flex items-center gap-0.5 text-primary"><Zap className="w-3 h-3" /> {formatEtaSpeedBadge(srv)}</span>
                             {srv.badge && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary uppercase font-bold text-[8px]">{srv.badge}</span>}
                           </div>
                         </button>
@@ -592,6 +630,140 @@ export function LovableNewOrderWorkspace({
                     />
                   </div>
                 </div>
+
+                {/* Custom Data Config */}
+                {selectedService.customDataType && selectedService.customDataType !== 'NONE' && (
+                  <div 
+                    key={`step4-customData-${validationTimestamp}`}
+                    className={`bg-card border border-border/30 rounded-[2rem] p-6 space-y-3 transition-all duration-300 ${errors.customData ? 'animate-shake border-destructive/40 shadow-[0_0_20px_rgba(244,63,94,0.05)]' : ''}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-extrabold text-sm text-foreground">
+                        {selectedService.customDataLabel || (selectedService.customDataType === 'TEXTAREA' ? 'Ваши комментарии / текст (по 1 строке)' : 'Параметры заказа')}
+                      </h3>
+                    </div>
+                    {selectedService.customDataType === 'TEXTAREA' ? (
+                      <textarea
+                        ref={customDataRef as React.RefObject<HTMLTextAreaElement>}
+                        rows={3}
+                        value={customData}
+                        onChange={(e) => setCustomData(e.target.value)}
+                        placeholder="Введите каждый комментарий с новой строки..."
+                        className={`w-full bg-background border border-border/40 rounded-2xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.customData ? 'border-destructive/60' : ''}`}
+                      />
+                    ) : (
+                      <input
+                        ref={customDataRef as React.RefObject<HTMLInputElement>}
+                        type="text"
+                        value={customData}
+                        onChange={(e) => setCustomData(e.target.value)}
+                        placeholder="Введите вариант ответа / числовое значение..."
+                        className={`w-full bg-background border border-border/40 rounded-2xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.customData ? 'border-destructive/60' : ''}`}
+                      />
+                    )}
+                    {errors.customData && (
+                      <p className="text-xs font-bold text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.customData}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Drip-Feed Config */}
+                {selectedService.isDripFeedEnabled && (
+                  <div className="bg-card border border-border/30 rounded-[2rem] p-6 space-y-4 transition-all duration-300">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        <h3 className="font-extrabold text-sm text-foreground">Запускать частями (Drip-Feed)</h3>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={isDripFeedEnabled} 
+                          onChange={(e) => setIsDripFeedEnabled(e.target.checked)} 
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                      </label>
+                    </div>
+
+                    {isDripFeedEnabled && (
+                      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/10">
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Количество запусков (runs)</label>
+                          <input
+                            type="number"
+                            min={2}
+                            max={100}
+                            value={dripRuns}
+                            onChange={(e) => setDripRuns(Math.max(2, parseInt(e.target.value) || 2))}
+                            className="w-full bg-background border border-border/40 rounded-xl p-2.5 text-sm font-bold outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Интервал (мин)</label>
+                          <input
+                            type="number"
+                            min={5}
+                            max={1440}
+                            value={dripInterval}
+                            onChange={(e) => setDripInterval(Math.max(1, parseInt(e.target.value) || 5))}
+                            className="w-full bg-background border border-border/40 rounded-xl p-2.5 text-sm font-bold outline-none"
+                          />
+                        </div>
+                        <p className="col-span-2 text-[11px] text-muted-foreground font-semibold">
+                          Всего запусков: {dripRuns} по {quantity} шт. Итоговый объём: <strong className="text-foreground">{effectiveQuantity} шт.</strong>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Requirement Checkbox (JIT Warning) */}
+                {(selectedService.clientRequirement || selectedService.clientConfirmation || selectedService.requireWarning) && (
+                  <div 
+                    ref={requirementRef}
+                    key={`step4-req-${validationTimestamp}`}
+                    className={`bg-card border rounded-[2rem] p-6 space-y-3 transition-all duration-300 ${
+                      isRequirementsConfirmed 
+                        ? 'border-green-500/30 bg-green-500/5' 
+                        : errors.requirement 
+                          ? 'animate-shake border-destructive/40 shadow-[0_0_20px_rgba(244,63,94,0.05)] bg-destructive/5' 
+                          : 'border-amber-500/30 bg-amber-500/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 text-amber-500 font-extrabold text-xs uppercase tracking-wider">
+                      <Sparkles className="w-4 h-4" /> Чек-лист для старта
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedService.clientRequirement || selectedService.warningMessage || "Перед запуском убедитесь, что ваш объект продвижения доступен."}
+                    </p>
+                    <label className="flex items-start gap-3 cursor-pointer group pt-1">
+                      <div className="relative flex items-center justify-center mt-0.5">
+                        <input
+                          type="checkbox"
+                          className="peer sr-only"
+                          checked={isRequirementsConfirmed}
+                          onChange={(e) => setIsRequirementsConfirmed(e.target.checked)}
+                        />
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isRequirementsConfirmed ? 'bg-green-500 border-green-500 text-foreground' : errors.requirement ? 'border-destructive bg-destructive/10' : 'border-muted-foreground/30 bg-background group-hover:border-primary/50'}`}>
+                          <svg className={`w-3.5 h-3.5 pointer-events-none transition-transform duration-200 ${isRequirementsConfirmed ? 'scale-100' : 'scale-0'}`} viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 5L5 9L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <span className={`text-xs font-bold transition-colors ${isRequirementsConfirmed ? 'text-green-600' : errors.requirement ? 'text-destructive' : 'text-foreground'}`}>
+                        {selectedService.clientConfirmation || "Я всё проверил, можно запускать"}
+                      </span>
+                    </label>
+                    {errors.requirement && (
+                      <p className="text-xs font-bold text-destructive flex items-center gap-1 pt-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.requirement}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Email and Gateway config */}
                 <div 
@@ -716,7 +888,9 @@ export function LovableNewOrderWorkspace({
                 </div>
                 <div className="bg-background/80 p-2.5 rounded-xl border border-border/10 text-center">
                   <span className="block text-[9px] text-muted-foreground font-bold uppercase">Объем</span>
-                  <span className="text-xs font-bold text-foreground block mt-0.5">{quantity} шт</span>
+                  <span className="text-xs font-bold text-foreground block mt-0.5">
+                    {isDripFeedEnabled ? `${quantity * dripRuns} шт (${quantity} × ${dripRuns} зап.)` : `${quantity} шт`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -731,7 +905,7 @@ export function LovableNewOrderWorkspace({
                   </div>
                   <div>
                     <span className="block text-[9px] text-muted-foreground font-bold">Скорость старта</span>
-                    <span className="text-xs font-bold text-foreground">Мгновенный (1-5 минут)</span>
+                    <span className="text-xs font-bold text-foreground">{selectedService ? formatEtaSpeedBadge(selectedService) : "Стандартно"}</span>
                   </div>
                 </div>
 
@@ -741,7 +915,9 @@ export function LovableNewOrderWorkspace({
                   </div>
                   <div>
                     <span className="block text-[9px] text-muted-foreground font-bold">Гарантия на списания</span>
-                    <span className="text-xs font-bold text-foreground">30 дней (автопополнение)</span>
+                    <span className="text-xs font-bold text-foreground">
+                      {selectedService?.isRefillEnabled ? "30 дней (автопополнение)" : "Без гарантии"}
+                    </span>
                   </div>
                 </div>
               </div>

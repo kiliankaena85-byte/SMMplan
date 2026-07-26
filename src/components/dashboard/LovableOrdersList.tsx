@@ -8,6 +8,9 @@ import { ClientDate } from '@/components/ui/client-date';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
+import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
+import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
+import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
 import { AlertCircle, Clock, CheckCircle2, Play, ExternalLink } from 'lucide-react';
 
 export interface LovableOrder {
@@ -15,15 +18,29 @@ export interface LovableOrder {
   numericId: number;
   status: string;
   charge: number; // in rub
+  chargeCents?: number;
+  discountCents?: number;
+  usdToRubRate?: number | null;
   quantity: number;
   remains: number | null;
   link?: string | null;
   error: string | null;
   createdAt: string;
+  isDripFeed?: boolean;
+  runs?: number | null;
+  interval?: number | null;
+  currentRun?: number;
+  nextRunAt?: string | null;
+  refills?: Array<{
+    id: string;
+    status: string;
+    createdAt: string;
+  }>;
   service: {
     id?: string;
     name: string;
     categoryId?: string;
+    isRefillEnabled?: boolean;
     network: {
       slug: string;
     };
@@ -131,9 +148,18 @@ export function LovableOrdersList({
                   <span className="text-xs text-muted-foreground font-medium">—</span>
                 )}
               </div>
-              <span className="text-[10px] text-muted-foreground font-semibold tabular-nums block">
-                {order.quantity.toLocaleString('ru-RU')} шт.
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground font-semibold tabular-nums block">
+                  {order.quantity.toLocaleString('ru-RU')} шт.
+                </span>
+                <DripFeedProgress
+                  isDripFeed={order.isDripFeed}
+                  runs={order.runs}
+                  interval={order.interval}
+                  currentRun={order.currentRun}
+                  nextRunAt={order.nextRunAt}
+                />
+              </div>
             </div>
 
             {/* Column 3: Live progress metrics */}
@@ -161,9 +187,17 @@ export function LovableOrdersList({
             <div className="flex items-center justify-between md:justify-end gap-6 shrink-0 md:pl-2">
               <div className="text-right">
                 <span className="block text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Стоимость</span>
-                <span className="font-mono font-black text-sm text-foreground tabular-nums">
-                  {order.charge.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                </span>
+                <div className="flex items-center justify-end gap-1">
+                  <span className="font-mono font-black text-sm text-foreground tabular-nums">
+                    {order.charge.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                  </span>
+                  <ChargeBreakdownModal
+                    numericId={order.numericId}
+                    chargeCents={order.chargeCents ?? order.charge * 100}
+                    discountCents={order.discountCents}
+                    usdToRubRate={order.usdToRubRate}
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col items-end gap-2">
@@ -173,6 +207,12 @@ export function LovableOrdersList({
 
                 {/* Actions Panel */}
                 <div className="flex items-center gap-1.5">
+                  <RefillRequestButton
+                    orderId={order.id}
+                    isRefillEnabled={order.service.isRefillEnabled}
+                    orderStatus={order.status}
+                    refills={order.refills}
+                  />
                   {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) ? (
                     <div className="flex items-center gap-1.5">
                       {order.status === 'AWAITING_PAYMENT' && (

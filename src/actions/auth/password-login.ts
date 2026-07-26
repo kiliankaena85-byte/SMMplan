@@ -86,6 +86,21 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
       return { error: "Неверный email или пароль", success: false };
     }
 
+    // P-1: Auto-rehash legacy password hashes (salt:key format N=16384) to $s2$65536$... format
+    if (!user.passwordHash.startsWith('$s2$')) {
+      try {
+        const { hashPassword } = await import('@/lib/auth/password');
+        const newHash = await hashPassword(password);
+        await db.user.update({
+          where: { id: user.id },
+          data: { passwordHash: newHash },
+        });
+        log.info('Auto-rehashed legacy password hash to scrypt N=65536', { userId: user.id });
+      } catch (e) {
+        log.error('Failed to auto-rehash legacy password', { error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
     // 5. Create Session
     await createSession(user.id);
 

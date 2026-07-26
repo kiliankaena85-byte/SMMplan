@@ -37,7 +37,6 @@ export async function calculatePriceAction(
   serviceId: string,
   quantity: number,
   promoCodeStr?: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   runs?: number
 ): Promise<{ success: boolean; data?: PricingResult; error?: string }> {
   try {
@@ -54,11 +53,13 @@ export async function calculatePriceAction(
       promoCodeStr
     );
     
+    const multiplier = runs && runs > 1 ? runs : 1;
+
     // SECURITY FIX: Data Leak Prevention. Do NOT return providerCostCents to the client.
     const safeResult = {
-      totalCents: result.totalCents,
-      originalTotalCents: result.originalTotalCents,
-      discountCents: result.discountCents
+      totalCents: Math.round(result.totalCents * multiplier),
+      originalTotalCents: Math.round(result.originalTotalCents * multiplier),
+      discountCents: Math.round(result.discountCents * multiplier)
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,7 +92,7 @@ const checkoutSchema = z.object({
   runs: z.number().int().positive().optional(),
   interval: z.number().int().positive().optional(),
   customData: z.string().optional(),
-  gateway: z.string().default('yookassa'),
+  gateway: z.string().optional().default('yookassa'),
   idempotencyKey: z.string().optional(),
   mediaGroupUrl: z.string().optional(),
   isLinkOverridden: z.boolean().optional(),
@@ -101,7 +102,7 @@ const checkoutSchema = z.object({
   isRequirementsConfirmed: z.boolean().optional()
 });
 
-export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
+export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
     const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant, isRequirementsConfirmed } = data;
     const effectiveIdempotencyKey = idempotencyKey || randomUUID();
@@ -188,6 +189,19 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     if (customData && customData.length > 2000) {
       throw new Error('Слишком длинные пользовательские данные (макс. 2000 символов)');
+    }
+
+    // Custom Data Validation Guard when customDataType !== 'NONE'
+    if (service.customDataType && service.customDataType !== 'NONE') {
+      if (!customData || !customData.trim()) {
+        throw new Error("Пожалуйста, заполните дополнительные данные для этой услуги");
+      }
+      const { getCustomValidator } = await import('@/validators/link-mutators');
+      const customValidator = getCustomValidator(service.customDataType);
+      const customResult = customValidator.safeParse(customData.trim());
+      if (!customResult.success) {
+        throw new Error(customResult.error.errors[0].message);
+      }
     }
 
     // [OMNI-AUDIT 9.4] Phase P3: Robust Server-Side Validation & Mutation
@@ -303,8 +317,16 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     }
 
     let isNewUser = false;
+    const consentIp = await getClientIp();
     if (!user) {
-      user = await db.user.create({ data: { email: email.toLowerCase(), tenantId } });
+      user = await db.user.create({
+        data: {
+          email: email.toLowerCase(),
+          tenantId,
+          tosAcceptedAt: new Date(),
+          tosAcceptedIp: consentIp,
+        }
+      });
       isNewUser = true;
     }
 
@@ -370,7 +392,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     // Balance check is now performed atomically inside db.$transaction using WalletOps.charge
 
-    const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
     const termsDoc = await db.contentItem.findUnique({
@@ -416,6 +437,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           }
         }
 
+        const isDripFeedOrder = Boolean(runs && runs > 1);
+
         // Create primary Order (first media / main link)
         const newOrder = await tx.order.create({
           data: {
@@ -430,6 +453,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             status: orderStatus,
             charge: isSmartDrip && smartConfig ? Math.round(pricing.totalCents * (1 + smartConfig.markup)) : pricing.totalCents,
             providerCost: pricing.providerCostCents,
+            isDripFeed: isDripFeedOrder,
             runs,
             interval,
             isTest: isTestMode,
@@ -460,6 +484,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
               status: orderStatus,
               charge: isSmartDrip && smartConfig ? Math.round(pricing.totalCents * (1 + smartConfig.markup)) : pricing.totalCents,
               providerCost: pricing.providerCostCents,
+              isDripFeed: isDripFeedOrder,
               runs,
               interval,
               isTest: isTestMode,

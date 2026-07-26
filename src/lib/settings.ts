@@ -193,7 +193,7 @@ export class SettingsProvider {
         cryptoBotToken: null,
         quarantineThreshold: 0.20,
         globalMarkup: 3.0,
-        safetyFloor: 1.0,
+        safetyFloor: 3.0,
         exchangeRateUpdatedAt: null,
         siteLogoUrl: null,
         siteFaviconUrl: null,

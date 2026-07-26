@@ -206,7 +206,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               remains: o.remains,
               status: o.status,
               charge: o.charge.toString(),
-              providerCost: (o.providerCost ?? 0n).toString(),
+              providerCost: (o.providerCost ?? BigInt(0)).toString(),
               createdAt: o.createdAt,
               updatedAt: o.updatedAt,
               isDripFeed: o.isDripFeed,

@@ -8,12 +8,15 @@ import { logger } from '@/lib/logger';
 import { cookies, headers } from 'next/headers';
 import crypto from 'crypto';
 import { sendMagicLink } from '@/lib/smtp';
+import { getClientIp } from '@/utils/ip';
+
+import { passwordPolicySchema } from '@/validators/password-policy';
 
 const log = logger.child({ component: 'PasswordRegister' });
 
 const schema = z.object({
   email: z.string().email("Введите корректный email"),
-  password: z.string().min(8, "Пароль должен быть не менее 8 символов"),
+  password: passwordPolicySchema,
 });
 
 export async function registerWithPasswordAction(prevState: unknown, formData: FormData) {
@@ -90,6 +93,8 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           isActive: true,
           isEmailVerified: true,
           tenantId,
+          tosAcceptedAt: new Date(),
+          tosAcceptedIp: await getClientIp(),
         }
       });
 

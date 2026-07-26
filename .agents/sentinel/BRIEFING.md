@@ -1,35 +1,31 @@
-# BRIEFING — 2026-07-07T18:39:59+03:00
+# BRIEFING — 2026-07-26T11:09:08Z
 
 ## Mission
-Создание системы "Круглый стол экспертов" (Round Table) для проекта SMMplan.
+Coordinate and monitor the integration of advanced backend features (Drip-Feed, Auto-Refill, Custom Data, ETA, 152-ФЗ, B2B Webhooks, ИНН/КПП, Promo codes) into SMMplan and SMMflux client dashboards.
 
 ## 🔒 My Identity
 - Archetype: sentinel
 - Working directory: d:\SMM_plan_2\.agents\sentinel
-- Orchestrator: b2a3ac2f-870b-4b3d-b389-5b6eca4c55f6
-- Victory Auditor: 48131dea-f2dc-4a6e-ac13-c9c32ee994e0
+- Orchestrator: e00ce62b-b888-4c16-82e2-46010e9e17a4 (re-spawned after 418e7e0f-6bb6-448c-aba9-3f0de096cf3c)
+- Victory Auditor: to be spawned on victory claim
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
 - Victory Audit is MANDATORY before reporting completion
-- Must use team/subagents (orchestrator)
-- Working directory: d:\SMM_plan_2\teamwork_projects\round_table_experts
-- Integrity mode: development
+- Must run progress reporting cron (`*/8 * * * *`) and liveness check cron (`*/10 * * * *`)
 
 ## User Context
-- **Last user request**: Создание системы "Круглый стол экспертов" (Round Table) для проекта SMMplan.
+- **Last user request**: Client Dashboard Advanced Backend Features Integration (Drip-Feed, Refill, Custom Data, ETA, 152-ФЗ, B2B Webhooks, Tax/Requisites, Promo Codes)
 - **Pending clarifications**: none
-- **Delivered results**: The Round Table Experts system has been implemented, validated, and verified by the independent Victory Auditor.
+- **Delivered results**: none
 
 ## Project Status
-- **Phase**: complete
+- **Phase**: in progress
 
 ## Victory Audit Status
-- **Triggered**: yes
-- **Verdict**: VICTORY CONFIRMED
+- **Triggered**: no
+- **Verdict**: pending
 - **Retry count**: 0
 
 ## Artifact Index
-- d:\SMM_plan_2\ORIGINAL_REQUEST.md — Authoritative record of user requests
-- d:\SMM_plan_2\.agents\sentinel\BRIEFING.md — My working memory
-- d:\SMM_plan_2\.agents\sentinel\handoff.md — My handoff memory
+- d:\SMM_plan_2\.agents\ORIGINAL_REQUEST.md — Original request record

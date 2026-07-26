@@ -15,15 +15,28 @@ export interface OrderViewData {
   numericId: number;
   status: string;
   charge: bigint | number;
+  discountCents?: bigint | number;
+  usdToRubRate?: number | null;
   quantity: number;
   remains?: number | null;
   link?: string | null;
   error?: string | null;
   createdAt: Date | string;
+  isDripFeed?: boolean;
+  runs?: number | null;
+  interval?: number | null;
+  currentRun?: number;
+  nextRunAt?: Date | string | null;
+  refills?: Array<{
+    id: string;
+    status: string;
+    createdAt: Date | string;
+  }>;
   service: {
     id?: string;
     categoryId?: string;
     name: string;
+    isRefillEnabled?: boolean;
     category?: {
       name?: string;
       network?: {

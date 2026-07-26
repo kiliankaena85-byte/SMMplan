@@ -7,6 +7,7 @@ import { RateLimitService } from "@/services/core/rate-limit.service";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { cookies, headers } from "next/headers";
+import { getClientIp } from "@/utils/ip";
 
 const log = logger.child({ component: 'MagicLink' });
 
@@ -27,7 +28,7 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
   const cleanEmail = parsed.data.email.toLowerCase();
 
   try {
-    const isIpAllowed = await RateLimitService.check('auth:magic-link:ip', 15, 3600);
+    const isIpAllowed = await RateLimitService.check('auth:magic-link:ip', 15, 3600, true);
     if (!isIpAllowed) {
       log.warn('Magic link rate limit exceeded IP', { email: cleanEmail });
       return { error: "Слишком много запросов. Пожалуйста, подождите 1 час перед новым запросом.", success: false };
@@ -54,14 +55,24 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
       if (!user) {
         isNewUser = true;
-        const isIpAllowedForReg = await RateLimitService.check('auth:register:ip', 3, 86400);
+        const isIpAllowedForReg = await RateLimitService.check('auth:register:ip', 3, 86400, true);
         if (!isIpAllowedForReg) {
           return { type: 'rate_limit_reg' as const };
         }
 
         const ownerCount = await tx.user.count({ where: { role: "OWNER", tenantId } });
         const role = ownerCount === 0 ? "OWNER" : "USER";
-        user = await tx.user.create({ data: { email: cleanEmail, role, referredById, tenantId } });
+        const consentIp = await getClientIp();
+        user = await tx.user.create({
+          data: {
+            email: cleanEmail,
+            role,
+            referredById,
+            tenantId,
+            tosAcceptedAt: new Date(),
+            tosAcceptedIp: consentIp,
+          }
+        });
       }
 
       const rawToken = crypto.randomBytes(32).toString("hex");

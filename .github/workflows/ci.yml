@@ -49,14 +49,17 @@ jobs:
       - name: Install Dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Run Dependency Security Audit
+        run: npm audit --audit-level=high || true
+
       - name: Generate Prisma Client
         run: npx prisma generate
 
       - name: TypeScript Type Check
         run: npx tsc --noEmit
 
-      - name: Run ESLint Verification
-        run: npx eslint . --max-warnings=0 || true
+      - name: Run ESLint Security Verification
+        run: npx eslint . --max-warnings=0
 
       - name: Run Vitest Suite
         env:

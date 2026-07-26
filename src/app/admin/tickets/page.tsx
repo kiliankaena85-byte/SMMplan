@@ -85,9 +85,9 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
     });
 
     const supportSpentTodayBigInt = ledgerCompensations.reduce((acc, entry) => {
-      const amt = entry.amount < 0n ? -entry.amount : entry.amount;
+      const amt = entry.amount < BigInt(0) ? -entry.amount : entry.amount;
       return acc + amt;
-    }, 0n);
+    }, BigInt(0));
     supportSpentTodayCents = Number(supportSpentTodayBigInt);
   }
 

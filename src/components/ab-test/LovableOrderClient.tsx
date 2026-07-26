@@ -6,6 +6,7 @@ import { LinkIcon, SparklesIcon, ArrowRightIcon, Box, ArrowLeftIcon, ArrowDownIc
 import { motion, AnimatePresence } from "framer-motion";
 import { getServicesByCategoryAction } from "@/actions/order/catalog";
 import { checkoutAction } from "@/actions/order/checkout";
+import { formatEtaSpeedBadge } from "@/utils/format-eta";
 
 type Step = 'link' | 'network' | 'category' | 'service' | 'checkout';
 
@@ -80,6 +81,10 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
   const linkRef = useRef<HTMLInputElement>(null);
   
   const [isRequirementsConfirmed, setIsRequirementsConfirmed] = useState(false);
+  const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(false);
+  const [dripRuns, setDripRuns] = useState(5);
+  const [dripInterval, setDripInterval] = useState(60);
+  const [customData, setCustomData] = useState("");
   const [showShakeError, setShowShakeError] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
   
@@ -93,7 +98,15 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     
     if (!selectedService) return { error: "Пожалуйста, выберите услугу", field: "general", timestamp: ts };
     if (!linkValue) return { error: "Пожалуйста, укажите ссылку", field: "link", timestamp: ts };
-    if (selectedService.clientRequirement && !isRequirementsConfirmed) {
+    
+    if (selectedService.customDataType && selectedService.customDataType !== 'NONE') {
+      if (!customData.trim()) {
+        return { error: selectedService.customDataLabel || "Пожалуйста, заполните пользовательские данные", field: "customData", timestamp: ts };
+      }
+    }
+
+    const hasReq = selectedService.clientRequirement || selectedService.clientConfirmation || selectedService.requireWarning;
+    if (hasReq && !isRequirementsConfirmed) {
       setShowShakeError(true);
       setTimeout(() => setShowShakeError(false), 800);
       return { error: "Пожалуйста, подтвердите требования к заказу", field: "requirement", timestamp: ts };
@@ -108,13 +121,18 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     if (qtyNum > maxQty) return { error: `Максимальное количество: ${maxQty}`, field: "quantity", timestamp: ts };
     if (!emailValue || !emailValue.includes('@')) return { error: "Некорректный email", field: "email", timestamp: ts };
 
+    const totalQuantity = isDripFeedEnabled ? qtyNum * dripRuns : qtyNum;
+
     try {
       const res = await checkoutAction({
         serviceId: selectedService.id,
         link: linkValue,
-        quantity: qtyNum,
+        quantity: totalQuantity,
         email: emailValue,
         gateway: 'yookassa',
+        runs: isDripFeedEnabled ? dripRuns : undefined,
+        interval: isDripFeedEnabled ? dripInterval : undefined,
+        customData: selectedService.customDataType !== 'NONE' ? customData : undefined,
         isRequirementsConfirmed: isRequirementsConfirmed
       });
 
@@ -196,6 +214,10 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     setSelectedService(srv);
     setQuantity(srv.minQty || 100);
     setIsRequirementsConfirmed(false);
+    setIsDripFeedEnabled(false);
+    setDripRuns(5);
+    setDripInterval(60);
+    setCustomData("");
     navigateTo('checkout');
   };
 
@@ -206,7 +228,8 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
   }, [step]);
 
   const numericQuantity = typeof quantity === 'string' ? (parseInt(quantity) || 0) : quantity;
-  const price = selectedService ? (selectedService.pricePerUnitRub * numericQuantity).toFixed(2) : "0.00";
+  const effectiveQuantity = isDripFeedEnabled ? numericQuantity * dripRuns : numericQuantity;
+  const price = selectedService ? (selectedService.pricePerUnitRub * effectiveQuantity).toFixed(2) : "0.00";
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center font-sans min-h-[60vh] pb-12 pt-8 px-4 relative overflow-hidden">
@@ -514,8 +537,8 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                     <p className="font-bold text-base sm:text-lg">{selectedService.maxQty}</p>
                   </div>
                   <div className="p-2.5 sm:p-3 rounded-[1.25rem] sm:rounded-2xl bg-background/90 shadow-sm border border-border/40 col-span-2 sm:col-span-1 backdrop-blur-sm flex flex-col justify-center">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Скорость</p>
-                    <p className="font-bold text-primary text-base sm:text-lg">{selectedService.speed || 'Моментально'}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Скорость / ETA</p>
+                    <p className="font-bold text-primary text-xs sm:text-sm">{formatEtaSpeedBadge(selectedService)}</p>
                   </div>
                 </div>
               </motion.div>
@@ -573,6 +596,101 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                     )}
                   </AnimatePresence>
                 </div>
+
+                {/* Custom Data Field */}
+                {selectedService.customDataType && selectedService.customDataType !== 'NONE' && (
+                  <div id="field-customData" className="mb-3">
+                    <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1 ml-1">
+                      {selectedService.customDataLabel || (selectedService.customDataType === 'TEXTAREA' ? 'Ваши комментарии / текст (по 1 строке)' : 'Вариант ответа / параметры')} <span className="text-red-500">*</span>
+                    </label>
+                    {selectedService.customDataType === 'TEXTAREA' ? (
+                      <textarea
+                        name="customData"
+                        rows={3}
+                        value={customData}
+                        onChange={(e) => setCustomData(e.target.value)}
+                        placeholder="Введите каждый комментарий с новой строки..."
+                        key={formState.field === 'customData' ? shakeKey : undefined}
+                        className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'customData' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm font-medium outline-none shadow-sm`}
+                      />
+                    ) : (
+                      <input
+                        name="customData"
+                        type="text"
+                        value={customData}
+                        onChange={(e) => setCustomData(e.target.value)}
+                        placeholder="Введите номер варианта ответа..."
+                        key={formState.field === 'customData' ? shakeKey : undefined}
+                        className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'customData' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm font-medium outline-none shadow-sm`}
+                      />
+                    )}
+                    <AnimatePresence mode="popLayout">
+                      {formState.error && formState.field === "customData" && (
+                        <motion.div 
+                          key={`err-customData-${shakeKey}`} 
+                          initial={{ opacity: 0, height: 0, marginTop: 0 }} 
+                          animate={{ opacity: 1, height: "auto", marginTop: 8 }} 
+                          exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-bold shadow-sm overflow-hidden"
+                        >
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          <span role="alert">{formState.error}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                {/* Drip-Feed Controls */}
+                {selectedService.isDripFeedEnabled && (
+                  <div className="mb-3 p-3.5 rounded-[1.25rem] sm:rounded-[1.5rem] bg-muted/40 border border-border/60">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <SparklesIcon className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-foreground uppercase tracking-wider">Запускать частями (Drip-Feed)</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={isDripFeedEnabled} 
+                          onChange={(e) => setIsDripFeedEnabled(e.target.checked)} 
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                      </label>
+                    </div>
+
+                    {isDripFeedEnabled && (
+                      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-border/30">
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Количество запусков (runs)</label>
+                          <input
+                            type="number"
+                            min={2}
+                            max={100}
+                            value={dripRuns}
+                            onChange={(e) => setDripRuns(Math.max(2, parseInt(e.target.value) || 2))}
+                            className="w-full bg-background text-foreground px-3 py-2 rounded-xl border border-border/80 text-sm font-bold outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Интервал (мин)</label>
+                          <input
+                            type="number"
+                            min={5}
+                            max={1440}
+                            value={dripInterval}
+                            onChange={(e) => setDripInterval(Math.max(1, parseInt(e.target.value) || 5))}
+                            className="w-full bg-background text-foreground px-3 py-2 rounded-xl border border-border/80 text-sm font-bold outline-none"
+                          />
+                        </div>
+                        <p className="col-span-2 text-[11px] text-muted-foreground">
+                          Заказ выполнится за {dripRuns} запусков по {numericQuantity} шт. Всего: <strong className="text-foreground">{effectiveQuantity} шт.</strong>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* 2. Ссылка */}
                 <div id="field-link" className="mb-3">
@@ -639,14 +757,14 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                 </div>
 
                 {/* Чек-лист для старта (JIT Validation) */}
-                {selectedService.clientRequirement && (
+                {(selectedService.clientRequirement || selectedService.clientConfirmation || selectedService.requireWarning) && (
                   <div id="field-requirement" key={formState.field === 'requirement' ? shakeKey : undefined} className={`mb-4 p-3 rounded-[1.25rem] sm:rounded-[1.5rem] border transition-all duration-300 ${isRequirementsConfirmed ? 'bg-green-50/50 border-green-200' : (showShakeError || formState.field === 'requirement') ? 'bg-red-50 border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake' : 'bg-amber-50/30 border-amber-200/50'}`}>
                     <h4 className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider mb-1 text-foreground flex items-center gap-2">
                       <SparklesIcon className="w-4 h-4 text-amber-500" />
                       Чек-лист для старта
                     </h4>
                     <p className="text-sm text-muted-foreground mb-4">
-                      {selectedService.clientRequirement}
+                      {selectedService.clientRequirement || selectedService.warningMessage || "Перед оформлением убедитесь, что объект продвижения доступен."}
                     </p>
                     <label className="flex items-start gap-3 cursor-pointer group">
                       <div className="relative flex items-center justify-center mt-0.5">
@@ -656,7 +774,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                           checked={isRequirementsConfirmed}
                           onChange={(e) => setIsRequirementsConfirmed(e.target.checked)}
                         />
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isRequirementsConfirmed ? 'bg-green-500 border-green-500 text-white' : showShakeError ? 'border-red-500 bg-red-50' : 'border-muted-foreground/30 bg-background group-hover:border-primary/50'}`}>
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isRequirementsConfirmed ? 'bg-green-500 border-green-500 text-foreground' : showShakeError ? 'border-red-500 bg-red-50' : 'border-muted-foreground/30 bg-background group-hover:border-primary/50'}`}>
                           <svg className={`w-3.5 h-3.5 pointer-events-none transition-transform duration-200 ${isRequirementsConfirmed ? 'scale-100' : 'scale-0'}`} viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M1 5L5 9L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>

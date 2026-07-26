@@ -16,6 +16,7 @@ import { ServiceAuditEngine } from './audit-engine';
 import { z } from 'zod';
 import { SecuritySanitizer } from '@/utils/security-sanitizer';
 import { SmartAnalyzerLogic } from '@/services/providers/smart-analyzer.logic';
+import { sanitizeServiceDescription } from '@/lib/sanitize';
 
 const rawServiceSchema = z.object({
   service: z.union([z.string(), z.number()]),
@@ -368,6 +369,34 @@ class AdminCatalogService {
       };
     });
 
+    const MIN_PREVIOUS_FOR_SHRINK_CHECK = 20;
+    const SHRINK_THRESHOLD = 0.5;
+
+    const previousCount = await db.shadowService.count({ where: { providerId: providerDbRecord.id } });
+    const fetchedCount = validRawServices.length;
+
+    if (fetchedCount === 0 && previousCount > 0) {
+      await db.routingAuditLog.create({
+        data: {
+          serviceId: 'SYSTEM',
+          action: 'PROVIDER_SYNC_ABORTED_EMPTY',
+          reason: `Sync aborted: Provider returned 0 valid services, previous shadow count was ${previousCount}`
+        }
+      });
+      throw new Error('PROVIDER_RETURNED_EMPTY_CATALOG');
+    }
+
+    if (previousCount >= MIN_PREVIOUS_FOR_SHRINK_CHECK && fetchedCount < previousCount * SHRINK_THRESHOLD) {
+      await db.routingAuditLog.create({
+        data: {
+          serviceId: 'SYSTEM',
+          action: 'PROVIDER_SYNC_ABORTED_SHRINK',
+          reason: `Sync aborted: Provider returned ${fetchedCount} services, abnormally shrunk from previous ${previousCount}`
+        }
+      });
+      throw new Error('PROVIDER_CATALOG_SHRUNK_ABNORMALLY');
+    }
+
     // Use a transaction to perform atomic wipe and write in chunks
     await db.$transaction(async (tx) => {
       await tx.shadowService.deleteMany({ where: { providerId: providerDbRecord.id } });
@@ -474,8 +503,9 @@ class AdminCatalogService {
         if (!s.isActive && s.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
           // Check Price Spike before resurrecting
           const oldRate = s.rate;
+          const EPSILON_RATE = 0.001;
 
-          if (oldRate > 0 && rawRate > oldRate * (1 + QUARANTINE_THRESHOLD)) {
+          if (oldRate > 0 && rawRate > (oldRate * (1 + QUARANTINE_THRESHOLD) + EPSILON_RATE)) {
             // Price spiked! Quarantine it
             await db.service.update({
               where: { id: s.id },
@@ -554,125 +584,34 @@ class AdminCatalogService {
             await sendAdminAlert(alertMsg, 'CRITICAL');
             priceAnomalies++;
           } else {
-            const driftPercent = oldRate > 0 ? (newRate - oldRate) / oldRate : 0;
+            // Owner Directive: "Мы перерасчитываем сразу" & "Минимальную маржу устанавливает овнер (по стандарту 200% / 3.0x)"
+            const minMarkup = settings.globalMarkup || 3.0;
+            const effectiveMarkup = Math.max(s.markup, minMarkup);
+            const calculatedPriceCents = Math.round(applyBeautifulRounding(newRate * effectiveMarkup * exchangeRate) * 100);
 
-            // Retrieve price history to calculate 30-day cumulative drift
-            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-            let baselineRecord = await db.servicePriceHistory.findFirst({
-              where: {
-                serviceId: s.id,
-                createdAt: { lte: thirtyDaysAgo }
-              },
-              orderBy: { createdAt: 'desc' }
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                rate: newRate,
+                providerCurrency: providerCurrency,
+                pricePer1000Cents: calculatedPriceCents,
+                markup: effectiveMarkup,
+                minQty: stagingExt.min,
+                maxQty: stagingExt.max,
+                lastSeenAt: new Date(),
+                isQuarantined: false,
+                quarantineReason: null
+              }
             });
 
-            if (!baselineRecord) {
-              baselineRecord = await db.servicePriceHistory.findFirst({
-                where: { serviceId: s.id },
-                orderBy: { createdAt: 'asc' }
-              });
-            }
-
-            let historicalRate = baselineRecord ? baselineRecord.rate : oldRate;
-
-            if (!baselineRecord && newRate !== oldRate) {
+            if (newRate !== oldRate) {
               await db.servicePriceHistory.create({
                 data: {
                   serviceId: s.id,
-                  rate: oldRate,
-                  createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000)
+                  rate: newRate
                 }
               });
-              historicalRate = oldRate;
-            }
-
-            const cumulativeDrift = oldRate > 0 ? (newRate - historicalRate) / historicalRate : 0;
-
-            if (actualMarkup < SAFETY_FLOOR_MARKUP) {
-              // 1. Margin Floor breach -> Quarantine
-              await db.service.update({
-                where: { id: s.id },
-                data: {
-                  isQuarantined: true,
-                  isActive: false, // Deactivate on quarantine
-                  pendingRate: newRate,
-                  quarantineReason: `Margin Floor Breach: Наценка упала до ${actualMarkup.toFixed(2)}x (Min: ${SAFETY_FLOOR_MARKUP}x)`,
-                  quarantinedAt: new Date()
-                }
-              });
-              marginFloorBreaches++;
-              priceAnomalies++;
-            } else if (driftPercent > QUARANTINE_THRESHOLD) {
-              // 2. Quarantine threshold > 20% (instant spike)
-              await db.service.update({
-                where: { id: s.id },
-                data: {
-                  isQuarantined: true,
-                  isActive: false, // Deactivate on quarantine
-                  pendingRate: newRate,
-                  quarantineReason: `Price Spike: Ценовой скачок у провайдера (> 20%)`,
-                  quarantinedAt: new Date()
-                }
-              });
-              priceAnomalies++;
-              await sendAdminAlert(`🚨 [Quarantine] Услуга ${s.id} (${s.name}) ушла в карантин из-за ценового скачка (> 20%)`, 'WARNING');
-            } else if (cumulativeDrift > QUARANTINE_THRESHOLD) {
-              // 3. Cumulative Price Drift > 20% over 30 days
-              await db.service.update({
-                where: { id: s.id },
-                data: {
-                  isQuarantined: true,
-                  isActive: false, // Deactivate on quarantine
-                  pendingRate: newRate,
-                  quarantineReason: `Cumulative Price Drift: Цена выросла с ${providerCurrency === 'RUB' ? '₽' : '$'}${historicalRate.toFixed(4)} до ${providerCurrency === 'RUB' ? '₽' : '$'}${newRate.toFixed(4)} (+${(cumulativeDrift * 100).toFixed(1)}% за последние 30 дней)`,
-                  quarantinedAt: new Date()
-                }
-              });
-              priceAnomalies++;
-            } else {
-              const calculatedMarkup = s.markup;
-              const calculatedPriceCents = Math.round(applyBeautifulRounding(newRate * s.markup * exchangeRate) * 100);
-
-              // 5. Silent update (Drift <= threshold, or Drop)
-              await db.service.update({
-                where: { id: s.id },
-                data: {
-                  rate: newRate,
-                  providerCurrency: providerCurrency,
-                  pricePer1000Cents: calculatedPriceCents,
-                  markup: calculatedMarkup,
-                  minQty: stagingExt.min,
-                  maxQty: stagingExt.max,
-                  lastSeenAt: new Date(),
-                  isQuarantined: false,
-                  quarantineReason: null
-                }
-              });
-
-              if (newRate !== oldRate) {
-                await db.servicePriceHistory.create({
-                  data: {
-                    serviceId: s.id,
-                    rate: newRate
-                  }
-                });
-                priceUpdatedSilent++;
-              }
-
-              if (driftPercent >= 0.05 && driftPercent <= QUARANTINE_THRESHOLD) {
-                await db.routingAuditLog.create({
-                  data: {
-                    serviceId: s.id,
-                    adminId: admin.id,
-                    action: 'PRICE_DRIFT',
-                    reason: `Drift +${(driftPercent * 100).toFixed(1)}%: $${oldRate} -> $${newRate}`
-                  }
-                });
-
-                if (driftPercent > 0.15) {
-                  sendAdminAlert(`⚠️ [Price Drift] Услуга ${s.id} (${s.name}): цена выросла на ${(driftPercent * 100).toFixed(1)}% ($${oldRate} -> $${newRate}). Розница не изменилась, наценка снизилась.`, 'WARNING');
-                }
-              }
+              priceUpdatedSilent++;
             }
           }
         }
@@ -840,7 +779,7 @@ class AdminCatalogService {
 
       servicesToCreate.push({
         name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization
-        description: importedDesc ? ServiceAuditEngine.cleanText(importedDesc) : null,
+        description: importedDesc ? sanitizeServiceDescription(ServiceAuditEngine.cleanText(importedDesc)) : null,
         externalId: extId,
         categoryId: categoryIdMap?.[extId] || categoryId,
         providerId: providerDbRecord.id,

@@ -242,8 +242,9 @@ describe('checkoutAction', () => {
   });
 
   it('3. Successful gateway payment redirect', async () => {
+    vi.mocked(verifySession).mockResolvedValue({ userId: 'user-1' } as any);
     vi.mocked(db.user.findUnique).mockResolvedValue({
-      id: 'user-2',
+      id: 'user-1',
       email: 'test@test.com',
       balance: 0,
       isActive: true,

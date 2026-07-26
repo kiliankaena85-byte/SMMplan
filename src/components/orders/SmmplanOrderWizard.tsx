@@ -23,6 +23,7 @@ import { getPublicCatalogAction, getServicesByCategoryAction, PublicNetwork, Pub
 import { calculatePriceAction, checkoutAction } from '@/actions/order/checkout';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { formatCents } from '@/lib/utils';
+import { formatEtaSpeedBadge } from '@/utils/format-eta';
 import { UniversalOrderForm } from '@/components/orders/UniversalOrderForm';
 
 export function SmmplanOrderWizard({
@@ -54,8 +55,15 @@ export function SmmplanOrderWizard({
   const [showPromo, setShowPromo] = useState(false);
   const [gateway, setGateway] = useState<'balance' | 'yookassa' | 'cryptobot'>('balance');
 
+  // Drip-Feed & Custom Data & Requirement States
+  const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(false);
+  const [dripRuns, setDripRuns] = useState(5);
+  const [dripInterval, setDripInterval] = useState(60);
+  const [customData, setCustomData] = useState("");
+  const [isRequirementsConfirmed, setIsRequirementsConfirmed] = useState(false);
+
   // Validation & Submitting State
-  const [errors, setErrors] = useState<{ link?: string; quantity?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{ link?: string; quantity?: string; customData?: string; requirement?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
 
@@ -132,9 +140,16 @@ export function SmmplanOrderWizard({
   const handleSelectService = (srv: PublicService) => {
     setSelectedService(srv);
     setQuantity(srv.minQty || 100);
+    setIsDripFeedEnabled(false);
+    setDripRuns(5);
+    setDripInterval(60);
+    setCustomData("");
+    setIsRequirementsConfirmed(false);
     setErrors({});
     setStep(4);
   };
+
+  const totalQuantity = isDripFeedEnabled ? quantity * dripRuns : quantity;
 
   // Recalculate price whenever service or quantity changes
   useEffect(() => {
@@ -146,15 +161,15 @@ export function SmmplanOrderWizard({
     async function updatePrice() {
       setIsCalculatingPrice(true);
       try {
-        const res = await calculatePriceAction(selectedService!.id, quantity, promoCode);
+        const res = await calculatePriceAction(selectedService!.id, totalQuantity, promoCode);
         if (!isCancelled && res.success && res.data) {
           setCalculatedPriceRub(res.data.totalCents / 100);
         } else if (!isCancelled) {
-          setCalculatedPriceRub(selectedService!.pricePerUnitRub * quantity);
+          setCalculatedPriceRub(selectedService!.pricePerUnitRub * totalQuantity);
         }
       } catch (e) {
         if (!isCancelled) {
-          setCalculatedPriceRub(selectedService!.pricePerUnitRub * quantity);
+          setCalculatedPriceRub(selectedService!.pricePerUnitRub * totalQuantity);
         }
       } finally {
         if (!isCancelled) setIsCalculatingPrice(false);
@@ -164,7 +179,7 @@ export function SmmplanOrderWizard({
     return () => {
       isCancelled = true;
     };
-  }, [selectedService, quantity, promoCode]);
+  }, [selectedService, quantity, totalQuantity, promoCode]);
 
   // Target Type Placeholder Generator
   const getTargetTypeHint = (catName?: string, srvTargetType?: string | null) => {
@@ -201,7 +216,7 @@ export function SmmplanOrderWizard({
     e.preventDefault();
     setErrors({});
 
-    const newErrors: { link?: string; quantity?: string; general?: string } = {};
+    const newErrors: { link?: string; quantity?: string; customData?: string; requirement?: string; general?: string } = {};
 
     if (!selectedService) {
       newErrors.general = 'Пожалуйста, выберите услугу';
@@ -221,6 +236,17 @@ export function SmmplanOrderWizard({
       } else if (quantity > selectedService.maxQty) {
         newErrors.quantity = `Максимальное количество для этой услуги: ${selectedService.maxQty} шт.`;
       }
+    }
+
+    if (selectedService?.customDataType && selectedService.customDataType !== 'NONE') {
+      if (!customData.trim()) {
+        newErrors.customData = selectedService.customDataLabel || 'Пожалуйста, заполните пользовательские данные';
+      }
+    }
+
+    const hasReq = selectedService?.clientRequirement || selectedService?.clientConfirmation || selectedService?.requireWarning;
+    if (hasReq && !isRequirementsConfirmed) {
+      newErrors.requirement = 'Пожалуйста, подтвердите чек-лист для старта заказа';
     }
 
     if (!email || !email.includes('@')) {
@@ -244,9 +270,13 @@ export function SmmplanOrderWizard({
       const res = await checkoutAction({
         serviceId: selectedService!.id,
         link: link.trim(),
-        quantity,
+        quantity: totalQuantity,
         email: email.trim(),
         promoCodeStr: promoCode ? promoCode.trim() : undefined,
+        runs: isDripFeedEnabled ? dripRuns : undefined,
+        interval: isDripFeedEnabled ? dripInterval : undefined,
+        customData: selectedService!.customDataType !== 'NONE' ? customData : undefined,
+        isRequirementsConfirmed,
         gateway,
       });
 
@@ -357,7 +387,7 @@ export function SmmplanOrderWizard({
                   }`}
                 >
                   <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
-                    isActive ? 'bg-white/20 text-white' : isDone ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
+                    isActive ? 'bg-white/20 text-foreground' : isDone ? 'bg-primary text-foreground' : 'bg-muted text-muted-foreground'
                   }`}>
                     {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.num}
                   </span>
@@ -562,9 +592,12 @@ export function SmmplanOrderWizard({
                         </div>
 
                         <div className="flex items-center justify-between pt-3 border-t border-border/40 text-xs">
-                          <div className="flex items-center gap-3 text-muted-foreground">
-                            <span>Мин: <strong>{srv.minQty}</strong></span>
-                            <span>Макс: <strong>{srv.maxQty.toLocaleString('ru-RU')}</strong></span>
+                          <div className="flex flex-col gap-1 text-muted-foreground">
+                            <span className="text-primary font-bold text-[11px]">{formatEtaSpeedBadge(srv)}</span>
+                            <div className="flex items-center gap-2 text-[10px]">
+                              <span>Мин: <strong>{srv.minQty}</strong></span>
+                              <span>Макс: <strong>{srv.maxQty.toLocaleString('ru-RU')}</strong></span>
+                            </div>
                           </div>
 
                           <div className="text-right">
@@ -605,6 +638,9 @@ export function SmmplanOrderWizard({
                     <h3 className="text-base font-bold text-foreground truncate max-w-md">
                       {selectedService.name}
                     </h3>
+                    <span className="text-xs text-primary font-semibold block mt-0.5">
+                      {formatEtaSpeedBadge(selectedService)}
+                    </span>
                   </div>
                 </div>
 
@@ -657,6 +693,138 @@ export function SmmplanOrderWizard({
                   </p>
                 )}
               </div>
+
+              {/* Custom Data Input Field */}
+              {selectedService.customDataType && selectedService.customDataType !== 'NONE' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    {selectedService.customDataLabel || (selectedService.customDataType === 'TEXTAREA' ? 'Ваши комментарии / текст (по 1 строке)' : 'Параметры заказа')} <span className="text-destructive">*</span>
+                  </label>
+                  {selectedService.customDataType === 'TEXTAREA' ? (
+                    <textarea
+                      rows={3}
+                      value={customData}
+                      onChange={e => {
+                        setCustomData(e.target.value);
+                        if (errors.customData) setErrors(prev => ({ ...prev, customData: undefined }));
+                      }}
+                      placeholder="Введите каждый комментарий с новой строки..."
+                      className={`w-full px-4 py-3 text-sm bg-background border rounded-2xl text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 transition-all ${
+                        errors.customData ? 'border-destructive ring-2 ring-destructive/20' : 'border-border/60 focus:ring-primary/30'
+                      }`}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={customData}
+                      onChange={e => {
+                        setCustomData(e.target.value);
+                        if (errors.customData) setErrors(prev => ({ ...prev, customData: undefined }));
+                      }}
+                      placeholder="Введите вариант ответа / числовое значение..."
+                      className={`w-full px-4 py-3 text-sm bg-background border rounded-2xl text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 transition-all ${
+                        errors.customData ? 'border-destructive ring-2 ring-destructive/20' : 'border-border/60 focus:ring-primary/30'
+                      }`}
+                    />
+                  )}
+                  {errors.customData && (
+                    <p className="text-xs font-semibold text-destructive mt-1 flex items-center gap-1">
+                      <Info className="w-3.5 h-3.5" />
+                      {errors.customData}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Drip-Feed Controls */}
+              {selectedService.isDripFeedEnabled && (
+                <div className="p-4 bg-muted/40 rounded-2xl border border-border/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      Запускать частями (Drip-Feed)
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isDripFeedEnabled}
+                        onChange={(e) => setIsDripFeedEnabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+
+                  {isDripFeedEnabled && (
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/30">
+                      <div>
+                        <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Количество запусков</label>
+                        <input
+                          type="number"
+                          min={2}
+                          max={100}
+                          value={dripRuns}
+                          onChange={(e) => setDripRuns(Math.max(2, parseInt(e.target.value) || 2))}
+                          className="w-full px-3 py-2 bg-background border border-border/60 rounded-xl text-sm font-bold text-foreground"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Интервал (мин)</label>
+                        <input
+                          type="number"
+                          min={5}
+                          max={1440}
+                          value={dripInterval}
+                          onChange={(e) => setDripInterval(Math.max(1, parseInt(e.target.value) || 5))}
+                          className="w-full px-3 py-2 bg-background border border-border/60 rounded-xl text-sm font-bold text-foreground"
+                        />
+                      </div>
+                      <p className="col-span-2 text-xs text-muted-foreground font-medium">
+                        Заказ выполнится за {dripRuns} запусков по {quantity} шт. Всего: <strong className="text-foreground">{totalQuantity} шт.</strong>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Legal Requirement Checkbox (JIT Warning) */}
+              {(selectedService.clientRequirement || selectedService.clientConfirmation || selectedService.requireWarning) && (
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  isRequirementsConfirmed
+                    ? 'bg-green-500/10 border-green-500/30'
+                    : errors.requirement
+                      ? 'bg-destructive/10 border-destructive/40 animate-shake'
+                      : 'bg-amber-500/10 border-amber-500/30'
+                }`}>
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider mb-1">
+                    <Sparkles className="w-4 h-4" /> Чек-лист для старта
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {selectedService.clientRequirement || selectedService.warningMessage || "Перед началом убедитесь, что объект доступен для всех."}
+                  </p>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isRequirementsConfirmed}
+                      onChange={(e) => {
+                        setIsRequirementsConfirmed(e.target.checked);
+                        if (errors.requirement) setErrors(prev => ({ ...prev, requirement: undefined }));
+                      }}
+                      className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <span className={`text-xs font-bold ${isRequirementsConfirmed ? 'text-green-700 dark:text-green-400' : errors.requirement ? 'text-destructive' : 'text-foreground'}`}>
+                      {selectedService.clientConfirmation || "Я всё проверил, можно запускать"}
+                    </span>
+                  </label>
+                  {errors.requirement && (
+                    <p className="text-xs font-bold text-destructive mt-2 flex items-center gap-1">
+                      <Info className="w-3.5 h-3.5" />
+                      {errors.requirement}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Quantity Input Field */}
               <div className="space-y-3">
@@ -784,7 +952,7 @@ export function SmmplanOrderWizard({
                         : 'border-border/60 bg-background/60 hover:bg-card'
                     }`}
                   >
-                    <CreditCard className="w-5 h-5 text-blue-500 shrink-0" />
+                    <CreditCard className="w-5 h-5 text-primary shrink-0" />
                     <div>
                       <span className="text-xs font-bold block text-foreground">СБП / Карты</span>
                       <span className="text-[11px] text-muted-foreground block">ЮKassa (Мгновенно)</span>
@@ -823,7 +991,9 @@ export function SmmplanOrderWizard({
                       )}
                     </span>
                     <span className="text-xs text-muted-foreground font-semibold">
-                      ({quantity || 0} шт × {selectedService.pricePerUnitRub.toFixed(4)} ₽)
+                      {isDripFeedEnabled
+                        ? `(${quantity || 0} шт × ${dripRuns} запусков × ${selectedService.pricePerUnitRub.toFixed(4)} ₽)`
+                        : `(${quantity || 0} шт × ${selectedService.pricePerUnitRub.toFixed(4)} ₽)`}
                     </span>
                   </div>
                 </div>

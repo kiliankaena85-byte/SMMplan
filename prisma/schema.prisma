@@ -36,6 +36,10 @@ model User {
   isActive        Boolean @default(true)
   isDeleted       Boolean @default(false)
 
+  // 152-FZ Compliance (Terms of Service / Privacy Policy agreement tracking)
+  tosAcceptedAt   DateTime?
+  tosAcceptedIp   String?
+
   // Operator notes (internal, never visible to client)
   adminNote          String? // Free-form operator note
   adminNoteUpdatedAt DateTime? // When the note was last updated
@@ -93,6 +97,7 @@ model B2bConfig {
   prioritySupport  Boolean @default(true) // Выделение и приоритетная поддержка
   webhookUrl       String? // Webhook URL для синхронизации тикетов
   webhookSecret    String? // Секретный ключ подписи вебхуков B2B
+  isWebhookActive  Boolean @default(false) // Toggle for webhook status
   customLimitCents Int? // Кастомный лимит компенсаций (если null — лимит не применяется!)
 
   createdAt DateTime @default(now())

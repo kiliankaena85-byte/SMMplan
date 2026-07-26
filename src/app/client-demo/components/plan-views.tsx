@@ -55,6 +55,19 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
 
+  // PromoCode State (R4)
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; bonusText: string } | null>(null);
+
+  // B2B & Legal Requisites States (R3)
+  const [companyName, setCompanyName] = useState('ООО "СММ ПЛАН"');
+  const [inn, setInn] = useState('7701984210');
+  const [kpp, setKpp] = useState('77010101');
+  const [legalAddress, setLegalAddress] = useState('г. Москва, ул. Тверская, д. 12, стр. 1');
+  const [webhookUrl, setWebhookUrl] = useState('https://my-agency.ru/api/smmplan-webhook');
+  const [webhookSecret, setWebhookSecret] = useState('whsec_8f91a2b3c4d5e6f7');
+  const [isRequisitesSaved, setIsRequisitesSaved] = useState(false);
+
   // Telegram Chat States
   const [chatMessages, setChatMessages] = useState<any[]>(DASHBOARD_DATA.chatHistory);
   const [chatInput, setChatInput] = useState('');
@@ -761,9 +774,45 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
                       className="flex-1 bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm font-bold text-[#0e131a] font-mono-data"
                     />
                     <button className="bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm">
-                      Оплатить {depositAmount} ₽
+                      Оплатить {appliedPromo ? (parseInt(depositAmount || '0') * 1.1).toFixed(0) : depositAmount} ₽
                     </button>
                   </div>
+                </div>
+
+                {/* PromoCode & Voucher Input (R4) */}
+                <div className="space-y-2 pt-4 border-t border-[#e2e8f0]">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#8b94a3] block">
+                    Активация промокода или ваучера
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Введите промокод (например: PROMO2026)..."
+                      value={promoCodeInput}
+                      onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                      className="flex-1 bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-xs font-mono-data uppercase text-[#0e131a]"
+                    />
+                    <button
+                      onClick={() => {
+                        if (promoCodeInput.trim()) {
+                          setAppliedPromo({
+                            code: promoCodeInput.trim(),
+                            bonusText: '+10% бонус к пополнению применён!'
+                          });
+                        }
+                      }}
+                      className="bg-[#0e131a] hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all"
+                    >
+                      Применить
+                    </button>
+                  </div>
+
+                  {appliedPromo && (
+                    <div className="p-3 bg-[#e6f7f0] border border-[#1f9d6b]/20 rounded-xl text-xs text-[#1f9d6b] font-bold flex items-center justify-between">
+                      <span>✓ Промокод {appliedPromo.code}: {appliedPromo.bonusText}</span>
+                      <button onClick={() => setAppliedPromo(null)} className="text-[#8b94a3] hover:text-black">✕</button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1065,6 +1114,103 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
                   <button className="bg-[#1f9bf0] text-white px-4 py-2.5 rounded-xl font-bold">
                     Обновить ключ
                   </button>
+                </div>
+              </div>
+
+              {/* 152-FZ Legal Compliance Card (R3) */}
+              <div className="space-y-3 pt-4 border-t border-[#e2e8f0]">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-heading text-base font-bold text-[#0e131a]">Согласия и Оферта (152-ФЗ)</h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#e6f7f0] text-[#1f9d6b] text-[10px] font-extrabold uppercase">
+                    Подтверждено
+                  </span>
+                </div>
+                <div className="bg-[#e9edf2]/60 p-4 rounded-xl border border-[#e2e8f0] space-y-1.5 text-xs text-[#414a59]">
+                  <div className="flex justify-between">
+                    <span>Дата принятия Условий оферты:</span>
+                    <span className="font-mono-data font-bold text-[#0e131a]">24 июля 2026, 14:22 МСК</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>IP-адрес фиксации согласия:</span>
+                    <span className="font-mono-data font-bold text-[#0e131a]">185.220.101.4</span>
+                  </div>
+                  <p className="text-[11px] text-[#8b94a3] pt-1">
+                    Согласие зафиксировано в соответствии с требованиями 152-ФЗ «О персональных данных».
+                  </p>
+                </div>
+              </div>
+
+              {/* B2B Legal Requisites (R3) */}
+              <div className="space-y-3 pt-4 border-t border-[#e2e8f0]">
+                <h3 className="font-heading text-base font-bold text-[#0e131a]">Бухгалтерские реквизиты (Юрлицам)</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[#414a59] font-bold mb-1">Название компании</label>
+                    <input
+                      type="text"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#414a59] font-bold mb-1">ИНН</label>
+                    <input
+                      type="text"
+                      value={inn}
+                      onChange={(e) => setInn(e.target.value)}
+                      className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2 text-xs font-mono-data"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#414a59] font-bold mb-1">КПП</label>
+                    <input
+                      type="text"
+                      value={kpp}
+                      onChange={(e) => setKpp(e.target.value)}
+                      className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2 text-xs font-mono-data"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#414a59] font-bold mb-1">Юридический адрес</label>
+                    <input
+                      type="text"
+                      value={legalAddress}
+                      onChange={(e) => setLegalAddress(e.target.value)}
+                      className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2 text-xs"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsRequisitesSaved(true)}
+                  className="bg-[#0e131a] text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-slate-800"
+                >
+                  {isRequisitesSaved ? '✓ Реквизиты сохранены' : 'Сохранить реквизиты'}
+                </button>
+              </div>
+
+              {/* B2B Webhook Integration (R3) */}
+              <div className="space-y-3 pt-4 border-t border-[#e2e8f0]">
+                <h3 className="font-heading text-base font-bold text-[#0e131a]">B2B Вебхуки для разработчиков</h3>
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-[#414a59] font-bold mb-1">Webhook URL</label>
+                    <input
+                      type="url"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                      className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2 text-xs font-mono-data text-[#0e131a]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#414a59] font-bold mb-1">Webhook Secret (HMAC SHA-256)</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={webhookSecret}
+                      className="w-full bg-[#e9edf2] border border-[#e2e8f0] rounded-xl px-3.5 py-2 text-xs font-mono-data text-[#0e131a]"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

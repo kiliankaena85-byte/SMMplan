@@ -373,8 +373,6 @@ export async function getFailoverPreview(orderId: string) {
     );
 
     const routesWithPreview = await Promise.all(availableRoutes.map(async (route) => {
-      const exchangeRate = route.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
-      
       // Fetch rate from Database ShadowService staging table
       const shadowSvc = await db.shadowService.findUnique({
         where: {
@@ -384,21 +382,36 @@ export async function getFailoverPreview(orderId: string) {
           }
         }
       });
-      const providerRate = shadowSvc ? shadowSvc.rate : 0.0;
+      
+      const hasValidPrice = !!shadowSvc && Number.isFinite(shadowSvc.rate) && shadowSvc.rate > 0;
+      if (!hasValidPrice) {
+        return {
+          routeId: route.id,
+          providerName: route.provider.name,
+          priceUnknown: true,
+          newCostCents: null,
+          marginCents: null,
+          marginPercent: null,
+          isMarginPositive: false
+        };
+      }
 
-      const newCostCents = Math.round(providerRate * exchangeRate * 100);
-      const marginCents = Number(order.charge) - newCostCents;
-      const marginPercent = Number(order.charge) > 0 
-        ? Math.round((marginCents / Number(order.charge)) * 100) 
+      const exchangeRate = route.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
+      const newCostCents = BigInt(Math.round(shadowSvc.rate * exchangeRate * 100));
+      const chargeCents = BigInt(order.charge);
+      const marginCents = chargeCents - newCostCents;
+      const marginPercent = chargeCents > BigInt(0)
+        ? Number((marginCents * BigInt(100)) / chargeCents)
         : 0;
 
       return {
         routeId: route.id,
         providerName: route.provider.name,
-        newCostCents,
-        marginCents,
+        priceUnknown: false,
+        newCostCents: Number(newCostCents),
+        marginCents: Number(marginCents),
         marginPercent,
-        isMarginPositive: marginCents > 0
+        isMarginPositive: marginCents > BigInt(0)
       };
     }));
 
@@ -411,7 +424,7 @@ export async function getFailoverPreview(orderId: string) {
   });
 }
 
-export async function manualRerouteOrder(orderId: string, newRouteId: string) {
+export async function manualRerouteOrder(orderId: string, newRouteId: string, acknowledgeBlindReroute = false) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
     const result = await runSerializableTransaction(async (tx) => {
       const order = await tx.order.findUnique({
@@ -434,6 +447,20 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
         throw new Error('Выбран тот же самый провайдер');
       }
 
+      const shadowSvc = await tx.shadowService.findUnique({
+        where: {
+          providerId_externalId: {
+            providerId: newRoute.providerId,
+            externalId: String(newRoute.providerServiceId)
+          }
+        }
+      });
+
+      const isPriceUnknown = !shadowSvc || !Number.isFinite(shadowSvc.rate) || shadowSvc.rate <= 0;
+      if (isPriceUnknown && !acknowledgeBlindReroute) {
+        throw new Error('Цена провайдера неизвестна. Синхронизируйте каталог или подтвердите reroute вслепую.');
+      }
+
       const user = await tx.user.findUnique({
         where: { id: order.userId },
         select: { balance: true }
@@ -446,18 +473,7 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
 
       const usdToRub = await SettingsManager.getExchangeRateUSD();
       const exchangeRate = newRoute.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
-      
-      // Fetch rate from Database ShadowService staging table
-      const shadowSvc = await db.shadowService.findUnique({
-        where: {
-          providerId_externalId: {
-            providerId: newRoute.providerId,
-            externalId: String(newRoute.providerServiceId)
-          }
-        }
-      });
       const providerRate = shadowSvc ? shadowSvc.rate : 0.0;
-
       const newProviderCostCents = Math.round(providerRate * exchangeRate * 100);
 
       // Списание с баланса (перезапуск за счет пользователя, т.к. при ERROR/CANCELED был refund) via WalletOps
@@ -485,10 +501,10 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
       await tx.routingAuditLog.create({
         data: {
           serviceId: order.serviceId,
-          action: 'MANUAL_OVERRIDE',
+          action: isPriceUnknown ? 'BLIND_REROUTE' : 'MANUAL_OVERRIDE',
           fromProviderId: order.providerId,
           toProviderId: newRoute.providerId,
-          reason: `Admin ${admin.email} triggered manual failover`
+          reason: `Admin ${admin.email} triggered manual failover ${isPriceUnknown ? '(BLIND REROUTE)' : ''}`
         }
       });
 

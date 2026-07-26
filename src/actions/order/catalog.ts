@@ -7,6 +7,8 @@ import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
 import { unstable_cache } from "next/cache";
 
+import { sanitizeServiceDescription } from "@/lib/sanitize";
+
 const getCachedNetworks = unstable_cache(
   async () => {
     return await db.network.findMany({
@@ -27,14 +29,20 @@ const getCachedNetworks = unstable_cache(
   { revalidate: 60, tags: ['catalog'] }
 );
 
+const PAGE_SIZE = 100;
+
 const getCachedServices = (catId: string) => unstable_cache(
   async () => {
-    return await db.service.findMany({
+    const services = await db.service.findMany({
       where: { categoryId: catId, isActive: true },
       include: { smartConfig: true },
       orderBy: { rate: 'asc' },
-      take: 100
+      take: PAGE_SIZE + 1
     });
+    if (services.length > PAGE_SIZE) {
+      console.warn(`[catalog] Category ${catId} has ${services.length} services, truncating tail to ${PAGE_SIZE}`);
+    }
+    return services.slice(0, PAGE_SIZE);
   },
   ['public-services-by-category-v2', catId],
   { revalidate: 60, tags: ['catalog', 'services'] }
@@ -53,9 +61,15 @@ export type PublicService = {
   speed: string;
   badge: string;
   isDripFeedEnabled: boolean;
+  isRefillEnabled?: boolean;
   targetType?: string | null;
   customDataType?: string | null;
   customDataLabel?: string | null;
+  clientRequirement?: string | null;
+  clientConfirmation?: string | null;
+  etaP50Seconds?: number | null;
+  etaP90Seconds?: number | null;
+  etaSpeedClass?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   features?: any;
   cooldownUntil?: string | null;
@@ -184,7 +198,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           numericId: s.numericId,
           categoryId: s.categoryId,
           name: s.name,
-          description: s.description,
+          description: sanitizeServiceDescription(s.description),
           pricePer1kRub,
           pricePerUnitRub,
           minQty: s.minQty,
@@ -192,6 +206,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',
           badge,
           isDripFeedEnabled: s.isDripFeedEnabled,
+          isRefillEnabled: s.isRefillEnabled,
           targetType: s.targetType,
           customDataType: s.customDataType,
           customDataLabel: s.customDataLabel,
@@ -208,7 +223,12 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
             checkIntervalMins: s.smartConfig.checkIntervalMins
           } : null,
           requireWarning: s.requireWarning,
-          warningMessage: s.warningMessage
+          warningMessage: s.warningMessage,
+          clientRequirement: s.clientRequirement,
+          clientConfirmation: s.clientConfirmation,
+          etaP50Seconds: s.etaP50Seconds,
+          etaP90Seconds: s.etaP90Seconds,
+          etaSpeedClass: s.etaSpeedClass
        };
     });
   } catch (error) {
