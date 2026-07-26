@@ -1,9 +1,8 @@
 "use server";
 
 import { IntelligenceLinkAnalyzer } from "@/services/analyzer/link-analyzer";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 import { RateLimitService } from '@/services/core/rate-limit.service';
+import { safeUrlForLog } from "@/lib/log-safe";
 
 
 import { IntelligenceAnalysisResult } from "@/services/analyzer/link-analyzer";
@@ -40,7 +39,7 @@ export async function analyzeUrl(url: string): Promise<{ success: boolean; data?
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("Link analysis failed:", error);
+    console.error(`Link analysis failed for ${safeUrlForLog(url)}:`, error);
     return { success: false, error: "Failed to analyze URL" };
   }
 }

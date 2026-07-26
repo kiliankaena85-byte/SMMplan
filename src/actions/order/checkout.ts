@@ -16,6 +16,7 @@ import { getBaseUrlSync } from "@/utils/get-base-url";
 import { featureFlagService } from "@/services/system/feature-flag.service";
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
+import { safeUrlForLog } from '@/lib/log-safe';
 import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
 import { randomUUID } from 'crypto';
 
@@ -208,6 +209,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
+        console.error(`[Checkout] Link mutation failed for ${safeUrlForLog(link)}:`, e);
         throw new Error("Неверный формат ссылки.", { cause: e });
       }
     } else {

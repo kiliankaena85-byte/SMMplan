@@ -1,5 +1,6 @@
 import { IntelligencePlatform, LINK_RULES } from './link-rules';
 import { stripQueryParams } from '@/utils/link-normalizer';
+import { safeUrlForLog } from '@/lib/log-safe';
 
 interface IntelligenceLinkMetadata {
     isLive?: boolean;
@@ -140,7 +141,7 @@ export class IntelligenceLinkAnalyzer {
             }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
-            // Silent fallback
+            console.warn(`[LinkAnalyzer] Resolution skipped for ${safeUrlForLog(url)}`);
         }
         return url;
     }
