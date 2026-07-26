@@ -25,8 +25,8 @@ export interface OrderDrawerColumn {
   quantity?: number;
   remains?: number;
   status: string;
-  charge: number;
-  providerCost?: number;
+  charge: number | string;
+  providerCost?: number | string;
   createdAt: string | Date;
   updatedAt?: string | Date;
   isDripFeed?: boolean;
@@ -57,9 +57,10 @@ interface OrderDrawerProps {
 interface FailoverRoute {
   routeId: string;
   providerName: string;
-  newCostCents: number;
-  marginCents: number;
-  marginPercent: number;
+  priceUnknown?: boolean;
+  newCostCents: number | null;
+  marginCents: number | null;
+  marginPercent: number | null;
   isMarginPositive: boolean;
 }
 
@@ -123,6 +124,7 @@ export function OrderDrawer({
   const [failoverPreview, setFailoverPreview] = useState<FailoverPreviewData | null>(null);
   const [isFailoverModalOpen, setIsFailoverModalOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
+  const [acknowledgeBlindReroute, setAcknowledgeBlindReroute] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // Custom Confirmation Modal State (replacing native confirm)
@@ -205,11 +207,11 @@ export function OrderDrawer({
 
   // Price calculations
   const quantity = currentOrder.quantity ?? 0;
-  const chargeRub = currentOrder.charge / 100;
+  const chargeRub = Number(BigInt(currentOrder.charge || 0)) / 100;
   const pricePerUnitRub = quantity > 0 ? chargeRub / quantity : 0;
   const pricePer1kRub = pricePerUnitRub * 1000;
 
-  const costRub = (currentOrder.providerCost ?? 0) / 100;
+  const costRub = Number(BigInt(currentOrder.providerCost ?? 0)) / 100;
 
   function handleSetStatus() {
     if (!currentOrder) return;
@@ -342,10 +344,11 @@ export function OrderDrawer({
     if (!currentOrder || !selectedRouteId) return;
     startTransition(async () => {
       try {
-        const r = await manualRerouteOrder(currentOrder.id, selectedRouteId);
+        const r = await manualRerouteOrder(currentOrder.id, selectedRouteId, acknowledgeBlindReroute);
         if (r.success) {
           toast.success(`Успех: Заказ #${currentOrder.numericId} переведен на резервный маршрут`);
           setIsFailoverModalOpen(false);
+          setAcknowledgeBlindReroute(false);
           if (onSuccess) onSuccess();
           onClose();
         } else {
@@ -622,12 +625,12 @@ export function OrderDrawer({
                 ) : (
                   <select
                     value={selectedRouteId}
-                    onChange={e => setSelectedRouteId(e.target.value)}
+                    onChange={e => { setSelectedRouteId(e.target.value); setAcknowledgeBlindReroute(false); }}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background outline-none focus:border-primary"
                   >
                     {failoverPreview.routes.map((r) => (
                       <option key={r.routeId} value={r.routeId}>
-                        {r.providerName} (Закупка: {(r.newCostCents / 100).toFixed(2)} ₽)
+                        {r.providerName} {r.priceUnknown ? '(Цена неизвестна ⚠️)' : `(Закупка: ${((r.newCostCents || 0) / 100).toFixed(2)} ₽)`}
                       </option>
                     ))}
                   </select>
@@ -637,29 +640,49 @@ export function OrderDrawer({
               {activeRoute && (
                 <div className="bg-muted/30 p-4 rounded-xl border border-border space-y-2 text-sm">
                   <div className="font-bold mb-2">📊 Анализ маржи:</div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Баланс клиента:</span>
-                    <span className={failoverPreview.currentBalance < failoverPreview.clientPaidCents ? "text-destructive font-bold" : ""}>
-                      {(failoverPreview.currentBalance / 100).toFixed(2)} ₽
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Клиент заплатил:</span>
-                    <span>{(failoverPreview.clientPaidCents / 100).toFixed(2)} ₽</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Резервный провайдер:</span>
-                    <span>{(activeRoute.newCostCents / 100).toFixed(2)} ₽</span>
-                  </div>
-                  <div className="h-px bg-border my-2" />
-                  <div className="flex justify-between font-bold">
-                    <span>Новая маржа:</span>
-                    <span className={activeRoute.isMarginPositive ? 'text-success' : 'text-destructive'}>
-                      {(activeRoute.marginCents / 100).toFixed(2)} ₽ 
-                      ({activeRoute.marginPercent}%) 
-                      {activeRoute.isMarginPositive ? ' ✅' : ' 🔴'}
-                    </span>
-                  </div>
+                  {activeRoute.priceUnknown ? (
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-warning">⚠️ Цена провайдера неизвестна</div>
+                      <div className="text-xs text-muted-foreground">
+                        В теневом каталоге нет актуальной цены. Синхронизируйте каталог или подтвердите reroute вслепую.
+                      </div>
+                      <label className="flex items-center gap-2 pt-2 text-xs font-semibold text-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={acknowledgeBlindReroute}
+                          onChange={e => setAcknowledgeBlindReroute(e.target.checked)}
+                          className="rounded border-border"
+                        />
+                        <span>Подтверждаю Reroute вслепую (без известной цены)</span>
+                      </label>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Баланс клиента:</span>
+                        <span className={failoverPreview.currentBalance < failoverPreview.clientPaidCents ? "text-destructive font-bold" : ""}>
+                          {(failoverPreview.currentBalance / 100).toFixed(2)} ₽
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Клиент заплатил:</span>
+                        <span>{(failoverPreview.clientPaidCents / 100).toFixed(2)} ₽</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Резервный провайдер:</span>
+                        <span>{((activeRoute.newCostCents || 0) / 100).toFixed(2)} ₽</span>
+                      </div>
+                      <div className="h-px bg-border my-2" />
+                      <div className="flex justify-between font-bold">
+                        <span>Новая маржа:</span>
+                        <span className={activeRoute.isMarginPositive ? 'text-success' : 'text-destructive'}>
+                          {((activeRoute.marginCents || 0) / 100).toFixed(2)} ₽ 
+                          ({activeRoute.marginPercent ?? 0}%) 
+                          {activeRoute.isMarginPositive ? ' ✅' : ' 🔴'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

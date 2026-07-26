@@ -59,8 +59,10 @@ function InfoStack({ order, canSeeRates }: { order: OrderColumn; canSeeRates: bo
     ? Math.min(100, Math.max(0, Math.round(((order.quantity - order.remains) / order.quantity) * 100))) 
     : 100;
   
-  const marginKopecks = BigInt(order.charge) - BigInt(order.providerCost);
-  const marginPercent = order.charge > 0 ? Math.round((Number(marginKopecks) / order.charge) * 100) : 0;
+  const chargeBig = BigInt(order.charge || '0');
+  const costBig = BigInt(order.providerCost || '0');
+  const marginKopecks = chargeBig - costBig;
+  const marginPercent = chargeBig > BigInt(0) ? Math.round((Number(marginKopecks) / Number(chargeBig)) * 100) : 0;
 
   return (
     <div className="flex flex-col space-y-0.5 text-xs min-w-0">

@@ -68,6 +68,7 @@ interface UnifiedTicketsWorkspaceProps {
   currentStatus: string;
   currentSource: string;
   currentIsB2b: boolean;
+  currentSearch: string;
   canSeeRates?: boolean;
   canSeeFinances?: boolean;
 }

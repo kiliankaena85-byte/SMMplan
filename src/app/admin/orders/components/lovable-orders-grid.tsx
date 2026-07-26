@@ -104,7 +104,7 @@ export function LovableOrdersGrid({ data, canSeeRates, onSelect, selectedIds, on
                 <div className="flex flex-col gap-1 text-right">
                   <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Сумма</span>
                   <span className="font-extrabold text-foreground text-base tabular-nums">
-                    {(order.charge / 100).toFixed(2)} ₽
+                    {(Number(BigInt(order.charge || 0)) / 100).toFixed(2)} ₽
                   </span>
                 </div>
               </div>

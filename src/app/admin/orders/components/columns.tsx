@@ -447,8 +447,8 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
       const chargeNum = Number(chargeBig) / 100;
       const costNum = Number(costBig) / 100;
       const marginNum = Number(marginBig) / 100;
-      const marginPercent = chargeBig > 0n ? Math.round((Number(marginBig) / Number(chargeBig)) * 100) : 0;
-      const isPositive = marginBig >= 0n;
+      const marginPercent = chargeBig > BigInt(0) ? Math.round((Number(marginBig) / Number(chargeBig)) * 100) : 0;
+      const isPositive = marginBig >= BigInt(0);
 
       return (
         <div className="flex flex-col items-end text-xs leading-normal py-1 font-semibold text-right min-w-[90px] font-mono">
