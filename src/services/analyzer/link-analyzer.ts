@@ -34,8 +34,9 @@ export class IntelligenceLinkAnalyzer {
         }
         const sanitizedUrl = this.sanitize(cleanUrl);
         const expandedUrl = await this.resolve(sanitizedUrl);
-        const normalizedUrl = this.normalizeVkUrl(expandedUrl);
-        return this.match(normalizedUrl);
+        const normalizedVk = this.normalizeVkUrl(expandedUrl);
+        const normalizedForMatch = this.normalizeForMatch(normalizedVk);
+        return this.match(normalizedForMatch);
     }
 
     private normalizeVkUrl(url: string): string {
@@ -54,6 +55,23 @@ export class IntelligenceLinkAnalyzer {
             return url;
         } catch {
             return url;
+        }
+    }
+
+    private normalizeForMatch(url: string): string {
+        try {
+            const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+            parsed.hostname = parsed.hostname.toLowerCase();
+            let decodedPath = parsed.pathname;
+            try {
+                decodedPath = decodeURIComponent(parsed.pathname);
+            } catch {
+                // Ignore malformed percent-encoding
+            }
+            parsed.pathname = decodedPath;
+            return parsed.toString().replace(/%40/g, '@');
+        } catch {
+            return url.replace(/%40/g, '@');
         }
     }
 
