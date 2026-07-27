@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* ── Background & Off-white base ── */
   --color-background: #f8fafc; /* slate-50 - softer than pure white for bento backdrops */
@@ -51,8 +53,17 @@
   --color-info: #6366f1;
   --color-info-foreground: #ffffff;
 
-  /* ── Brand Colors ── */
+  /* ── Brand & Utility Tokens ── */
   --color-brand-telegram: #3390EC;
+  --color-blob-sky: #38bdf8;
+  --animate-spin-slow: spin 3s linear infinite;
+
+  /* ── Marquee Animation ── */
+  --animate-marquee: marquee 30s linear infinite;
+  @keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+  }
 
   /* ── Borders & Inputs ── */
   --color-border: #e2e8f0;
@@ -319,14 +330,6 @@
     opacity: 0;
     transform: translateY(10px);
   }
-
-  .scrollbar-hide {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
-  }
 }
 
 /* Fix Chrome Autofill breaking transparent inputs in both themes dynamically */
@@ -472,13 +475,15 @@
   background-size: 300% 300%;
 }
 
-/* --- Custom Utility: Scrollbar None --- */
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
+/* --- Custom Utility: Scrollbar Hide / None --- */
+.scrollbar-hide,
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /* --- Premium thin scrollbar styles --- */

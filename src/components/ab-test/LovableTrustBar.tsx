@@ -11,8 +11,8 @@ export function LovableTrustBar() {
     { value: '09:00 - 21:00 МСК', label: 'Живая поддержка', icon: Headphones, color: 'text-secondary' },
   ];
 
-  // We duplicate the array to create a seamless infinite loop
-  const marqueeItems = [...stats, ...stats, ...stats];
+  // We duplicate the array x2 for a seamless percentage-based infinite loop
+  const marqueeItems = [...stats, ...stats];
 
   return (
     <section aria-label="Статистика платформы" className="w-full py-12 bg-transparent overflow-hidden relative">
@@ -40,13 +40,14 @@ export function LovableTrustBar() {
         style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 128px, black calc(100% - 128px), transparent)', maskImage: 'linear-gradient(to right, transparent, black 128px, black calc(100% - 128px), transparent)' }}
       >
         <motion.div
-          animate={{ x: [0, -1920] }} // Assuming roughly 1920px width of the single set. Motion will loop it.
+          animate={{ x: ["0%", "-50%"] }}
           transition={{
             repeat: Infinity,
+            repeatType: "loop",
             ease: "linear",
-            duration: 40,
+            duration: 25,
           }}
-          className="flex gap-4 sm:gap-8 px-4 sm:px-8 shrink-0 items-center whitespace-nowrap"
+          className="flex gap-4 sm:gap-8 px-4 sm:px-8 shrink-0 items-center whitespace-nowrap motion-reduce:animate-none"
         >
           {marqueeItems.map((s, idx) => (
             <div
