@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getServicesByCategoryAction } from "@/actions/order/catalog";
 import { checkoutAction } from "@/actions/order/checkout";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
+import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByUrl } from "@/hooks/useOrderWizard";
+import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
 
 type Step = 'link' | 'network' | 'category' | 'service' | 'checkout';
 
@@ -44,8 +46,7 @@ const itemVariants = {
 };
 
 interface LovableOrderClientProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialCatalog: any[];
+  initialCatalog: FluxNetwork[];
   initialEmail?: string;
 }
 
@@ -63,14 +64,10 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
   
   const [link, setLink] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [activeNetwork, setActiveNetwork] = useState<any | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [activeCategory, setActiveCategory] = useState<any | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [services, setServices] = useState<any[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedService, setSelectedService] = useState<any | null>(null);
+  const [activeNetwork, setActiveNetwork] = useState<FluxNetwork | null>(null);
+  const [activeCategory, setActiveCategory] = useState<FluxCategory | null>(null);
+  const [services, setServices] = useState<FluxService[]>([]);
+  const [selectedService, setSelectedService] = useState<FluxService | null>(null);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   
   const [quantity, setQuantity] = useState<number | string>("");
@@ -88,9 +85,8 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
   const [showShakeError, setShowShakeError] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
   
-  // Form State for React 19
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [formState, formAction, isPending] = useActionState(async (prevState: any, formData: FormData) => {
+  interface OrderFormState { error: string; field: string; timestamp: number }
+  const [formState, formAction, isPending] = useActionState(async (prevState: OrderFormState, formData: FormData) => {
     const linkValue = formData.get("link") as string || link;
     const emailValue = formData.get("email") as string || email;
     const quantityValue = formData.get("quantity") as string || quantity.toString();
@@ -119,7 +115,15 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     const maxQty = selectedService.maxQty || 10000;
     if (qtyNum < minQty) return { error: `Минимальное количество: ${minQty}`, field: "quantity", timestamp: ts };
     if (qtyNum > maxQty) return { error: `Максимальное количество: ${maxQty}`, field: "quantity", timestamp: ts };
-    if (!emailValue || !emailValue.includes('@')) return { error: "Некорректный email", field: "email", timestamp: ts };
+    
+    // Email validation
+    if (!emailValue || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      return { error: "Введите корректный email адрес", field: "email", timestamp: ts };
+    }
+
+    if (isDripFeedEnabled && !validateDripFeedDuration(dripRuns, dripInterval)) {
+      return { error: DRIP_FEED_MAX_ERROR_MESSAGE, field: "drip", timestamp: ts };
+    }
 
     const totalQuantity = isDripFeedEnabled ? qtyNum * dripRuns : qtyNum;
 
@@ -132,11 +136,12 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
         gateway: 'yookassa',
         runs: isDripFeedEnabled ? dripRuns : undefined,
         interval: isDripFeedEnabled ? dripInterval : undefined,
-        customData: selectedService.customDataType !== 'NONE' ? customData : undefined,
+        customData: (selectedService.customDataType && selectedService.customDataType !== 'NONE') ? customData : undefined,
         isRequirementsConfirmed: isRequirementsConfirmed
       });
 
       if (res && res.success && res.data?.paymentUrl) {
+         // external gateway redirect (server-validated)
          window.location.href = res.data.paymentUrl;
          return { error: "", field: "", timestamp: ts };
       } else if (res && !res.success) {
@@ -170,17 +175,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     if (!url) return;
     setIsAnalyzing(true);
     
-    const lowerUrl = url.toLowerCase();
-    let matchedNetwork = null;
-    
-    if (lowerUrl.includes("t.me") || lowerUrl.includes("telegram")) {
-      matchedNetwork = initialCatalog.find(n => n.name.toLowerCase().includes("telegram"));
-    } else if (lowerUrl.includes("instagram.com")) {
-      matchedNetwork = initialCatalog.find(n => n.name.toLowerCase().includes("instagram"));
-    } else if (lowerUrl.includes("vk.com")) {
-      matchedNetwork = initialCatalog.find(n => n.name.toLowerCase().includes("vk"));
-    }
-    
+    let matchedNetwork = detectNetworkByUrl(url, initialCatalog);
     if (!matchedNetwork && initialCatalog.length > 0) matchedNetwork = initialCatalog[0];
       
     if (matchedNetwork) {
@@ -193,8 +188,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     setIsAnalyzing(false);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const selectCategory = async (cat: any) => {
+  const selectCategory = async (cat: FluxCategory) => {
     setActiveCategory(cat);
     setIsLoadingServices(true);
     setServices([]);
@@ -209,8 +203,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const selectService = (srv: any) => {
+  const selectService = (srv: FluxService) => {
     setSelectedService(srv);
     setQuantity(srv.minQty || 100);
     setIsRequirementsConfirmed(false);
@@ -302,7 +295,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                 >
                   <LinkIcon className="text-muted-foreground w-5 h-5 sm:w-6 sm:h-6 ml-2 sm:ml-3 flex-shrink-0 group-focus-within:text-foreground transition-colors" />
                   <input
-                    autoFocus
+                    autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}
                     className="flex-1 text-base sm:text-lg py-2 sm:py-3 px-3 sm:px-4 bg-transparent outline-none w-full font-medium text-foreground placeholder:text-muted-foreground/50"
                     placeholder="Вставьте ссылку..."
                     value={link}
@@ -374,7 +367,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                     }}
                     className="flex flex-col items-center justify-center gap-2 sm:gap-3 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-border/40 bg-card/80 backdrop-blur-2xl hover:bg-card hover:border-primary/50 hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 outline-none"
                   >
-                    <img src={network.icon} alt={network.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+                    <img src={network.icon || undefined} alt={network.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
                     <span className="font-bold text-foreground text-xs sm:text-sm">{network.name}</span>
                   </motion.button>
                 ))}
@@ -397,7 +390,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
           >
             <div className="mb-6 w-full">
               <div className="flex items-center gap-3 mb-6">
-                <img src={activeNetwork.icon} alt={activeNetwork.name} className="w-8 h-8 object-contain" />
+                <img src={activeNetwork.icon || undefined} alt={activeNetwork.name} className="w-8 h-8 object-contain" />
                 <h2 className="text-2xl font-bold text-foreground">Выберите категорию</h2>
               </div>
             </div>
@@ -408,15 +401,17 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
               animate="show"
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5"
             >
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {activeNetwork.categories?.map((cat: any) => (
+              {activeNetwork.categories?.map((cat: FluxCategory) => (
                 <motion.div 
                   key={cat.id}
+                  role="button"
+                  tabIndex={0}
                   variants={itemVariants}
                   whileHover={{ scale: 1.03, y: -4 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => selectCategory(cat)}
-                  className="cursor-pointer p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-border/40 bg-card/80 backdrop-blur-2xl hover:bg-card hover:border-primary/50 hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex items-center justify-between group"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCategory(cat); } }}
+                  className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-border/40 bg-card/80 backdrop-blur-2xl hover:bg-card hover:border-primary/50 hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex items-center justify-between group"
                 >
                    <h4 className="font-bold text-foreground text-base sm:text-lg">{cat.name}</h4>
                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors">
@@ -458,10 +453,13 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                 {services.map((service) => (
                   <motion.div 
                     key={service.id}
+                    role="button"
+                    tabIndex={0}
                     layoutId={`service-card-${service.id}`}
                     variants={itemVariants}
-                    className="cursor-pointer rounded-[1.5rem] sm:rounded-[2rem] border border-border/40 bg-card/80 backdrop-blur-2xl hover:bg-card hover:border-primary/50 hover:shadow-[0_16px_50px_rgb(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 flex flex-col justify-between group relative min-h-[140px] sm:min-h-[160px]"
+                    className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-[1.5rem] sm:rounded-[2rem] border border-border/40 bg-card/80 backdrop-blur-2xl hover:bg-card hover:border-primary/50 hover:shadow-[0_16px_50px_rgb(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 flex flex-col justify-between group relative min-h-[140px] sm:min-h-[160px]"
                     onClick={() => selectService(service)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectService(service); } }}
                   >
                     <div className="p-5 pb-14 sm:p-6 sm:pb-16">
                       <div className="flex justify-between items-start gap-2 mb-2">
@@ -577,8 +575,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                         }
                       }
                     }}
-                    key={formState.field === 'quantity' ? shakeKey : undefined}
-                    className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'quantity' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-base sm:text-lg font-bold outline-none shadow-sm`}
+                    className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'quantity' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-shake' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-base sm:text-lg font-bold outline-none shadow-sm`}
                     placeholder={`${selectedService.minQty || 100} — ${selectedService.maxQty || 10000}`}
                   />
                   <AnimatePresence mode="popLayout">
@@ -610,8 +607,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                         value={customData}
                         onChange={(e) => setCustomData(e.target.value)}
                         placeholder="Введите каждый комментарий с новой строки..."
-                        key={formState.field === 'customData' ? shakeKey : undefined}
-                        className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'customData' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm font-medium outline-none shadow-sm`}
+                        className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'customData' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-shake' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm font-medium outline-none shadow-sm`}
                       />
                     ) : (
                       <input
@@ -620,8 +616,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                         value={customData}
                         onChange={(e) => setCustomData(e.target.value)}
                         placeholder="Введите номер варианта ответа..."
-                        key={formState.field === 'customData' ? shakeKey : undefined}
-                        className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'customData' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm font-medium outline-none shadow-sm`}
+                        className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'customData' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-shake' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm font-medium outline-none shadow-sm`}
                       />
                     )}
                     <AnimatePresence mode="popLayout">
@@ -642,7 +637,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                 )}
 
                 {/* Drip-Feed Controls */}
-                {selectedService.isDripFeedEnabled && (
+                {Boolean(selectedService.isDripFeedEnabled) && (
                   <div className="mb-3 p-3.5 rounded-[1.25rem] sm:rounded-[1.5rem] bg-muted/40 border border-border/60">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -708,8 +703,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                         emailRef.current?.focus();
                       }
                     }}
-                    key={formState.field === 'link' ? shakeKey : undefined}
-                    className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'link' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm sm:text-base font-medium outline-none shadow-sm`}
+                    className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'link' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-shake' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm sm:text-base font-medium outline-none shadow-sm`}
                   />
                   <AnimatePresence mode="popLayout">
                     {formState.error && formState.field === "link" && (
@@ -737,8 +731,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                     placeholder="example@mail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    key={formState.field === 'email' ? shakeKey : undefined}
-                    className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'email' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm sm:text-base font-medium outline-none shadow-sm`}
+                    className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'email' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-shake' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-sm sm:text-base font-medium outline-none shadow-sm`}
                   />
                   <AnimatePresence mode="popLayout">
                     {formState.error && formState.field === "email" && (
@@ -758,7 +751,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
 
                 {/* Чек-лист для старта (JIT Validation) */}
                 {(selectedService.clientRequirement || selectedService.clientConfirmation || selectedService.requireWarning) && (
-                  <div id="field-requirement" key={formState.field === 'requirement' ? shakeKey : undefined} className={`mb-4 p-3 rounded-[1.25rem] sm:rounded-[1.5rem] border transition-all duration-300 ${isRequirementsConfirmed ? 'bg-green-50/50 border-green-200' : (showShakeError || formState.field === 'requirement') ? 'bg-red-50 border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake' : 'bg-amber-50/30 border-amber-200/50'}`}>
+                  <div id="field-requirement" className={`mb-4 p-3 rounded-[1.25rem] sm:rounded-[1.5rem] border transition-all duration-300 ${isRequirementsConfirmed ? 'bg-green-50/50 border-green-200' : (showShakeError || formState.field === 'requirement') ? 'bg-red-50 border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake' : 'bg-amber-50/30 border-amber-200/50'}`}>
                     <h4 className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider mb-1 text-foreground flex items-center gap-2">
                       <SparklesIcon className="w-4 h-4 text-amber-500" />
                       Чек-лист для старта

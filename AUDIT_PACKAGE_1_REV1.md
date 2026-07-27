@@ -105,6 +105,15 @@ async function fetchTenantsFromDb(): Promise<Map<string, string>> {
   return map;
 }
 
+const FLUX_DOMAINS = new Set([
+  'lovable.local',
+  'lovable.smmplan.ru',
+  'smmflux.ru',
+  'www.smmflux.ru',
+  'flux.local',
+  'flux.smmplan.ru',
+]);
+
 /**
  * Resolves tenantId from HTTP Host header using exact domain match.
  */
@@ -125,22 +134,9 @@ export async function resolveTenantFromHost(host: string): Promise<string> {
     return tenantCache.get(cleanHost)!;
   }
 
-  // Exact fallback matching to prevent sub-domain hijacking (e.g., lovable.evil.com)
-  if (cleanHost === 'lovable.local' || cleanHost === 'lovable.smmplan.ru' || cleanHost === 'smmflux.ru' || cleanHost === 'www.smmflux.ru' || cleanHost === 'flux.local') {
-    return 'flux';
-  }
-
-  return 'smmplan';
+  // Exact fallback matching using canonical FLUX_DOMAINS set
+  return FLUX_DOMAINS.has(cleanHost) ? 'flux' : 'smmplan';
 }
-
-const FLUX_DOMAINS = new Set([
-  'lovable.local',
-  'lovable.smmplan.ru',
-  'smmflux.ru',
-  'www.smmflux.ru',
-  'flux.local',
-  'flux.smmplan.ru',
-]);
 
 /**
  * Edge-compatible host resolver (without Prisma DB dependency) for Next.js Middleware.
@@ -326,6 +322,8 @@ export interface StatusConfig {
   badgeClass: string;
   dotClass: string;
 }
+
+export type LovableOrder = FluxOrder;
 
 ```
 
@@ -1690,15 +1688,20 @@ import { LovableReviews } from "@/components/ab-test/LovableReviews";
 import { LovableFAQ } from "@/components/ab-test/LovableFAQ";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 
+import { normalizeTenantId } from "@/lib/tenant-resolver";
+
 export const revalidate = 300;
 
 export async function generateMetadata() {
   const reqHeaders = await headers();
-  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+  const rawTenantId = reqHeaders.get("x-tenant-id");
+  const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
   const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
-  const siteName = settings.SITE_NAME || (tenantId === 'flux' || tenantId === 'lovable' ? "SMMflux" : "SMMplan");
-  const host = reqHeaders.get("host") || "smmflux.ru";
-  const baseUrl = `https://${host}`;
+  const siteName = settings.SITE_NAME || (tenantId === 'flux' ? "SMMflux" : "SMMplan");
+  
+  const rawHost = reqHeaders.get("host") || "";
+  const safeHost = /^[a-z0-9.-]+(?::\d+)?$/i.test(rawHost) ? rawHost : "smmflux.ru";
+  const baseUrl = `https://${safeHost}`;
   
   return {
     metadataBase: new URL(baseUrl),
@@ -1722,10 +1725,11 @@ export default async function LovablePage() {
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
   const reqHeaders = await headers();
-  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+  const rawTenantId = reqHeaders.get("x-tenant-id");
+  const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
 
   const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
-  const siteName = settings.SITE_NAME || (tenantId === 'flux' || tenantId === 'lovable' ? "SMMflux" : "SMMplan");
+  const siteName = settings.SITE_NAME || (tenantId === 'flux' ? "SMMflux" : "SMMplan");
 
 
 
@@ -1790,7 +1794,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getServicesByCategoryAction } from "@/actions/order/catalog";
 import { checkoutAction } from "@/actions/order/checkout";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
-import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE } from "@/hooks/useOrderWizard";
+import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByUrl } from "@/hooks/useOrderWizard";
 import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
 
 type Step = 'link' | 'network' | 'category' | 'service' | 'checkout';
@@ -1898,6 +1902,12 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     const maxQty = selectedService.maxQty || 10000;
     if (qtyNum < minQty) return { error: `Минимальное количество: ${minQty}`, field: "quantity", timestamp: ts };
     if (qtyNum > maxQty) return { error: `Максимальное количество: ${maxQty}`, field: "quantity", timestamp: ts };
+    
+    // Email validation
+    if (!emailValue || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      return { error: "Введите корректный email адрес", field: "email", timestamp: ts };
+    }
+
     if (isDripFeedEnabled && !validateDripFeedDuration(dripRuns, dripInterval)) {
       return { error: DRIP_FEED_MAX_ERROR_MESSAGE, field: "drip", timestamp: ts };
     }
@@ -1913,11 +1923,12 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
         gateway: 'yookassa',
         runs: isDripFeedEnabled ? dripRuns : undefined,
         interval: isDripFeedEnabled ? dripInterval : undefined,
-        customData: selectedService.customDataType !== 'NONE' ? customData : undefined,
+        customData: (selectedService.customDataType && selectedService.customDataType !== 'NONE') ? customData : undefined,
         isRequirementsConfirmed: isRequirementsConfirmed
       });
 
       if (res && res.success && res.data?.paymentUrl) {
+         // external gateway redirect (server-validated)
          window.location.href = res.data.paymentUrl;
          return { error: "", field: "", timestamp: ts };
       } else if (res && !res.success) {
@@ -1947,34 +1958,11 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     setStep(newStep);
   };
 
-function detectNetwork(url: string, catalog: FluxNetwork[]): FluxNetwork | null {
-  try {
-    const host = new URL(url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`)
-      .hostname.toLowerCase().replace(/^www\./, '');
-    const rules: Array<[string[], string]> = [
-      [['t.me', 'telegram.org', 'telegram.me'], 'telegram'],
-      [['instagram.com', 'instagr.am'], 'instagram'],
-      [['vk.com', 'vk.ru', 'm.vk.com'], 'vk'],
-      [['youtube.com', 'youtu.be'], 'youtube'],
-      [['tiktok.com'], 'tiktok'],
-      [['x.com', 'twitter.com'], 'twitter'],
-    ];
-    for (const [hosts, key] of rules) {
-      if (hosts.some(h => host === h || host.endsWith('.' + h))) {
-        return catalog.find(n => (n.slug || n.name).toLowerCase().includes(key)) ?? null;
-      }
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
   const handleAnalyzeLink = (url: string) => {
     if (!url) return;
     setIsAnalyzing(true);
     
-    let matchedNetwork = detectNetwork(url, initialCatalog);
+    let matchedNetwork = detectNetworkByUrl(url, initialCatalog);
     if (!matchedNetwork && initialCatalog.length > 0) matchedNetwork = initialCatalog[0];
       
     if (matchedNetwork) {
@@ -2653,10 +2641,11 @@ function detectNetwork(url: string, catalog: FluxNetwork[]): FluxNetwork | null 
 ```tsx
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Users, Timer, CheckCircle, Headphones } from "lucide-react";
 
 export function LovableTrustBar() {
+  const shouldReduceMotion = useReducedMotion();
   const stats = [
     { value: '2,000,000+', label: 'Заказов выполнено', icon: CheckCircle, color: 'text-success' },
     { value: '4 секунды', label: 'Среднее время старта', icon: Timer, color: 'text-warning' },
@@ -2693,7 +2682,7 @@ export function LovableTrustBar() {
         style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 128px, black calc(100% - 128px), transparent)', maskImage: 'linear-gradient(to right, transparent, black 128px, black calc(100% - 128px), transparent)' }}
       >
         <motion.div
-          animate={{ x: ["0%", "-50%"] }}
+          animate={shouldReduceMotion ? {} : { x: ["0%", "-50%"] }}
           transition={{
             repeat: Infinity,
             repeatType: "loop",
@@ -3041,7 +3030,8 @@ export function LovableReviews() {
   };
 
   return (
-    <section className="py-10 md:py-20 bg-transparent relative overflow-hidden">
+    <section aria-label="Примеры отзывов реальных клиентов" className="w-full py-16 px-4 max-w-7xl mx-auto border-t border-border/30 relative">
+      {/* TODO: Connect to live reviews API once moderation queue is integrated */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(reviewsJsonLd) }}
@@ -3815,7 +3805,7 @@ import { LovableOrdersList } from '@/components/dashboard/LovableOrdersList';
 
 import { OrderViewData, NetworkViewData } from '@/tenants/types';
 
-import { centsToRub } from '@/lib/money';
+
 
 export function LovableOrdersView({
   orders,
@@ -3844,7 +3834,6 @@ export function LovableOrdersView({
     id: o.id,
     numericId: o.numericId,
     status: o.status,
-    charge: centsToRub(Number(o.charge)),
     chargeCents: Number(o.charge),
     discountCents: Number(o.discountCents ?? 0),
     usdToRubRate: o.usdToRubRate ?? null,
@@ -4230,6 +4219,7 @@ export function LovableNewOrderWorkspace({
 
       if (res && res.success) {
         if (res.data?.paymentUrl) {
+          // external gateway redirect (server-validated)
           window.location.href = res.data.paymentUrl;
         } else {
           setSuccess(true);
@@ -4454,6 +4444,11 @@ export function LovableNewOrderWorkspace({
                         <p className="col-span-2 text-[11px] text-muted-foreground font-semibold">
                           Всего запусков: {dripRuns} по {quantity} шт. Итоговый объём: <strong className="text-foreground">{effectiveQuantity} шт.</strong>
                         </p>
+                        {errors.drip && (
+                          <p className="col-span-2 text-xs font-bold text-destructive flex items-center gap-1 pt-1">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.drip}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -4928,14 +4923,13 @@ import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
 import { ExternalLink, AlertCircle } from 'lucide-react';
 import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
-import { formatRub, toCents } from '@/lib/money';
+import { formatRub } from '@/lib/money';
 
 export interface LovableOrder {
   id: string;
   numericId: number;
   status: string;
-  charge: number; // in rub
-  chargeCents?: number;
+  chargeCents: number;
   discountCents?: number;
   usdToRubRate?: number | null;
   quantity: number;
@@ -4995,8 +4989,9 @@ export function LovableOrdersList({
         const color = getStatusBadgeClass(order.status);
         const label = getStatusLabel(order.status);
         const remains = order.remains ?? order.quantity;
-        const completed = Math.max(0, order.quantity - remains);
-        const percent = Math.min(100, Math.max(0, Math.round((completed / order.quantity) * 100)));
+        const total = order.quantity || 1;
+        const completed = Math.max(0, total - remains);
+        const percent = Math.min(100, Math.max(0, Math.round((completed / total) * 100)));
 
         return (
           <div
@@ -5084,11 +5079,11 @@ export function LovableOrdersList({
                 <span className="block text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Стоимость</span>
                 <div className="flex items-center justify-end gap-1">
                   <span className="font-mono font-black text-sm text-foreground tabular-nums">
-                    {formatRub(order.chargeCents ?? toCents(order.charge))} ₽
+                    {formatRub(order.chargeCents)} ₽
                   </span>
                   <ChargeBreakdownModal
                     numericId={order.numericId}
-                    chargeCents={order.chargeCents ?? toCents(order.charge)}
+                    chargeCents={order.chargeCents}
                     discountCents={order.discountCents}
                     usdToRubRate={order.usdToRubRate}
                   />
@@ -5113,7 +5108,7 @@ export function LovableOrdersList({
                       {order.status === 'AWAITING_PAYMENT' && (
                         <RetryPaymentModal 
                           orderId={order.id} 
-                          charge={order.chargeCents ?? toCents(order.charge)}
+                          charge={order.chargeCents}
                           balance={userBalanceCents} // expects cents
                           trigger={
                             <button className="h-7 px-2.5 bg-primary/15 text-primary text-[10px] font-bold rounded-lg border border-primary/20 hover:bg-primary/20 transition-all flex items-center gap-1">

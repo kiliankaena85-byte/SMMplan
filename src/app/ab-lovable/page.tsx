@@ -1,8 +1,6 @@
 import { getPublicCatalogAction } from "@/actions/order/catalog";
 
 import { SettingsProvider } from "@/lib/settings";
-import { verifySession } from "@/lib/session";
-import { db } from "@/lib/db";
 import { headers } from "next/headers";
 import { LovableOrderClient } from "@/components/ab-test/LovableOrderClient";
 
@@ -13,17 +11,35 @@ import { LovableReviews } from "@/components/ab-test/LovableReviews";
 import { LovableFAQ } from "@/components/ab-test/LovableFAQ";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 
-export const dynamic = "force-dynamic";
+import { normalizeTenantId } from "@/lib/tenant-resolver";
+
+export const revalidate = 300;
 
 export async function generateMetadata() {
   const reqHeaders = await headers();
-  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+  const rawTenantId = reqHeaders.get("x-tenant-id");
+  const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
   const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
-  const siteName = settings.SITE_NAME || (tenantId === 'lovable' ? "SMMflux" : "SMMplan");
+  const siteName = settings.SITE_NAME || (tenantId === 'flux' ? "SMMflux" : "SMMplan");
+  
+  const rawHost = reqHeaders.get("host") || "";
+  const safeHost = /^[a-z0-9.-]+(?::\d+)?$/i.test(rawHost) ? rawHost : "smmflux.ru";
+  const baseUrl = `https://${safeHost}`;
   
   return {
-    title: `SMMflux | Продвижение социальных сетей`,
-    description: "Современная платформа продвижения SMMflux (Next-Gen AI Growth).",
+    metadataBase: new URL(baseUrl),
+    title: `${siteName} | Продвижение социальных сетей`,
+    description: `Современная платформа продвижения ${siteName} (Next-Gen AI Growth). Быстрый запуск, автоматизация и гарантия качества.`,
+    alternates: {
+      canonical: `${baseUrl}/ab-lovable`,
+    },
+    openGraph: {
+      title: `${siteName} | Продвижение социальных сетей`,
+      description: `Современная платформа продвижения ${siteName} (Next-Gen AI Growth).`,
+      url: `${baseUrl}/ab-lovable`,
+      siteName: siteName,
+      type: "website",
+    },
   };
 }
 
@@ -32,43 +48,35 @@ export default async function LovablePage() {
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
   const reqHeaders = await headers();
-  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+  const rawTenantId = reqHeaders.get("x-tenant-id");
+  const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
 
   const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
-  const siteName = settings.SITE_NAME || (tenantId === 'lovable' ? "SMMflux" : "SMMplan");
-
-  const session = await verifySession();
-  let userEmail: string | undefined = undefined;
-  if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true }
-    });
-    if (user) {
-      userEmail = user.email;
-    }
-  }
+  const siteName = settings.SITE_NAME || (tenantId === 'flux' ? "SMMflux" : "SMMplan");
 
 
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
       
-      {/* LOVABLE VIBRANT HERO BACKGROUND (Full Bleed) */}
+      {/* ── LOVABLE VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
       <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[50%] rounded-full bg-blue-500/90 blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute top-[0%] right-[-10%] w-[50%] h-[50%] rounded-full bg-sky-300/75 blur-[120px] animate-pulse" style={{ animationDuration: '12s' }} />
-        <div className="absolute bottom-[20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-rose-500/90 blur-[130px] animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute bottom-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-orange-500/90 blur-[140px] animate-pulse" style={{ animationDuration: '14s' }} />
-        <div className="absolute top-[20%] left-[20%] w-[60%] h-[60%] rounded-full bg-fuchsia-500/85 blur-[150px] animate-pulse" style={{ animationDuration: '11s' }} />
-        <div className="absolute top-[30%] right-[20%] w-[50%] h-[50%] rounded-full bg-purple-500/85 blur-[120px] animate-pulse" style={{ animationDuration: '9s' }} />
-        
-        {/* Fade to background color at the bottom */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(60% 50% at 10% 0%, rgba(59, 130, 246, 0.25), transparent 60%), ' +
+              'radial-gradient(50% 50% at 90% 10%, rgba(56, 189, 248, 0.20), transparent 60%), ' +
+              'radial-gradient(60% 50% at 15% 50%, rgba(244, 63, 94, 0.18), transparent 60%), ' +
+              'radial-gradient(50% 50% at 85% 60%, rgba(249, 115, 22, 0.18), transparent 60%), ' +
+              'radial-gradient(60% 60% at 50% 30%, rgba(217, 70, 239, 0.18), transparent 60%)',
+          }}
+        />
         <div className="absolute bottom-0 inset-x-0 h-[400px] bg-gradient-to-t from-background via-background/80 to-transparent" />
       </div>
 
         <div className="relative z-10 w-full">
-          <Header initialEmail={userEmail} siteName={siteName} activePath="/ab-lovable" />
+          <Header siteName={siteName} activePath="/ab-lovable" />
         </div>
         
         <main className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-12 md:pt-28 pb-8 md:pb-16 flex flex-col items-center relative z-10">
@@ -76,7 +84,6 @@ export default async function LovablePage() {
 
           <LovableOrderClient 
             initialCatalog={catalog} 
-            initialEmail={userEmail} 
           />
         </main>
       <div className="relative z-10 w-full mb-8 md:mb-12">

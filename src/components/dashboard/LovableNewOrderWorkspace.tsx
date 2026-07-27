@@ -317,6 +317,7 @@ export function LovableNewOrderWorkspace({
 
       if (res && res.success) {
         if (res.data?.paymentUrl) {
+          // external gateway redirect (server-validated)
           window.location.href = res.data.paymentUrl;
         } else {
           setSuccess(true);
@@ -541,6 +542,11 @@ export function LovableNewOrderWorkspace({
                         <p className="col-span-2 text-[11px] text-muted-foreground font-semibold">
                           Всего запусков: {dripRuns} по {quantity} шт. Итоговый объём: <strong className="text-foreground">{effectiveQuantity} шт.</strong>
                         </p>
+                        {errors.drip && (
+                          <p className="col-span-2 text-xs font-bold text-destructive flex items-center gap-1 pt-1">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.drip}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>

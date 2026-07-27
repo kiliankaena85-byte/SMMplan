@@ -1,9 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Users, Timer, CheckCircle, Headphones } from "lucide-react";
 
 export function LovableTrustBar() {
+  const shouldReduceMotion = useReducedMotion();
   const stats = [
     { value: '2,000,000+', label: 'Заказов выполнено', icon: CheckCircle, color: 'text-success' },
     { value: '4 секунды', label: 'Среднее время старта', icon: Timer, color: 'text-warning' },
@@ -40,7 +41,7 @@ export function LovableTrustBar() {
         style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 128px, black calc(100% - 128px), transparent)', maskImage: 'linear-gradient(to right, transparent, black 128px, black calc(100% - 128px), transparent)' }}
       >
         <motion.div
-          animate={{ x: ["0%", "-50%"] }}
+          animate={shouldReduceMotion ? {} : { x: ["0%", "-50%"] }}
           transition={{
             repeat: Infinity,
             repeatType: "loop",

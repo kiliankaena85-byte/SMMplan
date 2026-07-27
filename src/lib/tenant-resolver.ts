@@ -25,6 +25,15 @@ async function fetchTenantsFromDb(): Promise<Map<string, string>> {
   return map;
 }
 
+const FLUX_DOMAINS = new Set([
+  'lovable.local',
+  'lovable.smmplan.ru',
+  'smmflux.ru',
+  'www.smmflux.ru',
+  'flux.local',
+  'flux.smmplan.ru',
+]);
+
 /**
  * Resolves tenantId from HTTP Host header using exact domain match.
  */
@@ -45,22 +54,9 @@ export async function resolveTenantFromHost(host: string): Promise<string> {
     return tenantCache.get(cleanHost)!;
   }
 
-  // Exact fallback matching to prevent sub-domain hijacking (e.g., lovable.evil.com)
-  if (cleanHost === 'lovable.local' || cleanHost === 'lovable.smmplan.ru' || cleanHost === 'smmflux.ru' || cleanHost === 'www.smmflux.ru' || cleanHost === 'flux.local') {
-    return 'flux';
-  }
-
-  return 'smmplan';
+  // Exact fallback matching using canonical FLUX_DOMAINS set
+  return FLUX_DOMAINS.has(cleanHost) ? 'flux' : 'smmplan';
 }
-
-const FLUX_DOMAINS = new Set([
-  'lovable.local',
-  'lovable.smmplan.ru',
-  'smmflux.ru',
-  'www.smmflux.ru',
-  'flux.local',
-  'flux.smmplan.ru',
-]);
 
 /**
  * Edge-compatible host resolver (without Prisma DB dependency) for Next.js Middleware.

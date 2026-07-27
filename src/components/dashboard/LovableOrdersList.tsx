@@ -13,14 +13,13 @@ import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
 import { ExternalLink, AlertCircle } from 'lucide-react';
 import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
-import { formatRub, toCents } from '@/lib/money';
+import { formatRub } from '@/lib/money';
 
 export interface LovableOrder {
   id: string;
   numericId: number;
   status: string;
-  charge: number; // in rub
-  chargeCents?: number;
+  chargeCents: number;
   discountCents?: number;
   usdToRubRate?: number | null;
   quantity: number;
@@ -80,8 +79,9 @@ export function LovableOrdersList({
         const color = getStatusBadgeClass(order.status);
         const label = getStatusLabel(order.status);
         const remains = order.remains ?? order.quantity;
-        const completed = Math.max(0, order.quantity - remains);
-        const percent = Math.min(100, Math.max(0, Math.round((completed / order.quantity) * 100)));
+        const total = order.quantity || 1;
+        const completed = Math.max(0, total - remains);
+        const percent = Math.min(100, Math.max(0, Math.round((completed / total) * 100)));
 
         return (
           <div
@@ -169,11 +169,11 @@ export function LovableOrdersList({
                 <span className="block text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Стоимость</span>
                 <div className="flex items-center justify-end gap-1">
                   <span className="font-mono font-black text-sm text-foreground tabular-nums">
-                    {formatRub(order.chargeCents ?? toCents(order.charge))} ₽
+                    {formatRub(order.chargeCents)} ₽
                   </span>
                   <ChargeBreakdownModal
                     numericId={order.numericId}
-                    chargeCents={order.chargeCents ?? toCents(order.charge)}
+                    chargeCents={order.chargeCents}
                     discountCents={order.discountCents}
                     usdToRubRate={order.usdToRubRate}
                   />
@@ -198,7 +198,7 @@ export function LovableOrdersList({
                       {order.status === 'AWAITING_PAYMENT' && (
                         <RetryPaymentModal 
                           orderId={order.id} 
-                          charge={order.chargeCents ?? toCents(order.charge)}
+                          charge={order.chargeCents}
                           balance={userBalanceCents} // expects cents
                           trigger={
                             <button className="h-7 px-2.5 bg-primary/15 text-primary text-[10px] font-bold rounded-lg border border-primary/20 hover:bg-primary/20 transition-all flex items-center gap-1">
