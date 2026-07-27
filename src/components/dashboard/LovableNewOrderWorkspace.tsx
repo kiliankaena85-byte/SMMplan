@@ -2,21 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  ShoppingCart, 
-  Link2, 
-  Users, 
-  Send, 
-  HelpCircle, 
   AlertCircle, 
   Gauge, 
   CheckCircle2, 
-  Activity, 
-  Zap, 
   ShieldCheck, 
   Sparkles, 
   Coins,
-  ChevronLeft,
-  ChevronRight
+  ChevronLeft
 } from 'lucide-react';
 import { 
   getPublicCatalogAction, 
@@ -31,25 +23,14 @@ import { detectPlatformLite } from '@/utils/link-extractor';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
+import { WizardStepIndicator } from './order-wizard/WizardStepIndicator';
+import { WizardNetworkStep } from './order-wizard/WizardNetworkStep';
+import { WizardCategoryStep } from './order-wizard/WizardCategoryStep';
+import { WizardServiceStep } from './order-wizard/WizardServiceStep';
+import { formatRub } from '@/lib/money';
+import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE } from '@/hooks/useOrderWizard';
 
-function formatPricePerUnit(price: number): string {
-  if (price === 0) return '0.00';
-  let formatted: string;
-  if (price < 0.01) {
-    formatted = price.toFixed(6);
-  } else if (price < 0.1) {
-    formatted = price.toFixed(4);
-  } else {
-    formatted = price.toFixed(2);
-  }
-  
-  if (formatted.includes('.')) {
-    while (formatted.endsWith('0') && formatted.split('.')[1].length > 2) {
-      formatted = formatted.slice(0, -1);
-    }
-  }
-  return formatted;
-}
+export const MAX_DRIP_FEED_MINUTES = 43200; // 30 days = 43200 minutes max drip-feed limit
 
 export function LovableNewOrderWorkspace({
   userBalanceCents = 0,
@@ -271,6 +252,11 @@ export function LovableNewOrderWorkspace({
       newErrors.email = "Введите корректный адрес электронной почты";
     }
 
+    // 6. Drip-feed duration validation (max 30 days = 43200 minutes)
+    if (isDripFeedEnabled && (dripRuns * dripInterval > 43200 || !validateDripFeedDuration(dripRuns, dripInterval))) {
+      newErrors.drip = DRIP_FEED_MAX_ERROR_MESSAGE;
+    }
+
     setErrors(newErrors);
     
     if (Object.keys(newErrors).length > 0) {
@@ -377,210 +363,50 @@ export function LovableNewOrderWorkspace({
           <div className="space-y-6">
             
             {/* Step Navigation Tabs indicator */}
-            <div className="flex justify-between items-center bg-card/60 backdrop-blur-md p-3.5 border border-border/25 rounded-2xl">
-              {[1, 2, 3, 4].map((step) => {
-                const isCurrent = currentStep === step;
-                const isPassed = currentStep > step;
-                return (
-                  <div key={step} className="flex items-center gap-1.5">
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                      isCurrent 
-                        ? 'bg-primary text-primary-foreground scale-110 shadow-sm' 
-                        : isPassed 
-                          ? 'bg-success/10 text-success border border-success/30' 
-                          : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {step}
-                    </span>
-                    <span className={`text-[10px] font-bold hidden sm:inline ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {step === 1 ? 'Цель' : step === 2 ? 'Категория' : step === 3 ? 'Услуга' : 'Оплата'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <WizardStepIndicator
+              currentStep={currentStep}
+              onStepClick={(step) => setCurrentStep(step)}
+              selectedNetworkName={selectedNetwork?.name}
+              selectedCategoryName={selectedCategory?.name}
+              selectedServiceName={selectedService?.name}
+            />
 
             {/* STEP 1: Platform & Target Link */}
             {currentStep === 1 && (
-              <div 
-                key={`step1-${validationTimestamp}`}
-                className={`bg-card border border-border/30 rounded-[2rem] p-6 space-y-5 transition-all duration-300 ${errors.link ? 'animate-shake border-destructive/40 shadow-[0_0_20px_rgba(244,63,94,0.05)]' : ''}`}
-              >
-                <div className="flex items-center gap-2">
-                  <h3 className="font-extrabold text-sm text-foreground">Шаг 1: Укажите ссылку и сеть</h3>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="relative">
-                    <input
-                      ref={linkRef}
-                      type="text"
-                      placeholder="Вставьте ссылку на пост, канал или профиль..."
-                      value={link}
-                      onChange={(e) => setLink(e.target.value)}
-                      className={`w-full pl-11 focus:ring-0 focus:outline-none ${errors.link ? 'border-destructive/60' : ''}`}
-                      required
-                    />
-                    <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                  </div>
-                  
-                  {errors.link && (
-                    <p className="text-xs font-bold text-destructive flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {errors.link}
-                    </p>
-                  )}
-
-                  {detectedPlatform !== IntelligencePlatform.OTHER && (
-                    <div className="text-xs text-primary font-bold flex items-center gap-1.5 px-1">
-                      <Zap className="w-3.5 h-3.5 text-primary" /> Автоопределение: {detectedPlatform}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                    {catalog.map(net => {
-                      const isSelected = selectedNetwork?.id === net.id;
-                      return (
-                        <button
-                          key={net.id}
-                          type="button"
-                          onClick={() => handleNetworkSelect(net)}
-                          className={`p-3.5 rounded-2xl flex flex-col items-center justify-center gap-2 border text-center transition-all ${
-                            isSelected 
-                              ? 'bg-primary/10 border-primary text-foreground shadow-sm'
-                              : 'bg-background/40 border-border/30 text-muted-foreground hover:border-primary/20 hover:text-foreground'
-                          }`}
-                        >
-                          <span className="text-xs font-bold truncate max-w-[100px]">{net.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(2)}
-                    disabled={!selectedNetwork}
-                    className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-2xl flex items-center gap-1 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    Далее <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              <WizardNetworkStep
+                catalog={catalog}
+                selectedNetwork={selectedNetwork}
+                onSelectNetwork={handleNetworkSelect}
+                link={link}
+                onLinkChange={setLink}
+                detectedPlatform={detectedPlatform}
+                linkRef={linkRef}
+                error={errors.link}
+                validationTimestamp={validationTimestamp}
+              />
             )}
 
             {/* STEP 2: Category Selection */}
             {currentStep === 2 && selectedNetwork && (
-              <div className="bg-card border border-border/30 rounded-[2rem] p-6 space-y-5 transition-all duration-300">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-extrabold text-sm text-foreground">Шаг 2: Выберите категорию ({selectedNetwork.name})</h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
-                  {selectedNetwork.categories.map(cat => {
-                    const isSelected = selectedCategory?.id === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => handleCategorySelect(cat)}
-                        className={`p-4 rounded-2xl border text-left flex justify-between items-center gap-2 transition-all ${
-                          isSelected 
-                            ? 'bg-primary/10 border-primary text-foreground shadow-sm'
-                            : 'bg-background/40 border-border/20 hover:border-primary/20 hover:text-foreground'
-                        }`}
-                      >
-                        <span className="text-xs font-bold text-foreground">{cat.name}</span>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex justify-between pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(1)}
-                    className="px-4 py-2.5 border border-border/40 text-muted-foreground hover:text-foreground font-bold rounded-2xl flex items-center gap-1 hover:bg-background transition-all"
-                  >
-                    <ChevronLeft className="w-4 h-4" /> Назад
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(3)}
-                    disabled={!selectedCategory}
-                    className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-2xl flex items-center gap-1 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    Далее <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              <WizardCategoryStep
+                categories={selectedNetwork.categories}
+                selectedCategory={selectedCategory}
+                onSelectCategory={handleCategorySelect}
+                onBack={() => setCurrentStep(1)}
+                networkName={selectedNetwork.name}
+              />
             )}
 
             {/* STEP 3: Service Selection */}
             {currentStep === 3 && selectedCategory && (
-              <div className="bg-card border border-border/30 rounded-[2rem] p-6 space-y-5 transition-all duration-300">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-extrabold text-sm text-foreground">Шаг 3: Выберите конкретную услугу</h3>
-                </div>
-
-                <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
-                  {isLoadingServices ? (
-                    <div className="py-8 text-center text-xs text-muted-foreground animate-pulse">Загрузка тарифов...</div>
-                  ) : services.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-muted-foreground">Нет доступных услуг</div>
-                  ) : (
-                    services.map(srv => {
-                      const isSelected = selectedService?.id === srv.id;
-                      return (
-                        <button
-                          key={srv.id}
-                          type="button"
-                          onClick={() => handleServiceSelect(srv)}
-                          className={`w-full p-4 rounded-2xl border text-left flex flex-col justify-between gap-2.5 transition-all ${
-                            isSelected 
-                              ? 'bg-primary/5 border-primary shadow-sm'
-                              : 'bg-background/40 border-border/20 hover:border-primary/20'
-                          }`}
-                        >
-                          <div className="flex justify-between items-start gap-3 w-full">
-                            <span className="font-bold text-xs text-foreground leading-snug">{srv.name}</span>
-                            <span className="font-mono font-bold text-xs text-foreground shrink-0 bg-background px-2 py-0.5 rounded-lg border border-border/20">
-                              {formatPricePerUnit(srv.pricePerUnitRub || 0)} ₽/шт
-                            </span>
-                          </div>
-                          {srv.description && (
-                            <p className="text-[10px] text-muted-foreground/80 line-clamp-2 leading-relaxed">{srv.description}</p>
-                          )}
-                          <div className="flex items-center gap-3 text-[9px] text-muted-foreground font-semibold">
-                            <span className="flex items-center gap-0.5 text-primary"><Zap className="w-3 h-3" /> {formatEtaSpeedBadge(srv)}</span>
-                            {srv.badge && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary uppercase font-bold text-[8px]">{srv.badge}</span>}
-                          </div>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-
-                <div className="flex justify-between pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(2)}
-                    className="px-4 py-2.5 border border-border/40 text-muted-foreground hover:text-foreground font-bold rounded-2xl flex items-center gap-1 hover:bg-background transition-all"
-                  >
-                    <ChevronLeft className="w-4 h-4" /> Назад
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(4)}
-                    disabled={!selectedService}
-                    className="px-5 py-2.5 bg-primary text-primary-foreground font-bold rounded-2xl flex items-center gap-1 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    Далее <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              <WizardServiceStep
+                services={services}
+                isLoadingServices={isLoadingServices}
+                selectedService={selectedService}
+                onSelectService={handleServiceSelect}
+                onBack={() => setCurrentStep(2)}
+                categoryName={selectedCategory.name}
+              />
             )}
 
             {/* STEP 4: Checkout configuration */}
@@ -779,7 +605,7 @@ export function LovableNewOrderWorkspace({
                         <button
                           key={gatewayOpt}
                           type="button"
-                          onClick={() => setGateway(gatewayOpt as any)}
+                          onClick={() => setGateway(gatewayOpt as 'yookassa' | 'cryptobot' | 'balance')}
                           className={`py-2 text-center rounded-xl border text-xs font-bold transition-all ${
                             isActive ? 'bg-primary/10 border-primary text-foreground shadow-sm' : 'bg-background/40 border-border/30 text-muted-foreground hover:border-primary/20'
                           }`}
@@ -927,7 +753,7 @@ export function LovableNewOrderWorkspace({
 
           <div className="mt-8 pt-4 border-t border-border/10 flex items-center gap-2 text-[10px] text-muted-foreground">
             <Coins className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span>Ваш баланс: <strong className="text-foreground">{formatPricePerUnit(userBalanceCents / 100)} ₽</strong></span>
+            <span>Ваш баланс: <strong className="text-foreground">{formatRub(userBalanceCents)} ₽</strong></span>
           </div>
 
         </div>
