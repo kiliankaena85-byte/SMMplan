@@ -7,6 +7,8 @@ import { LovableOrdersList } from '@/components/dashboard/LovableOrdersList';
 
 import { OrderViewData, NetworkViewData } from '@/tenants/types';
 
+import { centsToRub } from '@/lib/money';
+
 export function LovableOrdersView({
   orders,
   totalCount,
@@ -34,7 +36,7 @@ export function LovableOrdersView({
     id: o.id,
     numericId: o.numericId,
     status: o.status,
-    charge: Number(o.charge) / 100,
+    charge: centsToRub(Number(o.charge)),
     chargeCents: Number(o.charge),
     discountCents: Number(o.discountCents ?? 0),
     usdToRubRate: o.usdToRubRate ?? null,

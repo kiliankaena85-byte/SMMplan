@@ -11,7 +11,9 @@ import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
 import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
 import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
-import { AlertCircle, Clock, CheckCircle2, Play, ExternalLink } from 'lucide-react';
+import { ExternalLink, AlertCircle } from 'lucide-react';
+import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
+import { formatRub, toCents } from '@/lib/money';
 
 export interface LovableOrder {
   id: string;
@@ -47,28 +49,6 @@ export interface LovableOrder {
   };
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  COMPLETED: 'Выполнен',
-  IN_PROGRESS: 'В работе',
-  PENDING: 'Ожидание',
-  AWAITING_PAYMENT: 'Ожидает оплаты',
-  ERROR: 'Ошибка',
-  CANCELED: 'Отменён',
-  PARTIAL: 'Частично',
-  PROVISIONING: 'Запуск',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  COMPLETED: 'text-emerald-800 dark:text-success bg-success/10 border-emerald-500/20',
-  IN_PROGRESS: 'text-blue-800 dark:text-blue-500 bg-blue-500/10 border-blue-500/20',
-  PENDING: 'text-orange-800 dark:text-orange-500 bg-orange-500/10 border-orange-500/20',
-  AWAITING_PAYMENT: 'text-orange-800 dark:text-orange-500 bg-orange-500/10 border-orange-500/20',
-  PROVISIONING: 'text-indigo-800 dark:text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
-  ERROR: 'text-red-800 dark:text-destructive bg-destructive/10 border-red-500/20',
-  PARTIAL: 'text-amber-800 dark:text-warning bg-warning/10 border-amber-500/20',
-  CANCELED: 'text-muted-foreground bg-muted border-border',
-};
-
 export function LovableOrdersList({
   orders,
   userBalanceCents = 0
@@ -97,8 +77,8 @@ export function LovableOrdersList({
   return (
     <div className="space-y-4">
       {orders.map((order) => {
-        const color = STATUS_COLOR[order.status] || STATUS_COLOR.CANCELED;
-        const label = STATUS_LABEL[order.status] || order.status;
+        const color = getStatusBadgeClass(order.status);
+        const label = getStatusLabel(order.status);
         const remains = order.remains ?? order.quantity;
         const completed = Math.max(0, order.quantity - remains);
         const percent = Math.min(100, Math.max(0, Math.round((completed / order.quantity) * 100)));
@@ -189,11 +169,11 @@ export function LovableOrdersList({
                 <span className="block text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Стоимость</span>
                 <div className="flex items-center justify-end gap-1">
                   <span className="font-mono font-black text-sm text-foreground tabular-nums">
-                    {order.charge.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                    {formatRub(order.chargeCents ?? toCents(order.charge))} ₽
                   </span>
                   <ChargeBreakdownModal
                     numericId={order.numericId}
-                    chargeCents={order.chargeCents ?? order.charge * 100}
+                    chargeCents={order.chargeCents ?? toCents(order.charge)}
                     discountCents={order.discountCents}
                     usdToRubRate={order.usdToRubRate}
                   />
@@ -218,7 +198,7 @@ export function LovableOrdersList({
                       {order.status === 'AWAITING_PAYMENT' && (
                         <RetryPaymentModal 
                           orderId={order.id} 
-                          charge={order.charge * 100} // expects cents
+                          charge={order.chargeCents ?? toCents(order.charge)}
                           balance={userBalanceCents} // expects cents
                           trigger={
                             <button className="h-7 px-2.5 bg-primary/15 text-primary text-[10px] font-bold rounded-lg border border-primary/20 hover:bg-primary/20 transition-all flex items-center gap-1">
