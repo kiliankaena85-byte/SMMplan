@@ -6,44 +6,37 @@ import { formatBalance } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  ListOrdered, 
   Wallet, 
-  MessageSquare, 
   LogOut 
 } from 'lucide-react';
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Главная', icon: LayoutDashboard },
-  { href: '/dashboard/new-order', label: 'Новый заказ', icon: ShoppingCart },
-  { href: '/dashboard/orders', label: 'Мои заказы', icon: ListOrdered },
-  { href: '/dashboard/add-funds', label: 'Пополнение', icon: Wallet },
-  { href: '/dashboard/tickets', label: 'Поддержка', icon: MessageSquare },
-];
+import { MAIN_NAV_ITEMS } from '@/lib/navigation';
 
 export function LovableDashboardShell({
   user,
   children,
 }: {
-  user: { email: string; balance: bigint; tenantId: string };
+  user: { email: string; balanceCents: number; tenantId: string };
   children: React.ReactNode;
 }) {
-  const balanceRub = formatBalance(user.balance);
+  const balanceRub = formatBalance(user.balanceCents);
   const pathname = usePathname();
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
-      {/* ── LOVABLE VIBRANT HERO BACKGROUND (Full Bleed) ── */}
+      {/* ── LOVABLE VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
       <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[50%] rounded-full bg-blue-500/90 blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute top-[0%] right-[-10%] w-[50%] h-[50%] rounded-full bg-sky-300/75 blur-[120px] animate-pulse" style={{ animationDuration: '12s' }} />
-        <div className="absolute bottom-[20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-rose-500/90 blur-[130px] animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute bottom-[10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-orange-500/90 blur-[140px] animate-pulse" style={{ animationDuration: '14s' }} />
-        <div className="absolute top-[20%] left-[20%] w-[60%] h-[60%] rounded-full bg-fuchsia-500/85 blur-[150px] animate-pulse" style={{ animationDuration: '11s' }} />
-        <div className="absolute top-[30%] right-[20%] w-[50%] h-[50%] rounded-full bg-purple-500/85 blur-[120px] animate-pulse" style={{ animationDuration: '9s' }} />
-        
-        {/* Fade to background color at the bottom */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(60% 50% at 10% 0%, rgba(59, 130, 246, 0.25), transparent 60%), ' +
+              'radial-gradient(50% 50% at 90% 10%, rgba(56, 189, 248, 0.20), transparent 60%), ' +
+              'radial-gradient(60% 50% at 15% 50%, rgba(244, 63, 94, 0.18), transparent 60%), ' +
+              'radial-gradient(50% 50% at 85% 60%, rgba(249, 115, 22, 0.18), transparent 60%), ' +
+              'radial-gradient(60% 60% at 50% 30%, rgba(217, 70, 239, 0.18), transparent 60%)',
+          }}
+        />
         <div className="absolute bottom-0 inset-x-0 h-[400px] bg-gradient-to-t from-background via-background/80 to-transparent" />
       </div>
 
@@ -59,7 +52,7 @@ export function LovableDashboardShell({
 
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.map((item) => {
+            {MAIN_NAV_ITEMS.map((item) => {
               const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
               const Icon = item.icon;
               return (
@@ -95,21 +88,22 @@ export function LovableDashboardShell({
               {user.email.substring(0, 2)}
             </div>
             <span className="text-xs font-medium text-muted-foreground max-w-[120px] truncate">{user.email}</span>
-            <Link
-              href="/api/auth/logout"
-              prefetch={false}
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-lg transition-colors ml-1"
-              title="Выйти"
-            >
-              <LogOut className="w-4 h-4" />
-            </Link>
+            <form method="POST" action="/api/auth/logout">
+              <button
+                type="submit"
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-lg transition-colors ml-1 cursor-pointer"
+                title="Выйти"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </form>
           </div>
         </div>
       </header>
 
       {/* ── Mobile Navigation Bar (Bottom Sticky) ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-2xl border-t border-border/40 px-1 py-1 flex items-center justify-around shadow-lg">
-        {NAV_ITEMS.map((item) => {
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-2xl border-t border-border/40 px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg">
+        {MAIN_NAV_ITEMS.map((item) => {
           const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (

@@ -1,11 +1,9 @@
 import { ITenantDashboardStrategy } from './types';
 
 // Map of registered tenant loaders for Dynamic Lazy Loading (Code-Splitting F4 protection)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const registry = new Map<string, () => Promise<{ default: ITenantDashboardStrategy<any, any> }>>();
+const registry = new Map<string, () => Promise<{ default: ITenantDashboardStrategy }>>();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function registerTenant(id: string, loader: () => Promise<{ default: ITenantDashboardStrategy<any, any> }>) {
+export function registerTenant(id: string, loader: () => Promise<{ default: ITenantDashboardStrategy }>) {
   if (registry.has(id)) {
     return;
   }
@@ -18,4 +16,5 @@ export function getTenantLoader(id: string) {
 
 // Initial registrations (Open-Closed Self-Registration)
 registerTenant('smmplan', () => import('./smmplan/strategy'));
-registerTenant('lovable', () => import('./lovable/strategy'));
+registerTenant('flux', () => import('./flux/strategy'));
+registerTenant('lovable', () => import('./flux/strategy')); // Legacy alias for backward compatibility
