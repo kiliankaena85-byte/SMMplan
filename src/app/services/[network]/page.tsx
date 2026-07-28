@@ -251,6 +251,18 @@ export default async function NetworkServicesPage({ params }: { params: Promise<
           </div>
         </div>
 
+        {(currentNetwork.slug.toLowerCase() === 'instagram' || currentNetwork.slug.toLowerCase() === 'facebook') && (
+          <div className="bg-amber-500/10 border-l-4 border-amber-500 text-amber-900 dark:text-amber-200 p-4 rounded-r-2xl space-y-1 text-xs md:text-sm shadow-sm">
+            <div className="flex items-center gap-2 font-extrabold">
+              <span className="text-amber-500 text-base">⚠️</span>
+              <span>Правовое уведомление (Meta Platforms Inc.)</span>
+            </div>
+            <p className="text-amber-800/90 dark:text-amber-300/90 leading-relaxed font-medium">
+              Instagram и Facebook принадлежат Meta Platforms Inc., признанной экстремистской и запрещённой в РФ (решение Тверского районного суда от 21.03.2022). Услуги доступны для пользователей из юрисдикций, где использование данных платформ разрешено.
+            </p>
+          </div>
+        )}
+
         {/* Back Link */}
         <Link 
           href="/services" 

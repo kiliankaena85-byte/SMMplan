@@ -1,4 +1,4 @@
-# 📋 BACKLOG SMMplan / SMMflux (v1.3)
+# 📋 BACKLOG SMMplan / SMMflux (v1.4)
 
 Полный структурированный бэклог проекта SMMplan / SMMflux, актуализированный по результатам ревизии кодовой базы.
 
@@ -11,17 +11,17 @@
 | **LEGAL-001** | Правки оферты v3.0 | Legal | **P0** | S (1-2ч) | ✅ **DONE** (Код + БД) |
 | **LEGAL-002** | /legal/refund (Политика возвратов) | Legal | **P0** | M (3-5ч) | ✅ **DONE** (Текст ЗоЗПП/ФПР + БД) |
 | **LEGAL-003** | /legal/cookies (Политика Cookies) | Legal | **P0** | S (1-2ч) | ⏳ IN_BACKLOG |
-| **LEGAL-004** | /legal/service-rules + тематики | Legal | **P0** | L (1-2д) | ⏳ IN_BACKLOG |
+| **LEGAL-004** | /legal/service-rules + тематики | Legal | **P0** | L (1-2д) | ✅ **DONE** (7 категорий + SLA + БД) |
 | **LEGAL-005** | /legal/anti-fraud | Legal | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
 | **LEGAL-006** | /legal/reseller-terms | Legal | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
-| **LEGAL-007** | Fallback для legal pages | Legal | **P0** | M (3-5ч) | ✅ **DONE** (Каскадный DB → TS Fallback) |
+| **LEGAL-007** | Fallback для legal pages + Canonical | Legal | **P0** | M (3-5ч) | ✅ **DONE** (DB → TS Fallback + Canonical) |
 | **LEGAL-008** | Cookie-баннер | Legal | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
 | **LEGAL-009** | MegaFooter ссылки | Legal | P1 | S (1-2ч) | 🟡 IN_PROGRESS |
 | **LEGAL-010** | Уведомление Роскомнадзора (152-ФЗ) | Legal | **P0** | S (1-2ч) | ✋ MANUAL_ACTION |
 | **LEGAL-011** | Приказ об ответственном ПДн | Legal | P1 | S (1-2ч) | ⏳ IN_BACKLOG |
 | **LEGAL-012** | Реестр обработки ПДн | Legal | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
-| **LEGAL-013** | Чекбокс ПДн при регистрации | Legal | **P0** | S (1-2ч) | 🟡 IN_PROGRESS (Order/Support готовы) |
-| **LEGAL-014** | Дисклеймер Meta (Instagram/FB) | Legal | **P0** | S (1-2ч) | ⏳ IN_BACKLOG |
+| **LEGAL-013** | Чекбокс ПДн при регистрации | Legal | **P0** | S (1-2ч) | ✅ **DONE** (Варианты LegalCheckbox 152-ФЗ) |
+| **LEGAL-014** | Дисклеймер Meta (Instagram/FB) | Legal | **P0** | S (1-2ч) | ✅ **DONE** (Предупреждение 21.03.2022) |
 | **LEGAL-015** | Дисклеймер международного сервиса | Legal | P1 | S (1-2ч) | 🟡 IN_PROGRESS |
 | **LEGAL-016** | Оплата по расчётному счёту (B2B) | Legal | P2 | L (1-2д) | ⏳ IN_BACKLOG |
 | **QA-001** | E2E тесты — Auth Flow | QA | **P0** | M (3-5ч) | ⏳ IN_BACKLOG |
@@ -68,12 +68,18 @@
 
 1. **[LEGAL-001] Правки оферты v3.0 (Статус: DONE)**
    - **Что сделано:** Внесены 3 критические правки от юридического департамента (субподряд ст. 706 ГК, УСН/НДС ст. 346.11 НК, ФПР ст. 32 ЗоЗПП).
-   - **Файлы:** `src/data/legal-fallbacks.ts`, `scripts/seed-legal-cms.ts`, запись в БД `ContentItem`.
 
 2. **[LEGAL-002] /legal/refund — Политика возвратов (Статус: DONE)**
    - **Что сделано:** Встроен полный точный текст Политики возвратов (9 разделов, ст. 450 ГК РФ, ст. 32 ЗоЗПП, ФПР, автовозвраты, B2B правила, чарджбэки, 30-дневный лимит).
-   - **Файлы:** `src/data/legal-fallbacks.ts`, `scripts/seed-legal-cms.ts`, запись `refund` в базе данных PostgreSQL.
 
-3. **[LEGAL-007] Fallback для всех юридических страниц (Статус: DONE)**
-   - **Что сделано:** Отказоустойчивая 4-этапная схема (DB → Static Fallback → 404) с автозаменой тегов компаний через `SettingsProvider`.
-   - **Файлы:** `src/components/legal/LegalPageContent.tsx`, `src/data/legal-fallbacks.ts`.
+3. **[LEGAL-004] /legal/service-rules — Правила сервиса (Статус: DONE)**
+   - **Что сделано:** Встроен полный регламент правил сервиса, включающий 7 категорий запрещённых тематик (40+ пунктов), SLA (0-30м старт, 1-72ч выполнение), 30-дневную гарантию, антифрод и право отмены заказов.
+
+4. **[LEGAL-007] Fallback для legal pages + Absolute Canonical (Статус: DONE)**
+   - **Что сделано:** Каскадная схема (DB → Static Fallback → 404) с автозаменой тегов компаний и фиксом относительного canonical на `absoluteCanonical(tenantId, path)` в `/legal/[slug]/page.tsx`.
+
+5. **[LEGAL-013] Чекбоксы согласия с ПДн (152-ФЗ) (Статус: DONE)**
+   - **Что сделано:** В компонент `LegalCheckbox.tsx` добавлены варианты `variant="all" | "terms" | "privacy"` для генерации раздельного согласия с 152-ФЗ.
+
+6. **[LEGAL-014] Дисклеймер Meta на страницах Instagram/Facebook (Статус: DONE)**
+   - **Что сделано:** На страницы услуг `/services/[network]/[category]` и `/services/[network]` при `network === instagram | facebook` добавлен предупреждающий оранжевый баннер с решением Тверского районного суда от 21.03.2022.

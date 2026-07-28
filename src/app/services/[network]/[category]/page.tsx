@@ -253,6 +253,18 @@ export default async function CategoryServicesPage({ params }: { params: Promise
 
         {/* Header */}
         <div className="space-y-4">
+          {(currentNetwork.slug.toLowerCase() === 'instagram' || currentNetwork.slug.toLowerCase() === 'facebook') && (
+            <div className="bg-amber-500/10 border-l-4 border-amber-500 text-amber-900 dark:text-amber-200 p-4 rounded-r-2xl space-y-1 my-4 text-xs md:text-sm shadow-sm">
+              <div className="flex items-center gap-2 font-extrabold">
+                <span className="text-amber-500 text-base">⚠️</span>
+                <span>Правовое уведомление (Meta Platforms Inc.)</span>
+              </div>
+              <p className="text-amber-800/90 dark:text-amber-300/90 leading-relaxed font-medium">
+                Instagram и Facebook принадлежат Meta Platforms Inc., признанной экстремистской и запрещённой в РФ (решение Тверского районного суда от 21.03.2022). Услуги доступны для пользователей из юрисдикций, где использование данных платформ разрешено.
+              </p>
+            </div>
+          )}
+
           {!passesQualityGate && (
             <div className="bg-destructive/10 border-l-4 border-destructive text-destructive p-4 rounded-r-lg max-w-fit">
               <p className="font-bold text-sm">⚠️ Страница не индексируется: менее 3 активных услуг или нулевые цены (Quality Gate не пройден).</p>

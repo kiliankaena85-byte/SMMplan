@@ -1,5 +1,7 @@
 import { db as prisma } from "@/lib/db";
 import { Metadata } from "next";
+import { headers } from "next/headers";
+import { absoluteCanonical, normalizeTenantId } from "@/lib/seo-helpers";
 import { LegalPageContent } from "@/components/legal/LegalPageContent";
 
 export const revalidate = 3600; // Ревалидация раз в час
@@ -10,17 +12,22 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const resolvedParams = await params;
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id"));
+
   const post = await prisma.contentItem.findUnique({
     where: { slug: resolvedParams.slug },
     select: { title: true, metaTitle: true, metaDescription: true },
   });
 
-  if (!post) return { title: "Документ не найден" };
+  const canonical = absoluteCanonical(tenantId, `/legal/${resolvedParams.slug}`);
+
+  if (!post) return { title: "Документ не найден", alternates: { canonical } };
 
   return {
     title: post.metaTitle || post.title,
     description: post.metaDescription || "",
-    alternates: { canonical: `/legal/${resolvedParams.slug}` },
+    alternates: { canonical },
   };
 }
 
