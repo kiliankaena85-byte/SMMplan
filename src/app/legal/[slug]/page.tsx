@@ -22,12 +22,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const canonical = absoluteCanonical(tenantId, `/legal/${resolvedParams.slug}`);
 
-  if (!post) return { title: "Документ не найден", alternates: { canonical } };
+  if (!post) return { title: "Документ не найден", alternates: { canonical }, robots: { index: false, follow: false } };
+
+  const title = post.metaTitle || post.title;
+  const description = post.metaDescription || "";
 
   return {
-    title: post.metaTitle || post.title,
-    description: post.metaDescription || "",
+    title,
+    description,
     alternates: { canonical },
+    openGraph: { title, description, url: canonical, locale: 'ru_RU', type: 'website' },
+    robots: { index: true, follow: true },
   };
 }
 

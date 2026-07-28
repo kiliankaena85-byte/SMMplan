@@ -1,4 +1,4 @@
-# 📋 BACKLOG SMMplan / SMMflux (v1.4)
+# 📋 BACKLOG SMMplan / SMMflux (v1.5)
 
 Полный структурированный бэклог проекта SMMplan / SMMflux, актуализированный по результатам ревизии кодовой базы.
 
@@ -10,7 +10,7 @@
 |---|---|---|---|---|---|
 | **LEGAL-001** | Правки оферты v3.0 | Legal | **P0** | S (1-2ч) | ✅ **DONE** (Код + БД) |
 | **LEGAL-002** | /legal/refund (Политика возвратов) | Legal | **P0** | M (3-5ч) | ✅ **DONE** (Текст ЗоЗПП/ФПР + БД) |
-| **LEGAL-003** | /legal/cookies (Политика Cookies) | Legal | **P0** | S (1-2ч) | ⏳ IN_BACKLOG |
+| **LEGAL-003** | /legal/cookies (Политика Cookies) | Legal | **P0** | S (1-2ч) | ✅ **DONE** (Таблицы session/ym + БД) |
 | **LEGAL-004** | /legal/service-rules + тематики | Legal | **P0** | L (1-2д) | ✅ **DONE** (7 категорий + SLA + БД) |
 | **LEGAL-005** | /legal/anti-fraud | Legal | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
 | **LEGAL-006** | /legal/reseller-terms | Legal | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
@@ -72,14 +72,17 @@
 2. **[LEGAL-002] /legal/refund — Политика возвратов (Статус: DONE)**
    - **Что сделано:** Встроен полный точный текст Политики возвратов (9 разделов, ст. 450 ГК РФ, ст. 32 ЗоЗПП, ФПР, автовозвраты, B2B правила, чарджбэки, 30-дневный лимит).
 
-3. **[LEGAL-004] /legal/service-rules — Правила сервиса (Статус: DONE)**
+3. **[LEGAL-003] /legal/cookies — Политика использования файлов Cookie (Статус: DONE)**
+   - **Что сделано:** Встроен полный точный текст Политики Cookie (7 разделов, таблицы сессионных `session_token`/`csrf_token`, функциональных `x_tenant`/`theme`/`cookie_consent` и аналитических куки `_ym_uid`/`_ym_d`/`_ym_visorc` Яндекс.Метрики).
+
+4. **[LEGAL-004] /legal/service-rules — Правила сервиса (Статус: DONE)**
    - **Что сделано:** Встроен полный регламент правил сервиса, включающий 7 категорий запрещённых тематик (40+ пунктов), SLA (0-30м старт, 1-72ч выполнение), 30-дневную гарантию, антифрод и право отмены заказов.
 
-4. **[LEGAL-007] Fallback для legal pages + Absolute Canonical (Статус: DONE)**
-   - **Что сделано:** Каскадная схема (DB → Static Fallback → 404) с автозаменой тегов компаний и фиксом относительного canonical на `absoluteCanonical(tenantId, path)` в `/legal/[slug]/page.tsx`.
+5. **[LEGAL-007] Fallback для legal pages + Absolute Canonical (Статус: DONE)**
+   - **Что сделано:** Отказоустойчивая 4-этапная схема (DB → Static Fallback → 404) с автозаменой тегов компаний и фиксом относительного canonical на `absoluteCanonical(tenantId, path)` во всех юридических роутах.
 
-5. **[LEGAL-013] Чекбоксы согласия с ПДн (152-ФЗ) (Статус: DONE)**
+6. **[LEGAL-013] Чекбоксы согласия с ПДн (152-ФЗ) (Статус: DONE)**
    - **Что сделано:** В компонент `LegalCheckbox.tsx` добавлены варианты `variant="all" | "terms" | "privacy"` для генерации раздельного согласия с 152-ФЗ.
 
-6. **[LEGAL-014] Дисклеймер Meta на страницах Instagram/Facebook (Статус: DONE)**
+7. **[LEGAL-014] Дисклеймер Meta на страницах Instagram/Facebook (Статус: DONE)**
    - **Что сделано:** На страницы услуг `/services/[network]/[category]` и `/services/[network]` при `network === instagram | facebook` добавлен предупреждающий оранжевый баннер с решением Тверского районного суда от 21.03.2022.

@@ -195,6 +195,29 @@ ${legalNoticeComment}
 ${aiDraftStampHtml}
 `;
 
+const cookiesHtml = `
+${legalNoticeComment}
+<div class="mb-6 p-4 bg-muted/50 rounded-xl border border-border text-xs text-muted-foreground">
+  Дата последнего обновления: 28 июля 2026 года | Редакция 1.0
+</div>
+
+<p class="font-semibold text-foreground mb-4">Редакция от 28 июля 2026 года</p>
+
+<h3 class="text-lg font-bold text-foreground mt-8 mb-4">1. Что такое файлы Cookie</h3>
+<p>Cookie — это небольшие текстовые файлы, которые сохраняются на вашем устройстве (компьютере, смартфоне, планшете) при посещении веб-сайта. Они позволяют сайту распознавать ваше устройство и запоминать определённую информацию.</p>
+
+<h3 class="text-lg font-bold text-foreground mt-8 mb-4">2. Какие Cookie мы используем</h3>
+<p>Мы используем сессионные (обязательные), функциональные (x_tenant, theme) и аналитические cookie (Яндекс.Метрика).</p>
+
+<h3 class="text-lg font-bold text-foreground mt-8 mb-4">3. Cookie, которые мы НЕ используем</h3>
+<p>Мы не используем рекламные cookie третьих лиц, пиксели и фреймворки скрытого трекинга.</p>
+
+<h3 class="text-lg font-bold text-foreground mt-8 mb-4">4. Управление Cookie и контакты</h3>
+<p>Вы можете отключить cookie в настройках браузера. По вопросам: {{PRIVACY_EMAIL}}</p>
+
+${aiDraftStampHtml}
+`;
+
 async function main() {
   console.log('Seeding updated legal CMS pages...');
 
@@ -222,6 +245,14 @@ async function main() {
       isPublished: true,
       seoTitle: 'Политика возврата средств SMMplan | Условия и регламент',
       seoDescription: 'Правила возврата денежных средств и автоматического возмещения.',
+    },
+    {
+      slug: 'cookies',
+      title: 'Политика использования файлов Cookie',
+      contentHtml: cookiesHtml,
+      isPublished: true,
+      seoTitle: 'Политика Cookie SMMplan | Файлы куки и аналитика',
+      seoDescription: 'Политика использования файлов cookie, типы cookie и Яндекс.Метрика.',
     },
     {
       slug: 'service-rules',
