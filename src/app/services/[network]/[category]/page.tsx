@@ -7,6 +7,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { FAQSection } from "@/components/seo/FAQSection";
 import { getFaqForCategory } from "@/data/seo/faq-templates";
 import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
+import { db } from "@/lib/db";
 
 // Force dynamic rendering — headers() is used for tenant resolution
 export const dynamic = 'force-dynamic';
@@ -139,6 +140,17 @@ export default async function CategoryServicesPage({ params }: { params: Promise
   const relatedNetworks = networks
     .filter(n => n.id !== currentNetwork.id)
     .slice(0, 4);
+
+  // Related guides from ContentItem (top-4 by viewCount)
+  const relatedGuides = await db.contentItem.findMany({
+    where: {
+      isPublished: true,
+      type: { in: ['PAGE', 'NEWS_POST'] },
+    },
+    take: 4,
+    orderBy: { viewCount: 'desc' },
+    select: { id: true, slug: true, title: true, excerpt: true, viewCount: true },
+  });
 
   // Breadcrumb JSON-LD
   const breadcrumbData = {
@@ -395,6 +407,29 @@ export default async function CategoryServicesPage({ params }: { params: Promise
                   className="text-xs font-semibold px-4 py-2 rounded-xl bg-card border border-border hover:border-primary/40 hover:text-primary transition-all duration-200"
                 >
                   {net.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Related Guides from Blog */}
+        {relatedGuides.length > 0 && (
+          <div className="border-t border-border pt-10">
+            <h3 className="text-lg font-black text-foreground mb-4">Полезные материалы</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {relatedGuides.map(guide => (
+                <Link
+                  key={guide.id}
+                  href={`/knowledge/${guide.slug}`}
+                  className="block p-4 rounded-xl bg-card border border-border hover:border-primary/40 transition-all duration-200 group"
+                >
+                  <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                    {guide.title}
+                  </p>
+                  {guide.excerpt && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{guide.excerpt}</p>
+                  )}
                 </Link>
               ))}
             </div>

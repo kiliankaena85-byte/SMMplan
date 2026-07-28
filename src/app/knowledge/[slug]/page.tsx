@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import React from "react";
 import { db } from "@/lib/db";
-
+import { JsonLd } from "@/components/seo/JsonLd";
 import { headers } from "next/headers";
 import { SettingsProvider } from "@/lib/settings";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
@@ -12,6 +12,7 @@ import { UrlMatcherWidget } from "./UrlMatcherWidget";
 import { verifySession } from "@/lib/session";
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
+import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -24,20 +25,28 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const result = await getArticleBySlug(slug);
 
   if (!result.success || !result.article) {
-    return {
-      title: "Статья не найдена | SMMplan"
-    };
+    return { title: "Статья не найдена | SMMplan" };
   }
+
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const siteName = getTenantSiteName(tenantId);
+  const canonical = absoluteCanonical(tenantId, `/knowledge/${slug}`);
 
   const { title, description } = result.article;
   return {
-    title: `${title} | Блог SMMplan`,
+    title: `${title} | ${siteName}`,
     description,
+    alternates: { canonical },
     openGraph: {
-      title: `${title} | SMMplan`,
+      title: `${title} | ${siteName}`,
       description,
-      type: "article"
-    }
+      url: canonical,
+      siteName,
+      type: "article",
+      locale: 'ru_RU',
+    },
+    robots: { index: true, follow: true },
   };
 }
 
@@ -184,11 +193,13 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     : undefined;
 
   const reqHeaders = await headers();
-  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+  const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id"));
 
   // Resolve settings and siteName
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "SMMplan";
+  const siteName = getTenantSiteName(tenantId) || settings.SITE_NAME || "SMMplan";
+  const host = getTenantHost(tenantId);
+  const canonical = absoluteCanonical(tenantId, `/knowledge/${article.slug}`);
 
   // Parallel data fetching for conversion recommended services and same category related articles
   const [recommendedServices, relatedResult] = await Promise.all([
@@ -239,21 +250,26 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   // Schema.org structured data setup
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "BlogPosting",
+    "@type": "Article",
     "headline": article.title,
     "description": article.description,
     "articleBody": article.content,
     "datePublished": article.createdAt.toISOString(),
     "dateModified": article.updatedAt.toISOString(),
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": canonical,
+    },
     "author": {
-      "@type": "Person",
-      "name": article.authorName,
-      "jobTitle": article.authorRole
+      "@type": "Organization",
+      "name": siteName,
+      "url": `https://${host}`,
     },
     "publisher": {
       "@type": "Organization",
-      "name": "SMMplan"
-    }
+      "name": siteName,
+      "url": `https://${host}`,
+    },
   };
 
   // Safe serialization preventing XSS injection inside raw scripts

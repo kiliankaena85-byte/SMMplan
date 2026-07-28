@@ -1,6 +1,24 @@
 import { LegalPageContent } from "@/components/legal/LegalPageContent";
+import { Metadata } from "next";
+import { headers } from "next/headers";
+import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const siteName = getTenantSiteName(tenantId);
+  const canonical = absoluteCanonical(tenantId, '/legal/terms');
+
+  return {
+    title: `Условия использования | ${siteName}`,
+    description: `Пользовательское соглашение и условия использования платформы ${siteName}. Права и обязанности сторон, порядок расчётов.`,
+    alternates: { canonical },
+    openGraph: { title: `Условия использования | ${siteName}`, url: canonical, siteName, locale: 'ru_RU', type: 'website' },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function TermsPage() {
   return <LegalPageContent slug="terms" />;

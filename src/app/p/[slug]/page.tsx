@@ -1,19 +1,19 @@
 import { db as prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { draftMode } from "next/headers";
+import { draftMode, headers } from "next/headers";
 import parse, { DOMNode, Element } from "html-react-parser";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ServiceCard } from "@/components/landing/order-engine/ServiceCard";
+import { absoluteCanonical, normalizeTenantId } from "@/lib/seo-helpers";
 
-export const revalidate = 3600; // Ревалидация раз в час (ISR)
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-// 1. Оптимизация SEO: Генерация метаданных
 export async function generateMetadata({ params }: PageProps) {
   const resolvedParams = await params;
   const post = await prisma.contentItem.findUnique({
@@ -23,14 +23,20 @@ export async function generateMetadata({ params }: PageProps) {
 
   if (!post) return { title: "Страница не найдена" };
 
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const canonical = absoluteCanonical(tenantId, `/p/${resolvedParams.slug}`);
+
   return {
     title: post.metaTitle || post.title,
     description: post.metaDescription || "",
-    alternates: { canonical: `/p/${resolvedParams.slug}` },
+    alternates: { canonical },
     openGraph: {
       title: post.metaTitle || post.title,
+      url: canonical,
       images: post.coverImage ? [post.coverImage] : [],
     },
+    robots: { index: true, follow: true },
   };
 }
 

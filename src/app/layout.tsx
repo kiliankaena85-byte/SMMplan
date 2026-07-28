@@ -3,6 +3,7 @@ import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
 import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvider';
+import { getTenantHost, normalizeTenantId } from '@/lib/seo-helpers';
 
 import { headers } from 'next/headers';
 
@@ -173,6 +174,33 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify([
+            {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": siteName,
+              "url": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}`,
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "customer support",
+                "email": supportEmail,
+                "availableLanguage": "Russian",
+              },
+              "address": {
+                "@type": "PostalAddress",
+                "addressCountry": "RU",
+              },
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": siteName,
+              "url": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}`,
+            },
+          ]).replace(/</g, '\\u003c') }}
+        />
       </head>
       <body className="font-sans antialiased bg-background text-foreground" suppressHydrationWarning>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg z-[9999] font-semibold outline-none focus:ring-2 focus:ring-primary transition-all">
