@@ -9,38 +9,10 @@ import { headers } from 'next/headers';
 
 export async function generateMetadata(): Promise<Metadata> {
   const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
   const host = reqHeaders.get('host') || '';
-  const tenantId = host.includes('lovable') ? 'lovable' : host.includes('smmflux') ? 'smmflux' : 'smmplan';
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const metadataBase = new URL(`${protocol}://${host}`);
-
-  if (tenantId === 'lovable') {
-    return {
-      title: {
-        default: 'Lovable — Premium Social Growth Platform',
-        template: '%s | Lovable',
-      },
-      description: 'Grow your social presence with premium delivery and absolute privacy.',
-      keywords: ['smm', 'growth', 'followers', 'likes', 'instagram', 'tiktok', 'youtube'],
-      openGraph: {
-        type: 'website',
-        locale: 'en_US',
-        siteName: 'Lovable',
-        title: 'Lovable — Premium Social Growth Platform',
-        description: 'Grow your social presence with premium delivery and absolute privacy.',
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: 'Lovable — Premium Social Growth Platform',
-        description: 'Grow your social presence with premium delivery and absolute privacy.',
-      },
-      robots: {
-        index: true,
-        follow: true,
-      },
-      metadataBase,
-    };
-  }
 
   if (tenantId === 'smmflux') {
     return {
@@ -135,17 +107,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     }
   }
 
-  const tenantId = reqHeaders.get('x-tenant-id') || 'smmplan';
-  const isLovable = tenantId === 'lovable';
-  const siteName = isLovable ? 'Lovable' : (settings.siteName || 'SMMplan');
-  const supportTelegram = isLovable
-    ? (process.env.LOVABLE_TELEGRAM_BOT || 'lovable_support_bot')
-    : (settings.contactTelegramBot || 'smmplan_support_bot');
-  const supportEmail = isLovable
-    ? 'support@lovable.pro'
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const isFlux = tenantId === 'smmflux';
+  const siteName = isFlux ? 'SMMflux' : (settings.siteName || 'SMMplan');
+  const supportEmail = isFlux
+    ? (settings.contactSupportEmail || 'support@smmflux.ru')
     : (settings.contactSupportEmail || 'support@smmplan.pro');
 
   const showMaintenance = isMaintenanceMode && !isStaff && !isExcluded;
+
+  const supportTelegram = settings.contactTelegramBot || 'smmplan_support_bot';
 
   if (showMaintenance) {
     return (

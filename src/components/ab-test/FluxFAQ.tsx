@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export function LovableFAQ({ companyName = "SMMplan" }: { companyName?: string }) {
+export function FluxFAQ({ companyName = "SMMflux" }: { companyName?: string }) {
   const FAQ_ITEMS = [
     {
       q: 'Как оформить заказ?',

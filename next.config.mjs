@@ -36,6 +36,15 @@ const nextConfig = {
     unoptimized: false,
   },
   poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        source: '/ab-lovable',
+        destination: '/',
+        permanent: true, // 301 Redirect
+      },
+    ];
+  },
   async headers() {
     return [
       {

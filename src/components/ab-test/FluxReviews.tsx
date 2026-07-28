@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
 
-export function LovableReviews() {
+export function FluxReviews() {
   const reviews = [
     { name: "Александр В.", service: "TG Подписчики", text: "Заказывал подписчиков в канал. Выполнили даже быстрее заявленного, списаний за 2 недели не было. Рекомендую.", stars: 5 },
     { name: "Мария К.", service: "Instagram Лайки", text: "Очень удобный интерфейс, всё понятно без лишних кнопок. Заказала услугу с гарантией — всё отлично. Буду пользоваться.", stars: 5 },

@@ -45,20 +45,20 @@ const itemVariants = {
   show: { opacity: 1, y: 0 }
 };
 
-interface LovableOrderClientProps {
-  initialCatalog: FluxNetwork[];
+interface FluxOrderClientProps {
+  initialCatalog?: any;
   initialEmail?: string;
 }
 
-export function LovableOrderClient(props: LovableOrderClientProps) {
+export function FluxOrderClient(props: FluxOrderClientProps) {
   return (
-    <Suspense fallback={<div className="flex justify-center p-12"><Box className="w-8 h-8 text-primary animate-pulse" /></div>}>
-      <LovableOrderClientInner {...props} />
+    <Suspense fallback={<div className="min-h-[400px] flex items-center justify-center text-muted-foreground text-sm">Загрузка визарда заказа...</div>}>
+      <FluxOrderClientInner {...props} />
     </Suspense>
   );
 }
 
-function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderClientProps) {
+function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientProps) {
   const [step, setStep] = useState<Step>('link');
   const [direction, setDirection] = useState(1);
   
@@ -179,7 +179,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
     if (!matchedNetwork && initialCatalog.length > 0) matchedNetwork = initialCatalog[0];
       
     if (matchedNetwork) {
-      setActiveNetwork(matchedNetwork);
+      setActiveNetwork(matchedNetwork as any);
       setActiveCategory(null);
       setServices([]);
       setSelectedService(null);
@@ -355,7 +355,7 @@ function LovableOrderClientInner({ initialCatalog, initialEmail }: LovableOrderC
                 animate="show"
                 className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 w-full"
               >
-                {initialCatalog.map(network => (
+                {initialCatalog.map((network: any) => (
                   <motion.button
                     variants={itemVariants}
                     whileHover={{ scale: 1.05 }}

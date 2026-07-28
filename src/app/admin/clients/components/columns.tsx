@@ -53,7 +53,7 @@ export const columns: ColumnDef<ClientColumn>[] = [
         : 'bg-purple-500/10 text-purple-500 border-purple-500/20 hover:bg-purple-500/20';
       return (
         <Badge intent="outline" className={`shadow-sm px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${bg}`}>
-          {isSmmplan ? 'SMMplan' : 'Lovable'}
+          {isSmmplan ? 'SMMplan' : 'SMMflux'}
         </Badge>
       );
     },

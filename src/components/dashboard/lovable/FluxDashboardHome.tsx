@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { ShoppingCart, Wallet, ArrowRight, RefreshCw, TrendingUp, Users, Copy, Check } from 'lucide-react';
 import { formatBalance } from '@/lib/utils';
 import { PaymentAutoSync } from '@/components/orders/PaymentAutoSync';
-import { LovableOrderClient } from '@/components/ab-test/LovableOrderClient';
+import { FluxOrderClient } from '@/components/ab-test/FluxOrderClient';
 
 import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
 import { formatRub, toCents } from '@/lib/money';
 import { FluxOrder, FluxNetwork } from '@/types/flux';
 
-export function LovableDashboardHome({
+export function FluxDashboardHome({
   user,
   orders,
   referralCount,
@@ -58,7 +58,7 @@ export function LovableDashboardHome({
       
       {/* ── HERO ORDER WIZARD SECTION ── */}
       <section className="w-full">
-        <LovableOrderClient 
+        <FluxOrderClient 
           initialCatalog={initialCatalog} 
           initialEmail={user.email} 
         />

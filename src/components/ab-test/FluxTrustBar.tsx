@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Users, Timer, CheckCircle, Headphones } from "lucide-react";
 
-export function LovableTrustBar() {
+export function FluxTrustBar() {
   const shouldReduceMotion = useReducedMotion();
   const stats = [
     { value: '2,000,000+', label: 'Заказов выполнено', icon: CheckCircle, color: 'text-success' },

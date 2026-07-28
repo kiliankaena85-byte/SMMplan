@@ -21,9 +21,10 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete('x-tenant-id');
 
-  // 1. Multi-Tenancy Canonical Resolution Chain
-  // Priority: fromQuery (dev/staging) -> fromHost (if !== 'smmplan') -> fromCookie ('x_tenant') -> fallback ('smmplan')
   const host = request.headers.get('host') || '';
+  if (host.includes('lovable.pro')) {
+    return NextResponse.redirect('https://smmflux.ru' + request.nextUrl.pathname, 301);
+  }
   const fromQuery = (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_STAGING === 'true') 
     ? normalizeTenantId(request.nextUrl.searchParams.get('tenant'))
     : null;

@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
-  const isLovable = resolvedParams?.tenant === 'lovable';
+  const isFlux = resolvedParams?.tenant === 'flux' || resolvedParams?.tenant === 'smmflux';
 
   return {
-    title: isLovable ? 'Вход | SMMflux' : 'Вход | SMMplan',
+    title: isFlux ? 'Вход | SMMflux' : 'Вход | SMMplan',
     description: 'Войдите в личный кабинет — управляйте заказами на продвижение.',
   };
 }
@@ -28,7 +28,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
   const reqHeaders = await headers();
   const host = reqHeaders.get('host') || '';
   const xTenant = reqHeaders.get('x-tenant-id') || '';
-  const isLovable = xTenant === 'lovable' || host.includes('lovable') || resolvedParams?.tenant === 'lovable';
+  const isFlux = xTenant === 'flux' || xTenant === 'smmflux' || host.includes('smmflux') || resolvedParams?.tenant === 'flux' || resolvedParams?.tenant === 'smmflux';
 
   const session = await verifySession();
   let activeEmail = '';
@@ -48,24 +48,24 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6 relative overflow-hidden">
-        {isLovable && (
+        {isFlux && (
           <div className="absolute top-0 inset-x-0 h-screen z-0 pointer-events-none overflow-hidden select-none">
             <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[50%] rounded-full bg-blue-500/90 blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
             <div className="absolute bottom-[20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/85 blur-[120px] animate-pulse" style={{ animationDuration: '9s' }} />
           </div>
         )}
         <div className={`relative z-10 w-full max-w-md p-8 text-center space-y-6 animate-in fade-in duration-300 ${
-          isLovable
+          isFlux
             ? 'bg-white/50 dark:bg-black/50 backdrop-blur-3xl border border-white/20 dark:border-white/10 rounded-[2.5rem] shadow-2xl'
             : 'bg-content1 border border-border/80 rounded-[var(--radius)] shadow-[0_20px_50px_rgba(0,0,0,0.05)]'
         }`}>
           <div className="flex justify-center">
             <div className={`w-16 h-16 rounded-3xl flex items-center justify-center border shadow-sm ${
-              isLovable 
+              isFlux 
                 ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white border-white/20 font-black text-2xl' 
                 : 'bg-primary/10 text-primary border-primary/20 font-black text-2xl'
             }`}>
-              {isLovable ? 'F' : <UserCheck className="w-8 h-8" />}
+              {isFlux ? 'F' : <UserCheck className="w-8 h-8" />}
             </div>
           </div>
           <div className="space-y-2">
@@ -79,7 +79,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
             <Link
               href={redirectLink}
               className={`w-full flex items-center justify-center h-12 rounded-xl font-black text-sm hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 ${
-                isLovable
+                isFlux
                   ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25'
                   : 'bg-primary text-primary-foreground hover:shadow-lg'
               }`}
@@ -100,7 +100,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
   }
 
   {/* ── SMMFLUX VARIANT ── */}
-  if (isLovable) {
+  if (isFlux) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-foreground font-sans flex flex-col justify-center items-center relative overflow-x-clip p-4 md:p-8">
         {/* SMMFLUX ELEGANT HERO BACKGROUND (Toned down for high contrast) */}

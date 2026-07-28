@@ -8,7 +8,7 @@ import {
   ArrowUpRight 
 } from "lucide-react";
 
-export function LovableWhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
+export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string }) {
   return (
     <section aria-labelledby="why-us-heading" className="mx-auto max-w-6xl px-4 py-12 md:py-24">
       <div className="text-center mb-16">
