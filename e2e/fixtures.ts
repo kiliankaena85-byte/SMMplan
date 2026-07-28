@@ -70,7 +70,7 @@ export async function seedTestUser(balanceRub: number = 10_000): Promise<{ id: s
  * Creates or resets an OWNER/ADMIN user with EmployeeResponsibilityConsent
  */
 export async function seedTestAdmin(): Promise<{ id: string; email: string }> {
-  const { hashPassword } = await import('../src/lib/password');
+  const { hashPassword } = await import('../src/lib/auth/password');
   const hash = await hashPassword(TEST_ADMIN.password);
 
   const admin = await db.user.upsert({

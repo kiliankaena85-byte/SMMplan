@@ -47,7 +47,6 @@ test.describe('Order Flow — Wizard Sequence', () => {
         slug: E2E_CATEGORY_SLUG,
         networkId,
         tenantId: 'smmplan',
-        targetType: 'CHANNEL',
       },
     });
     categoryId = category.id;
