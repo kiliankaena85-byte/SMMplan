@@ -12,9 +12,7 @@ import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
 import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
 import { CopyText } from '@/components/ui/CopyText';
-import { SocialIcon } from '@/components/ui/SocialIcon';
 import { getTenantDashboardViews } from '@/tenants/factory';
-import { getTenantScopedDb } from '@/lib/prisma-tenant-scope';
 import { Metadata } from 'next';
 import {
   Table,
@@ -63,9 +61,15 @@ interface OrdersPageProps {
   }>;
 }
 
+import { headers } from 'next/headers';
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
+
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const session = await verifySession();
   if (!session) redirect('/login');
+
+  const reqHeaders = await headers();
+  const tenantId = resolveTenantFromRequest(reqHeaders);
 
   const params = await searchParams;
   const currentPage = parseInt(params.page || '1', 10);
@@ -78,11 +82,10 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    select: { balance: true, tenantId: true }
+    select: { balance: true }
   });
 
   if (!user) redirect('/login');
-
 
   // Build the DB where filter dynamically
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -198,7 +201,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     return acc;
   }, {} as Record<string, number>);
 
-  const { OrdersView } = await getTenantDashboardViews(user.tenantId);
+  const { OrdersView } = await getTenantDashboardViews(tenantId);
 
   if (OrdersView) {
     return (

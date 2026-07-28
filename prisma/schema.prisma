@@ -83,6 +83,10 @@ model User {
   approvedBalanceAdjustments  ManualBalanceAdjustment[] @relation("approvedBalanceAdjustments")
   rejectedBalanceAdjustments  ManualBalanceAdjustment[] @relation("rejectedBalanceAdjustments")
 
+  employeeConsents           EmployeeResponsibilityConsent[]
+  staffFinancialActions      SupportFinancialAction[]        @relation("staffFinancialActions")
+  targetFinancialActions     SupportFinancialAction[]        @relation("targetFinancialActions")
+
   tenantId String @default("smmplan")
 
   @@unique([email, tenantId])
@@ -724,6 +728,7 @@ model RateLimit {
 
 model AdminAuditLog {
   id         String   @id @default(cuid())
+  tenantId   String?  @default("smmplan")
   adminId    String // Who performed the action
   adminEmail String // Denormalized for fast log reading
   action     String // USER_BALANCE_CHANGE, SERVICE_DISABLE, SETTINGS_UPDATE, etc.
@@ -737,10 +742,12 @@ model AdminAuditLog {
   @@index([adminId])
   @@index([createdAt])
   @@index([targetType])
+  @@index([tenantId])
 }
 
 model LedgerEntry {
   id              String   @id @default(cuid())
+  tenantId        String?  @default("smmplan")
   userId          String // Client whose balance was affected
   user            User     @relation("UserLedger", fields: [userId], references: [id], onDelete: Restrict)
   adminId         String? // Support agent who initiated, null if SYSTEM/auto
@@ -757,6 +764,7 @@ model LedgerEntry {
   @@index([status])
   @@index([adminId])
   @@index([adminId, createdAt])
+  @@index([tenantId])
 }
 
 model SupportTemplate {
@@ -805,6 +813,7 @@ model FeatureFlag {
 // Custom roles with granular permissions per sidebar section
 model StaffRole {
   id          String            @id @default(cuid())
+  tenantId    String            @default("smmplan")
   name        String            @unique // "Senior Support"
   description String            @default("")
   isSystem    Boolean           @default(false) // true = cannot delete (Owner, Admin)
@@ -812,25 +821,30 @@ model StaffRole {
   users       User[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+
+  @@index([tenantId])
 }
 
 // One permission entry per section per role: section + action (view|edit)
 model StaffPermission {
-  id      String    @id @default(cuid())
-  roleId  String
-  role    StaffRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  section String // e.g. "orders", "finance", "catalog", "settings"
-  canView Boolean   @default(false)
-  canEdit Boolean   @default(false)
+  id       String    @id @default(cuid())
+  tenantId String    @default("smmplan")
+  roleId   String
+  role     StaffRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  section  String // e.g. "orders", "finance", "catalog", "settings"
+  canView  Boolean   @default(false)
+  canEdit  Boolean   @default(false)
 
   @@unique([roleId, section])
   @@index([roleId])
+  @@index([tenantId])
 }
 
 // ── Security: Login Log ──
 // Per OWASP A07: Authentication Failures monitoring
 model LoginLog {
   id         String   @id @default(cuid())
+  tenantId   String?  @default("smmplan")
   email      String // Attempted email
   userId     String? // Resolved userId if login succeeded
   ipAddress  String
@@ -842,6 +856,7 @@ model LoginLog {
   @@index([email])
   @@index([ipAddress])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 model ServiceRoute {
@@ -966,6 +981,7 @@ model ContentItem {
 
 model SecurityEvent {
   id        String   @id @default(cuid())
+  tenantId  String?  @default("smmplan")
   event     String // SIGNATURE_FAILED | REPLAY_ATTEMPT | INVALID_FORMAT
   severity  String // WARNING | CRITICAL
   ip        String?
@@ -974,6 +990,7 @@ model SecurityEvent {
 
   @@index([event])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 enum SmartCampaignStatus {
@@ -1276,3 +1293,116 @@ model ManualBalanceAdjustment {
   @@index([direction, status, createdAt])
   @@index([ticketId])
 }
+
+// ── Financial Policy & Audit Engine ──
+
+model SupportLimitUsage {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  staffUserId     String
+  dayKey          String   // YYYY-MM-DD in Europe/Moscow (MSK)
+  direction       String   // CREDIT | DEBIT | ALL
+  amountCents     BigInt   @default(0)
+  operationsCount Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([staffUserId, dayKey, direction])
+  @@index([staffUserId, dayKey])
+  @@index([tenantId, dayKey])
+}
+
+model SupportHourlyUsage {
+  id              String   @id @default(cuid())
+  tenantId        String?  @default("smmplan")
+  staffUserId     String
+  hourKey         String   // YYYY-MM-DDTHH in Europe/Moscow (MSK)
+  direction       String   // CREDIT | DEBIT | ALL
+  amountCents     BigInt   @default(0)
+  operationsCount Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([staffUserId, hourKey, direction])
+  @@index([staffUserId, hourKey])
+  @@index([tenantId, hourKey])
+}
+
+model LegalDocumentVersion {
+  id            String   @id @default(cuid())
+  tenantId      String   @default("smmplan")
+  type          String   // SUPPORT_FINANCIAL_RESPONSIBILITY, NDA, PRIVACY, TOS
+  version       String
+  title         String
+  contentHash   String
+  isActive      Boolean  @default(true)
+  effectiveAt   DateTime @default(now())
+  createdBy     String?
+  createdAt     DateTime @default(now())
+
+  consents      EmployeeResponsibilityConsent[]
+
+  @@unique([type, version])
+  @@index([type, isActive])
+  @@index([tenantId])
+}
+
+model EmployeeResponsibilityConsent {
+  id                  String   @id @default(cuid())
+  userId              String
+  tenantId            String   @default("smmplan")
+  documentVersionId   String?
+  documentVersionText String   @default("1.0")
+  documentHash        String
+  acceptedAt          DateTime @default(now())
+  acceptedIp          String?
+  acceptedUserAgent   String?
+  status              String   @default("ACTIVE") // ACTIVE | SUPERSEDED | REVOKED
+  createdAt           DateTime @default(now())
+
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentVersion     LegalDocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([documentVersionId])
+  @@index([tenantId])
+}
+
+model SupportFinancialAction {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  staffUserId     String
+  targetUserId    String
+  direction       String   // CREDIT | DEBIT
+  source          String   // SUPPORT_COMPENSATION | BALANCE_REQUEST | DIRECT_ADJUSTMENT | TICKET_REFUND | ORDER_REFUND
+  amountCents     BigInt
+  reasonCode      String
+  reasonNote      String
+  ticketId        String?
+  orderId         String?
+  paymentId       String?
+  policyId        String?
+  policySnapshot  Json?
+  idempotencyKey  String   @unique
+  status          String   // INITIATED | EXECUTED | REJECTED | QUARANTINE | FAILED | REVIEW_REQUIRED
+  ledgerEntryId   String?
+  consentId       String?
+  reviewStatus    String   @default("PENDING") // PENDING | REVIEWED | FLAGGED | VIOLATION | APPROVED
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNote      String?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  staff           User     @relation("staffFinancialActions", fields: [staffUserId], references: [id], onDelete: Cascade)
+  target          User     @relation("targetFinancialActions", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([staffUserId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([ticketId])
+  @@index([orderId])
+  @@index([reviewStatus])
+  @@index([status])
+  @@index([tenantId, createdAt])
+}
+

@@ -6,24 +6,30 @@ console.log("=== NEXT BUILD ENV ===", {
   DATABASE_URL: process.env.DATABASE_URL 
 });
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const nextConfig = {
   output: "standalone",
   serverExternalPackages: ["@blocknote/core", "@blocknote/react", "@blocknote/server-util", "bullmq", "ioredis", "sanitize-html"],
 
-  typescript: { ignoreBuildErrors: true },
+  typescript: { ignoreBuildErrors: false },
 
   transpilePackages: ["@base-ui/react"],
 
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb',
-      allowedOrigins: ['smmplan.pro', 'www.smmplan.pro', 'localhost:3000', '127.0.0.1:3000'],
+      bodySizeLimit: '2mb',
+      allowedOrigins: isProd
+        ? ['smmplan.pro', 'www.smmplan.pro', 'smmflux.ru', 'www.smmflux.ru']
+        : ['smmplan.pro', 'www.smmplan.pro', 'localhost:3000', '127.0.0.1:3000', 'localhost:3001', '127.0.0.1:3001'],
     },
   },
-  allowedDevOrigins: ["public-walls-play.loca.lt", "*.loca.lt", "127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost"],
+  allowedDevOrigins: isProd
+    ? []
+    : ["127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost"],
   
-  // OSAD-V2: Distributed Cache Sync for Redis (Resolves C4.1)
-  cacheHandler: (process.env.NODE_ENV === 'production' && !process.env.DISABLE_REDIS_CACHE) ? process.cwd() + '/cache-handler.js' : undefined,
+  // OSAD-V2: Distributed Cache Sync for Redis
+  cacheHandler: (isProd && !process.env.DISABLE_REDIS_CACHE) ? process.cwd() + '/cache-handler.js' : undefined,
 
   // User-uploaded files use raw buffer response via /api/media/ (never _next/image), keeping static image optimization intact.
   images: {
@@ -37,11 +43,11 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.telegram.org; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
           {
             key: 'X-Content-Type-Options',
@@ -61,7 +67,7 @@ const nextConfig = {
           },
           {
             key: 'X-XSS-Protection',
-            value: '1; mode=block',
+            value: '0',
           },
         ],
       },
