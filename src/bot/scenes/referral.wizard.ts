@@ -46,8 +46,8 @@ export const referralWizard = new Scenes.WizardScene(
       user.referralCode = newCode;
     }
 
-    const host = botTenantId === 'lovable'
-      ? (process.env.LOVABLE_APP_URL || 'https://lovable.pro')
+    const host = (botTenantId === 'flux' || botTenantId === 'lovable')
+      ? (process.env.FLUX_APP_URL || 'https://smmflux.ru')
       : getBaseUrlSync();
     const link = `${host}/?ref=${user.referralCode}`;
     const earned = (user.referralBalance ?? 0) / 100;

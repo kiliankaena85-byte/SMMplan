@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   const contactSettings = await SettingsProvider.getContactAndLegalSettings();
   let botUsername = contactSettings.TELEGRAM_SUPPORT_BOT;
   if (tenantId === 'lovable') {
-    botUsername = process.env.LOVABLE_TELEGRAM_BOT || 'lovable_support_bot';
+    botUsername = process.env.FLUX_TELEGRAM_BOT || 'smmflux_support_bot';
   }
 
   if (!botUsername) {

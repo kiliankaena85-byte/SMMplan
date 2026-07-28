@@ -68,15 +68,15 @@ export class SettingsProvider {
         return await db.systemSettings.upsert({
           where: { id: tenantId },
           update: {},
-          create: { id: tenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: tenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan', exchangeRateUSD: 95 }
+          create: { id: tenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: (tenantId === 'flux' || tenantId === 'lovable') ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
         });
       }
 
-      const defaultName = tenantId === 'lovable' ? 'SMMflux' : 'SMMplan';
-      const defaultEmail = tenantId === 'lovable' ? 'support@lovable.pro' : 'support@smmplan.pro';
-      const defaultPrivacyEmail = tenantId === 'lovable' ? 'privacy@lovable.pro' : 'privacy@smmplan.pro';
-      const defaultBot = tenantId === 'lovable' ? 'lovable_support_bot' : 'smmplan_support_bot';
-      const defaultChannel = tenantId === 'lovable' ? 'lovable_support' : 'smmplan_support';
+      const defaultName = (tenantId === 'flux' || tenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
+      const defaultEmail = (tenantId === 'flux' || tenantId === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro';
+      const defaultPrivacyEmail = (tenantId === 'flux' || tenantId === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro';
+      const defaultBot = (tenantId === 'flux' || tenantId === 'lovable') ? 'smmflux_support_bot' : 'smmplan_support_bot';
+      const defaultChannel = (tenantId === 'flux' || tenantId === 'lovable') ? 'smmflux_support' : 'smmplan_support';
 
       return await db.systemSettings.upsert({
         where: { id: tenantId },
@@ -178,10 +178,10 @@ export class SettingsProvider {
     } catch (dbErr: any) {
       console.warn(`[SettingsProvider] Failed to fetch system settings for ${normalizedSlug} from DB, using fallback:`, dbErr.message);
       const defaultName = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'SMMflux' : 'SMMplan';
-      const defaultEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'support@lovable.pro' : 'support@smmplan.pro';
-      const defaultPrivacyEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'privacy@lovable.pro' : 'privacy@smmplan.pro';
-      const defaultBot = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'lovable_support_bot' : 'smmplan_support_bot';
-      const defaultChannel = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'lovable_support' : 'smmplan_support';
+      const defaultEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro';
+      const defaultPrivacyEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro';
+      const defaultBot = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'smmflux_support_bot' : 'smmplan_support_bot';
+      const defaultChannel = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'smmflux_support' : 'smmplan_support';
 
       return {
         id: targetTenantId,
@@ -312,15 +312,15 @@ export class SettingsProvider {
     const activeTenantId = tenantId || await this.getTenantId();
     const settings = await this.get(activeTenantId);
     return {
-      SITE_NAME: settings.siteName || (activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan'),
+      SITE_NAME: settings.siteName || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'SMMflux' : 'SMMplan'),
       SITE_DESCRIPTION: settings.siteDescription || "",
-      SUPPORT_EMAIL: settings.contactSupportEmail || (activeTenantId === 'lovable' ? 'support@lovable.pro' : 'support@smmplan.pro'),
-      PRIVACY_EMAIL: settings.contactPrivacyEmail || (activeTenantId === 'lovable' ? 'privacy@lovable.pro' : 'privacy@smmplan.pro'),
-      TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || (activeTenantId === 'lovable' ? 'lovable_support_bot' : 'smmplan_support_bot'),
-      TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || (activeTenantId === 'lovable' ? 'lovable_support' : 'smmplan_support'),
+      SUPPORT_EMAIL: settings.contactSupportEmail || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro'),
+      PRIVACY_EMAIL: settings.contactPrivacyEmail || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro'),
+      TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'smmflux_support_bot' : 'smmplan_support_bot'),
+      TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'smmflux_support' : 'smmplan_support'),
       WHATSAPP: settings.contactWhatsApp || "",
       VK: settings.contactVk || "",
-      COMPANY_NAME: settings.legalCompanyName || (activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan'),
+      COMPANY_NAME: settings.legalCompanyName || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'SMMflux' : 'SMMplan'),
       COMPANY_INN: settings.legalCompanyInn || "Укажите ИНН",
       COMPANY_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
       COMPANY_ADDRESS: settings.legalCompanyAddress || "г. Москва",

@@ -117,7 +117,7 @@ depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: any) => {
 
     await ctx.editMessageText('🔄 Создаю платеж, подождите...');
 
-    const siteName = botTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan';
+    const siteName = (botTenantId === 'flux' || botTenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
     const res = await UnifiedPaymentService.createPayment(
       undefined,
       user.id,

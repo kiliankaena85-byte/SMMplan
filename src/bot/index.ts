@@ -31,7 +31,7 @@ if (!TOKEN || TOKEN === 'dummy_token') {
 export const bot = new Telegraf(TOKEN || 'dummy_token');
 
 const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
-const botSiteName = botTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan';
+const botSiteName = (botTenantId === 'flux' || botTenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
 
 // ── STAGE ──
 const stage = new Scenes.Stage<Scenes.WizardContext>([
