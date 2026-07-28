@@ -143,7 +143,7 @@ describe('YooKassa Payment Integration & Webhook Lifecycle', () => {
       },
     });
 
-    const processWebhook = async () => {
+    const processWebhook = async (): Promise<{ alreadyProcessed?: boolean; success?: boolean }> => {
       return db.$transaction(async (tx) => {
         const currentPayment = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
         if (currentPayment.status === 'SUCCEEDED') {
@@ -163,7 +163,7 @@ describe('YooKassa Payment Integration & Webhook Lifecycle', () => {
           { idempotencyKey: `yookassa-idem-${payment.id}` }
         );
 
-        return creditResult;
+        return { alreadyProcessed: false, success: creditResult.success };
       });
     };
 

@@ -14,16 +14,16 @@ describe('Robokassa Payment Gateway Integration', () => {
     await db.systemSettings.upsert({
       where: { id: 'smmplan' },
       update: {
-        robokassaMerchantLogin: merchantLogin,
-        robokassaPassword1: pass1,
-        robokassaPassword2: pass2,
+        robokassaLogin: merchantLogin,
+        robokassaPassword: pass1,
+        robokassaWebhookPassword: pass2,
         isTestMode: true,
       },
       create: {
         id: 'smmplan',
-        robokassaMerchantLogin: merchantLogin,
-        robokassaPassword1: pass1,
-        robokassaPassword2: pass2,
+        robokassaLogin: merchantLogin,
+        robokassaPassword: pass1,
+        robokassaWebhookPassword: pass2,
         isTestMode: true,
       },
     });
