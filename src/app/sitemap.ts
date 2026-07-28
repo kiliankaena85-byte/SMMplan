@@ -81,6 +81,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
               changeFrequency: 'weekly',
               priority: 0.7,
             });
+
+            // Добавление URL конкретных тарифных услуг категории
+            for (const s of services) {
+              if (s.slug) {
+                routes.push({
+                  url: `${baseUrl}/services/${network.slug}/${category.slug}/${s.slug}`,
+                  lastModified: new Date(),
+                  changeFrequency: 'weekly',
+                  priority: 0.6,
+                });
+              }
+            }
           }
         }
       }

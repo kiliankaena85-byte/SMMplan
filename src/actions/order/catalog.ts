@@ -58,6 +58,7 @@ const getCachedServices = (catId: string, tenantId: string = 'smmplan') => unsta
 export type PublicService = {
   id: string;
   numericId: number;
+  slug?: string | null;
   categoryId: string;
   name: string;
   pricePer1kRub: number;
@@ -186,6 +187,7 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
               id: true,
 
               numericId: true,
+              slug: true,
               categoryId: true,
               name: true,
               description: true,
@@ -247,6 +249,7 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
        return {
           id: s.id,
           numericId: s.numericId,
+          slug: s.slug,
           categoryId: s.categoryId,
           name: s.name,
           description: sanitizeServiceDescription(s.description),
@@ -287,3 +290,44 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
     return [];
   }
 }
+
+export async function getServiceBySlugAction(slug: string, tenantId: string = 'smmplan') {
+  try {
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const service = await db.service.findFirst({
+      where: {
+        slug,
+        tenantId: { in: [tenantId, 'all'] },
+        isActive: true,
+        isQuarantined: false,
+        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+        category: {
+          network: { isActive: true }
+        }
+      },
+      include: {
+        category: {
+          include: { network: true }
+        },
+        provider: {
+          select: { name: true, ticketUrl: true }
+        }
+      }
+    });
+
+    if (!service) return null;
+
+    const pricePer1kRub = applyBeautifulRounding(service.rate * service.markup * (service.providerCurrency === 'RUB' ? 1.0 : usdToRub));
+    const pricePerUnitRub = pricePer1kRub / 1000;
+
+    return {
+      ...service,
+      pricePer1kRub,
+      pricePerUnitRub,
+    };
+  } catch (error) {
+    console.error("Failed to fetch service by slug:", error);
+    return null;
+  }
+}
+

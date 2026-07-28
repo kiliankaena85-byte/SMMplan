@@ -260,17 +260,21 @@ model Service {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  slug               String?
+
   orders         Order[]
   routes         ServiceRoute[]
   smartCampaigns SmartCampaign[]
   smartConfig    ServiceSmartConfig?
   priceHistory   ServicePriceHistory[]
 
+  @@unique([tenantId, slug])
   @@index([categoryId])
   @@index([providerId])
   @@index([isQuarantined])
   @@index([externalId])
   @@index([tenantId])
+  @@index([slug])
 }
 
 model Provider {

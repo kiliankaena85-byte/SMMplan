@@ -66,10 +66,21 @@ async function main() {
 
     for (let j = 0; j < categoryNames.length; j++) {
       const catName = categoryNames[j];
+      const slugMap: Record<string, string> = {
+        'Лайки': 'likes',
+        'Подписчики': 'subscribers',
+        'Просмотры': 'views',
+        'Комментарии': 'comments',
+        'Реакции': 'reactions',
+        'Бусты (Telegram Levels)': 'boosts',
+        'Звезды (Telegram Stars)': 'stars',
+        'Автопросмотры': 'autoviews'
+      };
+      const catSlug = `${nw.slug}-${slugMap[catName] || `cat-${j}`}`;
       const cat = await prisma.category.create({
-        data: { name: catName, networkId: nw.id, sort: j }
+        data: { name: catName, slug: catSlug, networkId: nw.id, sort: j }
       });
-      console.log(`Created Category: "${cat.name}" in Network "${name}"`);
+      console.log(`Created Category: "${cat.name}" (${cat.slug}) in Network "${name}"`);
     }
   }
 
