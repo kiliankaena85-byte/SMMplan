@@ -22,8 +22,8 @@
 | **telegram** | telegram-boosts | 3 | 3 | 0.07 ₽ | ✅ PASS | ✅ index | 4/4 | ✅ 5 вопросов | ✅ Links | ✅ absolute |
 | **telegram** | telegram-stars | 3 | 3 | 0.07 ₽ | ✅ PASS | ✅ index | 4/4 | ✅ 5 вопросов | ✅ Links | ✅ absolute |
 | **telegram** | telegram-autoviews | 3 | 3 | 0.07 ₽ | ✅ PASS | ✅ index | 4/4 | ✅ 5 вопросов | ✅ Links | ✅ absolute |
-| **telegram** | telegram-groups-thin | 1 | 1 | 0.15 ₽ | ❌ FAIL (< 3) | ❌ noindex | — | — | — | ✅ absolute |
-| **telegram** | telegram-boosts-quarantine | 4 | 0 | — | ❌ FAIL (quarantine) | ❌ noindex | — | — | — | ✅ absolute |
+| **telegram** | telegram-groups-thin (TEST DATA) | 1 | 1 | 0.15 ₽ | ❌ FAIL (< 3) | ❌ noindex | — | — | — | ✅ absolute |
+| **telegram** | telegram-boosts-quarantine (TEST DATA) | 4 | 0 | — | ❌ FAIL (quarantine) | ❌ noindex | — | — | — | ✅ absolute |
 | **vkontakte** | vkontakte-likes | 3 | 3 | 0.07 ₽ | ✅ PASS | ✅ index | 4/4 | ✅ 5 вопросов | ✅ Links | ✅ absolute |
 | **vkontakte** | vkontakte-subscribers | 3 | 3 | 0.07 ₽ | ✅ PASS | ✅ index | 4/4 | ✅ 5 вопросов | ✅ Links | ✅ absolute |
 | **youtube** | youtube-likes | 3 | 3 | 0.07 ₽ | ✅ PASS | ✅ index | 4/4 | ✅ 5 вопросов | ✅ Links | ✅ absolute |

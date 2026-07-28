@@ -566,7 +566,7 @@
   "/app/codebase/.agents/auditor_milestone1_3/ORIGINAL_REQUEST.md": "33dcfa192193a9c9",
   "/app/codebase/.agents/teamwork_preview_reviewer_testing_m4/progress.md": "4824d6b1586d7bb2",
   "/app/codebase/.agents/teamwork_preview_explorer_vk_article_18_2/progress.md": "661bad58d9160ddc",
-  "/app/codebase/src/actions/order/catalog.ts": "598b9dbcb8e1d482",
+  "/app/codebase/src/actions/order/catalog.ts": "d977bcf9390a6610",
   "/app/codebase/.agents/worker_milestone1_3/plan.md": "e3a2789a64ec137a",
   "/app/codebase/src/validators/admin.validators.ts": "0059e0f114d7d5a3",
   "/app/codebase/src/app/admin/pages/[slug]/page.tsx": "3e6e25ca85a560d8",
@@ -1063,7 +1063,7 @@
   "/app/codebase/.agents/challenger_milestone1_2/progress.md": "148f24535d625fdd",
   "/app/codebase/plans/003-debt-inline-colors.md": "585306736aaec677",
   "/app/codebase/src/app/admin/providers/client-table.tsx": "584b7b320d049855",
-  "/app/codebase/src/app/sitemap.ts": "a903fe80c5042592",
+  "/app/codebase/src/app/sitemap.ts": "44b69933afd55cd9",
   "/app/codebase/.agents/explorer_milestone2_1/progress.md": "70b805aca0c8074f",
   "/app/codebase/.github/workflows/ci.yml": "b2dfb8972cebffd8",
   "/app/codebase/.agent/skills/mcp-server-health-check/scripts/check-mcp.ts": "0983b8bbd58acc4f",
@@ -2666,8 +2666,12 @@
   "/app/codebase/PROJECT_FILES_PART_1_2026-07-28.md": "cb16a2c09d94cceb",
   "/app/codebase/scripts/pack-project-in-5-files.ts": "6df041498f621be6",
   "/app/codebase/PROJECT_FILES_PART_2_2026-07-28.md": "5e0ff90f9c7c8567",
-  "/app/codebase/LANDINGS_VERIFICATION.md": "5279a3c2004cc6b6",
+  "/app/codebase/LANDINGS_VERIFICATION.md": "f41800cb1d92f57e",
   "/app/codebase/check-quality-gate.ts": "974ded3377509c0d",
   "/app/codebase/src/data/seo/faq-templates.ts": "e3a642c06b196af0",
-  "/app/codebase/src/lib/seo-helpers.ts": "387eaaf3a179d0a4"
+  "/app/codebase/src/lib/seo-helpers.ts": "387eaaf3a179d0a4",
+  "/app/codebase/SERVICE_PAGES_SPEC.md": "7f4e5f2f3fc03329",
+  "/app/codebase/src/app/services/[network]/[category]/[serviceSlug]/page.tsx": "cf28ad7606da8b4a",
+  "/app/codebase/E_EAT_CHECKLIST.md": "ac1403469edc4d87",
+  "/app/codebase/scripts/backfill-service-slugs.ts": "f7ded1a64a7ec002"
 }
