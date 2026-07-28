@@ -2720,5 +2720,8 @@
   "/app/codebase/src/data/seo/clusters/api.ts": "ee03c532ba135885",
   "/app/codebase/src/data/seo/clusters/choose.ts": "105b128268eed2f2",
   "/app/codebase/src/data/seo/clusters/vk.ts": "f520fc42a7a62525",
-  "/app/codebase/src/data/seo/clusters/telegram.ts": "581aba88ef9dfcc2"
+  "/app/codebase/src/data/seo/clusters/telegram.ts": "581aba88ef9dfcc2",
+  "/app/codebase/e2e/fixtures.ts": "2b55d135b664837a",
+  "/app/codebase/E2E_TEST_REPORT.md": "bb05aa8b9c439f05",
+  "/app/codebase/e2e/legal.spec.ts": "d799c460ff4abbdf"
 }
