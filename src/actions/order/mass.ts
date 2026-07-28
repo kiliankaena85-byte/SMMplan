@@ -311,6 +311,12 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
+    // 54-ФЗ: CryptoBot не пробивает чеки. Лимит для физлиц до решения по облачной ККТ.
+    // TODO: интегрировать облачную ККТ (АТОЛ/Эвотор) для снятия лимита.
+    if (gateway === 'cryptobot' && paymentAmount > 1_500_000) {
+      throw new Error('Криптовалюта доступна для пополнений до 15 000 ₽. Для больших сумм используйте карту.');
+    }
+
     if (gateway === 'balance' && user.balance < totalCents) {
       throw new Error("Недостаточно средств на балансе");
     }
@@ -564,6 +570,12 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     const isMicroOrder = gateway !== 'balance' && totalCents < 1000;
     if (isMicroOrder) {
       paymentAmount = 1000;
+    }
+
+    // 54-ФЗ: CryptoBot не пробивает чеки. Лимит для физлиц до решения по облачной ККТ.
+    // TODO: интегрировать облачную ККТ (АТОЛ/Эвотор) для снятия лимита.
+    if (gateway === 'cryptobot' && paymentAmount > 1_500_000) {
+      throw new Error('Криптовалюта доступна для пополнений до 15 000 ₽. Для больших сумм используйте карту.');
     }
 
     if (gateway === 'balance' && user.balance < totalCents) {
