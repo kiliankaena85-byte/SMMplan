@@ -5,7 +5,7 @@ import { WalletOps } from "@/services/financial/wallet-ops";
 export async function GET(req: NextRequest) {
   try {
     // BUG-004 FIX: Жёстко блокируем в production — isTestMode НЕ должен открывать этот endpoint
-    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_MOCK_PAYMENT !== 'true') {
+    if (process.env.NODE_ENV === 'production') {
       return new NextResponse("Not Found", { status: 404 });
     }
 

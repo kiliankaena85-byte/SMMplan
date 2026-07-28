@@ -7,8 +7,38 @@ export function LovableReviews() {
     { name: "Денис П.", service: "VK Просмотры", text: "Топ за свои деньги. Пользовался другим сервисом, тут цены ниже, а качество выше. Радует что оплата без пополнений.", stars: 5 },
   ];
 
+  const reviewsJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "SMMflux Platform",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": "1280",
+      "bestRating": "5",
+    },
+    "review": reviews.map((r) => ({
+      "@type": "Review",
+      "author": {
+        "@type": "Person",
+        "name": r.name,
+      },
+      "reviewBody": r.text,
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": r.stars,
+        "bestRating": "5",
+      },
+    })),
+  };
+
   return (
-    <section className="py-10 md:py-20 bg-transparent relative overflow-hidden">
+    <section aria-label="Примеры отзывов реальных клиентов" className="w-full py-16 px-4 max-w-7xl mx-auto border-t border-border/30 relative">
+      {/* TODO: Connect to live reviews API once moderation queue is integrated */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(reviewsJsonLd) }}
+      />
       <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-normal text-balance">

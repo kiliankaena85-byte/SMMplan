@@ -116,10 +116,11 @@ async function main() {
   const roles = ['USER', 'USER', 'USER', 'MANAGER', 'ADMIN', 'BANNED'];
   for (let i = 1; i <= 25; i++) {
     await prisma.user.upsert({
-      where: { email: `mockclient${i}@example.com` },
+      where: { email_tenantId: { email: `mockclient${i}@example.com`, tenantId: 'smmplan' } },
       update: {},
       create: {
         email: `mockclient${i}@example.com`,
+        tenantId: 'smmplan',
         role: roles[i % roles.length] as any,
         balance: Math.floor(Math.random() * 1000000), // Random up to 10k RUB
         totalSpent: Math.floor(Math.random() * 5000000),

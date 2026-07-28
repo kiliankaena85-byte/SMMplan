@@ -65,7 +65,8 @@ export function verifyWebhook(options: WebhookVerifyOptions): WebhookVerifyResul
     }
 
     return { verified: true, statusCode: 200 };
-  } catch (err: any) {
-    return { verified: false, statusCode: 403, reason: `VERIFICATION_EXCEPTION: ${err.message}` };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return { verified: false, statusCode: 403, reason: `VERIFICATION_EXCEPTION: ${errMsg}` };
   }
 }

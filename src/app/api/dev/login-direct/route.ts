@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { normalizeTenantId } from "@/lib/tenant-resolver";
 
 export const dynamic = 'force-dynamic';
 
@@ -19,28 +20,41 @@ export async function GET(request: Request) {
 
   const cleanEmail = email.toLowerCase();
 
-  // Determine if tenant is lovable
+  // Determine tenant context from query parameter or host
   const host = request.headers.get("host") || "";
-  const isLovable = host.includes("lovable") || url.searchParams.get("tenant") === "lovable";
-  const tenantId = isLovable ? "lovable" : "smmplan";
+  const tenantParam = url.searchParams.get("tenant");
+  const rawTenantId = tenantParam || (host.includes("lovable") || host.includes("flux") ? "flux" : "smmplan");
+  const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
 
-  // Find or create the user for the specific tenant
-  let user = await db.user.findUnique({
+  // Find or merge user account
+  let user = await db.user.findFirst({
     where: { 
-      email_tenantId: {
-        email: cleanEmail,
-        tenantId: tenantId
-      } 
+      email: cleanEmail,
+      tenantId: tenantId === "flux" ? { in: ["lovable", "flux"] } : tenantId
     }
   });
+
+  if (user && user.tenantId === "lovable") {
+    user = await db.user.update({
+      where: { id: user.id },
+      data: { tenantId: "flux" }
+    });
+  }
+
+  const isMasterAdmin = cleanEmail.includes("admin") || cleanEmail.includes("infosokoloff") || cleanEmail.includes("sokolov");
 
   if (!user) {
     user = await db.user.create({
       data: {
         email: cleanEmail,
-        role: "USER",
+        role: isMasterAdmin ? "ADMIN" : "USER",
         tenantId: tenantId
       }
+    });
+  } else if (isMasterAdmin && user.role !== "ADMIN") {
+    user = await db.user.update({
+      where: { id: user.id },
+      data: { role: "ADMIN" }
     });
   }
 
@@ -64,9 +78,17 @@ export async function GET(request: Request) {
     path: '/',
   });
 
+  cookieStore.set('x_tenant', tenantId, {
+    httpOnly: true,
+    secure: false,
+    expires: expiresAt,
+    sameSite: 'lax',
+    path: '/',
+  });
+
   // Redirect to dashboard
-  if (tenantId === "lovable") {
-    redirect("/dashboard?tenant=lovable");
+  if (tenantId !== "smmplan") {
+    redirect(`/dashboard?tenant=${tenantId}`);
   } else {
     redirect("/dashboard");
   }

@@ -37,6 +37,9 @@ const structuredMassOrderSchema = z.object({
 
 const parseMassOrderText = async (text: string) => {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length > 500) {
+    throw new Error('Превышен максимальный размер пакета массового заказа (максимум 500 строк)');
+  }
   const orders: { 
     serviceId: string; 
     numericId: number; 
@@ -182,8 +185,7 @@ export const massOrderCalculateAction = async (input: { text: string }) => {
 };
 
 export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSchema>) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return createSafeAction(massOrderSchema as any, input, async (data: any) => {
+  return createSafeAction(massOrderSchema, input, async (data) => {
     const { text, email, gateway, idempotencyKey } = data;
     
     // 0. IDOR Prevention & Anti-Fraud

@@ -1,10 +1,8 @@
 import * as React from 'react';
 import { CatalogServiceDTO } from '@/types/catalog.dto';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { SocialIcon } from '@/components/ui/SocialIcon';
-import { AlertCircle, Plus, Copy } from 'lucide-react';
-import Link from 'next/link';
+import { AlertCircle } from 'lucide-react';
 
 import { EditServiceModal } from '@/components/admin/catalog-table-v2';
 
@@ -14,8 +12,8 @@ interface LovableCatalogGridProps {
   onSelect: (id: string, isSelected: boolean) => void;
   canEdit: boolean;
   canSeeRates: boolean;
-  categories: any[];
-  providers: any[];
+  categories: unknown[];
+  providers: unknown[];
   usdToRub: number;
   calcDisplayPrice: (r: number, m: number) => number;
   calcDisplayCost: (r: number) => number;

@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Copy, CheckCircle2, ChevronDown, ChevronUp, Trash2, ArrowRight, Wand2, Plus } from 'lucide-react';
+import { Loader2, Copy, CheckCircle2, Trash2, ArrowRight, Wand2, Plus } from 'lucide-react';
 import { useMultiOrderEngine } from '@/hooks/useMultiOrderEngine';
-import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import { formatCents } from '@/lib/utils';
 import { PublicCategory } from '@/actions/order/catalog';
 import {
@@ -13,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { extractLinks, detectPlatformLite } from '@/utils/link-extractor';
 import { SocialIcon } from '@/components/ui/SocialIcon';
 
 function formatPricePerUnit(price: number): string {
@@ -166,7 +164,7 @@ export function UnifiedOrderWizard({
               {engine.catalog.map(net => (
                 <button
                   key={net.id}
-                  onClick={() => (engine as any).addEmptyTask(net.id)}
+                  onClick={() => engine.addEmptyTask(net.id)}
                   className="px-4 py-2 bg-background border border-border rounded-xl hover:border-primary hover:text-primary transition-all flex items-center gap-2 hover:shadow-sm"
                 >
                   {net.icon && <img src={net.icon} alt={net.name} className="w-4 h-4" />}

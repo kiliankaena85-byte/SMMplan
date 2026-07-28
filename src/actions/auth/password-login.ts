@@ -7,6 +7,7 @@ import { createSession } from '@/lib/session';
 import { headers } from 'next/headers';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { logger } from '@/lib/logger';
+import { normalizeTenantId } from '@/lib/tenant-resolver';
 
 const log = logger.child({ component: 'PasswordLogin' });
 
@@ -45,11 +46,15 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
 
     // 3. Find User
     const reqHeaders = await headers();
-    const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+    const rawTenantId = reqHeaders.get("x-tenant-id");
+    const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
     
-    const user = await db.user.findUnique({
-      where: { email_tenantId: { email: cleanEmail, tenantId } },
-      select: { id: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
+    const user = await db.user.findFirst({
+      where: { 
+        email: cleanEmail,
+        tenantId
+      },
+      select: { id: true, tenantId: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
     });
 
     if (!user) {

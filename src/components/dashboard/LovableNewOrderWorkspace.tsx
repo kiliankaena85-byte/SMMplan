@@ -252,8 +252,8 @@ export function LovableNewOrderWorkspace({
       newErrors.email = "Введите корректный адрес электронной почты";
     }
 
-    // 6. Drip-feed duration validation (max 30 days = 43200 minutes)
-    if (isDripFeedEnabled && (dripRuns * dripInterval > 43200 || !validateDripFeedDuration(dripRuns, dripInterval))) {
+    // 6. Drip-feed duration (макс 30 дней = 43200 минут)
+    if (isDripFeedEnabled && !validateDripFeedDuration(dripRuns, dripInterval)) {
       newErrors.drip = DRIP_FEED_MAX_ERROR_MESSAGE;
     }
 
@@ -279,6 +279,8 @@ export function LovableNewOrderWorkspace({
         } else if (newErrors.email && emailRef.current) {
           emailRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
           emailRef.current.focus();
+        } else if (newErrors.drip && qtyRef.current) {
+          qtyRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }, 50);
 

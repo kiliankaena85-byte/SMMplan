@@ -8,6 +8,7 @@ import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { cookies, headers } from "next/headers";
 import { getClientIp } from "@/utils/ip";
+import { normalizeTenantId } from "@/lib/tenant-resolver";
 
 const log = logger.child({ component: 'MagicLink' });
 
@@ -46,8 +47,15 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
     const txResult = await db.$transaction(async (tx) => {
       let isNewUser = false;
       const reqHeaders = await headers();
-      const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
-      let user = await tx.user.findUnique({ where: { email_tenantId: { email: cleanEmail, tenantId } } });
+      const rawTenantId = reqHeaders.get("x-tenant-id");
+      const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
+      
+      let user = await tx.user.findFirst({
+        where: { 
+          email: cleanEmail,
+          tenantId
+        }
+      });
 
       if (user && (user.isDeleted || !user.isActive)) {
         return { type: 'blocked' as const };
@@ -112,11 +120,18 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
       log.error('Magic link SMTP error', { error: smtpError });
       console.error("Exact SMTP error:", smtpError);
       if (isNewUser) {
-        log.info('Deleting newly created user due to SMTP failure', { email: cleanEmail });
+        log.info('Soft-deleting newly created user due to SMTP failure', { email: cleanEmail });
         try {
-          await db.user.delete({ where: { id: user.id } });
+          await db.user.update({
+            where: { id: user.id },
+            data: {
+              isDeleted: true,
+              isActive: false,
+              email: `failed_${user.id}@smmplan.local`
+            }
+          });
         } catch (e) {
-          log.error('Failed to delete newly created user', { error: e });
+          log.error('Failed to soft-delete newly created user', { error: e });
         }
       }
       return { error: "Не удалось отправить письмо. Проверьте правильность email или попробуйте позже.", success: false };

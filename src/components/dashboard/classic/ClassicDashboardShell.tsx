@@ -7,10 +7,10 @@ export function ClassicDashboardShell({
   user,
   children,
 }: {
-  user: { email: string; balance: bigint };
+  user: { email: string; balanceCents: number };
   children: React.ReactNode;
 }) {
-  const balanceRub = formatBalance(user.balance);
+  const balanceRub = formatBalance(user.balanceCents);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -26,7 +26,7 @@ export function ClassicDashboardShell({
           <span className="truncate">SMMplan</span>
         </Link>
         <div className="flex items-center gap-3 ml-auto">
-          <BalanceDisplay initialBalance={formatBalance(user.balance)} variant="mobile-header" />
+          <BalanceDisplay initialBalance={formatBalance(user.balanceCents)} variant="mobile-header" />
           <Link
             href="/dashboard/add-funds"
             className="px-3.5 py-2 min-h-[40px] flex items-center text-xs font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all duration-200 shrink-0"

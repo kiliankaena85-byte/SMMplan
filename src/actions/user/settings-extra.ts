@@ -5,18 +5,14 @@ import { db } from '@/lib/db';
 import { getClientIp } from '@/utils/ip';
 import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
-
-export interface CompanyRequisitesInput {
-  companyName?: string | null;
-  inn?: string | null;
-  kpp?: string | null;
-  legalAddress?: string | null;
-}
-
-export interface UpdateCompanyRequisitesResult {
-  success: boolean;
-  error?: string;
-}
+import type {
+  CompanyRequisitesInput,
+  UpdateCompanyRequisitesResult,
+  B2bWebhookInput,
+  UpdateB2bWebhookResult,
+  Confirm152FzConsentResult,
+  ApiKeyActionResult,
+} from './settings-extra.types';
 
 /**
  * Updates tax/company B2B requisites (companyName, inn, kpp, legalAddress).
@@ -81,21 +77,13 @@ export async function updateTaxRequisitesAction(
   }
 }
 
-// Alias for backwards compatibility
-export const updateCompanyRequisitesAction = updateTaxRequisitesAction;
-
-export interface B2bWebhookInput {
-  webhookUrl?: string | null;
-  isWebhookActive?: boolean;
-  regenerateSecret?: boolean;
-}
-
-export interface UpdateB2bWebhookResult {
-  success: boolean;
-  error?: string;
-  webhookSecret?: string | null;
-  webhookUrl?: string | null;
-  isWebhookActive?: boolean;
+/**
+ * Alias wrapper for updateCompanyRequisitesAction.
+ */
+export async function updateCompanyRequisitesAction(
+  data: CompanyRequisitesInput
+): Promise<UpdateCompanyRequisitesResult> {
+  return updateTaxRequisitesAction(data);
 }
 
 /**
@@ -171,13 +159,6 @@ export async function updateB2bWebhookAction(
   }
 }
 
-export interface Confirm152FzConsentResult {
-  success: boolean;
-  error?: string;
-  tosAcceptedAt?: Date | string | null;
-  tosAcceptedIp?: string | null;
-}
-
 /**
  * Records user's consent to 152-FZ Terms of Service & Privacy Policy.
  */
@@ -213,12 +194,6 @@ export async function confirm152FzConsentAction(): Promise<Confirm152FzConsentRe
     console.error('[confirm152FzConsentAction] Error:', message);
     return { success: false, error: 'Не удалось зафиксировать согласие 152-ФЗ' };
   }
-}
-
-export interface ApiKeyActionResult {
-  success: boolean;
-  apiKey?: string;
-  error?: string;
 }
 
 /**

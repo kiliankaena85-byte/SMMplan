@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { updateTaxRequisitesAction } from '@/actions/settings';
+import { updateTaxRequisitesAction } from '@/actions/user/settings-extra';
 import { Building2, Save, Check } from 'lucide-react';
 import { toast } from 'sonner';
 

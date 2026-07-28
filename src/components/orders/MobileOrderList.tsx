@@ -13,6 +13,7 @@ import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
 import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
 import { CopyText } from '@/components/ui/CopyText';
+import { formatRub } from '@/lib/money';
 import { SocialIcon } from '@/components/ui/SocialIcon';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -124,7 +125,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                     <div className="text-right shrink-0">
                       <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         <div className="text-sm font-bold text-foreground tabular-nums">
-                          {(Number(order.charge) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                          {formatRub(Number(order.charge))} ₽
                         </div>
                         <ChargeBreakdownModal
                           numericId={order.numericId}
@@ -249,7 +250,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                       <div className="text-right">
                         <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Сумма</div>
                         <div className="text-lg font-black tabular-nums">
-                          {(Number(selectedOrder.charge) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                          {formatRub(Number(selectedOrder.charge))} ₽
                         </div>
                       </div>
                     </div>
@@ -328,12 +329,12 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <span className="text-muted-foreground block text-[10px]">Оплачено:</span>
-                          <span className="font-mono font-bold">{(Number(selectedOrder.charge) / 100).toFixed(2)} ₽</span>
+                          <span className="font-mono font-bold">{formatRub(Number(selectedOrder.charge))} ₽</span>
                         </div>
                         {Number(selectedOrder.discountCents || 0) > 0 && (
                           <div>
                             <span className="text-emerald-600 block text-[10px]">Скидка:</span>
-                            <span className="font-mono font-bold text-emerald-600">- {(Number(selectedOrder.discountCents) / 100).toFixed(2)} ₽</span>
+                            <span className="font-mono font-bold text-emerald-600">- {formatRub(Number(selectedOrder.discountCents))} ₽</span>
                           </div>
                         )}
                         <div className="col-span-2 pt-1 border-t border-border/30 flex justify-between items-center text-[10px]">

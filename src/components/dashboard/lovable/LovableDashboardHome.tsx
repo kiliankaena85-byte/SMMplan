@@ -7,26 +7,9 @@ import { formatBalance } from '@/lib/utils';
 import { PaymentAutoSync } from '@/components/orders/PaymentAutoSync';
 import { LovableOrderClient } from '@/components/ab-test/LovableOrderClient';
 
-const STATUS_LABEL: Record<string, string> = {
-  COMPLETED:       'Выполнен',
-  IN_PROGRESS:     'В работе',
-  PENDING:         'Ожидание',
-  AWAITING_PAYMENT:'Ожидает оплаты',
-  ERROR:           'Ошибка',
-  CANCELED:        'Отменён',
-  PARTIAL:         'Частично',
-  PROVISIONING:    'Запуск',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  COMPLETED:       'text-emerald-500 bg-emerald-500/10',
-  IN_PROGRESS:     'text-blue-500 bg-blue-500/10',
-  PENDING:         'text-amber-500 bg-amber-500/10',
-  AWAITING_PAYMENT:'text-amber-500 bg-amber-500/10',
-  ERROR:           'text-rose-500 bg-rose-500/10',
-  PARTIAL:         'text-orange-500 bg-orange-500/10',
-  CANCELED:        'text-gray-400 bg-gray-400/10',
-};
+import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
+import { formatRub, toCents } from '@/lib/money';
+import { FluxOrder, FluxNetwork } from '@/types/flux';
 
 export function LovableDashboardHome({
   user,
@@ -37,24 +20,36 @@ export function LovableDashboardHome({
   origin,
   initialCatalog = [],
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  user: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  orders: any[];
+  user: { email: string; balanceCents: number; referralCode?: string | null; totalSpent?: number };
+  orders: FluxOrder[];
   referralCount: number;
   activeOrders: number;
   hasPendingPayments: boolean;
   origin: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialCatalog?: any[];
+  initialCatalog?: FluxNetwork[];
 }) {
   const [copied, setCopied] = React.useState(false);
-  const refLink = `${origin}?ref=${user.referralCode || user.email?.split('@')[0]}`;
+  const refCode = user.referralCode ?? '';
+  const refLink = refCode ? `${origin}?ref=${encodeURIComponent(refCode)}` : origin;
+  const isRefLinkAvailable = Boolean(refCode);
+
+  const copyTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const copyRefLink = () => {
-    navigator.clipboard.writeText(refLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (!isRefLinkAvailable) return;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(refLink).then(() => {
+        setCopied(true);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {});
+    }
   };
 
   return (
@@ -92,12 +87,12 @@ export function LovableDashboardHome({
             </div>
             
             <div className="text-3xl font-black tabular-nums tracking-tight mb-2 text-foreground">
-              {formatBalance(user.balance)}
+              {formatBalance(user.balanceCents)}
             </div>
             
             <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>Потрачено всего: {(Number(user.totalSpent) / 100).toLocaleString('ru-RU')} ₽</span>
+              <span>Потрачено всего: {formatRub(Number(user.totalSpent || 0))} ₽</span>
             </div>
           </div>
 
@@ -140,8 +135,8 @@ export function LovableDashboardHome({
                 </div>
               ) : (
                 orders.map(order => {
-                  const color = STATUS_COLOR[order.status] || STATUS_COLOR.CANCELED;
-                  const label = STATUS_LABEL[order.status] || order.status;
+                  const color = getStatusBadgeClass(order.status);
+                  const label = getStatusLabel(order.status);
                   return (
                     <div key={order.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-muted/30 border border-border/20 hover:bg-muted/60 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
@@ -154,7 +149,7 @@ export function LovableDashboardHome({
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="text-sm font-bold text-foreground">{(order.charge / 100).toFixed(2)} ₽</span>
+                        <span className="text-sm font-bold text-foreground">{formatRub(order.chargeCents ?? toCents(order.charge))} ₽</span>
                       </div>
                     </div>
                   );
@@ -188,10 +183,12 @@ export function LovableDashboardHome({
 
             <button
               onClick={copyRefLink}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white text-blue-600 font-bold text-sm shadow-md hover:bg-white/90 active:scale-95 transition-all flex items-center justify-center gap-2"
+              disabled={!isRefLinkAvailable}
+              title={!isRefLinkAvailable ? "Код скоро появится" : undefined}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white text-blue-600 font-bold text-sm shadow-md hover:bg-white/90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-              <span>{copied ? "Ссылка скопирована!" : "Скопировать ссылку"}</span>
+              <span>{copied ? "Ссылка скопирована!" : !isRefLinkAvailable ? "Код скоро появится" : "Скопировать ссылку"}</span>
             </button>
           </div>
         </div>

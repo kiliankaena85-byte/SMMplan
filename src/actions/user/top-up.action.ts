@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
 import { headers } from "next/headers";
 import { getBaseUrlAsync } from "@/utils/get-base-url";
-import { SettingsManager } from "@/lib/settings";
 import { getClientIp } from "@/utils/ip";
 import { RateLimitService } from "@/services/core/rate-limit.service";
 
@@ -91,6 +90,6 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
     }).catch(() => {});
 
     const errorMessage = err instanceof Error ? err.message : 'Ошибка создания платежа в платежной системе';
-    throw new Error(errorMessage);
+    throw new Error(errorMessage, { cause: err });
   }
 }

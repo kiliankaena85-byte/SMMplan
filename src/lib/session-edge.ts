@@ -14,6 +14,8 @@ export function getEncodedKey() {
   return cachedEncodedKey;
 }
 
+import { normalizeTenantId } from '@/lib/tenant-resolver';
+
 /**
  * Decrypts JWT session token in an Edge-safe manner (no DB calls).
  */
@@ -22,7 +24,11 @@ export async function decryptSessionToken(token: string) {
     const { payload } = await jwtVerify(token, getEncodedKey(), {
       algorithms: ['HS256'],
     });
-    return payload as { sessionId: string; userId: string; role: string; tenantId: string; canResetPassword?: boolean };
+    const parsed = payload as { sessionId: string; userId: string; role: string; tenantId: string; canResetPassword?: boolean };
+    if (parsed && parsed.tenantId) {
+      parsed.tenantId = normalizeTenantId(parsed.tenantId);
+    }
+    return parsed;
   } catch (error) {
     if (error instanceof Error && error.message.includes('FATAL:')) {
       console.error(error.message);

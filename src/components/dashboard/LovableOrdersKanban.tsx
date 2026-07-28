@@ -1,37 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Clock, 
   Play, 
   CheckCircle2, 
   AlertCircle, 
-  ExternalLink, 
-  RotateCcw, 
-  XOctagon, 
-  Layers 
+  ExternalLink 
 } from 'lucide-react';
-import Link from 'next/link';
+import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
+import { FluxOrder } from '@/types/flux';
 
-interface KanbanOrder {
-  id: string;
-  numericId: number;
-  status: string;
-  charge: number;
-  quantity: number;
-  remains: number | null;
-  link: string;
-  error: string | null;
-  createdAt: string;
-  service: {
-    name: string;
-    network: {
-      slug: string;
-    };
-  };
-}
-
-export function LovableOrdersKanban({ orders }: { orders: KanbanOrder[] }) {
+export function LovableOrdersKanban({ orders }: { orders: FluxOrder[] }) {
+  const [activeTab, setActiveTab] = useState<'queue' | 'in_progress' | 'done'>('queue');
   
   // Categorize orders into kanban columns
   const queueOrders = orders.filter(o => 
@@ -46,22 +27,8 @@ export function LovableOrdersKanban({ orders }: { orders: KanbanOrder[] }) {
     ['COMPLETED', 'CANCELED', 'ERROR'].includes(o.status)
   );
 
-  const getStatusBadge = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'COMPLETED': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      'IN_PROGRESS': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-      'PENDING': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      'AWAITING_PAYMENT': 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20',
-      'PROVISIONING': 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-      'PARTIAL': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-      'CANCELED': 'bg-red-500/10 text-red-400 border-red-500/20',
-      'ERROR': 'bg-rose-500/10 text-rose-450 border-rose-500/20',
-    };
-    return statusColors[status] || 'bg-muted text-muted-foreground';
-  };
-
-  const renderCard = (order: KanbanOrder) => {
-    const remains = order.remains || 0;
+  const renderCard = (order: FluxOrder) => {
+    const remains = order.remains ?? order.quantity;
     const total = order.quantity || 1;
     const completed = Math.max(0, total - remains);
     const progressPercent = Math.min(100, Math.round((completed / total) * 100));
@@ -75,8 +42,8 @@ export function LovableOrdersKanban({ orders }: { orders: KanbanOrder[] }) {
           <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground">
             #{order.numericId}
           </span>
-          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${getStatusBadge(order.status)}`}>
-            {order.status}
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${getStatusBadgeClass(order.status)}`}>
+            {getStatusLabel(order.status)}
           </span>
         </div>
 
@@ -123,66 +90,69 @@ export function LovableOrdersKanban({ orders }: { orders: KanbanOrder[] }) {
     );
   };
 
+  const renderColumnContent = (title: string, icon: React.ReactNode, dotColor: string, columnOrders: FluxOrder[], emptyText: string) => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-2">
+        <h3 className="font-extrabold text-sm text-foreground flex items-center gap-2">
+          {icon} {title} ({columnOrders.length})
+        </h3>
+        <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
+      </div>
+      <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1 pb-4 scrollbar-thin">
+        {columnOrders.length === 0 ? (
+          <div className="p-8 border border-dashed border-border/40 rounded-[2rem] text-center text-xs text-muted-foreground">
+            {emptyText}
+          </div>
+        ) : (
+          columnOrders.map(renderCard)
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
-      {/* Column 1: Queue */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <h3 className="font-extrabold text-sm text-foreground flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-500" /> В очереди ({queueOrders.length})
-          </h3>
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-        </div>
-        <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1 pb-4 scrollbar-thin">
-          {queueOrders.length === 0 ? (
-            <div className="p-8 border border-dashed border-border/40 rounded-[2rem] text-center text-xs text-muted-foreground">
-              Нет заказов в очереди
-            </div>
-          ) : (
-            queueOrders.map(renderCard)
-          )}
-        </div>
+    <div>
+      {/* Mobile Tab Selector (block md:hidden) */}
+      <div className="md:hidden flex items-center gap-1 p-1 bg-muted/50 rounded-2xl mb-6 border border-border/30">
+        <button
+          onClick={() => setActiveTab('queue')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            activeTab === 'queue' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          В очереди ({queueOrders.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('in_progress')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            activeTab === 'in_progress' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          В работе ({inProgressOrders.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('done')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+            activeTab === 'done' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Завершено ({doneOrders.length})
+        </button>
       </div>
 
-      {/* Column 2: In Progress */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <h3 className="font-extrabold text-sm text-foreground flex items-center gap-2">
-            <Play className="w-4 h-4 text-blue-500" /> Выполняется ({inProgressOrders.length})
-          </h3>
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-        </div>
-        <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1 pb-4 scrollbar-thin">
-          {inProgressOrders.length === 0 ? (
-            <div className="p-8 border border-dashed border-border/40 rounded-[2rem] text-center text-xs text-muted-foreground">
-              Нет выполняющихся заказов
-            </div>
-          ) : (
-            inProgressOrders.map(renderCard)
-          )}
-        </div>
+      {/* Mobile View: Single active column */}
+      <div className="md:hidden">
+        {activeTab === 'queue' && renderColumnContent("В очереди", <Clock className="w-4 h-4 text-amber-500" />, "bg-amber-500", queueOrders, "Нет заказов в очереди")}
+        {activeTab === 'in_progress' && renderColumnContent("Выполняется", <Play className="w-4 h-4 text-blue-500" />, "bg-blue-500", inProgressOrders, "Нет выполняющихся заказов")}
+        {activeTab === 'done' && renderColumnContent("Завершено", <CheckCircle2 className="w-4 h-4 text-emerald-500" />, "bg-emerald-500", doneOrders, "История пуста")}
       </div>
 
-      {/* Column 3: Done */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <h3 className="font-extrabold text-sm text-foreground flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Завершено ({doneOrders.length})
-          </h3>
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-        </div>
-        <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1 pb-4 scrollbar-thin">
-          {doneOrders.length === 0 ? (
-            <div className="p-8 border border-dashed border-border/40 rounded-[2rem] text-center text-xs text-muted-foreground">
-              История пуста
-            </div>
-          ) : (
-            doneOrders.map(renderCard)
-          )}
-        </div>
+      {/* Desktop View: 3-column grid (hidden md:grid) */}
+      <div className="hidden md:grid md:grid-cols-3 gap-6">
+        {renderColumnContent("В очереди", <Clock className="w-4 h-4 text-amber-500" />, "bg-amber-500", queueOrders, "Нет заказов в очереди")}
+        {renderColumnContent("Выполняется", <Play className="w-4 h-4 text-blue-500" />, "bg-blue-500", inProgressOrders, "Нет выполняющихся заказов")}
+        {renderColumnContent("Завершено", <CheckCircle2 className="w-4 h-4 text-emerald-500" />, "bg-emerald-500", doneOrders, "История пуста")}
       </div>
-
     </div>
   );
 }

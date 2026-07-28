@@ -5,6 +5,7 @@ import { getEncodedKey, decryptSessionToken } from './session-edge';
 export { getEncodedKey, decryptSessionToken };
 
 import { getClientIp } from '@/utils/ip';
+import { normalizeTenantId } from '@/lib/tenant-resolver';
 
 export async function createSession(userId: string, canResetPassword: boolean = false) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 дней
@@ -58,11 +59,6 @@ export async function createSession(userId: string, canResetPassword: boolean = 
 }
 
 export async function verifySession(): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
-  const reqHeaders = await headers();
-  const rawIp = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || '';
-  // Very basic localhost sanity check if headers are present
-  const isLocalhostRequest = !rawIp || rawIp.includes('127.0.0.1') || rawIp.includes('::1');
-
   const explicitLogout = (await cookies()).get('explicit_logout')?.value;
   if (explicitLogout === 'true') {
     return null;
@@ -100,9 +96,9 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
       return null;
     }
 
-    // Verify tenant context match
-    const currentTenantId = reqHeaders.get("x-tenant-id") || "smmplan";
-    if (user.tenantId !== currentTenantId) {
+    const reqHeaders = await headers();
+    const currentTenantId = normalizeTenantId(reqHeaders.get("x-tenant-id")) || "smmplan";
+    if (normalizeTenantId(user.tenantId) !== currentTenantId) {
       console.warn(`[verifySession] null because: user tenant "${user.tenantId}" does not match request tenant "${currentTenantId}"`);
       return null;
     }

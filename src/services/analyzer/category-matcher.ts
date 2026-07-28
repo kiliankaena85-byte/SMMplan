@@ -98,6 +98,10 @@ function isAutoService(name: string): boolean {
   return false;
 }
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Matches a database category string like '👨‍👩‍👧‍👦 Подписчики / Участники'
  * against an array of suggested short categories like ['Подписчики', 'Автоактивности']
@@ -115,7 +119,7 @@ export function matchesSuggestedCategory(
     }
   }
 
-  if (suggestedCategories.length === 0) return true; // no filter = show all
+  if (!suggestedCategories || suggestedCategories.length === 0) return true; // no filter = show all
   
   const dbIsAuto = isAutoService(dbCategoryName);
   
@@ -144,11 +148,12 @@ export function matchesSuggestedCategory(
     // 3. Contains match (suggested includes dbName - word bounded to prevent "автопросмотры" matching "просмотры")
     // Use regex to ensure dbNameNormalized is matched as a whole word/phrase within suggestedNormalized
     try {
-      const regex = new RegExp(`(^|[\\s/,-])${dbNameNormalized}([\\s/,-]|$)`, 'i');
+      const escaped = escapeRegex(dbNameNormalized);
+      const regex = new RegExp(`(^|[\\s/,-])${escaped}([\\s/,-]|$)`, 'i');
       if (regex.test(suggestedNormalized)) return true;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch(e) {
-      // Fallback if dbNameNormalized has regex characters
+      // Fallback if dbNameNormalized has unexpected syntax
       if (suggestedNormalized === dbNameNormalized) return true;
     }
     
@@ -156,7 +161,8 @@ export function matchesSuggestedCategory(
     // Since suggestedCategories might be "Подписчики / Участники", we need to check if any key in CANONICAL_MAP is in suggested.
     for (const [key, synonyms] of Object.entries(CANONICAL_MAP)) {
       try {
-        const keyRegex = new RegExp(`(^|[\\s/,-])${key.toLowerCase()}([\\s/,-]|$)`, 'i');
+        const escapedKey = escapeRegex(key.toLowerCase());
+        const keyRegex = new RegExp(`(^|[\\s/,-])${escapedKey}([\\s/,-]|$)`, 'i');
         if (keyRegex.test(suggestedNormalized)) {
           for (const syn of synonyms) {
             if (dbNameNormalized.includes(syn.toLowerCase())) return true;

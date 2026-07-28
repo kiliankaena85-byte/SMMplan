@@ -18,14 +18,7 @@ export async function getUserFinancialSummaryAction(userId: string) {
     throw new Error('Некорректный ID пользователя');
   }
 
-  const result = await requireOperatorPermission('orders', 'view', async () => {
+  return requireOperatorPermission('orders', 'view', async () => {
     return getClientFinancialSummary(parsed.data.userId);
   });
-
-  // Replicate standard admin action guard pattern
-  if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    throw new Error(result.error);
-  }
-
-  return result;
 }

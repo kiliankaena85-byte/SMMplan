@@ -1,7 +1,3 @@
-"use client";
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { 
   Sparkles, 
@@ -121,7 +117,7 @@ export function LovableWhyUs({ companyName = "SMMplan" }: { companyName?: string
                 Запустите свой SMM-бизнес за 5 минут без требований к минимальному балансу.
               </p>
               <Link 
-                href="/login?role=reseller&promo=B2BSTART"
+                href="/login?promo=B2BSTART"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-slate-900 text-sm font-extrabold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shrink-0"
               >
                 <span>Кабинет Реселлера</span>

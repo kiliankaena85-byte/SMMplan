@@ -64,13 +64,15 @@ export function Header({ initialEmail, siteName, activePath }: HeaderProps) {
               >
                 <span>Личный кабинет</span>
               </Link>
-              <a
-                href="/api/auth/logout"
-                className="flex items-center justify-center p-2 sm:p-2.5 rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-destructive transition-colors border border-default-200"
-                title="Выйти из аккаунта"
-              >
-                <LogOut className="w-4 h-4" />
-              </a>
+              <form method="POST" action="/api/auth/logout">
+                <button
+                  type="submit"
+                  className="flex items-center justify-center p-2 sm:p-2.5 rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-destructive transition-colors border border-default-200 cursor-pointer"
+                  title="Выйти из аккаунта"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </form>
             </div>
           ) : (
             <Link

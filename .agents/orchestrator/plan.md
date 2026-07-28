@@ -1,38 +1,26 @@
-# Implementation Plan: Client Dashboard Advanced Backend Features Integration
+# Implementation Plan: SMMplan Comprehensive Audit & Verification
 
-## Phase 1: Codebase Exploration & Technical Specification
-- Dispatch Explorer (`teamwork_preview_explorer`) to audit `new-order`, `orders`, `settings`, and `deposit` files in SMMplan & SMMflux.
-- Identify existing Prisma schemas, server actions, and client UI components.
-- Produce technical specification in `.agents/explorer_1/analysis.md`.
-
-## Phase 2: R1 - Advanced Order Parameters (`new-order`)
-- Implement Drip-Feed toggle and interval/runs fields in `new-order` forms for both SMMplan & SMMflux.
-- Add total budget calculation (`qty * runs * price`).
-- Implement Custom Data textarea / numeric selection for comment/poll services.
-- Display ETA P50/P90 speed badges (`⚡ Высокая (ETA P50: 12 мин, P90: 45 мин)`).
-- Implement mandatory `clientConfirmation` JIT warning checkbox with error highlight animation.
+## Phase 1: Milestone 1 - R1 E2E Audit & Static Analysis
+- Dispatch Worker (`teamwork_preview_worker`) to run and verify:
+  1. `npm run test:tenant` (E2E tenant test suite)
+  2. `npx tsc --noEmit` (TypeScript type safety)
+  3. `npm run build` (Next.js 16 production build)
 - Verification: Reviewer + Challenger + Forensic Auditor.
 
-## Phase 3: R2 - Order Management (`orders`)
-- Add "Запросить бесплатную докрутку" (Refill request) button in `orders` registry.
-- Connect Refill action to backend and display status (`PENDING`).
-- Display Drip-Feed progress (`Запуск 2 из 5 (следующий через 15 мин)`).
-- Show CBR exchange rate & discount breakdown details.
+## Phase 2: Milestone 2 - R2 Payment Gateways & SMM Provider APIs
+- Dispatch Explorer/Worker to verify payment gateway test mode handling (YooKassa, Robokassa, CryptoBot) and SMM provider API webhooks/signatures/statuses.
 - Verification: Reviewer + Challenger + Forensic Auditor.
 
-## Phase 4: R3 - Advanced Profile & Security Settings (`settings`)
-- Display 152-ФЗ consent card with `tosAcceptedAt` timestamp and `tosAcceptedIp`.
-- Add B2B Webhook URL, Webhook Secret, and status indicator.
-- Add B2B Legal Entity Requisites fields (`companyName`, `inn`, `kpp`, `legalAddress`).
-- Implement API Key generation & reset feature (`apiKeyHash`).
+## Phase 3: Milestone 3 - R3 Security & Trust Boundaries
+- Dispatch Explorer/Worker to audit Server Actions & API routes for `requireAdmin`, `verifySession`, client-side tampering protection, IDOR, and `x-tenant-id` header validation.
 - Verification: Reviewer + Challenger + Forensic Auditor.
 
-## Phase 5: R4 - Promo Codes & Vouchers in Deposit (`deposit`)
-- Add Promo Code / Voucher input in `deposit` balance top-up form.
-- Calculate instant discount or fix bonus in cents.
+## Phase 4: Milestone 4 - R4 Performance & UX Audit
+- Dispatch Explorer/Worker to audit React 19 hydration error logs, re-render cycles, component contrast, and Tailwind v4 / HeroUI v3 design tokens.
 - Verification: Reviewer + Challenger + Forensic Auditor.
 
-## Phase 6: E2E Integration & Verification
-- Execute full linting (`eslint`), typechecking (`tsc --noEmit`), and build verification.
-- Final Forensic Audit (`teamwork_preview_auditor`).
-- Prepare final project report.
+## Phase 5: Synthesis & Sentinel Notification
+- Aggregate findings across all 4 milestones.
+- Perform final Forensic Verification.
+- Notify Sentinel of completed audit results.
+

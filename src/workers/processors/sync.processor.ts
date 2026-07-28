@@ -12,9 +12,12 @@ import { CompensationService } from '../../services/financial/compensation.servi
 const log = logger.child({ component: 'SyncProcessor' });
 
 async function safeUpdateOrderStatus(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tx: any, 
   orderId: string, 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
   const fresh = await tx.order.findUnique({ where: { id: orderId } });
   if (!fresh || !['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'].includes(fresh.status)) {

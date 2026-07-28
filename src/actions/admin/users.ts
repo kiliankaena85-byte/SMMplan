@@ -13,9 +13,15 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { getClientIp } from '@/utils/ip';
 
 import { getEncodedKey } from '@/lib/session';
+import { SupportBalancePolicyService } from '@/services/financial/support-balance-policy.service';
 
 export async function updateBalanceAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
+    // 1. Role Guard: SUPPORT cannot perform direct balance updates under any circumstances
+    if (admin.role === 'SUPPORT') {
+      return { success: false as const, error: 'Службе поддержки запрещено прямое изменение балансов. Используйте компенсацию в тикете или создайте заявку на согласование.' };
+    }
+
     const payload = Object.fromEntries(formData.entries());
     const parsed = updateBalanceSchema.safeParse(payload);
     
@@ -25,28 +31,45 @@ export async function updateBalanceAction(formData: FormData) {
 
     const { userId, amount, reason } = parsed.data;
 
-    // SECURITY GUARD: Block self-balance modification to prevent insider fraud
+    // 2. SECURITY GUARD: Block self-balance modification (only OWNER permitted with audit warning)
     if (userId === admin.id && admin.role !== 'OWNER') {
-      console.warn(`[SECURITY] Blocked self-balance modification attempt by admin ${admin.id}`);
+      console.warn(`[SECURITY] Blocked self-balance modification attempt by ${admin.id} (${admin.role})`);
       return { success: false as const, error: 'Запрещено изменять собственный баланс' };
     }
 
+    // 3. Staff-Targeting Guard: Non-OWNER staff cannot adjust balance of other staff members
     const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
     if (!targetUser) {
       return { success: false as const, error: 'Пользователь не найден' };
     }
 
-    if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN')) {
-      console.warn(`[SECURITY] Non-owner ${admin.id} (${admin.role}) attempted balance adjustment on target ${targetUser.id} (${targetUser.role})`);
-      return { success: false as const, error: 'Только OWNER может изменять баланс руководства' };
+    if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN' || targetUser.role === 'MANAGER' || targetUser.role === 'SUPPORT')) {
+      console.warn(`[SECURITY] Non-owner ${admin.id} (${admin.role}) attempted balance adjustment on staff target ${targetUser.id} (${targetUser.role})`);
+      return { success: false as const, error: 'Только OWNER может изменять баланс других сотрудников' };
     }
 
-    // Additional safeguard: only OWNER and ADMIN for large balance updates if needed, 
-    // but here we follow RBAC 'edit' permission for 'clients' section.
-    // If SUPPORT has 'edit' permission for 'clients', they can update balance. 
-    // Usually, SUPPORT should only have 'view' for 'clients'.
-
     const ipAddress = await getClientIp('unknown');
+
+    // 4. For MANAGER role, run through Policy Engine first
+    if (admin.role === 'MANAGER') {
+      const policyCheck = await db.$transaction(async (tx) => {
+        return SupportBalancePolicyService.validateAndReserveSupportOperation(tx, {
+          staffUserId: admin.id,
+          targetUserId: userId,
+          direction: amount >= 0 ? 'CREDIT' : 'DEBIT',
+          amountCents: BigInt(Math.abs(amount)),
+          reasonCode: amount >= 0 ? 'DIRECT_CREDIT' : 'DIRECT_DEBIT',
+          reasonNote: reason.trim(),
+          source: 'DIRECT_ADJUSTMENT',
+          idempotencyKey: `direct-adjust-${userId}-${amount}-${Date.now()}`,
+          ipAddress
+        });
+      });
+
+      if (!policyCheck.allowed) {
+        return { success: false as const, error: policyCheck.error };
+      }
+    }
 
     const escrowResult = await escrowService.evaluateBalanceAdjustment(
       userId,

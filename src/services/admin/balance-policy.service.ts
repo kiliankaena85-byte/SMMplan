@@ -2,8 +2,8 @@ import { db } from "@/lib/db";
 import { BalanceAdjustmentPolicy } from "@prisma/client";
 import { BALANCE_ADJUSTMENT_REASONS } from "@/constants/balance-adjustments";
 
-export async function getEffectiveBalancePolicy(staffUserId: string): Promise<BalanceAdjustmentPolicy | null> {
-  const staffUser = await db.user.findUnique({
+export async function getEffectiveBalancePolicy(staffUserId: string, client: any = db): Promise<BalanceAdjustmentPolicy | null> {
+  const staffUser = await client.user.findUnique({
     where: { id: staffUserId },
     select: { id: true, staffRoleId: true, role: true }
   });
@@ -11,7 +11,7 @@ export async function getEffectiveBalancePolicy(staffUserId: string): Promise<Ba
   if (!staffUser) return null;
 
   // 1. Personal override policy
-  const userPolicy = await db.balanceAdjustmentPolicy.findFirst({
+  const userPolicy = await client.balanceAdjustmentPolicy.findFirst({
     where: {
       scopeType: 'USER',
       userId: staffUserId,
@@ -23,7 +23,7 @@ export async function getEffectiveBalancePolicy(staffUserId: string): Promise<Ba
 
   // 2. Role-based policy
   if (staffUser.staffRoleId) {
-    const rolePolicy = await db.balanceAdjustmentPolicy.findFirst({
+    const rolePolicy = await client.balanceAdjustmentPolicy.findFirst({
       where: {
         scopeType: 'ROLE',
         staffRoleId: staffUser.staffRoleId,
@@ -35,7 +35,7 @@ export async function getEffectiveBalancePolicy(staffUserId: string): Promise<Ba
   }
 
   // 3. Global fallback policy
-  const globalPolicy = await db.balanceAdjustmentPolicy.findFirst({
+  const globalPolicy = await client.balanceAdjustmentPolicy.findFirst({
     where: {
       scopeType: 'GLOBAL',
       isActive: true
@@ -86,9 +86,9 @@ export function parsePolicyReasonCodes(policy: BalanceAdjustmentPolicy): {
   allowedDebitReasonCodes: string[];
   allowedTargetRoles: string[];
 } {
-  let allowedCreditReasonCodes: string[] = [];
-  let allowedDebitReasonCodes: string[] = [];
-  let allowedTargetRoles: string[] = [];
+  let allowedCreditReasonCodes: string[];
+  let allowedDebitReasonCodes: string[];
+  let allowedTargetRoles: string[];
 
   try {
     const rawCredit = policy.allowedCreditReasonCodes;

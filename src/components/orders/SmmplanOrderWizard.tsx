@@ -167,7 +167,7 @@ export function SmmplanOrderWizard({
         } else if (!isCancelled) {
           setCalculatedPriceRub(selectedService!.pricePerUnitRub * totalQuantity);
         }
-      } catch (e) {
+      } catch {
         if (!isCancelled) {
           setCalculatedPriceRub(selectedService!.pricePerUnitRub * totalQuantity);
         }

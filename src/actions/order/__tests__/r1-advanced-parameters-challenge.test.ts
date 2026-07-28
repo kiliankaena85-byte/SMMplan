@@ -217,6 +217,7 @@ describe('Requirement R1 Empirical Stress Tests & Challenge Suite', () => {
     it('1.3 CRITICAL BUG DISCOVERY: checkoutAction creates Order WITHOUT setting isDripFeed: true', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: 'user-1' } as any);
       vi.mocked(db.user.findUnique).mockResolvedValue(defaultUser as any);
+      vi.mocked(db.user.findFirst).mockResolvedValue(defaultUser as any);
       vi.mocked(db.service.findUnique).mockResolvedValue(defaultService as any);
 
       vi.mocked(db.order.create).mockResolvedValue({ id: 'order-drip-1', numericId: 7001 } as any);
@@ -351,7 +352,7 @@ describe('Requirement R1 Empirical Stress Tests & Challenge Suite', () => {
     it('3.2 Smart Drip surcharge interaction with Promo Code discount', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: 'user-1' } as any);
       vi.mocked(db.user.findUnique).mockResolvedValue(defaultUser as any);
-
+      vi.mocked(db.user.findFirst).mockResolvedValue(defaultUser as any);
       vi.mocked(db.service.findUnique).mockResolvedValue({
         ...defaultService,
         id: 'service-smart-1',

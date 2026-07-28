@@ -8,10 +8,7 @@ import { getEffectiveBalancePolicy, parsePolicyReasonCodes } from "@/services/ad
 import { WalletOps } from "@/services/financial/wallet-ops";
 import {
   BALANCE_ADJUSTMENT_DIRECTION,
-  BALANCE_ADJUSTMENT_REASONS,
   BALANCE_ADJUSTMENT_STATUS,
-  BalanceAdjustmentDirection,
-  BalanceAdjustmentStatus
 } from "@/constants/balance-adjustments";
 
 const createRequestSchema = z.object({
@@ -387,14 +384,15 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
       });
 
       return { success: true, id: adjustment.id, status: BALANCE_ADJUSTMENT_STATUS.EXECUTED };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
       console.error("[ApproveBalanceAdjustment] Execution failed:", err);
 
       await db.manualBalanceAdjustment.update({
         where: { id: adjustment.id },
         data: {
           status: BALANCE_ADJUSTMENT_STATUS.EXECUTION_FAILED,
-          executionError: err.message || "Ошибка исполнения транзакции"
+          executionError: errMsg || "Ошибка исполнения транзакции"
         }
       });
 
@@ -404,10 +402,10 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
         action: 'BALANCE_ADJUSTMENT_EXECUTION_FAILED',
         target: adjustment.id,
         targetType: 'ManualBalanceAdjustment',
-        newValue: { error: err.message }
+        newValue: { error: errMsg }
       });
 
-      return { success: false, error: `Сбой при зачислении/списании: ${err.message}` };
+      return { success: false, error: `Сбой при зачислении/списании: ${errMsg}` };
     }
   });
 }

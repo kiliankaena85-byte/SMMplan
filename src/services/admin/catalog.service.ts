@@ -452,7 +452,7 @@ class AdminCatalogService {
     let resurrected = 0;
     let priceAnomalies = 0;
     let priceUpdatedSilent = 0;
-    let marginFloorBreaches = 0;
+    const marginFloorBreaches = 0;
 
     const settings = await SettingsProvider.get();
     const usdToRub = settings.exchangeRateUSD || 95.0;

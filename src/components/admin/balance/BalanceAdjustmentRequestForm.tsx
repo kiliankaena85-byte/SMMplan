@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { BALANCE_ADJUSTMENT_DIRECTION, BALANCE_ADJUSTMENT_REASONS } from "@/constants/balance-adjustments";
+import { BALANCE_ADJUSTMENT_REASONS } from "@/constants/balance-adjustments";
 import { createBalanceAdjustmentRequestAction } from "@/actions/admin/balance-adjustments";
 
 interface Props {
@@ -69,8 +69,9 @@ export function BalanceAdjustmentRequestForm({ userId, userEmail, userBalanceCen
       } else {
         setError(res.error || "Не удалось создать заявку");
       }
-    } catch (err: any) {
-      setError(err.message || "Ошибка сети");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setError(errMsg || "Ошибка сети");
     } finally {
       setLoading(false);
     }

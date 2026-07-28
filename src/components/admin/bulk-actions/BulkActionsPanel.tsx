@@ -7,7 +7,6 @@ import {
   XCircle, 
   MoreHorizontal, 
   Download, 
-  AlertTriangle, 
   ShieldAlert, 
   X 
 } from 'lucide-react';

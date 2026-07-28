@@ -62,7 +62,7 @@ class AdminUserService {
     pageSize?: number;
     tenantId?: string;
   }): Promise<PaginatedResult<AdminUserRow>> {
-    const where: Record<string, any> = {};
+    const where: Record<string, unknown> = {};
 
     if (params.search?.trim()) {
       where.email = { contains: params.search.trim(), mode: 'insensitive' };

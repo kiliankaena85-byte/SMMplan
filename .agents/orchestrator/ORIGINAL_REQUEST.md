@@ -31,3 +31,17 @@ Acceptance Criteria:
 - Refill click sends Refill creation request and shows `PENDING` status.
 - INN, KPP, Company Name saved and displayed in profile.
 - Webhook URL saved for B2B integrations.
+
+## 2026-07-27T14:49:51Z
+
+Комплексный полный аудит и проверка работоспособности проекта SMMplan от и до: E2E регрессия, билд Next.js 16, статический анализ TypeScript, проверка платежных API/провайдеров в тестовом режиме, аудит безопасности (Trust Boundaries) и оптимизация производительности/гидратации.
+
+Working directory: d:\SMM_plan_2
+Integrity mode: development
+
+Requirements:
+- R1. Полный E2E аудит и статический анализ (`npm run test:tenant`, `npx tsc --noEmit`, `npm run build`).
+- R2. Проверка интеграций платежных шлюзов (ЮKassa, Robokassa, CryptoBot) и провайдеров SMM в тестовом/песочном режиме (вебхуки, подписи, статусы заказов).
+- R3. Аудит безопасности и границ Server/Client (Security & Trust Boundaries: `requireAdmin`, `verifySession`, подмена цен/количества, IDOR, `x-tenant-id`).
+- R4. Аудит производительности и UX (Hydration & Rendering: отсутствие ошибок гидратации React 19, циклических ререндеров, контрастность компонентов, токены Tailwind v4 / HeroUI v3).
+

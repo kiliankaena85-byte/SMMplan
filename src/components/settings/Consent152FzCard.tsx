@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { confirm152FzConsentAction } from '@/actions/settings';
+import { confirm152FzConsentAction } from '@/actions/user/settings-extra';
 import { ShieldCheck, CheckCircle2, AlertCircle, Calendar, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 

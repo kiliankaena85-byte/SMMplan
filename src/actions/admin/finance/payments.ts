@@ -135,6 +135,14 @@ type DisputePackOrderDTO = {
   createdAt: string;
 };
 
+export type DisputePackLedgerDTO = {
+  id: string;
+  type: string;
+  amount: number;
+  description: string;
+  createdAt: string;
+};
+
 export type PaymentDisputePackDTO = {
   payment: PaymentDTO;
   user: {
@@ -145,6 +153,7 @@ export type PaymentDisputePackDTO = {
     balance: number; // Cents
   };
   orders: DisputePackOrderDTO[];
+  ledgerEntries: DisputePackLedgerDTO[];
 };
 
 export async function getPaymentDisputePackAction(paymentId: string): Promise<PaymentDisputePackDTO | { success: false, error: string }> {
@@ -205,6 +214,12 @@ export async function getPaymentDisputePackAction(paymentId: string): Promise<Pa
       });
     }
 
+    const ledgerEntries = await db.ledgerEntry.findMany({
+      where: { userId: payment.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
     return {
       payment: {
         id: payment.id,
@@ -237,6 +252,13 @@ export async function getPaymentDisputePackAction(paymentId: string): Promise<Pa
         status: o.status,
         remains: o.remains,
         createdAt: o.createdAt.toISOString(),
+      })),
+      ledgerEntries: ledgerEntries.map(l => ({
+        id: l.id,
+        type: l.transactionType,
+        amount: Number(l.amount),
+        description: l.reason,
+        createdAt: l.createdAt.toISOString(),
       })),
     };
   });

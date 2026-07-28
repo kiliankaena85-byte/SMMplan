@@ -1,7 +1,7 @@
 'use client';
 
 import { useCatalogManagement } from '@/hooks/admin/use-catalog';
-import { Search, Filter, Loader2, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { Search, Filter, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 // import { SocialIcon } from '@/components/ui/social-icon';
 
@@ -56,7 +56,7 @@ export function LovableCatalogBento({
   // Find some high margin services
   const trending = [...services].sort((a, b) => (b.markup || 0) - (a.markup || 0)).slice(0, 5);
 
-  const handleSelect = (id: string, isSelected: boolean) => {
+  const handleSelect = (id: string) => {
     // Only toggle if state differs to avoid infinite loops, but toggleOne handles the toggling
     toggleOne(id);
   };

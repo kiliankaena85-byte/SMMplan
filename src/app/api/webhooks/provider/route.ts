@@ -6,6 +6,7 @@ import { sendOrderCompletedMail } from "@/lib/smtp";
 import { QuarantineService } from "@/services/providers/quarantine.service";
 import { CompensationService } from "@/services/financial/compensation.service";
 import { runSerializableTransaction } from "@/lib/transactions";
+import { RateLimitService } from "@/services/core/rate-limit.service";
 
 /**
  * MANDATORY INTEGRITY WARNING:
@@ -24,6 +25,11 @@ import { runSerializableTransaction } from "@/lib/transactions";
  */
 export async function POST(req: Request) {
   try {
+    const isAllowed = await RateLimitService.check('providerWebhook', 60, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const { searchParams } = new URL(req.url);
     const secret = searchParams.get("secret");
     

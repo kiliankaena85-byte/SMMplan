@@ -6,6 +6,9 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { getTenantDashboardViews } from '@/tenants/factory';
 
+import { headers } from 'next/headers';
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
+
 export const metadata: Metadata = {
   title: 'Новый заказ',
 };
@@ -13,18 +16,19 @@ export const metadata: Metadata = {
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await verifySession();
   const sp = await searchParams;
+  const reqHeaders = await headers();
+  const tenantId = resolveTenantFromRequest(reqHeaders);
+
   let userEmail = "";
   let userBalanceCents = 0;
-  let tenantId = "smmplan";
 
   if (session?.userId) {
     const user = await db.user.findUnique({
       where: { id: session.userId },
-      select: { email: true, balance: true, tenantId: true }
+      select: { email: true, balance: true }
     });
     userEmail = user?.email || "";
     userBalanceCents = user?.balance ? Number(user.balance) : 0;
-    tenantId = user?.tenantId || "smmplan";
   }
 
   let initialReorderData = null;

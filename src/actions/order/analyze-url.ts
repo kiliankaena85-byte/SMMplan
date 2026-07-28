@@ -9,10 +9,36 @@ import { IntelligenceAnalysisResult } from "@/services/analyzer/link-analyzer";
 
 const analyzeCache = new Map<string, { data: IntelligenceAnalysisResult; expiresAt: number }>();
 
+function isUrlSafeForFetch(urlString: string): boolean {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(urlString);
+  } catch {
+    return false;
+  }
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) return false;
+  
+  const hostname = parsedUrl.hostname.toLowerCase();
+  // Block metadata endpoints
+  if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal' || hostname.endsWith('.metadata.internal')) {
+    return false;
+  }
+  // Block local/loopback
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return false;
+  // Block private IP ranges (simplified regex check)
+  if (/^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|0\.)/.test(hostname)) return false;
+  
+  return true;
+}
+
 export async function analyzeUrl(url: string): Promise<{ success: boolean; data?: IntelligenceAnalysisResult; error?: string }> {
   try {
     if (!url || typeof url !== 'string' || url.length > 2048) {
       return { success: false, error: "URL exceeds maximum length of 2048 characters." };
+    }
+
+    if (!isUrlSafeForFetch(url)) {
+      return { success: false, error: "This URL format is not supported for analysis." };
     }
 
     const { getClientIp } = await import('@/utils/ip');

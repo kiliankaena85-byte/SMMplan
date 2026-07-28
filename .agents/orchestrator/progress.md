@@ -1,17 +1,17 @@
-# Progress Tracker: Client Dashboard Advanced Backend Features Integration
+# Progress Tracker: SMMplan Comprehensive Audit & Verification
 
 ## Current Status
-Last visited: 2026-07-26T16:44:00+03:00
+Last visited: 2026-07-27T14:55:00+03:00
 
 ## Iteration Status
-Current iteration: 15 / 32
+Current iteration: 1 / 32
 
 ## Checklist
-- [x] Initialized project metadata (`ORIGINAL_REQUEST.md`, `PROJECT.md`, `plan.md`, `progress.md`)
-- [x] Started heartbeat cron (task-13)
-- [x] Phase 1: Exploration & Technical Specification (Explorer - Conv ID: 869f1398-ec39-42e5-8f58-9dae7b45f265)
-- [x] Phase 2: R1 - Advanced Order Parameters in `new-order` (Worker M2, Reviewer M2 APPROVE, Auditor M2 CLEAN)
-- [x] Phase 3: R2 - Order Management in `orders` (Worker M3 Fix 2, Reviewer M3 Final APPROVE, Auditor M3 Final CLEAN)
-- [/] Phase 4: R3 - Profile & Security Settings in `settings` (Worker M4 active - server actions & UI cards built, integrating into settings page)
-- [ ] Phase 5: R4 - Promo Codes & Vouchers in `deposit`
-- [ ] Phase 6: E2E Integration, Build & Forensic Audit Verification
+- [x] Recorded latest user request in `ORIGINAL_REQUEST.md` (2026-07-27T14:49:51Z)
+- [x] Updated `PROJECT.md` and `plan.md` for Comprehensive Audit & Verification
+- [/] Milestone 1: R1 E2E Audit & Static Analysis (`npm run test:tenant`, `npx tsc --noEmit`, `npm run build`)
+- [ ] Milestone 2: R2 Payment Gateways & SMM Provider APIs (Test mode, webhooks, signatures, order statuses)
+- [ ] Milestone 3: R3 Security & Trust Boundaries (`requireAdmin`, `verifySession`, tampering, IDOR, `x-tenant-id`)
+- [ ] Milestone 4: R4 Performance & UX Audit (React 19 hydration, re-renders, Tailwind v4 / HeroUI v3 tokens)
+- [ ] Synthesis & Sentinel Notification
+

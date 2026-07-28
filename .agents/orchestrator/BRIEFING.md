@@ -1,19 +1,19 @@
-# BRIEFING — 2026-07-26T16:23:05+03:00
+# BRIEFING — 2026-07-27T14:55:00+03:00
 
 ## Mission
-Orchestrate the Client Dashboard Advanced Backend Features Integration across SMMplan and SMMflux clients, covering requirements R1 (new-order), R2 (orders), R3 (settings), R4 (deposit).
+Orchestrate the SMMplan Comprehensive Full Audit and Verification task across 4 milestones: R1 (E2E & static analysis), R2 (Payment & Provider APIs), R3 (Security & Trust Boundaries), R4 (Performance & UX).
 
 ## 🔒 My Identity
 - Archetype: orchestrator
 - Roles: orchestrator, user_liaison, human_reporter, successor
 - Working directory: d:\SMM_plan_2\.agents\orchestrator
 - Original parent: top-level
-- Original parent conversation ID: 25f36a43-7866-4964-8fa4-b93e3b209cb3
+- Original parent conversation ID: caac22e0-9e58-4383-8075-a517742aa008
 
 ## 🔒 My Workflow
 - **Pattern**: Project
 - **Scope document**: d:\SMM_plan_2\.agents\orchestrator\PROJECT.md
-1. **Decompose**: Decompose task into 6 milestones (M1 Exploration, M2 R1 new-order, M3 R2 orders, M4 R3 settings, M5 R4 deposit, M6 E2E Verification).
+1. **Decompose**: Decompose task into 4 milestones (M1: R1 E2E & Static Analysis, M2: R2 Payment & Provider APIs, M3: R3 Security & Trust Boundaries, M4: R4 Performance & UX Audit).
 2. **Dispatch & Execute**:
    - Explorer -> Worker -> Reviewer -> Challenger -> Forensic Auditor cycle per milestone.
 3. **On failure** (in this order):
@@ -25,15 +25,14 @@ Orchestrate the Client Dashboard Advanced Backend Features Integration across SM
    - Escalate: report to parent (sub-orchestrators only, last resort)
 4. **Succession**: Self-succeed at 16 spawns, write handoff.md, spawn successor.
 - **Work items**:
-  1. Initialize project state [done]
-  2. Phase 1 Exploration & Tech Spec [done]
-  3. Phase 2 R1 new-order integration [done - Reviewer APPROVE, Auditor CLEAN]
-  4. Phase 3 R2 orders integration [done - Reviewer APPROVE, Auditor CLEAN]
-  5. Phase 4 R3 settings integration [in-progress]
-  6. Phase 5 R4 deposit promo codes [pending]
-  7. Phase 6 E2E Verification & Audit [pending]
-- **Current phase**: 4
-- **Current focus**: R3 Advanced Profile & Security Settings (`settings`) (Worker M4 active)
+  1. Initialize audit plan & state [done]
+  2. Milestone 1: R1 E2E Audit & Static Analysis [in-progress]
+  3. Milestone 2: R2 Payment & Provider APIs Test Verification [pending]
+  4. Milestone 3: R3 Security & Trust Boundaries Audit [pending]
+  5. Milestone 4: R4 Performance & UX Audit [pending]
+  6. Final Synthesis & Sentinel Notification [pending]
+- **Current phase**: 1
+- **Current focus**: Milestone 1 R1 E2E Audit & Static Analysis (`npm run test:tenant`, `npx tsc --noEmit`, `npm run build`)
 
 ## 🔒 Key Constraints
 - NEVER write, modify, or create source code files directly.
@@ -43,48 +42,39 @@ Orchestrate the Client Dashboard Advanced Backend Features Integration across SM
 - Audit is a binary veto — violation means failure.
 
 ## Current Parent
-- Conversation ID: 25f36a43-7866-4964-8fa4-b93e3b209cb3
-- Updated: not yet
+- Conversation ID: caac22e0-9e58-4383-8075-a517742aa008
+- Updated: 2026-07-27T14:49:51Z
 
 ## Key Decisions Made
-- Project Orchestration Pattern selected.
-- M1 completed by Explorer (869f1398-ec39-42e5-8f58-9dae7b45f265).
-- M2 completed & verified (Worker M2, Reviewers, Challengers, Auditor, Worker M2 Remediation).
-- M3 completed & verified (Worker M3, Reviewers, Challengers, Auditor).
-- M4 Worker completed (60bff6f9-0ad2-470c-acc2-9ed48f5e7716). Verification team active.
+- Project Orchestration Pattern selected for SMMplan Comprehensive Audit.
+- Milestone 1 dispatched: Worker executing `npm run test:tenant`, `npx tsc --noEmit`, and `npm run build`.
 
 ## Team Roster
 | Agent | Type | Work Item | Status | Conv ID |
 |-------|------|-----------|--------|---------|
-| 869f1398-ec39-42e5-8f58-9dae7b45f265 | teamwork_preview_explorer | Phase 1 Codebase Analysis | completed | 869f1398-ec39-42e5-8f58-9dae7b45f265 |
-| 29f869f7-9f47-48f2-acc7-e2fafe9adf98 | teamwork_preview_worker | Phase 2 R1 Implementation | completed | 29f869f7-9f47-48f2-acc7-e2fafe9adf98 |
-| e689eed0-551e-498f-9208-1a367ad9f7fc | teamwork_preview_reviewer | Phase 2 Code Review | completed | e689eed0-551e-498f-9208-1a367ad9f7fc |
-| aba53768-57b1-4be6-9530-4ef7dcafb240 | teamwork_preview_reviewer | Phase 2 UX/UI Review | completed | aba53768-57b1-4be6-9530-4ef7dcafb240 |
-| dfb0ba6d-ba45-4eb4-aa98-ae081ddfa6b5 | teamwork_preview_challenger | Phase 2 Validation Challenge | completed | dfb0ba6d-ba45-4eb4-aa98-ae081ddfa6b5 |
-| b6e3180f-19f8-49cc-aa4e-5213ffae9390 | teamwork_preview_challenger | Phase 2 Stress Challenge | completed | b6e3180f-19f8-49cc-aa4e-5213ffae9390 |
-| 217a9d90-d88f-47bf-afbc-dd8eef80d4ed | teamwork_preview_auditor | Phase 2 Forensic Audit | completed | 217a9d90-d88f-47bf-afbc-dd8eef80d4ed |
-| b2323bfd-a3c4-4229-aa4a-fc91012f0c82 | teamwork_preview_worker | Phase 2 Remediation | completed | b2323bfd-a3c4-4229-aa4a-fc91012f0c82 |
-| fbab5260-3fe7-4640-a8fa-c1d18a88d365 | teamwork_preview_worker | Phase 3 R2 Implementation | completed | fbab5260-3fe7-4640-a8fa-c1d18a88d365 |
-| 62d0f22a-f099-434d-95af-78f49c7bbb12 | teamwork_preview_reviewer | Phase 3 Code Review | completed | 62d0f22a-f099-434d-95af-78f49c7bbb12 |
-| c95c0143-7878-498d-89f9-c21ba5325eae | teamwork_preview_reviewer | Phase 3 UX/UI Review | completed | c95c0143-7878-498d-89f9-c21ba5325eae |
-| 0f37b49d-7655-4851-bf90-0c00b5a472f4 | teamwork_preview_challenger | Phase 3 Refill Challenge | completed | 0f37b49d-7655-4851-bf90-0c00b5a472f4 |
-| 78a788a9-39f6-4415-8960-5f74933da0b6 | teamwork_preview_challenger | Phase 3 Backend Challenge | completed | 78a788a9-39f6-4415-8960-5f74933da0b6 |
-| 4016fb99-ba55-42c7-9afe-afd27ab46e6e | teamwork_preview_auditor | Phase 3 Forensic Audit | completed | 4016fb99-ba55-42c7-9afe-afd27ab46e6e |
-| 60bff6f9-0ad2-470c-acc2-9ed48f5e7716 | teamwork_preview_worker | Phase 4 R3 Implementation | completed | 60bff6f9-0ad2-470c-acc2-9ed48f5e7716 |
-| e3e38582-485b-4bd1-8f1f-aa3368b679ab | teamwork_preview_reviewer | Phase 4 Code Review | in-progress | e3e38582-485b-4bd1-8f1f-aa3368b679ab |
-| 97a17149-b86d-4e5b-8f9e-ed2f62417d0c | teamwork_preview_reviewer | Phase 4 UX/UI Review | in-progress | 97a17149-b86d-4e5b-8f9e-ed2f62417d0c |
-| 93bc1e4d-58d0-437f-9a8b-77185cf68c87 | teamwork_preview_challenger | Phase 4 Settings Challenge | in-progress | 93bc1e4d-58d0-437f-9a8b-77185cf68c87 |
-| b9075791-0866-4b97-b17d-d2f7c838dbae | teamwork_preview_auditor | Phase 4 Forensic Audit | in-progress | b9075791-0866-4b97-b17d-d2f7c838dbae |
+| de01c992-8cf7-4d1d-ad94-aa1921e60461 | teamwork_preview_worker | Milestone 1 R1 E2E & Static Analysis | completed | de01c992-8cf7-4d1d-ad94-aa1921e60461 |
+| 3c423b60-2602-446c-9323-970cacfa3a38 | teamwork_preview_reviewer | Milestone 1 R1 Code & Test Review | completed (REJECT) | 3c423b60-2602-446c-9323-970cacfa3a38 |
+| ca1a6308-eb98-448d-a056-4fa629d889d0 | teamwork_preview_challenger | Milestone 1 R1 Empirical Challenge | completed (REJECT) | ca1a6308-eb98-448d-a056-4fa629d889d0 |
+| 8663fe46-c91f-4010-90ee-a918ad36e227 | teamwork_preview_auditor | Milestone 1 R1 Forensic Audit | completed (VIOLATION) | 8663fe46-c91f-4010-90ee-a918ad36e227 |
+| b5e7b105-51bb-4fee-852d-b352483354a0 | teamwork_preview_worker | Milestone 1 R1 Remediation | completed | b5e7b105-51bb-4fee-852d-b352483354a0 |
+| 3193396d-b5ee-44f9-98e8-57806a39b618 | teamwork_preview_reviewer | Milestone 1 R1 Remediation Review | in-progress | 3193396d-b5ee-44f9-98e8-57806a39b618 |
+| 53a912fa-c04e-4d54-a64e-16c51633357b | teamwork_preview_challenger | Milestone 1 R1 Remediation Challenge | in-progress | 53a912fa-c04e-4d54-a64e-16c51633357b |
+| 0b5ff654-6499-4014-8e87-6e700b1c2701 | teamwork_preview_auditor | Milestone 1 R1 Remediation Audit | in-progress | 0b5ff654-6499-4014-8e87-6e700b1c2701 |
 
 ## Succession Status
-- Succession required: yes (threshold 16 reached, pending subagent completion)
-- Spawn count: 19 / 16
-- Pending subagents: e3e38582-485b-4bd1-8f1f-aa3368b679ab, 97a17149-b86d-4e5b-8f9e-ed2f62417d0c, 93bc1e4d-58d0-437f-9a8b-77185cf68c87, b9075791-0866-4b97-b17d-d2f7c838dbae
+- Succession required: no
+- Spawn count: 8 / 16
+- Pending subagents: 3193396d-b5ee-44f9-98e8-57806a39b618, 53a912fa-c04e-4d54-a64e-16c51633357b, 0b5ff654-6499-4014-8e87-6e700b1c2701
 - Predecessor: none
 - Successor: not yet spawned
 
+
+
+
+
+
 ## Active Timers
-- Heartbeat cron: task-13
+- Heartbeat cron: task-1
 - Safety timer: none
 - On succession: kill all timers before spawning successor
 - On context truncation: run manage_task(Action="list") — re-create if missing
@@ -94,5 +84,4 @@ Orchestrate the Client Dashboard Advanced Backend Features Integration across SM
 - d:\SMM_plan_2\.agents\orchestrator\PROJECT.md — Scope and milestone decomposition
 - d:\SMM_plan_2\.agents\orchestrator\plan.md — Implementation plan
 - d:\SMM_plan_2\.agents\orchestrator\progress.md — Liveness and milestone tracking
-- d:\SMM_plan_2\.agents\reviewer_m3_final\handoff.md — Reviewer M3 Final Approval Report
-- d:\SMM_plan_2\.agents\auditor_m3_final\handoff.md — Auditor M3 Final Clean Report
+

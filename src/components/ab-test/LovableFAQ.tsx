@@ -20,7 +20,7 @@ export function LovableFAQ({ companyName = "SMMplan" }: { companyName?: string }
     },
     {
       q: 'Что делать, если платеж прошел, но статус заказа не обновился?',
-      a: 'Наша система автоматически запрашивает статус оплаты (синхронизация YooKassa, Robokassa и CryptoBot). Если статус задержался, перейдите на страницу отслеживания заказа, и система выполнит принудительную синхронизацию с платежным шлюзом. Если возникли вопросы, вы можете мгновенно открыть обращение на странице поддержки или через нашего Telegram-бота.',
+      a: 'Наша система автоматически запрашивает статус оплаты (синхронизация YooKassa и CryptoBot). Если статус задержался, перейдите на страницу отслеживания заказа, и система выполнит принудительную синхронизацию с платежным шлюзом. Если возникли вопросы, вы можете мгновенно открыть обращение на странице поддержки или через нашего Telegram-бота.',
     },
     {
       q: 'Какую ссылку нужно указывать при оформлении заказа?',
@@ -58,8 +58,25 @@ export function LovableFAQ({ companyName = "SMMplan" }: { companyName?: string }
 
   const [open, setOpen] = useState<number | null>(null);
 
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": FAQ_ITEMS.map((item) => ({
+      "@type": "Question",
+      "name": item.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.a,
+      },
+    })),
+  };
+
   return (
     <section id="faq" aria-labelledby="faq-heading" className="mx-auto max-w-3xl px-4 sm:px-6 py-12 md:py-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <div className="text-center mb-12">
         <h2 id="faq-heading" className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground mb-4 text-balance">
           Частые вопросы

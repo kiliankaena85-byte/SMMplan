@@ -5,6 +5,8 @@ import { headers } from 'next/headers';
 import { getTenantDashboardViews } from '@/tenants/factory';
 import { TenantErrorBoundary } from '@/tenants/TenantErrorBoundary';
 
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -14,21 +16,26 @@ export default async function DashboardLayout({
   if (!session) redirect('/login');
 
   const reqHeaders = await headers();
-  const tenantFromHeader = reqHeaders.get("x-tenant-id");
+  const tenantId = resolveTenantFromRequest(reqHeaders);
 
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    select: { email: true, balance: true, tenantId: true, preferredDashboard: true },
+    select: { email: true, balance: true, tenantId: true },
   });
 
   if (!user) redirect('/login');
 
-  const tenantId = tenantFromHeader || user.tenantId || (user.preferredDashboard === 'LOVABLE' ? 'lovable' : 'smmplan');
+  const userForClient = {
+    email: user.email,
+    tenantId: user.tenantId,
+    balanceCents: Number(user.balance),
+  };
+
   const { ShellLayout } = await getTenantDashboardViews(tenantId);
 
   return (
     <TenantErrorBoundary tenantId={tenantId}>
-      <ShellLayout user={user}>{children}</ShellLayout>
+      <ShellLayout user={userForClient}>{children}</ShellLayout>
     </TenantErrorBoundary>
   );
 }

@@ -5,14 +5,10 @@ import { LovableOrdersView } from '@/components/dashboard/lovable/LovableOrdersV
 import { ITenantDashboardStrategy } from '../types';
 
 export const LovableTenantStrategy: ITenantDashboardStrategy = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ShellLayout: LovableDashboardShell as any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  HomeView: LovableDashboardHome as any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  NewOrderView: LovableNewOrderWorkspace as any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  OrdersView: LovableOrdersView as any,
+  ShellLayout: LovableDashboardShell as unknown as ITenantDashboardStrategy['ShellLayout'],
+  HomeView: LovableDashboardHome as unknown as ITenantDashboardStrategy['HomeView'],
+  NewOrderView: LovableNewOrderWorkspace as unknown as ITenantDashboardStrategy['NewOrderView'],
+  OrdersView: LovableOrdersView as unknown as ITenantDashboardStrategy['OrdersView'],
 };
 
 export default LovableTenantStrategy;

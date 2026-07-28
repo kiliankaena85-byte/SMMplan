@@ -7,6 +7,7 @@ import path from 'path';
 import { z } from 'zod';
 import { SettingsProvider } from '@/lib/settings';
 import { getMimeType } from '@/lib/mime';
+import { RateLimitService } from '@/services/core/rate-limit.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,11 @@ function slugifyFileName(name: string): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const isAllowed = await RateLimitService.check('inboundEmailWebhook', 30, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const webhookSecret = await SettingsProvider.getInboundEmailWebhookSecret();
 
     // 1. Content Length Check to prevent memory exhaustion DoS (OOM)

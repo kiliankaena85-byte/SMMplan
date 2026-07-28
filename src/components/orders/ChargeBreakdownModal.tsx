@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { centsToRub } from '@/lib/money';
 import {
   Dialog,
   DialogContent,
@@ -35,9 +36,9 @@ export function ChargeBreakdownModal({
   const discount = Number(discountCents || 0);
   const grossCents = netCents + discount;
 
-  const netRub = netCents / 100;
-  const grossRub = grossCents / 100;
-  const discountRub = discount / 100;
+  const netRub = centsToRub(netCents);
+  const grossRub = centsToRub(grossCents);
+  const discountRub = centsToRub(discount);
   const rate = usdToRubRate || 90.0;
 
   return (

@@ -3,6 +3,9 @@ import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 
 export async function GET(req: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse('Not Found', { status: 404 });
+  }
   const session = await verifySession();
   
   if (!session) {
@@ -17,8 +20,8 @@ export async function GET(req: Request) {
       where: { id: session.userId },
       data: { tenantId: targetTenant },
     });
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error: unknown) {
+    if ((error as { code?: string })?.code === 'P2002') {
       // Find the current user to get their email
       const currentUser = await db.user.findUnique({ where: { id: session.userId } });
       if (currentUser && currentUser.email) {
@@ -42,8 +45,9 @@ export async function GET(req: Request) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
     }
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Failed to switch tenant:', error);
-    return new NextResponse('Failed to switch tenant. ' + error.message, { status: 400 });
+    return new NextResponse('Failed to switch tenant. ' + errorMessage, { status: 400 });
   }
 
   return NextResponse.redirect(new URL('/dashboard', req.url));

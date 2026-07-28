@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { generateApiKeyAction, resetApiKeyAction, revokeApiKeyAction } from '@/actions/settings';
+import { generateApiKeyAction, resetApiKeyAction, revokeApiKeyAction } from '@/actions/user/settings-extra';
 import { Key, Copy, RefreshCw, Trash2, CheckCheck, ShieldAlert, AlertTriangle, X } from 'lucide-react';
 import { toast } from 'sonner';
 

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { SystemSettings, UsnScheme } from "@prisma/client";
 import { VaultService } from "./vault";
 import { unstable_cache, revalidateTag } from "next/cache";
+import { normalizeTenantId } from "@/lib/tenant-resolver";
 
 const localSettingsCache: Record<string, { data: SystemSettings; expiresAt: number }> = {};
 const CACHE_TTL_MS = 60 * 1000; // 1 minute cache for workers
@@ -116,59 +117,74 @@ export class SettingsProvider {
   }
 
   /**
+   * Helper to resolve the Tenant model ID from a tenant slug.
+   */
+  static async resolveTenantRecordId(tenantSlug: string): Promise<string> {
+    const slug = normalizeTenantId(tenantSlug) || 'smmplan';
+    const tenant = await db.tenant.findUnique({ where: { slug } }) 
+      || await db.tenant.findFirst({ where: { slug: 'smmplan' } })
+      || await db.tenant.findFirst();
+    if (tenant) return tenant.id;
+    return slug;
+  }
+
+  /**
    * Safe wrapper around getCached that self-heals when Next.js incrementalCache is missing (CLI/workers)
    */
   static async get(tenantId?: string): Promise<SystemSettings> {
-    const activeTenantId = tenantId || await this.getTenantId();
+    const rawId = tenantId || await this.getTenantId();
+    const normalizedSlug = normalizeTenantId(rawId) || 'smmplan';
+    const targetTenantId = await this.resolveTenantRecordId(normalizedSlug);
+
     try {
       if (SettingsProvider.isTestEnvironment()) {
-        localSettingsCache[activeTenantId] = undefined as any;
-        const fresh = await db.systemSettings.findUnique({ where: { id: activeTenantId } });
+        localSettingsCache[targetTenantId] = undefined as any;
+        const fresh = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
         if (fresh) return fresh;
         return await db.systemSettings.upsert({
-          where: { id: activeTenantId },
+          where: { id: targetTenantId },
           update: {},
-          create: { id: activeTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
+          create: { id: targetTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: normalizedSlug === 'flux' || normalizedSlug === 'lovable' ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
         });
       }
       try {
-        return await this.getCached(activeTenantId);
+        return await this.getCached(normalizedSlug);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         if (err.message?.includes('incrementalCache') || err.message?.includes('Invariant')) {
           // Check local memory cache first
           const now = Date.now();
-          const cached = localSettingsCache[activeTenantId];
+          const cached = localSettingsCache[targetTenantId];
           if (cached && cached.expiresAt > now) {
             return cached.data;
           }
 
           // Fallback to read-only DB query first
-          let settings = await db.systemSettings.findUnique({ where: { id: activeTenantId } });
+          let settings = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
           if (!settings) {
             settings = await db.systemSettings.upsert({
-              where: { id: activeTenantId },
+              where: { id: targetTenantId },
               update: {},
-              create: { id: activeTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
+              create: { id: targetTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: normalizedSlug === 'flux' || normalizedSlug === 'lovable' ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
             });
           }
 
-          localSettingsCache[activeTenantId] = { data: settings, expiresAt: now + CACHE_TTL_MS };
+          localSettingsCache[targetTenantId] = { data: settings, expiresAt: now + CACHE_TTL_MS };
           return settings;
         }
         throw err;
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (dbErr: any) {
-      console.warn(`[SettingsProvider] Failed to fetch system settings for ${activeTenantId} from DB, using fallback:`, dbErr.message);
-      const defaultName = activeTenantId === 'lovable' ? 'SMMflux' : 'SMMplan';
-      const defaultEmail = activeTenantId === 'lovable' ? 'support@lovable.pro' : 'support@smmplan.pro';
-      const defaultPrivacyEmail = activeTenantId === 'lovable' ? 'privacy@lovable.pro' : 'privacy@smmplan.pro';
-      const defaultBot = activeTenantId === 'lovable' ? 'lovable_support_bot' : 'smmplan_support_bot';
-      const defaultChannel = activeTenantId === 'lovable' ? 'lovable_support' : 'smmplan_support';
+      console.warn(`[SettingsProvider] Failed to fetch system settings for ${normalizedSlug} from DB, using fallback:`, dbErr.message);
+      const defaultName = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'SMMflux' : 'SMMplan';
+      const defaultEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'support@lovable.pro' : 'support@smmplan.pro';
+      const defaultPrivacyEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'privacy@lovable.pro' : 'privacy@smmplan.pro';
+      const defaultBot = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'lovable_support_bot' : 'smmplan_support_bot';
+      const defaultChannel = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'lovable_support' : 'smmplan_support';
 
       return {
-        id: activeTenantId,
+        id: targetTenantId,
         taxRate: 6.0,
         opexMonthly: 0,
         maintenanceMode: false,

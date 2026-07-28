@@ -149,14 +149,13 @@ export async function getPublicCatalogAction() {
           networkId: cat.networkId,
           requireWarning: cat.requireWarning,
           warningMessage: cat.warningMessage,
-          analyzerTags: (cat as any).analyzerTags
+          analyzerTags: 'analyzerTags' in cat ? (cat as { analyzerTags?: string | null }).analyzerTags : null
         }))
       };
     });
 
     return { success: true, data: catalog };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to fetch public catalog:", error);
     return { success: false, error: "Failed to load catalog" };
   }
@@ -169,7 +168,44 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
       SettingsProvider.isTestEnvironment()
         ? db.service.findMany({
             where: { categoryId: categoryId, isActive: true },
-            include: { smartConfig: true },
+            select: {
+              id: true,
+              numericId: true,
+              categoryId: true,
+              name: true,
+              description: true,
+              minQty: true,
+              maxQty: true,
+              isDripFeedEnabled: true,
+              isRefillEnabled: true,
+              targetType: true,
+              customDataType: true,
+              customDataLabel: true,
+              clientRequirement: true,
+              clientConfirmation: true,
+              features: true,
+              cooldownUntil: true,
+              etaP50Seconds: true,
+              etaP90Seconds: true,
+              etaSpeedClass: true,
+              requireWarning: true,
+              warningMessage: true,
+              providerCurrency: true,
+              markup: true,
+              rate: true,
+              smartConfig: {
+                select: {
+                  isEnabled: true,
+                  isTestMode: true,
+                  minChunk: true,
+                  maxChunk: true,
+                  markup: true,
+                  useInviteBuffer: true,
+                  autoCompensate: true,
+                  checkIntervalMins: true
+                }
+              }
+            },
             orderBy: { rate: 'asc' },
             take: 100
           })

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Wallet, CreditCard, Bitcoin, Coins } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { centsToRub } from '@/lib/money';
 import {
   Dialog,
   DialogContent,
@@ -27,9 +28,9 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const amountRub = charge / 100;
+  const amountRub = centsToRub(charge);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const balanceRub = balance / 100;
+  const balanceRub = centsToRub(balance);
   const canPayFromBalance = balance >= charge;
 
   async function handleRetry(gateway: string) {

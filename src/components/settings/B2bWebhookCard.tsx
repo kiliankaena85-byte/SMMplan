@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { updateB2bWebhookAction } from '@/actions/settings';
+import { updateB2bWebhookAction } from '@/actions/user/settings-extra';
+import type { B2bWebhookInput, UpdateB2bWebhookResult } from '@/actions/user/settings-extra.types';
 import { Webhook, Copy, CheckCheck, RefreshCw, Save, ShieldCheck, Power } from 'lucide-react';
 import { toast } from 'sonner';
 

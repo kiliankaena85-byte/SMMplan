@@ -6,6 +6,7 @@ import { marketingService, PricingResult } from '@/services/marketing.service';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SettingsManager } from '@/lib/settings';
 import { verifySession, createSession } from '@/lib/session';
+import { normalizeTenantId } from "@/lib/tenant-resolver";
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
@@ -93,7 +94,7 @@ const checkoutSchema = z.object({
   interval: z.number().int().positive().optional(),
   customData: z.string().optional(),
   gateway: z.string().optional().default('yookassa'),
-  idempotencyKey: z.string().optional(),
+  idempotencyKey: z.string().min(10).max(64).optional(),
   mediaGroupUrl: z.string().optional(),
   isLinkOverridden: z.boolean().optional(),
   isSmartDrip: z.boolean().optional(),
@@ -132,6 +133,12 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       }
     }
     
+    // Gateway whitelist validation
+    const ALLOWED_GATEWAYS = ['yookassa', 'cryptobot', 'robokassa', 'balance'];
+    if (gateway && !ALLOWED_GATEWAYS.includes(gateway.toLowerCase())) {
+      throw new Error("Неподдерживаемый способ оплаты");
+    }
+
     // 0. Rate limit
     const isAllowed = await RateLimitService.check("checkoutCore", 15, 60, true);
     if (!isAllowed) {
@@ -163,6 +170,14 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     });
     if (!service || !service.isActive) {
       throw new Error("Услуга не найдена или неактивна");
+    }
+
+    // Cross-Tenant Security Check (SEC-01)
+    const reqHeaders = await headers();
+    const rawTenantId = reqHeaders.get("x-tenant-id");
+    const currentTenantId = normalizeTenantId(rawTenantId) || "smmplan";
+    if (service.tenantId && service.tenantId !== currentTenantId && service.tenantId !== "all") {
+      throw new Error("Услуга недоступна для текущей площадки");
     }
 
     // JIT Validation Check: enforce custom requirements if configured
@@ -278,25 +293,23 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
 
     const isTestMode = await SettingsManager.isTestMode();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let reqHeaders: any;
-    try {
-      reqHeaders = await headers();
-    } catch (e) {
-      console.warn('[Checkout] headers() context missing, using fallback', e);
-      reqHeaders = {
-        get: (key: string) => {
-          if (key === 'host') return 'localhost:3000';
-          if (key === 'x-forwarded-proto') return 'http';
-          return null;
-        }
-      };
-    }
-    const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+    const tenantId = currentTenantId;
 
     // 3. Find or create user by email (SECURITY FIX: Track if new user to prevent IDOR auto-login)
     const currentSession = await verifySession();
-    let user = await db.user.findUnique({ where: { email_tenantId: { email: email.toLowerCase(), tenantId } } });
+    let user = await db.user.findFirst({
+      where: { 
+        email: email.toLowerCase(),
+        tenantId: tenantId === 'flux' ? { in: ['lovable', 'flux'] } : tenantId
+      }
+    });
+
+    if (user && user.tenantId === 'lovable') {
+      user = await db.user.update({
+        where: { id: user.id },
+        data: { tenantId: 'flux' }
+      });
+    }
 
     if (user) {
       if (user.isDeleted === true || user.isActive === false) {
@@ -345,7 +358,8 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       }
     }
 
-    const pricing = await marketingService.calculatePrice(user.id, serviceId, totalQuantity, promoCodeStr, { service });
+    const userIdForCalc = user ? user.id : null;
+    const pricing = await marketingService.calculatePrice(userIdForCalc, serviceId, totalQuantity, promoCodeStr, { service });
     
     let promoCodeId: string | null = null;
     if (promoCodeStr) {
@@ -405,7 +419,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     try {
       result = await runSerializableTransaction(async (tx) => {
         // 5.1 If gateway is balance, atomically deduct balance first
-        if (gateway === 'balance') {
+        if (gateway === 'balance' && user) {
           await WalletOps.charge(tx, user.id, finalTotalCents, `Оплата заказа с баланса`, {
             idempotencyKey: `balance-charge-${effectiveIdempotencyKey}`
           });
@@ -442,7 +456,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         // Create primary Order (first media / main link)
         const newOrder = await tx.order.create({
           data: {
-            userId: user.id,
+            userId: user?.id,
             serviceId,
             providerId: service.providerId,
             providerServiceId: service.externalId,
@@ -508,7 +522,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         // Create linked Payment (covers both orders if media group)
         const payment = await tx.payment.create({
           data: {
-            userId: user.id,
+            userId: user?.id,
             amount: paymentAmount,
             currency: 'RUB',
             status: paymentStatus,
@@ -561,11 +575,11 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       });
     } catch (err: unknown) {
       if (err instanceof IdempotencyConflictError) {
-        const existingOrder = err.existingOrder as any;
+        const existingOrder = err.existingOrder as { id: string; paymentId?: string; payment?: { checkoutUrl?: string } };
         console.info(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);
         return {
           orderId: existingOrder.id,
-          paymentId: existingOrder.paymentId,
+          paymentId: existingOrder.paymentId || '',
           paymentUrl: existingOrder.payment?.checkoutUrl || ''
         };
       }
@@ -816,12 +830,18 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
+    const rawTenantId = reqHeaders.get("x-tenant-id");
+    const currentTenantId = normalizeTenantId(rawTenantId) || "smmplan";
+
     const order = await db.order.findUnique({
       where: { id: orderId, userId: session.userId },
       include: { user: true, payment: true, service: true }
     });
 
     if (!order) throw new Error("Заказ не найден");
+    if (order.tenantId && order.tenantId !== currentTenantId) {
+      throw new Error("Заказ недоступен для текущей площадки");
+    }
     if (order.user.isDeleted === true || order.user.isActive === false) {
       throw new Error("Ваш аккаунт заблокирован или удален");
     }
@@ -1021,11 +1041,11 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
 
       paymentUrl = gatewayResult.paymentUrl || `/payment-redirect?id=${result.paymentId}`;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (gatewayErr: any) {
+    } catch (gatewayErr: unknown) {
       console.error('[RetryCheckout] Gateway failed', gatewayErr);
+      const errMsg = gatewayErr instanceof Error ? gatewayErr.message : 'Ошибка генерации платежа';
       
-      const rollbackPromises: Promise<any>[] = [
+      const rollbackPromises: Promise<unknown>[] = [
         db.payment.update({
           where: { id: result.paymentId },
           data: { status: 'CANCELED' }
@@ -1033,12 +1053,12 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         
         db.order.update({
           where: { id: order.id },
-          data: { status: 'ERROR', error: gatewayErr.message || 'Ошибка генерации платежа' }
+          data: { status: 'ERROR', error: errMsg }
         }).catch(e => console.error('[RetryCheckout] Failed to error order:', e))
       ];
       await Promise.allSettled(rollbackPromises);
 
-      throw new Error(gatewayErr.message || 'Ошибка генерации платежа. Попробуйте другой метод', { cause: gatewayErr });
+      throw new Error(errMsg || 'Ошибка генерации платежа. Попробуйте другой метод', { cause: gatewayErr });
     }
 
     revalidatePath('/dashboard', 'layout');

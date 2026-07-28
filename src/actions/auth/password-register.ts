@@ -9,6 +9,7 @@ import { cookies, headers } from 'next/headers';
 import crypto from 'crypto';
 import { sendMagicLink } from '@/lib/smtp';
 import { getClientIp } from '@/utils/ip';
+import { normalizeTenantId } from '@/lib/tenant-resolver';
 
 import { passwordPolicySchema } from '@/validators/password-policy';
 
@@ -42,12 +43,16 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
     // 2. Transaction for atomic user creation
     const result = await db.$transaction(async (tx) => {
       const reqHeaders = await headers();
-      const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+      const rawTenantId = reqHeaders.get("x-tenant-id");
+      const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
 
       // Check if user already exists in this tenant
-      const existingUser = await tx.user.findUnique({
-        where: { email_tenantId: { email: cleanEmail, tenantId } },
-        select: { id: true, isDeleted: true, isActive: true, passwordHash: true }
+      const existingUser = await tx.user.findFirst({
+        where: { 
+          email: cleanEmail,
+          tenantId
+        },
+        select: { id: true, tenantId: true, isDeleted: true, isActive: true, passwordHash: true }
       });
 
       const passwordHash = await hashPassword(password);
@@ -81,7 +86,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       }
 
       // Auto-bootstrap: First user is OWNER
-      const ownerCount = await tx.user.count({ where: { role: "OWNER" } });
+      const ownerCount = await tx.user.count({ where: { role: "OWNER", tenantId } });
       const role = ownerCount === 0 ? "OWNER" : "USER";
 
       const newUser = await tx.user.create({

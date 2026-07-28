@@ -10,13 +10,15 @@ import { getTenantDashboardViews } from '@/tenants/factory';
 
 export const dynamic = 'force-dynamic';
 
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
+
 export default async function DashboardPage(props: { searchParams?: Promise<{ tenant?: string }> }) {
   const searchParams = await props.searchParams;
   const session = await verifySession();
   if (!session) redirect('/login');
 
   const reqHeaders = await headers();
-  const tenantFromHeader = reqHeaders.get("x-tenant-id");
+  const tenantId = resolveTenantFromRequest(reqHeaders);
 
   const [user, orders, referralCount] = await Promise.all([
     db.user.findUnique({
@@ -28,7 +30,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
         referralCode: true,
         createdAt: true,
         tenantId: true,
-        preferredDashboard: true,
       },
     }),
     db.order.findMany({
@@ -61,7 +62,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
     where: { userId: session.userId, status: 'PENDING', gateway: 'yookassa' }
   }) > 0;
 
-  const tenantId = searchParams?.tenant || tenantFromHeader || user.tenantId || (user.preferredDashboard === 'LOVABLE' ? 'lovable' : 'smmplan');
   const { HomeView } = await getTenantDashboardViews(tenantId);
 
   const catalogResult = await getPublicCatalogAction();

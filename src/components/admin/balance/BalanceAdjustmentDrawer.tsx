@@ -61,8 +61,9 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
       } else {
         setError(res.error || "Не удалось утвердить заявку");
       }
-    } catch (err: any) {
-      setError(err.message || "Ошибка системы");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setError(errMsg || "Ошибка системы");
     } finally {
       setLoading(false);
     }
@@ -87,8 +88,9 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
       } else {
         setError(res.error || "Не удалось отклонить заявку");
       }
-    } catch (err: any) {
-      setError(err.message || "Ошибка системы");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setError(errMsg || "Ошибка системы");
     } finally {
       setLoading(false);
     }
@@ -107,8 +109,9 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
       } else {
         setError(res.error || "Не удалось отменить заявку");
       }
-    } catch (err: any) {
-      setError(err.message || "Ошибка системы");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setError(errMsg || "Ошибка системы");
     } finally {
       setLoading(false);
     }

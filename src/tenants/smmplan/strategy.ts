@@ -4,12 +4,9 @@ import ClientPage from '@/app/dashboard/new-order/client-page';
 import { ITenantDashboardStrategy } from '../types';
 
 export const SmmplanTenantStrategy: ITenantDashboardStrategy = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ShellLayout: ClassicDashboardShell as any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  HomeView: ClassicDashboardHome as any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  NewOrderView: ClientPage as any,
+  ShellLayout: ClassicDashboardShell as unknown as ITenantDashboardStrategy['ShellLayout'],
+  HomeView: ClassicDashboardHome as unknown as ITenantDashboardStrategy['HomeView'],
+  NewOrderView: ClientPage as unknown as ITenantDashboardStrategy['NewOrderView'],
 };
 
 export default SmmplanTenantStrategy;
