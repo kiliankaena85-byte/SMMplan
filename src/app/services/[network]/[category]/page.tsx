@@ -30,23 +30,7 @@ function formatPricePerUnit(price: number): string {
   return formatted;
 }
 
-// generateStaticParams: no tenantId filter — pages are generated for all tenants
-// The tenant is resolved at request time via headers()
-export async function generateStaticParams() {
-  const catalogResult = await getPublicCatalogAction('smmplan');
-  if (!catalogResult.success || !catalogResult.data) return [];
 
-  const params = [];
-  for (const network of catalogResult.data) {
-    for (const category of network.categories) {
-      params.push({
-        network: network.slug,
-        category: category.slug,
-      });
-    }
-  }
-  return params;
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ network: string; category: string }> }): Promise<Metadata> {
   const { network, category } = await params;

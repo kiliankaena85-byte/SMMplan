@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
-import { auditAdmin } from "@/lib/admin-audit";
+import { auditAdmin, auditAdminAwaitable } from "@/lib/admin-audit";
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { SettingsProvider } from "@/lib/settings";
@@ -107,7 +107,7 @@ export async function createServiceAction(rawData: unknown) {
       });
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SERVICE_MANUAL_CREATE',
@@ -222,7 +222,7 @@ export async function updateServiceAction(id: string, rawData: unknown) {
       });
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SERVICE_MANUAL_UPDATE',

@@ -11,7 +11,7 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 
 const serviceIdSchema = z.string().min(1);
 
@@ -27,7 +27,7 @@ export async function softDeleteServiceAction(serviceId: string) {
       email: admin.email,
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SERVICE_ARCHIVE',

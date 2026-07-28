@@ -24,13 +24,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const result = await getArticleBySlug(slug);
 
-  if (!result.success || !result.article) {
-    return { title: "Статья не найдена | SMMplan" };
-  }
-
   const reqHeaders = await headers();
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
   const siteName = getTenantSiteName(tenantId);
+
+  if (!result.success || !result.article) {
+    return { title: `Статья не найдена | ${siteName}` };
+  }
   const canonical = absoluteCanonical(tenantId, `/knowledge/${slug}`);
 
   const { title, description } = result.article;

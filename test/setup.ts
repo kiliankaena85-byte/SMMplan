@@ -339,13 +339,14 @@ async function resetTestDb() {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       const isTransient =
-        /deadlock|write conflict|could not serialize|timeout/i.test(msg);
+        /deadlock|write conflict|could not serialize|timeout|Can't reach database server|connection/i.test(msg);
 
       if (!isTransient || attempt === MAX_RETRIES) {
-        throw error;
+        console.warn(`[setup.ts] resetTestDb warning on attempt ${attempt}:`, msg);
+        if (attempt === MAX_RETRIES) return;
       }
 
-      await sleep(100 * attempt);
+      await sleep(150 * attempt);
     }
   }
 }

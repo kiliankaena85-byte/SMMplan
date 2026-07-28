@@ -139,7 +139,6 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
     return { success: true, error: null };
   } catch (error) {
-    console.error("DEBUG ERROR", error);
     log.error('Magic link request failed', { error: error instanceof Error ? error.message : String(error) });
     return { error: "Произошла ошибка при обработке запроса", success: false };
   }

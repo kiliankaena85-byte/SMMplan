@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
-import { auditAdmin } from "@/lib/admin-audit";
+import { auditAdmin, auditAdminAwaitable } from "@/lib/admin-audit";
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 
@@ -31,7 +31,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
       }
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: "CATEGORY_CREATE",
@@ -65,7 +65,7 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
       }
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: "CATEGORY_UPDATE",
@@ -93,7 +93,7 @@ export async function deleteCategory(rawId: string) {
 
     await db.category.delete({ where: { id } });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: "CATEGORY_DELETE",
@@ -147,7 +147,7 @@ export async function mergeCategoriesAction(sourceCategoryId: string, targetCate
       });
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'CATEGORY_MERGE',
@@ -203,7 +203,7 @@ export async function createNetworkAction(rawData: { name: string; slug: string;
       }
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'NETWORK_CREATE',
@@ -263,7 +263,7 @@ export async function updateNetworkAction(id: string, rawData: { name: string; s
       }
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'NETWORK_UPDATE',
@@ -307,7 +307,7 @@ export async function deleteNetworkAction(id: string) {
 
     await db.network.delete({ where: { id } });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'NETWORK_DELETE',

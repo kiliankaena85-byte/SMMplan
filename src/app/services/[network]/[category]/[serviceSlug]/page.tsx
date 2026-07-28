@@ -13,30 +13,7 @@ import { MegaFooter } from "@/components/landing/MegaFooter";
 
 export const dynamic = 'force-dynamic';
 
-export async function generateStaticParams() {
-  const services = await db.service.findMany({
-    where: {
-      isActive: true,
-      isQuarantined: false,
-      slug: { not: null },
-    },
-    select: {
-      slug: true,
-      category: {
-        select: {
-          slug: true,
-          network: { select: { slug: true } },
-        },
-      },
-    },
-  });
 
-  return services.map(s => ({
-    network: s.category?.network?.slug || '',
-    category: s.category?.slug || '',
-    serviceSlug: s.slug || '',
-  }));
-}
 
 export async function generateMetadata({
   params

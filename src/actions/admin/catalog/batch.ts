@@ -7,12 +7,12 @@
  * batchSetMarkupAction — set fixed markup for a selection
  *
  * Security: requireAdmin guard on all actions.
- * All changes recorded in AdminAuditLog (fire-and-forget).
+ * All changes recorded in AdminAuditLog (awaited for financial integrity).
  */
 
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { applyBeautifulRounding, applyPricingLadder, SAFETY_FLOOR_MARKUP } from '@/lib/financial-constants';
@@ -39,7 +39,7 @@ export async function batchToggleServicesAction(
       data: { isActive },
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: isActive ? 'BATCH_SERVICE_ENABLE' : 'BATCH_SERVICE_DISABLE',
@@ -97,7 +97,7 @@ export async function batchSetMarkupAction(
       }))
     );
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'BATCH_MARKUP_SET',
@@ -190,7 +190,7 @@ export async function updateServiceMarkupAction(
       },
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SERVICE_MARKUP_UPDATE',
@@ -221,7 +221,7 @@ export async function toggleServiceActiveAction(
       data: { isActive },
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: isActive ? 'SERVICE_ENABLE' : 'SERVICE_DISABLE',
@@ -269,7 +269,7 @@ export async function batchReassignServicesCategoryAction(
       data: { categoryId: targetCategoryId },
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'BATCH_SERVICE_REASSIGN',
@@ -326,7 +326,7 @@ export async function batchResetMarkupAction(
 
     await db.$transaction(updates);
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'BATCH_MARKUP_RESET',

@@ -339,7 +339,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     });
 
 
-    const host = reqHeaders.get("host") || "localhost:3000";
+    const host = reqHeaders.get("host") || new URL(getBaseUrlSync()).host;
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?paymentId=${result.paymentId}`;
@@ -479,7 +479,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     } catch (e) {
       reqHeaders = {
         get: (key: string) => {
-          if (key === 'host') return 'localhost:3000';
+          if (key === 'host') return new URL(getBaseUrlSync()).host;
           if (key === 'x-forwarded-proto') return 'http';
           return null;
         }
@@ -592,7 +592,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     });
 
     let paymentUrl: string | undefined;
-    const host = reqHeaders.get("host") || "localhost:3000";
+    const host = reqHeaders.get("host") || new URL(getBaseUrlSync()).host;
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?paymentId=${result.paymentId}`;
