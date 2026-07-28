@@ -19,7 +19,7 @@ const ICON_MAP: Record<string, any> = {
   ToggleLeft, Activity, Cpu, BookOpen
 };
 
-export function LovableShell({
+export function FluxShell({
   user,
   roleInfo,
   navigation,

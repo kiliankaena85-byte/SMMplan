@@ -12,7 +12,7 @@ import {
 
 import { MAIN_NAV_ITEMS } from '@/lib/navigation';
 
-export function LovableDashboardShell({
+export function FluxDashboardShell({
   user,
   children,
 }: {

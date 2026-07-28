@@ -5,14 +5,14 @@ import { Search, Filter, TrendingUp, TrendingDown, ArrowRight } from 'lucide-rea
 import { motion } from 'framer-motion';
 // import { SocialIcon } from '@/components/ui/social-icon';
 
-import { LovableCatalogGrid } from './lovable-catalog-grid';
+import { LovableCatalogGrid } from './flux-catalog-grid';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import * as React from 'react';
 
 import type { CatalogServiceDTO } from '@/types/catalog.dto';
 
-export function LovableCatalogBento({ 
+export function FluxCatalogBento({ 
   services,
   categories,
   providers,

@@ -11,7 +11,7 @@ import {
 import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
 import { FluxOrder } from '@/types/flux';
 
-export function LovableOrdersKanban({ orders }: { orders: FluxOrder[] }) {
+export function FluxOrdersKanban({ orders }: { orders: FluxOrder[] }) {
   const [activeTab, setActiveTab] = useState<'queue' | 'in_progress' | 'done'>('queue');
   
   // Categorize orders into kanban columns

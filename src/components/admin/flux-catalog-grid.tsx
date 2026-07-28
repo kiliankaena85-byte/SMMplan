@@ -6,7 +6,7 @@ import { AlertCircle } from 'lucide-react';
 
 import { EditServiceModal } from '@/components/admin/catalog-table-v2';
 
-interface LovableCatalogGridProps {
+interface FluxCatalogGridProps {
   services: CatalogServiceDTO[];
   selectedIds: Set<string>;
   onSelect: (id: string, isSelected: boolean) => void;
@@ -42,7 +42,7 @@ function getNetworkBadgeClass(slug: string | null) {
   return 'bg-primary/10 text-primary border-primary/20';
 }
 
-export function LovableCatalogGrid({
+export function FluxCatalogGrid({
   services,
   selectedIds,
   onSelect,
@@ -55,7 +55,7 @@ export function LovableCatalogGrid({
   calcDisplayCost,
   displayCurrency,
   displayVolume
-}: LovableCatalogGridProps) {
+}: FluxCatalogGridProps) {
   const symbol = displayCurrency === 'RUB' ? '₽' : '$';
   const volSuffix = displayVolume === '1K' ? '/ 1000 шт' : '/ шт';
 

@@ -6,7 +6,7 @@ import { Copy, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-interface LovableOrdersGridProps {
+interface FluxOrdersGridProps {
   data: OrderColumn[];
   canSeeRates: boolean;
   onSelect: (id: string, isSelected: boolean) => void;
@@ -15,7 +15,7 @@ interface LovableOrdersGridProps {
   isPendingBulk: boolean;
 }
 
-export function LovableOrdersGrid({ data, canSeeRates, onSelect, selectedIds, onBulkCancel, isPendingBulk }: LovableOrdersGridProps) {
+export function FluxOrdersGrid({ data, canSeeRates, onSelect, selectedIds, onBulkCancel, isPendingBulk }: FluxOrdersGridProps) {
   function handleCopyIds() {
     const idsToCopy = Array.from(selectedIds).map(id => {
       const o = data.find(x => x.id === id);

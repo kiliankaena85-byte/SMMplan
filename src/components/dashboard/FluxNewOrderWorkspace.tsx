@@ -32,7 +32,7 @@ import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE } from '@/hooks/u
 
 export const MAX_DRIP_FEED_MINUTES = 43200; // 30 days = 43200 minutes max drip-feed limit
 
-export function LovableNewOrderWorkspace({
+export function FluxNewOrderWorkspace({
   userBalanceCents = 0,
   userEmail = "",
   initialReorderData = null

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 import { DOCK_NAV_ITEMS } from '@/lib/navigation';
 
-export function LovableDock({ email, className }: { email?: string; className?: string }) {
+export function FluxDock({ email, className }: { email?: string; className?: string }) {
   const pathname = usePathname();
 
   const isActive = (href: string) =>

@@ -3,13 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { OrderFilters } from '@/components/orders/OrderFilters';
-import { LovableOrdersList } from '@/components/dashboard/LovableOrdersList';
+import { FluxOrdersList } from '@/components/dashboard/FluxOrdersList';
 
 import { OrderViewData, NetworkViewData } from '@/tenants/types';
 
 
 
-export function LovableOrdersView({
+export function FluxOrdersView({
   orders,
   totalCount,
   userBalanceCents,
@@ -92,7 +92,7 @@ export function LovableOrdersView({
         statusCounts={countsMap}
       />
 
-      <LovableOrdersList orders={formattedOrders} userBalanceCents={userBalanceCents} />
+      <FluxOrdersList orders={formattedOrders} userBalanceCents={userBalanceCents} />
     </div>
   );
 }

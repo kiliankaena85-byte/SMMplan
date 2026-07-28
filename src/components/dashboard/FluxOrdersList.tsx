@@ -15,7 +15,7 @@ import { ExternalLink, AlertCircle } from 'lucide-react';
 import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
 import { formatRub } from '@/lib/money';
 
-export interface LovableOrder {
+export interface FluxOrder {
   id: string;
   numericId: number;
   status: string;
@@ -48,11 +48,11 @@ export interface LovableOrder {
   };
 }
 
-export function LovableOrdersList({
+export function FluxOrdersList({
   orders,
   userBalanceCents = 0
 }: {
-  orders: LovableOrder[];
+  orders: FluxOrder[];
   userBalanceCents?: number;
 }) {
   if (orders.length === 0) {

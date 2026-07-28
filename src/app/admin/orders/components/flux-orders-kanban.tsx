@@ -6,7 +6,7 @@ import { Package, Search, Filter, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatKopecks } from '@/utils/format-kopecks';
 
-export function LovableOrdersKanban({ 
+export function FluxOrdersKanban({ 
   initialOrders, 
   canSeeRates 
 }: { 
