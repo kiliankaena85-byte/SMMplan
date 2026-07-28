@@ -93,12 +93,16 @@ export async function middleware(request: NextRequest) {
     const explicitLogout = request.cookies.get('explicit_logout')?.value;
     const isRSC = request.headers.has('rsc') || request.headers.has('next-action');
 
+    const isDevBypassAllowed =
+      process.env.NODE_ENV === 'development' &&
+      process.env.ENABLE_DEV_BYPASS === 'true';
+
     if (explicitLogout === 'true' || !sessionToken) {
       if (isRSC) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
       }
       // Dev mode auto-login bypass for local environment
-      if (process.env.NODE_ENV !== 'production') {
+      if (isDevBypassAllowed) {
         const autoLoginUrl = new URL('/api/dev/login-direct', request.url);
         autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
         autoLoginUrl.searchParams.set('tenant', finalTenantId);
@@ -114,7 +118,7 @@ export async function middleware(request: NextRequest) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
       }
       // Dev mode auto-login bypass on tenant mismatch in local environment
-      if (process.env.NODE_ENV !== 'production' && explicitLogout !== 'true') {
+      if (isDevBypassAllowed && explicitLogout !== 'true') {
         const autoLoginUrl = new URL('/api/dev/login-direct', request.url);
         autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
         autoLoginUrl.searchParams.set('tenant', finalTenantId);

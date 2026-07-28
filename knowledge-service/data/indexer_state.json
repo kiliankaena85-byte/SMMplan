@@ -2546,7 +2546,7 @@
   "/app/codebase/scripts/test-tenant-resolution.ts": "c166b65057dc8256",
   "/app/codebase/src/actions/user/settings-extra.types.ts": "29598e7f3b013ae1",
   "/app/codebase/scripts/migrate-lovable-to-flux.ts": "17f9c3d0e7cddd0b",
-  "/app/codebase/src/tenants/flux/strategy.ts": "b5a98e22d2b50718",
+  "/app/codebase/src/tenants/flux/strategy.ts": "90de3863df2cbb8a",
   "/app/codebase/.agents/BRIEFING.md": "98faf1f8bb9365a0",
   "/app/codebase/.agents/teamwork_preview_worker_r1_1/ORIGINAL_REQUEST.md": "c53c31da468e4815",
   "/app/codebase/.agents/teamwork_preview_worker_r1_1/BRIEFING.md": "1684a3aa703bc9c9",
@@ -2605,7 +2605,7 @@
   "/app/codebase/AUDIT_PACKAGE_VOL_5_2026-07-28.md": "7396f623942a01f5",
   "/app/codebase/src/hooks/useOrderWizard.ts": "b0031c66645c6a69",
   "/app/codebase/src/components/dashboard/order-wizard/WizardServiceStep.tsx": "56ac4499917d1b54",
-  "/app/codebase/src/types/flux.ts": "53ed0e3c38e75572",
+  "/app/codebase/src/types/flux.ts": "be74047f77b8a5fa",
   "/app/codebase/src/components/dashboard/order-wizard/WizardStepIndicator.tsx": "f9c480a935fcac91",
   "/app/codebase/src/components/dashboard/order-wizard/WizardNetworkStep.tsx": "59991e4f16c63e09",
   "/app/codebase/scripts/generate-all-waves.js": "96a621fdd72e25a2",
@@ -2678,6 +2678,6 @@
   "/app/codebase/src/components/dashboard/FluxDock.tsx": "128659533c5abef7",
   "/app/codebase/src/components/admin/shells/flux-shell.tsx": "30151a26ef877b89",
   "/app/codebase/src/components/dashboard/FluxNewOrderWorkspace.tsx": "26b1515dbaf18bf3",
-  "/app/codebase/src/components/admin/flux-catalog-bento.tsx": "b3e3619233fc21aa",
+  "/app/codebase/src/components/admin/flux-catalog-bento.tsx": "688f7987a1f2b629",
   "/app/codebase/src/components/dashboard/FluxOrdersKanban.tsx": "818bf4869293fbfc"
 }

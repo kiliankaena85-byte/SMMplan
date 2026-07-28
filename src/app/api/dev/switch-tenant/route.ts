@@ -3,9 +3,10 @@ import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 
 export async function GET(req: Request) {
-  if (process.env.NODE_ENV === 'production') {
-    return new NextResponse('Not Found', { status: 404 });
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+    return new Response('Not Found', { status: 404 });
   }
+  
   const session = await verifySession();
   
   if (!session) {

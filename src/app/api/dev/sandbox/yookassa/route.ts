@@ -8,8 +8,11 @@ import { requireStaffPermission } from '@/lib/server/rbac';
  * 🔒 SECURITY: Blocked in production. Requires admin session in dev/test.
  */
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+    return new Response('Not Found', { status: 404 });
+  }
   // Guard 1: Disable in production entirely
-  if (process.env.NODE_ENV === 'production') {
+  if ((process.env.NODE_ENV as string) === 'production') {
     return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
   }
 

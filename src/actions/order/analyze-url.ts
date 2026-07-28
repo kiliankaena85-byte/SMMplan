@@ -41,6 +41,13 @@ export async function analyzeUrl(url: string): Promise<{ success: boolean; data?
       return { success: false, error: "This URL format is not supported for analysis." };
     }
 
+    const { assertSafeUrl } = await import('@/utils/ssrf-guard');
+    try {
+      assertSafeUrl(url);
+    } catch (e: any) {
+      return { success: false, error: e.message || "This URL format is not supported for analysis." };
+    }
+
     const { getClientIp } = await import('@/utils/ip');
     const ip = await getClientIp();
 

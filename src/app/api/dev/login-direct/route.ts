@@ -7,9 +7,10 @@ import { normalizeTenantId } from "@/lib/tenant-resolver";
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === 'production') {
-    return new Response("Not Allowed in Production", { status: 403 });
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+    return new Response('Not Found', { status: 404 });
   }
+  
 
   const url = new URL(request.url);
   const email = url.searchParams.get("email");
