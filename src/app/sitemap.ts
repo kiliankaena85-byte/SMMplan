@@ -176,5 +176,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('[sitemap] Failed to generate academy routes', error);
   }
 
+  // Glossary terms
+  try {
+    const terms = await db.contentItem.findMany({
+      where: {
+        isPublished: true,
+        type: 'GLOSSARY_TERM',
+      },
+      select: { slug: true, updatedAt: true },
+    });
+
+    for (const term of terms) {
+      if (term.slug) {
+        routes.push({
+          url: `${baseUrl}/knowledge/glossary/${term.slug}`,
+          lastModified: term.updatedAt,
+          changeFrequency: 'monthly',
+          priority: 0.5,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[sitemap] Failed to generate glossary routes', error);
+  }
+
   return routes;
 }
