@@ -6,7 +6,7 @@ import { escrowService } from '@/services/admin/escrow.service';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { SignJWT } from 'jose';
 import { updateBalanceSchema, userIdSchema } from '@/validators/admin.validators';
 import { requireStaffPermission } from '@/lib/server/rbac';
@@ -49,10 +49,14 @@ export async function updateBalanceAction(formData: FormData) {
     }
 
     const ipAddress = await getClientIp('unknown');
+    const reqHeaders = await headers();
+    const userAgent = reqHeaders.get('user-agent') || 'Unknown';
+    const idempotencyKey = `direct-adjust-${userId}-${amount}-${Date.now()}`;
 
-    // 4. For MANAGER role, run through Policy Engine first
-    if (admin.role === 'MANAGER') {
-      const policyCheck = await db.$transaction(async (tx) => {
+    // 4. For non-OWNER staff, run through Policy Engine first
+    let policyCheck: any = null;
+    if (admin.role !== 'OWNER') {
+      policyCheck = await db.$transaction(async (tx) => {
         return SupportBalancePolicyService.validateAndReserveSupportOperation(tx, {
           staffUserId: admin.id,
           targetUserId: userId,
@@ -61,8 +65,9 @@ export async function updateBalanceAction(formData: FormData) {
           reasonCode: amount >= 0 ? 'DIRECT_CREDIT' : 'DIRECT_DEBIT',
           reasonNote: reason.trim(),
           source: 'DIRECT_ADJUSTMENT',
-          idempotencyKey: `direct-adjust-${userId}-${amount}-${Date.now()}`,
-          ipAddress
+          idempotencyKey,
+          ipAddress,
+          userAgent
         });
       });
 
@@ -77,6 +82,38 @@ export async function updateBalanceAction(formData: FormData) {
       reason.trim(),
       admin
     );
+
+    // If policyCheck was executed, create a SupportFinancialAction record
+    if (policyCheck && policyCheck.allowed) {
+      const ledgerEntry = await db.ledgerEntry.findFirst({
+        where: { adminId: admin.id, userId: userId },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      const isFlagged = Math.abs(amount) >= 500000 || policyCheck.warnings.length > 0;
+      const reviewStatus = isFlagged ? 'FLAGGED' : 'PENDING';
+
+      await db.supportFinancialAction.create({
+        data: {
+          staffUserId: admin.id,
+          targetUserId: userId,
+          direction: amount >= 0 ? 'CREDIT' : 'DEBIT',
+          source: 'DIRECT_ADJUSTMENT',
+          amountCents: BigInt(Math.abs(amount)),
+          reasonCode: amount >= 0 ? 'DIRECT_CREDIT' : 'DIRECT_DEBIT',
+          reasonNote: reason.trim(),
+          policyId: policyCheck.policy.id,
+          policySnapshot: JSON.parse(JSON.stringify(policyCheck.policy, (_, v) => typeof v === 'bigint' ? v.toString() : v)),
+          idempotencyKey,
+          status: escrowResult.status === 'APPROVED' ? 'EXECUTED' : 'QUARANTINE',
+          ledgerEntryId: ledgerEntry?.id || null,
+          consentId: policyCheck.consentId || null,
+          reviewStatus,
+          ipAddress,
+          userAgent
+        }
+      });
+    }
 
     // SD-13 SECURITY FIX: Await audit for balance modification (financial operation)
     await auditAdminAwaitable({
