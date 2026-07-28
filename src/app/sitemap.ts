@@ -1,14 +1,20 @@
 import { MetadataRoute } from 'next';
 import { getPublicCatalogAction } from '@/actions/order/catalog';
+import { headers } from 'next/headers';
 
 export const revalidate = 86400; // 24 hours
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://smmplan.pro';
+  const reqHeaders = await headers();
+  const host = reqHeaders.get('host') || 'smmplan.pro';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const baseUrl = `${protocol}://${host}`;
+
   const routes: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
       lastModified: new Date(),
+
       changeFrequency: 'daily',
       priority: 1,
     },

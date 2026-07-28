@@ -9,8 +9,10 @@ import { headers } from 'next/headers';
 export async function generateMetadata(): Promise<Metadata> {
   const reqHeaders = await headers();
   const host = reqHeaders.get('host') || '';
-  const tenantId = host.includes('lovable') ? 'lovable' : 'smmplan';
-  
+  const tenantId = host.includes('lovable') ? 'lovable' : host.includes('smmflux') ? 'smmflux' : 'smmplan';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const metadataBase = new URL(`${protocol}://${host}`);
+
   if (tenantId === 'lovable') {
     return {
       title: {
@@ -35,7 +37,35 @@ export async function generateMetadata(): Promise<Metadata> {
         index: true,
         follow: true,
       },
-      metadataBase: new URL(process.env.LOVABLE_APP_URL || 'https://lovable.pro'),
+      metadataBase,
+    };
+  }
+
+  if (tenantId === 'smmflux') {
+    return {
+      title: {
+        default: 'SMMflux — Быстрое продвижение для бизнеса',
+        template: '%s | SMMflux',
+      },
+      description: 'Быстрая накрутка и продвижение в социальных сетях для бизнеса. Фокус на качество и скорость.',
+      keywords: ['smm', 'накрутка', 'продвижение', 'smmflux', 'быстрый старт'],
+      openGraph: {
+        type: 'website',
+        locale: 'ru_RU',
+        siteName: 'SMMflux',
+        title: 'SMMflux — Быстрое продвижение для бизнеса',
+        description: 'Быстрая накрутка и продвижение в социальных сетях для бизнеса. Фокус на качество и скорость.',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'SMMflux — Быстрое продвижение для бизнеса',
+        description: 'Быстрая накрутка и продвижение в социальных сетях для бизнеса.',
+      },
+      robots: {
+        index: true,
+        follow: true,
+      },
+      metadataBase,
     };
   }
 
@@ -46,7 +76,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description:
       'Продвижение подписчиков, лайков, просмотров для Instagram, TikTok, VK, YouTube. Быстрый старт, надежные исполнители, поддержка 9-21 МСК.',
-    keywords: ['smm', 'продвижение', 'подписчики', 'лайки', 'продвижение', 'instagram', 'tiktok', 'youtube', 'vk'],
+    keywords: ['smm', 'продвижение', 'подписчики', 'лайки', 'instagram', 'tiktok', 'youtube', 'vk'],
     openGraph: {
       type: 'website',
       locale: 'ru_RU',
@@ -64,13 +94,7 @@ export async function generateMetadata(): Promise<Metadata> {
       index: true,
       follow: true,
     },
-    metadataBase: new URL(
-      process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL
-        ? (process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL)?.startsWith('http')
-          ? (process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL)!
-          : `https://${process.env.WEBAPP_URL || process.env.NEXT_PUBLIC_APP_URL}`
-        : 'https://smmplan.pro'
-    ),
+    metadataBase,
   };
 }
 

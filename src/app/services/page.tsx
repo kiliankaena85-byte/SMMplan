@@ -3,18 +3,43 @@ import { getArticles } from "@/actions/knowledge";
 import Link from "next/link";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BookOpen, Info, ArrowRight, Sparkles, Send, Instagram, Youtube, HelpCircle } from "lucide-react";
+import type { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from '@/lib/seo-helpers';
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: "Каталог услуг & База знаний | SMMplan",
-  description: "Премиальная bento-панель продвижения и обучения SMMplan. Найдите экспертные руководства, проверьте лимиты соцсетей и выберите тарифы продвижения.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const siteName = getTenantSiteName(tenantId);
+  const canonical = absoluteCanonical(tenantId, '/services');
+
+  return {
+    title: `Каталог услуг для социальных сетей | ${siteName}`,
+    description: `Все доступные услуги для продвижения в социальных сетях на платформе ${siteName}. Telegram, ВКонтакте, Instagram, YouTube и другие.`,
+    alternates: {
+      canonical: canonical,
+    },
+    openGraph: {
+      title: `Каталог услуг | ${siteName}`,
+      description: 'Выберите социальную сеть для продвижения',
+      url: canonical,
+      siteName: siteName,
+      locale: 'ru_RU',
+      type: 'website',
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function ServicesCatalogPage() {
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+
   // Parallel fetch catalog networks and featured articles
   const [catalogResult, articlesResult] = await Promise.all([
-    getPublicCatalogAction(),
+    getPublicCatalogAction(tenantId),
     getArticles()
   ]);
 

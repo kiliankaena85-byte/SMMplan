@@ -6,9 +6,18 @@
 
 import React from 'react';
 
-interface JsonLdProps {
+// Common Schema.org types for SMM platforms
+export type JsonLdType = 'Organization' | 'Product' | 'FAQPage' | 'BreadcrumbList' | 'WebSite' | 'Service';
+
+export interface JsonLdData {
+  '@context': string;
+  '@type': string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: Record<string, any>;
+  [key: string]: any;
+}
+
+interface JsonLdProps {
+  data: JsonLdData | JsonLdData[];
 }
 
 export function JsonLd({ data }: JsonLdProps) {

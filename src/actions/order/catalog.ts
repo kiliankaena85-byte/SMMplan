@@ -9,32 +9,39 @@ import { unstable_cache } from "next/cache";
 
 import { sanitizeServiceDescription } from "@/lib/sanitize";
 
-const getCachedNetworks = unstable_cache(
+const getCachedNetworks = (tenantId: string) => unstable_cache(
   async () => {
     return await db.network.findMany({
       where: {
         isActive: true,
-        categories: { some: { services: { some: { isActive: true } } } }
+        tenantId: { in: [tenantId, 'all'] },
+        categories: { some: { services: { some: { isActive: true, isQuarantined: false } } } }
       },
       include: {
         categories: {
-          where: { services: { some: { isActive: true } } },
+          where: { services: { some: { isActive: true, isQuarantined: false } } },
           orderBy: { name: 'asc' }
         }
       },
       orderBy: { sort: 'asc' }
     });
   },
-  ['public-catalog-networks-v2'],
-  { revalidate: 60, tags: ['catalog'] }
-);
+  [`public-catalog-networks-v3-${tenantId}`],
+  { revalidate: 60, tags: ['catalog', `catalog-${tenantId}`] }
+)();
 
 const PAGE_SIZE = 100;
 
-const getCachedServices = (catId: string) => unstable_cache(
+const getCachedServices = (catId: string, tenantId: string = 'smmplan') => unstable_cache(
   async () => {
     const services = await db.service.findMany({
-      where: { categoryId: catId, isActive: true },
+      where: { 
+        categoryId: catId, 
+        isActive: true, 
+        isQuarantined: false,
+        tenantId: { in: [tenantId, 'all'] },
+        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }]
+      },
       include: { smartConfig: true },
       orderBy: { rate: 'asc' },
       take: PAGE_SIZE + 1
@@ -44,8 +51,8 @@ const getCachedServices = (catId: string) => unstable_cache(
     }
     return services.slice(0, PAGE_SIZE);
   },
-  ['public-services-by-category-v2', catId],
-  { revalidate: 60, tags: ['catalog', 'services'] }
+  [`public-services-by-category-v3-${catId}-${tenantId}`],
+  { revalidate: 60, tags: ['catalog', 'services', `catalog-${tenantId}`] }
 )();
 
 export type PublicService = {
@@ -105,24 +112,25 @@ export type PublicNetwork = {
   categories: PublicCategory[];
 };
 
-export async function getPublicCatalogAction() {
+export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
   try {
 
     const rawNetworks = SettingsProvider.isTestEnvironment()
       ? await db.network.findMany({
           where: {
             isActive: true,
-            categories: { some: { services: { some: { isActive: true } } } }
+            tenantId: { in: [tenantId, 'all'] },
+            categories: { some: { services: { some: { isActive: true, isQuarantined: false } } } }
           },
           include: {
             categories: {
-              where: { services: { some: { isActive: true } } },
+              where: { services: { some: { isActive: true, isQuarantined: false } } },
               orderBy: { name: 'asc' }
             }
           },
           orderBy: { sort: 'asc' }
         })
-      : await getCachedNetworks();
+      : await getCachedNetworks(tenantId);
 
     const catalog: PublicNetwork[] = rawNetworks.map(net => {
       let icon = "/brands/web.svg";
@@ -161,15 +169,22 @@ export async function getPublicCatalogAction() {
   }
 }
 
-export async function getServicesByCategoryAction(categoryId: string): Promise<PublicService[]> {
+export async function getServicesByCategoryAction(categoryId: string, tenantId: string = 'smmplan'): Promise<PublicService[]> {
   try {
 
     const [services, usdToRub] = await Promise.all([
       SettingsProvider.isTestEnvironment()
         ? db.service.findMany({
-            where: { categoryId: categoryId, isActive: true },
+            where: { 
+              categoryId: categoryId, 
+              isActive: true,
+              isQuarantined: false,
+              tenantId: { in: [tenantId, 'all'] },
+              OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }]
+            },
             select: {
               id: true,
+
               numericId: true,
               categoryId: true,
               name: true,
@@ -209,7 +224,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
             orderBy: { rate: 'asc' },
             take: 100
           })
-        : getCachedServices(categoryId),
+        : getCachedServices(categoryId, tenantId),
       SettingsProvider.getExchangeRateUSD()
     ]);
 

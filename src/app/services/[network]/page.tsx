@@ -5,18 +5,29 @@ import { Metadata } from "next";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Clock, CheckCircle2, ArrowLeft, Send, Zap, Shield, Sparkles, HelpCircle } from "lucide-react";
 
-export const revalidate = 3600;
+import { headers } from "next/headers";
+import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ network: string }> }): Promise<Metadata> {
   const { network } = await params;
-  const catalogResult = await getPublicCatalogAction();
+  
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const siteName = getTenantSiteName(tenantId);
+  
+  const catalogResult = await getPublicCatalogAction(tenantId);
   const net = catalogResult.data?.find(n => n.slug === network);
   
   if (!net) return { title: "Сеть не найдена" };
 
   return {
-    title: `Продвижение ${net.name} | Купить подписчиков и лайки | SMMplan`,
-    description: `Премиальное продвижение в ${net.name}. Заказ от 1 штуки, гарантия качества, быстрый старт и удобный сервис.`,
+    title: `Продвижение ${net.name} | Купить подписчиков и лайки | ${siteName}`,
+    description: `Премиальное продвижение в ${net.name} на платформе ${siteName}. Заказ от 1 штуки, гарантия качества, быстрый старт и удобный сервис.`,
+    alternates: {
+      canonical: absoluteCanonical(tenantId, `/services/${net.slug}`),
+    }
   };
 }
 
@@ -41,7 +52,11 @@ function formatPricePerUnit(price: number): string {
 
 export default async function NetworkServicesPage({ params }: { params: Promise<{ network: string }> }) {
   const { network } = await params;
-  const catalogResult = await getPublicCatalogAction();
+  
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  
+  const catalogResult = await getPublicCatalogAction(tenantId);
   const networks = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
   const currentNetwork = networks.find(n => n.slug === network);
@@ -50,7 +65,7 @@ export default async function NetworkServicesPage({ params }: { params: Promise<
   // Parallel fetch services for all categories in this network
   const categoriesWithServices = await Promise.all(
     currentNetwork.categories.map(async (cat) => {
-      const services = await getServicesByCategoryAction(cat.id);
+      const services = await getServicesByCategoryAction(cat.id, tenantId);
       return { ...cat, services };
     })
   );

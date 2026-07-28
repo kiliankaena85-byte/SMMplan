@@ -149,6 +149,11 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  // Inject X-Robots-Tag for sensitive routes to prevent indexing
+  if (['/admin', '/dashboard', '/operator', '/api'].some(p => pathname.startsWith(p))) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  }
+
   if (ref) {
     response.cookies.set('ref', ref, {
       path: '/',
