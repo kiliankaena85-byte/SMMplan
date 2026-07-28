@@ -12,6 +12,7 @@ import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
 import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
 import { CopyText } from '@/components/ui/CopyText';
+import { SocialIcon } from '@/components/ui/SocialIcon';
 import { getTenantDashboardViews } from '@/tenants/factory';
 import { Metadata } from 'next';
 import {
