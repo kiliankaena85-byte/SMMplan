@@ -24,7 +24,7 @@ export async function getEmployeeConsentStatusAction() {
       where: {
         userId: user.id,
         status: 'ACTIVE',
-        documentVersion: LEGAL_DOCUMENT_VERSION
+        documentVersionText: LEGAL_DOCUMENT_VERSION
       }
     });
 
@@ -54,7 +54,7 @@ export async function acceptEmployeeResponsibilityConsentAction() {
     const consent = await db.employeeResponsibilityConsent.create({
       data: {
         userId: user.id,
-        documentVersion: LEGAL_DOCUMENT_VERSION,
+        documentVersionText: LEGAL_DOCUMENT_VERSION,
         documentHash: LEGAL_DOCUMENT_HASH,
         acceptedIp: ipAddress,
         acceptedUserAgent: userAgent,
