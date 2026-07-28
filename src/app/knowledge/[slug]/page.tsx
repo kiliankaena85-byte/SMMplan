@@ -13,7 +13,7 @@ import { verifySession } from "@/lib/session";
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
-import { pillarPages, glossaryTerms } from "@/data/seo";
+import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -248,9 +248,50 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     year: "numeric"
   });
 
-  // Find matching pillar or glossary term for structured schema extensions
+  // Find matching pillar, cluster, or glossary term for structured schema extensions
   const currentPillar = pillarPages.find(p => p.slug === article.slug);
+  const currentCluster = clusterArticles.find(c => c.slug === article.slug);
   const currentGlossary = glossaryTerms.find(g => g.slug === article.slug || g.slug === `glossary/${article.slug}`);
+
+  // Resolve parent pillar for cluster breadcrumbs
+  const parentPillarObj = currentCluster ? pillarPages.find(p => p.slug === currentCluster.parentPillar) : null;
+
+  const breadcrumbItems = [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Главная",
+      "item": `https://${host}`
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "База знаний",
+      "item": `https://${host}/knowledge`
+    }
+  ];
+
+  if (parentPillarObj) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": 3,
+      "name": parentPillarObj.title,
+      "item": `https://${host}/knowledge/${parentPillarObj.slug}`
+    });
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": 4,
+      "name": article.title,
+      "item": canonical
+    });
+  } else {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": 3,
+      "name": article.title,
+      "item": canonical
+    });
+  }
 
   // Schema.org structured data setup
   const schemas: any[] = [
@@ -280,34 +321,16 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Главная",
-          "item": `https://${host}`
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "База знаний",
-          "item": `https://${host}/knowledge`
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "name": article.title,
-          "item": canonical
-        }
-      ]
+      "itemListElement": breadcrumbItems
     }
   ];
 
-  if (currentPillar?.faq && currentPillar.faq.length > 0) {
+  const activeFaq = currentPillar?.faq || currentCluster?.faq;
+  if (activeFaq && activeFaq.length > 0) {
     schemas.push({
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      "mainEntity": currentPillar.faq.map(item => ({
+      "mainEntity": activeFaq.map(item => ({
         "@type": "Question",
         "name": item.question,
         "acceptedAnswer": {
@@ -379,7 +402,19 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             </Link>
             <span className="text-muted-foreground/50">/</span>
             
-            <span className="text-foreground font-bold truncate max-w-[150px] md:max-w-xs" aria-current="page">
+            {parentPillarObj && (
+              <>
+                <Link 
+                  href={`/knowledge/${parentPillarObj.slug}`} 
+                  className="hover:text-primary transition-all duration-200 min-h-[44px] flex items-center"
+                >
+                  {parentPillarObj.title}
+                </Link>
+                <span className="text-muted-foreground/50">/</span>
+              </>
+            )}
+
+            <span className="text-foreground font-semibold truncate max-w-[200px] md:max-w-[400px]">
               {article.title}
             </span>
           </nav>

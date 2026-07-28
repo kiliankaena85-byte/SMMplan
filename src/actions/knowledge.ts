@@ -7,7 +7,7 @@ import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { pillarPages, glossaryTerms } from "@/data/seo";
+import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
 
 // Zod Schema for Article validation at runtime
 const articleSchema = z.object({
@@ -131,6 +131,28 @@ export async function getArticleBySlug(slug: string) {
             authorName: "Команда SMMplan",
             authorRole: "Редакция SMMplan",
             priority: 10,
+          }
+        };
+      }
+
+      const cluster = clusterArticles.find(c => c.slug === slug);
+      if (cluster) {
+        return {
+          success: true,
+          article: {
+            id: `static-${cluster.slug}`,
+            slug: cluster.slug,
+            title: cluster.title,
+            description: cluster.excerpt,
+            content: cluster.contentHtml,
+            status: "PUBLISHED" as const,
+            category: cluster.category,
+            viewCount: 112,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            authorName: "Команда SMMplan",
+            authorRole: "Редакция SMMplan",
+            priority: 5,
           }
         };
       }

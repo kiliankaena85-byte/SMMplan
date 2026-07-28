@@ -5,6 +5,12 @@ import { howToChooseSmmPanel } from './pillars/how-to-choose-smm-panel';
 import { guideVk } from './pillars/guide-vk';
 import { glossaryTerms, GlossaryTerm } from './glossary';
 
+import { telegramClusters, ClusterArticle } from './clusters/telegram';
+import { instagramClusters } from './clusters/instagram';
+import { apiClusters } from './clusters/api';
+import { chooseClusters } from './clusters/choose';
+import { vkClusters } from './clusters/vk';
+
 export interface PillarPage {
   slug: string;
   title: string;
@@ -15,6 +21,7 @@ export interface PillarPage {
   readTimeMinutes: number;
   network: string;
   category: string;
+  parentPillar?: string;
 }
 
 export const pillarPages: PillarPage[] = [
@@ -25,6 +32,14 @@ export const pillarPages: PillarPage[] = [
   guideVk,
 ];
 
+export const clusterArticles: ClusterArticle[] = [
+  ...telegramClusters,
+  ...instagramClusters,
+  ...apiClusters,
+  ...chooseClusters,
+  ...vkClusters,
+];
+
 export {
   guideTelegram,
   guideInstagram,
@@ -32,6 +47,11 @@ export {
   howToChooseSmmPanel,
   guideVk,
   glossaryTerms,
+  telegramClusters,
+  instagramClusters,
+  apiClusters,
+  chooseClusters,
+  vkClusters,
 };
 
-export type { GlossaryTerm };
+export type { GlossaryTerm, ClusterArticle };

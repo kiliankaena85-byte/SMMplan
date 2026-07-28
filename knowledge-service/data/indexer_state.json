@@ -858,7 +858,7 @@
   "/app/codebase/.agents/teamwork_orchestrator_testing_1/PROJECT.md": "eab401e4b127a238",
   "/app/codebase/SYNC_AUDIT_REPORT.md": "0f918396dfa4f447",
   "/app/codebase/.github/dependabot.yml": "898a5c9e2bab05c1",
-  "/app/codebase/src/actions/knowledge.ts": "4f1912e226ce6496",
+  "/app/codebase/src/actions/knowledge.ts": "238b1bc2d80d69ac",
   "/app/codebase/src/app/(auth)/login/page.tsx": "9bbf053169238611",
   "/app/codebase/src/workers/processors/smart-feedback-loop.processor.ts": "37db8cd99ce40bdf",
   "/app/codebase/.agents/teamwork_preview_orchestrator_auth_1/SCOPE.md": "68e041de12d547d0",
@@ -2283,7 +2283,7 @@
   "/app/codebase/src/components/support/CopyDetailsButton.tsx": "d77a4bceb5031baf",
   "/app/codebase/src/lib/circuit-breaker.ts": "61a7682b0f35f870",
   "/app/codebase/src/components/orders/CancelOrderButton.tsx": "5883493397487b12",
-  "/app/codebase/src/app/knowledge/[slug]/page.tsx": "7d96a41ef09cda3b",
+  "/app/codebase/src/app/knowledge/[slug]/page.tsx": "c7c77b728cb7023e",
   "/app/codebase/scripts/gen-magic.ts": "c0b725f116ed93d4",
   "/app/codebase/src/actions/admin/health.ts": "35f9beb4f4d0fc6f",
   "/app/codebase/src/components/orders/SmmplanOrderWizard.tsx": "eea82ceb2893217a",
@@ -2706,5 +2706,14 @@
   "/app/codebase/evidence/02-build.txt": "b0ba078583b52ad4",
   "/app/codebase/evidence/01-tsc.txt": "e3b0c44298fc1c14",
   "/app/codebase/evidence/03-vitest.txt": "01029c40c728c433",
-  "/app/codebase/evidence/12-finance-tests.txt": "c898a3805c3f1f88"
+  "/app/codebase/evidence/12-finance-tests.txt": "c898a3805c3f1f88",
+  "/app/codebase/src/data/seo/glossary.ts": "290f78f306af8256",
+  "/app/codebase/src/data/seo/pillars/guide-telegram.ts": "0bd73dee9036c9b3",
+  "/app/codebase/src/data/seo/pillars/smm-api-guide.ts": "c0ffc6fc3b3ca7de",
+  "/app/codebase/CONTENT_PLAN.md": "8238d8b20a0f7adb",
+  "/app/codebase/scripts/seed-content.ts": "ea56da83d9b56fa0",
+  "/app/codebase/src/data/seo/pillars/how-to-choose-smm-panel.ts": "f0e76cfd92461ca8",
+  "/app/codebase/src/data/seo/pillars/guide-instagram.ts": "77b1990e4dd05b89",
+  "/app/codebase/src/data/seo/index.ts": "e13073421f3403b4",
+  "/app/codebase/src/data/seo/pillars/guide-vk.ts": "4425a901f67aa9ee"
 }

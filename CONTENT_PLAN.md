@@ -2,49 +2,69 @@
 
 Дата сборки: 29 июля 2026 г.
 
-## 1. Сводка созданных Pillar Pages (Разделы базы знаний)
+## 1. Сводка Pillar Pages (Главные разделы базы знаний)
 
 | Файл | Slug | Заголовок (H1) | Изучение (мин) | Ссылки на Glossary | FAQ вопросов |
 | --- | --- | --- | --- | --- | --- |
-| `src/data/seo/pillars/guide-telegram.ts` | `guide-telegram` | Продвижение в Telegram: полный гайд 2026 | 12 | 3 | 5 |
-| `src/data/seo/pillars/guide-instagram.ts` | `guide-instagram` | Продвижение в Instagram: гайд 2026 | 11 | 3 | 5 |
-| `src/data/seo/pillars/smm-api-guide.ts` | `smm-api-guide` | SMM API для агентств и реселлеров | 13 | 3 | 5 |
-| `src/data/seo/pillars/how-to-choose-smm-panel.ts` | `how-to-choose-smm-panel` | Как выбрать SMM-панель: чеклист 2026 | 11 | 4 | 5 |
-| `src/data/seo/pillars/guide-vk.ts` | `guide-vk` | Продвижение ВКонтакте: полный гайд 2026 | 11 | 3 | 5 |
+| `src/data/seo/pillars/guide-telegram.ts` | `guide-telegram` | Продвижение в Telegram: полный гайд 2026 | 15 | 3 | 5 |
+| `src/data/seo/pillars/guide-instagram.ts` | `guide-instagram` | Продвижение в Instagram: гайд 2026 | 16 | 3 | 5 |
+| `src/data/seo/pillars/smm-api-guide.ts` | `smm-api-guide` | SMM API для агентств и реселлеров | 16 | 3 | 5 |
+| `src/data/seo/pillars/how-to-choose-smm-panel.ts` | `how-to-choose-smm-panel` | Как выбрать SMM-панель: чеклист 2026 | 16 | 4 | 5 |
+| `src/data/seo/pillars/guide-vk.ts` | `guide-vk` | Продвижение ВКонтакте: полный гайд 2026 | 16 | 3 | 5 |
 
 ---
 
-## 2. Глоссарий SMM (20 терминов)
+## 2. Сводка Cluster Articles (30 сателлитных статей Hub-and-Spoke)
 
-Файл: `src/data/seo/glossary.ts`
+### Telegram Clusters (8 статей)
+- `kak-nabrat-podpischikov-telegram` — Как набрать подписчиков в Telegram-канале в 2026 году
+- `prosmotry-telegram` — Просмотры в Telegram: зачем нужны и как увеличить
+- `reakcii-telegram` — Реакции в Telegram: как работают и зачем нужны
+- `telegram-stars` — Telegram Stars: что это и как использовать
+- `dripfeed-telegram` — Drip-feed для Telegram: постепенное продвижение
+- `limity-telegram` — Лимиты Telegram: что нельзя превышать
+- `prodvizhenie-zakrytogo-kanala` — Продвижение закрытого Telegram-канала
+- `stoimost-prodvizheniya-telegram` — Сколько стоит продвижение Telegram-канала
 
-| # | Slug | Термин | Определение |
-| --- | --- | --- | --- |
-| 1 | `glossary/smm` | SMM (Social Media Marketing) | Маркетинг в социальных сетях и продвижение брендов |
-| 2 | `glossary/drip-feed` | Drip-feed (Капельная подача) | Равномерная подача заказов во времени |
-| 3 | `glossary/engagement-rate` | Engagement Rate (ER) | Коэффициент вовлечённости аудитории |
-| 4 | `glossary/ctr` | CTR (Click-Through Rate) | Показатель кликабельности рекомендаций/ссылок |
-| 5 | `glossary/organic-reach` | Organic Reach | Органический охват публикаций |
-| 6 | `glossary/bot-filter` | Bot Filter | Алгоритмическая система фильтрации спам-аккаунтов |
-| 7 | `glossary/refill` | Refill (Докрутка) | Бесплатная гарантийная компенсация оттока |
-| 8 | `glossary/markup` | Markup (Наценка) | Коэффициент маржинальности реселлеров |
-| 9 | `glossary/provider` | Provider (Провайдер) | Первичный поставщик технических услуг |
-| 10 | `glossary/quarantine` | Quarantine (Карантин) | Эластичная изоляция аномалий цен и сбоев |
-| 11 | `glossary/eta` | ETA (Estimated Time of Arrival) | Медианное прогнозируемое время выполнения |
-| 12 | `glossary/smart-drip` | Smart Drip | Интеллектуальный капельный алгоритм суточного ритма |
-| 13 | `glossary/reach` | Охват (Reach) | Уникальное число просмотревших пользователей |
-| 14 | `glossary/engagement` | Вовлечённость (Engagement) | Совокупность пользовательских откликов |
-| 15 | `glossary/conversion` | Конверсия (Conversion) | Процент целевых действия подписчиков |
-| 16 | `glossary/targeting` | Таргетинг (Targeting) | Сегментация аудитории по геолокации и интересам |
-| 17 | `glossary/content-plan` | Контент-план | График и матрица публикаций материалов |
-| 18 | `glossary/roi` | ROI (Return on Investment) | Коэффициент окупаемости маркетинговых инвестиций |
-| 19 | `glossary/ltv` | LTV (Lifetime Value) | Пожизненная ценность и маржа клиента |
-| 20 | `glossary/api` | API | Программный интерфейс автоматизации v2 |
+### Instagram Clusters (6 статей, Meta Disclaimer)
+- `kak-nabrat-podpischikov-instagram` — Как набрать подписчиков в Instagram в 2026 году
+- `laiki-instagram` — Лайки в Instagram: зачем нужны и как влияют
+- `prodvizhenie-reels` — Продвижение Reels: как увеличить просмотры
+- `prosmotry-stories-instagram` — Просмотры Stories в Instagram
+- `limity-instagram` — Лимиты Instagram: безопасность аккаунта
+- `algoritmy-instagram` — Алгоритмы Instagram в 2026 году
+
+### SMM API Clusters (5 статей)
+- `kak-poluchit-api-kluch` — Как получить API-ключ SMM-панели
+- `api-metod-add` — SMM API: создание заказа (метод add)
+- `api-status-zakaza` — SMM API: проверка статуса заказа
+- `api-refill` — SMM API: докрутка (refill) заказов
+- `reselling-smm` — Как заработать на реселлинге SMM-услуг
+
+### SMM Panel Selection Clusters (5 статей)
+- `chto-takoe-smm-panel` — Что такое SMM-панель и как она работает
+- `ceny-smm-panel` — Цены в SMM-панелях: как формируется наценка
+- `eta-skorost` — Скорость выполнения заказов: что такое ETA
+- `garantii-vozvraty` — Гарантии и возвраты в SMM-панелях
+- `bezopasnost-smm-panel` — Безопасность SMM-панели: как не потерять деньги
+
+### VKontakte Clusters (6 статей)
+- `kak-nabrat-podpischikov-vk` — Как набрать подписчиков в группу ВКонтакте
+- `laiki-vk` — Лайки ВКонтакте: зачем нужны
+- `prosmotry-vk-klipty` — Просмотры VK Клипов: как увеличить
+- `reposty-vk` — Репосты ВКонтакте: как работают
+- `kommentarii-vk` — Комментарии ВКонтакте: продвижение
+- `limity-vk` — Лимиты ВКонтакте: безопасность
 
 ---
 
-## 3. Юридическая и терминологическая безопасность
+## 3. Глоссарий SMM (20 терминов)
 
-1. **Дисклеймер Meta Platforms Inc.** присутствует в верхней части страницы `guide-instagram`.
-2. **Безопасная терминология:** исключены термины "накрутка", "боты", "фейковые аккаунты". Применены семантические токены "стимулирование вовлечённости", "продвижение", "рост аудитории".
-3. **Цены:** указаны в рублях (RUB) за 1 штуку.
+Файл: `src/data/seo/glossary.ts` (SMM, Drip-feed, ER, CTR, Organic Reach, Bot Filter, Refill, Markup, Provider, Quarantine, ETA, Smart Drip, Охват, Вовлечённость, Конверсия, Таргетинг, Контент-план, ROI, LTV, API).
+
+---
+
+## 4. Архитектура связности Hub-and-Spoke
+- Каждая cluster-статья ссылается на родительский pillar в начале и конце.
+- Родительские pillars имеют перекрестные блоки "Читайте также по теме" со ссылками на все подчинённые кластеры.
+- Для кластеров генерируется 4-уровневый хлебные крошки BreadcrumbList: `Главная → База знаний → {Pillar Title} → {Cluster Title}`.

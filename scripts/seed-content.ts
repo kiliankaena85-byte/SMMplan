@@ -1,8 +1,8 @@
 import { db } from '@/lib/db';
-import { pillarPages, glossaryTerms } from '../src/data/seo';
+import { pillarPages, glossaryTerms, clusterArticles } from '../src/data/seo';
 
 async function main() {
-  console.log('🌱 [Seed Content] Starting SEO pillars & glossary seeding...');
+  console.log('🌱 [Seed Content] Starting SEO pillars, clusters & glossary seeding...');
 
   // 1. Seed Pillars (ContentType: PAGE)
   for (const pillar of pillarPages) {
@@ -66,7 +66,68 @@ async function main() {
     }
   }
 
-  // 2. Seed Glossary (ContentType: GLOSSARY_TERM)
+  // 2. Seed Cluster Articles (ContentType: PAGE)
+  for (const cluster of clusterArticles) {
+    console.log(`Processing Cluster: ${cluster.slug}...`);
+
+    await db.contentItem.upsert({
+      where: { slug: cluster.slug },
+      create: {
+        slug: cluster.slug,
+        title: cluster.title,
+        excerpt: cluster.excerpt,
+        contentHtml: cluster.contentHtml,
+        type: 'PAGE',
+        isPublished: true,
+        publishedAt: new Date(),
+        authorName: 'Команда SMMplan',
+        metaTitle: cluster.metaTitle,
+        metaDescription: cluster.excerpt,
+        readTimeMinutes: cluster.readTimeMinutes,
+      },
+      update: {
+        title: cluster.title,
+        excerpt: cluster.excerpt,
+        contentHtml: cluster.contentHtml,
+        type: 'PAGE',
+        isPublished: true,
+        authorName: 'Команда SMMplan',
+        metaTitle: cluster.metaTitle,
+        metaDescription: cluster.excerpt,
+        readTimeMinutes: cluster.readTimeMinutes,
+      },
+    });
+
+    try {
+      await db.article.upsert({
+        where: { slug: cluster.slug },
+        create: {
+          slug: cluster.slug,
+          title: cluster.title,
+          description: cluster.excerpt,
+          content: cluster.contentHtml,
+          status: 'PUBLISHED',
+          category: cluster.category,
+          authorName: 'Команда SMMplan',
+          authorRole: 'Редакция SMMplan',
+          priority: 5,
+        },
+        update: {
+          title: cluster.title,
+          description: cluster.excerpt,
+          content: cluster.contentHtml,
+          status: 'PUBLISHED',
+          category: cluster.category,
+          authorName: 'Команда SMMplan',
+          authorRole: 'Редакция SMMplan',
+        },
+      });
+    } catch (e) {
+      console.warn(`Article model sync skipped for ${cluster.slug}:`, e);
+    }
+  }
+
+  // 3. Seed Glossary (ContentType: GLOSSARY_TERM)
   for (const term of glossaryTerms) {
     const slug = term.slug; // e.g. 'glossary/smm' or 'glossary/drip-feed'
     console.log(`Processing Glossary Term: ${slug}...`);
