@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
@@ -24,8 +25,8 @@ export async function POST(req: Request) {
     }
 
     for (const tag of tags) {
-      (revalidateTag as any)(tag);
-      console.log(`[API/Revalidate] Successfully revalidated tag: ${tag}`);
+      (revalidateTag as (tag: string) => void)(tag);
+      logger.info('Cache tag revalidated', { tag });
     }
 
     return NextResponse.json({ success: true, revalidated: true, tags });

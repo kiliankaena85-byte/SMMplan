@@ -51,7 +51,6 @@ describe('Password Registration Tests', () => {
     formData.append('password', 'ValidPassword123!');
 
     const res = await registerWithPasswordAction(null, formData);
-    console.log("REGISTRATION RESULT:", res);
     expect(res.success).toBe(true);
     expect(res.error).toBeNull();
     expect(res.message).toBeDefined();

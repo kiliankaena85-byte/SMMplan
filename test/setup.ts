@@ -272,6 +272,20 @@ beforeAll(async () => {
     revalidateTag: vi.fn(),
     unstable_cache: (fn: any) => fn
   }));
+
+  // Mock next/headers to avoid 'headers called outside request scope' errors in server actions
+  vi.mock('next/headers', () => ({
+    headers: vi.fn().mockResolvedValue({
+      get: vi.fn().mockImplementation((key: string) => {
+        if (key === 'user-agent') return 'vitest';
+        if (key === 'x-forwarded-for') return '127.0.0.1';
+        return null;
+      }),
+    }),
+    cookies: vi.fn().mockResolvedValue({
+      get: vi.fn().mockReturnValue(null),
+    }),
+  }));
 });
 
 async function sleep(ms: number) {
@@ -288,7 +302,7 @@ async function resetTestDb() {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      await db.$executeRawUnsafe(`TRUNCATE TABLE "LedgerEntry", "Order", "Payment", "TicketMessage", "Ticket", "Commission", "SmartTask", "SmartCampaign", "ServiceSmartConfig", "ServiceRoute", "Service", "Category", "Provider", "Article", "RateLimit", "AuditLog", "LoginLog", "Invoice", "User" CASCADE;`);
+      await db.$executeRawUnsafe(`TRUNCATE TABLE "LedgerEntry", "SupportLimitUsage", "SupportHourlyUsage", "SupportFinancialAction", "ManualBalanceAdjustment", "EmployeeResponsibilityConsent", "BalanceAdjustmentPolicy", "Order", "Payment", "TicketMessage", "Ticket", "Commission", "SmartTask", "SmartCampaign", "ServiceSmartConfig", "ServiceRoute", "Service", "Category", "Provider", "Article", "RateLimit", "AuditLog", "LoginLog", "Invoice", "User", "Network", "UrlPattern" CASCADE;`);
 
       for (const tId of ["smmplan", "lovable", "global"]) {
         await db.tenant.upsert({
