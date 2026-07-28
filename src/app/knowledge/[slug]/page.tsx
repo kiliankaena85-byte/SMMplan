@@ -13,6 +13,7 @@ import { verifySession } from "@/lib/session";
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
+import { pillarPages, glossaryTerms } from "@/data/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -247,33 +248,88 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     year: "numeric"
   });
 
+  // Find matching pillar or glossary term for structured schema extensions
+  const currentPillar = pillarPages.find(p => p.slug === article.slug);
+  const currentGlossary = glossaryTerms.find(g => g.slug === article.slug || g.slug === `glossary/${article.slug}`);
+
   // Schema.org structured data setup
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": article.title,
-    "description": article.description,
-    "articleBody": article.content,
-    "datePublished": article.createdAt.toISOString(),
-    "dateModified": article.updatedAt.toISOString(),
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": canonical,
+  const schemas: any[] = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": article.title,
+      "description": article.description,
+      "articleBody": article.content,
+      "datePublished": article.createdAt.toISOString(),
+      "dateModified": article.updatedAt.toISOString(),
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": canonical,
+      },
+      "author": {
+        "@type": "Organization",
+        "name": article.authorName || siteName,
+        "url": `https://${host}`,
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": siteName,
+        "url": `https://${host}`,
+      },
     },
-    "author": {
-      "@type": "Organization",
-      "name": siteName,
-      "url": `https://${host}`,
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": siteName,
-      "url": `https://${host}`,
-    },
-  };
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Главная",
+          "item": `https://${host}`
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "База знаний",
+          "item": `https://${host}/knowledge`
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": article.title,
+          "item": canonical
+        }
+      ]
+    }
+  ];
+
+  if (currentPillar?.faq && currentPillar.faq.length > 0) {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": currentPillar.faq.map(item => ({
+        "@type": "Question",
+        "name": item.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": item.answer
+        }
+      }))
+    });
+  }
+
+  if (currentGlossary) {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "DefinedTerm",
+      "name": currentGlossary.term,
+      "description": currentGlossary.definition,
+      "inDefinedTermSet": `https://${host}/knowledge`
+    });
+  }
 
   // Safe serialization preventing XSS injection inside raw scripts
-  const escapedJsonLd = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+  const escapedJsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
@@ -365,9 +421,13 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   </div>
                 </div>
 
-                {/* Markdown rendered nodes */}
+                {/* Content rendering: handles HTML strings and markdown */}
                 <div className="prose max-w-none text-foreground/90 leading-relaxed font-sans border-b border-border/40 pb-6 mb-6">
-                  {renderMarkdown(article.content)}
+                  {article.content.trim().startsWith("<") ? (
+                    <div dangerouslySetInnerHTML={{ __html: article.content }} />
+                  ) : (
+                    renderMarkdown(article.content)
+                  )}
                 </div>
               </article>
 
