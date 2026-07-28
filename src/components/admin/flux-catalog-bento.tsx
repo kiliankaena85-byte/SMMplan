@@ -5,7 +5,7 @@ import { Search, Filter, TrendingUp, TrendingDown, ArrowRight } from 'lucide-rea
 import { motion } from 'framer-motion';
 // import { SocialIcon } from '@/components/ui/social-icon';
 
-import { LovableCatalogGrid } from './flux-catalog-grid';
+import { FluxCatalogGrid } from './flux-catalog-grid';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import * as React from 'react';
@@ -184,7 +184,7 @@ export function FluxCatalogBento({
 
         {/* Grid */}
         <div className="px-2 mt-8 max-w-7xl mx-auto">
-          <LovableCatalogGrid
+          <FluxCatalogGrid
             services={services}
             selectedIds={selectedIds}
             onSelect={handleSelect}

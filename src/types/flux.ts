@@ -75,4 +75,3 @@ export interface StatusConfig {
   dotClass: string;
 }
 
-export type FluxOrder = FluxOrder;
