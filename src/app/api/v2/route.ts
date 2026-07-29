@@ -20,7 +20,7 @@ function mapInternalStatus(internal: string): string {
     'COMPLETED': 'Completed',
     'PARTIAL': 'Partial',
     'CANCELED': 'Canceled',
-    'ERROR': 'Fail'
+    'ERROR': 'Canceled'
   };
   return statusMap[internal] || 'Pending';
 }
@@ -430,34 +430,35 @@ async function handleCancel(user: User, formData: FormData) {
     where: { numericId: { in: ids }, userId: user.id, tenantId: userTenantId }
   });
 
-  const resultMap: Record<string, string> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resultMap: Record<string, any> = {};
 
   for (const id of ids) {
     const order = orders.find(o => o.numericId === id);
     if (!order) {
-      resultMap[id.toString()] = 'Incorrect order ID';
+      resultMap[id.toString()] = { error: 'Incorrect order ID' };
       continue;
     }
 
     if (order.status === 'PENDING' || order.status === 'AWAITING_PAYMENT') {
       const cancelResult = await orderService.cancelPendingOrderClient(order.id, user.id);
       if (cancelResult.success) {
-        resultMap[id.toString()] = 'Cancelled and refunded';
+        resultMap[id.toString()] = { cancel: true };
       } else {
-        resultMap[id.toString()] = cancelResult.error || 'Cancellation failed';
+        resultMap[id.toString()] = { error: cancelResult.error || 'Cancellation failed' };
       }
     } else {
-      resultMap[id.toString()] = 'Cancellation via API is not supported. Contact support.';
+      resultMap[id.toString()] = { error: 'Cancellation via API is not supported. Contact support.' };
     }
   }
 
   // If it's a single order request, standard SMM API returns error/success at root level
   if (!formData.get('orders') && ids.length === 1) {
-    const resultMsg = resultMap[ids[0].toString()];
-    if (resultMsg === 'Cancelled and refunded') {
-       return NextResponse.json({ success: true, message: resultMsg });
+    const singleResult = resultMap[ids[0].toString()];
+    if (singleResult.cancel) {
+       return NextResponse.json({ cancel: true });
     }
-    return NextResponse.json({ error: resultMsg }, { status: 400 });
+    return NextResponse.json({ error: singleResult.error }, { status: 400 });
   }
 
   return NextResponse.json(resultMap);
