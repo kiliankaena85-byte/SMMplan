@@ -359,7 +359,7 @@ class AdminCatalogService {
         cleanName: s.cleanName || null,
         platform: (s.metrics?.platform || 'other').toLowerCase(),
         normalizedCategory: s.metrics?.category || null,
-        targetType: s.metrics?.targetType || 'POST',
+        targetType: s.metrics?.targetType || inferTargetTypeFromCategory(s.category || s.name),
         customDataType: s.metrics?.customDataType || 'NONE',
         isMediaGroupAware: s.metrics?.isMediaGroupAware || false,
         isPrivate: s.metrics?.isPrivate || false,

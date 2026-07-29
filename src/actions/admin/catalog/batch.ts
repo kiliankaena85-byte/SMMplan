@@ -20,7 +20,7 @@ import { SettingsProvider } from '@/lib/settings';
 
 const MIN_MARKUP = 1.0;
 
-const batchIdsSchema = z.array(z.string().min(1)).min(1).max(500);
+const batchIdsSchema = z.array(z.string().min(1)).min(1).max(200);
 const markupSchema = z.number().min(MIN_MARKUP).max(150);
 
 /** Bulk toggle isActive for a list of service IDs */
