@@ -32,7 +32,10 @@ export async function adminSyncProviderCatalog() {
             updatedCount += stats.priceUpdatedSilent;
             disabledCount += stats.priceAnomalies + stats.zombiesDisabled;
           } catch (pErr: unknown) {
+            const errMsg = pErr instanceof Error ? pErr.message : String(pErr);
             console.error(`[CatalogSync] Provider ${provider.name} (${provider.id}) sync error:`, pErr);
+            const { sendAdminAlert } = await import('@/lib/notifications');
+            await sendAdminAlert(`⚠️ Sync провайдера "${provider.name}" не удался: ${errMsg}`, 'WARNING');
           }
         }
 
@@ -42,8 +45,11 @@ export async function adminSyncProviderCatalog() {
           stats: { updatedCount, disabledCount, unchangedCount: 0 },
         };
       } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
         console.error("Critical Sync Error:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Unknown sync error" };
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        await sendAdminAlert(`🚨 Критический сбой синхронизации каталога: ${errMsg}`, 'CRITICAL');
+        return { success: false, error: errMsg };
       }
     });
   });

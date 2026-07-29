@@ -70,9 +70,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         });
 
         for (const category of network.categories) {
-          // Quality Gate: fetch services to verify eligibility before adding to sitemap
+          // Quality Gate: fetch services to verify eligibility before adding to sitemap (>=3 active services with price > 0)
           const services = await getServicesByCategoryAction(category.id, tenantId);
-          const passesQualityGate = services.length >= 3 && services.some(s => s.pricePerUnitRub > 0);
+          const activeServices = services.filter(s => s.pricePerUnitRub > 0);
+          const passesQualityGate = activeServices.length >= 3;
           
           if (passesQualityGate) {
             routes.push({
@@ -83,7 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             });
 
             // Добавление URL конкретных тарифных услуг категории
-            for (const s of services) {
+            for (const s of activeServices) {
               if (s.slug) {
                 routes.push({
                   url: `${baseUrl}/services/${network.slug}/${category.slug}/${s.slug}`,

@@ -463,6 +463,29 @@ class AdminCatalogService {
 
     const zombieIds: string[] = [];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let pendingUpdates: Array<{ id: string; data: any; oldRate: number; newRate: number }> = [];
+
+    const executeUpdatesChunk = async (chunk: typeof pendingUpdates) => {
+      await db.$transaction(async (tx) => {
+        for (const item of chunk) {
+          await tx.service.update({
+            where: { id: item.id },
+            data: item.data,
+          });
+
+          if (item.newRate !== item.oldRate) {
+            await tx.servicePriceHistory.create({
+              data: {
+                serviceId: item.id,
+                rate: item.newRate,
+              },
+            });
+          }
+        }
+      });
+    };
+
     for (const s of ourServices) {
       if (!s.externalId) continue;
 
@@ -630,23 +653,27 @@ class AdminCatalogService {
               // keep description intact unless specified
             }
 
-            await db.service.update({
-              where: { id: s.id },
-              data: updateData
+            pendingUpdates.push({
+              id: s.id,
+              data: updateData,
+              oldRate,
+              newRate
             });
 
-            if (newRate !== oldRate) {
-              await db.servicePriceHistory.create({
-                data: {
-                  serviceId: s.id,
-                  rate: newRate
-                }
-              });
-              priceUpdatedSilent++;
+            if (pendingUpdates.length >= 50) {
+              await executeUpdatesChunk(pendingUpdates);
+              priceUpdatedSilent += pendingUpdates.filter(u => u.newRate !== u.oldRate).length;
+              pendingUpdates = [];
             }
           }
         }
       }
+    }
+
+    if (pendingUpdates.length > 0) {
+      await executeUpdatesChunk(pendingUpdates);
+      priceUpdatedSilent += pendingUpdates.filter(u => u.newRate !== u.oldRate).length;
+      pendingUpdates = [];
     }
 
     // Process zombies in batches of 500 to avoid N+1 query spam and connection pool exhaustion

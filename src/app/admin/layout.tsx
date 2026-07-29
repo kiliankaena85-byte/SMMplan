@@ -28,6 +28,7 @@ const ADMIN_NAVIGATION = [
     group: 'Финансы',
     items: [
       { href: '/admin/finance', icon: 'CreditCard', label: 'Биллинг', section: 'finance' },
+      { href: '/admin/analytics', icon: 'TrendingUp', label: 'Аналитика', section: 'analytics' },
       { href: '/admin/finance/balance-requests', icon: 'Inbox', label: 'Заявки баланса', section: 'balance_requests' },
       { href: '/admin/finance/balance-requests/stats', icon: 'BarChart3', label: 'Статистика заявок', section: 'balance_stats' },
       { href: '/admin/marketing', icon: 'Gift', label: 'Маркетинг', section: 'marketing' },
