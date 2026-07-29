@@ -12,7 +12,15 @@ const log = logger.child({ component: 'CatalogProcessor' });
  * to prevent Vercel serverless timeouts and partial failures.
  */
 export default async function catalogProcessor(job: Job<CatalogMutationPayload>) {
-  const payload = job.data;
+  let payload: CatalogMutationPayload;
+  try {
+    const { CatalogJobSchema } = await import('../../schemas/jobs.schema');
+    payload = CatalogJobSchema.parse(job.data) as CatalogMutationPayload;
+  } catch (zodErr) {
+    const { UnrecoverableError } = await import('bullmq');
+    log.error(`[CatalogProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
+    throw new UnrecoverableError('Invalid job payload');
+  }
   
   try {
     switch (payload.type) {

@@ -7,7 +7,15 @@ import { logger } from '../../lib/logger';
 const log = logger.child({ component: 'RefillProcessor' });
 
 export default async function refillProcessor(job: Job<RefillJobPayload>) {
-  const { refillId } = job.data;
+  let refillId: string;
+  try {
+    const { RefillJobSchema } = await import('../../schemas/jobs.schema');
+    const parsed = RefillJobSchema.parse(job.data);
+    refillId = parsed.refillId;
+  } catch (zodErr) {
+    log.error(`[RefillProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
+    throw new UnrecoverableError('Invalid job payload');
+  }
 
   const refill = await db.refill.findUnique({
     where: { id: refillId },

@@ -11,8 +11,15 @@ import { logger } from '../../lib/logger';
 const log = logger.child({ component: 'OrderProcessor' });
 
 export default async function orderProcessor(job: Job<OrderJobPayload>) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { orderId, isDripFeedChild } = job.data;
+  let orderId: string;
+  try {
+    const { OrderJobSchema } = await import('../../schemas/jobs.schema');
+    const parsed = OrderJobSchema.parse(job.data);
+    orderId = parsed.orderId;
+  } catch (zodErr) {
+    log.error(`[OrderProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
+    throw new UnrecoverableError('Invalid job payload');
+  }
   
   const order = await db.order.findUnique({
     where: { id: orderId },
