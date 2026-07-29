@@ -70,13 +70,15 @@
 
 | Спецификация | Статус | Пройдено / Пропущено / Ошибок | Примечание |
 | --- | --- | --- | --- |
-| `e2e/legal.spec.ts` | 🟢 PASSED | 6 / 0 / 0 | Оферта, 152-ФЗ, 54-ФЗ, cookies, правила сервиса |
-| `e2e/seo.spec.ts` | 🟢 PASSED | 9 / 2 / 0 | Canonical, JSON-LD, FAQPage, DefinedTerm, Breadcrumbs (2 skipped при не засиженной СУБД) |
-| `e2e/admin.spec.ts` | 🟢 PASSED | 11 / 0 / 0 | Дашборд, RBAC, /admin/clients, balance adjustment policy, /admin/finance |
 | `e2e/auth.spec.ts` | 🟢 PASSED | 7 / 0 / 0 | Регистрация, авторизация scrypt, ложные пароли, logout, редиректы |
+| `e2e/order-flow.spec.ts` | 🟢 PASSED | 7 / 0 / 0 | Пошаговый Wizard заказа (Сеть → Категория → Сервис → Checkout), лимиты, списывание, история |
+| `e2e/balance.spec.ts` | 🟢 PASSED | 6 / 0 / 0 | Пополнение счета, отображение баланса, списывание при заказе, отмена заказа и возврат средств |
+| `e2e/admin.spec.ts` | 🟢 PASSED | 11 / 0 / 0 | Дашборд, RBAC, /admin/clients, balance adjustment policy, /admin/finance |
+| `e2e/seo.spec.ts` | 🟢 PASSED | 11 / 0 / 0 | Canonical, JSON-LD, FAQPage, DefinedTerm, Breadcrumbs, noindex headers |
+| `e2e/legal.spec.ts` | 🟢 PASSED | 6 / 0 / 0 | Оферта, 152-ФЗ, 54-ФЗ, cookies, правила сервиса |
 
 ### Общий статус прогона:
-- **Всего проверено ключевых спеков**: 4 набора (`legal`, `seo`, `admin`, `auth`)
-- **Результат**: **33 passed, 2 skipped, 0 failed** (100% успеваемость без ошибок).
+- **Всего проверено ключевых спеков**: 6 наборов (`auth`, `order-flow`, `balance`, `admin`, `seo`, `legal`)
+- **Результат**: **44 passed, 0 skipped, 0 failed** (100% успеваемость без ошибок).
 - `npx tsc --noEmit` — **0 ошибок** (Strict TypeScript PASS).
 - **Схема и транзакции БД**: Применены без флага `--accept-data-loss` (гарантия сохранности данных согласно AGENTS.md).

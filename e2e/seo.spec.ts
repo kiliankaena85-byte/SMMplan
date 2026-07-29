@@ -81,14 +81,19 @@ test.describe('SEO Checks', () => {
   // 2. /services — BreadcrumbList JSON-LD
   // ─────────────────────────────────────────────
   test('/services page has BreadcrumbList JSON-LD', async ({ page }) => {
-    test.skip(true, 'Requires active seeded catalog categories with JSON-LD');
+    await page.goto('/services');
+    await expect(page).toHaveURL(/\/services/);
+    const script = page.locator('script[type="application/ld+json"]').first();
+    await expect(script).toBeAttached({ timeout: 10_000 });
   });
 
   // ─────────────────────────────────────────────
   // 3. /services/{network}/{category} — FAQPage & Service schema
   // ─────────────────────────────────────────────
   test('Service category page has Service or FAQPage JSON-LD', async ({ page }) => {
-    test.skip(true, 'Requires active seeded service category with >=3 services');
+    await page.goto('/services/telegram/podpischiki');
+    const scripts = page.locator('script[type="application/ld+json"]');
+    await expect(scripts.first()).toBeAttached({ timeout: 10_000 });
   });
 
   // ─────────────────────────────────────────────

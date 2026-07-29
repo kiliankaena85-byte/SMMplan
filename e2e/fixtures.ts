@@ -117,7 +117,7 @@ export async function login(page: Page, user: { email: string; password?: string
  * Mints JWT session token directly for headless fast auth
  */
 export async function createAuthenticatedSession(userId: string, role: string = 'USER'): Promise<string> {
-  const jwtSecret = process.env.JWT_SECRET ?? 'fallback-secret';
+  const jwtSecret = process.env.JWT_SECRET || 'dev-secret-key-change-in-production-min-32-chars';
   const encodedKey = new TextEncoder().encode(jwtSecret);
   const session = await db.session.create({
     data: { userId, expiresAt: new Date(Date.now() + 86_400_000) },

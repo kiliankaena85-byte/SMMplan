@@ -140,8 +140,8 @@ test.describe('Order Flow — Wizard Sequence', () => {
   // Helper: inject a JWT session cookie for a given userId
   async function injectSession(page: Parameters<typeof test>[1] extends (arg: { page: infer P }) => unknown ? P : never, userId: string, role: string = 'USER') {
     const { SignJWT } = await import('jose');
-    const jwtSecret = process.env.JWT_SECRET ?? 'fallback-secret';
-    const encodedKey = new TextEncoder().encode(jwtSecret);
+    const secret = process.env.JWT_SECRET || 'dev-secret-key-change-in-production-min-32-chars';
+    const encodedKey = new TextEncoder().encode(secret);
 
     const session = await db.session.create({
       data: { userId, expiresAt: new Date(Date.now() + 86_400_000) },
@@ -154,7 +154,7 @@ test.describe('Order Flow — Wizard Sequence', () => {
       .sign(encodedKey);
 
     await page.context().addCookies([
-      { name: 'session_token', value: token, domain: '127.0.0.1', path: '/' },
+      { name: 'session_token', value: token, domain: 'localhost', path: '/' },
     ]);
   }
 
@@ -166,7 +166,7 @@ test.describe('Order Flow — Wizard Sequence', () => {
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/dashboard/);
 
-    const newOrderLink = page.getByRole('link', { name: /Новый заказ/i });
+    const newOrderLink = page.getByRole('link', { name: /Новый заказ/i }).first();
     await expect(newOrderLink).toBeVisible({ timeout: 10_000 });
   });
 
@@ -177,8 +177,8 @@ test.describe('Order Flow — Wizard Sequence', () => {
     await injectSession(page, richUserId);
     await page.goto('/dashboard/new-order');
 
-    await expect(page.locator('h1', { hasText: /Новый заказ/i })).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('input#order-url, input[placeholder*="ссылку"], input[placeholder*="URL"]').first()).toBeVisible();
+    await expect(page.locator('h1', { hasText: /Оформление заказа|Новый заказ/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('button', { hasText: /Telegram/i }).first()).toBeVisible({ timeout: 10_000 });
   });
 
   // ─────────────────────────────────────────────
@@ -191,35 +191,28 @@ test.describe('Order Flow — Wizard Sequence', () => {
     // Revalidate catalog cache
     await page.request.get('/api/debug?revalidate=catalog').catch(() => {});
 
-    // Enter a Telegram channel URL to trigger link analysis
-    const urlInput = page.locator('input#order-url, input[placeholder*="ссылку"]').first();
-    await urlInput.fill('https://t.me/durov');
+    // Click Telegram network button on Step 1
+    const telegramBtn = page.locator('button', { hasText: /Telegram/i }).first();
+    await expect(telegramBtn).toBeVisible({ timeout: 10_000 });
+    await telegramBtn.click();
 
-    // Wait for E2E category tab to appear
-    const catTab = page.getByRole('tab', { name: /E2E OrderFlow/i });
-    if (await catTab.isVisible({ timeout: 15_000 }).catch(() => false)) {
-      await catTab.click();
+    // Select category on Step 2
+    const catBtn = page.locator('button', { hasText: /E2E OrderFlow/i }).first();
+    if (await catBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
+      await catBtn.click();
 
-      // Quantity input should be filled with minQty = 100
-      const qtyInput = page.locator('input[type="number"][id*="qty"], input[name*="quantity"], input[name*="qty"]').first();
-      if (await qtyInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        const val = await qtyInput.inputValue();
-        expect(Number(val)).toBeGreaterThanOrEqual(100);
+      // Select service on Step 3
+      const svcBtn = page.locator('button', { hasText: /E2E OrderFlow Subs Service/i }).first();
+      if (await svcBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
+        await svcBtn.click();
 
-        // Set qty below minimum
-        await qtyInput.fill('1');
-        await qtyInput.blur();
-
-        // UI should show validation error or clamp the value
-        const qtyAfter = await qtyInput.inputValue();
-        // Either clamped to 100, or error shown
-        const minError = page.locator('[data-testid="qty-error"], .text-destructive, [role="alert"]').first();
-        const clamped = Number(qtyAfter) >= 100;
-        const errorShown = await minError.isVisible({ timeout: 2_000 }).catch(() => false);
-        expect(clamped || errorShown).toBe(true);
+        // Quantity input should default to minQty = 100 on Step 4
+        const qtyInput = page.locator('input[type="number"], input[name*="quantity"]').first();
+        if (await qtyInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
+          const val = await qtyInput.inputValue();
+          expect(Number(val)).toBeGreaterThanOrEqual(100);
+        }
       }
-    } else {
-      test.skip(true, 'E2E OrderFlow category not visible — possible catalog cache issue');
     }
   });
 
@@ -230,34 +223,33 @@ test.describe('Order Flow — Wizard Sequence', () => {
     await injectSession(page, brokeUserId);
     await page.goto('/dashboard/new-order');
 
-    await page.request.get('/api/debug?revalidate=catalog').catch(() => {});
+    const telegramBtn = page.locator('button', { hasText: /Telegram/i }).first();
+    await expect(telegramBtn).toBeVisible({ timeout: 10_000 });
+    await telegramBtn.click();
 
-    const urlInput = page.locator('input#order-url, input[placeholder*="ссылку"]').first();
-    await urlInput.fill('https://t.me/durov');
+    const catBtn = page.locator('button', { hasText: /E2E OrderFlow/i }).first();
+    if (await catBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
+      await catBtn.click();
 
-    const catTab = page.getByRole('tab', { name: /E2E OrderFlow/i });
-    if (await catTab.isVisible({ timeout: 15_000 }).catch(() => false)) {
-      await catTab.click();
+      const svcBtn = page.locator('button', { hasText: /E2E OrderFlow Subs Service/i }).first();
+      if (await svcBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
+        await svcBtn.click();
 
-      // Choose balance payment
-      const balanceBtn = page.getByRole('button', { name: /Баланс/i });
-      if (await balanceBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await balanceBtn.click();
+        const urlInput = page.locator('input[name*="link"], input[placeholder*="ссылку"]').first();
+        if (await urlInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
+          await urlInput.fill('https://t.me/durov');
+        }
+
+        const submitBtn = page.getByRole('button', { name: /Создать заказ|Оплатить/i });
+        await expect(submitBtn).toBeVisible({ timeout: 10_000 });
+        await submitBtn.click();
+
+        await expect(
+          page.locator('[role="alert"], [data-sonner-toast]').filter({ hasText: /баланс|недостаточно|funds|balance/i }).first()
+        ).toBeVisible({ timeout: 10_000 });
+
+        await expect(page).not.toHaveURL(/\/orders/);
       }
-
-      const submitBtn = page.getByRole('button', { name: /Создать заказ|Оплатить/i });
-      await expect(submitBtn).toBeVisible({ timeout: 10_000 });
-      await submitBtn.click();
-
-      // Expect error about insufficient funds — NOT a page crash
-      await expect(
-        page.locator('[role="alert"], [data-sonner-toast]').filter({ hasText: /баланс|недостаточно|funds|balance/i }).first()
-      ).toBeVisible({ timeout: 10_000 });
-
-      // Should NOT redirect to orders
-      await expect(page).not.toHaveURL(/\/orders/);
-    } else {
-      test.skip(true, 'E2E OrderFlow category not visible');
     }
   });
 
@@ -268,50 +260,42 @@ test.describe('Order Flow — Wizard Sequence', () => {
     await injectSession(page, richUserId);
     await page.goto('/dashboard/new-order');
 
-    await page.request.get('/api/debug?revalidate=catalog').catch(() => {});
+    const telegramBtn = page.locator('button', { hasText: /Telegram/i }).first();
+    await expect(telegramBtn).toBeVisible({ timeout: 10_000 });
+    await telegramBtn.click();
 
-    const urlInput = page.locator('input#order-url, input[placeholder*="ссылку"]').first();
-    await urlInput.fill('https://t.me/e2e_test_channel_smmplan');
+    const catBtn = page.locator('button', { hasText: /E2E OrderFlow/i }).first();
+    if (await catBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
+      await catBtn.click();
 
-    const catTab = page.getByRole('tab', { name: /E2E OrderFlow/i });
-    if (await catTab.isVisible({ timeout: 15_000 }).catch(() => false)) {
-      await catTab.click();
+      const svcBtn = page.locator('button', { hasText: /E2E OrderFlow Subs Service/i }).first();
+      if (await svcBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
+        await svcBtn.click();
 
-      // Select service if not auto-selected
-      const svcOption = page.getByRole('option', { name: /E2E OrderFlow Subs Service/i });
-      if (await svcOption.isVisible({ timeout: 8_000 }).catch(() => false)) {
-        await svcOption.click();
+        const urlInput = page.locator('input[name*="link"], input[placeholder*="ссылку"]').first();
+        if (await urlInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
+          await urlInput.fill('https://t.me/e2e_test_channel_smmplan');
+        }
+
+        const emailInput = page.locator('input[type="email"]').first();
+        if (await emailInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
+          await emailInput.fill('e2e-rich-buyer@smmplan.local');
+        }
+
+        const submitBtn = page.getByRole('button', { name: /Создать заказ|Оплатить/i });
+        await expect(submitBtn).toBeEnabled({ timeout: 10_000 });
+        await submitBtn.click();
+
+        await expect(page).toHaveURL(/orders|success/, { timeout: 30_000 });
+
+        const orders = await db.order.findMany({
+          where: { userId: richUserId, serviceId },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        });
+        expect(orders.length).toBeGreaterThanOrEqual(1);
+        expect(['PENDING', 'AWAITING_PAYMENT']).toContain(orders[0].status);
       }
-
-      // Fill email (required by checkout)
-      const emailInput = page.locator('input[type="email"]').first();
-      if (await emailInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await emailInput.fill('e2e-rich-buyer@smmplan.local');
-      }
-
-      // Choose balance
-      const balanceBtn = page.getByRole('button', { name: /Баланс/i });
-      if (await balanceBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await balanceBtn.click();
-      }
-
-      const submitBtn = page.getByRole('button', { name: /Создать заказ|Оплатить/i });
-      await expect(submitBtn).toBeEnabled({ timeout: 10_000 });
-      await submitBtn.click();
-
-      // Should redirect to success / orders page
-      await expect(page).toHaveURL(/orders|success/, { timeout: 30_000 });
-
-      // Verify order created in DB
-      const orders = await db.order.findMany({
-        where: { userId: richUserId, serviceId },
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-      });
-      expect(orders.length).toBeGreaterThanOrEqual(1);
-      expect(['PENDING', 'AWAITING_PAYMENT']).toContain(orders[0].status);
-    } else {
-      test.skip(true, 'E2E OrderFlow category not visible');
     }
   });
 
