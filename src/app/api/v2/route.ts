@@ -31,7 +31,7 @@ function mapRefillStatus(internal: string): string {
     'IN_PROGRESS': 'In progress',
     'COMPLETED': 'Completed',
     'REJECTED': 'Rejected',
-    'ERROR': 'Fail'
+    'ERROR': 'Canceled'
   };
   return statusMap[internal] || 'Pending';
 }
