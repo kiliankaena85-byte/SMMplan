@@ -22,6 +22,12 @@ export const getRedisConnection = (): Redis => {
 };
 
 // Queue creation wrapper with graceful defaults and build-time safety
+export const jitteredBackoff = (attemptsMade: number, delay: number): number => {
+  const base = delay * Math.pow(2, Math.max(0, attemptsMade - 1));
+  const jitter = base * (0.8 + Math.random() * 0.4); // ±20%
+  return Math.round(jitter);
+};
+
 export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<QueueOptions['defaultJobOptions']>) => {
   const isBuild = process.env.NEXT_PHASE === 'phase-production-build' || !!process.env.CI;
   
