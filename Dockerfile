@@ -1,96 +1,44 @@
-FROM node:20-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat openssl
+# --- deps ---
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* .npmrc* ./
+COPY package.json package-lock.json ./
 COPY prisma ./prisma
-RUN rm -f .npmrc
-RUN sed -i 's|https://registry.npmjs.org|https://registry.npmmirror.com|g' package-lock.json
-RUN npm config set registry https://registry.npmmirror.com && npm config set fetch-retries 10 && npm config set fetch-retry-mintimeout 20000 && npm ci --legacy-peer-deps
+RUN npm ci
 
-# Rebuild the source code only when needed
-FROM base AS builder
+# --- builder ---
+FROM node:20-alpine AS builder
 WORKDIR /app
-RUN apk add --no-cache openssl tini
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Environment variables must be set at build time for Next.js
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV DISABLE_REDIS_CACHE=1
-ENV APP_ENV=production
-ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
-
-# Generate prisma client and build next.js
 RUN npx prisma generate
-ENV NODE_OPTIONS="--max-old-space-size=2048"
 RUN npm run build
-RUN rm -rf node_modules/@next/swc-*
 
-# Prepare production dependencies only
-FROM deps AS prod-deps
+# --- runner ---
+FROM node:20-alpine AS runner
 WORKDIR /app
-COPY package.json package-lock.json* .npmrc* ./
-COPY prisma ./prisma
-RUN rm -f .npmrc
-RUN sed -i 's|https://registry.npmjs.org|https://registry.npmmirror.com|g' package-lock.json
-RUN npm config set registry https://registry.npmmirror.com && npm config set fetch-retries 10 && npm config set fetch-retry-mintimeout 20000 && npm ci --omit=dev --legacy-peer-deps
-RUN npm install tsx typescript @types/node --no-save
-RUN npx prisma generate
-
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
-
 ENV NODE_ENV=production
-ENV APP_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
-RUN apk add --no-cache openssl tini
+# Next.js standalone
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Prisma (для migrate deploy и client в worker)
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-# Copy configuration files
-COPY package.json tsconfig.json ./
-# Copy prisma client & schema for run-time operations (e.g. migrate deploy script)
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-# Copy scripts for data management
-COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
-# Copy src code for bot/workers not included in Next.js standalone
-COPY --from=builder --chown=nextjs:nodejs /app/src ./src
-# Next.js standalone output doesn't include node_modules completely safely if they rely on binaries. 
-# But it does bundle prisma via webpack. However, for migrate deploy we need the cli.
-COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
-
-# Copy public directory for static assets
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy entrypoint script
-COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
-RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
+# Entrypoint (prisma migrate deploy перед стартом)
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
 USER nextjs
-
 EXPOSE 3000
+ENV PORT=3000 HOSTNAME=0.0.0.0
 
-ENV PORT=3000
-# set hostname to localhost
-ENV HOSTNAME="0.0.0.0"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD wget -qO- http://localhost:3000/api/health || exit 1
 
-ENTRYPOINT ["/sbin/tini", "--", "./docker-entrypoint.sh"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "server.js"]
