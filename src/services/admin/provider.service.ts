@@ -158,6 +158,7 @@ class AdminProviderService {
     try {
       const res = await fetch(apiUrl, {
         method: 'HEAD',
+        redirect: 'error',
         signal: controller.signal,
       });
       clearTimeout(timeoutId);

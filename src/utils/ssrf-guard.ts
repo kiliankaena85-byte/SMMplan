@@ -24,6 +24,7 @@ export async function assertSafeUrl(url: string): Promise<void> {
     if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return true; // 172.16.0.0/12
     if (/^192\.168\./.test(ip)) return true; // 192.168.0.0/16
     if (/^169\.254\./.test(ip)) return true; // 169.254.0.0/16 (Link-local & Cloud Metadata)
+    if (ip.startsWith('100.100.100.')) return true; // Alibaba Cloud Metadata
     if (ip === '0.0.0.0') return true;
 
     // IPv6 Checks

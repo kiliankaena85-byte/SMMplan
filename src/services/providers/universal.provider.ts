@@ -133,6 +133,7 @@ export class UniversalProvider implements BaseProvider {
           method: httpMethod,
           headers,
           body,
+          redirect: 'error',
           signal: controller.signal
         });
 
