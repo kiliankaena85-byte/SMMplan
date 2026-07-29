@@ -227,6 +227,10 @@ model Service {
   isRefillEnabled   Boolean @default(false)
   isCancelEnabled   Boolean @default(false)
 
+  // Custom metadata protection flags (prevent overwrite on provider sync)
+  isCustomName        Boolean @default(false)
+  isCustomDescription Boolean @default(false)
+
   // Quarantine: price spike isolation & Elastic Quarantine
   // When rate changes > quarantineThreshold% → service goes QUARANTINE status
   isQuarantined    Boolean   @default(false)

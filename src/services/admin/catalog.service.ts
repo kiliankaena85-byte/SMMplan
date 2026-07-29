@@ -561,7 +561,25 @@ class AdminCatalogService {
           const pricePerUnitRub = (currentRetailCents / 100) / 1000;
           const purchaseCostPerUnitRub = (newRate * exchangeRate) / 1000;
 
-          if (pricePerUnitRub < purchaseCostPerUnitRub || actualMarkup < 1.0) {
+          // Price Spike Detection (> 30% increase)
+          const rateDiff = oldRate > 0 ? (newRate - oldRate) / oldRate : 0;
+          if (oldRate > 0 && rateDiff > 0.30) {
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false, // Immediately take off storefront
+                isQuarantined: true,
+                pendingRate: newRate,
+                quarantineReason: `Price Spike (+${(rateDiff * 100).toFixed(0)}%): c $${oldRate} до $${newRate}`,
+                quarantinedAt: new Date()
+              }
+            });
+
+            const alertMsg = `🚨 Price spike: услуга "${s.name}" (id=${s.id}) — рост цены ${(rateDiff * 100).toFixed(0)}%. Автоматически снята с витрины.`;
+            logger.warn(alertMsg, { serviceId: s.id, oldRate, newRate, rateDiff });
+            await sendAdminAlert(alertMsg, 'WARNING');
+            priceAnomalies++;
+          } else if (pricePerUnitRub < purchaseCostPerUnitRub || actualMarkup < 1.0) {
             // Loss prevention breach! Deactivate service immediately
             await db.service.update({
               where: { id: s.id },
@@ -590,19 +608,31 @@ class AdminCatalogService {
             const effectiveMarkup = Math.max(s.markup, minMarkup);
             const calculatedPriceCents = Math.round(applyBeautifulRounding(newRate * effectiveMarkup * exchangeRate) * 100);
 
+            // Respect custom fields if set
+            const updateData: Record<string, unknown> = {
+              rate: newRate,
+              providerCurrency: providerCurrency,
+              pricePer1000Cents: calculatedPriceCents,
+              markup: effectiveMarkup,
+              minQty: stagingExt.min,
+              maxQty: stagingExt.max,
+              lastSeenAt: new Date(),
+              isQuarantined: false,
+              quarantineReason: null
+            };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (!(s as any).isCustomName) {
+              updateData.name = stagingExt.name || s.name;
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (!(s as any).isCustomDescription && stagingExt.name) {
+              // keep description intact unless specified
+            }
+
             await db.service.update({
               where: { id: s.id },
-              data: {
-                rate: newRate,
-                providerCurrency: providerCurrency,
-                pricePer1000Cents: calculatedPriceCents,
-                markup: effectiveMarkup,
-                minQty: stagingExt.min,
-                maxQty: stagingExt.max,
-                lastSeenAt: new Date(),
-                isQuarantined: false,
-                quarantineReason: null
-              }
+              data: updateData
             });
 
             if (newRate !== oldRate) {

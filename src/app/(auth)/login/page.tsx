@@ -56,7 +56,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         )}
         <div className={`relative z-10 w-full max-w-md p-8 text-center space-y-6 animate-in fade-in duration-300 ${
           isFlux
-            ? 'bg-white/50 dark:bg-black/50 backdrop-blur-3xl border border-white/20 dark:border-white/10 rounded-[2.5rem] shadow-2xl'
+            ? 'bg-card/50 backdrop-blur-3xl border border-border/50 rounded-[2.5rem] shadow-2xl'
             : 'bg-content1 border border-border/80 rounded-[var(--radius)] shadow-[0_20px_50px_rgba(0,0,0,0.05)]'
         }`}>
           <div className="flex justify-center">
@@ -102,9 +102,9 @@ export default async function LoginPage({ searchParams }: PageProps) {
   {/* ── SMMFLUX VARIANT ── */}
   if (isFlux) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-foreground font-sans flex flex-col justify-center items-center relative overflow-x-clip p-4 md:p-8">
+      <div className="min-h-screen bg-background text-foreground font-sans flex flex-col justify-center items-center relative overflow-x-clip p-4 md:p-8">
         {/* SMMFLUX ELEGANT HERO BACKGROUND (Toned down for high contrast) */}
-        <div className="absolute top-0 inset-x-0 h-screen z-0 pointer-events-none overflow-hidden select-none bg-slate-50 dark:bg-zinc-950">
+        <div className="absolute top-0 inset-x-0 h-screen z-0 pointer-events-none overflow-hidden select-none bg-background">
           <div className="absolute top-[-10%] left-[-5%] w-[55%] h-[45%] rounded-full bg-blue-500/35 blur-[140px] animate-pulse" style={{ animationDuration: '10s' }} />
           <div className="absolute top-[5%] right-[-5%] w-[45%] h-[45%] rounded-full bg-indigo-400/30 blur-[140px] animate-pulse" style={{ animationDuration: '14s' }} />
           <div className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-purple-500/30 blur-[150px] animate-pulse" style={{ animationDuration: '12s' }} />
@@ -128,7 +128,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
               <h1 className="text-4xl xl:text-5xl font-black text-foreground tracking-tight leading-tight">
                 Продвижение нового уровня
               </h1>
-              <p className="text-foreground/80 font-medium text-base leading-relaxed bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md p-5 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm">
+              <p className="text-foreground/80 font-medium text-base leading-relaxed bg-card/70 backdrop-blur-md p-5 rounded-2xl border border-border/50 shadow-sm">
                 Войдите в личный кабинет SMMflux — управляйте проектами с невероятной скоростью и элегантным дизайном.
               </p>
             </div>
@@ -139,7 +139,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
                 { icon: <Zap className="w-5 h-5 text-amber-500 mb-1" />, value: 'Мгновенно', label: 'Старт заказов' },
                 { icon: <ShieldCheck className="w-5 h-5 text-emerald-500 mb-1" />, value: '24/7', label: 'Поддержка' },
               ].map(({ icon, value, label }) => (
-                <div key={label} className="bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 shadow-md p-4 text-center rounded-2xl flex flex-col items-center justify-center min-h-[104px] hover:scale-105 transition-all duration-300">
+                <div key={label} className="bg-card border border-border/50 shadow-md p-4 text-center rounded-2xl flex flex-col items-center justify-center min-h-[104px] hover:scale-105 transition-all duration-300">
                   {icon}
                   <div className="text-base font-black text-foreground">{value}</div>
                   <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">{label}</div>
@@ -149,7 +149,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           </div>
 
           {/* Right High-Contrast SMMflux Card */}
-          <div className="w-full max-w-md mx-auto bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/15 rounded-[2.5rem] p-8 md:p-10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] space-y-8 text-foreground">
+          <div className="w-full max-w-md mx-auto bg-card border border-border/80 rounded-[2.5rem] p-8 md:p-10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] space-y-8 text-foreground">
             <div className="text-center lg:text-left">
               <div className="lg:hidden flex items-center justify-center gap-2 mb-6">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-lg">

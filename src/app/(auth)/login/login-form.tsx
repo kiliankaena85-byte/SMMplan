@@ -9,9 +9,9 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 
 const inputCls =
-  'w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-foreground px-4 py-3.5 ' +
-  'text-sm font-semibold outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ' +
-  'focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all duration-200 shadow-sm';
+  'w-full rounded-2xl border border-border bg-card text-foreground px-4 py-3.5 ' +
+  'text-sm font-semibold outline-none placeholder:text-muted-foreground ' +
+  'focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 shadow-sm';
 
 export function LoginForm() {
   const [activeTab, setActiveTab] = useState<'magic' | 'password' | 'register'>('password'); // Password by default
@@ -123,14 +123,14 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       {/* High Contrast Tabs control */}
-      <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 rounded-2xl">
+      <div className="flex p-1 bg-muted border border-border rounded-2xl">
         <button
           type="button"
           onClick={() => setActiveTab('password')}
           className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-xl transition-all duration-200 ${
             activeTab === 'password'
-              ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm'
-              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white font-semibold'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground font-semibold'
           }`}
         >
           Войти по паролю
@@ -140,8 +140,8 @@ export function LoginForm() {
           onClick={() => setActiveTab('magic')}
           className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-xl transition-all duration-200 ${
             activeTab === 'magic'
-              ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm'
-              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white font-semibold'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground font-semibold'
           }`}
         >
           Войти по ссылке
@@ -151,8 +151,8 @@ export function LoginForm() {
           onClick={() => setActiveTab('register')}
           className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-xl transition-all duration-200 ${
             activeTab === 'register'
-              ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm'
-              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white font-semibold'
+              ? 'bg-card text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground font-semibold'
           }`}
         >
           Регистрация

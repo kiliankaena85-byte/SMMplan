@@ -328,6 +328,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                             onClick={() => handleEditClick(t)}
                             className="p-1.5 hover:bg-muted text-muted-foreground hover:text-primary transition-colors rounded-lg"
                             title="Редактировать"
+                            aria-label="Редактировать шаблон"
                           >
                             <Edit2 className="w-3.5 h-3.5 pointer-events-none" />
                           </button>
@@ -336,6 +337,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                             onClick={() => handleDelete(t.id)}
                             className="p-1.5 hover:bg-muted text-muted-foreground hover:text-destructive transition-colors rounded-lg"
                             title="Удалить"
+                            aria-label="Удалить шаблон"
                           >
                             <Trash2 className="w-3.5 h-3.5 pointer-events-none" />
                           </button>

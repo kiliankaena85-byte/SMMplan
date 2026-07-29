@@ -190,6 +190,10 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
     const pricePer1000Cents = Math.round(applyBeautifulRounding(data.rate * data.markup * exchangeRate) * 100);
 
+    // Check if name or description were customized
+    const isCustomName = data.name !== service.name ? true : service.isCustomName;
+    const isCustomDescription = data.description !== service.description ? true : service.isCustomDescription;
+
     // Atomically update the service
     const updatedService = await db.$transaction(async (tx) => {
       return await tx.service.update({
@@ -197,6 +201,8 @@ export async function updateServiceAction(id: string, rawData: unknown) {
         data: {
           name: data.name,
           description: data.description,
+          isCustomName,
+          isCustomDescription,
           categoryId: data.categoryId,
           providerId: data.providerId,
           rate: data.rate,
@@ -257,5 +263,35 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     (revalidateTag as any)("services");
 
     return { success: true as const, serviceId: updatedService.id };
+  });
+}
+
+/**
+ * Reset custom metadata flags to allow automatic provider synchronization
+ */
+export async function resetCustomFlagsAction(id: string) {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
+    if (!id || typeof id !== 'string') {
+      return { success: false as const, error: 'ID услуги обязателен' };
+    }
+
+    const service = await db.service.update({
+      where: { id },
+      data: {
+        isCustomName: false,
+        isCustomDescription: false,
+      }
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'SERVICE_RESET_CUSTOM_FLAGS',
+      target: id,
+      targetType: 'SERVICE',
+    });
+
+    revalidatePath("/admin/catalog");
+    return { success: true as const, serviceId: service.id };
   });
 }
