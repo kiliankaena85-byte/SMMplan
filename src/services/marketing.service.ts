@@ -232,7 +232,8 @@ class MarketingService {
         min: s.minQty,
         max: s.maxQty,
         dripfeed: s.isDripFeedEnabled,
-        refill: s.isRefillEnabled,
+        // TODO: set to s.isRefillEnabled when action=refill is implemented
+        refill: false,
         cancel: s.isCancelEnabled
       };
     });
