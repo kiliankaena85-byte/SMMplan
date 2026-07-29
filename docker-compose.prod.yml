@@ -37,6 +37,7 @@ services:
     env_file: .env.production
     environment:
       - RUN_MIGRATIONS=false
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-smmplan}:${POSTGRES_PASSWORD:-CHANGE_ME}@db:5432/${POSTGRES_DB:-smmplan}?schema=public&connection_limit=20&pool_timeout=30
     depends_on:
       db:
         condition: service_healthy
