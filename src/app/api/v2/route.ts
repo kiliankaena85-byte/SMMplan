@@ -403,7 +403,7 @@ async function handleStatus(user: User, formData: FormData) {
 
     return NextResponse.json({
       charge: (Number(order.charge) / 100).toFixed(4),
-      start_count: "0",
+      start_count: (order.startCount ?? 0).toString(),
       status: mapInternalStatus(order.status),
       remains: order.remains.toString(),
       currency: 'RUB'
@@ -431,7 +431,7 @@ async function handleStatus(user: User, formData: FormData) {
     for (const order of orders) {
       resultMap[order.numericId.toString()] = {
         charge: (Number(order.charge) / 100).toFixed(4),
-        start_count: "0",
+        start_count: (order.startCount ?? 0).toString(),
         status: mapInternalStatus(order.status),
         remains: order.remains.toString(),
         currency: 'RUB'

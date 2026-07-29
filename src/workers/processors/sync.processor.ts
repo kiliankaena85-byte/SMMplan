@@ -189,11 +189,13 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
 
           const providerStatus = s.status.toUpperCase();
           const parsedRemains = parseInt(s.remains || "0", 10);
+          const parsedStartCount = s.start_count != null ? parseInt(s.start_count, 10) : (s.start_count != null ? parseInt(s.start_count, 10) : undefined);
+          const startCountVal = (parsedStartCount != null && !isNaN(parsedStartCount)) ? parsedStartCount : undefined;
 
           if (['CANCELED'].includes(providerStatus)) {
             // Full Canceled -> Full Refund
             await db.$transaction(async (tx) => {
-              const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'CANCELED', remains: parsedRemains });
+              const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'CANCELED', remains: parsedRemains, ...(startCountVal != null ? { startCount: startCountVal } : {}) });
               if (updated) {
                 await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, '(Отмена на стороне провайдера)', tx);
                 
@@ -208,7 +210,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           else if (['PARTIAL'].includes(providerStatus)) {
             // Partial -> Mathematical Proportional Refund
             await db.$transaction(async (tx) => {
-              const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'PARTIAL', remains: parsedRemains });
+              const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'PARTIAL', remains: parsedRemains, ...(startCountVal != null ? { startCount: startCountVal } : {}) });
               if (updated) {
                 await RefundPolicyService.processRefund({ ...updated, charge: Number(updated.charge) }, undefined, tx);
                 
@@ -218,7 +220,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           } 
           else if (['COMPLETED'].includes(providerStatus)) {
             await db.$transaction(async (tx) => {
-              const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'COMPLETED', remains: 0 });
+              const updated = await safeUpdateOrderStatus(tx, order.id, { status: 'COMPLETED', remains: 0, ...(startCountVal != null ? { startCount: startCountVal } : {}) });
               if (updated) {
                 const { LoyaltyService } = await import('../../services/users/loyalty.service');
                 await LoyaltyService.confirmCommission(tx, order.id);
@@ -228,11 +230,14 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
               }
             }, { isolationLevel: 'Serializable' });
           }
-          // PENDING / PROCESSING etc -> just update remains
+          // PENDING / PROCESSING etc -> just update remains & startCount
           else {
             await db.order.update({
               where: { id: order.id },
-              data: { remains: parsedRemains }
+              data: {
+                remains: parsedRemains,
+                ...(startCountVal != null ? { startCount: startCountVal } : {})
+              }
             });
           }
 

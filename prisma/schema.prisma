@@ -362,6 +362,7 @@ model Order {
   quantity          Int
   status            OrderStatus @default(AWAITING_PAYMENT)
   remains           Int         @default(0) // Outstanding amount to deliver
+  startCount        Int?        @map("start_count") // Start count snapshot from provider
   charge            BigInt // price paid by user in Cents
   providerCost      BigInt // exact cost from provider in Cents
   error             String? // Error message from provider API
