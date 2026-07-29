@@ -1414,3 +1414,19 @@ model SupportFinancialAction {
   @@index([tenantId, createdAt])
 }
 
+model B2bRequestLog {
+  id          String   @id @default(cuid())
+  apiKeyHash  String   @map("api_key_hash")
+  action      String
+  params      Json?
+  httpStatus  Int      @map("http_status")
+  latencyMs   Int      @map("latency_ms")
+  ip          String?
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([apiKeyHash, createdAt])
+  @@index([createdAt])
+  @@map("b2b_request_log")
+}
+

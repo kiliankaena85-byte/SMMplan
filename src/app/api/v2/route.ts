@@ -37,24 +37,59 @@ function mapRefillStatus(internal: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  let currentHashedKey = '';
+  let currentAction = '';
+  let currentFormData: FormData | null = null;
+
+  const sendResponse = (res: NextResponse) => {
+    if (currentHashedKey) {
+      const latencyMs = Date.now() - startTime;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const paramsObj: Record<string, any> = {};
+      if (currentFormData) {
+        currentFormData.forEach((val, k) => {
+          if (k !== 'key') paramsObj[k] = val.toString();
+        });
+      }
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || null;
+      const userAgent = request.headers.get('user-agent') || null;
+
+      db.b2bRequestLog.create({
+        data: {
+          apiKeyHash: currentHashedKey,
+          action: currentAction || 'unknown',
+          params: paramsObj,
+          httpStatus: res.status,
+          latencyMs,
+          ip,
+          userAgent
+        }
+      }).catch(() => {});
+    }
+    return res;
+  };
+
   try {
     // W5-3 SECURITY FIX: Limit content length to prevent DoS via huge payloads before parsing
     const contentLength = request.headers?.get ? request.headers.get('content-length') : null;
     if (contentLength && parseInt(contentLength, 10) > 500 * 1024) {
-      return NextResponse.json({ error: 'Payload too large (max 500KB)' }, { status: 413 });
+      return sendResponse(NextResponse.json({ error: 'Payload too large (max 500KB)' }, { status: 413 }));
     }
 
     // SMM APIs typically send x-www-form-urlencoded data
     const formData = await request.formData().catch(() => null);
     if (!formData) {
-      return NextResponse.json({ error: 'Invalid request format. Use application/x-www-form-urlencoded' }, { status: 400 });
+      return sendResponse(NextResponse.json({ error: 'Invalid request format. Use application/x-www-form-urlencoded' }, { status: 400 }));
     }
 
+    currentFormData = formData;
     const key = formData.get('key')?.toString();
-    const action = formData.get('action')?.toString();
+    const action = formData.get('action')?.toString() || '';
+    currentAction = action;
 
     if (!key) {
-      return NextResponse.json({ error: 'API key is required' }, { status: 400 });
+      return sendResponse(NextResponse.json({ error: 'API key is required' }, { status: 400 }));
     }
 
     // Rate Limiting (OWASP A04)
@@ -62,42 +97,44 @@ export async function POST(request: NextRequest) {
     // Limit: 50 requests per 60 seconds per API key
     const crypto = (await import('crypto')).default;
     const hashedKey = crypto.createHash('sha256').update(key).digest('hex');
+    currentHashedKey = hashedKey;
+
     const isAllowed = await RateLimitService.checkCustomKey(hashedKey, 50, 60);
     if (!isAllowed) {
-      return NextResponse.json({ error: 'Too many requests. Limit 50/minute.' }, { status: 429 });
+      return sendResponse(NextResponse.json({ error: 'Too many requests. Limit 50/minute.' }, { status: 429 }));
     }
 
     // 1. Authenticate User
     const user = await verifyB2BKey(key);
     if (!user) {
-      return NextResponse.json({ error: 'Incorrect request or API key' }, { status: 401 });
+      return sendResponse(NextResponse.json({ error: 'Incorrect request or API key' }, { status: 401 }));
     }
 
     // 2. Route by Action
     switch (action) {
       case 'services':
-        return await handleServices(user, formData);
+        return sendResponse(await handleServices(user, formData));
       case 'add':
-        return await handleAdd(user, formData);
+        return sendResponse(await handleAdd(user, formData));
       case 'add_multi':
-        return await handleAddMulti(user, formData);
+        return sendResponse(await handleAddMulti(user, formData));
       case 'status':
-        return await handleStatus(user, formData);
+        return sendResponse(await handleStatus(user, formData));
       case 'balance':
-        return await handleBalance(user);
+        return sendResponse(await handleBalance(user));
       case 'refill':
-        return await handleRefill(user, formData);
+        return sendResponse(await handleRefill(user, formData));
       case 'refill_status':
-        return await handleRefillStatus(user, formData);
+        return sendResponse(await handleRefillStatus(user, formData));
       case 'cancel':
-        return await handleCancel(user, formData);
+        return sendResponse(await handleCancel(user, formData));
       default:
-        return NextResponse.json({ error: 'Incorrect action' }, { status: 400 });
+        return sendResponse(NextResponse.json({ error: 'Incorrect action' }, { status: 400 }));
     }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[API v2 Error]:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return sendResponse(NextResponse.json({ error: 'Internal server error' }, { status: 500 }));
   }
 }
 
