@@ -84,6 +84,12 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
   const [customData, setCustomData] = useState("");
   const [showShakeError, setShowShakeError] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia('(pointer: fine)').matches) {
+      linkRef.current?.focus();
+    }
+  }, []);
   
   interface OrderFormState { error: string; field: string; timestamp: number }
   const [formState, formAction, isPending] = useActionState(async (prevState: OrderFormState, formData: FormData) => {
@@ -225,7 +231,16 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
   const price = selectedService ? (selectedService.pricePerUnitRub * effectiveQuantity).toFixed(2) : "0.00";
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center font-sans min-h-[60vh] pb-12 pt-8 px-4 relative overflow-hidden">
+    <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center font-sans min-h-[60vh] pb-12 pt-8 px-4 relative overflow-visible">
+      {/* TOP AURORA MESH GRADIENT BACKGROUND */}
+      <div className="absolute -top-24 inset-x-0 h-[600px] pointer-events-none z-0 overflow-hidden select-none">
+        <div 
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] rounded-full blur-[120px] opacity-60 dark:opacity-40 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.35) 0%, rgba(124,58,237,0.4) 35%, rgba(214,36,159,0.35) 65%, rgba(245,158,107,0.25) 100%)' }}
+        />
+        <div className="absolute top-12 left-[15%] w-72 h-72 rounded-full bg-pink-500/25 blur-3xl" />
+        <div className="absolute top-20 right-[15%] w-80 h-80 rounded-full bg-purple-500/25 blur-3xl" />
+      </div>
       {step !== 'link' && (
         <motion.div 
           layoutId="hero-input"
