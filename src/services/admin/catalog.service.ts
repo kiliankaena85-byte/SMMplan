@@ -86,9 +86,14 @@ class AdminCatalogService {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     networkSlug?: string;
+    tenantId?: string;
   }): Promise<PaginatedResult<CatalogRow>> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
+
+    if (params.tenantId) {
+      where.tenantId = params.tenantId;
+    }
 
     if (params.categoryId) {
       where.categoryId = params.categoryId;
@@ -933,9 +938,10 @@ class AdminCatalogService {
   /**
    * Catalog stats for the header.
    */
-  async getCatalogStats(startDate?: Date, endDate?: Date) {
+  async getCatalogStats(tenantId?: string, startDate?: Date, endDate?: Date) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
+    if (tenantId) where.tenantId = tenantId;
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
@@ -1086,13 +1092,17 @@ class AdminCatalogService {
   /**
    * Markup Analytics: returns distribution of markups across all services.
    */
-  async getMarkupAnalytics(): Promise<{
+  async getMarkupAnalytics(tenantId?: string): Promise<{
     stats: { total: number; loss: number; thin: number; normal: number; high: number; extreme: number };
     worstServices: { id: string; name: string; rate: number; markup: number; category: string }[];
     averageMarkup: number;
   }> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = { isActive: true };
+    if (tenantId) where.tenantId = tenantId;
+
     const services = await db.service.findMany({
-      where: { isActive: true },
+      where,
       select: {
         id: true,
         name: true,
@@ -1187,8 +1197,11 @@ class AdminCatalogService {
     });
   }
 
-  async getQuarantineCount(): Promise<number> {
-    return db.service.count({ where: { isQuarantined: true } });
+  async getQuarantineCount(tenantId?: string): Promise<number> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = { isQuarantined: true };
+    if (tenantId) where.tenantId = tenantId;
+    return db.service.count({ where });
   }
 }
 
