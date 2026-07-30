@@ -40,6 +40,9 @@ export async function middleware(request: NextRequest) {
   } else if (fromHost && fromHost !== 'smmplan') {
     finalTenantId = fromHost;
     isExplicitTenant = true;
+  } else if (fromHost === 'smmplan' && host && !host.includes('localhost')) {
+    // Production domain matching (e.g. smmplan.pro) always resolves to smmplan
+    finalTenantId = 'smmplan';
   } else if (fromCookie) {
     finalTenantId = fromCookie;
   }
