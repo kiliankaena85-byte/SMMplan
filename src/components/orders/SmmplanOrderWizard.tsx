@@ -375,6 +375,7 @@ function SmmplanOrderWizardInner({
     ? selectedNetwork.categories.filter(c => c.name.toLowerCase().includes(searchCategory.toLowerCase()))
     : [];
 
+  // Auto-prepend https:// protocol on blur for client link input
   const normalizeUrl = (raw: string): string => {
     const trimmed = raw.trim();
     if (!trimmed) return '';
