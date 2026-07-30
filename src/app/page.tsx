@@ -1,6 +1,14 @@
 import { getPublicCatalogAction } from "@/actions/order/catalog";
 import { getBaseUrlAsync } from "@/utils/get-base-url";
 import { SmartLinkLanding } from "@/components/landing/SmartLinkLanding";
+import { Header } from "@/components/landing/Header";
+import { MegaFooter } from "@/components/landing/MegaFooter";
+import { FluxOrderClient } from "@/components/ab-test/FluxOrderClient";
+import { FluxTrustBar } from "@/components/ab-test/FluxTrustBar";
+import { FluxWhyUs } from "@/components/ab-test/FluxWhyUs";
+import { FluxReviews } from "@/components/ab-test/FluxReviews";
+import { FluxFAQ } from "@/components/ab-test/FluxFAQ";
+import { ROUTES } from "@/lib/routes";
 import { SettingsProvider } from "@/lib/settings";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
@@ -102,16 +110,28 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
 
       {/* Interactive App */}
       <main id="main-content" tabIndex={-1} className="outline-none">
-        <SmartLinkLanding 
-          initialCatalog={catalog} 
-          initialEmail={userEmail} 
-          contactSettings={settings} 
-          initialServiceId={initialServiceId} 
-          initialCategoryId={initialCategoryId}
-          initialNetworkId={initialNetworkId}
-          userBalanceCents={userBalanceCents}
-          tenantId={tenantId}
-        />
+        {tenantId === "flux" ? (
+          <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
+            <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath={ROUTES.HOME} />
+            <FluxOrderClient initialCatalog={catalog} initialEmail={userEmail} />
+            <FluxTrustBar />
+            <FluxWhyUs companyName={siteName} />
+            <FluxReviews />
+            <FluxFAQ companyName={siteName} />
+            <MegaFooter contactSettings={settings} tenantId={tenantId} />
+          </div>
+        ) : (
+          <SmartLinkLanding 
+            initialCatalog={catalog} 
+            initialEmail={userEmail} 
+            contactSettings={settings} 
+            initialServiceId={initialServiceId} 
+            initialCategoryId={initialCategoryId}
+            initialNetworkId={initialNetworkId}
+            userBalanceCents={userBalanceCents}
+            tenantId={tenantId}
+          />
+        )}
       </main>
     </>
   );
