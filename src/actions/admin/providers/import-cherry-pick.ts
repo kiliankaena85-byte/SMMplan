@@ -351,6 +351,7 @@ const importServicesSchema = z.object({
   }),
   providerId: z.string().min(1, "ID провайдера обязателен"),
   categoryIdMap: z.record(z.string()).optional(),
+  targetTenantId: z.enum(["smmplan", "flux", "both"]).default("smmplan"),
 });
 
 export async function importSelectedServices(
@@ -358,11 +359,12 @@ export async function importSelectedServices(
   categoryId: string, 
   defaultMarkup: number, 
   providerId: string,
-  categoryIdMap?: Record<string, string>
+  categoryIdMap?: Record<string, string>,
+  targetTenantId: 'smmplan' | 'flux' | 'both' = 'smmplan'
 ) {
     return requireStaffPermission('catalog', 'edit', async (admin) => {
         try {
-            const parsed = importServicesSchema.safeParse({ externalIds, categoryId, defaultMarkup, providerId, categoryIdMap });
+            const parsed = importServicesSchema.safeParse({ externalIds, categoryId, defaultMarkup, providerId, categoryIdMap, targetTenantId });
             if (!parsed.success) {
                 return { success: false, error: 'Ошибка валидации: ' + parsed.error.errors.map(e => e.message).join(', ') };
             }
@@ -373,7 +375,8 @@ export async function importSelectedServices(
                 parsed.data.defaultMarkup,
                 admin,
                 parsed.data.providerId,
-                parsed.data.categoryIdMap
+                parsed.data.categoryIdMap,
+                parsed.data.targetTenantId
             );
             
             // SDLC Gate 4: Обязательная инвалидация кэша после мутации

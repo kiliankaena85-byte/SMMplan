@@ -728,7 +728,8 @@ class AdminCatalogService {
     defaultMarkup: number,
     admin: { id: string; email: string },
     providerId: string,
-    categoryIdMap?: Record<string, string>
+    categoryIdMap?: Record<string, string>,
+    targetTenantId: 'smmplan' | 'flux' | 'both' = 'smmplan'
   ) {
     // 1. Fetch from Shadow Catalog (ShadowService staging table) to get the AI-normalized names and metrics
     const shadowServices = await db.shadowService.findMany({
@@ -776,14 +777,20 @@ class AdminCatalogService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const liveMap = new Map(liveServices.map((s: any) => [s.service.toString(), s]));
 
-    // Fetch all existing external IDs for this provider in one query
-    const existingServices = await db.service.findMany({
-      where: { providerId: providerDbRecord.id, externalId: { in: toImportShadow.map(s => s.service.toString()) } },
-      select: { externalId: true }
-    });
-    const existingSet = new Set(existingServices.map(s => s.externalId));
+    const tenantsToImport: ('smmplan' | 'flux')[] = targetTenantId === 'both' ? ['smmplan', 'flux'] : [targetTenantId];
 
-    // Fetch category names for target type inference
+    // Fetch existing services for target tenants in one query
+    const existingServices = await db.service.findMany({
+      where: {
+        providerId: providerDbRecord.id,
+        externalId: { in: toImportShadow.map(s => s.service.toString()) },
+        tenantId: { in: tenantsToImport }
+      },
+      select: { externalId: true, tenantId: true }
+    });
+    const existingSet = new Set(existingServices.map(s => `${s.tenantId}:${s.externalId}`));
+
+    // Fetch category names for target type inference and ensure tenant access taxonomy
     const uniqueCategoryIds = new Set<string>();
     if (categoryId) uniqueCategoryIds.add(categoryId);
     if (categoryIdMap) {
@@ -795,15 +802,16 @@ class AdminCatalogService {
     });
     const categoryNameMap = new Map(categoriesDb.map(c => [c.id, c.name]));
 
+    for (const catId of Array.from(uniqueCategoryIds)) {
+      await ensureTaxonomyTenantAccess(catId);
+    }
+
     const servicesToCreate = [];
     const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
     
     for (const shadowExt of toImportShadow) {
       const extId = shadowExt.service.toString();
       
-      // Skip if already exists
-      if (existingSet.has(extId)) continue;
-
       // 3. Live Price Check
       const liveExt = liveMap.get(extId);
       if (!liveExt) {
@@ -839,30 +847,38 @@ class AdminCatalogService {
 
       const importedName = shadowExt.cleanName || liveExt.name;
       const importedDesc = liveExt.desc || null;
+      const stableSlug = importedName.toLowerCase().trim().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || `service-${extId}`;
 
-      servicesToCreate.push({
-        name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization
-        description: importedDesc ? sanitizeServiceDescription(ServiceAuditEngine.cleanText(importedDesc)) : null,
-        externalId: extId,
-        categoryId: categoryIdMap?.[extId] || categoryId,
-        providerId: providerDbRecord.id,
-        providerCurrency: providerCurrency,
-        rate: rawRate, // Live provider rate
-        markup: effectiveMarkup,
-        pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
-        minQty: parseInt(liveExt.min, 10) || 10,
-        maxQty: parseInt(liveExt.max, 10) || 10000,
-        features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
-        anomalyScore: shadowExt.metrics?.anomalyScore || 0,
-        targetType: shadowExt.metrics?.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId)),
-        customDataType: shadowExt.metrics?.customDataType || 'NONE',
-        isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
-        isActive: true,
-        isDripFeedEnabled: liveExt.dripfeed ?? false,
-        isRefillEnabled: liveExt.refill ?? false,
-        isCancelEnabled: liveExt.cancel ?? false,
-        lastSeenAt: new Date(),
-      });
+      for (const tId of tenantsToImport) {
+        // Skip if already exists for this tenant
+        if (existingSet.has(`${tId}:${extId}`)) continue;
+
+        servicesToCreate.push({
+          tenantId: tId,
+          slug: stableSlug,
+          name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization
+          description: importedDesc ? sanitizeServiceDescription(ServiceAuditEngine.cleanText(importedDesc)) : null,
+          externalId: extId,
+          categoryId: categoryIdMap?.[extId] || categoryId,
+          providerId: providerDbRecord.id,
+          providerCurrency: providerCurrency,
+          rate: rawRate, // Live provider rate
+          markup: effectiveMarkup,
+          pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
+          minQty: parseInt(liveExt.min, 10) || 10,
+          maxQty: parseInt(liveExt.max, 10) || 10000,
+          features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
+          anomalyScore: shadowExt.metrics?.anomalyScore || 0,
+          targetType: shadowExt.metrics?.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId)),
+          customDataType: shadowExt.metrics?.customDataType || 'NONE',
+          isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
+          isActive: true,
+          isDripFeedEnabled: liveExt.dripfeed ?? false,
+          isRefillEnabled: liveExt.refill ?? false,
+          isCancelEnabled: liveExt.cancel ?? false,
+          lastSeenAt: new Date(),
+        });
+      }
     }
 
     let importedCount = 0;

@@ -158,6 +158,7 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
   const [autoMappedCategories, setAutoMappedCategories] = useState<Record<string, string>>({});
   const [aiConfidence, setAiConfidence] = useState<Record<string, boolean>>({});
   const [markup, setMarkup] = useState<string>("50");
+  const [targetTenant, setTargetTenant] = useState<'smmplan' | 'flux' | 'both'>('smmplan');
 
   // Filters
   const [activeTab, setActiveTab] = useState<"ready" | "attention">("ready");
@@ -412,7 +413,7 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
         
         // Pass the first mapped category as the mandatory categoryId, since all are overridden by chunkMap
         const fallbackCategoryId = chunkMap[chunk[0]];
-        const res = await importSelectedServices(chunk, fallbackCategoryId, multiplier, providerId, chunkMap);
+        const res = await importSelectedServices(chunk, fallbackCategoryId, multiplier, providerId, chunkMap, targetTenant);
         
         if (res && !res.success) {
           throw new Error(
@@ -895,6 +896,8 @@ export function ImportWizard({ categories, providers }: { categories: any[]; pro
         markup={parseFloat(markup) || 0}
         platformBreakdown={platformBreakdown}
         isPending={importProgress !== null}
+        targetTenant={targetTenant}
+        onTargetTenantChange={setTargetTenant}
       />
     </div>
   );
