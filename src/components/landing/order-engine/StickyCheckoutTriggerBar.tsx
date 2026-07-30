@@ -66,7 +66,7 @@ export function StickyCheckoutTriggerBar({
       animate={{ y: isVisible ? 0 : 150, opacity: isVisible ? 1 : 0, x: "-50%" }}
       exit={{ y: 150, opacity: 0, x: "-50%" }}
       transition={{ type: "spring", damping: 30, stiffness: 400 }}
-      className="fixed bottom-6 left-1/2 w-full max-w-4xl z-[200] px-4"
+      className="fixed bottom-6 left-1/2 w-full max-w-4xl z-40 px-4"
     >
       <div className="bg-card/90 backdrop-blur-xl border border-border/80 shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)] rounded-2xl py-3.5 px-6 relative flex items-center justify-between gap-4">
         

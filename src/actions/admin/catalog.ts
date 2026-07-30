@@ -81,11 +81,12 @@ export async function bulkUpdateMarkupAction(formData: FormData) {
     if (!parsed.success) {
       throw new Error('Наценка должна быть в диапазоне 1.0–151.0');
     }
-    const { categoryId, platform, markup } = parsed.data;
+    const { categoryId, platform, markup, tenantId } = parsed.data;
 
-    const filter: { categoryId?: string; platform?: string } = {};
+    const filter: { categoryId?: string; platform?: string; tenantId?: string } = {};
     if (categoryId) filter.categoryId = categoryId;
     if (platform) filter.platform = platform;
+    if (tenantId) filter.tenantId = tenantId;
 
     // 🌊 WAVE 1.3: Background Catalog Processing
     // We send this to the BullMQ worker to prevent Vercel 15s timeout

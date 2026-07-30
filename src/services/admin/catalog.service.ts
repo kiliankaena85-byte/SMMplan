@@ -15,6 +15,25 @@ import {
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { ServiceAuditEngine } from './audit-engine';
 import { z } from 'zod';
+
+export async function ensureTaxonomyTenantAccess(categoryId: string) {
+  const category = await db.category.findUnique({
+    where: { id: categoryId },
+    select: { id: true, tenantId: true, networkId: true }
+  });
+  if (category && category.tenantId !== 'all') {
+    await db.category.update({
+      where: { id: categoryId },
+      data: { tenantId: 'all' }
+    });
+    if (category.networkId) {
+      await db.network.update({
+        where: { id: category.networkId },
+        data: { tenantId: 'all' }
+      });
+    }
+  }
+}
 import { SecuritySanitizer } from '@/utils/security-sanitizer';
 import { SmartAnalyzerLogic } from '@/services/providers/smart-analyzer.logic';
 import { sanitizeServiceDescription } from '@/lib/sanitize';
@@ -86,9 +105,14 @@ class AdminCatalogService {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     networkSlug?: string;
+    tenantId?: string;
   }): Promise<PaginatedResult<CatalogRow>> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
+
+    if (params.tenantId) {
+      where.tenantId = params.tenantId;
+    }
 
     if (params.categoryId) {
       where.categoryId = params.categoryId;
@@ -712,8 +736,15 @@ class AdminCatalogService {
       newValue: { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches },
     });
 
-    const syncResult = { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches };
-    logger.info('syncProviderCatalog finished', { result: syncResult });
+    let smmplanCount = 0;
+    let fluxCount = 0;
+    for (const s of ourServices) {
+      if (s.tenantId === 'flux') fluxCount++;
+      else smmplanCount++;
+    }
+
+    const syncResult = { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches, smmplanCount, fluxCount };
+    logger.info(`Rate sync: ${smmplanCount} smmplan + ${fluxCount} flux updated for provider ${providerId}`, { result: syncResult });
     return syncResult;
   }
 
@@ -723,7 +754,8 @@ class AdminCatalogService {
     defaultMarkup: number,
     admin: { id: string; email: string },
     providerId: string,
-    categoryIdMap?: Record<string, string>
+    categoryIdMap?: Record<string, string>,
+    targetTenantId: 'smmplan' | 'flux' | 'both' = 'smmplan'
   ) {
     // 1. Fetch from Shadow Catalog (ShadowService staging table) to get the AI-normalized names and metrics
     const shadowServices = await db.shadowService.findMany({
@@ -771,14 +803,20 @@ class AdminCatalogService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const liveMap = new Map(liveServices.map((s: any) => [s.service.toString(), s]));
 
-    // Fetch all existing external IDs for this provider in one query
-    const existingServices = await db.service.findMany({
-      where: { providerId: providerDbRecord.id, externalId: { in: toImportShadow.map(s => s.service.toString()) } },
-      select: { externalId: true }
-    });
-    const existingSet = new Set(existingServices.map(s => s.externalId));
+    const tenantsToImport: ('smmplan' | 'flux')[] = targetTenantId === 'both' ? ['smmplan', 'flux'] : [targetTenantId];
 
-    // Fetch category names for target type inference
+    // Fetch existing services for target tenants in one query
+    const existingServices = await db.service.findMany({
+      where: {
+        providerId: providerDbRecord.id,
+        externalId: { in: toImportShadow.map(s => s.service.toString()) },
+        tenantId: { in: tenantsToImport }
+      },
+      select: { externalId: true, tenantId: true }
+    });
+    const existingSet = new Set(existingServices.map(s => `${s.tenantId}:${s.externalId}`));
+
+    // Fetch category names for target type inference and ensure tenant access taxonomy
     const uniqueCategoryIds = new Set<string>();
     if (categoryId) uniqueCategoryIds.add(categoryId);
     if (categoryIdMap) {
@@ -790,15 +828,16 @@ class AdminCatalogService {
     });
     const categoryNameMap = new Map(categoriesDb.map(c => [c.id, c.name]));
 
+    for (const catId of Array.from(uniqueCategoryIds)) {
+      await ensureTaxonomyTenantAccess(catId);
+    }
+
     const servicesToCreate = [];
     const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
     
     for (const shadowExt of toImportShadow) {
       const extId = shadowExt.service.toString();
       
-      // Skip if already exists
-      if (existingSet.has(extId)) continue;
-
       // 3. Live Price Check
       const liveExt = liveMap.get(extId);
       if (!liveExt) {
@@ -834,30 +873,38 @@ class AdminCatalogService {
 
       const importedName = shadowExt.cleanName || liveExt.name;
       const importedDesc = liveExt.desc || null;
+      const stableSlug = importedName.toLowerCase().trim().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || `service-${extId}`;
 
-      servicesToCreate.push({
-        name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization
-        description: importedDesc ? sanitizeServiceDescription(ServiceAuditEngine.cleanText(importedDesc)) : null,
-        externalId: extId,
-        categoryId: categoryIdMap?.[extId] || categoryId,
-        providerId: providerDbRecord.id,
-        providerCurrency: providerCurrency,
-        rate: rawRate, // Live provider rate
-        markup: effectiveMarkup,
-        pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
-        minQty: parseInt(liveExt.min, 10) || 10,
-        maxQty: parseInt(liveExt.max, 10) || 10000,
-        features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
-        anomalyScore: shadowExt.metrics?.anomalyScore || 0,
-        targetType: shadowExt.metrics?.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId)),
-        customDataType: shadowExt.metrics?.customDataType || 'NONE',
-        isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
-        isActive: true,
-        isDripFeedEnabled: liveExt.dripfeed ?? false,
-        isRefillEnabled: liveExt.refill ?? false,
-        isCancelEnabled: liveExt.cancel ?? false,
-        lastSeenAt: new Date(),
-      });
+      for (const tId of tenantsToImport) {
+        // Skip if already exists for this tenant
+        if (existingSet.has(`${tId}:${extId}`)) continue;
+
+        servicesToCreate.push({
+          tenantId: tId,
+          slug: stableSlug,
+          name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization
+          description: importedDesc ? sanitizeServiceDescription(ServiceAuditEngine.cleanText(importedDesc)) : null,
+          externalId: extId,
+          categoryId: categoryIdMap?.[extId] || categoryId,
+          providerId: providerDbRecord.id,
+          providerCurrency: providerCurrency,
+          rate: rawRate, // Live provider rate
+          markup: effectiveMarkup,
+          pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
+          minQty: parseInt(liveExt.min, 10) || 10,
+          maxQty: parseInt(liveExt.max, 10) || 10000,
+          features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
+          anomalyScore: shadowExt.metrics?.anomalyScore || 0,
+          targetType: shadowExt.metrics?.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId)),
+          customDataType: shadowExt.metrics?.customDataType || 'NONE',
+          isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
+          isActive: true,
+          isDripFeedEnabled: liveExt.dripfeed ?? false,
+          isRefillEnabled: liveExt.refill ?? false,
+          isCancelEnabled: liveExt.cancel ?? false,
+          lastSeenAt: new Date(),
+        });
+      }
     }
 
     let importedCount = 0;
@@ -933,16 +980,25 @@ class AdminCatalogService {
   /**
    * Catalog stats for the header.
    */
-  async getCatalogStats(startDate?: Date, endDate?: Date) {
+  async getCatalogStats(tenantId?: string, startDate?: Date, endDate?: Date) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
+    if (tenantId) where.tenantId = tenantId;
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const categoryWhere: any = {};
+    if (tenantId) categoryWhere.tenantId = { in: [tenantId, 'all'] };
+    if (startDate && endDate) {
+      categoryWhere.createdAt = { gte: startDate, lte: endDate };
+    }
+
     const [totalServices, activeServices, categories] = await Promise.all([
       db.service.count({ where }),
       db.service.count({ where: { ...where, isActive: true } }),
-      db.category.count({ where }),
+      db.category.count({ where: categoryWhere }),
     ]);
 
     return { totalServices, activeServices, categories };
@@ -953,7 +1009,7 @@ class AdminCatalogService {
    * Supports: by category, by platform, or all services.
    */
   async bulkUpdateMarkup(
-    filter: { categoryId?: string; platform?: string },
+    filter: { categoryId?: string; platform?: string; tenantId?: string },
     newMarkup: number,
     admin: { id: string; email: string }
   ): Promise<{ updatedCount: number }> {
@@ -964,6 +1020,9 @@ class AdminCatalogService {
     const where: Record<string, unknown> = {
       isQuarantined: false
     };
+    if (filter.tenantId) {
+      where.tenantId = filter.tenantId;
+    }
     if (filter.categoryId) {
       where.categoryId = filter.categoryId;
     }
@@ -1086,13 +1145,17 @@ class AdminCatalogService {
   /**
    * Markup Analytics: returns distribution of markups across all services.
    */
-  async getMarkupAnalytics(): Promise<{
+  async getMarkupAnalytics(tenantId?: string): Promise<{
     stats: { total: number; loss: number; thin: number; normal: number; high: number; extreme: number };
     worstServices: { id: string; name: string; rate: number; markup: number; category: string }[];
     averageMarkup: number;
   }> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = { isActive: true };
+    if (tenantId) where.tenantId = tenantId;
+
     const services = await db.service.findMany({
-      where: { isActive: true },
+      where,
       select: {
         id: true,
         name: true,
@@ -1187,8 +1250,11 @@ class AdminCatalogService {
     });
   }
 
-  async getQuarantineCount(): Promise<number> {
-    return db.service.count({ where: { isQuarantined: true } });
+  async getQuarantineCount(tenantId?: string): Promise<number> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = { isQuarantined: true };
+    if (tenantId) where.tenantId = tenantId;
+    return db.service.count({ where });
   }
 }
 

@@ -32,6 +32,21 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
     const isIpAllowed = await RateLimitService.check('auth:magic-link:ip', 15, 3600, true);
     if (!isIpAllowed) {
       log.warn('Magic link rate limit exceeded IP', { email: cleanEmail });
+      try {
+        const clientIp = await getClientIp().catch(() => '127.0.0.1');
+        const { redis } = await import('@/lib/redis');
+        const alertLockKey = `alert:bruteforce:${clientIp}`;
+        const acquired = await redis.set(alertLockKey, '1', 'EX', 600, 'NX');
+        if (acquired) {
+          const { sendAdminAlert } = await import('@/lib/notifications');
+          await sendAdminAlert(
+            `🚨 Auth brute-force: ${clientIp} → 15+ attempts in 1h`,
+            'CRITICAL'
+          );
+        }
+      } catch (err) {
+        log.error('Failed to send bruteforce admin alert', { error: err });
+      }
       return { error: "Слишком много запросов. Пожалуйста, подождите 1 час перед новым запросом.", success: false };
     }
 

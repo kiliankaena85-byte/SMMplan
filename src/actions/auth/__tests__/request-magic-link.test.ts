@@ -12,6 +12,9 @@ const mockCookieStore = {
 
 vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => mockCookieStore),
+  headers: vi.fn(async () => ({
+    get: vi.fn((key: string) => (key === 'x-forwarded-for' ? '127.0.0.1' : null)),
+  })),
 }));
 
 vi.mock('@/lib/smtp', () => ({

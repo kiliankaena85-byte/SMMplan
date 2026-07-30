@@ -18,6 +18,10 @@ import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 
+import { headers } from 'next/headers';
+import { normalizeTenantId } from '@/lib/tenant-resolver';
+import { TenantSwitcher } from '@/components/admin/tenant-switcher';
+
 export const dynamic = 'force-dynamic';
 
 // Safety floor multiplier: minimum markup that covers taxes + gateway + 100% margin
@@ -35,10 +39,12 @@ type Props = {
     sortBy?: string;
     sortOrder?: string;
     platform?: string;
+    tenant?: string;
   }>;
 };
 
 export default async function AdminCatalogPage({ searchParams }: Props) {
+  const reqHeaders = await headers();
   const session = await verifySession();
   const user = session ? await db.user.findUnique({ 
     where: { id: session.userId },
@@ -53,6 +59,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const canEditFinance = isOwner || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && p.canEdit);
 
   const params = await searchParams;
+  const selectedTenant = params.tenant || normalizeTenantId(reqHeaders.get('x-tenant-id')) || 'smmplan';
   const search = params.q || '';
   const cursor = params.cursor || undefined;
   const categoryId = params.category || undefined;
@@ -86,12 +93,13 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       sortBy,
       sortOrder,
       networkSlug: platform,
+      tenantId: selectedTenant,
     }),
     SettingsProvider.getExchangeRateUSD(),
     adminCatalogService.listCategories(),
-    adminCatalogService.getQuarantineCount(),
-    adminCatalogService.getCatalogStats(),
-    adminCatalogService.getMarkupAnalytics(),
+    adminCatalogService.getQuarantineCount(selectedTenant),
+    adminCatalogService.getCatalogStats(selectedTenant),
+    adminCatalogService.getMarkupAnalytics(selectedTenant),
     adminProviderService.listProviders(),
   ]);
 
@@ -138,8 +146,9 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         title="Каталог розничных услуг"
         description="Массовое управление ценами, категориями и статусом услуг."
         action={(
-          <div className="flex gap-2">
-            <Link href="/admin/providers/import">
+          <div className="flex flex-wrap items-center gap-2">
+            <TenantSwitcher currentTenant={selectedTenant} />
+            <Link href={`/admin/providers/import?tenant=${selectedTenant}`}>
               <Button
                 intent="outline"
                 size="sm"
@@ -148,7 +157,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
                 ⏬ Импорт Услуг
               </Button>
             </Link>
-            <Link href="/admin/catalog/quarantine">
+            <Link href={`/admin/catalog/quarantine?tenant=${selectedTenant}`}>
               <Button
                 intent="outline"
                 size="sm"
@@ -167,7 +176,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       {/* Horizontal Stats Dashboard Bar */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Всего услуг</span>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Всего услуг ({selectedTenant.toUpperCase()})</span>
           <span className="text-2xl font-black text-foreground mt-1 tabular-nums">{stats.totalServices}</span>
         </div>
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
@@ -198,10 +207,11 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
                 <AlertTriangle className="w-5 h-5 text-destructive" />
               </div>
               <div>
-                <h3 className="text-sm font-bold tracking-tight text-destructive">Выявлены убыточные услуги</h3>
-                <p className="text-xs text-destructive/80 mt-1 leading-relaxed max-w-3xl">
-                  {markupAnalytics.stats.loss} услуг продаются ниже себестоимости (с учетом налогов и комиссий). 
-                  Минимальный порог безубыточности: <span className="font-mono font-bold">x{SAFETY_MULTIPLIER.toFixed(2)}</span>.
+                <h4 className="text-sm font-bold text-destructive flex items-center gap-2">
+                  Обнаружена потенциальная убыточность услуг!
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Найдено <span className="font-bold text-destructive tabular-nums">{markupAnalytics.stats.loss}</span> активных услуг с наценкой ниже безопасного порога (x{SAFETY_MULTIPLIER.toFixed(2)}).
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {markupAnalytics.worstServices.slice(0, 3).map(s => (
@@ -219,20 +229,23 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         {canEditFinance && (
           <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl ring-1 ring-border/5 p-4 overflow-hidden">
             <form action={bulkUpdateMarkupAction} className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <input type="hidden" name="tenantId" value={selectedTenant} />
               {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
-              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Массовое обновление наценки:</span>
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                Массовая наценка ({selectedTenant.toUpperCase()}):
+              </span>
               <div className="flex items-center gap-3">
                 <input 
                   type="number" step="0.1" name="markup" required 
                   placeholder="Множитель" 
                   className="w-28 px-3 py-2 text-xs font-mono tabular-nums border border-border/60 rounded-xl bg-background/50 text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
                 />
-                <SubmitButton size="sm" variant={categoryId ? "default" : "outline"} className="rounded-xl active:scale-95 transition-transform shadow-sm h-9" confirmMessage={categoryId ? "Применить маржу к выбранной категории?" : "ВНИМАНИЕ: Это изменит наценку ДЛЯ ВСЕХ УСЛУГ В БАЗЕ. Продолжить?"}>
-                  Применить
+                <SubmitButton size="sm" variant={categoryId ? "default" : "outline"} className="rounded-xl active:scale-95 transition-transform shadow-sm h-9" confirmMessage={categoryId ? `Применить маржу к категории для ${selectedTenant.toUpperCase()}?` : `ВНИМАНИЕ: Это изменит наценку ДЛЯ ВСЕХ УСЛУГ (${selectedTenant.toUpperCase()}). Продолжить?`}>
+                  Применить ({selectedTenant.toUpperCase()})
                 </SubmitButton>
               </div>
               <p className="text-[10px] text-muted-foreground ml-auto hidden md:block">
-                {categoryId ? "Изменит маржу только для текущей категории" : "Изменит маржу для всех услуг в базе"}
+                {categoryId ? `Изменит маржу категории для ${selectedTenant}` : `Изменит маржу для всех услуг на ${selectedTenant}`}
               </p>
             </form>
           </div>
@@ -251,7 +264,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         {/* Pagination / Load More */}
         {hasMore && (
            <div className="flex justify-center pt-4">
-             <Link href={`/admin/catalog?cursor=${nextCursor}${categoryId ? `&category=${categoryId}` : ''}${search ? `&q=${search}` : ''}${sortBy ? `&sortBy=${sortBy}` : ''}${sortOrder ? `&sortOrder=${sortOrder}` : ''}`}>
+             <Link href={`/admin/catalog?tenant=${selectedTenant}&cursor=${nextCursor}${categoryId ? `&category=${categoryId}` : ''}${search ? `&q=${search}` : ''}${sortBy ? `&sortBy=${sortBy}` : ''}${sortOrder ? `&sortOrder=${sortOrder}` : ''}`}>
                <Button intent="outline" size="sm" className="bg-background">Загрузить еще...</Button>
              </Link>
            </div>

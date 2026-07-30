@@ -72,6 +72,7 @@ export const toggleServiceSchema = z.object({
 export const bulkUpdateMarkupSchema = z.object({
   categoryId: z.string().nullable().optional(),
   platform: z.string().nullable().optional(),
+  tenantId: z.string().nullable().optional(),
   markup: z.coerce.number().min(0).max(151.0)
 });
 
