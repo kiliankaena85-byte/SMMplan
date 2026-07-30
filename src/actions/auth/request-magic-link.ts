@@ -32,8 +32,8 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
     const isIpAllowed = await RateLimitService.check('auth:magic-link:ip', 15, 3600, true);
     if (!isIpAllowed) {
       log.warn('Magic link rate limit exceeded IP', { email: cleanEmail });
-      const clientIp = await getClientIp();
       try {
+        const clientIp = await getClientIp().catch(() => '127.0.0.1');
         const { redis } = await import('@/lib/redis');
         const alertLockKey = `alert:bruteforce:${clientIp}`;
         const acquired = await redis.set(alertLockKey, '1', 'EX', 600, 'NX');
