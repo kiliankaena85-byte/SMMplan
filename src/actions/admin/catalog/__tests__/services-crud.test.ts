@@ -39,6 +39,11 @@ describe('Manual Service Import & Editing CRUD Tests', () => {
   beforeEach(async () => {
     // 1. Setup systemSettings with exchange rates
     await db.systemSettings.upsert({
+      where: { id: 'smmplan' },
+      update: { isTestMode: true, exchangeRateUSD: 100.0 },
+      create: { id: 'smmplan', isTestMode: true, exchangeRateUSD: 100.0 },
+    });
+    await db.systemSettings.upsert({
       where: { id: 'global' },
       update: { isTestMode: true, exchangeRateUSD: 100.0 },
       create: { id: 'global', isTestMode: true, exchangeRateUSD: 100.0 },

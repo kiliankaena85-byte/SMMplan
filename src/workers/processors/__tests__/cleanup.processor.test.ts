@@ -4,6 +4,7 @@ import { db } from '../../../lib/db';
 
 vi.mock('../../../lib/db', () => ({
   db: {
+    authToken: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     analyticsEvent: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     rateLimit: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     loginLog: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
@@ -57,13 +58,16 @@ describe('Cleanup Processor', () => {
   });
 
   it('Zombie cancellation (orders stuck in AWAITING_PAYMENT)', async () => {
-    vi.mocked(db.order.findMany).mockResolvedValueOnce([{
-      id: 'z1',
-      numericId: 1,
-      paymentId: 'pay1',
-      user: { email: 'test@test.com' },
-      service: { name: 'S1' }
-    }] as any).mockResolvedValueOnce([]);
+    vi.mocked(db.order.findMany)
+      .mockResolvedValueOnce([]) // stalePendingCheck
+      .mockResolvedValueOnce([{
+        id: 'z1',
+        numericId: 1,
+        paymentId: 'pay1',
+        user: { email: 'test@test.com' },
+        service: { name: 'S1' }
+      }] as any) // zombies
+      .mockResolvedValueOnce([]);
     
     vi.mocked(db.order.updateMany).mockResolvedValue({ count: 1 } as any);
 
@@ -104,7 +108,8 @@ describe('Cleanup Processor', () => {
       charge: 1000,
       quantity: 100,
       remains: 50,
-      serviceId: 's1'
+      serviceId: 's1',
+      service: {}
     }] as any).mockResolvedValueOnce([]);
     
     vi.mocked(db.order.updateMany).mockResolvedValue({ count: 1 } as any);
@@ -116,7 +121,7 @@ describe('Cleanup Processor', () => {
       data: {
         status: 'PARTIAL',
         remains: 50,
-        error: expect.any(String),
+        error: "Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено 50 из 100. Невыполненный остаток возвращён на баланс.",
         updatedAt: expect.any(Date)
       }
     });

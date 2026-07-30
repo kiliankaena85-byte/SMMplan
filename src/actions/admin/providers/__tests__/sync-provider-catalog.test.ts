@@ -39,6 +39,11 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
   beforeEach(async () => {
     // 2. Setup systemSettings with exchange rates
     await db.systemSettings.upsert({
+      where: { id: 'smmplan' },
+      update: { isTestMode: true, exchangeRateUSD: 100.0 },
+      create: { id: 'smmplan', isTestMode: true, exchangeRateUSD: 100.0 },
+    });
+    await db.systemSettings.upsert({
       where: { id: 'global' },
       update: { isTestMode: true, exchangeRateUSD: 100.0 },
       create: { id: 'global', isTestMode: true, exchangeRateUSD: 100.0 },
@@ -141,20 +146,20 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     // Retail = 1.25 * 5.0 * 100 = 625 RUB per 1k -> beautiful rounded to 630 RUB -> 63000 cents.
     mockGetServices.mockResolvedValue([
       { service: 'ext-303', name: 'TG Views Fast', rate: '0.50', min: '10', max: '10000', category: 'TG Views' },
-      { service: 'ext-404', name: 'TG Views High Quality', rate: '1.25', min: '10', max: '10000', category: 'TG Views' }
+      { service: 'ext-404', name: 'TG Views High Quality', rate: '1.35', min: '10', max: '10000', category: 'TG Views' }
     ]);
 
     const res = await adminCatalogService.syncProviderCatalog(provider.id, adminUser);
     expect(res.marginFloorBreaches).toBe(0);
-    expect(res.priceAnomalies).toBe(1); // Service B still quarantines for Price Spike (>20%) after auto-fix
+    expect(res.priceAnomalies).toBe(1); // Service B still quarantines for Price Spike (>30%) after auto-fix
 
     // Service B should be quarantined for Price Spike, not Margin Floor Breach
     const serviceBDb = await db.service.findUnique({ where: { id: serviceB.id } });
     expect(serviceBDb?.isQuarantined).toBe(true);
     expect(serviceBDb?.quarantineReason).toContain('Price Spike');
-    expect(serviceBDb?.pendingRate).toBe(1.25);
-    expect(serviceBDb?.markup).toBe(5.0);
-    expect(serviceBDb?.pricePer1000Cents).toBe(63000);
+    expect(serviceBDb?.pendingRate).toBe(1.35);
+    expect(serviceBDb?.markup).toBe(3.0);
+    expect(serviceBDb?.pricePer1000Cents).toBe(41000);
 
     // Verify AdminAuditLog entry was created for the auto-fix
     const autoFixLog = await db.adminAuditLog.findFirst({
@@ -168,7 +173,7 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     const oldVal = JSON.parse(autoFixLog?.oldValue || '{}');
     const newVal = JSON.parse(autoFixLog?.newValue || '{}');
     expect(oldVal.markup).toBe(1.2);
-    expect(newVal.markup).toBe(5.0);
+    expect(newVal.markup).toBe(3.0);
   });
 
   it('should detect a price spike anomaly (>20% increase) and quarantine the service safely', async () => {

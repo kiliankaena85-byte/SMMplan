@@ -36,6 +36,12 @@ vi.mock('@/lib/db', () => {
     },
     systemSettings: {
       findUnique: vi.fn().mockResolvedValue({ id: 'smmplan', exchangeRateUSD: 100 }),
+      findFirst: vi.fn().mockResolvedValue({ id: 'smmplan', exchangeRateUSD: 100 }),
+      upsert: vi.fn().mockResolvedValue({ id: 'smmplan', exchangeRateUSD: 100 }),
+    },
+    tenant: {
+      findUnique: vi.fn().mockResolvedValue({ id: 'smmplan', slug: 'smmplan' }),
+      findFirst: vi.fn().mockResolvedValue({ id: 'smmplan', slug: 'smmplan' }),
     },
     refill: {
       findFirst: vi.fn(),
@@ -52,7 +58,10 @@ vi.mock('@/lib/db', () => {
 });
 
 vi.mock('@/lib/transactions', () => ({
-  runSerializableTransaction: vi.fn((cb) => cb(db)),
+  runSerializableTransaction: vi.fn(async (cb) => {
+    const { db } = await import('@/lib/db');
+    return cb(db);
+  }),
 }));
 
 vi.mock('../financial/wallet-ops', () => ({
@@ -70,6 +79,9 @@ vi.mock('@/workers/queues', () => ({
 describe('Tenant Isolation & OrderService Remediation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(db.systemSettings.findUnique).mockResolvedValue({ id: 'smmplan', exchangeRateUSD: 100, isTestMode: true } as any);
+    vi.mocked(db.systemSettings.upsert).mockResolvedValue({ id: 'smmplan', exchangeRateUSD: 100, isTestMode: true } as any);
+    vi.mocked(db.securityEvent.create).mockResolvedValue({ id: 'sec-1' } as any);
   });
 
   describe('OrderService.createOrder Cross-Tenant Protection', () => {
@@ -78,6 +90,7 @@ describe('Tenant Isolation & OrderService Remediation', () => {
       vi.mocked(db.user.findUnique).mockResolvedValue({
         id: 'user-tenant-a',
         tenantId: 'smmplan',
+        referredById: null,
       } as any);
 
       // Service belongs to tenant "tenant-b"
@@ -168,6 +181,7 @@ describe('Tenant Isolation & OrderService Remediation', () => {
       vi.mocked(db.user.findUnique).mockResolvedValue({
         id: 'user-1',
         tenantId: 'smmplan',
+        referredById: null,
       } as any);
 
       vi.mocked(db.service.findUnique).mockResolvedValue({

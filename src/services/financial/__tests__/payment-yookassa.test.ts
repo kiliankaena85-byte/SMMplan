@@ -169,7 +169,7 @@ describe('YooKassa Payment Integration & Webhook Lifecycle', () => {
 
     // First webhook call
     const res1 = await processWebhook();
-    expect(res1.alreadyProcessed).toBeUndefined();
+    expect(res1.alreadyProcessed).toBe(false);
 
     // Second webhook call (duplicate replay)
     const res2 = await processWebhook();

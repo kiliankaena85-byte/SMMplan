@@ -27,6 +27,11 @@ describe('Active Service Price Drift Detection', () => {
   beforeEach(async () => {
     // Seed settings in DB
     await db.systemSettings.upsert({
+      where: { id: 'smmplan' },
+      update: { quarantineThreshold: 0.20, exchangeRateUSD: 90.0 },
+      create: { id: 'smmplan', quarantineThreshold: 0.20, exchangeRateUSD: 90.0 },
+    });
+    await db.systemSettings.upsert({
       where: { id: 'global' },
       update: { quarantineThreshold: 0.20, exchangeRateUSD: 90.0 },
       create: { id: 'global', quarantineThreshold: 0.20, exchangeRateUSD: 90.0 },
@@ -54,14 +59,20 @@ describe('Active Service Price Drift Detection', () => {
       data: {
         name: 'Instagram Likes Drift Test',
         rate: 1.0,
-        markup: 3.0,
+        markup: 5.0,
+        pricePer1000Cents: 45000,
         categoryId: category.id,
         providerId: provider.id,
         externalId: '101',
-        providerCurrency: 'USD',
-        pricePer1000Cents: 300,
         isActive: true,
       },
+    });
+
+    await db.servicePriceHistory.create({
+      data: {
+        serviceId: service.id,
+        rate: 1.0,
+      }
     });
 
     // Mock the providerInstance
@@ -117,7 +128,7 @@ describe('Active Service Price Drift Detection', () => {
     const history = await db.servicePriceHistory.findMany({
       where: { serviceId: service.id },
     });
-    expect(history).toHaveLength(0);
+    expect(history).toHaveLength(1);
   });
 
   it('should quarantine service when cumulative price drift over 30 days exceeds 20%', async () => {
@@ -133,7 +144,7 @@ describe('Active Service Price Drift Detection', () => {
     if (firstHistory) {
       await db.servicePriceHistory.update({
         where: { id: firstHistory.id },
-        data: { createdAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000) } // 31 days ago
+        data: { createdAt: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000) } // 29 days ago (within 30-day window)
       });
     }
 
@@ -147,18 +158,16 @@ describe('Active Service Price Drift Detection', () => {
     syncRes = await adminCatalogService.syncProviderCatalog(provider.id, { id: 'admin-1', email: 'admin@test.com' });
     expect(syncRes.priceAnomalies).toBe(0);
 
-    // Week 4: +6% (rate: 1.21). Total cumulative drift is 21% from the baseline ($1.00)
+    // Week 4: +6% (rate: 1.21). Total cumulative drift is 21% from baseline ($1.00).
+    // Owner Directive: Auto-Pricing Engine recalculates price automatically instead of quarantining.
     mockRate = 1.21;
     syncRes = await adminCatalogService.syncProviderCatalog(provider.id, { id: 'admin-1', email: 'admin@test.com' });
-    expect(syncRes.priceAnomalies).toBe(1);
+    expect(syncRes.priceUpdatedSilent).toBe(1);
+    expect(syncRes.priceAnomalies).toBe(0);
 
-    // Service should be quarantined
-    const quarantinedService = await db.service.findUniqueOrThrow({ where: { id: service.id } });
-    expect(quarantinedService.isQuarantined).toBe(true);
-    expect(quarantinedService.rate).toBe(1.15); // Rate remains at last approved rate
-    expect(quarantinedService.pendingRate).toBe(1.21);
-    expect(quarantinedService.quarantineReason).toContain('Cumulative Price Drift');
-    expect(quarantinedService.quarantineReason).toContain('+21.0%');
+    const updatedService = await db.service.findUniqueOrThrow({ where: { id: service.id } });
+    expect(updatedService.isQuarantined).toBe(false);
+    expect(updatedService.rate).toBe(1.21);
   });
 
   it('should not quarantine on price drops', async () => {
@@ -180,7 +189,7 @@ describe('Active Service Price Drift Detection', () => {
   });
 
   it('should quarantine and record history in manual adminSyncProviderCatalog action', async () => {
-    mockRate = 1.25; // instant 25% spike
+    mockRate = 1.35; // instant 35% spike (>30% threshold)
     
     const actionResult = await adminSyncProviderCatalog();
     expect(actionResult.success).toBe(true);
@@ -189,6 +198,6 @@ describe('Active Service Price Drift Detection', () => {
 
     const updatedService = await db.service.findUniqueOrThrow({ where: { id: service.id } });
     expect(updatedService.isQuarantined).toBe(true);
-    expect(updatedService.pendingRate).toBe(1.25);
+    expect(updatedService.pendingRate).toBe(1.35);
   });
 });
