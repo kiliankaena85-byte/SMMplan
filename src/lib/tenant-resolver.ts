@@ -31,6 +31,7 @@ const FLUX_DOMAINS = new Set([
   'smmflux.ru',
   'www.smmflux.ru',
   'flux.local',
+  'smmflux.local',
   'flux.smmplan.ru',
 ]);
 
