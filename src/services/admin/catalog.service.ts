@@ -15,6 +15,25 @@ import {
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { ServiceAuditEngine } from './audit-engine';
 import { z } from 'zod';
+
+export async function ensureTaxonomyTenantAccess(categoryId: string) {
+  const category = await db.category.findUnique({
+    where: { id: categoryId },
+    select: { id: true, tenantId: true, networkId: true }
+  });
+  if (category && category.tenantId !== 'all') {
+    await db.category.update({
+      where: { id: categoryId },
+      data: { tenantId: 'all' }
+    });
+    if (category.networkId) {
+      await db.network.update({
+        where: { id: category.networkId },
+        data: { tenantId: 'all' }
+      });
+    }
+  }
+}
 import { SecuritySanitizer } from '@/utils/security-sanitizer';
 import { SmartAnalyzerLogic } from '@/services/providers/smart-analyzer.logic';
 import { sanitizeServiceDescription } from '@/lib/sanitize';
@@ -717,8 +736,15 @@ class AdminCatalogService {
       newValue: { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches },
     });
 
-    const syncResult = { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches };
-    logger.info('syncProviderCatalog finished', { result: syncResult });
+    let smmplanCount = 0;
+    let fluxCount = 0;
+    for (const s of ourServices) {
+      if (s.tenantId === 'flux') fluxCount++;
+      else smmplanCount++;
+    }
+
+    const syncResult = { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches, smmplanCount, fluxCount };
+    logger.info(`Rate sync: ${smmplanCount} smmplan + ${fluxCount} flux updated for provider ${providerId}`, { result: syncResult });
     return syncResult;
   }
 

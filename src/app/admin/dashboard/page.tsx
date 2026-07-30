@@ -75,7 +75,7 @@ export default async function AdminDashboardPage({
     adminOrderService.getOrderStats(filterStart, filterEnd),
     adminUserService.getUserStats(filterStart, filterEnd),
     adminTicketService.getTicketStats(filterStart, filterEnd),
-    adminCatalogService.getCatalogStats(filterStart, filterEnd),
+    adminCatalogService.getCatalogStats(undefined, filterStart, filterEnd),
     db.adminAuditLog.findMany({
       where: filterStart && filterEnd ? { createdAt: { gte: filterStart, lte: filterEnd } } : {},
       orderBy: { createdAt: 'desc' },
