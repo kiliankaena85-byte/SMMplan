@@ -27,7 +27,7 @@ const DATA = [
     ]
   },
   {
-    network: 'vkontakte',
+    network: 'vk',
     name: 'VKontakte',
     categories: [
       {
@@ -74,10 +74,17 @@ async function main() {
   }
 
   for (const net of DATA) {
-    let network = await prisma.network.findUnique({ where: { slug: net.network } });
+    let network = await prisma.network.findFirst({
+      where: { OR: [{ slug: net.network }, { name: net.name }] }
+    });
     if (!network) {
       network = await prisma.network.create({
         data: { name: net.name, slug: net.network, isActive: true, sort: 0 }
+      });
+    } else if (network.slug !== net.network) {
+      network = await prisma.network.update({
+        where: { id: network.id },
+        data: { slug: net.network }
       });
     }
 

@@ -16,7 +16,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
     return null;
   }
 
-  const DEFAULT_TOP = useMemo(() => ['telegram', 'vk', 'instagram', 'youtube', 'tiktok', 'twitch'], []);
+  const DEFAULT_TOP = useMemo(() => ['telegram', 'vk', 'vkontakte', 'instagram', 'youtube', 'tiktok', 'twitch'], []);
   const [topSlugs, setTopSlugs] = useState<string[]>(DEFAULT_TOP);
 
   // Восстановление памяти клиента при загрузке (Client-side memory)
