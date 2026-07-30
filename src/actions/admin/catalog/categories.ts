@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
-import { auditAdmin } from "@/lib/admin-audit";
+import { auditAdmin, auditAdminAwaitable } from "@/lib/admin-audit";
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 
@@ -11,12 +11,13 @@ const categorySchema = z.object({
   networkId: z.string().min(1, "Network ID required"),
   sort: z.coerce.number().int().default(0),
   requireWarning: z.coerce.boolean().default(false),
-  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable()
+  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable(),
+  analyzerTags: z.string().max(255).optional().nullable()
 });
 
 const idSchema = z.string().min(1);
 
-export async function createCategory(rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null }) {
+export async function createCategory(rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const data = categorySchema.parse(rawData);
     const cat = await db.category.create({
@@ -25,17 +26,18 @@ export async function createCategory(rawData: { name: string; networkId: string;
         networkId: data.networkId,
         sort: data.sort,
         requireWarning: data.requireWarning,
-        warningMessage: data.warningMessage
+        warningMessage: data.warningMessage,
+        analyzerTags: data.analyzerTags
       }
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: "CATEGORY_CREATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage }
+      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
     });
 
     revalidatePath("/admin/catalog/categories");
@@ -47,7 +49,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
   });
 }
 
-export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null }) {
+export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     const data = categorySchema.parse(rawData);
@@ -58,17 +60,18 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
         networkId: data.networkId,
         sort: data.sort,
         requireWarning: data.requireWarning,
-        warningMessage: data.warningMessage
+        warningMessage: data.warningMessage,
+        analyzerTags: data.analyzerTags
       }
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: "CATEGORY_UPDATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage }
+      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
     });
 
     revalidatePath("/admin/catalog/categories");
@@ -90,7 +93,7 @@ export async function deleteCategory(rawId: string) {
 
     await db.category.delete({ where: { id } });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: "CATEGORY_DELETE",
@@ -144,7 +147,7 @@ export async function mergeCategoriesAction(sourceCategoryId: string, targetCate
       });
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'CATEGORY_MERGE',
@@ -200,7 +203,7 @@ export async function createNetworkAction(rawData: { name: string; slug: string;
       }
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'NETWORK_CREATE',
@@ -260,7 +263,7 @@ export async function updateNetworkAction(id: string, rawData: { name: string; s
       }
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'NETWORK_UPDATE',
@@ -304,7 +307,7 @@ export async function deleteNetworkAction(id: string) {
 
     await db.network.delete({ where: { id } });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'NETWORK_DELETE',

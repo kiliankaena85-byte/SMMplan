@@ -40,7 +40,7 @@ export function TrustBar() {
       {/* Desktop Marquee (>= md) */}
       <div className="hidden md:flex w-full overflow-hidden">
         <motion.div
-          animate={{ x: [0, -1920] }} // Assuming roughly 1920px width of the single set. Motion will loop it.
+          animate={{ x: ["0%", "-50%"] }}
           transition={{
             repeat: Infinity,
             ease: "linear",

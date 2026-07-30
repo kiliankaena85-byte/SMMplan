@@ -335,7 +335,17 @@ export function useCheckoutOrchestrator({
         });
         if (res.success) {
           if (res.data?.paymentUrl) {
-            window.location.href = res.data.paymentUrl;
+            const allowedDomains = ['yookassa.ru', 'crypto.bot', 'robokassa.ru', 'pay.cryptometria.com'];
+            try {
+              const parsedUrl = new URL(res.data.paymentUrl);
+              if (!allowedDomains.some(d => parsedUrl.hostname.endsWith(d))) {
+                throw new Error('Invalid payment URL domain');
+              }
+              window.location.href = res.data.paymentUrl;
+            } catch {
+              toast.error('Некорректный URL платежного шлюза');
+              return;
+            }
           } else if (res.data?.orderId) {
             window.location.href = `/success?orderId=${res.data.orderId}`;
           } else if (res.data?.paymentId) {

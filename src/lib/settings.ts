@@ -2,8 +2,9 @@ import { db } from "@/lib/db";
 import { SystemSettings, UsnScheme } from "@prisma/client";
 import { VaultService } from "./vault";
 import { unstable_cache, revalidateTag } from "next/cache";
+import { normalizeTenantId } from "@/lib/tenant-resolver";
 
-let localSettingsCache: { data: SystemSettings; expiresAt: number } | null = null;
+const localSettingsCache: Record<string, { data: SystemSettings; expiresAt: number }> = {};
 const CACHE_TTL_MS = 60 * 1000; // 1 minute cache for workers
 
 export interface DecryptedPaymentSecrets {
@@ -28,6 +29,7 @@ export interface DecryptedEmailSettings {
 /**
  * SettingsProvider: Optimized, cached, and Zod-validated source for system settings.
  * Part of Wave 2 Refactoring: Eliminated redundant fetching and added caching.
+ * Multi-tenant update: Dynamic settings partitioning by tenantId.
  */
 export class SettingsProvider {
   static isTestEnvironment(): boolean {
@@ -42,120 +44,164 @@ export class SettingsProvider {
   }
 
   /**
-   * Fetches global settings with a 5-minute cache TTL.
+   * Resolves the current tenantId from request headers or fallback environment variables.
+   */
+  static async getTenantId(): Promise<string> {
+    try {
+      const { headers: getHeaders } = await import("next/headers");
+      const reqHeaders = await getHeaders();
+      return reqHeaders.get("x-tenant-id") || "smmplan";
+    } catch {
+      // In background workers or CLI
+      return process.env.BOT_TENANT_ID || "smmplan";
+    }
+  }
+
+  /**
+   * Fetches settings for a given tenant with a 5-minute cache TTL.
    * Uses Next.js unstable_cache for high-performance retrieval in Server Components.
    */
   static getCached = unstable_cache(
-    async () => {
+    async (tenantId: string) => {
       // In tests, we want the most fresh data to avoid race conditions between test cases
       if (SettingsProvider.isTestEnvironment()) {
         return await db.systemSettings.upsert({
-          where: { id: "global" },
+          where: { id: tenantId },
           update: {},
-          create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: "SMMplan", exchangeRateUSD: 95 }
+          create: { id: tenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: (tenantId === 'flux' || tenantId === 'lovable') ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
         });
       }
 
+      const defaultName = (tenantId === 'flux' || tenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
+      const defaultEmail = (tenantId === 'flux' || tenantId === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro';
+      const defaultPrivacyEmail = (tenantId === 'flux' || tenantId === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro';
+      const defaultBot = (tenantId === 'flux' || tenantId === 'lovable') ? 'smmflux_support_bot' : 'smmplan_support_bot';
+      const defaultChannel = (tenantId === 'flux' || tenantId === 'lovable') ? 'smmflux_support' : 'smmplan_support';
+
       return await db.systemSettings.upsert({
-        where: { id: "global" },
+        where: { id: tenantId },
         update: {},
         create: {
-          id: "global",
+          id: tenantId,
           taxRate: 6.0,
           opexMonthly: 0,
           maintenanceMode: false,
           isTestMode: false,
-          siteName: "SMMplan",
+          siteName: defaultName,
           siteDescription: "",
           exchangeRateUSD: 95.0,
-          contactSupportEmail: "support@smmplan.pro",
-          contactPrivacyEmail: "privacy@smmplan.pro",
-          contactTelegramBot: "smmplan_support_bot",
-          contactTelegramChannel: "smmplan_support",
-          legalCompanyName: "SMMplan",
+          contactSupportEmail: defaultEmail,
+          contactPrivacyEmail: defaultPrivacyEmail,
+          contactTelegramBot: defaultBot,
+          contactTelegramChannel: defaultChannel,
+          legalCompanyName: defaultName,
           legalCompanyInn: "Укажите ИНН",
           legalCompanyOgrnip: "Укажите ОГРНИП",
           legalCompanyAddress: "г. Москва",
         }
       });
     },
-    ['system-settings-global'],
+    ['system-settings-tenant-v2'],
     { revalidate: 300, tags: ['settings'] }
   );
 
   /**
    * Direct database fetch (uncached). Use only for Admin UI or logic that requires real-time data.
    */
-  static async getDirect(): Promise<SystemSettings> {
-    const settings = await db.systemSettings.findUnique({ where: { id: "global" } });
+  static async getDirect(tenantId?: string): Promise<SystemSettings> {
+    const activeTenantId = tenantId || await this.getTenantId();
+    const settings = await db.systemSettings.findUnique({ where: { id: activeTenantId } });
     if (settings) return settings;
     // Fallback to cached (which handles initialization if missing)
-    return this.get();
+    return this.get(activeTenantId);
+  }
+
+  /**
+   * Helper to resolve the Tenant model ID from a tenant slug.
+   */
+  static async resolveTenantRecordId(tenantSlug: string): Promise<string> {
+    const slug = normalizeTenantId(tenantSlug) || 'smmplan';
+    const tenant = await db.tenant.findUnique({ where: { slug } }) 
+      || await db.tenant.findFirst({ where: { slug: 'smmplan' } })
+      || await db.tenant.findFirst();
+    if (tenant) return tenant.id;
+    return slug;
   }
 
   /**
    * Safe wrapper around getCached that self-heals when Next.js incrementalCache is missing (CLI/workers)
    */
-  static async get(): Promise<SystemSettings> {
+  static async get(tenantId?: string): Promise<SystemSettings> {
+    const rawId = tenantId || await this.getTenantId();
+    const normalizedSlug = normalizeTenantId(rawId) || 'smmplan';
+    const targetTenantId = await this.resolveTenantRecordId(normalizedSlug);
+
     try {
       if (SettingsProvider.isTestEnvironment()) {
-        localSettingsCache = null;
-        const fresh = await db.systemSettings.findUnique({ where: { id: "global" } });
+        localSettingsCache[targetTenantId] = undefined as any;
+        const fresh = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
         if (fresh) return fresh;
         return await db.systemSettings.upsert({
-          where: { id: "global" },
+          where: { id: targetTenantId },
           update: {},
-          create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: "SMMplan", exchangeRateUSD: 95 }
+          create: { id: targetTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: normalizedSlug === 'flux' || normalizedSlug === 'lovable' ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
         });
       }
       try {
-        return await this.getCached();
+        return await this.getCached(normalizedSlug);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         if (err.message?.includes('incrementalCache') || err.message?.includes('Invariant')) {
           // Check local memory cache first
           const now = Date.now();
-          if (localSettingsCache && localSettingsCache.expiresAt > now) {
-            return localSettingsCache.data;
+          const cached = localSettingsCache[targetTenantId];
+          if (cached && cached.expiresAt > now) {
+            return cached.data;
           }
 
           // Fallback to read-only DB query first
-          let settings = await db.systemSettings.findUnique({ where: { id: "global" } });
+          let settings = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
           if (!settings) {
             settings = await db.systemSettings.upsert({
-              where: { id: "global" },
+              where: { id: targetTenantId },
               update: {},
-              create: { id: "global", taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: "SMMplan", exchangeRateUSD: 95 }
+              create: { id: targetTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: SettingsProvider.isTestEnvironment(), siteName: normalizedSlug === 'flux' || normalizedSlug === 'lovable' ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
             });
           }
 
-          localSettingsCache = { data: settings, expiresAt: now + CACHE_TTL_MS };
+          localSettingsCache[targetTenantId] = { data: settings, expiresAt: now + CACHE_TTL_MS };
           return settings;
         }
         throw err;
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (dbErr: any) {
-      console.warn('[SettingsProvider] Failed to fetch system settings from DB, using dynamic fallback:', dbErr.message);
+      console.warn(`[SettingsProvider] Failed to fetch system settings for ${normalizedSlug} from DB, using fallback:`, dbErr.message);
+      const defaultName = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'SMMflux' : 'SMMplan';
+      const defaultEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro';
+      const defaultPrivacyEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro';
+      const defaultBot = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'smmflux_support_bot' : 'smmplan_support_bot';
+      const defaultChannel = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'smmflux_support' : 'smmplan_support';
+
       return {
-        id: "global",
+        id: targetTenantId,
         taxRate: 6.0,
         opexMonthly: 0,
         maintenanceMode: false,
         isTestMode: false,
-        siteName: "Smmplan Lite",
+        siteName: defaultName,
         siteDescription: "",
         exchangeRateUSD: 90.0,
-        contactSupportEmail: "support@smmplan.pro",
-        contactPrivacyEmail: "privacy@smmplan.pro",
-        contactTelegramBot: "smmplan_support_bot",
-        contactTelegramChannel: "smmplan_support",
-        legalCompanyName: "Smmplan Lite",
+        contactSupportEmail: defaultEmail,
+        contactPrivacyEmail: defaultPrivacyEmail,
+        contactTelegramBot: defaultBot,
+        contactTelegramChannel: defaultChannel,
+        legalCompanyName: defaultName,
         legalCompanyInn: "Укажите ИНН",
         legalCompanyOgrnip: "Укажите ОГРНИП",
         legalCompanyAddress: "г. Москва",
         usnScheme: "INCOME_EXPENSES" as UsnScheme,
-        welcomeMessage: "Добро пожаловать в SMMplan! Ваш персональный кабинет готов к работе.",
+        welcomeMessage: "Добро пожаловать! Ваш персональный кабинет готов к работе.",
         yookassaShopId: null,
         yookassaSecretKey: null,
         yookassaTestShopId: null,
@@ -163,7 +209,7 @@ export class SettingsProvider {
         cryptoBotToken: null,
         quarantineThreshold: 0.20,
         globalMarkup: 3.0,
-        safetyFloor: 1.0,
+        safetyFloor: 3.0,
         exchangeRateUpdatedAt: null,
         siteLogoUrl: null,
         siteFaviconUrl: null,
@@ -185,9 +231,10 @@ export class SettingsProvider {
   /**
    * Securely decrypts and returns payment API keys.
    */
-  static async getPaymentSecrets(): Promise<DecryptedPaymentSecrets> {
-    const settings = await this.get();
-    const useTestKeys = await this.isTestMode();
+  static async getPaymentSecrets(tenantId?: string): Promise<DecryptedPaymentSecrets> {
+    const activeTenantId = tenantId || await this.getTenantId();
+    const settings = await this.get(activeTenantId);
+    const useTestKeys = await this.isTestMode(activeTenantId);
 
     // SECURITY: No fallback to prod keys in test mode.
     // If test keys are not configured, return null — downstream will throw a clear error.
@@ -221,8 +268,9 @@ export class SettingsProvider {
   /**
    * Securely decrypts and returns SMTP credentials.
    */
-  static async getEmailSettings(): Promise<DecryptedEmailSettings> {
-    const settings = await this.get();
+  static async getEmailSettings(tenantId?: string): Promise<DecryptedEmailSettings> {
+    const activeTenantId = tenantId || await this.getTenantId();
+    const settings = await this.get(activeTenantId);
     
     const emailProvider = settings.emailProvider || 'SMTP';
     const resendKeyRaw = settings.resendApiKey;
@@ -242,34 +290,37 @@ export class SettingsProvider {
    * Securely decrypts and returns the inbound email webhook secret.
    * This is server-only and NOT returned in any public setting endpoints.
    */
-  static async getInboundEmailWebhookSecret(): Promise<string | null> {
-    const settings = await this.get();
+  static async getInboundEmailWebhookSecret(tenantId?: string): Promise<string | null> {
+    const activeTenantId = tenantId || await this.getTenantId();
+    const settings = await this.get(activeTenantId);
     return settings.inboundEmailWebhookSecret ? VaultService.decrypt(settings.inboundEmailWebhookSecret) : null;
   }
 
   /**
    * Returns the inbound support email domain.
    */
-  static async getSupportEmailDomain(): Promise<string> {
-    const settings = await this.get();
+  static async getSupportEmailDomain(tenantId?: string): Promise<string> {
+    const activeTenantId = tenantId || await this.getTenantId();
+    const settings = await this.get(activeTenantId);
     return settings.supportEmailDomain || process.env.SUPPORT_EMAIL_DOMAIN || "smmplan.pro";
   }
 
   /**
    * Returns all dynamic contact and legal information, completely replacing the old KV store.
    */
-  static async getContactAndLegalSettings() {
-    const settings = await this.get();
+  static async getContactAndLegalSettings(tenantId?: string) {
+    const activeTenantId = tenantId || await this.getTenantId();
+    const settings = await this.get(activeTenantId);
     return {
-      SITE_NAME: settings.siteName || "SMMplan",
+      SITE_NAME: settings.siteName || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'SMMflux' : 'SMMplan'),
       SITE_DESCRIPTION: settings.siteDescription || "",
-      SUPPORT_EMAIL: settings.contactSupportEmail || "support@smmplan.pro",
-      PRIVACY_EMAIL: settings.contactPrivacyEmail || "privacy@smmplan.pro",
-      TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || "smmplan_support_bot",
-      TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || "smmplan_support",
+      SUPPORT_EMAIL: settings.contactSupportEmail || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro'),
+      PRIVACY_EMAIL: settings.contactPrivacyEmail || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro'),
+      TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'smmflux_support_bot' : 'smmplan_support_bot'),
+      TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'smmflux_support' : 'smmplan_support'),
       WHATSAPP: settings.contactWhatsApp || "",
       VK: settings.contactVk || "",
-      COMPANY_NAME: settings.legalCompanyName || "SMMplan",
+      COMPANY_NAME: settings.legalCompanyName || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'SMMflux' : 'SMMplan'),
       COMPANY_INN: settings.legalCompanyInn || "Укажите ИНН",
       COMPANY_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
       COMPANY_ADDRESS: settings.legalCompanyAddress || "г. Москва",
@@ -283,45 +334,49 @@ export class SettingsProvider {
    * Returns the dynamic USD to RUB exchange rate.
    * Wave 2: Replaces the deprecated USD_TO_RUB constant.
    */
-  static async getExchangeRateUSD(): Promise<number> {
-    const settings = await this.get();
+  static async getExchangeRateUSD(tenantId?: string): Promise<number> {
+    const activeTenantId = tenantId || await this.getTenantId();
+    const settings = await this.get(activeTenantId);
     return settings.exchangeRateUSD || 95.0; // Fail-safe default
   }
 
-  static async isTestMode(): Promise<boolean> {
+  static async isTestMode(tenantId?: string): Promise<boolean> {
+    const activeTenantId = tenantId || await this.getTenantId();
     if (SettingsProvider.isTestEnvironment()) return true;
     try {
       const { redis } = await import('./redis');
-      const cachedVal = await redis.get('settings:isTestMode');
+      const cachedVal = await redis.get(`settings:${activeTenantId}:isTestMode`);
       if (cachedVal !== null) {
         return cachedVal === 'true';
       }
     } catch (err) {
       console.warn('[SettingsProvider] Redis is unavailable in isTestMode:', err instanceof Error ? err.message : String(err));
     }
-    const settings = await this.get();
+    const settings = await this.get(activeTenantId);
     return settings.isTestMode;
   }
 
-  static async isMaintenanceMode(): Promise<boolean> {
+  static async isMaintenanceMode(tenantId?: string): Promise<boolean> {
+    const activeTenantId = tenantId || await this.getTenantId();
     try {
       const { redis } = await import('./redis');
-      const cachedVal = await redis.get('settings:maintenanceMode');
+      const cachedVal = await redis.get(`settings:${activeTenantId}:maintenanceMode`);
       if (cachedVal !== null) {
         return cachedVal === 'true';
       }
     } catch (err) {
       console.warn('[SettingsProvider] Redis is unavailable in isMaintenanceMode:', err instanceof Error ? err.message : String(err));
     }
-    const settings = await this.get();
+    const settings = await this.get(activeTenantId);
     return settings.maintenanceMode;
   }
 
-  static async setExchangeRateUSD(rate: number) {
+  static async setExchangeRateUSD(rate: number, tenantId?: string) {
+    const activeTenantId = tenantId || await this.getTenantId();
     await db.systemSettings.upsert({
-      where: { id: "global" },
+      where: { id: activeTenantId },
       update: { exchangeRateUSD: rate, exchangeRateUpdatedAt: new Date() },
-      create: { id: "global", exchangeRateUSD: rate, exchangeRateUpdatedAt: new Date() }
+      create: { id: activeTenantId, exchangeRateUSD: rate, exchangeRateUpdatedAt: new Date() }
     });
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -331,14 +386,15 @@ export class SettingsProvider {
     }
   }
 
-  static async setTestMode(enable: boolean) {
+  static async setTestMode(enable: boolean, tenantId?: string) {
+    const activeTenantId = tenantId || await this.getTenantId();
     await db.systemSettings.upsert({
-      where: { id: "global" },
+      where: { id: activeTenantId },
       update: { isTestMode: enable },
-      create: { id: "global", isTestMode: enable }
+      create: { id: activeTenantId, isTestMode: enable }
     });
     const { redis } = await import('./redis');
-    await redis.set('settings:isTestMode', String(enable));
+    await redis.set(`settings:${activeTenantId}:isTestMode`, String(enable));
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (revalidateTag as any)('settings');
@@ -347,14 +403,15 @@ export class SettingsProvider {
     }
   }
 
-  static async setMaintenanceMode(enable: boolean) {
+  static async setMaintenanceMode(enable: boolean, tenantId?: string) {
+    const activeTenantId = tenantId || await this.getTenantId();
     await db.systemSettings.upsert({
-      where: { id: "global" },
+      where: { id: activeTenantId },
       update: { maintenanceMode: enable },
-      create: { id: "global", maintenanceMode: enable }
+      create: { id: activeTenantId, maintenanceMode: enable }
     });
     const { redis } = await import('./redis');
-    await redis.set('settings:maintenanceMode', String(enable));
+    await redis.set(`settings:${activeTenantId}:maintenanceMode`, String(enable));
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (revalidateTag as any)('settings');
@@ -369,27 +426,27 @@ export class SettingsProvider {
  * Kept for backward compatibility during Wave 2 transition.
  */
 export class SettingsManager {
-  static async get(): Promise<SystemSettings> {
-    return SettingsProvider.getCached();
+  static async get(tenantId?: string): Promise<SystemSettings> {
+    return SettingsProvider.get(tenantId);
   }
 
-  static async getPaymentSecrets(): Promise<DecryptedPaymentSecrets> {
-    return SettingsProvider.getPaymentSecrets();
+  static async getPaymentSecrets(tenantId?: string): Promise<DecryptedPaymentSecrets> {
+    return SettingsProvider.getPaymentSecrets(tenantId);
   }
 
-  static async isTestMode(): Promise<boolean> {
-    return SettingsProvider.isTestMode();
+  static async isTestMode(tenantId?: string): Promise<boolean> {
+    return SettingsProvider.isTestMode(tenantId);
   }
 
-  static async getExchangeRateUSD(): Promise<number> {
-    return SettingsProvider.getExchangeRateUSD();
+  static async getExchangeRateUSD(tenantId?: string): Promise<number> {
+    return SettingsProvider.getExchangeRateUSD(tenantId);
   }
 
-  static async setExchangeRateUSD(rate: number) {
-    return SettingsProvider.setExchangeRateUSD(rate);
+  static async setExchangeRateUSD(rate: number, tenantId?: string) {
+    return SettingsProvider.setExchangeRateUSD(rate, tenantId);
   }
 
-  static async setTestMode(enable: boolean) {
-    return SettingsProvider.setTestMode(enable);
+  static async setTestMode(enable: boolean, tenantId?: string) {
+    return SettingsProvider.setTestMode(enable, tenantId);
   }
 }

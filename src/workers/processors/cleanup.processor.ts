@@ -63,6 +63,48 @@ export async function runCleanup(): Promise<void> {
     olderThan: loginLogThreshold.toISOString(),
   });
 
+  // ── 3.5. AuthToken: expired tokens ────────────────────────────────────────
+  const authTokenResult = await db.authToken.deleteMany({
+    where: { expiresAt: { lt: now } },
+  });
+
+  log.info('AuthToken cleanup done', { deleted: authTokenResult.count });
+
+  // ── 3.6. Orders: Auto-resolve stale PENDING_CHECK (older than 6 hours) ──────
+  const pendingCheckThreshold = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+  const stalePendingCheck = await db.order.findMany({
+    where: {
+      status: 'PENDING_CHECK',
+      updatedAt: { lt: pendingCheckThreshold },
+    },
+    include: { service: { include: { provider: true } } },
+    take: 50,
+  });
+
+  if (stalePendingCheck.length > 0) {
+    const { providerService } = await import('@/services/providers/provider.service');
+    const { orderService } = await import('@/services/core/order.service');
+
+    for (const pOrder of stalePendingCheck) {
+      try {
+        if (pOrder.service?.provider && pOrder.externalId) {
+          const providerInstance = await providerService.getWorkerProviderInstance(pOrder.service.provider);
+          const providerStatus = await providerInstance.getOrderStatus(pOrder.externalId);
+          if (providerStatus?.status) {
+            await orderService.processStatusUpdate(pOrder.externalId, providerStatus.status, Number(providerStatus.remains) || 0);
+            log.info(`[Cleanup] Auto-resolved PENDING_CHECK Order #${pOrder.numericId} via provider status ${providerStatus.status}`);
+            continue;
+          }
+        }
+        // If provider doesn't know about this order or has no externalId → fail terminal with refund
+        await orderService.failOrderTerminalFast(pOrder.id, 'PENDING_CHECK auto-resolved: provider timeout exceeded 6h');
+        log.info(`[Cleanup] Auto-failed stale PENDING_CHECK Order #${pOrder.numericId}`);
+      } catch (err) {
+        log.error(`[Cleanup] Failed to auto-resolve PENDING_CHECK Order #${pOrder.numericId}`, { error: err instanceof Error ? err.message : String(err) });
+      }
+    }
+  }
+
   // ── 4. Orders: Zombie AWAITING_PAYMENT ────────────────────────────────────
   // W2-1 FIX: Don't blindly cancel — check if a payment was recently confirmed.
   // YooKassa webhooks can arrive up to 5 minutes late. Cancelling a paid order

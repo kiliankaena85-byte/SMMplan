@@ -59,3 +59,26 @@
 ```
 
 *Метаданные плана должны содержать `request_feedback: true` для явного подтверждения пользователем.*
+
+## 4. UI Pricing Policy
+- **CRITICAL**: В UI пользователь ВСЕГДА видит цену за 1 штуку (pricePerUnitRub), подпись: "₽ / шт". ЗАПРЕЩЕНО писать в UI "/ 1000 шт" или умножать цену на 1000 при отображении.
+
+---
+
+## 5. Multi-Tenant & SEO Verification
+- Перед объявлением SEO-задачи завершённой, агент ОБЯЗАН выполнить curl-проверки из секции "Verification Protocol" корневого AGENTS.md.
+- Cache key в `unstable_cache` ОБЯЗАН включать tenantId.
+- Canonical ОБЯЗАН быть абсолютным через `absoluteCanonical(tenantId, path)`.
+- **ЗАПРЕЩЕНО** хардкодить host.
+
+## 6. Financial Integrity
+- Все изменения баланса — только через `WalletOps`.
+- Все финансовые audit — только через `await auditAdminAwaitable()`.
+- Все финансовые операции — с `idempotencyKey`.
+- **ЗАПРЕЩЕНО** `auditAdmin()` без await для денег.
+
+## 7. Lovable Brand Removal
+- Бренда Lovable не существует. Только SMMplan и SMMflux.
+- `normalizeTenantId('lovable')` → `'flux'` — оставить как alias.
+- **ЗАПРЕЩЕНО** ссылаться на `lovable.pro` в canonical, metadata, UI-текстах.
+- Компоненты `Lovable*` переименованы в `Flux*`.

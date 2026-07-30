@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, CheckCircle2, Info, ArrowRight, Loader2, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useOrderEngine } from '@/hooks/useOrderEngine';
+import { sanitizeServiceDescription } from '@/lib/sanitize';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 
 // Subcomponents import
@@ -366,7 +367,7 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
                       <div className="pt-4 border-t border-border/50 space-y-4">
                         <div className="text-xs text-muted-foreground leading-relaxed prose prose-sm prose-invert max-w-none">
                           {srv.description ? (
-                            <div dangerouslySetInnerHTML={{ __html: srv.description }} />
+                            <div dangerouslySetInnerHTML={{ __html: sanitizeServiceDescription(srv.description) }} />
                           ) : (
                             <p className="italic opacity-70">Детальное описание услуги отсутствует.</p>
                           )}

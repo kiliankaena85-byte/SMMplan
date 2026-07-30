@@ -37,6 +37,13 @@ export const LINK_RULES: LinkRule[] = [
   // ===================== TELEGRAM =====================
   {
       platform: IntelligencePlatform.TELEGRAM,
+      type: 'private_post',
+      pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/c\/(\d+)\/(\d+)\/?(?:\?.*)?$/i,
+      suggestedCategories: [], // No standard services can process private channels without a bot
+      context: 'private'
+  },
+  {
+      platform: IntelligencePlatform.TELEGRAM,
       type: 'post',
       pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/[\w-]+\/(?:s\/)?(\d+)\/?(?:\?.*)?$/i,
       suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.REACTIONS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STARS],
@@ -119,7 +126,7 @@ export const LINK_RULES: LinkRule[] = [
   {
       platform: IntelligencePlatform.VK,
       type: 'comment',
-      pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|photo|clip)(-?\d+_\d+)\?(?:[^#]*&)?reply=(\d+)/i,
+      pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|photo|clip)(-?\d+_\d+)\?(?:[^#&]*&)*reply=(\d+)/i,
       suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REACTIONS],
       context: 'social_reach'
   },

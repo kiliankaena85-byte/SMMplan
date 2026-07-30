@@ -7,118 +7,158 @@ import { WalletOps } from '@/services/financial/wallet-ops';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { getClientIp } from '@/utils/ip';
-
-import { getAdminSpentToday } from './ticket';
+import { headers } from 'next/headers';
+import { SupportBalancePolicyService } from '@/services/financial/support-balance-policy.service';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 
 const compensationSchema = z.object({
   ticketId: z.string().min(1),
-  costRub: z.number().positive().max(50000), // W4-3 FIX: Upper limit
-  note: z.string().min(3),
-  topUpBalance: z.boolean().default(false)
+  costRub: z.number().positive().max(50000),
+  note: z.string().min(10, 'Комментарий должен содержать минимум 10 символов'),
+  topUpBalance: z.boolean().default(false),
+  clientOperationToken: z.string().optional()
 });
 
 export async function logManualCompensation(formData: FormData) {
-  return requireStaffPermission('orders', 'edit', async (user) => {
+  return requireStaffPermission('tickets', 'edit', async (user) => {
+    const rawCostRub = parseFloat(formData.get('costRub') as string);
+    const parsed = compensationSchema.safeParse({
+      ticketId: formData.get('ticketId'),
+      costRub: isNaN(rawCostRub) ? 0 : rawCostRub,
+      note: formData.get('note'),
+      topUpBalance: formData.get('topUpBalance') === 'true',
+      clientOperationToken: (formData.get('clientOperationToken') as string) || undefined
+    });
 
-  const parsed = compensationSchema.safeParse({
-    ticketId: formData.get('ticketId'),
-    costRub: parseFloat(formData.get('costRub') as string),
-    note: formData.get('note'),
-    topUpBalance: formData.get('topUpBalance') === 'true'
-  });
-
-  if (!parsed.success) {
-    throw new Error('Invalid input');
-  }
-
-  const { ticketId, costRub, note, topUpBalance } = parsed.data;
-  const costCents = Math.round(costRub * 100);
-
-  // OWNER has infinite limit effectively. For others, check limits.
-  const isOwner = user.role === 'OWNER';
-  if (!isOwner) {
-    const currentSpentToday = await getAdminSpentToday(user.id);
-    const limitLeft = user.supportLimitCents - currentSpentToday;
-    if (limitLeft < costCents) {
-      throw new Error(`Недостаточно лимита доверия на сегодня. Доступно: ${(limitLeft / 100).toFixed(2)} ₽`);
-    }
-  }
-
-  const ticket = await db.ticket.findUnique({
-    where: { id: ticketId },
-    select: { userId: true, id: true }
-  });
-
-  if (!ticket) throw new Error('Ticket not found');
-
-  // Generate a deterministic idempotency key based on inputs
-  // If the admin clicks twice with the exact same parameters, the DB unique constraint will reject it.
-  const idempotencyHash = crypto.createHash('md5').update(`${ticketId}-${costCents}-${note}-${topUpBalance}`).digest('hex');
-  const idempotencyKey = `compensation-${ticket.id}-${idempotencyHash}`;
-
-  const ipAddress = await getClientIp('unknown');
-
-  // Perform operations in a transaction
-  await db.$transaction(async (tx) => {
-    // 1. Check limit dynamically inside tx if not owner to prevent concurrent bypass
-    if (!isOwner) {
-      const currentSpentToday = await getAdminSpentToday(user.id, tx);
-      const limitLeft = user.supportLimitCents - currentSpentToday;
-      if (limitLeft < costCents) {
-        throw new Error('Недостаточно лимита доверия. Обнаружена конкурентная транзакция.');
-      }
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.errors[0]?.message || 'Неверные параметры запроса' };
     }
 
-    // 2. If top-up is requested, increment user balance
-    if (topUpBalance) {
-      await WalletOps.credit(tx, ticket.userId, costCents,
-         `Компенсация (На баланс): ${note}`,
-        { adminId: user.id, idempotencyKey }
-      );
-    } else {
-      // 3. For manual refill, credit user and then debit them back (net balance change = 0, but ledger invariant is preserved)
-      const creditKey = `compensation-credit-${ticket.id}-${idempotencyHash}`;
-      const chargeKey = `compensation-charge-${ticket.id}-${idempotencyHash}`;
+    const { ticketId, costRub, note, topUpBalance, clientOperationToken } = parsed.data;
+    const costCents = BigInt(Math.round(costRub * 100));
 
-      // Credit the compensation (amount > 0)
-      await WalletOps.credit(tx, ticket.userId, costCents,
-        `Компенсация (Докрут): ${note}`,
-        { adminId: user.id, idempotencyKey: creditKey }
-      );
+    const ticket = await db.ticket.findUnique({
+      where: { id: ticketId },
+      select: { userId: true, id: true }
+    });
 
-      // Charge the cost of the refill (amount < 0) as system charge to prevent double-spending the admin's daily budget limit
-      await WalletOps.charge(tx, ticket.userId, costCents,
-        `Списание за ручной докрут: ${note}`,
-        { idempotencyKey: chargeKey }
-      );
+    if (!ticket) {
+      return { success: false as const, error: 'Тикет не найден' };
     }
 
-    // 4. Write AdminAuditLog
-    await tx.adminAuditLog.create({
-      data: {
+    const reqHeaders = await headers();
+    const userAgent = reqHeaders.get('user-agent') || 'Unknown';
+    const ipAddress = await getClientIp('unknown');
+
+    // Deterministic Idempotency Key
+    const opToken = clientOperationToken || crypto.createHash('md5').update(`${ticketId}-${costCents}-${note}`).digest('hex');
+    const idempotencyKey = `support-compensation-${ticket.id}-${ticket.userId}-${opToken}`;
+
+    // Perform Policy Engine Check & Reserve Daily Limit in Serializable Transaction
+    try {
+      const actionResult = await db.$transaction(async (tx) => {
+        const policyCheck = await SupportBalancePolicyService.validateAndReserveSupportOperation(tx, {
+          staffUserId: user.id,
+          targetUserId: ticket.userId,
+          direction: 'CREDIT',
+          amountCents: costCents,
+          reasonCode: topUpBalance ? 'COMPENSATION_BALANCE' : 'COMPENSATION_REFILL',
+          reasonNote: note,
+          source: 'SUPPORT_COMPENSATION',
+          ticketId: ticket.id,
+          idempotencyKey,
+          ipAddress,
+          userAgent
+        });
+
+        if (!policyCheck.allowed) {
+          throw new Error(policyCheck.error);
+        }
+
+        let ledgerEntryId: string | undefined = undefined;
+
+        // Perform financial wallet modification via WalletOps
+        if (topUpBalance) {
+          const ledgerResult = await WalletOps.credit(tx, ticket.userId, Number(costCents),
+            `Компенсация в тикете #${ticket.id}: ${note}`,
+            { adminId: user.id, idempotencyKey }
+          );
+          ledgerEntryId = ledgerResult.success && ledgerResult.entry ? ledgerResult.entry.id : undefined;
+        } else {
+          const creditKey = `compensation-credit-${idempotencyKey}`;
+          const chargeKey = `compensation-charge-${idempotencyKey}`;
+
+          const ledgerResult = await WalletOps.credit(tx, ticket.userId, Number(costCents),
+            `Компенсация (Докрут) в тикете #${ticket.id}: ${note}`,
+            { adminId: user.id, idempotencyKey: creditKey }
+          );
+          ledgerEntryId = ledgerResult.success && ledgerResult.entry ? ledgerResult.entry.id : undefined;
+
+          await WalletOps.charge(tx, ticket.userId, Number(costCents),
+            `Списание за ручной докрут в тикете #${ticket.id}: ${note}`,
+            { idempotencyKey: chargeKey }
+          );
+        }
+
+        // Determine review status (Auto-flag if amount > 5,000 RUB or staff has warnings)
+        const isFlagged = costRub >= 5000 || policyCheck.warnings.length > 0;
+        const reviewStatus = isFlagged ? 'FLAGGED' : 'PENDING';
+
+        // Create SupportFinancialAction record
+        const financialAction = await tx.supportFinancialAction.create({
+          data: {
+            staffUserId: user.id,
+            targetUserId: ticket.userId,
+            direction: 'CREDIT',
+            source: 'SUPPORT_COMPENSATION',
+            amountCents: costCents,
+            reasonCode: topUpBalance ? 'COMPENSATION_BALANCE' : 'COMPENSATION_REFILL',
+            reasonNote: note,
+            ticketId: ticket.id,
+            policyId: policyCheck.policy.id,
+            policySnapshot: JSON.parse(JSON.stringify(policyCheck.policy, (_, v) => typeof v === 'bigint' ? v.toString() : v)),
+            idempotencyKey,
+            status: 'EXECUTED',
+            ledgerEntryId,
+            consentId: policyCheck.consentId || null,
+            reviewStatus,
+            ipAddress,
+            userAgent
+          }
+        });
+
+        // Add silent message to ticket chat
+        await tx.ticketMessage.create({
+          data: {
+            ticketId: ticket.id,
+            sender: 'INTERNAL',
+            text: `[СИСТЕМА] Сотрудник (${user.email}) оформил компенсацию (${topUpBalance ? 'зачислен баланс' : 'ручной докрут'}). Сумма: ${costRub.toLocaleString('ru-RU')} ₽.\nПричина: ${note}`
+          }
+        });
+
+        return { financialActionId: financialAction.id, warnings: policyCheck.warnings };
+      });
+
+      // Awaitable Audit Log
+      await auditAdminAwaitable({
         adminId: user.id,
         adminEmail: user.email,
-        action: topUpBalance ? 'BALANCE_TOPUP_COMPENSATION' : 'MANUAL_REFILL_COMPENSATION',
+        action: topUpBalance ? 'SUPPORT_BALANCE_COMPENSATION' : 'SUPPORT_REFILL_COMPENSATION',
         target: ticket.id,
         targetType: 'TICKET',
-        oldValue: JSON.stringify({ supportLimitCents: user.supportLimitCents }),
-        newValue: JSON.stringify({ supportLimitCents: isOwner ? user.supportLimitCents : user.supportLimitCents - costCents }),
+        oldValue: JSON.stringify({ amountCents: 0 }),
+        newValue: JSON.stringify({ amountCents: costCents.toString(), actionId: actionResult.financialActionId }),
         ipAddress
-      }
-    });
+      });
 
-    // 5. Inject silent message to ChatWindow
-    await tx.ticketMessage.create({
-      data: {
-        ticketId: ticket.id,
-        sender: 'INTERNAL',
-        text: `[СИСТЕМА] Сотрудник (${user.email}) оформил компенсацию (${topUpBalance ? 'зачислен баланс' : 'ручной докрут'}). Потрачено: ${costRub.toLocaleString('ru-RU')} ₽.\nКомментарий: ${note}`
-      }
-    });
-  });
+      revalidatePath('/admin/tickets');
+      revalidatePath(`/admin/tickets/${ticketId}`, 'page');
+      revalidatePath(`/admin/finance`);
 
-    revalidatePath('/admin/tickets');
-    revalidatePath(`/admin/tickets/${ticketId}`, 'page');
-    revalidatePath(`/admin/finance`);
+      return { success: true as const, warnings: actionResult.warnings };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка при оформлении компенсации';
+      return { success: false as const, error: errorMessage };
+    }
   });
 }

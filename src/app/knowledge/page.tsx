@@ -3,10 +3,12 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { SearchAutocomplete } from "./components/SearchAutocomplete";
 import { verifySession } from "@/lib/session";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { SettingsProvider } from "@/lib/settings";
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
+import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -19,26 +21,36 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const activeCategory = params.category || "Все";
   const searchQuery = params.search || "";
   
-  let title = "База знаний & Блог | SMMplan";
-  let description = "Полезные статьи, руководства по продвижению в социальных сетях, лайфхаки и обновления SMMplan.";
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const siteName = getTenantSiteName(tenantId);
+  const canonical = absoluteCanonical(tenantId, '/knowledge');
+
+  let title = `База знаний & Блог | ${siteName}`;
+  let description = `Полезные статьи, руководства по продвижению в социальных сетях, лайфхаки и обновления ${siteName}.`;
   
   if (activeCategory !== "Все") {
-    title = `Статьи по теме ${activeCategory} | База знаний SMMplan`;
-    description = `Инструкции и руководства в категории "${activeCategory}" для эффективной продвижения и продвижения.`;
+    title = `Статьи по теме ${activeCategory} | База знаний ${siteName}`;
+    description = `Инструкции и руководства в категории "${activeCategory}" для эффективного продвижения.`;
   }
   
   if (searchQuery) {
-    title = `Поиск: "${searchQuery}" | Блог SMMplan`;
+    title = `Поиск: "${searchQuery}" | Блог ${siteName}`;
   }
 
   return {
     title,
     description,
+    alternates: { canonical },
     openGraph: {
       title,
       description,
-      type: "website"
-    }
+      url: canonical,
+      siteName,
+      type: "website",
+      locale: 'ru_RU',
+    },
+    robots: { index: true, follow: true },
   };
 }
 
@@ -49,16 +61,12 @@ export default async function KnowledgePage({ searchParams }: PageProps) {
 
   // Resolve user session and email
   const session = await verifySession();
-  let userEmail: string | undefined = undefined;
-  if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true }
-    });
-    if (user) {
-      userEmail = user.email;
-    }
-  }
+  const userEmail = session?.userId 
+    ? (await db.user.findUnique({ where: { id: session.userId }, select: { email: true } }))?.email 
+    : undefined;
+
+  const reqHeaders = await headers();
+  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
 
   // Resolve settings and siteName
   const settings = await SettingsProvider.getContactAndLegalSettings();
@@ -255,7 +263,7 @@ export default async function KnowledgePage({ searchParams }: PageProps) {
       </main>
 
       {/* ── Секция 3: Подвал ── */}
-      <MegaFooter contactSettings={settings} />
+      <MegaFooter contactSettings={settings} tenantId={tenantId} />
     </div>
   );
 }

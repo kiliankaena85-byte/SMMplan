@@ -21,7 +21,7 @@ import { enforceSectionAccess } from '@/lib/server/rbac';
 import { getMSKMidnightUTC } from '@/services/admin/escrow.service';
 
 export default async function AdminTicketsPage({ searchParams }: Props) {
-  await enforceSectionAccess('orders');
+  await enforceSectionAccess('tickets');
   const params = await searchParams;
   const search = params.q || '';
   const statusFilter = params.status || 'ALL';
@@ -84,10 +84,11 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
       }
     });
 
-    supportSpentTodayCents = ledgerCompensations.reduce((acc, entry) => {
-      const amt = Number(entry.amount);
-      return acc + Math.abs(amt);
-    }, 0);
+    const supportSpentTodayBigInt = ledgerCompensations.reduce((acc, entry) => {
+      const amt = entry.amount < BigInt(0) ? -entry.amount : entry.amount;
+      return acc + amt;
+    }, BigInt(0));
+    supportSpentTodayCents = Number(supportSpentTodayBigInt);
   }
 
   const templates = Array.isArray(templatesResult) ? templatesResult : [];

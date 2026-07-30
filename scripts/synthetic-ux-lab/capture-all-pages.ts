@@ -19,7 +19,7 @@ async function main() {
 
   // Создаем пользователя в БД
   const user = await prisma.user.upsert({
-    where: { email },
+    where: { email_tenantId: { email, tenantId: 'smmplan' } },
     update: { balance: 200000_00, role: 'OWNER' },
     create: {
       email,

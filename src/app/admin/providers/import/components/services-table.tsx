@@ -34,23 +34,23 @@ interface ServicesTableProps {
 }
 
 const platformMap: Record<string, { name: string; color: string; icon: string }> = {
-  INSTAGRAM: { name: "Instagram", color: "bg-pink-50 text-pink-700 border-pink-100 dark:bg-pink-950/20 dark:text-pink-400 dark:border-pink-900/30", icon: "📸" },
-  IN: { name: "Instagram", color: "bg-pink-50 text-pink-700 border-pink-100 dark:bg-pink-950/20 dark:text-pink-400 dark:border-pink-900/30", icon: "📸" },
-  TELEGRAM: { name: "Telegram", color: "bg-[#e8f4fd] text-[#2481cc] border-[#d4ebfc] dark:bg-sky-950/20 dark:text-sky-400 dark:border-sky-900/30", icon: "✈️" },
-  TG: { name: "Telegram", color: "bg-[#e8f4fd] text-[#2481cc] border-[#d4ebfc] dark:bg-sky-950/20 dark:text-sky-400 dark:border-sky-900/30", icon: "✈️" },
-  VK: { name: "ВКонтакте", color: "bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/30", icon: "💙" },
-  YOUTUBE: { name: "YouTube", color: "bg-red-50 text-red-700 border-red-100 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/30", icon: "▶️" },
-  YT: { name: "YouTube", color: "bg-red-50 text-red-700 border-red-100 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/30", icon: "▶️" },
-  TIKTOK: { name: "TikTok", color: "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/30", icon: "🎵" },
-  TT: { name: "TikTok", color: "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700/30", icon: "🎵" },
-  TWITTER: { name: "Twitter (X)", color: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800/30 dark:text-slate-400 dark:border-slate-700/30", icon: "𝕏" },
-  X: { name: "Twitter (X)", color: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800/30 dark:text-slate-400 dark:border-slate-700/30", icon: "𝕏" },
+  INSTAGRAM: { name: "Instagram", color: "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20", icon: "📸" },
+  IN: { name: "Instagram", color: "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20", icon: "📸" },
+  TELEGRAM: { name: "Telegram", color: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20", icon: "✈️" },
+  TG: { name: "Telegram", color: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20", icon: "✈️" },
+  VK: { name: "ВКонтакте", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20", icon: "💙" },
+  YOUTUBE: { name: "YouTube", color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20", icon: "▶️" },
+  YT: { name: "YouTube", color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20", icon: "▶️" },
+  TIKTOK: { name: "TikTok", color: "bg-muted text-foreground border-border", icon: "🎵" },
+  TT: { name: "TikTok", color: "bg-muted text-foreground border-border", icon: "🎵" },
+  TWITTER: { name: "Twitter (X)", color: "bg-muted text-foreground border-border", icon: "𝕏" },
+  X: { name: "Twitter (X)", color: "bg-muted text-foreground border-border", icon: "𝕏" },
 };
 
 const getPlatformDisplay = (code: string) => {
   const map = platformMap[code.toUpperCase()];
   if (map) return map;
-  return { name: code, color: "bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-800/20 dark:text-slate-400 dark:border-slate-700/30", icon: "🌐" };
+  return { name: code, color: "bg-muted text-foreground border-border", icon: "🌐" };
 };
 
 export function ServicesTable({

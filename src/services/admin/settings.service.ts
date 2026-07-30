@@ -81,11 +81,13 @@ class SettingsService {
   }
 
   // ── System Settings ──
-  async getSystemSettings() {
-    let settings = await db.systemSettings.findUnique({ where: { id: 'global' } });
+  async getSystemSettings(tenantId?: string) {
+    const activeTenantId = tenantId || await (await import('@/lib/settings')).SettingsProvider.getTenantId();
+    let settings = await db.systemSettings.findUnique({ where: { id: activeTenantId } });
     if (!settings) {
+      const defaultName = activeTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan';
       settings = await db.systemSettings.create({
-        data: { id: 'global', taxRate: 6.0, opexMonthly: 0, maintenanceMode: false, siteName: 'SMMplan', siteDescription: '' }
+        data: { id: activeTenantId, taxRate: 6.0, opexMonthly: 0, maintenanceMode: false, siteName: defaultName, siteDescription: '' }
       });
     }
     const { SettingsProvider } = await import('@/lib/settings');
@@ -135,19 +137,20 @@ class SettingsService {
     emailProvider?: string;
     resendApiKey?: string | null;
     usnScheme?: UsnScheme;
-  }) {
+  }, tenantId?: string) {
+    const activeTenantId = tenantId || await (await import('@/lib/settings')).SettingsProvider.getTenantId();
     const result = await db.systemSettings.upsert({
-      where: { id: 'global' },
+      where: { id: activeTenantId },
       update: data,
-      create: { id: 'global', ...data }
+      create: { id: activeTenantId, ...data }
     });
 
     if (data.maintenanceMode !== undefined) {
       try {
         const { redis } = await import('@/lib/redis');
-        await redis.set('settings:maintenanceMode', String(data.maintenanceMode));
+        await redis.set(`settings:${activeTenantId}:maintenanceMode`, String(data.maintenanceMode));
       } catch (err) {
-        console.warn('[SettingsService] Failed to update Redis cache for maintenanceMode:', err);
+        console.warn(`[SettingsService] Failed to update Redis cache for maintenanceMode on ${activeTenantId}:`, err);
       }
     }
 

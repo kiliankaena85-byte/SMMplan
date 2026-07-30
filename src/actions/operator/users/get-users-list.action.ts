@@ -20,17 +20,11 @@ export async function getUsersListAction(params: {
     throw new Error('Некорректные параметры запроса');
   }
 
-  const result = await requireOperatorPermission('orders', 'view', async () => {
+  return requireOperatorPermission('orders', 'view', async () => {
     return adminUserService.listUsers({
       search: parsed.data.search,
       cursor: parsed.data.cursor,
       pageSize: parsed.data.pageSize || 50,
     });
   });
-
-  if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    throw new Error(result.error);
-  }
-
-  return result;
 }

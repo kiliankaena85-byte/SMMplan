@@ -43,6 +43,19 @@ export class UniversalProvider implements BaseProvider {
     this.mapping = metadata?.mapping || null;
   }
 
+  // Prevent leaking plaintext API key when provider instances are logged or serialized
+  toJSON() {
+    return {
+      apiUrl: this.apiUrl,
+      apiKey: '[REDACTED]',
+      mapping: this.mapping
+    };
+  }
+
+  get [Symbol.toStringTag]() {
+    return `UniversalProvider(${this.apiUrl})`;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private extractNested(obj: any, path: string): any {
      if (!path || !obj || path === '$') return obj;
@@ -120,6 +133,7 @@ export class UniversalProvider implements BaseProvider {
           method: httpMethod,
           headers,
           body,
+          redirect: 'error',
           signal: controller.signal
         });
 

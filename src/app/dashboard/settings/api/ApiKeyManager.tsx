@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { generateApiKey, revokeApiKey } from '@/actions/auth/api-key';
+import { generateApiKeyAction, resetApiKeyAction, revokeApiKeyAction } from '@/actions/user/settings-extra';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Copy, RefreshCw, Trash2, CheckCheck, ShieldAlert } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export default function ApiKeyManager({
     setNewKey(null);
     if (onKeyGenerated) onKeyGenerated(null);
     startTransition(async () => {
-      const res = await generateApiKey();
+      const res = await (newKey ? resetApiKeyAction() : generateApiKeyAction());
       if (!res.success) {
         setError(res.error || 'Ошибка при генерации ключа');
       } else {
@@ -45,7 +45,7 @@ export default function ApiKeyManager({
     setError('');
     if (onKeyGenerated) onKeyGenerated(null);
     startTransition(async () => {
-      const res = await revokeApiKey();
+      const res = await revokeApiKeyAction();
       if (!res.success) {
         setError(res.error || 'Ошибка при отзыве ключа');
       } else {

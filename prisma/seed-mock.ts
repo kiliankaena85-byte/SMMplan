@@ -66,10 +66,21 @@ async function main() {
 
     for (let j = 0; j < categoryNames.length; j++) {
       const catName = categoryNames[j];
+      const slugMap: Record<string, string> = {
+        'Лайки': 'likes',
+        'Подписчики': 'subscribers',
+        'Просмотры': 'views',
+        'Комментарии': 'comments',
+        'Реакции': 'reactions',
+        'Бусты (Telegram Levels)': 'boosts',
+        'Звезды (Telegram Stars)': 'stars',
+        'Автопросмотры': 'autoviews'
+      };
+      const catSlug = `${nw.slug}-${slugMap[catName] || `cat-${j}`}`;
       const cat = await prisma.category.create({
-        data: { name: catName, networkId: nw.id, sort: j }
+        data: { name: catName, slug: catSlug, networkId: nw.id, sort: j }
       });
-      console.log(`Created Category: "${cat.name}" in Network "${name}"`);
+      console.log(`Created Category: "${cat.name}" (${cat.slug}) in Network "${name}"`);
     }
   }
 
@@ -116,10 +127,11 @@ async function main() {
   const roles = ['USER', 'USER', 'USER', 'MANAGER', 'ADMIN', 'BANNED'];
   for (let i = 1; i <= 25; i++) {
     await prisma.user.upsert({
-      where: { email: `mockclient${i}@example.com` },
+      where: { email_tenantId: { email: `mockclient${i}@example.com`, tenantId: 'smmplan' } },
       update: {},
       create: {
         email: `mockclient${i}@example.com`,
+        tenantId: 'smmplan',
         role: roles[i % roles.length] as any,
         balance: Math.floor(Math.random() * 1000000), // Random up to 10k RUB
         totalSpent: Math.floor(Math.random() * 5000000),

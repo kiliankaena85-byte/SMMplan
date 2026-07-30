@@ -67,7 +67,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col lg:flex-row relative">
+    <div className="min-h-screen bg-background text-foreground flex flex-col lg:flex-row relative">
       {/* Dynamic CSS override for printing */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
@@ -147,6 +147,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
 
       {/* LEFT: Operator Preview Workspace (Slightly gray shadow box) */}
       <div className="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto no-print flex justify-center items-start">
+        {/* print: белый фон для печати */}
         <div className="w-full max-w-[800px] bg-white text-slate-900 rounded-3xl shadow-2xl p-8 md:p-12 border border-slate-200/60 print-document select-text">
           
           {/* Header */}

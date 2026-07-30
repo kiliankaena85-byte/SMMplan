@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server';
 import { decryptSessionToken } from '@/lib/session-edge';
 import { ROUTES } from '@/lib/routes';
 
+import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver';
+
 // Map of legacy routes to new static routes
 const legacyRedirects: Record<string, string> = {
   '/p/offer': ROUTES.LEGAL.TERMS,
@@ -15,7 +17,49 @@ const legacyRedirects: Record<string, string> = {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Check legacy redirects
+  // 0. Strip any client-supplied x-tenant-id to prevent spoofing
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete('x-tenant-id');
+
+  const host = request.headers.get('host') || '';
+  if (host.includes('lovable.pro')) {
+    return NextResponse.redirect('https://smmflux.ru' + request.nextUrl.pathname, 301);
+  }
+  const fromQuery = (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_STAGING === 'true') 
+    ? normalizeTenantId(request.nextUrl.searchParams.get('tenant'))
+    : null;
+  const fromHost = normalizeTenantId(resolveTenantFromHostEdge(host));
+  const fromCookie = normalizeTenantId(request.cookies.get('x_tenant')?.value);
+
+  let finalTenantId = 'smmplan';
+  let isExplicitTenant = false;
+
+  if (fromQuery) {
+    finalTenantId = fromQuery;
+    isExplicitTenant = true;
+  } else if (fromHost && fromHost !== 'smmplan') {
+    finalTenantId = fromHost;
+    isExplicitTenant = true;
+  } else if (fromCookie) {
+    finalTenantId = fromCookie;
+  }
+
+  requestHeaders.set('x-tenant-id', finalTenantId);
+
+  const applyStickyCookie = (res: NextResponse) => {
+    if (isExplicitTenant) {
+      res.cookies.set('x_tenant', finalTenantId, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    }
+    return res;
+  };
+
+  // 2. Check legacy redirects
   const newPath = legacyRedirects[pathname];
   if (newPath) {
     const redirectUrl = new URL(newPath, request.url);
@@ -27,26 +71,64 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301); // 301 Permanent Redirect
   }
 
-  // 2. Auth Route Protection
+  // 3. Tenant-based rewrites (FLux / Aurora landing)
+  if (pathname === '/' && (finalTenantId === 'flux' || finalTenantId === 'lovable')) {
+    const rewriteUrl = new URL('/ab-lovable', request.url);
+    // Preserve query parameters
+    request.nextUrl.searchParams.forEach((val, key) => {
+      rewriteUrl.searchParams.set(key, val);
+    });
+    requestHeaders.set('x-pathname', '/ab-lovable');
+    return applyStickyCookie(NextResponse.rewrite(rewriteUrl, {
+      request: {
+        headers: requestHeaders,
+      }
+    }));
+  }
+
+  // 4. Auth Route Protection
   const protectedPaths = ['/admin', '/dashboard', '/operator'];
   if (protectedPaths.some(p => pathname.startsWith(p))) {
     const sessionToken = request.cookies.get('session_token')?.value;
     const explicitLogout = request.cookies.get('explicit_logout')?.value;
     const isRSC = request.headers.has('rsc') || request.headers.has('next-action');
 
+    const isDevBypassAllowed =
+      process.env.NODE_ENV === 'development' &&
+      process.env.ENABLE_DEV_BYPASS === 'true';
+
     if (explicitLogout === 'true' || !sessionToken) {
       if (isRSC) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
       }
-      return NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url));
+      // Dev mode auto-login bypass for local environment
+      if (isDevBypassAllowed) {
+        const autoLoginUrl = new URL('/api/dev/login-direct', request.url);
+        autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
+        autoLoginUrl.searchParams.set('tenant', finalTenantId);
+        return applyStickyCookie(NextResponse.redirect(autoLoginUrl));
+      }
+      return applyStickyCookie(NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url)));
     }
 
     const payload = await decryptSessionToken(sessionToken);
-    if (!payload) {
+    // Enforce tenant isolation with normalizeTenantId check (prevents false logouts for legacy JWTs)
+    if (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId) {
       if (isRSC) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
       }
-      return NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url));
+      // Dev mode auto-login bypass on tenant mismatch in local environment
+      if (isDevBypassAllowed && explicitLogout !== 'true') {
+        const autoLoginUrl = new URL('/api/dev/login-direct', request.url);
+        autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
+        autoLoginUrl.searchParams.set('tenant', finalTenantId);
+        const response = NextResponse.redirect(autoLoginUrl);
+        response.cookies.delete('session_token');
+        return applyStickyCookie(response);
+      }
+      const response = NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url));
+      response.cookies.delete('session_token');
+      return applyStickyCookie(response);
     }
 
     // Role verification for /admin and /operator
@@ -56,13 +138,12 @@ export async function middleware(request: NextRequest) {
         if (isRSC) {
           return new NextResponse(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
         }
-        return NextResponse.redirect(new URL(ROUTES.DASHBOARD.HOME, request.url));
+        return applyStickyCookie(NextResponse.redirect(new URL(ROUTES.DASHBOARD.HOME, request.url)));
       }
     }
   }
 
-  // Set x-pathname header for layout detection
-  const requestHeaders = new Headers(request.headers);
+  // Set headers for layout detection and tenant isolation
   requestHeaders.set('x-pathname', pathname);
 
   // Handle ref cookie if present in URL query
@@ -72,6 +153,11 @@ export async function middleware(request: NextRequest) {
       headers: requestHeaders,
     },
   });
+
+  // Inject X-Robots-Tag for sensitive routes to prevent indexing
+  if (['/admin', '/dashboard', '/operator', '/api'].some(p => pathname.startsWith(p))) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  }
 
   if (ref) {
     response.cookies.set('ref', ref, {
@@ -83,7 +169,7 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  return response;
+  return applyStickyCookie(response);
 }
 
 export const config = {

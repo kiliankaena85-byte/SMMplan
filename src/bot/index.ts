@@ -14,6 +14,7 @@ dotenv.config();
 
 import { Scenes, session, Telegraf, Markup } from 'telegraf';
 import { db } from '@/lib/db';
+import { WalletOps } from '@/services/financial/wallet-ops';
 
 // Scenes — only import wizards that have been migrated to Lite core
 import { orderWizard, ORDER_WIZARD } from './scenes/order.wizard';
@@ -28,6 +29,9 @@ if (!TOKEN || TOKEN === 'dummy_token') {
 }
 
 export const bot = new Telegraf(TOKEN || 'dummy_token');
+
+const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
+const botSiteName = (botTenantId === 'flux' || botTenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
 
 // ── STAGE ──
 const stage = new Scenes.Stage<Scenes.WizardContext>([
@@ -75,9 +79,9 @@ bot.catch(async (err: any, ctx: any) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 bot.command('bind', async (ctx: any) => {
   await ctx.reply(
-    '🔗 <b>Привязка аккаунта SMMplan</b>\n\n' +
+    `🔗 <b>Привязка аккаунта ${botSiteName}</b>\n\n` +
     'Для безопасной привязки Telegram к вашему аккаунту без передачи телефонных номеров:\n\n' +
-    '1. Авторизуйтесь на нашем сайте SMMplan.\n' +
+    `1. Авторизуйтесь на нашем сайте ${botSiteName}.\n` +
     '2. Перейдите в личный кабинет.\n' +
     '3. Нажмите кнопку <b>«Привязать Telegram»</b> и следуйте инструкции.', 
     { parse_mode: 'HTML' }
@@ -107,7 +111,7 @@ bot.start(async (ctx: any) => {
             data: { used: true }
           });
 
-          const tempUser = await tx.user.findFirst({ where: { telegramId: tgId } });
+          const tempUser = await tx.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
           
           if (tempUser && tempUser.id !== webUserId) {
             // Merge: move tickets to main account
@@ -129,35 +133,14 @@ bot.start(async (ctx: any) => {
               const reasonCredit = `Перенос баланса со старого аккаунта Telegram ${tempUser.email}`;
               
               // Debit tempUser
-              await tx.user.update({
-                where: { id: tempUser.id },
-                data: { balance: BigInt(0) }
-              });
-              await tx.ledgerEntry.create({
-                data: {
-                  userId: tempUser.id,
-                  amount: -amount,
-                  reason: reasonDebit,
-                  status: 'APPROVED',
-                  transactionType: 'PAYMENT',
-                  idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}`
-                }
+              // Debit tempUser
+              await WalletOps.charge(tx, tempUser.id, amount, reasonDebit, {
+                idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}`
               });
 
               // Credit webUser
-              await tx.user.update({
-                where: { id: webUserId },
-                data: { balance: { increment: amount } }
-              });
-              await tx.ledgerEntry.create({
-                data: {
-                  userId: webUserId,
-                  amount: amount,
-                  reason: reasonCredit,
-                  status: 'APPROVED',
-                  transactionType: 'COMPENSATION',
-                  idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}`
-                }
+              await WalletOps.credit(tx, webUserId, amount, reasonCredit, {
+                idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}`
               });
             }
 
@@ -215,7 +198,7 @@ bot.start(async (ctx: any) => {
   }
 
   // Upsert user by telegramId
-  let user = await db.user.findFirst({ where: { telegramId: tgId } });
+  let user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
   if (!user) {
     // P1.3 Anti-Fraud: Global rate limit for Telegram Bot Registrations (Max 100 per hour)
     const { RateLimitService } = await import('@/services/core/rate-limit.service');
@@ -226,19 +209,21 @@ bot.start(async (ctx: any) => {
       return ctx.reply('⚠️ Регистрация временно приостановлена из-за высокой нагрузки. Попробуйте позже.');
     }
 
+    const emailStub = `tg_${tgId}@${botTenantId}.bot`;
     user = await db.user.upsert({
-      where: { email: `tg_${tgId}@smmplan.bot` },
+      where: { email_tenantId: { email: emailStub, tenantId: botTenantId } },
       update: { telegramId: tgId },
       create: {
-        email: `tg_${tgId}@smmplan.bot`,
+        email: emailStub,
         telegramId: tgId,
+        tenantId: botTenantId,
       }
     });
   }
 
   if (payload === 'support') {
     await ctx.reply(
-      `🎧 <b>Служба поддержки SMMplan</b>\n\n` +
+      `🎧 <b>Служба поддержки ${botSiteName}</b>\n\n` +
       `Просто напишите ваш вопрос, отправьте фото или голосовое сообщение прямо в этот чат, и оператор ответит вам здесь же.`,
       {
         parse_mode: 'HTML',
@@ -256,7 +241,7 @@ bot.start(async (ctx: any) => {
   }
 
   await ctx.reply(
-    `👋 <b>Добро пожаловать в SMMplan!</b>\n\n` +
+    `👋 <b>Добро пожаловать в ${botSiteName}!</b>\n\n` +
     `💰 Ваш баланс: <b>${(Number(user.balance) / 100).toFixed(2)}₽</b>\n\n` +
     `Используйте меню ниже:`,
     {
@@ -472,7 +457,7 @@ bot.hears('👥 Рефералы', async (ctx: any) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 bot.hears('📦 Мои заказы', async (ctx: any) => {
   const tgId = String(ctx.from.id);
-  const user = await db.user.findFirst({ where: { telegramId: tgId } });
+  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
   if (!user) return ctx.reply('Используйте /start для регистрации.');
 
   const orders = await db.order.findMany({
@@ -512,7 +497,7 @@ bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 
 
   // 2. Resolve User
   const tgId = String(ctx.from.id);
-  const user = await db.user.findFirst({ where: { telegramId: tgId } });
+  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
   if (!user) return next();
 
   try {

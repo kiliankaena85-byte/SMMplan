@@ -19,7 +19,9 @@ interface FinancialMetrics {
 }
 
 class AccountingService {
-  async getMetrics(startDate?: Date, endDate?: Date): Promise<FinancialMetrics> {
+  async getMetrics(startDate?: Date, endDate?: Date, tenantId?: string): Promise<FinancialMetrics> {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const whereClause: any = {};
     if (startDate && endDate) {
@@ -32,7 +34,8 @@ class AccountingService {
       _sum: { amount: true },
       where: {
         ...whereClause,
-        status: 'SUCCEEDED'
+        status: 'SUCCEEDED',
+        ...(isSingleTenant ? { tenantId } : {})
       }
     });
     
@@ -52,14 +55,12 @@ class AccountingService {
     
     gatewayFees = Math.round(gatewayFees);
 
-    // 2. Calculate Refunds (For canceled/partial orders. We deduce this from the Order remains logic)
-    // Actually, refunds are already added back to User.balance, but to track them strictly:
-    // We can infer refunds = Order charge - (COGS / providerCost if we knew it).
-    // Or we keep it simple: refund = (remains / quantity) * charge
+    // 2. Calculate Refunds (For canceled/partial orders)
     const refundedOrders = await db.order.findMany({
       where: {
         ...whereClause,
-        status: { in: ['PARTIAL', 'CANCELED'] }
+        status: { in: ['PARTIAL', 'CANCELED'] },
+        ...(isSingleTenant ? { tenantId } : {})
       }
     });
 
@@ -76,31 +77,58 @@ class AccountingService {
     // 3. Calculate COGS (Provider Costs for confirmed part)
     let cogs: number;
     if (startDate && endDate) {
-      const cogsResult = await db.$queryRaw<[{ total: bigint | null }]>`
-        SELECT SUM(
-          CASE
-            WHEN "quantity" > 0
-            THEN ROUND(CAST("quantity" - "remains" AS NUMERIC) / "quantity" * "providerCost")
-            ELSE 0
-          END
-        ) as total
-        FROM "Order"
-        WHERE status NOT IN ('AWAITING_PAYMENT', 'PENDING', 'ERROR')
-          AND "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
-      `;
+      const cogsResult = isSingleTenant
+        ? await db.$queryRaw<[{ total: bigint | null }]>`
+            SELECT SUM(
+              CASE
+                WHEN "quantity" > 0
+                THEN ROUND(CAST("quantity" - "remains" AS NUMERIC) / "quantity" * "providerCost")
+                ELSE 0
+              END
+            ) as total
+            FROM "Order"
+            WHERE status NOT IN ('AWAITING_PAYMENT', 'PENDING', 'ERROR')
+              AND "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+              AND "tenantId" = ${tenantId}
+          `
+        : await db.$queryRaw<[{ total: bigint | null }]>`
+            SELECT SUM(
+              CASE
+                WHEN "quantity" > 0
+                THEN ROUND(CAST("quantity" - "remains" AS NUMERIC) / "quantity" * "providerCost")
+                ELSE 0
+              END
+            ) as total
+            FROM "Order"
+            WHERE status NOT IN ('AWAITING_PAYMENT', 'PENDING', 'ERROR')
+              AND "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+          `;
       cogs = Number(cogsResult[0]?.total ?? 0);
     } else {
-      const cogsResult = await db.$queryRaw<[{ total: bigint | null }]>`
-        SELECT SUM(
-          CASE
-            WHEN "quantity" > 0
-            THEN ROUND(CAST("quantity" - "remains" AS NUMERIC) / "quantity" * "providerCost")
-            ELSE 0
-          END
-        ) as total
-        FROM "Order"
-        WHERE status NOT IN ('AWAITING_PAYMENT', 'PENDING', 'ERROR')
-      `;
+      const cogsResult = isSingleTenant
+        ? await db.$queryRaw<[{ total: bigint | null }]>`
+            SELECT SUM(
+              CASE
+                WHEN "quantity" > 0
+                THEN ROUND(CAST("quantity" - "remains" AS NUMERIC) / "quantity" * "providerCost")
+                ELSE 0
+              END
+            ) as total
+            FROM "Order"
+            WHERE status NOT IN ('AWAITING_PAYMENT', 'PENDING', 'ERROR')
+              AND "tenantId" = ${tenantId}
+          `
+        : await db.$queryRaw<[{ total: bigint | null }]>`
+            SELECT SUM(
+              CASE
+                WHEN "quantity" > 0
+                THEN ROUND(CAST("quantity" - "remains" AS NUMERIC) / "quantity" * "providerCost")
+                ELSE 0
+              END
+            ) as total
+            FROM "Order"
+            WHERE status NOT IN ('AWAITING_PAYMENT', 'PENDING', 'ERROR')
+          `;
       cogs = Number(cogsResult[0]?.total ?? 0);
     }
 
@@ -108,7 +136,8 @@ class AccountingService {
     const marginGross = revenueNet - cogs;
 
     // 4. Calculate Taxes and OPEX
-    const settings = await db.systemSettings.findUnique({ where: { id: 'global' } });
+    const activeSettingsId = isSingleTenant ? tenantId : 'smmplan';
+    const settings = await db.systemSettings.findUnique({ where: { id: activeSettingsId } });
     const baseTaxRate = settings?.taxRate ?? 6.0;
     const opex = settings?.opexMonthly || 0.0;
     const usnScheme = settings?.usnScheme ?? 'INCOME_EXPENSES';
@@ -119,6 +148,7 @@ class AccountingService {
       _sum: { amount: true },
       where: {
         status: 'SUCCEEDED',
+        ...(isSingleTenant ? { tenantId } : {}),
         createdAt: {
           gte: new Date(currentYear, 0, 1),
           lte: new Date(currentYear, 11, 31, 23, 59, 59, 999)
@@ -156,19 +186,23 @@ class AccountingService {
     };
   }
 
-  async getSettings() {
-    return db.systemSettings.upsert({
-      where: { id: 'global' },
-      update: {},
-      create: { id: 'global', taxRate: 6.0, opexMonthly: 0.0, usnScheme: 'INCOME_EXPENSES' }
-    });
+  async getSettings(tenantId?: string) {
+    const activeSettingsId = tenantId && tenantId !== 'all' ? tenantId : 'smmplan';
+    let settings = await db.systemSettings.findUnique({ where: { id: activeSettingsId } });
+    if (!settings) {
+      settings = await db.systemSettings.create({
+        data: { id: activeSettingsId, taxRate: 6.0, opexMonthly: 0.0, usnScheme: 'INCOME_EXPENSES' }
+      });
+    }
+    return settings;
   }
 
-  async updateSettings(taxRate: number, opexMonthly: number, usnScheme?: UsnScheme) {
+  async updateSettings(taxRate: number, opexMonthly: number, usnScheme?: UsnScheme, tenantId?: string) {
+    const activeSettingsId = tenantId && tenantId !== 'all' ? tenantId : 'smmplan';
     return db.systemSettings.upsert({
-      where: { id: 'global' },
+      where: { id: activeSettingsId },
       update: { taxRate, opexMonthly, ...(usnScheme ? { usnScheme } : {}) },
-      create: { id: 'global', taxRate, opexMonthly, usnScheme: usnScheme || 'INCOME_EXPENSES' }
+      create: { id: activeSettingsId, taxRate, opexMonthly, usnScheme: usnScheme || 'INCOME_EXPENSES' }
     });
   }
 }

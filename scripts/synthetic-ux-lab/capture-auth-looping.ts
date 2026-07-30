@@ -18,7 +18,7 @@ async function main() {
   const email = `e2e-tester@test.com`;
 
   const user = await prisma.user.upsert({
-    where: { email },
+    where: { email_tenantId: { email, tenantId: 'smmplan' } },
     update: { balance: 200000_00, role: 'OWNER' },
     create: {
       email,

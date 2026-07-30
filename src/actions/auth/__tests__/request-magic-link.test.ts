@@ -70,7 +70,7 @@ describe('Request Magic Link Tests', () => {
     
     expect(sendMagicLink).toHaveBeenCalledWith('magic_new@smmplan.local', expect.any(String));
     
-    const user = await db.user.findUnique({ where: { email: 'magic_new@smmplan.local' } });
+    const user = await db.user.findUnique({ where: { email_tenantId: { email: 'magic_new@smmplan.local', tenantId: 'smmplan' } } });
     expect(user).not.toBeNull();
   });
 
@@ -86,7 +86,7 @@ describe('Request Magic Link Tests', () => {
     expect(sendMagicLink).toHaveBeenCalledWith('magic_new2@smmplan.local', expect.any(String));
 
     // The user should have been deleted
-    const user = await db.user.findUnique({ where: { email: 'magic_new2@smmplan.local' } });
+    const user = await db.user.findUnique({ where: { email_tenantId: { email: 'magic_new2@smmplan.local', tenantId: 'smmplan' } } });
     expect(user).toBeNull();
   });
 });

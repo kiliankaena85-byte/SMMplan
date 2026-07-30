@@ -221,26 +221,39 @@ export async function forceCompleteOrderAction(orderId: string) {
 
 // ── Bulk Actions ──
 
-export async function bulkCancelOrdersAction(orderIds: string[]) {
+export async function bulkCancelOrdersAction(
+  orderIds: string[],
+  reason?: string,
+  ticketId?: string
+) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
+    // RBAC Safety: Bulk cancel is strictly restricted to OWNER & ADMIN
+    if (!['OWNER', 'ADMIN'].includes(admin.role)) {
+      return {
+        success: false as const,
+        error: 'Недостаточно прав: массовая отмена с возвратом доступна только Администраторам и Владельцу'
+      };
+    }
+
     const parsed = bulkCancelSchema.safeParse({ orderIds });
     if (!parsed.success) throw new Error('Invalid IDs or too many items');
 
+    // Hard ceiling: max 100 items per execution batch
+    const BATCH_LIMIT = 100;
+    const targetIds = parsed.data.orderIds.slice(0, BATCH_LIMIT);
+    const skippedCount = parsed.data.orderIds.length - targetIds.length;
+
     const orders = await db.order.findMany({
-      where: { id: { in: parsed.data.orderIds } },
+      where: { id: { in: targetIds } },
     });
 
     let totalRefunded = 0;
     let count = 0;
 
-    // 🌊 WAVE 2.1: Atomized transactions instead of a global blanket
-    // We iterate outside of the transaction to prevent holding the lock
-    // on `user.balance` for multiple seconds, avoiding Database Contention.
     for (const order of orders) {
       if (!['COMPLETED', 'CANCELED', 'ERROR'].includes(order.status)) {
         try {
           await runSerializableTransaction(async (tx) => {
-            // Re-fetch inside transaction to ensure isolation
             const safeOrder = await tx.order.findUnique({
               where: { id: order.id }
             });
@@ -258,7 +271,7 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
 
             if (refundCents > 0) {
               await WalletOps.refund(tx, safeOrder.userId, refundCents,
-                `Массовая отмена заказа #${safeOrder.numericId}`,
+                `Массовая отмена заказа #${safeOrder.numericId}${reason ? ` (${reason})` : ''}`,
                 { adminId: admin.id, idempotencyKey: `refund_${safeOrder.id}_CANCELED` }
               );
             }
@@ -269,27 +282,64 @@ export async function bulkCancelOrdersAction(orderIds: string[]) {
           CompensationService.trackCompensation(order.id).catch(err => console.error('[Orders] Failed to track compensation', err));
         } catch (e) {
           console.error(`[bulkCancelOrdersAction] Failed to cancel order ${order.id}:`, e);
-          // We continue to the next order rather than failing the entire batch
         }
       }
     }
 
-    // SD-13 SECURITY FIX: Await audit for bulk cancel with aggregated refund total
     await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_BULK_CANCEL',
       target: 'batch',
       targetType: 'ORDER',
-      newValue: { count, totalRefunded },
+      newValue: { count, totalRefunded, skippedCount, reason, ticketId },
     });
 
     revalidatePath('/admin/orders');
     return { 
       success: true as const, 
-      cancelledCount: count, 
+      cancelledCount: count,
+      skippedCount,
       totalRefundCents: totalRefunded 
     };
+  });
+}
+
+export async function bulkRestartOrdersAction(orderIds: string[]) {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
+    const BATCH_LIMIT = 100;
+    const targetIds = orderIds.slice(0, BATCH_LIMIT);
+
+    const orders = await db.order.findMany({
+      where: { id: { in: targetIds } }
+    });
+
+    let restartedCount = 0;
+    for (const order of orders) {
+      if (['ERROR', 'PENDING'].includes(order.status)) {
+        try {
+          await adminOrderService.restartOrder(order.id, {
+            id: admin.id,
+            email: admin.email,
+          });
+          restartedCount++;
+        } catch (e) {
+          console.error(`[bulkRestartOrdersAction] Error restarting order ${order.id}:`, e);
+        }
+      }
+    }
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'ORDER_BULK_RESTART',
+      target: 'batch',
+      targetType: 'ORDER',
+      newValue: { count: restartedCount }
+    });
+
+    revalidatePath('/admin/orders');
+    return { success: true as const, restartedCount };
   });
 }
 
@@ -323,8 +373,6 @@ export async function getFailoverPreview(orderId: string) {
     );
 
     const routesWithPreview = await Promise.all(availableRoutes.map(async (route) => {
-      const exchangeRate = route.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
-      
       // Fetch rate from Database ShadowService staging table
       const shadowSvc = await db.shadowService.findUnique({
         where: {
@@ -334,21 +382,36 @@ export async function getFailoverPreview(orderId: string) {
           }
         }
       });
-      const providerRate = shadowSvc ? shadowSvc.rate : 0.0;
+      
+      const hasValidPrice = !!shadowSvc && Number.isFinite(shadowSvc.rate) && shadowSvc.rate > 0;
+      if (!hasValidPrice) {
+        return {
+          routeId: route.id,
+          providerName: route.provider.name,
+          priceUnknown: true,
+          newCostCents: null,
+          marginCents: null,
+          marginPercent: null,
+          isMarginPositive: false
+        };
+      }
 
-      const newCostCents = Math.round(providerRate * exchangeRate * 100);
-      const marginCents = Number(order.charge) - newCostCents;
-      const marginPercent = Number(order.charge) > 0 
-        ? Math.round((marginCents / Number(order.charge)) * 100) 
+      const exchangeRate = route.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
+      const newCostCents = BigInt(Math.round(shadowSvc.rate * exchangeRate * 100));
+      const chargeCents = BigInt(order.charge);
+      const marginCents = chargeCents - newCostCents;
+      const marginPercent = chargeCents > BigInt(0)
+        ? Number((marginCents * BigInt(100)) / chargeCents)
         : 0;
 
       return {
         routeId: route.id,
         providerName: route.provider.name,
-        newCostCents,
-        marginCents,
+        priceUnknown: false,
+        newCostCents: Number(newCostCents),
+        marginCents: Number(marginCents),
         marginPercent,
-        isMarginPositive: marginCents > 0
+        isMarginPositive: marginCents > BigInt(0)
       };
     }));
 
@@ -361,7 +424,7 @@ export async function getFailoverPreview(orderId: string) {
   });
 }
 
-export async function manualRerouteOrder(orderId: string, newRouteId: string) {
+export async function manualRerouteOrder(orderId: string, newRouteId: string, acknowledgeBlindReroute = false) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
     const result = await runSerializableTransaction(async (tx) => {
       const order = await tx.order.findUnique({
@@ -384,6 +447,20 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
         throw new Error('Выбран тот же самый провайдер');
       }
 
+      const shadowSvc = await tx.shadowService.findUnique({
+        where: {
+          providerId_externalId: {
+            providerId: newRoute.providerId,
+            externalId: String(newRoute.providerServiceId)
+          }
+        }
+      });
+
+      const isPriceUnknown = !shadowSvc || !Number.isFinite(shadowSvc.rate) || shadowSvc.rate <= 0;
+      if (isPriceUnknown && !acknowledgeBlindReroute) {
+        throw new Error('Цена провайдера неизвестна. Синхронизируйте каталог или подтвердите reroute вслепую.');
+      }
+
       const user = await tx.user.findUnique({
         where: { id: order.userId },
         select: { balance: true }
@@ -396,18 +473,7 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
 
       const usdToRub = await SettingsManager.getExchangeRateUSD();
       const exchangeRate = newRoute.provider.balanceCurrency === 'RUB' ? 1.0 : usdToRub;
-      
-      // Fetch rate from Database ShadowService staging table
-      const shadowSvc = await db.shadowService.findUnique({
-        where: {
-          providerId_externalId: {
-            providerId: newRoute.providerId,
-            externalId: String(newRoute.providerServiceId)
-          }
-        }
-      });
       const providerRate = shadowSvc ? shadowSvc.rate : 0.0;
-
       const newProviderCostCents = Math.round(providerRate * exchangeRate * 100);
 
       // Списание с баланса (перезапуск за счет пользователя, т.к. при ERROR/CANCELED был refund) via WalletOps
@@ -435,10 +501,10 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string) {
       await tx.routingAuditLog.create({
         data: {
           serviceId: order.serviceId,
-          action: 'MANUAL_OVERRIDE',
+          action: isPriceUnknown ? 'BLIND_REROUTE' : 'MANUAL_OVERRIDE',
           fromProviderId: order.providerId,
           toProviderId: newRoute.providerId,
-          reason: `Admin ${admin.email} triggered manual failover`
+          reason: `Admin ${admin.email} triggered manual failover ${isPriceUnknown ? '(BLIND REROUTE)' : ''}`
         }
       });
 

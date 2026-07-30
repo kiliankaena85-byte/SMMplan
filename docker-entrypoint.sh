@@ -1,12 +1,10 @@
 #!/bin/sh
 set -e
 
-echo "Starting deployment checks..."
+# Миграции БД перед стартом (без --accept-data-loss!)
+if [ "$RUN_MIGRATIONS" = "true" ]; then
+  echo "Running Prisma migrations..."
+  npx prisma migrate deploy
+fi
 
-# Run database migrations
-# This will safely apply any pending migrations to the PostgreSQL database
-echo "Executing Prisma migrations..."
-npx prisma migrate deploy
-
-echo "Starting Next.js application..."
 exec "$@"

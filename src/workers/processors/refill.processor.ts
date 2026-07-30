@@ -7,7 +7,15 @@ import { logger } from '../../lib/logger';
 const log = logger.child({ component: 'RefillProcessor' });
 
 export default async function refillProcessor(job: Job<RefillJobPayload>) {
-  const { refillId } = job.data;
+  let refillId: string;
+  try {
+    const { RefillJobSchema } = await import('../../schemas/jobs.schema');
+    const parsed = RefillJobSchema.parse(job.data);
+    refillId = parsed.refillId;
+  } catch (zodErr) {
+    log.error(`[RefillProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
+    throw new UnrecoverableError('Invalid job payload');
+  }
 
   const refill = await db.refill.findUnique({
     where: { id: refillId },
@@ -64,7 +72,17 @@ export default async function refillProcessor(job: Job<RefillJobPayload>) {
     throw new UnrecoverableError('Provider is missing or misconfigured.');
   }
 
+  const { getRedisConnection } = await import('../../lib/queue-manager');
+  const redis = getRedisConnection();
+  const mutexKey = `refill:dispatched:${refill.id}`;
+
   try {
+    const acquired = await redis.set(mutexKey, '1', 'EX', 300, 'NX');
+    if (!acquired) {
+      log.warn(`[RefillProcessor] Duplicate Dispatch Guard: Refill ${refill.id} was already dispatched by previous attempt. Skipping.`);
+      return;
+    }
+
     const provider = await providerService.getWorkerProviderInstance(providerDef);
     const response = await provider.refill(order.externalId);
 
@@ -90,8 +108,7 @@ export default async function refillProcessor(job: Job<RefillJobPayload>) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     log.error(`[RefillProcessor] Failed to process refill ${refill.id}: ${error.message}`);
-    
-    // Throw error so BullMQ will retry this job
+    await redis.del(mutexKey).catch(() => {});
     throw error;
   }
 }

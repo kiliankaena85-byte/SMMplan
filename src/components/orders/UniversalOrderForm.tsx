@@ -122,7 +122,7 @@ export function UniversalOrderForm({
         })),
         email: formEmail,
         gateway,
-        idempotencyKey: Math.random().toString(36).substring(7),
+        idempotencyKey: `form-order-${formEmail}-${validTasks.map(t => `${t.serviceId}_${t.quantity}`).join('-')}`,
         expectedTotalRub: engine.stats.totalCents / 100
       });
 
@@ -162,9 +162,9 @@ export function UniversalOrderForm({
           <Loader2 className="w-9 h-9 animate-spin text-primary" />
         </div>
         <div className="space-y-2 max-w-sm relative z-10">
-          <h3 className="text-xl font-black text-foreground uppercase tracking-widest leading-none">Синхронизация</h3>
+          <h3 className="text-lg font-black text-foreground uppercase tracking-widest leading-none">Загрузка каталога</h3>
           <p className="text-xs text-muted-foreground/80 leading-relaxed">
-            Загружаем актуальные платформы, категории и вычисляем динамическую маржу в режиме реального времени...
+            Подготавливаем актуальные платформы, категории и тарифы для оформления заказа...
           </p>
         </div>
       </div>
@@ -451,6 +451,10 @@ export function UniversalOrderForm({
                                       const val = parseInt(e.target.value) || 0;
                                       const svc = task.availableServices.find(s => s.id === task.serviceId);
                                       engine.setTaskConfig(task.id, task.serviceId, val, svc?.pricePerUnitRub || 0);
+                                   }}
+                                   onFocus={(e) => {
+                                     const target = e.target;
+                                     setTimeout(() => target.select(), 0);
                                    }}
                                    className="flex-1 h-12 px-4 bg-background border border-border/80 hover:border-primary rounded-2xl text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/15 transition-all shadow-sm text-center tabular-nums"
                                 />

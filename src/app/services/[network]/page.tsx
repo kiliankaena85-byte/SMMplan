@@ -5,18 +5,29 @@ import { Metadata } from "next";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Clock, CheckCircle2, ArrowLeft, Send, Zap, Shield, Sparkles, HelpCircle } from "lucide-react";
 
-export const revalidate = 3600;
+import { headers } from "next/headers";
+import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ network: string }> }): Promise<Metadata> {
   const { network } = await params;
-  const catalogResult = await getPublicCatalogAction();
+  
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const siteName = getTenantSiteName(tenantId);
+  
+  const catalogResult = await getPublicCatalogAction(tenantId);
   const net = catalogResult.data?.find(n => n.slug === network);
   
   if (!net) return { title: "Сеть не найдена" };
 
   return {
-    title: `Продвижение ${net.name} | Купить подписчиков и лайки | SMMplan`,
-    description: `Премиальное продвижение в ${net.name}. Заказ от 1 штуки, гарантия качества, быстрый старт и удобный сервис.`,
+    title: `Продвижение ${net.name} | Купить подписчиков и лайки | ${siteName}`,
+    description: `Премиальное продвижение в ${net.name} на платформе ${siteName}. Заказ от 1 штуки, гарантия качества, быстрый старт и удобный сервис.`,
+    alternates: {
+      canonical: absoluteCanonical(tenantId, `/services/${net.slug}`),
+    }
   };
 }
 
@@ -41,7 +52,11 @@ function formatPricePerUnit(price: number): string {
 
 export default async function NetworkServicesPage({ params }: { params: Promise<{ network: string }> }) {
   const { network } = await params;
-  const catalogResult = await getPublicCatalogAction();
+  
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  
+  const catalogResult = await getPublicCatalogAction(tenantId);
   const networks = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
   const currentNetwork = networks.find(n => n.slug === network);
@@ -50,7 +65,7 @@ export default async function NetworkServicesPage({ params }: { params: Promise<
   // Parallel fetch services for all categories in this network
   const categoriesWithServices = await Promise.all(
     currentNetwork.categories.map(async (cat) => {
-      const services = await getServicesByCategoryAction(cat.id);
+      const services = await getServicesByCategoryAction(cat.id, tenantId);
       return { ...cat, services };
     })
   );
@@ -235,6 +250,18 @@ export default async function NetworkServicesPage({ params }: { params: Promise<
             </p>
           </div>
         </div>
+
+        {(currentNetwork.slug.toLowerCase() === 'instagram' || currentNetwork.slug.toLowerCase() === 'facebook') && (
+          <div className="bg-amber-500/10 border-l-4 border-amber-500 text-amber-900 dark:text-amber-200 p-4 rounded-r-2xl space-y-1 text-xs md:text-sm shadow-sm">
+            <div className="flex items-center gap-2 font-extrabold">
+              <span className="text-amber-500 text-base">⚠️</span>
+              <span>Правовое уведомление (Meta Platforms Inc.)</span>
+            </div>
+            <p className="text-amber-800/90 dark:text-amber-300/90 leading-relaxed font-medium">
+              Instagram и Facebook принадлежат Meta Platforms Inc., признанной экстремистской и запрещённой в РФ (решение Тверского районного суда от 21.03.2022). Услуги доступны для пользователей из юрисдикций, где использование данных платформ разрешено.
+            </p>
+          </div>
+        )}
 
         {/* Back Link */}
         <Link 

@@ -16,6 +16,7 @@ type AdminUserRow = {
   referralCode: string | null;
   telegramId: string | null;
   createdAt: Date;
+  tenantId: string;
   _count: { orders: number; tickets: number };
 };
 
@@ -59,11 +60,16 @@ class AdminUserService {
     cursor?: string;
     search?: string;
     pageSize?: number;
+    tenantId?: string;
   }): Promise<PaginatedResult<AdminUserRow>> {
     const where: Record<string, unknown> = {};
 
     if (params.search?.trim()) {
       where.email = { contains: params.search.trim(), mode: 'insensitive' };
+    }
+
+    if (params.tenantId && params.tenantId !== 'all') {
+      where.tenantId = params.tenantId;
     }
 
     return paginatedQuery<AdminUserRow>(db.user, {
@@ -149,10 +155,15 @@ class AdminUserService {
 
     if (user.id === admin.id) throw new Error('Cannot ban yourself');
 
-    await db.user.update({
-      where: { id: userId },
-      data: { role: 'BANNED' },
-    });
+    await db.$transaction([
+      db.user.update({
+        where: { id: userId },
+        data: { role: 'BANNED' },
+      }),
+      db.session.deleteMany({
+        where: { userId },
+      }),
+    ]);
 
     auditAdmin({
       adminId: admin.id,
@@ -188,11 +199,14 @@ class AdminUserService {
   /**
    * Get aggregate user stats for the header.
    */
-  async getUserStats(startDate?: Date, endDate?: Date) {
+  async getUserStats(startDate?: Date, endDate?: Date, tenantId?: string) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
+    }
+    if (tenantId && tenantId !== 'all') {
+      where.tenantId = tenantId;
     }
     const [total, active, banned] = await Promise.all([
       db.user.count({ where }),

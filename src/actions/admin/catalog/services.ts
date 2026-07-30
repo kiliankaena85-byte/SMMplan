@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
-import { auditAdmin } from "@/lib/admin-audit";
+import { auditAdmin, auditAdminAwaitable } from "@/lib/admin-audit";
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { SettingsProvider } from "@/lib/settings";
@@ -29,14 +29,15 @@ const serviceSchema = z.object({
   isCancelEnabled: z.coerce.boolean().default(false),
   isActive: z.coerce.boolean().default(true),
   requireWarning: z.coerce.boolean().default(false),
-  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable()
+  warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable(),
+  clientRequirement: z.string().max(2000, "Требование слишком длинное").optional().nullable(),
+  clientConfirmation: z.string().max(200, "Текст подтверждения слишком длинный").optional().nullable()
 });
 
 /**
  * Manually create a new catalog Service
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function createServiceAction(rawData: any) {
+export async function createServiceAction(rawData: unknown) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const parsed = serviceSchema.safeParse(rawData);
     if (!parsed.success) {
@@ -98,13 +99,15 @@ export async function createServiceAction(rawData: any) {
           isActive: data.isActive,
           requireWarning: data.requireWarning,
           warningMessage: data.warningMessage,
+          clientRequirement: data.clientRequirement,
+          clientConfirmation: data.clientConfirmation,
           providerCurrency,
           pricePer1000Cents
         }
       });
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SERVICE_MANUAL_CREATE',
@@ -117,7 +120,9 @@ export async function createServiceAction(rawData: any) {
         markup: service.markup,
         pricePer1000Cents: service.pricePer1000Cents,
         requireWarning: service.requireWarning,
-        warningMessage: service.warningMessage
+        warningMessage: service.warningMessage,
+        clientRequirement: service.clientRequirement,
+        clientConfirmation: service.clientConfirmation
       }
     });
 
@@ -134,8 +139,7 @@ export async function createServiceAction(rawData: any) {
 /**
  * Manually update an existing catalog Service
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function updateServiceAction(id: string, rawData: any) {
+export async function updateServiceAction(id: string, rawData: unknown) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     if (!id || typeof id !== 'string') {
       return { success: false as const, error: 'ID услуги обязателен' };
@@ -186,6 +190,10 @@ export async function updateServiceAction(id: string, rawData: any) {
     const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
     const pricePer1000Cents = Math.round(applyBeautifulRounding(data.rate * data.markup * exchangeRate) * 100);
 
+    // Check if name or description were customized
+    const isCustomName = data.name !== service.name ? true : service.isCustomName;
+    const isCustomDescription = data.description !== service.description ? true : service.isCustomDescription;
+
     // Atomically update the service
     const updatedService = await db.$transaction(async (tx) => {
       return await tx.service.update({
@@ -193,6 +201,8 @@ export async function updateServiceAction(id: string, rawData: any) {
         data: {
           name: data.name,
           description: data.description,
+          isCustomName,
+          isCustomDescription,
           categoryId: data.categoryId,
           providerId: data.providerId,
           rate: data.rate,
@@ -210,13 +220,15 @@ export async function updateServiceAction(id: string, rawData: any) {
           isActive: data.isActive,
           requireWarning: data.requireWarning,
           warningMessage: data.warningMessage,
+          clientRequirement: data.clientRequirement,
+          clientConfirmation: data.clientConfirmation,
           providerCurrency,
           pricePer1000Cents
         }
       });
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SERVICE_MANUAL_UPDATE',
@@ -238,7 +250,9 @@ export async function updateServiceAction(id: string, rawData: any) {
         markup: updatedService.markup,
         pricePer1000Cents: updatedService.pricePer1000Cents,
         requireWarning: updatedService.requireWarning,
-        warningMessage: updatedService.warningMessage
+        warningMessage: updatedService.warningMessage,
+        clientRequirement: updatedService.clientRequirement,
+        clientConfirmation: updatedService.clientConfirmation
       }
     });
 
@@ -249,5 +263,35 @@ export async function updateServiceAction(id: string, rawData: any) {
     (revalidateTag as any)("services");
 
     return { success: true as const, serviceId: updatedService.id };
+  });
+}
+
+/**
+ * Reset custom metadata flags to allow automatic provider synchronization
+ */
+export async function resetCustomFlagsAction(id: string) {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
+    if (!id || typeof id !== 'string') {
+      return { success: false as const, error: 'ID услуги обязателен' };
+    }
+
+    const service = await db.service.update({
+      where: { id },
+      data: {
+        isCustomName: false,
+        isCustomDescription: false,
+      }
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'SERVICE_RESET_CUSTOM_FLAGS',
+      target: id,
+      targetType: 'SERVICE',
+    });
+
+    revalidatePath("/admin/catalog");
+    return { success: true as const, serviceId: service.id };
   });
 }

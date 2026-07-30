@@ -21,9 +21,11 @@ export const ORDER_WIZARD = 'order-wizard';
  * Resolve Lite User from Telegram context.
  * Schema: User.telegramId is String? containing the Telegram user ID.
  */
+const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
+
 async function resolveUser(tgId: number) {
   return db.user.findFirst({
-    where: { telegramId: String(tgId) }
+    where: { telegramId: String(tgId), tenantId: botTenantId }
   });
 }
 

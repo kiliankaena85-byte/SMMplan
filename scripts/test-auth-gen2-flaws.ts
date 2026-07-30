@@ -23,9 +23,9 @@ async function testInfoDisclosure() {
   // 4. Create an existing user
   const existingEmail = 'existing@smmplan.local';
   await db.user.upsert({
-    where: { email: existingEmail },
+    where: { email_tenantId: { email: existingEmail, tenantId: 'smmplan' } },
     update: {},
-    create: { email: existingEmail, role: 'USER' }
+    create: { email: existingEmail, role: 'USER', tenantId: 'smmplan' }
   });
 
   // 5. Test the existing email (should succeed, proving enumeration)
@@ -55,7 +55,7 @@ async function testOrphanedEmailBypass() {
   console.log("Action response:", res.error); // Expected: "Произошла ошибка при обработке запроса"
 
   // Check if user was left in DB
-  const user = await db.user.findUnique({ where: { email: testEmail } });
+  const user = await db.user.findUnique({ where: { email_tenantId: { email: testEmail, tenantId: 'smmplan' } } });
   if (user) {
     console.log(`-> VULNERABILITY CONFIRMED: User ${testEmail} created but not deleted (Zombie/Orphaned).`);
   } else {

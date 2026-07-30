@@ -4,6 +4,10 @@ import ClientPage from "./client-page";
 import type { Metadata } from 'next';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { getTenantDashboardViews } from '@/tenants/factory';
+
+import { headers } from 'next/headers';
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
 
 export const metadata: Metadata = {
   title: 'Новый заказ',
@@ -12,8 +16,12 @@ export const metadata: Metadata = {
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await verifySession();
   const sp = await searchParams;
+  const reqHeaders = await headers();
+  const tenantId = resolveTenantFromRequest(reqHeaders);
+
   let userEmail = "";
   let userBalanceCents = 0;
+
   if (session?.userId) {
     const user = await db.user.findUnique({
       where: { id: session.userId },
@@ -33,5 +41,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
     };
   }
 
-  return <ClientPage userEmail={userEmail} userBalanceCents={userBalanceCents} initialReorderData={initialReorderData} />;
+  const { NewOrderView } = await getTenantDashboardViews(tenantId);
+  const ActiveNewOrderView = NewOrderView || ClientPage;
+
+  return (
+    <ActiveNewOrderView
+      userEmail={userEmail}
+      userBalanceCents={userBalanceCents}
+      initialReorderData={initialReorderData}
+    />
+  );
 }
+

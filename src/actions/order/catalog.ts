@@ -7,42 +7,58 @@ import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
 import { unstable_cache } from "next/cache";
 
-const getCachedNetworks = unstable_cache(
+import { sanitizeServiceDescription } from "@/lib/sanitize";
+
+const getCachedNetworks = (tenantId: string) => unstable_cache(
   async () => {
     return await db.network.findMany({
       where: {
         isActive: true,
-        categories: { some: { services: { some: { isActive: true } } } }
+        tenantId: { in: [tenantId, 'all'] },
+        categories: { some: { services: { some: { isActive: true, isQuarantined: false } } } }
       },
       include: {
         categories: {
-          where: { services: { some: { isActive: true } } },
+          where: { services: { some: { isActive: true, isQuarantined: false } } },
           orderBy: { name: 'asc' }
         }
       },
       orderBy: { sort: 'asc' }
     });
   },
-  ['public-catalog-networks'],
-  { revalidate: 60, tags: ['catalog'] }
-);
+  [`public-catalog-networks-v3-${tenantId}`],
+  { revalidate: 60, tags: ['catalog', `catalog-${tenantId}`] }
+)();
 
-const getCachedServices = (catId: string) => unstable_cache(
+const PAGE_SIZE = 100;
+
+const getCachedServices = (catId: string, tenantId: string = 'smmplan') => unstable_cache(
   async () => {
-    return await db.service.findMany({
-      where: { categoryId: catId, isActive: true },
+    const services = await db.service.findMany({
+      where: { 
+        categoryId: catId, 
+        isActive: true, 
+        isQuarantined: false,
+        tenantId: { in: [tenantId, 'all'] },
+        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }]
+      },
       include: { smartConfig: true },
       orderBy: { rate: 'asc' },
-      take: 100
+      take: PAGE_SIZE + 1
     });
+    if (services.length > PAGE_SIZE) {
+      console.warn(`[catalog] Category ${catId} has ${services.length} services, truncating tail to ${PAGE_SIZE}`);
+    }
+    return services.slice(0, PAGE_SIZE);
   },
-  ['public-services-by-category', catId],
-  { revalidate: 60, tags: ['catalog', 'services'] }
+  [`public-services-by-category-v3-${catId}-${tenantId}`],
+  { revalidate: 60, tags: ['catalog', 'services', `catalog-${tenantId}`] }
 )();
 
 export type PublicService = {
   id: string;
   numericId: number;
+  slug?: string | null;
   categoryId: string;
   name: string;
   pricePer1kRub: number;
@@ -53,9 +69,15 @@ export type PublicService = {
   speed: string;
   badge: string;
   isDripFeedEnabled: boolean;
+  isRefillEnabled?: boolean;
   targetType?: string | null;
   customDataType?: string | null;
   customDataLabel?: string | null;
+  clientRequirement?: string | null;
+  clientConfirmation?: string | null;
+  etaP50Seconds?: number | null;
+  etaP90Seconds?: number | null;
+  etaSpeedClass?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   features?: any;
   cooldownUntil?: string | null;
@@ -80,6 +102,7 @@ export type PublicCategory = {
   networkId: string | null;
   requireWarning?: boolean;
   warningMessage?: string | null;
+  analyzerTags?: string | null;
 };
 
 export type PublicNetwork = {
@@ -90,24 +113,25 @@ export type PublicNetwork = {
   categories: PublicCategory[];
 };
 
-export async function getPublicCatalogAction() {
+export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
   try {
 
     const rawNetworks = SettingsProvider.isTestEnvironment()
       ? await db.network.findMany({
           where: {
             isActive: true,
-            categories: { some: { services: { some: { isActive: true } } } }
+            tenantId: { in: [tenantId, 'all'] },
+            categories: { some: { services: { some: { isActive: true, isQuarantined: false } } } }
           },
           include: {
             categories: {
-              where: { services: { some: { isActive: true } } },
+              where: { services: { some: { isActive: true, isQuarantined: false } } },
               orderBy: { name: 'asc' }
             }
           },
           orderBy: { sort: 'asc' }
         })
-      : await getCachedNetworks();
+      : await getCachedNetworks(tenantId);
 
     const catalog: PublicNetwork[] = rawNetworks.map(net => {
       let icon = "/brands/web.svg";
@@ -117,42 +141,92 @@ export async function getPublicCatalogAction() {
       if (net.slug.includes('youtube')) icon = "/brands/youtube.svg";
       if (net.slug.includes('tiktok')) icon = "/brands/tiktok.svg";
 
+      let finalIcon = net.icon && (net.icon.startsWith('/') || net.icon.startsWith('http')) ? net.icon : icon;
+      if (finalIcon.startsWith('/icons/')) {
+        finalIcon = finalIcon.replace('/icons/', '/brands/');
+      }
+
       return {
         id: net.id,
         name: net.name,
         slug: net.slug,
-        icon: net.icon && (net.icon.startsWith('/') || net.icon.startsWith('http')) ? net.icon : icon, // prefer valid absolute/relative SVG custom icons or fallback
+        icon: finalIcon, // prefer valid absolute/relative SVG custom icons or fallback
         categories: net.categories.map(cat => ({
           id: cat.id,
           name: cat.name,
           slug: cat.slug,
           networkId: cat.networkId,
           requireWarning: cat.requireWarning,
-          warningMessage: cat.warningMessage
+          warningMessage: cat.warningMessage,
+          analyzerTags: 'analyzerTags' in cat ? (cat as { analyzerTags?: string | null }).analyzerTags : null
         }))
       };
     });
 
     return { success: true, data: catalog };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to fetch public catalog:", error);
     return { success: false, error: "Failed to load catalog" };
   }
 }
 
-export async function getServicesByCategoryAction(categoryId: string): Promise<PublicService[]> {
+export async function getServicesByCategoryAction(categoryId: string, tenantId: string = 'smmplan'): Promise<PublicService[]> {
   try {
 
     const [services, usdToRub] = await Promise.all([
       SettingsProvider.isTestEnvironment()
         ? db.service.findMany({
-            where: { categoryId: categoryId, isActive: true },
-            include: { smartConfig: true },
+            where: { 
+              categoryId: categoryId, 
+              isActive: true,
+              isQuarantined: false,
+              tenantId: { in: [tenantId, 'all'] },
+              OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }]
+            },
+            select: {
+              id: true,
+
+              numericId: true,
+              slug: true,
+              categoryId: true,
+              name: true,
+              description: true,
+              minQty: true,
+              maxQty: true,
+              isDripFeedEnabled: true,
+              isRefillEnabled: true,
+              targetType: true,
+              customDataType: true,
+              customDataLabel: true,
+              clientRequirement: true,
+              clientConfirmation: true,
+              features: true,
+              cooldownUntil: true,
+              etaP50Seconds: true,
+              etaP90Seconds: true,
+              etaSpeedClass: true,
+              requireWarning: true,
+              warningMessage: true,
+              providerCurrency: true,
+              markup: true,
+              rate: true,
+              smartConfig: {
+                select: {
+                  isEnabled: true,
+                  isTestMode: true,
+                  minChunk: true,
+                  maxChunk: true,
+                  markup: true,
+                  useInviteBuffer: true,
+                  autoCompensate: true,
+                  checkIntervalMins: true
+                }
+              }
+            },
             orderBy: { rate: 'asc' },
             take: 100
           })
-        : getCachedServices(categoryId),
+        : getCachedServices(categoryId, tenantId),
       SettingsProvider.getExchangeRateUSD()
     ]);
 
@@ -175,9 +249,10 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
        return {
           id: s.id,
           numericId: s.numericId,
+          slug: s.slug,
           categoryId: s.categoryId,
           name: s.name,
-          description: s.description,
+          description: sanitizeServiceDescription(s.description),
           pricePer1kRub,
           pricePerUnitRub,
           minQty: s.minQty,
@@ -185,6 +260,7 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
           speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',
           badge,
           isDripFeedEnabled: s.isDripFeedEnabled,
+          isRefillEnabled: s.isRefillEnabled,
           targetType: s.targetType,
           customDataType: s.customDataType,
           customDataLabel: s.customDataLabel,
@@ -201,7 +277,12 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
             checkIntervalMins: s.smartConfig.checkIntervalMins
           } : null,
           requireWarning: s.requireWarning,
-          warningMessage: s.warningMessage
+          warningMessage: s.warningMessage,
+          clientRequirement: s.clientRequirement,
+          clientConfirmation: s.clientConfirmation,
+          etaP50Seconds: s.etaP50Seconds,
+          etaP90Seconds: s.etaP90Seconds,
+          etaSpeedClass: s.etaSpeedClass
        };
     });
   } catch (error) {
@@ -209,3 +290,44 @@ export async function getServicesByCategoryAction(categoryId: string): Promise<P
     return [];
   }
 }
+
+export async function getServiceBySlugAction(slug: string, tenantId: string = 'smmplan') {
+  try {
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const service = await db.service.findFirst({
+      where: {
+        slug,
+        tenantId: { in: [tenantId, 'all'] },
+        isActive: true,
+        isQuarantined: false,
+        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+        category: {
+          network: { isActive: true }
+        }
+      },
+      include: {
+        category: {
+          include: { network: true }
+        },
+        provider: {
+          select: { name: true, ticketUrl: true }
+        }
+      }
+    });
+
+    if (!service) return null;
+
+    const pricePer1kRub = applyBeautifulRounding(service.rate * service.markup * (service.providerCurrency === 'RUB' ? 1.0 : usdToRub));
+    const pricePerUnitRub = pricePer1kRub / 1000;
+
+    return {
+      ...service,
+      pricePer1kRub,
+      pricePerUnitRub,
+    };
+  } catch (error) {
+    console.error("Failed to fetch service by slug:", error);
+    return null;
+  }
+}
+

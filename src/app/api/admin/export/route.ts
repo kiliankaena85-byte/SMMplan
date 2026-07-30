@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { analyticsService } from '@/services/admin/analytics.service';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 
 // SD-06 SECURITY FIX: Restrict export to OWNER/ADMIN only.
 // Export contains providerCost (margin data) and user financial profiles — commercially sensitive.
@@ -16,6 +17,7 @@ function toCsv(headers: string[], rows: string[][]): string {
 }
 
 export async function GET(request: Request) {
+  await enforceSectionAccess('orders');
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

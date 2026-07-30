@@ -7,7 +7,17 @@ import { logger } from '../../lib/logger';
 const log = logger.child({ component: 'PaymentGatewayProcessor' });
 
 export default async function paymentGatewayProcessor(job: Job<PaymentGatewayJobPayload>) {
-  const { paymentId, userId, amountRub, email, successUrl, description, isTestMode, gateway, metadata } = job.data;
+  let validatedData: PaymentGatewayJobPayload;
+  try {
+    const { PaymentGatewayJobSchema } = await import('../../schemas/jobs.schema');
+    validatedData = PaymentGatewayJobSchema.parse(job.data) as PaymentGatewayJobPayload;
+  } catch (zodErr) {
+    const { UnrecoverableError } = await import('bullmq');
+    log.error(`[PaymentGatewayProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
+    throw new UnrecoverableError('Invalid job payload');
+  }
+
+  const { paymentId, userId, amountRub, email, successUrl, description, isTestMode, gateway, metadata } = validatedData;
   log.info(`Processing payment generation for ${paymentId} via ${gateway}`);
 
   try {

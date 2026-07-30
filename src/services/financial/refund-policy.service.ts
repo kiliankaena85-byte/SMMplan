@@ -26,8 +26,9 @@ export class RefundPolicyService {
       } else if (order.status === 'PARTIAL') {
         await LoyaltyService.handlePartialCommission(txClient, order.id, order.remains, order.quantity);
       }
-    } catch (err: any) {
-      console.error(`[RefundPolicyService] Failed to process referral commission for order ${order.id}:`, err.message);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[RefundPolicyService] Failed to process referral commission for order ${order.id}:`, errMsg);
     }
 
     let refundCents = 0;

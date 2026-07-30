@@ -1,11 +1,12 @@
 import React from "react";
 import Link from "next/link";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Zap, ShieldCheck, CreditCard, Mail, ArrowUpRight } from "lucide-react";
+import { Zap, Heart, Mail, ArrowUpRight } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
+import { normalizeTenantId } from "@/lib/tenant-resolver";
 
 export function MegaFooter({ 
-  contactSettings 
+  contactSettings,
+  tenantId
 }: { 
   contactSettings?: {
     SITE_NAME?: string;
@@ -15,13 +16,15 @@ export function MegaFooter({
     LEGAL_INN?: string;
     LEGAL_OGRNIP?: string;
     LEGAL_ADDRESS?: string;
-  }
+  },
+  tenantId?: string
 }) {
-  const siteName = contactSettings?.SITE_NAME || "SMMplan";
+  const isFluxBrand = normalizeTenantId(tenantId) === 'flux';
+  const siteName = isFluxBrand ? "SMMflux" : (contactSettings?.SITE_NAME || "SMMplan");
   const companyName = contactSettings?.COMPANY_NAME && contactSettings.COMPANY_NAME !== "SMMplan" && !contactSettings.COMPANY_NAME.includes("Укажите")
     ? contactSettings.COMPANY_NAME
     : "ИП Соколов Артём Андреевич";
-  const supportEmail = contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro";
+  const supportEmail = isFluxBrand ? "support@smmflux.ru" : (contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro");
   const inn = contactSettings?.LEGAL_INN && contactSettings.LEGAL_INN !== "Укажите ИНН" && contactSettings.LEGAL_INN !== "000000000000"
     ? contactSettings.LEGAL_INN
     : "695006320024";
@@ -36,7 +39,7 @@ export function MegaFooter({
     <footer className="bg-background text-foreground pt-12 md:pt-24 pb-8 md:pb-12 border-t border-border relative overflow-hidden mt-auto">
       {/* Premium Glow & Grid */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-30 mask-image:linear-gradient(to_bottom,white,transparent)" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-30" style={{ maskImage: 'linear-gradient(to bottom, white, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, white, transparent)' }} />
       
       <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 md:grid-cols-12 gap-12 mb-16 relative z-10">
         
@@ -44,7 +47,11 @@ export function MegaFooter({
         <div className="md:col-span-5 space-y-6 pr-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shadow-inner">
-              <Zap className="w-5 h-5 text-primary" />
+              {isFluxBrand ? (
+                <Heart className="w-5 h-5 text-primary" fill="currentColor" />
+              ) : (
+                <Zap className="w-5 h-5 text-primary" />
+              )}
             </div>
             <span className="text-2xl font-black tracking-tight text-foreground">{siteName}</span>
           </div>
@@ -53,25 +60,29 @@ export function MegaFooter({
           </p>
           <div className="pt-4 flex flex-wrap items-center gap-5 text-muted-foreground/40 select-none border-t border-border/10 max-w-sm">
             {/* SBP */}
-            <div className="flex items-center gap-1.5 hover:text-muted-foreground/80 transition-colors">
-              <svg className="h-4.5 w-auto text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors" viewBox="0 0 97 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 26.12l14.532 25.975v15.844L.017 93.863 0 26.12z" />
-                <path d="M55.797 42.643l13.617-8.346 27.868-.026-41.485 25.414V42.643z" />
-                <path d="M55.72 25.967l.077 34.39-14.566-8.95V0l14.49 25.967z" />
-                <path d="M97.282 34.271l-27.869.026-13.693-8.33L41.231 0l56.05 34.271z" />
-                <path d="M55.797 94.007V77.322l-14.566-8.78.008 51.458 14.558-25.993z" />
-                <path d="M69.38 85.737L14.531 52.095 0 26.12l97.223 59.583-27.844.034z" />
-                <path d="M41.24 120l14.556-25.993 13.583-8.27 27.843-.034L41.24 120z" />
-                <path d="M.017 93.863l41.333-25.32-13.896-8.526-12.922 7.922L.017 93.863z" />
-              </svg>
-              <span className="font-extrabold text-[10px] tracking-wider leading-none">СБП</span>
-            </div>
+            {!isFluxBrand && (
+              <div className="flex items-center gap-1.5 hover:text-muted-foreground/80 transition-colors">
+                <svg className="h-4.5 w-auto text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors" viewBox="0 0 97 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M0 26.12l14.532 25.975v15.844L.017 93.863 0 26.12z" />
+                  <path d="M55.797 42.643l13.617-8.346 27.868-.026-41.485 25.414V42.643z" />
+                  <path d="M55.72 25.967l.077 34.39-14.566-8.95V0l14.49 25.967z" />
+                  <path d="M97.282 34.271l-27.869.026-13.693-8.33L41.231 0l56.05 34.271z" />
+                  <path d="M55.797 94.007V77.322l-14.566-8.78.008 51.458 14.558-25.993z" />
+                  <path d="M69.38 85.737L14.531 52.095 0 26.12l97.223 59.583-27.844.034z" />
+                  <path d="M41.24 120l14.556-25.993 13.583-8.27 27.843-.034L41.24 120z" />
+                  <path d="M.017 93.863l41.333-25.32-13.896-8.526-12.922 7.922L.017 93.863z" />
+                </svg>
+                <span className="font-extrabold text-[10px] tracking-wider leading-none">СБП</span>
+              </div>
+            )}
 
             {/* MIR */}
-            <svg className="h-4 w-auto text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors" viewBox="0 0 400 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="m31 13h33c3 0 12-1 16 13 3 9 7 23 13 44h2c6-22 11-37 13-44 4-14 14-13 18-13h31v96h-32v-57h-2l-17 57h-24l-17-57h-3v57h-31m139-96h32v57h3l21-47c4-9 13-10 13-10h30v96h-32v-57h-2l-21 47c-4 9-14 10-14 10h-30m142-29v29h-30v-50h98c-4 12-18 21-34 21" />
-              <path d="m382 53c4-18-8-40-34-40h-68c2 21 20 40 39 40" />
-            </svg>
+            {!isFluxBrand && (
+              <svg className="h-4 w-auto text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors" viewBox="0 0 400 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="m31 13h33c3 0 12-1 16 13 3 9 7 23 13 44h2c6-22 11-37 13-44 4-14 14-13 18-13h31v96h-32v-57h-2l-17 57h-24l-17-57h-3v57h-31m139-96h32v57h3l21-47c4-9 13-10 13-10h30v96h-32v-57h-2l-21 47c-4 9-14 10-14 10h-30m142-29v29h-30v-50h98c-4 12-18 21-34 21" />
+                <path d="m382 53c4-18-8-40-34-40h-68c2 21 20 40 39 40" />
+              </svg>
+            )}
 
             {/* Visa */}
             <svg className="h-3 w-auto text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors" viewBox="0 0 780 500" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -87,9 +98,11 @@ export function MegaFooter({
               <span className="font-extrabold text-[10px] tracking-wider leading-none">Cryptobot</span>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground/80 max-w-sm leading-relaxed mt-4">
-            * Сервисы Instagram и Facebook принадлежат компании Meta, признанной экстремистской организацией и запрещенной на территории РФ.
-          </p>
+          {!isFluxBrand && (
+            <p className="text-xs text-muted-foreground/80 max-w-sm leading-relaxed mt-4">
+              * Сервисы Instagram и Facebook принадлежат компании Meta, признанной экстремистской организацией и запрещенной на территории РФ.
+            </p>
+          )}
         </div>
 
         {/* Column 2: Legal Links */}
@@ -99,7 +112,8 @@ export function MegaFooter({
             <li><Link href={ROUTES.LEGAL.TERMS} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Публичная оферта <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
             <li><Link href={ROUTES.LEGAL.PRIVACY} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Конфиденциальность <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
             <li><Link href={ROUTES.LEGAL.REFUND} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Возврат средств <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
-            <li><Link href={ROUTES.LEGAL.COOKIE} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Использование Cookie <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.COOKIES} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Использование Cookie <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
+            <li><Link href={ROUTES.LEGAL.SERVICE_RULES} className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">Правила сервиса <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
             <li><Link href="/knowledge" className="text-foreground/90 hover:text-primary transition-colors flex items-center gap-1 group">База знаний <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 group-hover:ml-0" /></Link></li>
           </ul>
         </div>

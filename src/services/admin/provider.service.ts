@@ -144,6 +144,30 @@ class AdminProviderService {
     });
     return rows;
   }
+
+  /**
+   * Tests provider connection safely with SSRF protection and 10s timeout.
+   */
+  async testConnection(apiUrl: string): Promise<{ success: boolean; error?: string }> {
+    const { assertSafeUrl } = await import('@/utils/ssrf-guard');
+    await assertSafeUrl(apiUrl);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'HEAD',
+        redirect: 'error',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return { success: res.ok || res.status < 500 };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      return { success: false, error: err instanceof Error ? err.message : 'Connection failed' };
+    }
+  }
 }
 
 export const adminProviderService = new AdminProviderService();

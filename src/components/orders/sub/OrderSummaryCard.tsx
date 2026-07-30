@@ -402,6 +402,10 @@ export function OrderSummaryCard({
                 min={selectedService.minQty}
                 aria-label="Количество"
                 inputMode="numeric"
+                onFocus={(e) => {
+                  const target = e.target;
+                  setTimeout(() => target.select(), 0);
+                }}
                 className={`${inputCls} h-12 text-center font-black text-slate-900 tabular-nums font-mono text-lg focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:outline-none placeholder:font-normal`}
               />
               <button

@@ -20,7 +20,7 @@ function mapInternalStatus(internal: string): string {
     'COMPLETED': 'Completed',
     'PARTIAL': 'Partial',
     'CANCELED': 'Canceled',
-    'ERROR': 'Fail'
+    'ERROR': 'Canceled'
   };
   return statusMap[internal] || 'Pending';
 }
@@ -31,30 +31,65 @@ function mapRefillStatus(internal: string): string {
     'IN_PROGRESS': 'In progress',
     'COMPLETED': 'Completed',
     'REJECTED': 'Rejected',
-    'ERROR': 'Fail'
+    'ERROR': 'Canceled'
   };
   return statusMap[internal] || 'Pending';
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  let currentHashedKey = '';
+  let currentAction = '';
+  let currentFormData: FormData | null = null;
+
+  const sendResponse = (res: NextResponse) => {
+    if (currentHashedKey) {
+      const latencyMs = Date.now() - startTime;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const paramsObj: Record<string, any> = {};
+      if (currentFormData) {
+        currentFormData.forEach((val, k) => {
+          if (k !== 'key') paramsObj[k] = val.toString();
+        });
+      }
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || null;
+      const userAgent = request.headers.get('user-agent') || null;
+
+      db.b2bRequestLog.create({
+        data: {
+          apiKeyHash: currentHashedKey,
+          action: currentAction || 'unknown',
+          params: paramsObj,
+          httpStatus: res.status,
+          latencyMs,
+          ip,
+          userAgent
+        }
+      }).catch(() => {});
+    }
+    return res;
+  };
+
   try {
     // W5-3 SECURITY FIX: Limit content length to prevent DoS via huge payloads before parsing
     const contentLength = request.headers?.get ? request.headers.get('content-length') : null;
     if (contentLength && parseInt(contentLength, 10) > 500 * 1024) {
-      return NextResponse.json({ error: 'Payload too large (max 500KB)' }, { status: 413 });
+      return sendResponse(NextResponse.json({ error: 'Payload too large (max 500KB)' }, { status: 413 }));
     }
 
     // SMM APIs typically send x-www-form-urlencoded data
     const formData = await request.formData().catch(() => null);
     if (!formData) {
-      return NextResponse.json({ error: 'Invalid request format. Use application/x-www-form-urlencoded' }, { status: 400 });
+      return sendResponse(NextResponse.json({ error: 'Invalid request format. Use application/x-www-form-urlencoded' }, { status: 400 }));
     }
 
+    currentFormData = formData;
     const key = formData.get('key')?.toString();
-    const action = formData.get('action')?.toString();
+    const action = formData.get('action')?.toString() || '';
+    currentAction = action;
 
     if (!key) {
-      return NextResponse.json({ error: 'API key is required' }, { status: 400 });
+      return sendResponse(NextResponse.json({ error: 'API key is required' }, { status: 400 }));
     }
 
     // Rate Limiting (OWASP A04)
@@ -62,45 +97,48 @@ export async function POST(request: NextRequest) {
     // Limit: 50 requests per 60 seconds per API key
     const crypto = (await import('crypto')).default;
     const hashedKey = crypto.createHash('sha256').update(key).digest('hex');
+    currentHashedKey = hashedKey;
+
     const isAllowed = await RateLimitService.checkCustomKey(hashedKey, 50, 60);
     if (!isAllowed) {
-      return NextResponse.json({ error: 'Too many requests. Limit 50/minute.' }, { status: 429 });
+      return sendResponse(NextResponse.json({ error: 'Too many requests. Limit 50/minute.' }, { status: 429 }));
     }
 
     // 1. Authenticate User
     const user = await verifyB2BKey(key);
     if (!user) {
-      return NextResponse.json({ error: 'Incorrect request or API key' }, { status: 401 });
+      return sendResponse(NextResponse.json({ error: 'Incorrect request or API key' }, { status: 401 }));
     }
 
     // 2. Route by Action
     switch (action) {
       case 'services':
-        return await handleServices(user, formData);
+        return sendResponse(await handleServices(user, formData));
       case 'add':
-        return await handleAdd(user, formData);
+        return sendResponse(await handleAdd(user, formData));
       case 'add_multi':
-        return await handleAddMulti(user, formData);
+        return sendResponse(await handleAddMulti(user, formData));
       case 'status':
-        return await handleStatus(user, formData);
+        return sendResponse(await handleStatus(user, formData));
       case 'balance':
-        return await handleBalance(user);
+        return sendResponse(await handleBalance(user));
       case 'refill':
-        return await handleRefill(user, formData);
+        return sendResponse(await handleRefill(user, formData));
       case 'refill_status':
-        return await handleRefillStatus(user, formData);
+        return sendResponse(await handleRefillStatus(user, formData));
       case 'cancel':
-        return await handleCancel(user, formData);
+        return sendResponse(await handleCancel(user, formData));
       default:
-        return NextResponse.json({ error: 'Incorrect action' }, { status: 400 });
+        return sendResponse(NextResponse.json({ error: 'Incorrect action' }, { status: 400 }));
     }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('[API v2 Error]:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return sendResponse(NextResponse.json({ error: 'Internal server error' }, { status: 500 }));
   }
 }
 
+// ----------------------------------------------------------------------
 // ----------------------------------------------------------------------
 // ACTION HANDLERS
 // ----------------------------------------------------------------------
@@ -111,12 +149,16 @@ async function handleServices(user: any, formData: FormData) {
   const skip = parseInt(offset, 10);
 
   // SD-15 SECURITY FIX: Cap offset at 1000 and limit at 100 to reduce scraping attractiveness.
-  // Scrapers would need many requests (hitting rate limits) instead of bulk-dumping the catalog.
   const safeSkip = isNaN(skip) ? 0 : Math.min(skip, 1000);
+  const userTenantId = user.tenantId || 'smmplan';
 
   const services = await db.service.findMany({
     include: { category: true },
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      tenantId: userTenantId,
+      category: { tenantId: userTenantId }
+    },
     take: 100,
     skip: safeSkip
   });
@@ -143,9 +185,26 @@ async function handleAdd(user: any, formData: FormData) {
   }
 
   const { service: serviceNumericId, link, quantity, runs, interval } = parsed.data;
+  const userTenantId = user.tenantId || 'smmplan';
 
-  const service = await db.service.findUnique({ where: { numericId: serviceNumericId } });
-  if (!service || !service.isActive) {
+  const service = await db.service.findFirst({
+    where: {
+      numericId: serviceNumericId,
+      isActive: true,
+      tenantId: userTenantId,
+      category: { tenantId: userTenantId }
+    },
+    include: { category: true }
+  });
+
+  if (!service) {
+    await db.securityEvent.create({
+      data: {
+        event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
+        severity: 'CRITICAL',
+        details: { userId: user.id, userTenantId, serviceNumericId }
+      }
+    });
     return NextResponse.json({ error: 'Incorrect service ID' }, { status: 400 });
   }
 
@@ -241,6 +300,7 @@ async function handleAddMulti(user: any, formData: FormData) { // Justified: use
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results: any[] = []; // Justified: dynamic results array containing orders or errors
+  const userTenantId = user.tenantId || 'smmplan';
 
   for (const rawOrder of rawOrders) {
     const parsed = addSchema.safeParse(rawOrder);
@@ -252,8 +312,23 @@ async function handleAddMulti(user: any, formData: FormData) { // Justified: use
     const { service: serviceNumericId, link, quantity, runs, interval } = parsed.data;
 
     try {
-      const service = await db.service.findUnique({ where: { numericId: serviceNumericId } });
-      if (!service || !service.isActive) {
+      const service = await db.service.findFirst({
+        where: {
+          numericId: serviceNumericId,
+          isActive: true,
+          tenantId: userTenantId,
+          category: { tenantId: userTenantId }
+        }
+      });
+
+      if (!service) {
+        await db.securityEvent.create({
+          data: {
+            event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
+            severity: 'CRITICAL',
+            details: { userId: user.id, userTenantId, serviceNumericId }
+          }
+        });
         results.push({ error: 'Incorrect service ID' });
         continue;
       }
@@ -306,21 +381,29 @@ async function handleAddMulti(user: any, formData: FormData) { // Justified: use
 async function handleStatus(user: User, formData: FormData) {
   const orderStr = formData.get('order')?.toString();
   const ordersStr = formData.get('orders')?.toString();
+  const userTenantId = user.tenantId || 'smmplan';
 
   if (orderStr) {
     // Single
     const numericId = parseInt(orderStr, 10);
-    const order = isNaN(numericId) ? null : await db.order.findUnique({
-      where: { numericId }
+    const order = isNaN(numericId) ? null : await db.order.findFirst({
+      where: { numericId, userId: user.id, tenantId: userTenantId }
     });
 
-    if (!order || order.userId !== user.id) {
+    if (!order) {
+      await db.securityEvent.create({
+        data: {
+          event: 'API_V2_UNAUTHORIZED_ORDER_ACCESS',
+          severity: 'WARNING',
+          details: { userId: user.id, userTenantId, numericId }
+        }
+      });
       return NextResponse.json({ error: 'Incorrect order ID' }, { status: 400 });
     }
 
     return NextResponse.json({
       charge: (Number(order.charge) / 100).toFixed(4),
-      start_count: "0",
+      start_count: (order.startCount ?? 0).toString(),
       status: mapInternalStatus(order.status),
       remains: order.remains.toString(),
       currency: 'RUB'
@@ -334,7 +417,8 @@ async function handleStatus(user: User, formData: FormData) {
     const orders = await db.order.findMany({
       where: {
         numericId: { in: ids },
-        userId: user.id
+        userId: user.id,
+        tenantId: userTenantId
       }
     });
 
@@ -347,7 +431,7 @@ async function handleStatus(user: User, formData: FormData) {
     for (const order of orders) {
       resultMap[order.numericId.toString()] = {
         charge: (Number(order.charge) / 100).toFixed(4),
-        start_count: "0",
+        start_count: (order.startCount ?? 0).toString(),
         status: mapInternalStatus(order.status),
         remains: order.remains.toString(),
         currency: 'RUB'
@@ -375,41 +459,43 @@ async function handleCancel(user: User, formData: FormData) {
     return NextResponse.json({ error: 'Missing order parameter' }, { status: 400 });
   }
 
+  const userTenantId = user.tenantId || 'smmplan';
   const ids = ordersStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)).slice(0, 100);
   
-  // Fetch orders
+  // Fetch orders with tenant check
   const orders = await db.order.findMany({
-    where: { numericId: { in: ids }, userId: user.id }
+    where: { numericId: { in: ids }, userId: user.id, tenantId: userTenantId }
   });
 
-  const resultMap: Record<string, string> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resultMap: Record<string, any> = {};
 
   for (const id of ids) {
     const order = orders.find(o => o.numericId === id);
     if (!order) {
-      resultMap[id.toString()] = 'Incorrect order ID';
+      resultMap[id.toString()] = { error: 'Incorrect order ID' };
       continue;
     }
 
     if (order.status === 'PENDING' || order.status === 'AWAITING_PAYMENT') {
       const cancelResult = await orderService.cancelPendingOrderClient(order.id, user.id);
       if (cancelResult.success) {
-        resultMap[id.toString()] = 'Cancelled and refunded';
+        resultMap[id.toString()] = { cancel: true };
       } else {
-        resultMap[id.toString()] = cancelResult.error || 'Cancellation failed';
+        resultMap[id.toString()] = { error: cancelResult.error || 'Cancellation failed' };
       }
     } else {
-      resultMap[id.toString()] = 'Cancellation via API is not supported. Contact support.';
+      resultMap[id.toString()] = { error: 'Cancellation via API is not supported. Contact support.' };
     }
   }
 
   // If it's a single order request, standard SMM API returns error/success at root level
   if (!formData.get('orders') && ids.length === 1) {
-    const resultMsg = resultMap[ids[0].toString()];
-    if (resultMsg === 'Cancelled and refunded') {
-       return NextResponse.json({ success: true, message: resultMsg });
+    const singleResult = resultMap[ids[0].toString()];
+    if (singleResult.cancel) {
+       return NextResponse.json({ cancel: true });
     }
-    return NextResponse.json({ error: resultMsg }, { status: 400 });
+    return NextResponse.json({ error: singleResult.error }, { status: 400 });
   }
 
   return NextResponse.json(resultMap);
@@ -425,13 +511,15 @@ async function handleRefill(user: User, formData: FormData) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleRefillStatus(user: any, formData: FormData) {
   const refillStr = formData.get('refill')?.toString();
+  const userTenantId = user.tenantId || 'smmplan';
+
   if (!refillStr) {
     const refillsStr = formData.get('refills')?.toString();
     if (refillsStr) {
       // Multiple
       const ids = refillsStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)).slice(0, 100);
       const refills = await db.refill.findMany({
-        where: { numericId: { in: ids }, order: { userId: user.id } }
+        where: { numericId: { in: ids }, order: { userId: user.id, tenantId: userTenantId } }
       });
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -451,15 +539,16 @@ async function handleRefillStatus(user: any, formData: FormData) {
   const numericId = parseInt(refillStr, 10);
   if (isNaN(numericId)) return NextResponse.json({ error: 'Incorrect refill ID' }, { status: 400 });
 
-  const refill = await db.refill.findUnique({
-    where: { numericId },
+  const refill = await db.refill.findFirst({
+    where: { numericId, order: { userId: user.id, tenantId: userTenantId } },
     include: { order: true }
   });
 
-  if (!refill || refill.order.userId !== user.id) {
+  if (!refill) {
     return NextResponse.json({ error: 'Incorrect refill ID' }, { status: 400 });
   }
 
   return NextResponse.json({ status: mapRefillStatus(refill.status) });
 }
+
 

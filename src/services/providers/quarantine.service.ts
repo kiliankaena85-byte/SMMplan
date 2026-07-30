@@ -9,6 +9,22 @@ export class QuarantineService {
      */
     static async evaluateTriggerA(serviceId: string, errorDetails: string) {
         try {
+            const errLower = (errorDetails || '').toLowerCase();
+            // L-arch3: USER_ERROR filtering (invalid user link, deleted post, private channel, bad input)
+            const isUserError = errLower.includes('link') ||
+                                errLower.includes('private') ||
+                                errLower.includes('deleted') ||
+                                errLower.includes('not found') ||
+                                errLower.includes('invalid url') ||
+                                errLower.includes('неверн') ||
+                                errLower.includes('ссылк') ||
+                                errLower.includes('закрыт');
+
+            if (isUserError) {
+                // User-side errors do NOT increment provider quarantine counters
+                return;
+            }
+
             const { redis } = await import('@/lib/redis');
             if (!redis) return;
 

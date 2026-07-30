@@ -27,8 +27,11 @@ const ADMIN_NAVIGATION = [
   {
     group: 'Финансы',
     items: [
-      { href: '/admin/finance',   icon: 'CreditCard',    label: 'Биллинг',    section: 'finance' },
-      { href: '/admin/marketing', icon: 'Gift',          label: 'Маркетинг',  section: 'marketing' },
+      { href: '/admin/finance', icon: 'CreditCard', label: 'Биллинг', section: 'finance' },
+      { href: '/admin/analytics', icon: 'TrendingUp', label: 'Аналитика', section: 'analytics' },
+      { href: '/admin/finance/balance-requests', icon: 'Inbox', label: 'Заявки баланса', section: 'balance_requests' },
+      { href: '/admin/finance/balance-requests/stats', icon: 'BarChart3', label: 'Статистика заявок', section: 'balance_stats' },
+      { href: '/admin/marketing', icon: 'Gift', label: 'Маркетинг', section: 'marketing' },
     ]
   },
   {
@@ -45,17 +48,18 @@ const ADMIN_NAVIGATION = [
   {
     group: 'Система',
     items: [
-      { href: '/admin/settings',        icon: 'Settings',   label: 'Настройки',     section: 'settings' },
-      { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фичи',          section: 'features' },
+      { href: '/admin/settings', icon: 'Settings', label: 'Настройки', section: 'settings' },
+      { href: '/admin/settings/balance-policies', icon: 'Shield', label: 'Политики баланса', section: 'balance_policy' },
+      { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фичи', section: 'features' },
     ]
   }
 ];
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  OWNER:   { label: 'Владелец',  color: 'bg-primary/20 text-indigo-700 dark:text-indigo-300 border-primary/30 font-bold' },
-  ADMIN:   { label: 'Админ',     color: 'bg-sky-500/20 text-sky-700 dark:text-sky-400 border-sky-500/30 font-bold' },
-  MANAGER: { label: 'Менеджер',  color: 'bg-success/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-bold' },
-  SUPPORT: { label: 'Саппорт',   color: 'bg-muted/40 text-slate-700 dark:text-slate-300 border-slate-500/30 font-bold' },
+  OWNER:   { label: 'Владелец',  color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 font-bold' },
+  ADMIN:   { label: 'Админ',     color: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20 font-bold' },
+  MANAGER: { label: 'Менеджер',  color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-bold' },
+  SUPPORT: { label: 'Саппорт',   color: 'bg-muted text-muted-foreground border-border font-bold' },
 };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -93,6 +97,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     'clients': 'finance',
     'finance': 'finance',
     'marketing': 'finance',
+    'balance_requests': 'balance_requests',
+    'balance_stats': 'balance_stats',
+    'balance_policy': 'balance_policy',
     'catalog': 'catalog',
     'quarantine': 'catalog',
     'providers': 'catalog',

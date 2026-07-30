@@ -377,6 +377,20 @@ function NetworkManagerCard({ networks, onSuccess }: { networks: any[]; onSucces
   );
 }
 
+const PREDEFINED_TAGS = [
+  { id: 'post', label: 'Пост' },
+  { id: 'channel', label: 'Канал/Группа' },
+  { id: 'private_post', label: 'Закрытый пост' },
+  { id: 'bot', label: 'Бот' },
+  { id: 'video', label: 'Видео' },
+  { id: 'profile', label: 'Профиль' },
+  { id: 'story', label: 'Сторис' },
+  { id: 'poll', label: 'Голосование' },
+  { id: 'music', label: 'Музыка' },
+  { id: 'article', label: 'Статья' },
+  { id: 'short_link', label: 'Короткая ссылка' }
+];
+
 // ─── Main Component ─────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function CategoryManager({ categories, networks }: { categories: any[], networks: any[] }) {
@@ -395,6 +409,16 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
   const [sort, setSort] = useState("0");
   const [requireWarning, setRequireWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState("");
+  const [analyzerTags, setAnalyzerTags] = useState("");
+
+  const toggleTag = (tagId: string) => {
+    const currentTags = analyzerTags.split(',').map(t => t.trim()).filter(Boolean);
+    if (currentTags.includes(tagId)) {
+      setAnalyzerTags(currentTags.filter(t => t !== tagId).join(', '));
+    } else {
+      setAnalyzerTags([...currentTags, tagId].join(', '));
+    }
+  };
 
   const resetForm = () => {
     setEditingId(null);
@@ -403,6 +427,7 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
     setSort("0");
     setRequireWarning(false);
     setWarningMessage("");
+    setAnalyzerTags("");
     setError(null);
   };
 
@@ -414,6 +439,7 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
     setSort(String(cat.sort));
     setRequireWarning(cat.requireWarning ?? false);
     setWarningMessage(cat.warningMessage || "");
+    setAnalyzerTags(cat.analyzerTags || "");
     setError(null);
   };
 
@@ -430,7 +456,8 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
         networkId, 
         sort: parseInt(sort, 10) || 0,
         requireWarning,
-        warningMessage: requireWarning ? warningMessage.trim() : null
+        warningMessage: requireWarning ? warningMessage.trim() : null,
+        analyzerTags: analyzerTags.trim() || null
       };
       
       if (editingId) {
@@ -564,6 +591,40 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
                   />
                 </div>
               )}
+            </div>
+
+            <div className="md:col-span-4 space-y-3 pt-2">
+              <label className="block text-xs font-semibold text-muted-foreground">Теги анализатора ссылок (Определяют, при каких ссылках предлагать эту категорию)</label>
+              
+              <div className="flex flex-wrap gap-2">
+                {PREDEFINED_TAGS.map(tag => {
+                  const isActive = analyzerTags.split(',').map(t => t.trim()).filter(Boolean).includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 border cursor-pointer ${
+                        isActive 
+                          ? 'bg-primary text-primary-foreground border-primary shadow-sm' 
+                          : 'bg-muted/30 text-muted-foreground border-border hover:bg-muted/50 hover:text-foreground'
+                      }`}
+                    >
+                      {tag.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="pt-2">
+                <input 
+                  type="text" 
+                  value={analyzerTags} 
+                  onChange={e => setAnalyzerTags(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                  placeholder="Или впишите/отредактируйте вручную (через запятую)..."
+                />
+              </div>
             </div>
 
             <div className="md:col-span-4 flex justify-end gap-2 pt-2 border-t border-border/50">

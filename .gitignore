@@ -28,6 +28,23 @@ test_output.txt
 results.json
 out.html
 pin.html
+*.html
+*.png
+*.txt
+
+# ── Harness artifacts & reports ──
+.antigravity/reports/
+.antigravity/evidence/
+.gemini/
+.agent/
+.agents/
+.planning/audits/
+teamwork_projects/
+lovable_ui_spec.md
+test8_*.js
+test9_*.js
+test-smtp.mjs
+knowledge-service/data/indexer_state.json
 
 # ── Data dumps (one-off, not source code) ──
 stream-promotion-services.json
@@ -41,6 +58,7 @@ prisma/*.db
 # ── Playwright test results & artifacts ──
 test-results/
 playwright-report/
+e2e/playwright/.auth/
 
 # ── Coverage ──
 coverage/
@@ -55,9 +73,5 @@ Thumbs.db
 *.swp
 *.swo
 
-*.tar
-*.tar.gz
-
 # ── Local patch artifacts ──
 dist_patch/
-

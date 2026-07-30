@@ -8,6 +8,12 @@ import { MobileOrderList } from '@/components/orders/MobileOrderList';
 import { ClientDate } from '@/components/ui/client-date';
 import { OrderFilters } from '@/components/orders/OrderFilters';
 import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
+import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
+import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
+import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
+import { CopyText } from '@/components/ui/CopyText';
+import { SocialIcon } from '@/components/ui/SocialIcon';
+import { getTenantDashboardViews } from '@/tenants/factory';
 import { Metadata } from 'next';
 import {
   Table,
@@ -17,8 +23,6 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
-import { CopyText } from '@/components/ui/CopyText';
-import { SocialIcon } from '@/components/ui/SocialIcon';
 
 export const metadata: Metadata = {
   title: 'Мои заказы | SMMplan',
@@ -58,9 +62,15 @@ interface OrdersPageProps {
   }>;
 }
 
+import { headers } from 'next/headers';
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
+
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const session = await verifySession();
   if (!session) redirect('/login');
+
+  const reqHeaders = await headers();
+  const tenantId = resolveTenantFromRequest(reqHeaders);
 
   const params = await searchParams;
   const currentPage = parseInt(params.page || '1', 10);
@@ -130,16 +140,33 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         numericId: true,
         status: true,
         charge: true,
+        discountCents: true,
+        usdToRubRate: true,
         quantity: true,
         remains: true,
         link: true,
         error: true,
         createdAt: true,
+        isDripFeed: true,
+        runs: true,
+        interval: true,
+        currentRun: true,
+        nextRunAt: true,
+        refills: {
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
         service: { 
           select: { 
             id: true,
             categoryId: true,
             name: true,
+            isRefillEnabled: true,
             category: {
               select: {
                 name: true,
@@ -174,6 +201,25 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     acc[curr.status] = curr._count;
     return acc;
   }, {} as Record<string, number>);
+
+  const { OrdersView } = await getTenantDashboardViews(tenantId);
+
+  if (OrdersView) {
+    return (
+      <OrdersView
+        orders={orders}
+        totalCount={totalCount}
+        userBalanceCents={Number(user.balance)}
+        search={search}
+        status={status}
+        network={network}
+        networks={networks}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        countsMap={countsMap}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -276,14 +322,32 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                           <span className="text-xs text-muted-foreground tabular-nums font-medium">
                             {order.quantity.toLocaleString('ru-RU')} шт.
                           </span>
+                          <DripFeedProgress
+                            isDripFeed={order.isDripFeed}
+                            runs={order.runs}
+                            interval={order.interval}
+                            currentRun={order.currentRun}
+                            nextRunAt={order.nextRunAt}
+                          />
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-black text-foreground tabular-nums whitespace-nowrap px-3">
-                      {(Number(order.charge) / 100).toLocaleString('ru-RU', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })} ₽
+                      <div className="flex items-center justify-end gap-1">
+                        <span>
+                          {(Number(order.charge) / 100).toLocaleString('ru-RU', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{' '}
+                          ₽
+                        </span>
+                        <ChargeBreakdownModal
+                          numericId={order.numericId}
+                          chargeCents={order.charge}
+                          discountCents={order.discountCents}
+                          usdToRubRate={order.usdToRubRate}
+                        />
+                      </div>
                     </TableCell>
                     <TableCell className="px-3">
                       <div className="flex flex-col gap-1.5">
@@ -318,6 +382,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     </TableCell>
                     <TableCell className="px-3">
                       <div className="flex items-center gap-1.5">
+                        <RefillRequestButton
+                          orderId={order.id}
+                          isRefillEnabled={order.service.isRefillEnabled}
+                          orderStatus={order.status}
+                          refills={order.refills}
+                        />
                         {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) ? (
                           <div className="flex flex-col gap-1">
                             {order.status === 'AWAITING_PAYMENT' && user && (

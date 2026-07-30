@@ -5,15 +5,19 @@ import { db } from '@/lib/db';
 import { hashPassword } from '@/lib/auth/password';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { logger } from '@/lib/logger';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import crypto from 'crypto';
 import { sendMagicLink } from '@/lib/smtp';
+import { getClientIp } from '@/utils/ip';
+import { normalizeTenantId } from '@/lib/tenant-resolver';
+
+import { passwordPolicySchema } from '@/validators/password-policy';
 
 const log = logger.child({ component: 'PasswordRegister' });
 
 const schema = z.object({
   email: z.string().email("Введите корректный email"),
-  password: z.string().min(8, "Пароль должен быть не менее 8 символов"),
+  password: passwordPolicySchema,
 });
 
 export async function registerWithPasswordAction(prevState: unknown, formData: FormData) {
@@ -38,18 +42,38 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
 
     // 2. Transaction for atomic user creation
     const result = await db.$transaction(async (tx) => {
-      // Check if user already exists
-      const existingUser = await tx.user.findUnique({
-        where: { email: cleanEmail },
-        select: { id: true, isDeleted: true, isActive: true }
+      const reqHeaders = await headers();
+      const rawTenantId = reqHeaders.get("x-tenant-id");
+      const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
+
+      // Check if user already exists in this tenant
+      const existingUser = await tx.user.findFirst({
+        where: { 
+          email: cleanEmail,
+          tenantId
+        },
+        select: { id: true, tenantId: true, isDeleted: true, isActive: true, passwordHash: true }
       });
 
+      const passwordHash = await hashPassword(password);
+
       if (existingUser) {
+        if (existingUser.isDeleted || !existingUser.isActive) {
+          return { type: 'blocked' as const };
+        }
+        // If user was created via Magic Link (no password set yet), set their password now!
+        if (!existingUser.passwordHash) {
+          const updatedUser = await tx.user.update({
+            where: { id: existingUser.id },
+            data: {
+              passwordHash,
+              isEmailVerified: true,
+            }
+          });
+          return { type: 'password_set' as const, user: updatedUser };
+        }
         return { type: 'exists' as const };
       }
-
-      // Hash password
-      const passwordHash = await hashPassword(password);
 
       // Handle referral code if present in cookies
       const cookieStore = await cookies();
@@ -62,7 +86,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       }
 
       // Auto-bootstrap: First user is OWNER
-      const ownerCount = await tx.user.count({ where: { role: "OWNER" } });
+      const ownerCount = await tx.user.count({ where: { role: "OWNER", tenantId } });
       const role = ownerCount === 0 ? "OWNER" : "USER";
 
       const newUser = await tx.user.create({
@@ -72,12 +96,19 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           role,
           referredById,
           isActive: true,
-          isEmailVerified: false,
+          isEmailVerified: true,
+          tenantId,
+          tosAcceptedAt: new Date(),
+          tosAcceptedIp: await getClientIp(),
         }
       });
 
       return { type: 'success' as const, user: newUser };
     }, { isolationLevel: 'Serializable' });
+
+    if (result.type === 'blocked') {
+      return { error: "Аккаунт заблокирован или выключен. Обратитесь в поддержку.", success: false };
+    }
 
     if (result.type === 'exists') {
       return { error: "Пользователь с таким email уже зарегистрирован. Пожалуйста, войдите.", success: false };
@@ -85,23 +116,35 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
 
     const { user } = result;
 
-    // 3. Generate verification token and send email
+    // 3. Create Session immediately so user doesn't get blocked
+    const { createSession } = await import('@/lib/session');
+    await createSession(user.id);
+
+    // 4. Try sending welcome email in background (non-blocking)
     const rawToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
-    await db.authToken.create({
-      data: {
-        token: hashedToken,
-        userId: user.id,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
-      }
-    });
+    try {
+      await db.authToken.create({
+        data: {
+          token: hashedToken,
+          userId: user.id,
+          expiresAt: new Date(Date.now() + 1000 * 60 * 15),
+        }
+      });
+      await sendMagicLink(cleanEmail, rawToken).catch(() => {});
+    } catch {
+      log.warn('Registration email send skipped/failed', { email: cleanEmail });
+    }
 
-    await sendMagicLink(cleanEmail, rawToken);
+    log.info('Password registration successful with auto-login', { email: cleanEmail, userId: user.id });
 
-    log.info('Password registration verification email sent', { email: cleanEmail, userId: user.id });
+    let redirectTo = '/dashboard';
+    if (["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role)) {
+      redirectTo = '/admin/dashboard';
+    }
 
-    return { success: true, error: null, message: "Пожалуйста, проверьте вашу почту для подтверждения регистрации." };
+    return { success: true, error: null, redirectTo, message: "Регистрация успешна! Выполняется вход..." };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log.error('Password registration action failed', { error: errorMessage, email: cleanEmail });

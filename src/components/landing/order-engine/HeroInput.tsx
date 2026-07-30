@@ -213,7 +213,7 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
           </div>
 
           {/* Premium Google Shimmer Border Wrapper */}
-          <div className={`relative w-full group rounded-full transition-all duration-300 select-text ${isFocused ? 'p-[3px] scale-[1.01]' : 'p-[2px] scale-100'}`}>
+          <div className={`relative w-full group rounded-full transition-all duration-300 select-text ${isFocused ? 'p-[4px] scale-[1.01]' : 'p-[3px] scale-100'}`}>
             {/* Shimmer Border */}
             <div
               className={`absolute inset-0 rounded-full transition-opacity duration-300 pointer-events-none ${
@@ -227,15 +227,15 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
             <div
               className={`absolute inset-0 rounded-full transition-all duration-300 pointer-events-none blur-md ${
                 linkHasError
-                  ? "warning-border-shimmer opacity-40"
+                  ? "warning-border-shimmer opacity-50"
                   : isFocused
-                  ? "google-border-shimmer opacity-60 scale-[1.02]"
-                  : "google-border-shimmer opacity-25 group-hover:opacity-40"
+                  ? "google-border-shimmer opacity-80 scale-[1.02]"
+                  : "google-border-shimmer opacity-40 group-hover:opacity-60"
               }`}
             />
             
             <div
-              className="relative flex items-center w-full bg-content1/90 backdrop-blur-md rounded-full p-1.5 sm:p-2 h-14 sm:h-16 md:h-[68px] z-10"
+              className="relative flex items-center w-full bg-content1 rounded-full p-1.5 sm:p-2 h-14 sm:h-16 md:h-[68px] z-10"
             >
               <div className="pl-3 sm:pl-5 pr-1.5 sm:pr-2 flex-shrink-0">
                 <Link2 className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground group-focus-within:text-primary transition-colors" />

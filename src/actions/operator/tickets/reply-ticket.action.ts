@@ -27,7 +27,7 @@ export async function replyTicketAction(data: {
   }
 
   try {
-    const result = await requireOperatorPermission('orders', 'edit', async (admin) => {
+    const result = await requireOperatorPermission('tickets', 'edit', async (admin) => {
       const { ticketId, message, isInternal } = parsed.data;
 
       const ticket = await db.ticket.findUnique({

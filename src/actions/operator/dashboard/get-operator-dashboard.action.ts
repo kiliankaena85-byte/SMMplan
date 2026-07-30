@@ -1,29 +1,31 @@
 'use server';
 
 import { requireOperatorPermission } from '@/lib/operator/rbac';
+import { db } from '@/lib/db';
 
 /**
  * Example operator action fetching dashboard metadata.
  * Guarded by 'orders' section 'view' permission.
  */
 export async function getOperatorDashboardData() {
-  const result = await requireOperatorPermission('orders', 'view', async () => {
+  return requireOperatorPermission('orders', 'view', async () => {
+    const last30days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const [activeOrders, openTickets, newClients, transactions] = await Promise.all([
+      db.order.count({ where: { status: { in: ['PENDING', 'IN_PROGRESS', 'PROVISIONING'] } } }),
+      db.ticket.count({ where: { status: 'OPEN' } }),
+      db.user.count({ where: { createdAt: { gte: last30days } } }),
+      db.payment.count({ where: { status: 'SUCCEEDED' } }),
+    ]);
+
     return {
       success: true,
       stats: {
-        activeOrders: 0,
-        openTickets: 0,
-        newClients: 0,
-        transactions: 0,
+        activeOrders,
+        openTickets,
+        newClients,
+        transactions,
       }
     };
   });
-
-  // Replicate standard admin server action guard pattern:
-  // If rbac returns a failure object, throw it as an action level error.
-  if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    throw new Error('error' in result ? (result as Record<string, unknown>).error as string : 'Unauthorized');
-  }
-
-  return result;
 }

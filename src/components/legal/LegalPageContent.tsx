@@ -1,71 +1,68 @@
-import { db as prisma } from "@/lib/db";
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, ShieldAlert } from "lucide-react";
-import { SettingsProvider } from "@/lib/settings";
-import parse from "html-react-parser";
-import { draftMode } from "next/headers";
+import { db } from '@/lib/db';
+import { SettingsProvider } from '@/lib/settings';
+import { getLegalFallback } from '@/data/legal-fallbacks';
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, ShieldAlert } from 'lucide-react';
+import parse from 'html-react-parser';
 
-export async function LegalPageContent({ slug }: { slug: string }) {
-  const draft = await draftMode();
-  const isDraft = draft.isEnabled;
+interface LegalPageContentProps {
+  slug: string;
+}
 
-  const post = await prisma.contentItem.findUnique({
-    where: { slug },
-  });
+export async function LegalPageContent({ slug }: LegalPageContentProps) {
+  let title: string | null = null;
+  let contentHtml: string | null = null;
 
-  if (!post) {
-    notFound();
+  // 1. Пробуем из БД
+  try {
+    const post = await db.contentItem.findUnique({
+      where: { slug },
+      select: { title: true, contentHtml: true, isPublished: true },
+    });
+    if (post && post.isPublished && post.contentHtml) {
+      title = post.title;
+      contentHtml = post.contentHtml;
+    }
+  } catch {
+    // БД недоступна — переходим к fallback
   }
 
-  if (!post.isPublished && !isDraft) {
-    notFound();
-  }
-
-  // Get dynamic settings
-  const settings = await SettingsProvider.getContactAndLegalSettings();
-  const companyName = settings.COMPANY_NAME || 'ИП / ООО';
-  const inn = settings.COMPANY_INN || 'Укажите ИНН';
-  const ogrnip = settings.COMPANY_OGRNIP || 'Укажите ОГРНИП';
-  const address = settings.COMPANY_ADDRESS || 'г. Москва';
-  const email = settings.SUPPORT_EMAIL || 'support@smmplan.pro';
-  const privacyEmail = settings.PRIVACY_EMAIL || 'privacy@smmplan.pro';
-  const siteName = settings.SITE_NAME || 'SMMplan';
-
-  let finalHtml = post.contentHtml || "";
-
-  // Parse draft JSON if in draft mode
-  if (isDraft && post.contentJson) {
-    const { ServerBlockNoteEditor } = await import("@blocknote/server-util");
-    const editor = ServerBlockNoteEditor.create();
-    try {
-      const blocks = JSON.parse(post.contentJson);
-      finalHtml = await editor.blocksToHTMLLossy(blocks);
-    } catch (e) {
-      console.error("Draft parsing error", e);
+  // 2. Fallback из статического файла
+  if (!contentHtml) {
+    const fallback = getLegalFallback(slug);
+    if (fallback) {
+      title = fallback.title;
+      contentHtml = fallback.html;
     }
   }
 
-  // Replace placeholders
-  finalHtml = finalHtml
-    .replace(/{{COMPANY_NAME}}/g, companyName)
-    .replace(/{{COMPANY_INN}}/g, inn)
-    .replace(/{{COMPANY_OGRNIP}}/g, ogrnip)
-    .replace(/{{COMPANY_ADDRESS}}/g, address)
-    .replace(/{{SUPPORT_EMAIL}}/g, email)
-    .replace(/{{SUPPORT_EMAIL}}/g, email) // ensure fallback
-    .replace(/{{PRIVACY_EMAIL}}/g, privacyEmail)
-    .replace(/{{SITE_NAME}}/g, siteName);
+  // 3. Ничего нет — 404
+  if (!contentHtml) {
+    notFound();
+  }
+
+  // 4. Замена {{тегов}} на реальные значения
+  const settings = await SettingsProvider.getContactAndLegalSettings();
+  const replacements: Record<string, string> = {
+    '{{COMPANY_NAME}}': settings.COMPANY_NAME || 'ИП Соколов А.А.',
+    '{{COMPANY_INN}}': settings.COMPANY_INN || '695006320024',
+    '{{COMPANY_OGRNIP}}': settings.COMPANY_OGRNIP || '320695200000000',
+    '{{COMPANY_ADDRESS}}': settings.COMPANY_ADDRESS || 'г. Москва',
+    '{{SUPPORT_EMAIL}}': settings.SUPPORT_EMAIL || 'support@smmplan.pro',
+    '{{PRIVACY_EMAIL}}': settings.PRIVACY_EMAIL || 'privacy@smmplan.pro',
+    '{{SITE_NAME}}': settings.SITE_NAME || 'SMMplan',
+    '{{TELEGRAM_BOT}}': settings.TELEGRAM_SUPPORT_BOT || '@smmplan_support_bot',
+  };
+
+  let rendered = contentHtml;
+  for (const [tag, value] of Object.entries(replacements)) {
+    rendered = rendered.replaceAll(tag, value);
+  }
 
   return (
     <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-      {isDraft && (
-        <div className="fixed top-0 left-0 w-full bg-warning text-warning-foreground text-center py-2 z-50 flex items-center justify-center gap-4">
-          <span className="font-semibold text-sm">Внимание: Вы просматриваете черновик (Draft Mode)</span>
-        </div>
-      )}
-
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="w-4 h-4" />
           На главную
@@ -78,17 +75,17 @@ export async function LegalPageContent({ slug }: { slug: string }) {
                 <ShieldAlert className="w-6 h-6 text-destructive" />
               </div>
               <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight m-0">
-                {post.title}
+                {title}
               </h1>
             </div>
           ) : (
             <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight mb-8">
-              {post.title}
+              {title}
             </h1>
           )}
           
           <div className="space-y-6 text-muted-foreground leading-relaxed text-sm">
-            {parse(finalHtml)}
+            {parse(rendered)}
           </div>
         </article>
       </div>

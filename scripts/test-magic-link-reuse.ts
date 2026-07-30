@@ -4,9 +4,9 @@ import crypto from 'crypto';
 async function testVulnerability() {
   const email = 'victim2@example.com';
   
-  let user = await db.user.findUnique({ where: { email } });
+  let user = await db.user.findUnique({ where: { email_tenantId: { email, tenantId: 'smmplan' } } });
   if (!user) {
-    user = await db.user.create({ data: { email, role: 'USER' } });
+    user = await db.user.create({ data: { email, tenantId: 'smmplan', role: 'USER' } });
   }
 
   // Request token 1

@@ -15,6 +15,20 @@
 
 ## Architecture Rules
 
+### Linting & Code Hygiene (CRITICAL)
+**🔴 ОБЯЗАТЕЛЬНЫЕ правила чистоты кода:**
+1. **Strict Types:** КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать `any` (`@typescript-eslint/no-explicit-any`). Если тип неизвестен, используйте `unknown` с последующей проверкой (`instanceof Error`, `typeof`).
+2. **Clean Scope:** Перед завершением работы агент обязан удалить все неиспользуемые импорты и переменные (`@typescript-eslint/no-unused-vars`), оставшиеся после рефакторинга.
+3. **Useless Wrappers:** Запрещено оборачивать код в `try { ... } catch (e) { throw e; }` (`no-useless-catch`). Это нарушает читаемость и мешает правильному пробросу стека вызовов, особенно в Prisma-транзакциях.
+4. **Immutability:** Всегда используйте `const` вместо `let`, если переменная не переназначается (`prefer-const`).
+5. **Syntax Integrity:** При использовании `multi_replace_file_content` агент ОБЯЗАН визуально сверять открывающие и закрывающие скобки `{}` в блоках `TargetContent` и `ReplacementContent`. Синтаксические ошибки при батч-обновлениях недопустимы.
+
+### Multi-Agent & Skill Usage Rules (CRITICAL)
+**🔴 Правила работы с агентами и навыками:**
+1. **Skills > Agents:** Никогда не модифицируйте `AGENTS.md` напрямую для добавления ролей новых экспертов (например, для "Круглого стола"). Для любых новых системных ролей или сложных рабочих процессов ОБЯЗАТЕЛЬНО создавайте отдельный файл навыка `SKILL.md` в папке `.agents/skills/<название_навыка>/`.
+2. **No Hallucinated Agents:** Запрещено делегировать задачи несуществующим "subagents", если они не были явно определены через инструмент `define_subagent` или не существуют в списке доступных агентов.
+3. **Agent Protocol:** Для коммуникации между агентами используйте только инструменты `send_message`, а не прямую перезапись файлов системных промптов.
+
 ### Zero-Defect Execution Protocol (TRIPLE-AGENT STRATEGY)
 **🔴 ОБЯЗАТЕЛЬНО для всех AI-агентов при обработке любого запроса:**
 
@@ -42,6 +56,20 @@
    - Соблюдай границы Server/Client и защиту от утечек данных.
    - Проверь типы (`npx tsc --noEmit`) перед сдачей.
 
+### Order Wizard Sequence (CRITICAL)
+**🔴 Строгая последовательность шагов оформления заказа:**
+При проектировании или изменении интерфейса заказа (например, `FluxOrderClient`), ЗАПРЕЩЕНО объединять выбор параметров в единый экран. Пользователь обязан проходить строгий пошаговый Wizard:
+1. **Шаг 1:** Выбор соцсети (Network) ИЛИ автоматическое определение по введенной ссылке.
+2. **Шаг 2:** Выбор категории (Category).
+3. **Шаг 3:** Выбор услуги (Service) внутри выбранной категории.
+4. **Шаг 4 (Checkout):** Выбор количества (Quantity), ввод email (для чеков/доступа) и ввод ссылки (если она не была введена на первом шаге).
+Переходы между шагами должны быть явными, с возможностью вернуться "назад".
+
+### Quantity Input Rules (CRITICAL)
+**🔴 Строгие правила для поля "Количество" в формах заказа:**
+1. **Значение по умолчанию:** При выборе услуги поле "Количество" должно автоматически заполняться минимально допустимым значением, которое передает провайдер по API (`service.minQty` или аналогичное поле).
+2. **Валидация и Уведомления:** Если пользователь пытается ввести значение меньше минимального или больше максимального (`service.maxQty`), интерфейс обязан предотвратить отправку формы и показать понятное текстовое уведомление (ошибку) о допустимых лимитах заказа.
+
 ### Server/Client Boundary
 - Server Components по умолчанию. `'use client'` только при необходимости (hooks, browser APIs).
 - Server Actions в `src/actions/` с обязательным `requireAdmin()` guard.
@@ -55,7 +83,24 @@
 - Компоненты максимум 150 строк. Декомпозируй на sub-components.
 - Все интерактивные элементы: `transition-all duration-200`.
 
-### Code Editing
+### UX & Interaction Principles (CRITICAL)
+- ❌ **ЗАПРЕЩЕНО** использовать неактивные (`disabled`) кнопки отправки форм (Submit, Оплатить, Сохранить) из-за невалидности данных или невыполненных условий. Пользователь не должен угадывать, почему кнопка серая.
+- ✅ **ОБЯЗАТЕЛЬНО** оставлять главные кнопки активными. Если форма не валидна (не заполнено поле, не поставлена галочка), клик по кнопке должен перехватываться (`e.preventDefault()`). Система обязана "нативно и красиво" (с энтерпрайз-анимацией, например, shake, highlight) подсказать пользователю, где он ошибся и что забыл сделать.
+- **Философия:** "Мы всегда думаем о клиенте. Клиент всегда прав, но мы ему подсказываем, что он забыл сделать".
+
+### Form Validation & Error UX (CRITICAL)
+**🔴 ОБЯЗАТЕЛЬНЫЕ правила реализации обратной связи в формах (на основе прошлых ошибок):**
+1. **Auto-Scroll & Focus:** При неудачной валидации (Server Action или Client), страница ОБЯЗАНА автоматически прокручиваться (`scrollIntoView({ behavior: 'smooth', block: 'center' })`) к первому полю с ошибкой.
+2. **Re-trigger Animations:** Визуальная обратная связь (например, `animate-shake` в Tailwind) обязана срабатывать при **КАЖДОЙ** неудачной попытке отправки формы. В React это достигается передачей уникального ключа (например, `key={timestamp}`) на элемент с ошибкой. Запрещено полагаться на одноразовый показ ошибки.
+3. **General Error Placement:** Общие ошибки сервера (например, "Недостаточно средств", "Ошибка провайдера") КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО располагать в начале формы (top of the form). Они должны выводиться **непосредственно над** главной кнопкой Submit ("Оплатить", "Сохранить"), чтобы быть в зоне зрительного фокуса пользователя в момент клика.
+4. **Contrast Overlay:** При использовании сложных фонов (gradients, backdrop-blur, card/40) строго следить за контрастностью. Использование `text-muted-foreground` для важной информации поверх таких фонов часто приводит к сливанию текста — используйте высококонтрастные токены (например, `text-foreground`).
+
+### Holistic Trust & Sync Boundaries (CRITICAL)
+**🔴 При проектировании ЛЮБОЙ новой бизнес-фичи (особенно связанной с заказами или каталогом), Агент ОБЯЗАН экстраполировать логику на следующие вектора:**
+1. **Server-Side Trust Boundary:** Никогда не доверять UI. Любое новое условие, чекбокс, лимит или требование, добавленное на фронтенде, ОБЯЗАНО дублироваться жесткой проверкой внутри соответствующего Server Action (или API роута). UI — это только UX, Server Action — это закон.
+2. **Sync Protection (Shadow Catalog):** Если добавляется новое кастомное поле в таблицу `Service`, `Category` или `Provider`, которое заполняется Администратором вручную, Агент ОБЯЗАН проверить логику Background Workers (особенно `sync-action.ts` или `catalog.service.ts`), чтобы убедиться, что автоматическая синхронизация не затирает эти данные (например, Prisma `update` должен обновлять только те поля, которые пришли от провайдера).
+3. **Form Integrity (A11y):** Все валидации (JIT-проверки, ошибки) перед отправкой данных должны вешаться ИСКЛЮЧИТЕЛЬНО на обработчик `onSubmit` тега `<form>`, а не на `onClick` кнопки `submit`. Это предотвращает обход валидации при отправке формы клавишей `Enter`.
+
 - **ПРЕДПОЧИТАЙ** `search-replace` (`multi_replace_file_content`) вместо полной перезаписи файлов.
 - **НИКОГДА** не переписывай файл целиком, если нужно изменить < 20 строк.
 - Batch независимые операции в параллельные tool calls.
@@ -173,4 +218,121 @@ src/
 - ❌ Неинвалидируемый кэш в памяти в тестовой среде (кэш настроек/синглтонов обязан очищаться).
 - ❌ Выполнение сложных однострочников Node/TSX с символом `$` в Windows PowerShell (создавайте временный файл скрипта).
 
+### Multi-Tenant Rules (CRITICAL)
+**🔴 Проект имеет 2 бренда (НЕ 3):**
+- **SMMplan** → smmplan.pro (B2B, агентства, API)
+- **SMMflux** → smmflux.ru (бизнес, Yandex-first)
 
+**Бренда Lovable НЕ СУЩЕСТВУЕТ.** Он объединён с SMMflux.
+
+1. **ЗАПРЕЩЕНО** хардкодить `smmplan.pro`, `smmflux.ru` или `lovable.pro` в коде.
+   ✅ Использовать `getTenantHost(tenantId)` из `src/lib/seo-helpers.ts`.
+2. **ЗАПРЕЩЕНО** делать DB-запросы без фильтра `tenantId`, если модель имеет поле `tenantId`.
+   ✅ Использовать `tenantId: { in: [tenantId, 'all'] }` для общего каталога.
+3. **ЗАПРЕЩЕНО** использовать один cache key для разных тенантов.
+   ✅ Ключ обязан включать tenantId: `catalog-${tenantId}`, `service-${slug}-${tenantId}`.
+4. **ЗАПРЕЩЕНО** копировать контент, метаданные или UI-тексты между тенантами.
+5. `normalizeTenantId('lovable')` → `'flux'` — это backward-compat alias. **НЕ УДАЛЯТЬ.**
+6. `getTenantHost('lovable')` **НЕ ДОЛЖЕН** возвращать `lovable.pro`. Только `smmflux.ru`.
+
+### Next.js App Router Rendering (CRITICAL)
+**🔴 Правила рендеринга страниц:**
+1. **ЗАПРЕЩЕНО** ставить `export const revalidate = N` на страницы, использующие `headers()` или `cookies()`.
+   Эти функции включают dynamic rendering. `revalidate` будет проигнорирован.
+   ✅ Использовать `export const dynamic = 'force-dynamic'` + кэшировать DB-запросы через `unstable_cache`:
+   ```typescript
+   const getCachedData = (tenantId: string) =>
+     unstable_cache(
+       async () => { /* DB query */ },
+       [`data-${tenantId}`],
+       { revalidate: 300, tags: ['catalog', `catalog-${tenantId}`] }
+     );
+   ```
+2. **ЗАПРЕЩЕНО** ставить `alternates: { canonical: '/' }` в `layout.tsx`.
+   Canonical определяется на КАЖДОЙ странице отдельно через `absoluteCanonical(tenantId, path)`.
+3. **ЗАПРЕЩЕНО** использовать относительные canonical (`/path`).
+   ✅ Только абсолютные: `https://{host}/path` через `absoluteCanonical()`.
+
+### SEO Rules (CRITICAL)
+**🔴 Обязательные правила для публичных страниц:**
+1. Каждая публичная страница ОБЯЗАНА иметь `generateMetadata` с:
+   - Уникальным `title` и `description`;
+   - Абсолютным `canonical` через `absoluteCanonical(tenantId, path)`;
+   - `openGraph` с `siteName` из `getTenantSiteName(tenantId)`;
+   - `robots: { index: true, follow: true }` (или false при quality gate fail).
+2. **ЗАПРЕЩЕНО** создавать doorway pages (тонкие страницы без уникальной ценности).
+3. **ЗАПРЕЩЕНО** использовать keyword stuffing в title/description.
+4. **ЗАПРЕЩЕНО** добавлять фейковые `AggregateRating` или `Review` в Schema.org.
+5. **ЗАПРЕЩЕНО** индексировать quarantined, inactive или cooldown сервисы.
+6. **ЗАПРЕЩЕНО** копировать один title/description для разных страниц.
+7. Quality Gate для каталожных страниц: категория индексируется только при >= 3 активных не-quarantined сервисах с ценой > 0.
+
+### Financial System Rules (CRITICAL)
+**🔴 Правила работы с деньгами:**
+1. **ЗАПРЕЩЕНО** менять `User.balance` напрямую.
+   ✅ Только через `WalletOps.credit()` / `WalletOps.debit()` / `WalletOps.refund()`.
+2. **ЗАПРЕЩЕНО** проводить финансовые операции без `idempotencyKey`.
+3. **ЗАПРЕЩЕНО** использовать `auditAdmin()` без `await` для финансовых операций.
+   ✅ Только `await auditAdminAwaitable()`.
+4. **ЗАПРЕЩЕНО** использовать `Number` для денежных сумм.
+   ✅ Только `BigInt` (копейки).
+5. **ЗАПРЕЩЕНО** позволять саппорту менять баланс себе или другим staff-пользователям.
+6. Все изменения баланса обязаны проходить через `SupportBalancePolicyService` (лимиты, reason codes, consent).
+
+### Prisma & Database Rules (CRITICAL)
+**🔴 Правила работы с БД:**
+1. **ЗАПРЕЩЕНО** `prisma db push --accept-data-loss`.
+2. В dev допустимо `prisma db push` (без флагов).
+3. Для schema changes предпочтительно: `npx prisma migrate dev --name descriptive_name`.
+4. **ЗАПРЕЩЕНО** менять `schema.prisma` без создания migration-файла.
+5. **ЗАПРЕЩЕНО** удалять колонки/таблицы без explicit migration.
+
+### Security Rules (CRITICAL)
+**🔴 Правила безопасности:**
+1. **ЗАПРЕЩЕНО** оставлять dev routes (`/api/dev/*`) доступными в production.
+2. **ЗАПРЕЩЕНО** логировать секреты, токены, пароли, API keys.
+3. **ЗАПРЕЩЕНО** возвращать stack trace или Prisma errors клиенту.
+4. **ЗАПРЕЩЕНО** ослаблять типизацию (`any`, `@ts-ignore`) без TODO-комментария с причиной.
+5. **ЗАПРЕЩЕНО** использовать `dangerouslySetInnerHTML` без sanitization.
+6. **ЗАПРЕЩЕНО** менять `next.config.mjs` → `typescript.ignoreBuildErrors` без явного согласования.
+
+### Component Field Types (CRITICAL)
+**🔴 Перед использованием компонента ПРОЧИТАЙ его интерфейс:**
+1. `FAQSection` использует `{ question: string; answer: string }`. **НЕ** `{ q, a }`.
+2. `PublicService.cooldownUntil` — это `string | null` (ISO string). **НЕ** `Date`.
+3. `JsonLd` принимает `data: Record<string, unknown>`.
+
+### Verification Protocol (CRITICAL)
+**🔴 После ЛЮБОГО изменения публичных страниц:**
+1. `npx tsc --noEmit` → PASS
+2. `npm run build` → PASS
+3. Curl-проверка:
+   ```bash
+   curl -s http://localhost:3000/path | grep 'rel="canonical"'
+   curl -s http://localhost:3000/path | grep 'application/ld+json'
+   curl -I http://localhost:3000/admin  # X-Robots-Tag: noindex
+   curl -s http://localhost:3000/robots.txt
+   curl -s http://localhost:3000/sitemap.xml | head -20
+   ```
+4. **ЗАПРЕЩЕНО** объявлять задачу выполненной без верификации.
+
+### Test Data Rules
+1. Тестовые данные создаются ТОЛЬКО в dev-БД.
+2. `seed-mock.ts` ОБЯЗАН содержать guard:
+   ```typescript
+   if (process.env.NODE_ENV === 'production') {
+     throw new Error('seed-mock cannot run in production');
+   }
+   ```
+3. После верификации тестовые данные должны быть удалены или помечены.
+
+### Artifact Tracking
+1. Если в ТЗ запрошены артефакты (.md файлы, таблицы, чеклисты) — они ОБЯЗАНЫ быть созданы.
+2. Трекинг через `task.md` с чеклистом.
+3. В финальном отчёте перечислить все созданные артефакты.
+
+### Landing vs Dashboard Boundaries (CRITICAL)
+**🔴 Исключение путаницы между публичной зоной и личным кабинетом:**
+1. **Landing (Лендинг/Главная/Flux):** Любые запросы на изменение публичных страниц, фонов, маркетинговых блоков, публичной формы заказа должны выполняться ИСКЛЮЧИТЕЛЬНО в src/app/(public), src/app/page.tsx и компонентах из src/components/landing/ или src/components/ab-test/.
+2. **Dashboard (Личный Кабинет):** Любые запросы на изменение "личного кабинета", дашборда пользователя, истории заказов, интерфейсов после авторизации должны выполняться ИСКЛЮЧИТЕЛЬНО в src/app/dashboard/ и src/components/dashboard/.
+3. **Pre-flight Check:** Перед редактированием любого UI-компонента Агент ОБЯЗАН сверить путь файла с контекстом задачи (Landing vs Dashboard).

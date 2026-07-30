@@ -4,7 +4,8 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getClientIp } from "@/utils/ip";
-import { auditAdmin } from "@/lib/admin-audit";
+import { auditAdmin, auditAdminAwaitable } from "@/lib/admin-audit";
+import { handleServerError } from "@/utils/error-handler";
 
 export async function updateServiceDescription(serviceId: string, description: string) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
@@ -17,7 +18,7 @@ export async function updateServiceDescription(serviceId: string, description: s
       const ipAddress = await getClientIp('unknown');
 
       // Log the action
-      auditAdmin({
+      await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: "UPDATE_SERVICE_DESCRIPTION",
@@ -32,7 +33,7 @@ export async function updateServiceDescription(serviceId: string, description: s
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Failed to update service description:", error);
-      return { success: false, error: error.message };
+      return { success: false, error: handleServerError(error).message };
     }
   });
 }

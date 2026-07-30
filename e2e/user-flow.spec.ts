@@ -377,7 +377,7 @@ test.describe('Milestone 4: Playwright E2E User Flow Tests', () => {
       // 6. Assert that an AuthToken is created in the database for the user
       // Retrieve the user from the database
       const dbUser = await prisma.user.findUnique({
-        where: { email },
+        where: { email_tenantId: { email, tenantId: 'smmplan' } },
         include: { authTokens: true }
       });
       expect(dbUser).not.toBeNull();
@@ -420,9 +420,9 @@ test.describe('Milestone 4: Playwright E2E User Flow Tests', () => {
   const setupAuthenticatedUser = async (email: string, balanceCents: number, page: any) => {
     // Create/upsert user with specified balance
     const user = await prisma.user.upsert({
-      where: { email },
+      where: { email_tenantId: { email, tenantId: 'smmplan' } },
       update: { balance: balanceCents, isActive: true, isDeleted: false },
-      create: { email, balance: balanceCents, role: 'USER' }
+      create: { email, tenantId: 'smmplan', balance: balanceCents, role: 'USER' }
     });
 
     // Create a new AuthToken for callback authentication

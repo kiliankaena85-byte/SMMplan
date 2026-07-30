@@ -7,12 +7,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Get the authenticated session (IDOR protection per round-table rules)
+    // 1. Get the authenticated session (optional for guest payments)
     const session = await verifySession();
-    
-    if (!session || !session.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const { id: paymentId } = await params;
 
@@ -25,8 +21,9 @@ export async function GET(
       return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
     }
 
-    // 3. IDOR Check: Ensure the payment belongs to the current user
-    if (payment.userId !== session.userId && session.role !== 'ADMIN') {
+    // 3. IDOR Check: Ensure the payment belongs to the current user (if logged in)
+    // For guest checkouts, knowledge of the secure CUID `paymentId` acts as the bearer token
+    if (session && session.userId && payment.userId !== session.userId && session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

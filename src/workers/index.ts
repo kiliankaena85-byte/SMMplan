@@ -42,12 +42,29 @@ log.info('🚀 Starting BullMQ workers...');
 
 const connection = getRedisConnection();
 
+import { jitteredBackoff } from '../lib/queue-manager';
+
 // ── Worker instances ──────────────────────────────────────────────────────────
 const workerConfig = { 
   connection,
   lockDuration: 60000,     // 60s lock to prevent false stalls during slow provider APIs (our breaker is 15s)
   stalledInterval: 30000,  // Check for stalled jobs every 30s
-  maxStalledCount: 1       // Only retry a stalled job once before failing
+  maxStalledCount: 1,      // Only retry a stalled job once before failing
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  settings: {
+    backoffStrategies: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      jittered: (attemptsMade: number, type: string, err: Error, job: any) => {
+        const delay = job.opts.backoff?.delay || 5000;
+        return jitteredBackoff(attemptsMade, delay);
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      exponential: (attemptsMade: number, type: string, err: Error, job: any) => {
+        const delay = job.opts.backoff?.delay || 5000;
+        return jitteredBackoff(attemptsMade, delay);
+      }
+    }
+  } as any
 };
 
 const orderWorker = new Worker('ordersQueue', orderProcessor, workerConfig);

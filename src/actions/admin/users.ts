@@ -6,16 +6,22 @@ import { escrowService } from '@/services/admin/escrow.service';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { SignJWT } from 'jose';
 import { updateBalanceSchema, userIdSchema } from '@/validators/admin.validators';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { getClientIp } from '@/utils/ip';
 
 import { getEncodedKey } from '@/lib/session';
+import { SupportBalancePolicyService } from '@/services/financial/support-balance-policy.service';
 
 export async function updateBalanceAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
+    // 1. Role Guard: SUPPORT cannot perform direct balance updates under any circumstances
+    if (admin.role === 'SUPPORT') {
+      return { success: false as const, error: 'Службе поддержки запрещено прямое изменение балансов. Используйте компенсацию в тикете или создайте заявку на согласование.' };
+    }
+
     const payload = Object.fromEntries(formData.entries());
     const parsed = updateBalanceSchema.safeParse(payload);
     
@@ -25,12 +31,50 @@ export async function updateBalanceAction(formData: FormData) {
 
     const { userId, amount, reason } = parsed.data;
 
-    // Additional safeguard: only OWNER and ADMIN for large balance updates if needed, 
-    // but here we follow RBAC 'edit' permission for 'clients' section.
-    // If SUPPORT has 'edit' permission for 'clients', they can update balance. 
-    // Usually, SUPPORT should only have 'view' for 'clients'.
+    // 2. SECURITY GUARD: Block self-balance modification (only OWNER permitted with audit warning)
+    if (userId === admin.id && admin.role !== 'OWNER') {
+      console.warn(`[SECURITY] Blocked self-balance modification attempt by ${admin.id} (${admin.role})`);
+      return { success: false as const, error: 'Запрещено изменять собственный баланс' };
+    }
+
+    // 3. Staff-Targeting Guard: Non-OWNER staff cannot adjust balance of other staff members
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
+    if (!targetUser) {
+      return { success: false as const, error: 'Пользователь не найден' };
+    }
+
+    if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN' || targetUser.role === 'MANAGER' || targetUser.role === 'SUPPORT')) {
+      console.warn(`[SECURITY] Non-owner ${admin.id} (${admin.role}) attempted balance adjustment on staff target ${targetUser.id} (${targetUser.role})`);
+      return { success: false as const, error: 'Только OWNER может изменять баланс других сотрудников' };
+    }
 
     const ipAddress = await getClientIp('unknown');
+    const reqHeaders = await headers();
+    const userAgent = reqHeaders.get('user-agent') || 'Unknown';
+    const idempotencyKey = `direct-adjust-${userId}-${amount}-${Date.now()}`;
+
+    // 4. For non-OWNER staff, run through Policy Engine first
+    let policyCheck: any = null;
+    if (admin.role !== 'OWNER') {
+      policyCheck = await db.$transaction(async (tx) => {
+        return SupportBalancePolicyService.validateAndReserveSupportOperation(tx, {
+          staffUserId: admin.id,
+          targetUserId: userId,
+          direction: amount >= 0 ? 'CREDIT' : 'DEBIT',
+          amountCents: BigInt(Math.abs(amount)),
+          reasonCode: amount >= 0 ? 'DIRECT_CREDIT' : 'DIRECT_DEBIT',
+          reasonNote: reason.trim(),
+          source: 'DIRECT_ADJUSTMENT',
+          idempotencyKey,
+          ipAddress,
+          userAgent
+        });
+      });
+
+      if (!policyCheck.allowed) {
+        return { success: false as const, error: policyCheck.error };
+      }
+    }
 
     const escrowResult = await escrowService.evaluateBalanceAdjustment(
       userId,
@@ -38,6 +82,38 @@ export async function updateBalanceAction(formData: FormData) {
       reason.trim(),
       admin
     );
+
+    // If policyCheck was executed, create a SupportFinancialAction record
+    if (policyCheck && policyCheck.allowed) {
+      const ledgerEntry = await db.ledgerEntry.findFirst({
+        where: { adminId: admin.id, userId: userId },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      const isFlagged = Math.abs(amount) >= 500000 || policyCheck.warnings.length > 0;
+      const reviewStatus = isFlagged ? 'FLAGGED' : 'PENDING';
+
+      await db.supportFinancialAction.create({
+        data: {
+          staffUserId: admin.id,
+          targetUserId: userId,
+          direction: amount >= 0 ? 'CREDIT' : 'DEBIT',
+          source: 'DIRECT_ADJUSTMENT',
+          amountCents: BigInt(Math.abs(amount)),
+          reasonCode: amount >= 0 ? 'DIRECT_CREDIT' : 'DIRECT_DEBIT',
+          reasonNote: reason.trim(),
+          policyId: policyCheck.policy.id,
+          policySnapshot: JSON.parse(JSON.stringify(policyCheck.policy, (_, v) => typeof v === 'bigint' ? v.toString() : v)),
+          idempotencyKey,
+          status: escrowResult.status === 'APPROVED' ? 'EXECUTED' : 'QUARANTINE',
+          ledgerEntryId: ledgerEntry?.id || null,
+          consentId: policyCheck.consentId || null,
+          reviewStatus,
+          ipAddress,
+          userAgent
+        }
+      });
+    }
 
     // SD-13 SECURITY FIX: Await audit for balance modification (financial operation)
     await auditAdminAwaitable({
@@ -129,6 +205,9 @@ export async function loginAsAction(formData: FormData) {
     }
 
     const targetUser = await db.user.findUniqueOrThrow({ where: { id: userId } });
+    if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN')) {
+      return { success: false as const, error: 'Запрещено входить от имени администраторов и владельцев' };
+    }
     const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
 
     // SD-07 SECURITY FIX: Record impersonation origin for audit trail integrity.

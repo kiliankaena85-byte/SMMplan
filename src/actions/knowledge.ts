@@ -7,6 +7,7 @@ import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
 
 // Zod Schema for Article validation at runtime
 const articleSchema = z.object({
@@ -111,6 +112,73 @@ export async function getArticleBySlug(slug: string) {
     });
 
     if (!article) {
+      // Fallback: check static SEO pillars and glossary
+      const pillar = pillarPages.find(p => p.slug === slug);
+      if (pillar) {
+        return {
+          success: true,
+          article: {
+            id: `static-${pillar.slug}`,
+            slug: pillar.slug,
+            title: pillar.title,
+            description: pillar.excerpt,
+            content: pillar.contentHtml,
+            status: "PUBLISHED" as const,
+            category: pillar.category,
+            viewCount: 154,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            authorName: "Команда SMMplan",
+            authorRole: "Редакция SMMplan",
+            priority: 10,
+          }
+        };
+      }
+
+      const cluster = clusterArticles.find(c => c.slug === slug);
+      if (cluster) {
+        return {
+          success: true,
+          article: {
+            id: `static-${cluster.slug}`,
+            slug: cluster.slug,
+            title: cluster.title,
+            description: cluster.excerpt,
+            content: cluster.contentHtml,
+            status: "PUBLISHED" as const,
+            category: cluster.category,
+            viewCount: 112,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            authorName: "Команда SMMplan",
+            authorRole: "Редакция SMMplan",
+            priority: 5,
+          }
+        };
+      }
+
+      const glossary = glossaryTerms.find(g => g.slug === slug || g.slug === `glossary/${slug}`);
+      if (glossary) {
+        return {
+          success: true,
+          article: {
+            id: `static-${glossary.slug}`,
+            slug: glossary.slug,
+            title: glossary.term,
+            description: glossary.definition,
+            content: glossary.contentHtml,
+            status: "PUBLISHED" as const,
+            category: "Словарь SMM",
+            viewCount: 98,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            authorName: "Команда SMMplan",
+            authorRole: "Редакция SMMplan",
+            priority: 5,
+          }
+        };
+      }
+
       return { success: false, error: "Статья не найдена" };
     }
 
@@ -122,14 +190,63 @@ export async function getArticleBySlug(slug: string) {
     }
 
     // Increment viewCount asynchronously/simply
-    const updatedArticle = await prisma.article.update({
-      where: { id: article.id },
-      data: { viewCount: { increment: 1 } }
-    });
-
-    return { success: true, article: updatedArticle };
+    try {
+      const updatedArticle = await prisma.article.update({
+        where: { id: article.id },
+        data: { viewCount: { increment: 1 } }
+      });
+      return { success: true, article: updatedArticle };
+    } catch {
+      return { success: true, article };
+    }
   } catch (error) {
     console.error("Failed to get article by slug:", error);
+
+    // Emergency Fallback on DB exception
+    const pillar = pillarPages.find(p => p.slug === slug);
+    if (pillar) {
+      return {
+        success: true,
+        article: {
+          id: `static-${pillar.slug}`,
+          slug: pillar.slug,
+          title: pillar.title,
+          description: pillar.excerpt,
+          content: pillar.contentHtml,
+          status: "PUBLISHED" as const,
+          category: pillar.category,
+          viewCount: 154,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          authorName: "Команда SMMplan",
+          authorRole: "Редакция SMMplan",
+          priority: 10,
+        }
+      };
+    }
+
+    const glossary = glossaryTerms.find(g => g.slug === slug || g.slug === `glossary/${slug}`);
+    if (glossary) {
+      return {
+        success: true,
+        article: {
+          id: `static-${glossary.slug}`,
+          slug: glossary.slug,
+          title: glossary.term,
+          description: glossary.definition,
+          content: glossary.contentHtml,
+          status: "PUBLISHED" as const,
+          category: "Словарь SMM",
+          viewCount: 98,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          authorName: "Команда SMMplan",
+          authorRole: "Редакция SMMplan",
+          priority: 5,
+        }
+      };
+    }
+
     return { success: false, error: "Ошибка при получении статьи" };
   }
 }

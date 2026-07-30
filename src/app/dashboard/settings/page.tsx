@@ -4,17 +4,21 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Mail, Calendar, Shield,
-  CreditCard, TrendingUp, Settings, Star,
+  CreditCard, TrendingUp, Settings, Star, Key,
 } from 'lucide-react';
 import PasswordCard from '@/components/dashboard/settings/PasswordCard';
 import DeleteAccountCard from '@/components/dashboard/settings/DeleteAccountCard';
 import TelegramCard from '@/components/dashboard/settings/TelegramCard';
+import Consent152FzCard from '@/components/dashboard/settings/Consent152FzCard';
+import CompanyRequisitesCard from '@/components/dashboard/settings/CompanyRequisitesCard';
+import B2bWebhookCard from '@/components/dashboard/settings/B2bWebhookCard';
+import ApiKeyManager from './api/ApiKeyManager';
 import { formatBalance } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Профиль | SMMplan',
+  title: 'Профиль и Настройки | SMMplan',
 };
 
 export default async function ClientSettingsPage() {
@@ -34,6 +38,19 @@ export default async function ClientSettingsPage() {
       referralCode: true,
       referralBalance: true,
       telegramId: true,
+      apiKeyHash: true,
+      tosAcceptedAt: true,
+      tosAcceptedIp: true,
+      companyName: true,
+      inn: true,
+      kpp: true,
+      legalAddress: true,
+      b2bConfig: {
+        select: {
+          webhookUrl: true,
+          webhookSecret: true,
+        },
+      },
       _count: {
         select: {
           orders: true,
@@ -67,9 +84,9 @@ export default async function ClientSettingsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Профиль</h1>
+        <h1 className="text-2xl font-bold text-foreground">Профиль и настройки</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Ваш аккаунт и статистика
+          Управление безопасностью, реквизитами организации, B2B API и профилем
         </p>
       </div>
 
@@ -116,8 +133,6 @@ export default async function ClientSettingsPage() {
         ))}
       </div>
 
-
-
       {/* Account details */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
@@ -139,6 +154,50 @@ export default async function ClientSettingsPage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* 152-FZ Consent Status */}
+      <Consent152FzCard
+        tosAcceptedAt={user.tosAcceptedAt}
+        tosAcceptedIp={user.tosAcceptedIp}
+      />
+
+      {/* Tax & Company Requisites */}
+      <CompanyRequisitesCard
+        initialData={{
+          companyName: user.companyName,
+          inn: user.inn,
+          kpp: user.kpp,
+          legalAddress: user.legalAddress,
+        }}
+      />
+
+      {/* B2B Webhook Settings */}
+      <B2bWebhookCard
+        initialData={{
+          webhookUrl: user.b2bConfig?.webhookUrl,
+          webhookSecret: user.b2bConfig?.webhookSecret,
+        }}
+      />
+
+      {/* API Key Management */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-sm">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2.5 bg-muted/20">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Key className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-foreground text-sm">
+              Управление API-ключами B2B
+            </h2>
+            <p className="text-[10px] text-muted-foreground">
+              Ключ авторизации для программного создания заказов через API SMMplan
+            </p>
+          </div>
+        </div>
+        <div className="p-5">
+          <ApiKeyManager hasKey={!!user.apiKeyHash} />
         </div>
       </div>
 
@@ -259,7 +318,7 @@ export default async function ClientSettingsPage() {
             <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
               B2B API
             </div>
-            <div className="text-xs text-muted-foreground">Управление API-ключом</div>
+            <div className="text-xs text-muted-foreground">Документация и полное управление API-ключами</div>
           </div>
         </Link>
       </div>

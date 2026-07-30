@@ -40,6 +40,16 @@ type OrderSearchParams = {
   maxPrice?: number;
   minQuantity?: number;
   maxQuantity?: number;
+  tenantId?: string;
+  isDripFeed?: boolean;
+  hasError?: boolean;
+  noProvider?: boolean;
+  staleMinutes?: number;
+  dateFrom?: Date;
+  dateTo?: Date;
+  providerId?: string;
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
 };
 
 // ── Service ──
@@ -75,6 +85,10 @@ class AdminOrderService {
 
     if (userId && userId.trim()) {
       where.userId = userId.trim();
+    }
+
+    if (params.tenantId && params.tenantId !== 'all') {
+      where.tenantId = params.tenantId;
     }
 
     if (status && status !== 'ALL') {
@@ -162,6 +176,34 @@ class AdminOrderService {
       where.quantity = qtyFilters;
     }
 
+    if (params.isDripFeed !== undefined) {
+      where.isDripFeed = params.isDripFeed;
+    }
+
+    if (params.hasError) {
+      where.error = { not: null };
+    }
+
+    if (params.noProvider) {
+      where.providerId = null;
+    } else if (params.providerId) {
+      where.providerId = params.providerId;
+    }
+
+    if (params.staleMinutes) {
+      const threshold = new Date(Date.now() - params.staleMinutes * 60 * 1000);
+      where.createdAt = { lte: threshold };
+      where.status = { in: ['PENDING', 'IN_PROGRESS'] };
+    }
+
+    if (params.dateFrom || params.dateTo) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dateFilter: any = {};
+      if (params.dateFrom) dateFilter.gte = params.dateFrom;
+      if (params.dateTo) dateFilter.lte = params.dateTo;
+      where.createdAt = { ...where.createdAt, ...dateFilter };
+    }
+
     if (query && query.trim()) {
       const q = query.trim();
       const numericId = parseInt(q, 10);
@@ -198,11 +240,20 @@ class AdminOrderService {
       }
     }
 
+    // Dynamic sorting
+    let orderBy: Record<string, 'asc' | 'desc'> = { createdAt: 'desc' };
+    if (params.sortField) {
+      const dir = params.sortOrder === 'asc' ? 'asc' : 'desc';
+      if (['numericId', 'status', 'quantity', 'remains', 'charge', 'providerCost', 'createdAt', 'updatedAt'].includes(params.sortField)) {
+        orderBy = { [params.sortField]: dir };
+      }
+    }
+
     return paginatedQuery<AdminOrderRow>(db.order, {
       cursor,
       pageSize,
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       include: {
         user: { select: { id: true, email: true } },
         provider: { select: { name: true, ticketUrl: true } },

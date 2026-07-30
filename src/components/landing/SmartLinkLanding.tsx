@@ -58,7 +58,8 @@ export function SmartLinkLanding({
   initialServiceId = "",
   initialCategoryId = "",
   initialNetworkId = "",
-  userBalanceCents = 0
+  userBalanceCents = 0,
+  tenantId
 }: {
   initialCatalog: PublicNetwork[];
   initialEmail?: string;
@@ -75,6 +76,7 @@ export function SmartLinkLanding({
   initialCategoryId?: string;
   initialNetworkId?: string;
   userBalanceCents?: number;
+  tenantId?: string;
 }) {
   const companyName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "SMMplan";
   const engine = useOrderEngine(initialCatalog, initialEmail, initialServiceId, initialCategoryId, initialNetworkId);
@@ -410,7 +412,7 @@ export function SmartLinkLanding({
         <FAQ companyName={companyName} />
       </div>
       
-      <MegaFooter contactSettings={contactSettings} />
+      <MegaFooter contactSettings={contactSettings} tenantId={tenantId} />
 
       {/* ══════════ CHECKOUT DRAWER (Яндекс-шторка) - Variant A ══════════ */}
       {(!abVariant || abVariant === "A") && !engine.isMassMode && !showSmartCart && (

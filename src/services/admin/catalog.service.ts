@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
 import { sendAdminAlert } from '@/lib/notifications';
@@ -16,6 +17,7 @@ import { ServiceAuditEngine } from './audit-engine';
 import { z } from 'zod';
 import { SecuritySanitizer } from '@/utils/security-sanitizer';
 import { SmartAnalyzerLogic } from '@/services/providers/smart-analyzer.logic';
+import { sanitizeServiceDescription } from '@/lib/sanitize';
 
 const rawServiceSchema = z.object({
   service: z.union([z.string(), z.number()]),
@@ -357,7 +359,7 @@ class AdminCatalogService {
         cleanName: s.cleanName || null,
         platform: (s.metrics?.platform || 'other').toLowerCase(),
         normalizedCategory: s.metrics?.category || null,
-        targetType: s.metrics?.targetType || 'POST',
+        targetType: s.metrics?.targetType || inferTargetTypeFromCategory(s.category || s.name),
         customDataType: s.metrics?.customDataType || 'NONE',
         isMediaGroupAware: s.metrics?.isMediaGroupAware || false,
         isPrivate: s.metrics?.isPrivate || false,
@@ -367,6 +369,34 @@ class AdminCatalogService {
         anomalyScore: s.metrics?.anomalyScore || 0.0
       };
     });
+
+    const MIN_PREVIOUS_FOR_SHRINK_CHECK = 20;
+    const SHRINK_THRESHOLD = 0.5;
+
+    const previousCount = await db.shadowService.count({ where: { providerId: providerDbRecord.id } });
+    const fetchedCount = validRawServices.length;
+
+    if (fetchedCount === 0 && previousCount > 0) {
+      await db.routingAuditLog.create({
+        data: {
+          serviceId: 'SYSTEM',
+          action: 'PROVIDER_SYNC_ABORTED_EMPTY',
+          reason: `Sync aborted: Provider returned 0 valid services, previous shadow count was ${previousCount}`
+        }
+      });
+      throw new Error('PROVIDER_RETURNED_EMPTY_CATALOG');
+    }
+
+    if (previousCount >= MIN_PREVIOUS_FOR_SHRINK_CHECK && fetchedCount < previousCount * SHRINK_THRESHOLD) {
+      await db.routingAuditLog.create({
+        data: {
+          serviceId: 'SYSTEM',
+          action: 'PROVIDER_SYNC_ABORTED_SHRINK',
+          reason: `Sync aborted: Provider returned ${fetchedCount} services, abnormally shrunk from previous ${previousCount}`
+        }
+      });
+      throw new Error('PROVIDER_CATALOG_SHRUNK_ABNORMALLY');
+    }
 
     // Use a transaction to perform atomic wipe and write in chunks
     await db.$transaction(async (tx) => {
@@ -395,7 +425,7 @@ class AdminCatalogService {
     if (!providerDbRecord) throw new Error('Провайдер не найден');
     if (providerDbRecord.syncLock) throw new Error('Синхронизация отключена (syncLock)');
 
-    console.log(`[DEBUG] syncProviderCatalog started. providerId: ${providerId}`);
+    logger.debug('syncProviderCatalog started', { providerId });
 
     // 1. Refresh shadow catalog in database (chunked and memory-safe)
     await this.refreshShadowCatalog(providerId);
@@ -404,7 +434,7 @@ class AdminCatalogService {
     const ourServices = await db.service.findMany({
       where: { providerId }
     });
-    console.log(`[DEBUG] ourServices count: ${ourServices.length}, ids: ${JSON.stringify(ourServices.map(s => s.id))}`);
+    logger.debug('ourServices fetched', { count: ourServices.length, ids: ourServices.map(s => s.id) });
 
     // 3. Query only corresponding staging services from ShadowService table
     const activeExternalIds = ourServices.map(s => s.externalId).filter(Boolean) as string[];
@@ -417,19 +447,44 @@ class AdminCatalogService {
 
     // Map by externalId for fast O(1) lookup
     const stagingMap = new Map(stagingServices.map((s) => [s.externalId, s]));
-    console.log(`[DEBUG] stagingServices count: ${stagingServices.length}, keys: ${JSON.stringify(Array.from(stagingMap.keys()))}`);
+    logger.debug('stagingServices fetched', { count: stagingServices.length, keys: Array.from(stagingMap.keys()) });
 
     let zombiesDisabled = 0;
     let resurrected = 0;
     let priceAnomalies = 0;
     let priceUpdatedSilent = 0;
-    let marginFloorBreaches = 0;
+    const marginFloorBreaches = 0;
 
     const settings = await SettingsProvider.get();
     const usdToRub = settings.exchangeRateUSD || 95.0;
     const QUARANTINE_THRESHOLD = settings.quarantineThreshold || 0.2;
     const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
     const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
+
+    const zombieIds: string[] = [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let pendingUpdates: Array<{ id: string; data: any; oldRate: number; newRate: number }> = [];
+
+    const executeUpdatesChunk = async (chunk: typeof pendingUpdates) => {
+      await db.$transaction(async (tx) => {
+        for (const item of chunk) {
+          await tx.service.update({
+            where: { id: item.id },
+            data: item.data,
+          });
+
+          if (item.newRate !== item.oldRate) {
+            await tx.servicePriceHistory.create({
+              data: {
+                serviceId: item.id,
+                rate: item.newRate,
+              },
+            });
+          }
+        }
+      });
+    };
 
     for (const s of ourServices) {
       if (!s.externalId) continue;
@@ -438,28 +493,9 @@ class AdminCatalogService {
 
       if (!stagingExt) {
         // ZOMBIE DETECTION: Service was deleted by the provider
-        console.log(`[DEBUG] Zombie candidate: externalId=${s.externalId}, isActive=${s.isActive}`);
+        logger.debug('Zombie candidate detected', { externalId: s.externalId, isActive: s.isActive });
         if (s.isActive) {
-          await db.service.update({
-            where: { id: s.id },
-            data: { 
-              isActive: false, 
-              cooldownReason: 'ZOMBIE_AUTO_DISABLED',
-              cooldownUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-            }
-          });
-
-          await db.routingAuditLog.create({
-            data: {
-              serviceId: s.id,
-              action: 'ZOMBIE_AUTO_DISABLED',
-              reason: 'Услуга удалена провайдером из API'
-            }
-          });
-
-          const alertMsg = `🧟 [Zombie Eraser] Услуга #${s.numericId} - "${s.name}" автоматически отключена, так как она была удалена провайдером из API.`;
-          await sendAdminAlert(alertMsg, 'WARNING');
-
+          zombieIds.push(s.id);
           zombiesDisabled++;
         }
       } else {
@@ -491,8 +527,9 @@ class AdminCatalogService {
         if (!s.isActive && s.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
           // Check Price Spike before resurrecting
           const oldRate = s.rate;
+          const EPSILON_RATE = 0.001;
 
-          if (oldRate > 0 && rawRate > oldRate * (1 + QUARANTINE_THRESHOLD)) {
+          if (oldRate > 0 && rawRate > (oldRate * (1 + QUARANTINE_THRESHOLD) + EPSILON_RATE)) {
             // Price spiked! Quarantine it
             await db.service.update({
               where: { id: s.id },
@@ -547,7 +584,25 @@ class AdminCatalogService {
           const pricePerUnitRub = (currentRetailCents / 100) / 1000;
           const purchaseCostPerUnitRub = (newRate * exchangeRate) / 1000;
 
-          if (pricePerUnitRub < purchaseCostPerUnitRub || actualMarkup < 1.0) {
+          // Price Spike Detection (> 30% increase)
+          const rateDiff = oldRate > 0 ? (newRate - oldRate) / oldRate : 0;
+          if (oldRate > 0 && rateDiff > 0.30) {
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false, // Immediately take off storefront
+                isQuarantined: true,
+                pendingRate: newRate,
+                quarantineReason: `Price Spike (+${(rateDiff * 100).toFixed(0)}%): c $${oldRate} до $${newRate}`,
+                quarantinedAt: new Date()
+              }
+            });
+
+            const alertMsg = `🚨 Price spike: услуга "${s.name}" (id=${s.id}) — рост цены ${(rateDiff * 100).toFixed(0)}%. Автоматически снята с витрины.`;
+            logger.warn(alertMsg, { serviceId: s.id, oldRate, newRate, rateDiff });
+            await sendAdminAlert(alertMsg, 'WARNING');
+            priceAnomalies++;
+          } else if (pricePerUnitRub < purchaseCostPerUnitRub || actualMarkup < 1.0) {
             // Loss prevention breach! Deactivate service immediately
             await db.service.update({
               where: { id: s.id },
@@ -571,129 +626,81 @@ class AdminCatalogService {
             await sendAdminAlert(alertMsg, 'CRITICAL');
             priceAnomalies++;
           } else {
-            const driftPercent = oldRate > 0 ? (newRate - oldRate) / oldRate : 0;
+            // Owner Directive: "Мы перерасчитываем сразу" & "Минимальную маржу устанавливает овнер (по стандарту 200% / 3.0x)"
+            const minMarkup = settings.globalMarkup || 3.0;
+            const effectiveMarkup = Math.max(s.markup, minMarkup);
+            const calculatedPriceCents = Math.round(applyBeautifulRounding(newRate * effectiveMarkup * exchangeRate) * 100);
 
-            // Retrieve price history to calculate 30-day cumulative drift
-            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-            let baselineRecord = await db.servicePriceHistory.findFirst({
-              where: {
-                serviceId: s.id,
-                createdAt: { lte: thirtyDaysAgo }
-              },
-              orderBy: { createdAt: 'desc' }
+            // Respect custom fields if set
+            const updateData: Record<string, unknown> = {
+              rate: newRate,
+              providerCurrency: providerCurrency,
+              pricePer1000Cents: calculatedPriceCents,
+              markup: effectiveMarkup,
+              minQty: stagingExt.min,
+              maxQty: stagingExt.max,
+              lastSeenAt: new Date(),
+              isQuarantined: false,
+              quarantineReason: null
+            };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (!(s as any).isCustomName) {
+              updateData.name = stagingExt.name || s.name;
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if (!(s as any).isCustomDescription && stagingExt.name) {
+              // keep description intact unless specified
+            }
+
+            pendingUpdates.push({
+              id: s.id,
+              data: updateData,
+              oldRate,
+              newRate
             });
 
-            if (!baselineRecord) {
-              baselineRecord = await db.servicePriceHistory.findFirst({
-                where: { serviceId: s.id },
-                orderBy: { createdAt: 'asc' }
-              });
-            }
-
-            let historicalRate = baselineRecord ? baselineRecord.rate : oldRate;
-
-            if (!baselineRecord && newRate !== oldRate) {
-              await db.servicePriceHistory.create({
-                data: {
-                  serviceId: s.id,
-                  rate: oldRate,
-                  createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000)
-                }
-              });
-              historicalRate = oldRate;
-            }
-
-            const cumulativeDrift = oldRate > 0 ? (newRate - historicalRate) / historicalRate : 0;
-
-            if (actualMarkup < SAFETY_FLOOR_MARKUP) {
-              // 1. Margin Floor breach -> Quarantine
-              await db.service.update({
-                where: { id: s.id },
-                data: {
-                  isQuarantined: true,
-                  isActive: false, // Deactivate on quarantine
-                  pendingRate: newRate,
-                  quarantineReason: `Margin Floor Breach: Наценка упала до ${actualMarkup.toFixed(2)}x (Min: ${SAFETY_FLOOR_MARKUP}x)`,
-                  quarantinedAt: new Date()
-                }
-              });
-              marginFloorBreaches++;
-              priceAnomalies++;
-            } else if (driftPercent > QUARANTINE_THRESHOLD) {
-              // 2. Quarantine threshold > 20% (instant spike)
-              await db.service.update({
-                where: { id: s.id },
-                data: {
-                  isQuarantined: true,
-                  isActive: false, // Deactivate on quarantine
-                  pendingRate: newRate,
-                  quarantineReason: `Price Spike: Ценовой скачок у провайдера (> 20%)`,
-                  quarantinedAt: new Date()
-                }
-              });
-              priceAnomalies++;
-              await sendAdminAlert(`🚨 [Quarantine] Услуга ${s.id} (${s.name}) ушла в карантин из-за ценового скачка (> 20%)`, 'WARNING');
-            } else if (cumulativeDrift > QUARANTINE_THRESHOLD) {
-              // 3. Cumulative Price Drift > 20% over 30 days
-              await db.service.update({
-                where: { id: s.id },
-                data: {
-                  isQuarantined: true,
-                  isActive: false, // Deactivate on quarantine
-                  pendingRate: newRate,
-                  quarantineReason: `Cumulative Price Drift: Цена выросла с ${providerCurrency === 'RUB' ? '₽' : '$'}${historicalRate.toFixed(4)} до ${providerCurrency === 'RUB' ? '₽' : '$'}${newRate.toFixed(4)} (+${(cumulativeDrift * 100).toFixed(1)}% за последние 30 дней)`,
-                  quarantinedAt: new Date()
-                }
-              });
-              priceAnomalies++;
-            } else {
-              const calculatedMarkup = s.markup;
-              const calculatedPriceCents = Math.round(applyBeautifulRounding(newRate * s.markup * exchangeRate) * 100);
-
-              // 5. Silent update (Drift <= threshold, or Drop)
-              await db.service.update({
-                where: { id: s.id },
-                data: {
-                  rate: newRate,
-                  providerCurrency: providerCurrency,
-                  pricePer1000Cents: calculatedPriceCents,
-                  markup: calculatedMarkup,
-                  minQty: stagingExt.min,
-                  maxQty: stagingExt.max,
-                  lastSeenAt: new Date(),
-                  isQuarantined: false,
-                  quarantineReason: null
-                }
-              });
-
-              if (newRate !== oldRate) {
-                await db.servicePriceHistory.create({
-                  data: {
-                    serviceId: s.id,
-                    rate: newRate
-                  }
-                });
-                priceUpdatedSilent++;
-              }
-
-              if (driftPercent >= 0.05 && driftPercent <= QUARANTINE_THRESHOLD) {
-                await db.routingAuditLog.create({
-                  data: {
-                    serviceId: s.id,
-                    adminId: admin.id,
-                    action: 'PRICE_DRIFT',
-                    reason: `Drift +${(driftPercent * 100).toFixed(1)}%: $${oldRate} -> $${newRate}`
-                  }
-                });
-
-                if (driftPercent > 0.15) {
-                  sendAdminAlert(`⚠️ [Price Drift] Услуга ${s.id} (${s.name}): цена выросла на ${(driftPercent * 100).toFixed(1)}% ($${oldRate} -> $${newRate}). Розница не изменилась, наценка снизилась.`, 'WARNING');
-                }
-              }
+            if (pendingUpdates.length >= 50) {
+              await executeUpdatesChunk(pendingUpdates);
+              priceUpdatedSilent += pendingUpdates.filter(u => u.newRate !== u.oldRate).length;
+              pendingUpdates = [];
             }
           }
         }
       }
+    }
+
+    if (pendingUpdates.length > 0) {
+      await executeUpdatesChunk(pendingUpdates);
+      priceUpdatedSilent += pendingUpdates.filter(u => u.newRate !== u.oldRate).length;
+      pendingUpdates = [];
+    }
+
+    // Process zombies in batches of 500 to avoid N+1 query spam and connection pool exhaustion
+    const ZOMBIE_BATCH_SIZE = 500;
+    for (let i = 0; i < zombieIds.length; i += ZOMBIE_BATCH_SIZE) {
+      const batchIds = zombieIds.slice(i, i + ZOMBIE_BATCH_SIZE);
+      
+      await db.service.updateMany({
+        where: { id: { in: batchIds } },
+        data: {
+          isActive: false,
+          cooldownReason: 'ZOMBIE_AUTO_DISABLED',
+          cooldownUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        }
+      });
+
+      await db.routingAuditLog.createMany({
+        data: batchIds.map(id => ({
+          serviceId: id,
+          adminId: admin.id,
+          action: 'ZOMBIE_AUTO_DISABLED',
+          reason: 'Услуга удалена провайдером из API'
+        }))
+      });
+
+      const alertMsg = `🧟 [Zombie Eraser] Автоматически отключено ${batchIds.length} мертвых услуг (Пакет ${Math.floor(i / ZOMBIE_BATCH_SIZE) + 1}).`;
+      await sendAdminAlert(alertMsg, 'WARNING');
     }
 
     auditAdmin({
@@ -706,7 +713,7 @@ class AdminCatalogService {
     });
 
     const syncResult = { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches };
-    console.log(`[DEBUG] syncProviderCatalog finished. Result:`, syncResult);
+    logger.info('syncProviderCatalog finished', { result: syncResult });
     return syncResult;
   }
 
@@ -830,7 +837,7 @@ class AdminCatalogService {
 
       servicesToCreate.push({
         name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization
-        description: importedDesc ? ServiceAuditEngine.cleanText(importedDesc) : null,
+        description: importedDesc ? sanitizeServiceDescription(ServiceAuditEngine.cleanText(importedDesc)) : null,
         externalId: extId,
         categoryId: categoryIdMap?.[extId] || categoryId,
         providerId: providerDbRecord.id,

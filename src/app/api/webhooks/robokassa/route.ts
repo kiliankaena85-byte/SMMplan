@@ -45,6 +45,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
+    const currency = urlObj.searchParams.get('OutSumCurrency') || 'RUB';
+    if (currency !== 'RUB') {
+      console.error(`[Robokassa Webhook] Rejected invalid currency: ${currency}`);
+      return NextResponse.json({ error: 'Unsupported currency' }, { status: 400 });
+    }
+
     // 2. Fetch system secrets
     const secrets = await SettingsProvider.getPaymentSecrets();
     const password = secrets.robokassaWebhookPassword;
@@ -71,7 +77,7 @@ export async function POST(req: NextRequest) {
     const isMatch = a.length === b.length && timingSafeEqual(a, b);
 
     if (!isMatch) {
-      console.error(`[Robokassa Webhook] Cryptographic signature mismatch. Expected: ${expectedSig}, Got: ${signatureHex}`);
+      console.error(`[Robokassa Webhook] Cryptographic signature mismatch for payment ${shp_paymentId}`);
       if (ip) {
         await db.securityEvent.create({
           data: {
@@ -100,8 +106,15 @@ export async function POST(req: NextRequest) {
       return new NextResponse(`OK${invId || '0'}`, { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
 
-    // Convert outSum to cents
-    const amountCents = Math.round(parseFloat(outSum) * 100);
+    // Convert outSum to kopecks (bigint)
+    const amountMatch = /^(\d+)(?:\.(\d{1,2}))?$/.exec(outSum.trim());
+    if (!amountMatch) {
+      console.error(`[Robokassa Webhook] Invalid outSum format: ${outSum}`);
+      return NextResponse.json({ error: 'Invalid amount format' }, { status: 400 });
+    }
+    const intCents = BigInt(amountMatch[1]) * BigInt(100);
+    const decCents = BigInt((amountMatch[2] || '00').padEnd(2, '0').slice(0, 2));
+    const amountCents = intCents + decCents;
 
     if (payment.amount > amountCents) {
       console.error(`[Robokassa Webhook] Amount underpayment exploit attempt: expected ${payment.amount}, got ${amountCents}`);

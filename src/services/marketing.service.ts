@@ -229,10 +229,11 @@ class MarketingService {
         category: s.category.name,
         // Ensure rate matches the SMMplan schema (not cents) formatted strictly to 4 decimals
         rate: Number(finalRatePer1000).toFixed(4),
-        min: s.minQty.toString(),
-        max: s.maxQty.toString(),
+        min: s.minQty,
+        max: s.maxQty,
         dripfeed: s.isDripFeedEnabled,
-        refill: s.isRefillEnabled,
+        // TODO: set to s.isRefillEnabled when action=refill is implemented
+        refill: false,
         cancel: s.isCancelEnabled
       };
     });

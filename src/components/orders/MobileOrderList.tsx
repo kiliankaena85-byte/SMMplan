@@ -9,7 +9,11 @@ import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
 import { ClientDate } from '@/components/ui/client-date';
 import { Clock, ExternalLink, LayoutDashboard } from 'lucide-react';
 import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
+import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
+import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
+import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
 import { CopyText } from '@/components/ui/CopyText';
+import { formatRub } from '@/lib/money';
 import { SocialIcon } from '@/components/ui/SocialIcon';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -119,8 +123,16 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-bold text-foreground tabular-nums">
-                        {(Number(order.charge) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="text-sm font-bold text-foreground tabular-nums">
+                          {formatRub(Number(order.charge))} ₽
+                        </div>
+                        <ChargeBreakdownModal
+                          numericId={order.numericId}
+                          chargeCents={order.charge}
+                          discountCents={order.discountCents}
+                          usdToRubRate={order.usdToRubRate}
+                        />
                       </div>
                       <span className={`mt-1 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${color}`}>
                         {label}
@@ -150,36 +162,48 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                     </div>
                   )}
 
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span className="tabular-nums font-medium">{order.quantity.toLocaleString('ru-RU')} шт.</span>
                       <span>
                         <ClientDate date={order.createdAt} format="date-short" />
                       </span>
+                      <DripFeedProgress
+                        isDripFeed={order.isDripFeed}
+                        runs={order.runs}
+                        interval={order.interval}
+                        currentRun={order.currentRun}
+                        nextRunAt={order.nextRunAt}
+                      />
                     </div>
                     
-                    {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
-                        {order.status === 'AWAITING_PAYMENT' && user && (
-                          <RetryPaymentModal 
-                            orderId={order.id} 
-                            charge={Number(order.charge)} 
-                            balance={Number(user.balance)} 
-                          />
-                        )}
-                      </div>
-                    )}
-                    {!['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                         <RepeatOrderButton 
-                           serviceId={order.service.id} 
-                           categoryId={order.service.categoryId} 
-                           link={order.link} 
-                           quantity={order.quantity} 
-                         />
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <RefillRequestButton
+                        orderId={order.id}
+                        isRefillEnabled={order.service?.isRefillEnabled}
+                        orderStatus={order.status}
+                        refills={order.refills}
+                      />
+                      {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) ? (
+                        <>
+                          <CancelOrderButton orderId={order.id} createdAt={order.createdAt} status={order.status} />
+                          {order.status === 'AWAITING_PAYMENT' && user && (
+                            <RetryPaymentModal 
+                              orderId={order.id} 
+                              charge={Number(order.charge)} 
+                              balance={Number(user.balance)} 
+                            />
+                          )}
+                        </>
+                      ) : (
+                        <RepeatOrderButton 
+                          serviceId={order.service.id} 
+                          categoryId={order.service.categoryId} 
+                          link={order.link} 
+                          quantity={order.quantity} 
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -226,7 +250,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                       <div className="text-right">
                         <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Сумма</div>
                         <div className="text-lg font-black tabular-nums">
-                          {(Number(selectedOrder.charge) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                          {formatRub(Number(selectedOrder.charge))} ₽
                         </div>
                       </div>
                     </div>
@@ -279,37 +303,79 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                       </div>
                     )}
 
-                    {selectedOrder.status === 'ERROR' && selectedOrder.error && (
-                      <div className="bg-destructive/10 border border-rose-500/20 text-destructive p-3 rounded-xl">
-                        <div className="text-[10px] font-bold uppercase mb-1">Ошибка</div>
-                        <div className="text-xs font-semibold">{selectedOrder.error}</div>
+                    {(selectedOrder.isDripFeed || (selectedOrder.runs && selectedOrder.runs > 1)) && (
+                      <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
+                        <DripFeedProgress
+                          isDripFeed={selectedOrder.isDripFeed}
+                          runs={selectedOrder.runs}
+                          interval={selectedOrder.interval}
+                          currentRun={selectedOrder.currentRun}
+                          nextRunAt={selectedOrder.nextRunAt}
+                          showNextRunCountdown={true}
+                        />
                       </div>
                     )}
 
-                    {/* Action Buttons */}
-                    {['PENDING', 'AWAITING_PAYMENT'].includes(selectedOrder.status) && (
-                      <div className="flex gap-3 pt-2">
-                        <CancelOrderButton orderId={selectedOrder.id} createdAt={selectedOrder.createdAt} status={selectedOrder.status} />
-                        {selectedOrder.status === 'AWAITING_PAYMENT' && user && (
-                          <RetryPaymentModal 
-                            orderId={selectedOrder.id} 
-                            charge={Number(selectedOrder.charge)} 
-                            balance={Number(user.balance)} 
-                          />
+                    <div className="bg-muted/30 rounded-2xl p-4 border border-border/50 space-y-2.5">
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                        <span>Финансовая детализация</span>
+                        <ChargeBreakdownModal
+                          numericId={selectedOrder.numericId}
+                          chargeCents={selectedOrder.charge}
+                          discountCents={selectedOrder.discountCents}
+                          usdToRubRate={selectedOrder.usdToRubRate}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground block text-[10px]">Оплачено:</span>
+                          <span className="font-mono font-bold">{formatRub(Number(selectedOrder.charge))} ₽</span>
+                        </div>
+                        {Number(selectedOrder.discountCents || 0) > 0 && (
+                          <div>
+                            <span className="text-emerald-600 block text-[10px]">Скидка:</span>
+                            <span className="font-mono font-bold text-emerald-600">- {formatRub(Number(selectedOrder.discountCents))} ₽</span>
+                          </div>
                         )}
+                        <div className="col-span-2 pt-1 border-t border-border/30 flex justify-between items-center text-[10px]">
+                          <span className="text-muted-foreground">Курс ЦБ РФ при оплате:</span>
+                          <span className="font-mono font-bold">{selectedOrder.usdToRubRate ? `${selectedOrder.usdToRubRate.toFixed(2)} ₽ / $` : '90.00 ₽ / $'}</span>
+                        </div>
                       </div>
-                    )}
-                    {!['PENDING', 'AWAITING_PAYMENT'].includes(selectedOrder.status) && (
-                      <div className="flex gap-3 pt-2">
-                         <RepeatOrderButton 
-                           serviceId={selectedOrder.service.id} 
-                           categoryId={selectedOrder.service.categoryId} 
-                           link={selectedOrder.link} 
-                           quantity={selectedOrder.quantity} 
-                           className="w-full h-11 text-sm font-bold bg-primary text-primary-foreground border-none hover:bg-primary/90 hover:text-primary-foreground"
-                         />
-                      </div>
-                    )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-2 pt-2">
+                      <RefillRequestButton
+                        orderId={selectedOrder.id}
+                        isRefillEnabled={selectedOrder.service?.isRefillEnabled}
+                        orderStatus={selectedOrder.status}
+                        refills={selectedOrder.refills}
+                        className="w-full h-11 text-sm font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                      />
+                      {['PENDING', 'AWAITING_PAYMENT'].includes(selectedOrder.status) ? (
+                        <div className="flex gap-3">
+                          <CancelOrderButton orderId={selectedOrder.id} createdAt={selectedOrder.createdAt} status={selectedOrder.status} />
+                          {selectedOrder.status === 'AWAITING_PAYMENT' && user && (
+                            <RetryPaymentModal 
+                              orderId={selectedOrder.id} 
+                              charge={Number(selectedOrder.charge)} 
+                              balance={Number(user.balance)} 
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                           <RepeatOrderButton 
+                             serviceId={selectedOrder.service.id} 
+                             categoryId={selectedOrder.service.categoryId} 
+                             link={selectedOrder.link} 
+                             quantity={selectedOrder.quantity} 
+                             className="w-full h-11 text-sm font-bold bg-primary text-primary-foreground border-none hover:bg-primary/90 hover:text-primary-foreground"
+                           />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </DrawerBody>

@@ -60,6 +60,12 @@ export class LoyaltyService {
     const commissionCents = Math.round((depositAmountCents * percent) / 100);
     if (commissionCents <= 0) return;
 
+    // Idempotent check: prevent duplicate commissions for the same order and referrer
+    const existingComm = await tx.commission.findFirst({
+      where: { orderId, referrerId: user.referredById }
+    });
+    if (existingComm) return;
+
     // Create pending commission record
     await tx.commission.create({
       data: {

@@ -33,15 +33,17 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    ".next_temp_build/types/**/*.ts",
-    ".next_temp_build/dev/types/**/*.ts",
-    ".next/dev/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "scratch/**/*",
     "prisma/seed.ts",
-    "test/**/*"
+    "test/**/*",
+    "scripts/**/*",
+    "teamwork_projects/**/*",
+    "teamwork_projects",
+    "e2e/**/*",
+    "prisma/seed-mock.ts"
   ]
 }

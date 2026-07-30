@@ -9,6 +9,7 @@
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
+import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 
 const paymentsParamsSchema = z.object({
   status:   z.enum(['ALL', 'PENDING', 'SUCCEEDED', 'CANCELED']).default('ALL'),
@@ -16,6 +17,7 @@ const paymentsParamsSchema = z.object({
   search:   z.string().max(255).optional(),
   cursor:   z.string().optional(),
   pageSize: z.number().int().min(1).max(200).default(50),
+  tenantId: z.string().optional(),
 });
 
 export type PaymentsParams = z.infer<typeof paymentsParamsSchema>;
@@ -32,6 +34,7 @@ export type PaymentDTO = {
   consentIp: string | null;
   consentUserAgent: string | null;
   createdAt: string;
+  tenantId: string;
 };
 
 export type PaymentsPageResult = {
@@ -61,15 +64,17 @@ function getPeriodStart(period: string): Date | undefined {
 }
 
 export async function getPaymentsAction(params: Partial<PaymentsParams>): Promise<PaymentsPageResult | { success: false, error: string }> {
-  return requireStaffPermission('finance', 'view', async () => {
+  return requireStaffPermission('finance', 'view', async (admin) => {
     const p = paymentsParamsSchema.parse(params);
     const periodStart = getPeriodStart(p.period);
 
     const searchTrim = p.search?.trim();
+    const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
 
     const where = {
       ...(p.status !== 'ALL' ? { status: p.status } : {}),
       ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+      ...(activeTenantId && activeTenantId !== 'all' ? { tenantId: activeTenantId } : {}),
       ...(searchTrim ? {
         OR: [
           { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
@@ -110,6 +115,7 @@ export async function getPaymentsAction(params: Partial<PaymentsParams>): Promis
         consentIp: e.consentIp,
         consentUserAgent: e.consentUserAgent,
         createdAt: e.createdAt.toISOString(),
+        tenantId: e.tenantId,
       })),
       nextCursor: hasMore ? page[page.length - 1].id : null,
       hasMore,
@@ -129,6 +135,14 @@ type DisputePackOrderDTO = {
   createdAt: string;
 };
 
+export type DisputePackLedgerDTO = {
+  id: string;
+  type: string;
+  amount: number;
+  description: string;
+  createdAt: string;
+};
+
 export type PaymentDisputePackDTO = {
   payment: PaymentDTO;
   user: {
@@ -139,6 +153,7 @@ export type PaymentDisputePackDTO = {
     balance: number; // Cents
   };
   orders: DisputePackOrderDTO[];
+  ledgerEntries: DisputePackLedgerDTO[];
 };
 
 export async function getPaymentDisputePackAction(paymentId: string): Promise<PaymentDisputePackDTO | { success: false, error: string }> {
@@ -199,6 +214,12 @@ export async function getPaymentDisputePackAction(paymentId: string): Promise<Pa
       });
     }
 
+    const ledgerEntries = await db.ledgerEntry.findMany({
+      where: { userId: payment.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
     return {
       payment: {
         id: payment.id,
@@ -212,6 +233,7 @@ export async function getPaymentDisputePackAction(paymentId: string): Promise<Pa
         consentIp: payment.consentIp,
         consentUserAgent: payment.consentUserAgent,
         createdAt: payment.createdAt.toISOString(),
+        tenantId: payment.tenantId,
       },
       user: {
         id: payment.user.id,
@@ -230,6 +252,13 @@ export async function getPaymentDisputePackAction(paymentId: string): Promise<Pa
         status: o.status,
         remains: o.remains,
         createdAt: o.createdAt.toISOString(),
+      })),
+      ledgerEntries: ledgerEntries.map(l => ({
+        id: l.id,
+        type: l.transactionType,
+        amount: Number(l.amount),
+        description: l.reason,
+        createdAt: l.createdAt.toISOString(),
       })),
     };
   });

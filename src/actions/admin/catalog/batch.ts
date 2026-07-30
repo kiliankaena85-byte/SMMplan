@@ -7,12 +7,12 @@
  * batchSetMarkupAction — set fixed markup for a selection
  *
  * Security: requireAdmin guard on all actions.
- * All changes recorded in AdminAuditLog (fire-and-forget).
+ * All changes recorded in AdminAuditLog (awaited for financial integrity).
  */
 
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { applyBeautifulRounding, applyPricingLadder, SAFETY_FLOOR_MARKUP } from '@/lib/financial-constants';
@@ -20,7 +20,7 @@ import { SettingsProvider } from '@/lib/settings';
 
 const MIN_MARKUP = 1.0;
 
-const batchIdsSchema = z.array(z.string().min(1)).min(1).max(500);
+const batchIdsSchema = z.array(z.string().min(1)).min(1).max(200);
 const markupSchema = z.number().min(MIN_MARKUP).max(150);
 
 /** Bulk toggle isActive for a list of service IDs */
@@ -39,7 +39,7 @@ export async function batchToggleServicesAction(
       data: { isActive },
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: isActive ? 'BATCH_SERVICE_ENABLE' : 'BATCH_SERVICE_DISABLE',
@@ -49,6 +49,7 @@ export async function batchToggleServicesAction(
     });
 
     revalidatePath('/admin/catalog');
+    revalidatePath('/services', 'layout');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,7 +97,7 @@ export async function batchSetMarkupAction(
       }))
     );
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'BATCH_MARKUP_SET',
@@ -106,11 +107,54 @@ export async function batchSetMarkupAction(
     });
 
     revalidatePath('/admin/catalog');
+    revalidatePath('/services', 'layout');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('services');
     return { success: true as const, count: ids.data.length };
+  });
+}
+
+/** Preview price changes before applying batch markup */
+export async function previewBatchMarkupAction(
+  serviceIds: string[],
+  newMarkup: number
+) {
+  return requireStaffPermission('catalog', 'view', async () => {
+    const ids = batchIdsSchema.safeParse(serviceIds);
+    if (!ids.success) return { success: false as const, error: 'Invalid service IDs' };
+
+    const markupValidation = markupSchema.safeParse(newMarkup);
+    if (!markupValidation.success) {
+      return { success: false as const, error: `Минимальная маржа ${MIN_MARKUP.toFixed(2)}x` };
+    }
+
+    const m = markupValidation.data;
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+
+    const services = await db.service.findMany({
+      where: { id: { in: ids.data } },
+      select: { id: true, name: true, rate: true, markup: true, pricePer1000Cents: true, providerCurrency: true },
+      take: 10
+    });
+
+    const samples = services.map(s => {
+      const oldPriceRub = s.pricePer1000Cents / 100;
+      const rateRub = s.providerCurrency === 'RUB' ? s.rate : s.rate * usdToRub;
+      const newPriceRub = applyBeautifulRounding(rateRub * m);
+      return {
+        id: s.id,
+        name: s.name,
+        oldMarkup: s.markup,
+        newMarkup: m,
+        oldPriceRub,
+        newPriceRub,
+        diffPercent: Math.round(((newPriceRub - oldPriceRub) / (oldPriceRub || 1)) * 100)
+      };
+    });
+
+    return { success: true as const, samples, totalCount: ids.data.length };
   });
 }
 
@@ -146,7 +190,7 @@ export async function updateServiceMarkupAction(
       },
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SERVICE_MARKUP_UPDATE',
@@ -157,6 +201,7 @@ export async function updateServiceMarkupAction(
     });
 
     revalidatePath('/admin/catalog');
+    revalidatePath('/services', 'layout');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -176,7 +221,7 @@ export async function toggleServiceActiveAction(
       data: { isActive },
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: isActive ? 'SERVICE_ENABLE' : 'SERVICE_DISABLE',
@@ -186,6 +231,7 @@ export async function toggleServiceActiveAction(
     });
 
     revalidatePath('/admin/catalog');
+    revalidatePath('/services', 'layout');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -223,7 +269,7 @@ export async function batchReassignServicesCategoryAction(
       data: { categoryId: targetCategoryId },
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'BATCH_SERVICE_REASSIGN',
@@ -233,6 +279,7 @@ export async function batchReassignServicesCategoryAction(
     });
 
     revalidatePath('/admin/catalog');
+    revalidatePath('/services', 'layout');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -279,7 +326,7 @@ export async function batchResetMarkupAction(
 
     await db.$transaction(updates);
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'BATCH_MARKUP_RESET',
@@ -289,6 +336,7 @@ export async function batchResetMarkupAction(
     });
 
     revalidatePath('/admin/catalog');
+    revalidatePath('/services', 'layout');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)('catalog');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

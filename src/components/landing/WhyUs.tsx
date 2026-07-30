@@ -124,7 +124,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
                 Запустите свой SMM-бизнес за 5 минут без требований к минимальному балансу.
               </p>
               <Link 
-                href="/login?role=reseller&promo=B2BSTART"
+                href="/login?promo=B2BSTART"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-card hover:bg-accent text-card-foreground text-xs font-extrabold shadow-lg shadow-background/10 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shrink-0 border border-border"
               >
                 <span>Кабинет Реселлера</span>

@@ -4,12 +4,16 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import React from "react";
 import { db } from "@/lib/db";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { headers } from "next/headers";
 import { SettingsProvider } from "@/lib/settings";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { UrlMatcherWidget } from "./UrlMatcherWidget";
 import { verifySession } from "@/lib/session";
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
+import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
+import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -21,21 +25,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const result = await getArticleBySlug(slug);
 
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const siteName = getTenantSiteName(tenantId);
+
   if (!result.success || !result.article) {
-    return {
-      title: "Статья не найдена | SMMplan"
-    };
+    return { title: `Статья не найдена | ${siteName}` };
   }
+  const canonical = absoluteCanonical(tenantId, `/knowledge/${slug}`);
 
   const { title, description } = result.article;
   return {
-    title: `${title} | Блог SMMplan`,
+    title: `${title} | ${siteName}`,
     description,
+    alternates: { canonical },
     openGraph: {
-      title: `${title} | SMMplan`,
+      title: `${title} | ${siteName}`,
       description,
-      type: "article"
-    }
+      url: canonical,
+      siteName,
+      type: "article",
+      locale: 'ru_RU',
+    },
+    robots: { index: true, follow: true },
   };
 }
 
@@ -177,20 +189,18 @@ export default async function ArticleDetailPage({ params }: PageProps) {
 
   // Resolve user session and email
   const session = await verifySession();
-  let userEmail: string | undefined = undefined;
-  if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true }
-    });
-    if (user) {
-      userEmail = user.email;
-    }
-  }
+  const userEmail = session?.userId 
+    ? (await db.user.findUnique({ where: { id: session.userId }, select: { email: true } }))?.email 
+    : undefined;
+
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id"));
 
   // Resolve settings and siteName
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "SMMplan";
+  const siteName = getTenantSiteName(tenantId) || settings.SITE_NAME || "SMMplan";
+  const host = getTenantHost(tenantId);
+  const canonical = absoluteCanonical(tenantId, `/knowledge/${article.slug}`);
 
   // Parallel data fetching for conversion recommended services and same category related articles
   const [recommendedServices, relatedResult] = await Promise.all([
@@ -238,28 +248,111 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     year: "numeric"
   });
 
-  // Schema.org structured data setup
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "headline": article.title,
-    "description": article.description,
-    "articleBody": article.content,
-    "datePublished": article.createdAt.toISOString(),
-    "dateModified": article.updatedAt.toISOString(),
-    "author": {
-      "@type": "Person",
-      "name": article.authorName,
-      "jobTitle": article.authorRole
+  // Find matching pillar, cluster, or glossary term for structured schema extensions
+  const currentPillar = pillarPages.find(p => p.slug === article.slug);
+  const currentCluster = clusterArticles.find(c => c.slug === article.slug);
+  const currentGlossary = glossaryTerms.find(g => g.slug === article.slug || g.slug === `glossary/${article.slug}`);
+
+  // Resolve parent pillar for cluster breadcrumbs
+  const parentPillarObj = currentCluster ? pillarPages.find(p => p.slug === currentCluster.parentPillar) : null;
+
+  const breadcrumbItems = [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Главная",
+      "item": `https://${host}`
     },
-    "publisher": {
-      "@type": "Organization",
-      "name": "SMMplan"
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "База знаний",
+      "item": `https://${host}/knowledge`
     }
-  };
+  ];
+
+  if (parentPillarObj) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": 3,
+      "name": parentPillarObj.title,
+      "item": `https://${host}/knowledge/${parentPillarObj.slug}`
+    });
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": 4,
+      "name": article.title,
+      "item": canonical
+    });
+  } else {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": 3,
+      "name": article.title,
+      "item": canonical
+    });
+  }
+
+  // Schema.org structured data setup
+  const schemas: any[] = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": article.title,
+      "description": article.description,
+      "articleBody": article.content,
+      "datePublished": article.createdAt.toISOString(),
+      "dateModified": article.updatedAt.toISOString(),
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": canonical,
+      },
+      "author": {
+        "@type": "Organization",
+        "name": article.authorName || siteName,
+        "url": `https://${host}`,
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": siteName,
+        "url": `https://${host}`,
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": breadcrumbItems
+    }
+  ];
+
+  const activeFaq = currentPillar?.faq || currentCluster?.faq;
+  if (activeFaq && activeFaq.length > 0) {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": activeFaq.map(item => ({
+        "@type": "Question",
+        "name": item.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": item.answer
+        }
+      }))
+    });
+  }
+
+  if (currentGlossary) {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "DefinedTerm",
+      "name": currentGlossary.term,
+      "description": currentGlossary.definition,
+      "inDefinedTermSet": `https://${host}/knowledge`
+    });
+  }
 
   // Safe serialization preventing XSS injection inside raw scripts
-  const escapedJsonLd = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+  const escapedJsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
@@ -309,7 +402,19 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             </Link>
             <span className="text-muted-foreground/50">/</span>
             
-            <span className="text-foreground font-bold truncate max-w-[150px] md:max-w-xs" aria-current="page">
+            {parentPillarObj && (
+              <>
+                <Link 
+                  href={`/knowledge/${parentPillarObj.slug}`} 
+                  className="hover:text-primary transition-all duration-200 min-h-[44px] flex items-center"
+                >
+                  {parentPillarObj.title}
+                </Link>
+                <span className="text-muted-foreground/50">/</span>
+              </>
+            )}
+
+            <span className="text-foreground font-semibold truncate max-w-[200px] md:max-w-[400px]">
               {article.title}
             </span>
           </nav>
@@ -351,9 +456,13 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   </div>
                 </div>
 
-                {/* Markdown rendered nodes */}
+                {/* Content rendering: handles HTML strings and markdown */}
                 <div className="prose max-w-none text-foreground/90 leading-relaxed font-sans border-b border-border/40 pb-6 mb-6">
-                  {renderMarkdown(article.content)}
+                  {article.content.trim().startsWith("<") ? (
+                    <div dangerouslySetInnerHTML={{ __html: article.content }} />
+                  ) : (
+                    renderMarkdown(article.content)
+                  )}
                 </div>
               </article>
 
@@ -483,7 +592,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       </main>
 
       {/* ── Секция 3: Подвал ── */}
-      <MegaFooter contactSettings={settings} />
+      <MegaFooter contactSettings={settings} tenantId={tenantId} />
     </div>
   );
 }

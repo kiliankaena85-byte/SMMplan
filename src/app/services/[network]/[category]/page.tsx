@@ -2,10 +2,15 @@ import { getPublicCatalogAction, getServicesByCategoryAction } from "@/actions/o
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Metadata } from "next";
+import { headers } from "next/headers";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { FAQSection } from "@/components/seo/FAQSection";
+import { getFaqForCategory } from "@/data/seo/faq-templates";
+import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
+import { db } from "@/lib/db";
 
-export const revalidate = 3600;
+// Force dynamic rendering — headers() is used for tenant resolution
+export const dynamic = 'force-dynamic';
 
 function formatPricePerUnit(price: number): string {
   if (price === 0) return "0.00";
@@ -17,7 +22,6 @@ function formatPricePerUnit(price: number): string {
   } else {
     formatted = price.toFixed(2);
   }
-  
   if (formatted.includes(".")) {
     while (formatted.endsWith("0") && formatted.split(".")[1].length > 2) {
       formatted = formatted.slice(0, -1);
@@ -26,107 +30,195 @@ function formatPricePerUnit(price: number): string {
   return formatted;
 }
 
-export async function generateStaticParams() {
-  const catalogResult = await getPublicCatalogAction();
-  if (!catalogResult.success || !catalogResult.data) return [];
 
-  const params = [];
-  for (const network of catalogResult.data) {
-    for (const category of network.categories) {
-      params.push({
-        network: network.slug,
-        category: category.slug,
-      });
-    }
-  }
-  return params;
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ network: string; category: string }> }): Promise<Metadata> {
   const { network, category } = await params;
-  const catalogResult = await getPublicCatalogAction();
+
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const siteName = getTenantSiteName(tenantId);
+
+  const catalogResult = await getPublicCatalogAction(tenantId);
   const net = catalogResult.data?.find(n => n.slug === network);
   const cat = net?.categories.find(c => c.slug === category);
-  
+
   if (!net || !cat) return { title: "Страница не найдена" };
 
+  // Quality Gate check — uses the same filtered query (isQuarantined, cooldownUntil, tenantId)
+  const services = await getServicesByCategoryAction(cat.id, tenantId);
+  const passesQualityGate = services.length >= 3 && services.some(s => s.pricePerUnitRub > 0);
+
+  if (!passesQualityGate) {
+    return {
+      title: `${cat.name} в ${net.name} | ${siteName}`,
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const minPrice = Math.min(...services.map(s => s.pricePerUnitRub));
+  const canonical = absoluteCanonical(tenantId, `/services/${network}/${category}`);
+
+  // Tenant-specific titles and descriptions
+  let title: string;
+  let description: string;
+  if (tenantId === 'smmflux') {
+    title = `${cat.name} ${net.name} — быстро и недорого | ${siteName}`;
+    description = `${cat.name} для ${net.name} от ${minPrice.toFixed(2)} ₽. Быстрый старт, гарантия, поддержка. Заказ за 1 минуту.`;
+  } else if (tenantId === 'lovable') {
+    title = `${cat.name} ${net.name} — прокачай свой профиль | ${siteName}`;
+    description = `${cat.name} для ${net.name} от ${minPrice.toFixed(2)} ₽. Анонимно, быстро, без паролей. Drip-feed, гарантия, поддержка.`;
+  } else {
+    title = `${cat.name} ${net.name} — цены, API, гарантия | ${siteName}`;
+    description = `Заказать ${cat.name} для ${net.name}. Цены от ${minPrice.toFixed(2)} ₽/шт, быстрый старт, API для агентств. FAQ, требования, поддержка 24/7.`;
+  }
+
   return {
-    title: `Продвижение ${cat.name} в ${net.name} | Дешево и быстро | SMMplan`,
-    description: `Лучший сервис для ${cat.name} в ${net.name}. Профессиональное продвижение, мгновенный старт, поштучные заказы и гарантия от списаний.`,
+    title,
+    description,
     alternates: {
-      canonical: `/services/${network}/${category}`,
+      canonical,
     },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName,
+      locale: 'ru_RU',
+      type: 'website',
+    },
+    robots: { index: true, follow: true },
   };
 }
 
 export default async function CategoryServicesPage({ params }: { params: Promise<{ network: string; category: string }> }) {
   const { network, category: categorySlug } = await params;
-  const catalogResult = await getPublicCatalogAction();
+
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const siteName = getTenantSiteName(tenantId);
+  const host = getTenantHost(tenantId);
+
+  const catalogResult = await getPublicCatalogAction(tenantId);
   const networks = catalogResult.success && catalogResult.data ? catalogResult.data : [];
-  
+
   const currentNetwork = networks.find(n => n.slug === network);
   const currentCategory = currentNetwork?.categories.find(c => c.slug === categorySlug);
-  
+
   if (!currentNetwork || !currentCategory) notFound();
 
-  const services = await getServicesByCategoryAction(currentCategory.id);
-  const minPrice = services.length > 0 ? Math.min(...services.map(s => s.pricePerUnitRub)) : 0;
+  // Fetch services — already filtered for isQuarantined:false, cooldownUntil, tenantId
+  const services = await getServicesByCategoryAction(currentCategory.id, tenantId);
 
+  const passesQualityGate = services.length >= 3 && services.some(s => s.pricePerUnitRub > 0);
+  const minPrice = services.length > 0 ? Math.min(...services.map(s => s.pricePerUnitRub)) : 0;
+  const maxPrice = services.length > 0 ? Math.max(...services.map(s => s.pricePerUnitRub)) : 0;
+  const pageUrl = `https://${host}/services/${currentNetwork.slug}/${currentCategory.slug}`;
+
+  // Related categories (same network, excluding current)
+  const relatedCategories = currentNetwork.categories
+    .filter(c => c.id !== currentCategory.id)
+    .slice(0, 6);
+
+  // Related networks (excluding current)
+  const relatedNetworks = networks
+    .filter(n => n.id !== currentNetwork.id)
+    .slice(0, 4);
+
+  // Related guides from ContentItem (top-4 by viewCount)
+  const relatedGuides = await db.contentItem.findMany({
+    where: {
+      isPublished: true,
+      type: { in: ['PAGE', 'NEWS_POST'] },
+    },
+    take: 4,
+    orderBy: { viewCount: 'desc' },
+    select: { id: true, slug: true, title: true, excerpt: true, viewCount: true },
+  });
+
+  // Breadcrumb JSON-LD
   const breadcrumbData = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Главная", "item": "https://smmplan.pro" },
-      { "@type": "ListItem", "position": 2, "name": currentNetwork.name, "item": `https://smmplan.pro/services/${currentNetwork.slug}` },
-      { "@type": "ListItem", "position": 3, "name": currentCategory.name, "item": `https://smmplan.pro/services/${currentNetwork.slug}/${currentCategory.slug}` }
-    ]
+      { "@type": "ListItem", "position": 1, "name": "Главная", "item": `https://${host}` },
+      { "@type": "ListItem", "position": 2, "name": "Услуги", "item": `https://${host}/services` },
+      { "@type": "ListItem", "position": 3, "name": currentNetwork.name, "item": `https://${host}/services/${currentNetwork.slug}` },
+      { "@type": "ListItem", "position": 4, "name": currentCategory.name, "item": pageUrl },
+    ],
   };
 
-  const productData = {
+  // ItemList JSON-LD
+  const itemListData = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": `${currentCategory.name} ${currentNetwork.name}`,
+    "numberOfItems": services.length,
+    "itemListElement": services.map((s, i) => ({
+      "@type": "ListItem",
+      "position": i + 1,
+      "name": s.name,
+      "url": pageUrl,
+    })),
+  };
+
+  // Service + AggregateOffer JSON-LD
+  const serviceData = passesQualityGate ? {
     "@context": "https://schema.org",
     "@type": "Service",
     "name": `${currentCategory.name} ${currentNetwork.name}`,
     "description": `Профессиональные услуги ${currentCategory.name} для ${currentNetwork.name}. Быстрый старт, низкие цены от ${minPrice.toFixed(2)} ₽.`,
     "provider": {
       "@type": "Organization",
-      "name": "SMMplan",
-      "url": "https://smmplan.pro"
+      "name": siteName,
+      "url": `https://${host}`,
     },
+    "areaServed": "RU",
     "offers": {
       "@type": "AggregateOffer",
       "priceCurrency": "RUB",
-      "lowPrice": minPrice.toFixed(2),
-      "offerCount": services.length
-    }
-  };
+      "lowPrice": String(minPrice.toFixed(2)),
+      "highPrice": String(maxPrice.toFixed(2)),
+      "offerCount": String(services.length),
+    },
+  } : null;
 
-  const faqItems = [
-    {
-      question: `Как быстро запустится ${currentCategory.name} ${currentNetwork.name}?`,
-      answer: "Большинство заказов запускаются автоматически в течение 5-30 минут после оплаты. Точное время зависит от выбранной услуги и текущей нагрузки системы."
-    },
-    {
-      question: "Нужен ли пароль от аккаунта?",
-      answer: "Нет, мы никогда не запрашиваем пароли. Для выполнения заказа нам нужна только ссылка на ваш профиль, пост или канал."
-    },
-    {
-      question: "Безопасно ли это для моего аккаунта?",
-      answer: `Да, мы используем безопасные методы продвижения, которые соответствуют лимитам ${currentNetwork.name}. Риск блокировки минимален при соблюдении естественных темпов роста.`
-    },
-    {
-      question: "Какие способы оплаты вы принимаете?",
-      answer: "Мы принимаем банковские карты РФ, СБП, электронные кошельки и криптовалюты через надежные платежные шлюзы."
-    }
-  ];
+  // FAQ
+  const faqItems = getFaqForCategory(currentNetwork.slug, currentCategory.slug);
+  const faqData = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqItems.map(item => ({
+      "@type": "Question",
+      "name": item.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.answer,
+      },
+    })),
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8">
+      {/* JSON-LD Schemas */}
+      <JsonLd data={breadcrumbData} />
+      <JsonLd data={itemListData} />
+      {serviceData && <JsonLd data={serviceData} />}
+      {faqItems.length > 0 && <JsonLd data={faqData} />}
+
       <div className="max-w-6xl mx-auto space-y-12">
-        {/* Breadcrumbs */}
+
+        {/* Breadcrumbs UI */}
         <nav className="flex text-sm text-muted-foreground" aria-label="Breadcrumb">
           <ol className="inline-flex items-center space-x-1 md:space-x-3">
             <li className="inline-flex items-center">
               <Link href="/" className="hover:text-foreground transition-colors">Главная</Link>
+            </li>
+            <li>
+              <div className="flex items-center">
+                <span className="mx-2">/</span>
+                <Link href="/services" className="hover:text-foreground transition-colors">Услуги</Link>
+              </div>
             </li>
             <li>
               <div className="flex items-center">
@@ -145,15 +237,49 @@ export default async function CategoryServicesPage({ params }: { params: Promise
 
         {/* Header */}
         <div className="space-y-4">
+          {(currentNetwork.slug.toLowerCase() === 'instagram' || currentNetwork.slug.toLowerCase() === 'facebook') && (
+            <div className="bg-amber-500/10 border-l-4 border-amber-500 text-amber-900 dark:text-amber-200 p-4 rounded-r-2xl space-y-1 my-4 text-xs md:text-sm shadow-sm">
+              <div className="flex items-center gap-2 font-extrabold">
+                <span className="text-amber-500 text-base">⚠️</span>
+                <span>Правовое уведомление (Meta Platforms Inc.)</span>
+              </div>
+              <p className="text-amber-800/90 dark:text-amber-300/90 leading-relaxed font-medium">
+                Instagram и Facebook принадлежат Meta Platforms Inc., признанной экстремистской и запрещённой в РФ (решение Тверского районного суда от 21.03.2022). Услуги доступны для пользователей из юрисдикций, где использование данных платформ разрешено.
+              </p>
+            </div>
+          )}
+
+          {!passesQualityGate && (
+            <div className="bg-destructive/10 border-l-4 border-destructive text-destructive p-4 rounded-r-lg max-w-fit">
+              <p className="font-bold text-sm">⚠️ Страница не индексируется: менее 3 активных услуг или нулевые цены (Quality Gate не пройден).</p>
+            </div>
+          )}
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground">
             {currentCategory.name} {currentNetwork.name}
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl">
-            Полный список услуг по категории <span className="text-primary font-medium">{currentCategory.name}</span> для <span className="text-primary font-medium">{currentNetwork.name}</span>. 
+            Полный список услуг по категории <span className="text-primary font-medium">{currentCategory.name}</span> для <span className="text-primary font-medium">{currentNetwork.name}</span>.
             Самые низкие цены на рынке, проверенные провайдеры и автоматическое выполнение.
           </p>
+          {passesQualityGate && (
+            <div className="flex flex-wrap gap-3 mt-2">
+              <span className="text-xs font-bold bg-primary/10 text-primary px-3 py-1.5 rounded-full">
+                от {formatPricePerUnit(minPrice)} ₽ / шт
+              </span>
+              <span className="text-xs font-bold bg-muted text-muted-foreground px-3 py-1.5 rounded-full">
+                {services.length} тариф{services.length === 1 ? '' : services.length < 5 ? 'а' : 'ов'}
+              </span>
+              {services.some(s => s.isDripFeedEnabled) && (
+                <span className="text-xs font-bold bg-blue-500/10 text-blue-500 px-3 py-1.5 rounded-full">Drip-feed</span>
+              )}
+              {services.some(s => s.isRefillEnabled) && (
+                <span className="text-xs font-bold bg-emerald-500/10 text-emerald-500 px-3 py-1.5 rounded-full">Refill</span>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* Services Table */}
         <div className="overflow-x-auto rounded-2xl border border-border/50 shadow-sm bg-card">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -161,7 +287,7 @@ export default async function CategoryServicesPage({ params }: { params: Promise
                 <th className="px-6 py-4">Услуга</th>
                 <th className="px-6 py-4">Мин.</th>
                 <th className="px-6 py-4">Скорость</th>
-                <th className="px-6 py-4 text-right">Цена (₽)</th>
+                <th className="px-6 py-4 text-right">Цена (₽/шт)</th>
                 <th className="px-6 py-4"></th>
               </tr>
             </thead>
@@ -175,6 +301,12 @@ export default async function CategoryServicesPage({ params }: { params: Promise
                         {service.badge && (
                           <span className="shrink-0 text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase">{service.badge}</span>
                         )}
+                        {service.isDripFeedEnabled && (
+                          <span className="shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500">Drip</span>
+                        )}
+                        {service.isRefillEnabled && (
+                          <span className="shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">Refill</span>
+                        )}
                       </div>
                       {service.description && (
                         <span className="text-xs text-muted-foreground line-clamp-1 max-w-md">{service.description}</span>
@@ -182,7 +314,7 @@ export default async function CategoryServicesPage({ params }: { params: Promise
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                    {service.minQty} шт.
+                    {service.minQty.toLocaleString('ru-RU')} шт.
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-[10px] font-bold text-emerald-600 bg-success/5 px-2 py-1 rounded-md border border-emerald-500/10">
@@ -195,7 +327,7 @@ export default async function CategoryServicesPage({ params }: { params: Promise
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <Link 
+                    <Link
                       href={`/dashboard/new-order?serviceId=${service.id}`}
                       className="inline-flex items-center justify-center text-[11px] font-bold bg-foreground text-background px-5 py-2.5 rounded-xl hover:bg-primary hover:text-primary-foreground transition-all shadow-sm active:scale-95"
                     >
@@ -208,21 +340,18 @@ export default async function CategoryServicesPage({ params }: { params: Promise
           </table>
         </div>
 
-        {/* SEO Content */}
-        <div className="mt-20 prose prose-invert max-w-none border-t border-border pt-12">
-          <JsonLd data={breadcrumbData} />
-          <JsonLd data={productData} />
-          
+        {/* SEO Content Block */}
+        <div className="mt-16 prose prose-invert max-w-none border-t border-border pt-12">
           <h2 className="text-2xl md:text-3xl font-black text-foreground tracking-tight mb-8">
-            Почему стоит заказать {currentCategory.name} {currentNetwork.name} в SMMplan?
+            Почему стоит заказать {currentCategory.name} {currentNetwork.name} в {siteName}?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-muted-foreground">
             <div className="space-y-4">
               <p>
-                SMMplan — это лидирующая розничная платформа для продвижения в социальных сетях. Категория <span className="text-foreground font-bold">{currentCategory.name} {currentNetwork.name}</span> является одной из самых популярных у наших клиентов благодаря оптимальному сочетанию цены и качества.
+                {siteName} — это лидирующая платформа для продвижения в социальных сетях. Категория <span className="text-foreground font-bold">{currentCategory.name} {currentNetwork.name}</span> является одной из самых популярных у наших клиентов благодаря оптимальному сочетанию цены и качества.
               </p>
               <p>
-                Мы агрегируем предложения от крупнейших мировых поставщиков, проводя жесткий отбор по критериям скорости, стабильности и проценту списаний. Это позволяет вам получать услуги профессионального уровня без переплат.
+                Мы агрегируем предложения от крупнейших мировых поставщиков, проводя жёсткий отбор по критериям скорости, стабильности и процента списаний. Это позволяет получать услуги профессионального уровня без переплат.
               </p>
             </div>
             <ul className="space-y-4 list-none p-0">
@@ -231,7 +360,7 @@ export default async function CategoryServicesPage({ params }: { params: Promise
                 "Заказ от 1 единицы — платите только за результат",
                 "Конфиденциальность: работаем без паролей",
                 "Гарантия на большинство услуг категории",
-                "Прозрачная система статусов в личном кабинете"
+                "Прозрачная система статусов в личном кабинете",
               ].map((text, i) => (
                 <li key={i} className="flex items-center gap-4 group">
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
@@ -244,8 +373,68 @@ export default async function CategoryServicesPage({ params }: { params: Promise
           </div>
         </div>
 
+        {/* Related Categories */}
+        {relatedCategories.length > 0 && (
+          <div className="border-t border-border pt-10">
+            <h3 className="text-lg font-black text-foreground mb-4">Другие категории {currentNetwork.name}</h3>
+            <div className="flex flex-wrap gap-2">
+              {relatedCategories.map(cat => (
+                <Link
+                  key={cat.id}
+                  href={`/services/${currentNetwork.slug}/${cat.slug}`}
+                  className="text-xs font-semibold px-4 py-2 rounded-xl bg-card border border-border hover:border-primary/40 hover:text-primary transition-all duration-200"
+                >
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Related Networks */}
+        {relatedNetworks.length > 0 && (
+          <div className="border-t border-border pt-10">
+            <h3 className="text-lg font-black text-foreground mb-4">Продвижение в других сетях</h3>
+            <div className="flex flex-wrap gap-2">
+              {relatedNetworks.map(net => (
+                <Link
+                  key={net.id}
+                  href={`/services/${net.slug}`}
+                  className="text-xs font-semibold px-4 py-2 rounded-xl bg-card border border-border hover:border-primary/40 hover:text-primary transition-all duration-200"
+                >
+                  {net.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Related Guides from Blog */}
+        {relatedGuides.length > 0 && (
+          <div className="border-t border-border pt-10">
+            <h3 className="text-lg font-black text-foreground mb-4">Полезные материалы</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {relatedGuides.map(guide => (
+                <Link
+                  key={guide.id}
+                  href={`/knowledge/${guide.slug}`}
+                  className="block p-4 rounded-xl bg-card border border-border hover:border-primary/40 transition-all duration-200 group"
+                >
+                  <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                    {guide.title}
+                  </p>
+                  {guide.excerpt && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{guide.excerpt}</p>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* FAQ Section */}
-        <FAQSection items={faqItems} title={`Вопросы и ответы по ${currentCategory.name}`} />
+        <FAQSection items={faqItems} title={`Вопросы и ответы по ${currentCategory.name} ${currentNetwork.name}`} />
+
       </div>
     </div>
   );

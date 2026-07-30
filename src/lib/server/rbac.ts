@@ -9,12 +9,28 @@ async function getSessionUserId(): Promise<string | null> {
   return sessionUser ? sessionUser.userId : null;
 }
 
+export type StaffPermissionSection = 
+  | 'clients'
+  | 'orders'
+  | 'catalog'
+  | 'providers'
+  | 'finance'
+  | 'content'
+  | 'support'
+  | 'marketing'
+  | 'analytics'
+  | 'settings'
+  | 'balance_requests'
+  | 'balance_approvals'
+  | 'balance_stats'
+  | 'balance_policy';
+
 /**
  * Strict RBAC Wrapper for Server Actions
  * Protects actions based on the user's assigned StaffRole and granular permissions.
  */
 export async function requireStaffPermission<T>(
-  section: string,
+  section: StaffPermissionSection | string,
   actionMode: 'view' | 'edit',
   action: (user: User, role?: StaffRole | null) => Promise<T>
 ): Promise<T | { success: false; error: string }> {
@@ -35,13 +51,14 @@ export async function requireStaffPermission<T>(
       }
     });
 
-    if (!user) {
-      return { success: false, error: "Forbidden: User not found" };
+    if (!user || user.role === 'BANNED' || user.role === 'USER') {
+      console.warn(`[RBAC] Blocked unauthorized role "${user?.role}" for userId ${userId}`);
+      return { success: false, error: "Forbidden: Administrator/Staff context required" };
     }
 
     // OWNER & ADMIN bypass
     if (user.role === 'OWNER' || user.role === 'ADMIN') {
-        return await action(user, user.staffRole);
+      return await action(user, user.staffRole);
     }
 
     // Requires StaffRole for granular permissions
@@ -117,12 +134,15 @@ export async function enforcePageRole(allowedRoles: string[]) {
 
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true }
+    select: { id: true, role: true, isDeleted: true, isActive: true }
   });
 
-  if (!user || !allowedRoles.includes(user.role)) {
-    // We seamlessly redirect unauthorized (SUPPORT) roles to their home workspace
-    redirect('/admin/orders');
+  if (!user || user.isDeleted || !user.isActive) {
+    redirect('/login');
+  }
+
+  if (!allowedRoles.includes(user.role)) {
+    redirect('/admin/forbidden');
   }
 
   return user;
@@ -148,7 +168,7 @@ export async function enforceSectionAccess(section: string) {
     }
   });
 
-  if (!user) {
+  if (!user || user.role === 'BANNED' || user.role === 'USER' || user.isDeleted || !user.isActive) {
     redirect('/login');
   }
 
@@ -158,20 +178,14 @@ export async function enforceSectionAccess(section: string) {
   }
 
   if (!user.staffRole) {
-    redirect('/dashboard/new-order');
+    redirect('/admin/forbidden');
   }
 
   const normalizedSection = section.toUpperCase();
   const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === normalizedSection);
 
   if (!permission || (!permission.canView && !permission.canEdit)) {
-    const fallbackPermission = user.staffRole.permissions.find(p => p.canView || p.canEdit);
-    if (fallbackPermission) {
-      const sec = fallbackPermission.section.toLowerCase();
-      redirect(`/admin/${sec}`);
-    } else {
-      redirect('/dashboard/new-order');
-    }
+    redirect('/admin/forbidden');
   }
 
   return user;

@@ -50,6 +50,8 @@ export default tseslint.config(
       "tests/**",
       "test-results/**",
       "playwright-report/**",
+      "teamwork_projects/**",
+      "test*.js",
       "test-async-throw.ts",
       "test-floating-promise.ts"
     ]

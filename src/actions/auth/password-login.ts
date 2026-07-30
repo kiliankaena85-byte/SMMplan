@@ -4,8 +4,10 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { verifyPassword } from '@/lib/auth/password';
 import { createSession } from '@/lib/session';
+import { headers } from 'next/headers';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { logger } from '@/lib/logger';
+import { normalizeTenantId } from '@/lib/tenant-resolver';
 
 const log = logger.child({ component: 'PasswordLogin' });
 
@@ -29,23 +31,30 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
 
   try {
     // 1. IP-level Rate Limit (Max 20 attempts per hour)
-    const isIpAllowed = await RateLimitService.check('auth:password:ip', 20, 3600);
+    const isIpAllowed = await RateLimitService.check('auth:password:ip', 20, 3600, true);
     if (!isIpAllowed) {
       log.warn('Password login IP rate limit exceeded', { email: cleanEmail });
       return { error: "Слишком много попыток входа с этого IP-адреса. Пожалуйста, подождите 1 час.", success: false };
     }
 
     // 2. Email-level Rate Limit (Max 5 attempts per 15 minutes to prevent brute-forcing)
-    const isEmailAllowed = await RateLimitService.checkCustomKey(`password-attempts:${cleanEmail}`, 5, 900);
+    const isEmailAllowed = await RateLimitService.checkCustomKey(`password-attempts:${cleanEmail}`, 5, 900, true);
     if (!isEmailAllowed) {
       log.warn('Password login email rate limit exceeded', { email: cleanEmail });
       return { error: "Аккаунт временно заблокирован из-за большого числа неверных попыток. Попробуйте через 15 минут.", success: false };
     }
 
     // 3. Find User
-    const user = await db.user.findUnique({
-      where: { email: cleanEmail },
-      select: { id: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
+    const reqHeaders = await headers();
+    const rawTenantId = reqHeaders.get("x-tenant-id");
+    const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
+    
+    const user = await db.user.findFirst({
+      where: { 
+        email: cleanEmail,
+        tenantId
+      },
+      select: { id: true, tenantId: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
     });
 
     if (!user) {
@@ -65,7 +74,7 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
     }
 
     if (!user.passwordHash) {
-      log.info('Password login: User has no password set', { email: cleanEmail });
+      log.info('Auth login: Account authentication method check', { userId: user.id });
       
       const isSmtpConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD;
       if (!isSmtpConfigured) {
@@ -80,6 +89,21 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
     if (!isMatch) {
       log.warn('Password login: Invalid password', { email: cleanEmail });
       return { error: "Неверный email или пароль", success: false };
+    }
+
+    // P-1: Auto-rehash legacy password hashes (salt:key format N=16384) to $s2$65536$... format
+    if (!user.passwordHash.startsWith('$s2$')) {
+      try {
+        const { hashPassword } = await import('@/lib/auth/password');
+        const newHash = await hashPassword(password);
+        await db.user.update({
+          where: { id: user.id },
+          data: { passwordHash: newHash },
+        });
+        log.info('Auto-rehashed legacy password hash to scrypt N=65536', { userId: user.id });
+      } catch (e) {
+        log.error('Failed to auto-rehash legacy password', { error: e instanceof Error ? e.message : String(e) });
+      }
     }
 
     // 5. Create Session

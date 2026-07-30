@@ -5,6 +5,7 @@ import { getEncodedKey, decryptSessionToken } from './session-edge';
 export { getEncodedKey, decryptSessionToken };
 
 import { getClientIp } from '@/utils/ip';
+import { normalizeTenantId } from '@/lib/tenant-resolver';
 
 export async function createSession(userId: string, canResetPassword: boolean = false) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 дней
@@ -25,12 +26,13 @@ export async function createSession(userId: string, canResetPassword: boolean = 
 
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { role: true }
+    select: { role: true, tenantId: true }
   });
   const role = user?.role || 'USER';
+  const tenantId = user?.tenantId || 'smmplan';
 
   // Шифруем ID сессии в JWT
-  const sessionToken = await new SignJWT({ sessionId: session.id, userId, canResetPassword, role })
+  const sessionToken = await new SignJWT({ sessionId: session.id, userId, canResetPassword, role, tenantId })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -56,12 +58,7 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   return { sessionToken, expiresAt };
 }
 
-export async function verifySession(): Promise<{ userId: string; canResetPassword?: boolean; role?: string } | null> {
-  const reqHeaders = await headers();
-  const rawIp = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || '';
-  // Very basic localhost sanity check if headers are present
-  const isLocalhostRequest = !rawIp || rawIp.includes('127.0.0.1') || rawIp.includes('::1');
-
+export async function verifySession(): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
   const explicitLogout = (await cookies()).get('explicit_logout')?.value;
   if (explicitLogout === 'true') {
     return null;
@@ -70,22 +67,7 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
   const sessionToken = (await cookies()).get('session_token')?.value;
 
   if (!sessionToken) {
-    // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.
-    // Prevents accidental OWNER access on misconfigured staging/preview deployments.
-    if (isLocalhostRequest && process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
-      const bypassEmail = process.env.DEV_BYPASS_EMAIL;
-      if (process.env.NODE_ENV === 'development') {
-        console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
-      }
-      const devUser = await db.user.findFirst({ 
-        where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
-      });
-      if (process.env.NODE_ENV === 'development') {
-        console.info("[verifySession] devUser found:", !!devUser);
-      }
-      if (devUser) return { userId: devUser.id, canResetPassword: false, role: devUser.role };
-    }
-    return null;
+    return handleDevAutoLogin();
   }
 
   try {
@@ -103,10 +85,21 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
       console.warn(`[verifySession] null because: session "${sessionId}" not found in DB`);
       return null;
     }
+    if (session.expiresAt < new Date()) {
+      console.warn(`[verifySession] null because: session "${sessionId}" expired at ${session.expiresAt.toISOString()}`);
+      return null;
+    }
 
     const user = session.user;
-    if (!user || user.isDeleted === true || user.isActive === false) {
-      console.warn('[verifySession] null because: user missing or deleted/inactive');
+    if (!user || user.isDeleted === true || user.isActive === false || user.role === 'BANNED') {
+      console.warn('[verifySession] null because: user missing, deleted, inactive, or banned');
+      return null;
+    }
+
+    const reqHeaders = await headers();
+    const currentTenantId = normalizeTenantId(reqHeaders.get("x-tenant-id")) || "smmplan";
+    if (normalizeTenantId(user.tenantId) !== currentTenantId) {
+      console.warn(`[verifySession] null because: user tenant "${user.tenantId}" does not match request tenant "${currentTenantId}"`);
       return null;
     }
 
@@ -152,26 +145,34 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
     return { 
       userId: user.id,
       canResetPassword: payload.canResetPassword === true,
-      role: user.role
+      role: user.role,
+      tenantId: user.tenantId
     };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
-    // SD-11 SECURITY FIX: DEV_AUTO_LOGIN restricted to localhost only.
-    if (isLocalhostRequest && process.env.NODE_ENV !== 'production' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
-      const bypassEmail = process.env.DEV_BYPASS_EMAIL;
-      if (process.env.NODE_ENV === 'development') {
-        console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
-      }
-      const devUser = await db.user.findFirst({ 
-        where: bypassEmail ? { email: bypassEmail } : { role: 'OWNER' } 
-      });
-      if (process.env.NODE_ENV === 'development') {
-        console.info("[verifySession] devUser found:", !!devUser);
-      }
-      if (devUser) return { userId: devUser.id, role: devUser.role };
-    }
-    return null;
+    return handleDevAutoLogin();
   }
+}
+
+async function handleDevAutoLogin() {
+  if (
+    process.env.NODE_ENV === 'development' &&
+    (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')
+  ) {
+    const bypassEmail = process.env.DEV_BYPASS_EMAIL;
+    console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
+    
+    const devUser = await db.user.findFirst({ 
+      where: bypassEmail 
+        ? { email: bypassEmail, isDeleted: false, isActive: true } 
+        : { role: 'OWNER', isDeleted: false, isActive: true } 
+    });
+    console.info("[verifySession] devUser found:", !!devUser);
+    if (devUser && devUser.role !== 'BANNED') {
+      return { userId: devUser.id, role: devUser.role, tenantId: devUser.tenantId };
+    }
+  }
+  return null;
 }
 
 

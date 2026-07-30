@@ -95,12 +95,6 @@ describe('Manual Service Import & Editing CRUD Tests', () => {
   it('should fail with Forbidden error when non-admin attempts CRUD', async () => {
     vi.mocked(verifySession).mockResolvedValue({ userId: regularUser.id });
 
-    console.log("DEBUG TEST 1 regularUser:", regularUser);
-    const dbUserBefore = await db.user.findUnique({ where: { id: regularUser.id } });
-    console.log("DEBUG TEST 1 dbUserBefore:", dbUserBefore);
-    const allUsers = await db.user.findMany();
-    console.log("DEBUG TEST 1 allUsers:", allUsers);
-
     const createPayload = {
       name: 'Forbidden Service',
       categoryId: categorySubscribers.id,
@@ -133,7 +127,7 @@ describe('Manual Service Import & Editing CRUD Tests', () => {
     };
 
     const { SettingsProvider } = await import('@/lib/settings');
-    console.log("DEBUG CREATE TEST EXCHANGE RATE:", await SettingsProvider.getExchangeRateUSD());
+
     const res = await createServiceAction(createPayload);
     if (!res.success) {
       console.error("CREATE SERVICE ACTION FAILED ERROR:", (res as any).error);
@@ -202,7 +196,7 @@ describe('Manual Service Import & Editing CRUD Tests', () => {
     };
 
     const { SettingsProvider } = await import('@/lib/settings');
-    console.log("DEBUG UPDATE TEST EXCHANGE RATE:", await SettingsProvider.getExchangeRateUSD());
+
     const res = await updateServiceAction(service.id, updatePayload);
     const successRes = res as { success: true; serviceId: string };
     expect(successRes.success).toBe(true);

@@ -191,6 +191,9 @@ export async function checkProviderConnection(rawId: string) {
             const providerRecord = await db.provider.findUnique({ where: { id } });
             if (!providerRecord) throw new Error("Provider not found");
             
+            const { assertSafeUrl } = await import('@/utils/ssrf-guard');
+            await assertSafeUrl(providerRecord.apiUrl);
+            
             const instance = await providerService.getProviderInstance(providerRecord);
             
             // 🌊 WAVE 3.1: Network Timeout Protection

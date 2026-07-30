@@ -2,13 +2,12 @@
 
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
+import { WalletOps } from "@/services/financial/wallet-ops";
 
 export async function transferReferralBalanceAction() {
   const session = await verifySession();
   if (!session) throw new Error("Unauthorized");
 
-  // Atomically transfer referral balance to main balance inside a Serializable transaction
-  // to prevent TOCTOU Race Condition.
   let transferAmount = 0;
   
   await db.$transaction(async (tx) => {
@@ -25,13 +24,29 @@ export async function transferReferralBalanceAction() {
 
     transferAmount = user.referralBalance;
 
-    await tx.user.update({
-      where: { id: session.userId },
+    // 1. Atomic decrement of referral balance with TOCTOU optimistic guard
+    const updated = await tx.user.updateMany({
+      where: { 
+        id: session.userId,
+        referralBalance: { gte: transferAmount }
+      },
       data: {
-        referralBalance: { decrement: transferAmount },
-        balance: { increment: transferAmount }
+        referralBalance: { decrement: transferAmount }
       }
     });
+
+    if (updated.count === 0) {
+      throw new Error("Недостаточно средств на реферальном балансе");
+    }
+
+    // 2. Safe main balance credit via WalletOps primitive
+    await WalletOps.credit(
+      tx,
+      session.userId,
+      transferAmount,
+      `Перевод реферального баланса на основной`,
+      { idempotencyKey: `referral-transfer-${session.userId}-${transferAmount}` }
+    );
 
     await tx.payment.create({
       data: {
@@ -40,17 +55,6 @@ export async function transferReferralBalanceAction() {
         currency: "RUB",
         status: "COMPLETED",
         gateway: "referral_transfer"
-      }
-    });
-
-    // Financial Integrity: LedgerEntry MUST mirror every balance change
-    await tx.ledgerEntry.create({
-      data: {
-        userId: session.userId,
-        amount: transferAmount,
-        reason: `Перевод реферального баланса на основной`,
-        status: 'APPROVED',
-        idempotencyKey: `referral-transfer-${session.userId}-${transferAmount}-${Date.now()}`
       }
     });
   }, { isolationLevel: 'Serializable' });

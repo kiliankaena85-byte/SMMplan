@@ -6,6 +6,7 @@ import { marketingService, PricingResult } from '@/services/marketing.service';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SettingsManager } from '@/lib/settings';
 import { verifySession, createSession } from '@/lib/session';
+import { normalizeTenantId } from "@/lib/tenant-resolver";
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
@@ -16,7 +17,9 @@ import { getBaseUrlSync } from "@/utils/get-base-url";
 import { featureFlagService } from "@/services/system/feature-flag.service";
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
+import { safeUrlForLog } from '@/lib/log-safe';
 import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
+import { randomUUID } from 'crypto';
 
 import { Prisma } from '@prisma/client';
 class IdempotencyConflictError extends Error {
@@ -35,7 +38,6 @@ export async function calculatePriceAction(
   serviceId: string,
   quantity: number,
   promoCodeStr?: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   runs?: number
 ): Promise<{ success: boolean; data?: PricingResult; error?: string }> {
   try {
@@ -52,11 +54,13 @@ export async function calculatePriceAction(
       promoCodeStr
     );
     
+    const multiplier = runs && runs > 1 ? runs : 1;
+
     // SECURITY FIX: Data Leak Prevention. Do NOT return providerCostCents to the client.
     const safeResult = {
-      totalCents: result.totalCents,
-      originalTotalCents: result.originalTotalCents,
-      discountCents: result.discountCents
+      totalCents: Math.round(result.totalCents * multiplier),
+      originalTotalCents: Math.round(result.originalTotalCents * multiplier),
+      discountCents: Math.round(result.discountCents * multiplier)
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,25 +86,27 @@ import { MutexManager } from '@/lib/redis-lock';
 
 const checkoutSchema = z.object({
   serviceId: z.string(),
-  link: z.string().min(3, "Ссылка слишком короткая").refine(val => !val.includes(' '), "Ссылка не должна содержать пробелов"),
+  link: z.string().min(3, "Ссылка слишком короткая").max(2048, "Ссылка слишком длинная").refine(val => !val.includes(' '), "Ссылка не должна содержать пробелов"),
   quantity: z.number().min(1),
   email: z.string().email("Неверный email"),
   promoCodeStr: z.string().optional(),
   runs: z.number().int().positive().optional(),
   interval: z.number().int().positive().optional(),
   customData: z.string().optional(),
-  gateway: z.string().default('yookassa'),
-  idempotencyKey: z.string().optional(),
+  gateway: z.string().optional().default('yookassa'),
+  idempotencyKey: z.string().min(10).max(64).optional(),
   mediaGroupUrl: z.string().optional(),
   isLinkOverridden: z.boolean().optional(),
   isSmartDrip: z.boolean().optional(),
   smartDripDays: z.number().int().min(1).max(30).optional(),
-  abVariant: z.enum(['A', 'B', 'C']).optional()
+  abVariant: z.enum(['A', 'B', 'C']).optional(),
+  isRequirementsConfirmed: z.boolean().optional()
 });
 
-export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
+export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
-    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant } = data;
+    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant, isRequirementsConfirmed } = data;
+    const effectiveIdempotencyKey = idempotencyKey || randomUUID();
     const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
 
     // Feature Flags Validation
@@ -127,8 +133,14 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       }
     }
     
+    // Gateway whitelist validation
+    const ALLOWED_GATEWAYS = ['yookassa', 'cryptobot', 'robokassa', 'balance'];
+    if (gateway && !ALLOWED_GATEWAYS.includes(gateway.toLowerCase())) {
+      throw new Error("Неподдерживаемый способ оплаты");
+    }
+
     // 0. Rate limit
-    const isAllowed = await RateLimitService.check("checkoutCore", 15, 60);
+    const isAllowed = await RateLimitService.check("checkoutCore", 15, 60, true);
     if (!isAllowed) {
       throw new Error("Слишком много запросов. Попробуйте через минуту.");
     }
@@ -160,6 +172,19 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error("Услуга не найдена или неактивна");
     }
 
+    // Cross-Tenant Security Check (SEC-01)
+    const reqHeaders = await headers();
+    const rawTenantId = reqHeaders.get("x-tenant-id");
+    const currentTenantId = normalizeTenantId(rawTenantId) || "smmplan";
+    if (service.tenantId && service.tenantId !== currentTenantId && service.tenantId !== "all") {
+      throw new Error("Услуга недоступна для текущей площадки");
+    }
+
+    // JIT Validation Check: enforce custom requirements if configured
+    if (service.clientRequirement && !isRequirementsConfirmed) {
+      throw new Error("Необходимо подтвердить выполнение условий для старта услуги");
+    }
+
     // Wave 4.1: Elastic Quarantine Check
     if (service.cooldownUntil && service.cooldownUntil > new Date()) {
       throw new Error(`Временно приостановлено для контроля качества. Ожидание: 1-12 часов. Выберите аналог.`);
@@ -181,6 +206,19 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw new Error('Слишком длинные пользовательские данные (макс. 2000 символов)');
     }
 
+    // Custom Data Validation Guard when customDataType !== 'NONE'
+    if (service.customDataType && service.customDataType !== 'NONE') {
+      if (!customData || !customData.trim()) {
+        throw new Error("Пожалуйста, заполните дополнительные данные для этой услуги");
+      }
+      const { getCustomValidator } = await import('@/validators/link-mutators');
+      const customValidator = getCustomValidator(service.customDataType);
+      const customResult = customValidator.safeParse(customData.trim());
+      if (!customResult.success) {
+        throw new Error(customResult.error.errors[0].message);
+      }
+    }
+
     // [OMNI-AUDIT 9.4] Phase P3: Robust Server-Side Validation & Mutation
     let normalizedLink = link.trim();
     const platformSlug = service.category?.network?.slug?.toUpperCase() || '';
@@ -200,6 +238,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
+        console.error(`[Checkout] Link mutation failed for ${safeUrlForLog(link)}:`, e);
         throw new Error("Неверный формат ссылки.", { cause: e });
       }
     } else {
@@ -207,15 +246,25 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         ? inferTargetTypeFromCategory(service.category?.name)
         : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
 
-      // 1. Clean the link according to provider rules
-      normalizedLink = mutateLink(link, platformSlug, targetType);
+      if (targetType === 'CUSTOM' || service.targetType === 'CUSTOM') {
+        const { getCustomValidator } = await import('@/validators/link-mutators');
+        const customValidator = getCustomValidator(service.customDataType);
+        const customValue = customData || link;
+        const customResult = customValidator.safeParse(customValue);
+        if (!customResult.success) {
+          throw new Error(customResult.error.errors[0].message);
+        }
+      } else {
+        // 1. Clean the link according to provider rules
+        normalizedLink = mutateLink(link, platformSlug, targetType);
 
-      // 2. Validate the cleaned link
-      const validator = getLinkValidator(platformSlug, targetType);
-      const linkResult = validator.safeParse(normalizedLink);
-      
-      if (!linkResult.success) {
-        throw new Error(linkResult.error.errors[0].message);
+        // 2. Validate the cleaned link
+        const validator = getLinkValidator(platformSlug, targetType);
+        const linkResult = validator.safeParse(normalizedLink);
+        
+        if (!linkResult.success) {
+          throw new Error(linkResult.error.errors[0].message);
+        }
       }
     }
 
@@ -244,21 +293,32 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     const isTestMode = await SettingsManager.isTestMode();
 
+    const tenantId = currentTenantId;
+
     // 3. Find or create user by email (SECURITY FIX: Track if new user to prevent IDOR auto-login)
     const currentSession = await verifySession();
-    let user = await db.user.findUnique({ where: { email: email.toLowerCase() } });
+    let user = await db.user.findFirst({
+      where: { 
+        email: email.toLowerCase(),
+        tenantId: tenantId === 'flux' ? { in: ['lovable', 'flux'] } : tenantId
+      }
+    });
+
+    if (user && user.tenantId === 'lovable') {
+      user = await db.user.update({
+        where: { id: user.id },
+        data: { tenantId: 'flux' }
+      });
+    }
 
     if (user) {
       if (user.isDeleted === true || user.isActive === false) {
         throw new Error("Ваш аккаунт заблокирован или удален");
       }
       // IDOR / Account Hijacking Prevention:
-      // If user exists but there is no active session OR active session userId doesn't match this user's id:
-      // For balance payments, this is strict. For other gateways, it is allowed as guest payment.
-      if (gateway === 'balance') {
-        if (!currentSession || currentSession.userId !== user.id) {
-          throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
-        }
+      // Prevent order injection / guest orders binding to existing accounts without session
+      if (!currentSession || currentSession.userId !== user.id) {
+        throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
       }
     }
 
@@ -270,8 +330,16 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     }
 
     let isNewUser = false;
+    const consentIp = await getClientIp();
     if (!user) {
-      user = await db.user.create({ data: { email: email.toLowerCase() } });
+      user = await db.user.create({
+        data: {
+          email: email.toLowerCase(),
+          tenantId,
+          tosAcceptedAt: new Date(),
+          tosAcceptedIp: consentIp,
+        }
+      });
       isNewUser = true;
     }
 
@@ -290,7 +358,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       }
     }
 
-    const pricing = await marketingService.calculatePrice(user.id, serviceId, totalQuantity, promoCodeStr, { service });
+    const userIdForCalc = user ? user.id : null;
+    const pricing = await marketingService.calculatePrice(userIdForCalc, serviceId, totalQuantity, promoCodeStr, { service });
     
     let promoCodeId: string | null = null;
     if (promoCodeStr) {
@@ -329,6 +398,12 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
+    // 54-ФЗ: CryptoBot не пробивает чеки. Лимит для физлиц до решения по облачной ККТ.
+    // TODO: интегрировать облачную ККТ (АТОЛ/Эвотор) для снятия лимита.
+    if ((gateway === 'cryptobot' || gateway === 'crypto') && paymentAmount > 1_500_000) {
+      throw new Error('Криптовалюта доступна для пополнений до 15 000 ₽. Для больших сумм используйте карту.');
+    }
+
     if (gateway === 'yookassa' && paymentAmount > 180000) {
       if (!user.telegramId) {
         throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
@@ -337,21 +412,6 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
 
     // Balance check is now performed atomically inside db.$transaction using WalletOps.charge
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let reqHeaders: any;
-    try {
-      reqHeaders = await headers();
-    } catch (e) {
-      console.warn('[Checkout] headers() context missing, using fallback', e);
-      reqHeaders = {
-        get: (key: string) => {
-          if (key === 'host') return 'localhost:3000';
-          if (key === 'x-forwarded-proto') return 'http';
-          return null;
-        }
-      };
-    }
-    const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
     const termsDoc = await db.contentItem.findUnique({
@@ -365,22 +425,22 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     try {
       result = await runSerializableTransaction(async (tx) => {
         // 5.1 If gateway is balance, atomically deduct balance first
-        if (gateway === 'balance') {
+        if (gateway === 'balance' && user) {
           await WalletOps.charge(tx, user.id, finalTotalCents, `Оплата заказа с баланса`, {
-            idempotencyKey: idempotencyKey ? `balance-charge-${idempotencyKey}` : undefined
+            idempotencyKey: `balance-charge-${effectiveIdempotencyKey}`
           });
         }
 
         const orderStatus = gateway === 'balance' ? 'PENDING' : 'AWAITING_PAYMENT';
         const paymentStatus = gateway === 'balance' ? 'SUCCEEDED' : 'PENDING';
 
-        let newOrder;
+
         
         // 1. Check idempotency beforehand to avoid aborting the Postgres transaction block on P2002 constraint error
         let existingOrder = null;
-        if (idempotencyKey) {
+        if (effectiveIdempotencyKey) {
           existingOrder = await tx.order.findUnique({
-            where: { idempotencyKey },
+            where: { idempotencyKey: effectiveIdempotencyKey },
             include: { payment: true }
           });
         }
@@ -392,15 +452,17 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             // Free up the unique constraint on the failed order to allow the new check to proceed
             await tx.order.update({
               where: { id: existingOrder.id },
-              data: { idempotencyKey: `${idempotencyKey}_failed_${existingOrder.id}` }
+              data: { idempotencyKey: `${effectiveIdempotencyKey}_failed_${existingOrder.id}` }
             });
           }
         }
 
+        const isDripFeedOrder = Boolean(runs && runs > 1);
+
         // Create primary Order (first media / main link)
-        newOrder = await tx.order.create({
+        const newOrder = await tx.order.create({
           data: {
-            userId: user.id,
+            userId: user?.id,
             serviceId,
             providerId: service.providerId,
             providerServiceId: service.externalId,
@@ -411,16 +473,18 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             status: orderStatus,
             charge: isSmartDrip && smartConfig ? Math.round(pricing.totalCents * (1 + smartConfig.markup)) : pricing.totalCents,
             providerCost: pricing.providerCostCents,
+            isDripFeed: isDripFeedOrder,
             runs,
             interval,
             isTest: isTestMode,
             customData,
             remains: totalQuantity,
-            idempotencyKey,
+            idempotencyKey: effectiveIdempotencyKey,
             promoCodeId: promoCodeId || null,
             discountCents: BigInt(pricing.discountCents),
             abVariant,
-            usdToRubRate: currentUsdRate
+            usdToRubRate: currentUsdRate,
+            tenantId
           }
         });
 
@@ -440,6 +504,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
               status: orderStatus,
               charge: isSmartDrip && smartConfig ? Math.round(pricing.totalCents * (1 + smartConfig.markup)) : pricing.totalCents,
               providerCost: pricing.providerCostCents,
+              isDripFeed: isDripFeedOrder,
               runs,
               interval,
               isTest: isTestMode,
@@ -448,7 +513,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
               promoCodeId: promoCodeId || null,
               discountCents: BigInt(pricing.discountCents),
               abVariant,
-              usdToRubRate: currentUsdRate
+              usdToRubRate: currentUsdRate,
+              tenantId
             }
           });
           secondOrderId = secondOrder.id;
@@ -462,7 +528,7 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         // Create linked Payment (covers both orders if media group)
         const payment = await tx.payment.create({
           data: {
-            userId: user.id,
+            userId: user?.id,
             amount: paymentAmount,
             currency: 'RUB',
             status: paymentStatus,
@@ -470,7 +536,8 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
             consentIp,
             consentUserAgent,
             consentVersion,
-            abVariant
+            abVariant,
+            tenantId
           }
         });
 
@@ -496,16 +563,29 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
           }
         }
 
+        if (isSmartDrip && smartConfig) {
+          await SmartDripService.createCampaign(tx, {
+            userId: user.id,
+            serviceId,
+            link: normalizedLink,
+            quantity: totalQuantity,
+            days: smartDripDays!,
+            paymentId: payment.id,
+            orderId: newOrder.id,
+            isTestMode
+          });
+        }
+
         transactionCompleted = true;
         return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId, secondOrderId };
       });
     } catch (err: unknown) {
       if (err instanceof IdempotencyConflictError) {
-        const existingOrder = err.existingOrder as any;
+        const existingOrder = err.existingOrder as { id: string; paymentId?: string; payment?: { checkoutUrl?: string } };
         console.info(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);
         return {
           orderId: existingOrder.id,
-          paymentId: existingOrder.paymentId,
+          paymentId: existingOrder.paymentId || '',
           paymentUrl: existingOrder.payment?.checkoutUrl || ''
         };
       }
@@ -528,27 +608,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
       throw err;
     }
 
-    // Heavy SmartDrip campaigns are created safely outside the Serializable transaction
-    if (isSmartDrip && smartConfig) {
-      try {
-        await SmartDripService.createCampaign(db, {
-          userId: user.id,
-          serviceId,
-          link: normalizedLink,
-          quantity: totalQuantity,
-          days: smartDripDays!,
-          paymentId: result.paymentId,
-          orderId: result.orderId,
-          isTestMode
-        });
-      } catch (dripErr) {
-        console.error('[Checkout] Failed to create SmartDrip campaign:', dripErr);
-      }
-    }
-
     // 6. Generate payment URL (gateway-specific API calls)
     let paymentUrl: string | undefined;
-    let remoteGatewayId: string | undefined;
+
     const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
@@ -604,8 +666,9 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
     }
 
     try {
-      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
-      await paymentGatewayQueue.add('generate-gateway-payment', {
+      const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
+      const gatewayResult = await gatewaySvc.createPayment({
         paymentId: result.paymentId,
         orderId: result.orderId,
         userId: user.id,
@@ -614,11 +677,20 @@ export const checkoutAction = async (input: z.infer<typeof checkoutSchema>) => {
         successUrl,
         description: `Оплата заказа #${result.numericId} (сдача зачисляется на баланс)`,
         isTestMode: isTestMode || email === 'e2e-tester@test.com',
-        gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
         metadata: { type: 'checkout' }
       });
-      
-      paymentUrl = `/payment-redirect?id=${result.paymentId}`;
+
+      if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
+        await db.payment.update({
+          where: { id: result.paymentId },
+          data: {
+            gatewayId: gatewayResult.remoteGatewayId || undefined,
+            checkoutUrl: gatewayResult.paymentUrl || undefined
+          }
+        });
+      }
+
+      paymentUrl = gatewayResult.paymentUrl || `/payment-redirect?id=${result.paymentId}`;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (gatewayErr: any) {
@@ -744,7 +816,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const session = await verifySession();
     if (!session) throw new Error("Необходима авторизация");
 
-    const isAllowed = await RateLimitService.check("retryCheckoutCore", 10, 60);
+    const isAllowed = await RateLimitService.check("retryCheckoutCore", 10, 60, true);
     if (!isAllowed) throw new Error("Слишком много запросов. Попробуйте через минуту.");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -764,12 +836,18 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
+    const rawTenantId = reqHeaders.get("x-tenant-id");
+    const currentTenantId = normalizeTenantId(rawTenantId) || "smmplan";
+
     const order = await db.order.findUnique({
       where: { id: orderId, userId: session.userId },
       include: { user: true, payment: true, service: true }
     });
 
     if (!order) throw new Error("Заказ не найден");
+    if (order.tenantId && order.tenantId !== currentTenantId) {
+      throw new Error("Заказ недоступен для текущей площадки");
+    }
     if (order.user.isDeleted === true || order.user.isActive === false) {
       throw new Error("Ваш аккаунт заблокирован или удален");
     }
@@ -894,7 +972,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     });
 
     let paymentUrl: string | undefined;
-    let remoteGatewayId: string | undefined;
+
     const host = reqHeaders.get("host") || "localhost:3000";
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
@@ -942,9 +1020,10 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
 
     try {
       const isTestMode = await SettingsManager.isTestMode();
-      const { paymentGatewayQueue } = await import('@/lib/queue-manager');
+      const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+      const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
       
-      await paymentGatewayQueue.add('generate-gateway-payment', {
+      const gatewayResult = await gatewaySvc.createPayment({
         paymentId: result.paymentId,
         orderId: order.id,
         userId: order.userId,
@@ -953,17 +1032,26 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         successUrl,
         description: `Оплата заказа #${order.numericId} (SMMplan)`,
         isTestMode,
-        gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
         metadata: { type: 'checkout' }
       });
 
-      paymentUrl = `/payment-redirect?id=${result.paymentId}`;
+      if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
+        await db.payment.update({
+          where: { id: result.paymentId },
+          data: {
+            gatewayId: gatewayResult.remoteGatewayId || undefined,
+            checkoutUrl: gatewayResult.paymentUrl || undefined
+          }
+        });
+      }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (gatewayErr: any) {
+      paymentUrl = gatewayResult.paymentUrl || `/payment-redirect?id=${result.paymentId}`;
+
+    } catch (gatewayErr: unknown) {
       console.error('[RetryCheckout] Gateway failed', gatewayErr);
+      const errMsg = gatewayErr instanceof Error ? gatewayErr.message : 'Ошибка генерации платежа';
       
-      const rollbackPromises: Promise<any>[] = [
+      const rollbackPromises: Promise<unknown>[] = [
         db.payment.update({
           where: { id: result.paymentId },
           data: { status: 'CANCELED' }
@@ -971,12 +1059,12 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         
         db.order.update({
           where: { id: order.id },
-          data: { status: 'ERROR', error: gatewayErr.message || 'Ошибка генерации платежа' }
+          data: { status: 'ERROR', error: errMsg }
         }).catch(e => console.error('[RetryCheckout] Failed to error order:', e))
       ];
       await Promise.allSettled(rollbackPromises);
 
-      throw new Error(gatewayErr.message || 'Ошибка генерации платежа. Попробуйте другой метод', { cause: gatewayErr });
+      throw new Error(errMsg || 'Ошибка генерации платежа. Попробуйте другой метод', { cause: gatewayErr });
     }
 
     revalidatePath('/dashboard', 'layout');

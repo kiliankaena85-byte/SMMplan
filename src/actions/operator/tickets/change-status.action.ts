@@ -22,7 +22,7 @@ export async function changeTicketStatusAction(data: {
   }
 
   try {
-    const result = await requireOperatorPermission('orders', 'edit', async (admin) => {
+    const result = await requireOperatorPermission('tickets', 'edit', async (admin) => {
       const { ticketId, status } = parsed.data;
 
       const oldTicket = await db.ticket.findUnique({

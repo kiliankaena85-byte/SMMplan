@@ -11,6 +11,7 @@
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
+import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 
 const ledgerParamsSchema = z.object({
   status:   z.enum(['ALL', 'APPROVED', 'QUARANTINE', 'REJECT']).default('ALL'),
@@ -18,6 +19,7 @@ const ledgerParamsSchema = z.object({
   search:   z.string().max(255).optional(),
   cursor:   z.string().optional(),
   pageSize: z.number().int().min(1).max(200).default(50),
+  tenantId: z.string().optional(),
 });
 
 export type LedgerParams = z.infer<typeof ledgerParamsSchema>;
@@ -31,6 +33,7 @@ export type LedgerEntryDTO = {
   reason: string;
   status: string;
   createdAt: string;
+  tenantId?: string;
 };
 
 export type LedgerPageResult = {
@@ -61,15 +64,17 @@ function getPeriodStart(period: string): Date | undefined {
 }
 
 export async function getLedgerAction(params: Partial<LedgerParams>): Promise<LedgerPageResult | { success: false, error: string }> {
-  return requireStaffPermission('finance', 'view', async () => {
+  return requireStaffPermission('finance', 'view', async (admin) => {
     const p = ledgerParamsSchema.parse(params);
     const periodStart = getPeriodStart(p.period);
 
     const searchTrim = p.search?.trim();
+    const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
 
     const where = {
       ...(p.status !== 'ALL' ? { status: p.status } : {}),
       ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+      ...(activeTenantId && activeTenantId !== 'all' ? { user: { tenantId: activeTenantId } } : {}),
       ...(searchTrim ? {
         OR: [
           { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
@@ -103,9 +108,10 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
     const uIds = Array.from(new Set(page.map(e => e.userId)));
     const users = await db.user.findMany({
       where: { id: { in: uIds } },
-      select: { id: true, email: true },
+      select: { id: true, email: true, tenantId: true },
     });
     const emailMap = new Map(users.map(u => [u.id, u.email]));
+    const tenantMap = new Map(users.map(u => [u.id, u.tenantId]));
 
     // Totals for the same where clause (summary strip)
     const [approvedAgg, quarantineAgg, refundsAgg] = await Promise.all([
@@ -124,6 +130,7 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
         reason: e.reason,
         status: e.status,
         createdAt: e.createdAt.toISOString(),
+        tenantId: tenantMap.get(e.userId) ?? 'smmplan',
       })),
       nextCursor: hasMore ? page[page.length - 1].id : null,
       hasMore,

@@ -25,8 +25,8 @@ export interface OrderDrawerColumn {
   quantity?: number;
   remains?: number;
   status: string;
-  charge: number;
-  providerCost?: number;
+  charge: number | string;
+  providerCost?: number | string;
   createdAt: string | Date;
   updatedAt?: string | Date;
   isDripFeed?: boolean;
@@ -57,9 +57,10 @@ interface OrderDrawerProps {
 interface FailoverRoute {
   routeId: string;
   providerName: string;
-  newCostCents: number;
-  marginCents: number;
-  marginPercent: number;
+  priceUnknown?: boolean;
+  newCostCents: number | null;
+  marginCents: number | null;
+  marginPercent: number | null;
   isMarginPositive: boolean;
 }
 
@@ -123,6 +124,7 @@ export function OrderDrawer({
   const [failoverPreview, setFailoverPreview] = useState<FailoverPreviewData | null>(null);
   const [isFailoverModalOpen, setIsFailoverModalOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
+  const [acknowledgeBlindReroute, setAcknowledgeBlindReroute] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // Custom Confirmation Modal State (replacing native confirm)
@@ -176,17 +178,40 @@ export function OrderDrawer({
     setConfirmAction(null);
   }, [fullOrder]);
 
+  // Keyboard Shortcuts: Alt+C (Cancel), Alt+R (Restart), Alt+M (Failover)
+  useEffect(() => {
+    if (!order) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.altKey) {
+        if (e.code === 'KeyC') {
+          e.preventDefault();
+          setConfirmAction('cancel');
+          setConfirmOpen(true);
+        } else if (e.code === 'KeyR') {
+          e.preventDefault();
+          setConfirmAction('restart');
+          setConfirmOpen(true);
+        } else if (e.code === 'KeyM') {
+          e.preventDefault();
+          setIsFailoverModalOpen(prev => !prev);
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [order]);
+
   if (!order) return null;
 
   const currentOrder = fullOrder || order;
 
   // Price calculations
   const quantity = currentOrder.quantity ?? 0;
-  const chargeRub = currentOrder.charge / 100;
+  const chargeRub = Number(BigInt(currentOrder.charge || 0)) / 100;
   const pricePerUnitRub = quantity > 0 ? chargeRub / quantity : 0;
   const pricePer1kRub = pricePerUnitRub * 1000;
 
-  const costRub = (currentOrder.providerCost ?? 0) / 100;
+  const costRub = Number(BigInt(currentOrder.providerCost ?? 0)) / 100;
 
   function handleSetStatus() {
     if (!currentOrder) return;
@@ -319,10 +344,11 @@ export function OrderDrawer({
     if (!currentOrder || !selectedRouteId) return;
     startTransition(async () => {
       try {
-        const r = await manualRerouteOrder(currentOrder.id, selectedRouteId);
+        const r = await manualRerouteOrder(currentOrder.id, selectedRouteId, acknowledgeBlindReroute);
         if (r.success) {
           toast.success(`Успех: Заказ #${currentOrder.numericId} переведен на резервный маршрут`);
           setIsFailoverModalOpen(false);
+          setAcknowledgeBlindReroute(false);
           if (onSuccess) onSuccess();
           onClose();
         } else {
@@ -532,7 +558,7 @@ export function OrderDrawer({
                 onClick={handleForceComplete}
                 disabled={isPending || currentOrder.status === 'COMPLETED'}
                 aria-label="Принудительно завершить заказ"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-emerald-300 bg-success/10 text-emerald-700 hover:bg-success/20 transition-all duration-200 disabled:opacity-40"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-emerald-500/30 bg-success/10 text-success hover:bg-success/20 transition-all duration-200 disabled:opacity-40"
               >
                 <CheckCircle className="w-4 h-4" />
                 Завершить
@@ -541,29 +567,29 @@ export function OrderDrawer({
                 onClick={handleRestart}
                 disabled={isPending || currentOrder.status !== 'ERROR'}
                 aria-label="Перезапустить заказ"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all duration-200 disabled:opacity-40"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 disabled:opacity-40"
               >
                 <RotateCcw className="w-4 h-4" />
-                Перезапустить
+                Перезапустить <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">Alt+R</kbd>
               </button>
               <button
                 onClick={handleCancel}
                 disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL', 'IN_PROGRESS', 'ERROR'].includes(currentOrder.status)}
                 aria-label="Отменить заказ"
-                className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-rose-300 bg-destructive/10 text-rose-700 hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40"
+                className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40"
               >
                 <XCircle className="w-4 h-4" />
-                Отменить заказ
+                Отменить заказ <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">Alt+C</kbd>
               </button>
               {['ERROR', 'CANCELED'].includes(currentOrder.status) && (
                 <button
                   onClick={handleFailoverClick}
                   disabled={isPending}
                   aria-label="Ручной перезапуск (Failover)"
-                  className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all duration-200 disabled:opacity-40"
+                  className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 transition-all duration-200 disabled:opacity-40"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  Failover (Сменить провайдера)
+                  Failover (Сменить провайдера) <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">Alt+M</kbd>
                 </button>
               )}
             </div>
@@ -599,12 +625,12 @@ export function OrderDrawer({
                 ) : (
                   <select
                     value={selectedRouteId}
-                    onChange={e => setSelectedRouteId(e.target.value)}
+                    onChange={e => { setSelectedRouteId(e.target.value); setAcknowledgeBlindReroute(false); }}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background outline-none focus:border-primary"
                   >
                     {failoverPreview.routes.map((r) => (
                       <option key={r.routeId} value={r.routeId}>
-                        {r.providerName} (Закупка: {(r.newCostCents / 100).toFixed(2)} ₽)
+                        {r.providerName} {r.priceUnknown ? '(Цена неизвестна ⚠️)' : `(Закупка: ${((r.newCostCents || 0) / 100).toFixed(2)} ₽)`}
                       </option>
                     ))}
                   </select>
@@ -614,29 +640,49 @@ export function OrderDrawer({
               {activeRoute && (
                 <div className="bg-muted/30 p-4 rounded-xl border border-border space-y-2 text-sm">
                   <div className="font-bold mb-2">📊 Анализ маржи:</div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Баланс клиента:</span>
-                    <span className={failoverPreview.currentBalance < failoverPreview.clientPaidCents ? "text-destructive font-bold" : ""}>
-                      {(failoverPreview.currentBalance / 100).toFixed(2)} ₽
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Клиент заплатил:</span>
-                    <span>{(failoverPreview.clientPaidCents / 100).toFixed(2)} ₽</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Резервный провайдер:</span>
-                    <span>{(activeRoute.newCostCents / 100).toFixed(2)} ₽</span>
-                  </div>
-                  <div className="h-px bg-border my-2" />
-                  <div className="flex justify-between font-bold">
-                    <span>Новая маржа:</span>
-                    <span className={activeRoute.isMarginPositive ? 'text-success' : 'text-destructive'}>
-                      {(activeRoute.marginCents / 100).toFixed(2)} ₽ 
-                      ({activeRoute.marginPercent}%) 
-                      {activeRoute.isMarginPositive ? ' ✅' : ' 🔴'}
-                    </span>
-                  </div>
+                  {activeRoute.priceUnknown ? (
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-warning">⚠️ Цена провайдера неизвестна</div>
+                      <div className="text-xs text-muted-foreground">
+                        В теневом каталоге нет актуальной цены. Синхронизируйте каталог или подтвердите reroute вслепую.
+                      </div>
+                      <label className="flex items-center gap-2 pt-2 text-xs font-semibold text-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={acknowledgeBlindReroute}
+                          onChange={e => setAcknowledgeBlindReroute(e.target.checked)}
+                          className="rounded border-border"
+                        />
+                        <span>Подтверждаю Reroute вслепую (без известной цены)</span>
+                      </label>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Баланс клиента:</span>
+                        <span className={failoverPreview.currentBalance < failoverPreview.clientPaidCents ? "text-destructive font-bold" : ""}>
+                          {(failoverPreview.currentBalance / 100).toFixed(2)} ₽
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Клиент заплатил:</span>
+                        <span>{(failoverPreview.clientPaidCents / 100).toFixed(2)} ₽</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Резервный провайдер:</span>
+                        <span>{((activeRoute.newCostCents || 0) / 100).toFixed(2)} ₽</span>
+                      </div>
+                      <div className="h-px bg-border my-2" />
+                      <div className="flex justify-between font-bold">
+                        <span>Новая маржа:</span>
+                        <span className={activeRoute.isMarginPositive ? 'text-success' : 'text-destructive'}>
+                          {((activeRoute.marginCents || 0) / 100).toFixed(2)} ₽ 
+                          ({activeRoute.marginPercent ?? 0}%) 
+                          {activeRoute.isMarginPositive ? ' ✅' : ' 🔴'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

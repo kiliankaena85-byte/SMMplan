@@ -4,8 +4,8 @@ type PrismaTx = Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on
 
 export class WalletInsufficientFundsError extends Error {
   readonly code = 'INSUFFICIENT_FUNDS';
-  constructor(needed: number, got: number | bigint) {
-    super(`Insufficient funds: needed ${needed}, got ${got}`);
+  constructor(needed: number | bigint, got: number | bigint) {
+    super(`Insufficient funds: needed ${needed.toString()}, got ${got.toString()}`);
     this.name = 'WalletInsufficientFundsError';
   }
 }
@@ -34,73 +34,67 @@ export const WalletOps = {
   async charge(
     tx: PrismaTx,
     userId: string,
-    amountCents: number,
+    amountCents: number | bigint,
     reason: string,
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
-    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
+    const MAX_SINGLE_CHARGE_CENTS = BigInt(100_000_000); // 1M RUB safety cap
+    if (rawCents <= BigInt(0) || rawCents > MAX_SINGLE_CHARGE_CENTS) {
       throw new WalletInvalidAmountError('Charge');
     }
 
     const { idempotencyKey, adminId } = opts || {};
 
-    // Removed Redis Mutex: PostgreSQL handles row-level locking securely. Holding a DB transaction open 
-    // while waiting for an external Redis lock is an anti-pattern that leads to connection pool exhaustion.
-      // 1. Check Idempotency immediately
-      if (idempotencyKey) {
-        const existing = await tx.ledgerEntry.findFirst({
-          where: { idempotencyKey },
-        });
-        
-        if (existing) {
-          return { success: true, balance: null, cached: true, entry: existing };
-        }
-      }
-
-      // 2. Atomic Check-and-Decrement (Optimistic Concurrency Control)
-      // We update ONLY if balance is sufficient. This prevents TOCTOU races.
-      const updatedUserBatch = await tx.user.updateMany({
-        where: { 
-          id: userId,
-          balance: { gte: amountCents }
-        },
-        data: {
-          balance: { decrement: amountCents },
-          totalSpent: { increment: amountCents }
-        }
+    if (idempotencyKey) {
+      const existing = await tx.ledgerEntry.findFirst({
+        where: { idempotencyKey },
       });
-
-      if (updatedUserBatch.count === 0) {
-        // Find out WHY it failed to provide a clear error message
-        const checkUser = await tx.user.findUnique({
-          where: { id: userId },
-          select: { id: true, balance: true },
-        });
-        if (!checkUser) {
-          throw new WalletUserNotFoundError(userId);
-        }
-        throw new WalletInsufficientFundsError(amountCents, checkUser.balance);
+      
+      if (existing) {
+        return { success: true, balance: null, cached: true, entry: existing };
       }
+    }
 
-      // 3. Fetch the new balance safely within the same transaction lock
-      const finalUser = await tx.user.findUniqueOrThrow({
+    const updatedUserBatch = await tx.user.updateMany({
+      where: { 
+        id: userId,
+        balance: { gte: rawCents }
+      },
+      data: {
+        balance: { decrement: rawCents },
+        totalSpent: { increment: rawCents }
+      }
+    });
+
+    if (updatedUserBatch.count === 0) {
+      const checkUser = await tx.user.findUnique({
         where: { id: userId },
-        select: { balance: true }
+        select: { id: true, balance: true },
       });
+      if (!checkUser) {
+        throw new WalletUserNotFoundError(userId);
+      }
+      throw new WalletInsufficientFundsError(rawCents, checkUser.balance);
+    }
 
-      // 5. Create Ledger Audit Log
-      const entry = await tx.ledgerEntry.create({
-        data: {
-          userId,
-          adminId,
-          amount: -amountCents, // Native negative for debits
-          reason,
-          status: 'APPROVED',
-          idempotencyKey,
-        }
-      });
+    const finalUser = await tx.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { balance: true }
+    });
 
-      return { success: true, balance: finalUser.balance, cached: false, entry };
+    const entry = await tx.ledgerEntry.create({
+      data: {
+        userId,
+        adminId,
+        amount: -rawCents,
+        reason,
+        status: 'APPROVED',
+        idempotencyKey,
+      }
+    });
+
+    return { success: true, balance: finalUser.balance, cached: false, entry };
   },
 
   /**
@@ -109,11 +103,13 @@ export const WalletOps = {
   async credit(
     tx: PrismaTx,
     userId: string,
-    amountCents: number,
+    amountCents: number | bigint,
     reason: string,
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
-    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
+    const MAX_SINGLE_CREDIT_CENTS = BigInt(100_000_000); // 1M RUB safety cap
+    if (rawCents <= BigInt(0) || rawCents > MAX_SINGLE_CREDIT_CENTS) {
       throw new WalletInvalidAmountError('Credit');
     }
 
@@ -128,13 +124,12 @@ export const WalletOps = {
       }
     }
 
-    // Create-first pattern: atomic idempotency barrier
     try {
       const entry = await tx.ledgerEntry.create({
         data: {
           userId,
           adminId,
-          amount: amountCents, // Native positive for credits
+          amount: rawCents,
           reason,
           status: 'APPROVED',
           idempotencyKey,
@@ -143,7 +138,7 @@ export const WalletOps = {
 
       const updatedUser = await tx.user.update({
         where: { id: userId },
-        data: { balance: { increment: amountCents } },
+        data: { balance: { increment: rawCents } },
         select: { balance: true }
       });
 
@@ -272,5 +267,57 @@ export const WalletOps = {
 
       return { success: true, balance: updatedUser.balance, cached: false, entry };
     // Removed Mutex wrapper closing bracket
+  },
+
+  /**
+   * Add funds to user quarantine balance bubble instead of main balance.
+   */
+  async quarantineAdd(
+    tx: PrismaTx,
+    userId: string,
+    amountCents: number,
+    reason: string,
+    opts?: { idempotencyKey?: string; adminId?: string }
+  ) {
+    const { idempotencyKey, adminId } = opts || {};
+    const absAmount = Math.abs(amountCents);
+
+    await tx.user.update({
+      where: { id: userId },
+      data: { quarantineBalance: { increment: absAmount } }
+    });
+
+    return await tx.ledgerEntry.create({
+      data: {
+        userId,
+        adminId,
+        amount: amountCents,
+        reason,
+        status: 'QUARANTINE',
+        idempotencyKey
+      }
+    });
+  },
+
+  /**
+   * Release or clear quarantine balance for a user.
+   */
+  async quarantineRelease(
+    tx: PrismaTx,
+    userId: string,
+    amountCents: number
+  ) {
+    const absAmount = Math.abs(amountCents);
+    const updated = await tx.user.updateMany({
+      where: { id: userId, quarantineBalance: { gte: absAmount } },
+      data: { quarantineBalance: { decrement: absAmount } }
+    });
+
+    if (updated.count === 0) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { quarantineBalance: 0 }
+      });
+    }
   }
 };

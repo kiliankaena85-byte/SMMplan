@@ -42,7 +42,7 @@ class YooKassaGateway extends BasePaymentGateway {
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
 
-    const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test';
+    const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey.startsWith('test_') || process.env.NODE_ENV === 'development';
 
     if (isDummyKeys) {
       return {
@@ -76,7 +76,7 @@ class YooKassaGateway extends BasePaymentGateway {
         }
       }).then(res => Number(res._sum.amount || 0));
 
-      const isVatThresholdExceeded = annualRevenue >= 2000000000; // 20 млн рублей
+      const isVatThresholdExceeded = annualRevenue >= 6000000000; // 60 млн рублей (Порог УСН НДС 5% 2025-2026)
       const vatCode = isVatThresholdExceeded ? 7 : 1; // 7 = НДС 5%, 1 = Без НДС
 
       payload.receipt = {

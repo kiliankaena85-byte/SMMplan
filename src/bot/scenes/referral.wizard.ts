@@ -11,9 +11,11 @@ import { db } from '@/lib/db';
 
 export const REFERRAL_WIZARD = 'referral-wizard';
 
+const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
+
 async function resolveUser(tgId: number) {
   return db.user.findFirst({
-    where: { telegramId: String(tgId) },
+    where: { telegramId: String(tgId), tenantId: botTenantId },
     select: { id: true, referralCode: true, referralBalance: true, _count: { select: { referrals: true } } }
   });
 }
@@ -44,7 +46,9 @@ export const referralWizard = new Scenes.WizardScene(
       user.referralCode = newCode;
     }
 
-    const host = getBaseUrlSync();
+    const host = (botTenantId === 'flux' || botTenantId === 'lovable')
+      ? (process.env.FLUX_APP_URL || 'https://smmflux.ru')
+      : getBaseUrlSync();
     const link = `${host}/?ref=${user.referralCode}`;
     const earned = (user.referralBalance ?? 0) / 100;
     const refsCount = user._count?.referrals ?? 0;

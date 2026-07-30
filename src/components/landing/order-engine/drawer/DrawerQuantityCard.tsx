@@ -113,7 +113,10 @@ export function DrawerQuantityCard({
             onChange={handleInputChange}
             onBlur={handleInputBlur}
             disabled={isCustomComments}
-            onFocus={(e) => e.target.select()}
+            onFocus={(e) => {
+              const target = e.target;
+              setTimeout(() => target.select(), 0);
+            }}
             className={`w-full h-12 px-3 rounded-2xl border border-border/50 bg-background text-sm font-black tabular-nums text-foreground text-center focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm ${
               isCustomComments ? "opacity-75 cursor-not-allowed select-none bg-content2" : ""
             }`}

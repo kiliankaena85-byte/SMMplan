@@ -21,3 +21,29 @@ export function formatEta(seconds: number): string {
   const h = Math.round((seconds % 86400) / 3600);
   return h > 0 ? `${d}д ${h}ч` : `${d}д`;
 }
+
+export function formatEtaSpeedBadge(service: {
+  speed?: string | null;
+  etaP50Seconds?: number | null;
+  etaP90Seconds?: number | null;
+  etaSpeedClass?: string | null;
+}): string {
+  let speedText = 'Высокая';
+  if (service.etaSpeedClass === 'FAST' || service.etaSpeedClass === 'ULTRA_FAST') {
+    speedText = 'Высокая';
+  } else if (service.etaSpeedClass === 'MEDIUM') {
+    speedText = 'Средняя';
+  } else if (service.etaSpeedClass === 'SLOW' || service.etaSpeedClass === 'ULTRA_SLOW') {
+    speedText = 'Плавная';
+  } else if (service.speed) {
+    speedText = service.speed;
+  }
+
+  if (service.etaP50Seconds && service.etaP50Seconds > 0 && service.etaP90Seconds && service.etaP90Seconds > 0) {
+    return `⚡ ${speedText} (ETA P50: ${formatEta(service.etaP50Seconds)}, P90: ${formatEta(service.etaP90Seconds)})`;
+  } else if (service.etaP50Seconds && service.etaP50Seconds > 0) {
+    return `⚡ ${speedText} (ETA P50: ${formatEta(service.etaP50Seconds)})`;
+  }
+  return `⚡ ${speedText}`;
+}
+

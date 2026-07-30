@@ -23,7 +23,7 @@ export class PaymentService {
    */
   async confirmPayment(
     gatewayId: string, 
-    amount: number, 
+    amount: number | bigint, 
     userId: string, 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isDevSandbox = false,
@@ -84,6 +84,8 @@ export class PaymentService {
           payment = await tx.payment.findUnique({ where: { gatewayId } });
         }
 
+        const receivedAmountBigInt = BigInt(amount);
+
         // 1. Process or Create Payment atomically via Upsert to prevent orphaned double-creation
         const currentPayment = payment
           ? await tx.payment.findUnique({ where: { id: payment.id } })
@@ -94,21 +96,50 @@ export class PaymentService {
           return;
         }
 
-        if (currentPayment && currentPayment.amount > amount) {
-          console.error(`[Payment] Amount underpayment exploit attempt for ${gatewayId}: expected ${currentPayment.amount}, got ${amount}`);
-          throw new Error('PAYMENT_AMOUNT_MISMATCH: Underpayment detected. Order rejected.');
+        // [SECURITY CR-4 FIX] Gateway ID Consistency Guard
+        if (currentPayment && currentPayment.gatewayId && currentPayment.gatewayId !== gatewayId) {
+          console.error(`[Payment] Gateway ID mismatch for payment ${currentPayment.id}: expected ${currentPayment.gatewayId}, got ${gatewayId}`);
+          throw new Error('PAYMENT_GATEWAY_ID_MISMATCH: Gateway ID mismatch detected.');
+        }
+
+        // [SECURITY CR-4 FIX] Currency Consistency Guard
+        if (currentPayment && currentPayment.currency && currentPayment.currency !== 'RUB') {
+          console.error(`[Payment] Currency mismatch for payment ${currentPayment.id}: expected RUB, got ${currentPayment.currency}`);
+          throw new Error('PAYMENT_CURRENCY_MISMATCH: Unsupported payment currency.');
+        }
+
+        // [SECURITY CR-4 FIX] Exact Amount Verification: Reject both underpayment and overpayment exploits
+        if (currentPayment && currentPayment.amount !== receivedAmountBigInt) {
+          console.error(`[Payment] Amount mismatch exploit attempt for ${gatewayId}: expected ${currentPayment.amount}, got ${receivedAmountBigInt}`);
+          throw new Error('PAYMENT_AMOUNT_MISMATCH: Amount received from gateway does not match expected payment amount.');
         }
 
         let processedPaymentId: string;
         let isOrderPayment: boolean;
         let linkedOrderId: string;
+        let targetUserId: string;
 
         if (currentPayment) {
+          // [SECURITY CR-4 FIX] Do NOT overwrite currentPayment.amount with webhook amount. Use expected payment.userId
+          targetUserId = currentPayment.userId;
+          if (userId && currentPayment.userId !== userId) {
+            console.warn(`[Payment] User mismatch: caller passed ${userId}, payment bound to ${currentPayment.userId}. Using payment.userId.`);
+          }
+
           const updated = await tx.payment.updateMany({
             where: { id: currentPayment.id, status: 'PENDING' },
-            data: { status: 'SUCCEEDED', gatewayId, amount, receiptId: receiptId || undefined }
+            data: { status: 'SUCCEEDED', gatewayId, receiptId: receiptId || undefined }
           });
-          if (updated.count === 0) return; // DB lock idempotency
+          if (updated.count === 0) {
+            const fresh = await tx.payment.findUnique({
+              where: { id: currentPayment.id },
+              select: { status: true }
+            });
+            console.warn(
+              `[Payment] No transition for ${currentPayment.id}. Current status: ${fresh?.status}`
+            );
+            return true;
+          }
           processedPaymentId = currentPayment.id;
           isOrderPayment = !!currentPayment.orderId;
           linkedOrderId = currentPayment.orderId || '';
@@ -117,6 +148,8 @@ export class PaymentService {
           console.error(`[SECURITY] Orphan webhook rejected for gatewayId: ${gatewayId}. No PENDING payment found.`);
           throw new Error('ORPHAN_WEBHOOK: Stray webhooks are no longer allowed to credit accounts. All payments must be initiated by the system.');
         }
+
+        const creditAmount = currentPayment ? currentPayment.amount : receivedAmountBigInt;
 
         // [FIN-009] Removed awardCommission from payment.service.ts. 
         // Referral commissions are now awarded in order.service.ts based on order margin.
@@ -133,21 +166,21 @@ export class PaymentService {
               where: { id: linkedOrderId },
               data: { status: 'PENDING' }
             });
-            await logPromoCodeUsageIfNeeded(tx, linkedOrderId, userId);
+            await logPromoCodeUsageIfNeeded(tx, linkedOrderId, targetUserId);
             activatedOrders.push({ 
               id: order.id, 
               isDripFeed: order.isDripFeed, 
-              userId: userId, 
-              amount: amount,
+              userId: targetUserId, 
+              amount: Number(creditAmount),
               userEmail: order.user?.email ?? null,
               serviceName: order.service?.name ?? null,
               numericId: order.numericId 
             });
-            await WalletOps.credit(tx, userId, amount,
+            await WalletOps.credit(tx, targetUserId, Number(creditAmount),
               `Оплата заказа #${order.numericId} через шлюз`,
               { idempotencyKey: `gateway-credit-${processedPaymentId}` }
             );
-            await WalletOps.charge(tx, userId, Number(order.charge),
+            await WalletOps.charge(tx, targetUserId, Number(order.charge),
               `Списание за заказ #${order.numericId}`,
               { idempotencyKey: `gateway-charge-${order.id}` }
             );
@@ -169,17 +202,17 @@ export class PaymentService {
               activatedOrders.push({ 
                 id: order.id, 
                 isDripFeed: order.isDripFeed, 
-                userId: userId, 
+                userId: targetUserId, 
                 amount: Number(order.charge),
                 userEmail: order.user?.email ?? null,
                 serviceName: order.service?.name ?? null,
                 numericId: order.numericId 
               });
-              await logPromoCodeUsageIfNeeded(tx, order.id, userId);
+              await logPromoCodeUsageIfNeeded(tx, order.id, targetUserId);
            }
 
-            // Credit full paid amount first
-            await WalletOps.credit(tx, userId, amount,
+            // Credit full expected paid amount first to currentPayment.userId
+            await WalletOps.credit(tx, targetUserId, Number(creditAmount),
               `Оплата корзины заказов через шлюз`,
               { idempotencyKey: `gateway-credit-${processedPaymentId}` }
             );
@@ -187,34 +220,19 @@ export class PaymentService {
             // Batch deduct total charge and log ledger entries
             const totalChargeCents = basketOrders.reduce((sum, order) => sum + Number(order.charge), 0);
             
-            const updatedUserBatch = await tx.user.updateMany({
-              where: {
-                id: userId,
-                balance: { gte: totalChargeCents }
-              },
-              data: {
-                balance: { decrement: totalChargeCents },
-                totalSpent: { increment: totalChargeCents }
-              }
-            });
-            if (updatedUserBatch.count === 0) {
-              throw new Error('INSUFFICIENT_FUNDS: Недостаточно средств для оплаты корзины');
-            }
-
-            const ledgerData = basketOrders.map(order => ({
-              userId,
-              amount: -Number(order.charge),
-              reason: `Списание за заказ #${order.numericId ?? order.id}`,
-              status: 'APPROVED' as const,
-              idempotencyKey: `gateway-charge-${order.id}`
-            }));
-            await tx.ledgerEntry.createMany({ data: ledgerData });
+            await WalletOps.charge(
+              tx,
+              targetUserId,
+              totalChargeCents,
+              `Списание за оплату корзины заказов (${basketOrders.length} шт.)`,
+              { idempotencyKey: `gateway-basket-charge-${processedPaymentId}` }
+            );
 
         }
 
         if (!isOrderPayment && basketOrders.length === 0) {
-          // Direct top-up (Deposit) - Increment User Balance securely!
-          await WalletOps.credit(tx, userId, amount,
+          // Direct top-up (Deposit) - Increment User Balance securely via targetUserId and expected creditAmount!
+          await WalletOps.credit(tx, targetUserId, Number(creditAmount),
             `Пополнение баланса через ${gatewayType}`,
             { idempotencyKey: `deposit-${processedPaymentId}` }
           );
@@ -348,28 +366,13 @@ export class PaymentService {
             // Batch deduct total charge and log ledger entries
             const totalChargeCents = basketOrders.reduce((sum, order) => sum + Number(order.charge), 0);
             
-            const updatedUserBatch = await tx.user.updateMany({
-              where: {
-                id: payment.userId,
-                balance: { gte: totalChargeCents }
-              },
-              data: {
-                balance: { decrement: totalChargeCents },
-                totalSpent: { increment: totalChargeCents }
-              }
-            });
-            if (updatedUserBatch.count === 0) {
-              throw new Error('INSUFFICIENT_FUNDS: Недостаточно средств для оплаты корзины');
-            }
-
-            const ledgerData = basketOrders.map(order => ({
-              userId: payment.userId,
-              amount: -Number(order.charge),
-              reason: `Списание за заказ #${order.numericId ?? order.id}`,
-              status: 'APPROVED' as const,
-              idempotencyKey: `gateway-charge-${order.id}`
-            }));
-            await tx.ledgerEntry.createMany({ data: ledgerData });
+            await WalletOps.charge(
+              tx,
+              payment.userId,
+              totalChargeCents,
+              `Списание за оплату корзины заказов (${basketOrders.length} шт.)`,
+              { idempotencyKey: `gateway-basket-charge-${paymentId}` }
+            );
 
         }
 

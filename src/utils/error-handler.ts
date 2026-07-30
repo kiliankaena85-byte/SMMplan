@@ -13,7 +13,7 @@ export function handleServerError(error: any): LocalizedError {
   if (!error) {
     return {
       code: 'ERR_UNKNOWN',
-      message: '[ERR_UNKNOWN] Произошла неизвестная системная ошибка.'
+      message: 'Произошла неизвестная системная ошибка.'
     };
   }
 
@@ -29,7 +29,7 @@ export function handleServerError(error: any): LocalizedError {
   ) {
     return {
       code: 'ERR_PROVIDER_TIMEOUT',
-      message: `[ERR_PROVIDER_TIMEOUT] Ошибка: Превышено время ожидания ответа от API провайдера (10 секунд). Сервер провайдера перегружен или недоступен. Пожалуйста, повторите попытку позже.`
+      message: `Ошибка: Превышено время ожидания ответа от API провайдера (10 секунд). Сервер провайдера перегружен или недоступен. Пожалуйста, повторите попытку позже.`
     };
   }
 
@@ -41,7 +41,7 @@ export function handleServerError(error: any): LocalizedError {
   ) {
     return {
       code: 'ERR_PROVIDER_NETWORK',
-      message: `[ERR_PROVIDER_NETWORK] Сетевая ошибка: Не удалось установить соединение с сервером провайдера. Пожалуйста, проверьте корректность URL-адреса API в настройках провайдеров или статус сети.`
+      message: `Сетевая ошибка: Не удалось установить соединение с сервером провайдера. Пожалуйста, проверьте корректность URL-адреса API в настройках провайдеров или статус сети.`
     };
   }
 
@@ -49,19 +49,19 @@ export function handleServerError(error: any): LocalizedError {
   if (error.name === 'WalletInsufficientFundsError') {
     return {
       code: 'ERR_BUSINESS_LOGIC',
-      message: `[ERR_BUSINESS_LOGIC] Недостаточно средств на балансе. Пожалуйста, пополните счет.`
+      message: `Недостаточно средств на балансе. Пожалуйста, пополните счет.`
     };
   }
   if (error.name === 'WalletUserNotFoundError') {
     return {
       code: 'ERR_BUSINESS_LOGIC',
-      message: `[ERR_BUSINESS_LOGIC] Пользователь не найден. Пожалуйста, авторизуйтесь заново.`
+      message: `Пользователь не найден. Пожалуйста, авторизуйтесь заново.`
     };
   }
   if (error.name === 'WalletInvalidAmountError') {
     return {
       code: 'ERR_BUSINESS_LOGIC',
-      message: `[ERR_BUSINESS_LOGIC] Некорректная сумма операции.`
+      message: `Некорректная сумма операции.`
     };
   }
 
@@ -69,7 +69,7 @@ export function handleServerError(error: any): LocalizedError {
   if (message.includes('PrismaClientKnownRequestError') || code.startsWith('P')) {
     return {
       code: `ERR_DB_ERROR_${code || 'GENERIC'}`,
-      message: `[ERR_DB_ERROR] Системная ошибка базы данных (Код: ${code || 'PXXXX'}). Операция не может быть завершена для предотвращения повреждения данных. Пожалуйста, обратитесь в службу поддержки.`
+      message: `Системная ошибка базы данных (Код: ${code || 'PXXXX'}). Операция не может быть завершена для предотвращения повреждения данных. Пожалуйста, обратитесь в службу поддержки.`
     };
   }
 
@@ -82,7 +82,7 @@ export function handleServerError(error: any): LocalizedError {
   ) {
     return {
       code: 'ERR_AUTH_UNAUTHORIZED',
-      message: `[ERR_AUTH_UNAUTHORIZED] Ошибка авторизации: Ваша сессия истекла или вы не вошли в систему. Пожалуйста, обновите страницу и авторизуйтесь заново.`
+      message: `Ошибка авторизации: Ваша сессия истекла или вы не вошли в систему. Пожалуйста, обновите страницу и авторизуйтесь заново.`
     };
   }
 
@@ -94,7 +94,7 @@ export function handleServerError(error: any): LocalizedError {
   ) {
     return {
       code: 'ERR_AUTH_FORBIDDEN',
-      message: `[ERR_AUTH_FORBIDDEN] Ошибка доступа: У вас недостаточно прав для выполнения этой операции (требуются права Владельца или Администратора с соответствующим доступом).`
+      message: `Ошибка доступа: У вас недостаточно прав для выполнения этой операции (требуются права Владельца или Администратора с соответствующим доступом).`
     };
   }
 
@@ -102,7 +102,7 @@ export function handleServerError(error: any): LocalizedError {
   if (message.includes('did not return an array') || message.includes('invalid format')) {
     return {
       code: 'ERR_PROVIDER_FORMAT',
-      message: `[ERR_PROVIDER_FORMAT] Ошибка формата: Ответ API провайдера пуст или не соответствует ожидаемому формату каталога SMM-услуг. Проверьте настройки API-ключа.`
+      message: `Ошибка формата: Ответ API провайдера пуст или не соответствует ожидаемому формату каталога SMM-услуг. Проверьте настройки API-ключа.`
     };
   }
 
@@ -110,7 +110,7 @@ export function handleServerError(error: any): LocalizedError {
   if (message.includes('Internal Server Error during execution')) {
     return {
       code: 'ERR_INTERNAL_SERVER',
-      message: `[ERR_INTERNAL_SERVER] Внутренняя ошибка сервера: Во время выполнения операции на сервере произошел сбой. Пожалуйста, проверьте журналы ошибок (logs) разработчика.`
+      message: `Внутренняя ошибка сервера: Во время выполнения операции на сервере произошел сбой. Пожалуйста, проверьте журналы ошибок (logs) разработчика.`
     };
   }
 
@@ -118,7 +118,7 @@ export function handleServerError(error: any): LocalizedError {
   if (/[а-яА-ЯёЁ]/.test(message)) {
     return {
       code: 'ERR_BUSINESS_LOGIC',
-      message: message.startsWith('[') ? message : `[ERR_BUSINESS_LOGIC] ${message}`
+      message: message.replace(/^\[.*?\]\s*/, '') // Remove existing brackets if they accidentally got injected earlier
     };
   }
 
@@ -126,7 +126,7 @@ export function handleServerError(error: any): LocalizedError {
   const isDev = process.env.NODE_ENV === 'development';
   return {
     code: 'ERR_INTERNAL_SERVER',
-    message: `[ERR_INTERNAL_SERVER] Произошла непредвиденная ошибка на сервере. Мы уже получили отчет о сбое и работаем над исправлением.`,
+    message: `Произошла непредвиденная ошибка на сервере. Мы уже получили отчет о сбое и работаем над исправлением.`,
     originalMessage: isDev ? message : undefined
   };
 }

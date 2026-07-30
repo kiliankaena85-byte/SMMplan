@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { WalletOps } from '../financial/wallet-ops';
 
 export const adminMarketingService = {
   // ── PromoCodes ──
@@ -151,36 +152,30 @@ export const adminMarketingService = {
         throw new Error('Partial payouts are not supported to maintain financial data integrity. Payout amount must exactly match the full referral balance.');
       }
 
-      // Deduct from referral
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: {
-          referralBalance: { decrement: amountToPayCents },
-          balance: { increment: amountToPayCents },
-        },
+      // Deduct from referral atomically
+      const updated = await tx.user.updateMany({
+        where: { id: userId, referralBalance: { gte: amountToPayCents } },
+        data: { referralBalance: { decrement: amountToPayCents } },
       });
 
-      if (updatedUser.referralBalance < 0) {
-        throw new Error('Insufficient referral balance. Concurrent payout detected.');
+      if (updated.count === 0) {
+        throw new Error('Insufficient referral balance or concurrent payout detected.');
       }
 
-      // Mark all pending commissions for this user as PAID (simplified approach, or we could leave them as is if we just treat balance as an aggregate container)
+      // Mark all pending commissions for this user as PAID
       await tx.commission.updateMany({
         where: { referrerId: userId, status: 'PENDING' },
         data: { status: 'PAID' },
       });
 
-      // Financial Integrity: LedgerEntry MUST mirror every balance change
-      await tx.ledgerEntry.create({
-        data: {
-          userId,
-          adminId: adminId,
-          amount: amountToPayCents,
-          reason: `Выплата реферального баланса (admin payout)`,
-          status: 'APPROVED',
-          idempotencyKey: `referral-payout-${userId}-${Date.now()}`
-        },
-      });
+      // Financial Integrity: Credit main balance via WalletOps primitive
+      const creditResult = await WalletOps.credit(
+        tx,
+        userId,
+        amountToPayCents,
+        `Выплата реферального баланса (admin payout)`,
+        { adminId, idempotencyKey: `referral-payout-${userId}-${amountToPayCents}` }
+      );
 
       // Audit Log
       await tx.adminAuditLog.create({
@@ -190,11 +185,11 @@ export const adminMarketingService = {
           action: 'REFERRAL_PAYOUT',
           target: userId,
           targetType: 'USER',
-          newValue: JSON.stringify({ amount: amountToPayCents, newBalance: updatedUser.balance.toString() }),
+          newValue: JSON.stringify({ amount: amountToPayCents, newBalance: creditResult.balance?.toString() ?? '0' }),
         },
       });
 
-      return updatedUser;
+      return { ...user, balance: creditResult.balance };
     });
   },
 };

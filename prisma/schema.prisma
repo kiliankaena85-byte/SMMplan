@@ -10,9 +10,10 @@ datasource db {
 
 model User {
   id                String    @id @default(cuid())
-  email             String    @unique
+  email             String
   passwordHash      String?
   role              String    @default("USER") // USER, SUPPORT, MANAGER, OWNER
+  preferredDashboard String   @default("CLASSIC") // "CLASSIC" or "LOVABLE"
   balance           BigInt    @default(0)
   quarantineBalance BigInt    @default(0) // Funds pending Owner approval (Escrow)
   totalSpent        BigInt    @default(0) // Lifetime value in Cents
@@ -34,6 +35,10 @@ model User {
   isEmailVerified Boolean @default(true)
   isActive        Boolean @default(true)
   isDeleted       Boolean @default(false)
+
+  // 152-FZ Compliance (Terms of Service / Privacy Policy agreement tracking)
+  tosAcceptedAt   DateTime?
+  tosAcceptedIp   String?
 
   // Operator notes (internal, never visible to client)
   adminNote          String? // Free-form operator note
@@ -72,6 +77,20 @@ model User {
   b2bConfig B2bConfig?
   userNotes     UserNote[] @relation("UserNotes")
   authoredNotes UserNote[] @relation("AuthorNotes")
+
+  targetBalanceAdjustments    ManualBalanceAdjustment[] @relation("targetBalanceAdjustments")
+  requestedBalanceAdjustments ManualBalanceAdjustment[] @relation("requestedBalanceAdjustments")
+  approvedBalanceAdjustments  ManualBalanceAdjustment[] @relation("approvedBalanceAdjustments")
+  rejectedBalanceAdjustments  ManualBalanceAdjustment[] @relation("rejectedBalanceAdjustments")
+
+  employeeConsents           EmployeeResponsibilityConsent[]
+  staffFinancialActions      SupportFinancialAction[]        @relation("staffFinancialActions")
+  targetFinancialActions     SupportFinancialAction[]        @relation("targetFinancialActions")
+
+  tenantId String @default("smmplan")
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
 }
 
 model B2bConfig {
@@ -82,6 +101,7 @@ model B2bConfig {
   prioritySupport  Boolean @default(true) // Выделение и приоритетная поддержка
   webhookUrl       String? // Webhook URL для синхронизации тикетов
   webhookSecret    String? // Секретный ключ подписи вебхуков B2B
+  isWebhookActive  Boolean @default(false) // Toggle for webhook status
   customLimitCents Int? // Кастомный лимит компенсаций (если null — лимит не применяется!)
 
   createdAt DateTime @default(now())
@@ -140,10 +160,13 @@ model Network {
   icon        String? // SVG content or name
   sort        Int          @default(0)
   isActive    Boolean      @default(true)
+  tenantId    String       @default("smmplan")
   categories  Category[]
   urlPatterns UrlPattern[] // Link detection patterns
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  @@index([tenantId])
 }
 
 // URL patterns for link detection (two-level: network + content type)
@@ -165,14 +188,17 @@ model Category {
   slug           String    @unique @default(cuid())
   networkId      String?
   network        Network?  @relation(fields: [networkId], references: [id], onDelete: Restrict)
+  tenantId       String    @default("smmplan")
   sort           Int       @default(0)
   requireWarning Boolean   @default(false)
   warningMessage String?
+  analyzerTags   String?   // Comma-separated list of Link Analyzer types (e.g. "private_post,channel")
   services       Service[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   @@index([networkId])
+  @@index([tenantId])
 }
 
 model Service {
@@ -183,6 +209,7 @@ model Service {
   features         Json? // Structured metadata extracted by AI (geo, speed, warranty)
   categoryId       String
   category         Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  tenantId         String    @default("smmplan")
   providerId       String? // Link to Provider who fulfills this service
   provider         Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
   rate             Float // provider rate per 1000
@@ -199,6 +226,10 @@ model Service {
   isDripFeedEnabled Boolean @default(true)
   isRefillEnabled   Boolean @default(false)
   isCancelEnabled   Boolean @default(false)
+
+  // Custom metadata protection flags (prevent overwrite on provider sync)
+  isCustomName        Boolean @default(false)
+  isCustomDescription Boolean @default(false)
 
   // Quarantine: price spike isolation & Elastic Quarantine
   // When rate changes > quarantineThreshold% → service goes QUARANTINE status
@@ -224,12 +255,16 @@ model Service {
   customDataLabel   String? // Optional custom text prompt for the input field
   isMediaGroupAware Boolean @default(false) // If false, backend splits "123-125" into separate orders
 
-  requireWarning    Boolean  @default(false)
-  warningMessage    String?
-  isActive          Boolean  @default(true)
-  pricePer1000Cents Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  requireWarning     Boolean  @default(false)
+  warningMessage     String?
+  clientRequirement  String?  // Legal/Marketing requirement for the service (e.g. "Profile must be public")
+  clientConfirmation String?  // JIT confirmation toggle text (e.g. "My profile is public")
+  isActive           Boolean  @default(true)
+  pricePer1000Cents  Int      @default(0) // Denormalized price for sorting (rate * markup * exchangeRate)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  slug               String?
 
   orders         Order[]
   routes         ServiceRoute[]
@@ -237,10 +272,13 @@ model Service {
   smartConfig    ServiceSmartConfig?
   priceHistory   ServicePriceHistory[]
 
+  @@unique([tenantId, slug])
   @@index([categoryId])
   @@index([providerId])
   @@index([isQuarantined])
   @@index([externalId])
+  @@index([tenantId])
+  @@index([slug])
 }
 
 model Provider {
@@ -324,6 +362,7 @@ model Order {
   quantity          Int
   status            OrderStatus @default(AWAITING_PAYMENT)
   remains           Int         @default(0) // Outstanding amount to deliver
+  startCount        Int?        @map("start_count") // Start count snapshot from provider
   charge            BigInt // price paid by user in Cents
   providerCost      BigInt // exact cost from provider in Cents
   error             String? // Error message from provider API
@@ -366,8 +405,12 @@ model Order {
   idempotencyKey String? @unique // Wave 1: Token to prevent double order creation
 
   abVariant      String? // A/B test variant tag: A, B, C
+  tenantId       String  @default("smmplan")
 
   @@index([userId])
+  @@index([tenantId])
+  @@index([tenantId, userId])
+  @@index([tenantId, status, createdAt])
   @@index([serviceId]) // Fast lookup for orders by service
   @@index([status])
   @@index([createdAt]) // P2.2: temporal queries & analytics
@@ -423,11 +466,15 @@ model Payment {
 
   abVariant String? // A/B test variant tag: A, B, C
 
+  tenantId String @default("smmplan")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([gatewayId])
+  @@index([tenantId])
+  @@index([tenantId, userId])
 }
 
 // ── B2B Accounting ──
@@ -453,8 +500,23 @@ enum UsnScheme {
   INCOME_EXPENSES
 }
 
+model Tenant {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  domain       String   @unique
+  customDomain String?  @unique
+  isActive     Boolean  @default(true)
+  vaultSalt    String   @default("") // TODO: Implement per-tenant HKDF key derivation (P2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  systemSettings SystemSettings?
+}
+
 model SystemSettings {
-  id              String    @id @default("global")
+  id              String    @id
+  tenant          Tenant    @relation(fields: [id], references: [id], onDelete: Cascade)
   isTestMode      Boolean   @default(false)
   taxRate         Float     @default(6.0) // % tax rate
   usnScheme       UsnScheme @default(INCOME_EXPENSES)
@@ -561,7 +623,12 @@ model Ticket {
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
+  tenantId String @default("smmplan")
+
   @@index([userId])
+  @@index([tenantId])
+  @@index([tenantId, userId])
+  @@index([tenantId, status, createdAt])
   @@index([source])
   @@index([orderId])
   @@index([paymentId])
@@ -649,6 +716,7 @@ model Commission {
 
   referrer User @relation("ReferredCommissions", fields: [referrerId], references: [id], onDelete: Cascade)
 
+  @@unique([orderId, referrerId])
   @@index([referrerId])
 }
 
@@ -669,6 +737,7 @@ model RateLimit {
 
 model AdminAuditLog {
   id         String   @id @default(cuid())
+  tenantId   String?  @default("smmplan")
   adminId    String // Who performed the action
   adminEmail String // Denormalized for fast log reading
   action     String // USER_BALANCE_CHANGE, SERVICE_DISABLE, SETTINGS_UPDATE, etc.
@@ -682,10 +751,12 @@ model AdminAuditLog {
   @@index([adminId])
   @@index([createdAt])
   @@index([targetType])
+  @@index([tenantId])
 }
 
 model LedgerEntry {
   id              String   @id @default(cuid())
+  tenantId        String?  @default("smmplan")
   userId          String // Client whose balance was affected
   user            User     @relation("UserLedger", fields: [userId], references: [id], onDelete: Restrict)
   adminId         String? // Support agent who initiated, null if SYSTEM/auto
@@ -702,6 +773,7 @@ model LedgerEntry {
   @@index([status])
   @@index([adminId])
   @@index([adminId, createdAt])
+  @@index([tenantId])
 }
 
 model SupportTemplate {
@@ -750,6 +822,7 @@ model FeatureFlag {
 // Custom roles with granular permissions per sidebar section
 model StaffRole {
   id          String            @id @default(cuid())
+  tenantId    String            @default("smmplan")
   name        String            @unique // "Senior Support"
   description String            @default("")
   isSystem    Boolean           @default(false) // true = cannot delete (Owner, Admin)
@@ -757,25 +830,30 @@ model StaffRole {
   users       User[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+
+  @@index([tenantId])
 }
 
 // One permission entry per section per role: section + action (view|edit)
 model StaffPermission {
-  id      String    @id @default(cuid())
-  roleId  String
-  role    StaffRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  section String // e.g. "orders", "finance", "catalog", "settings"
-  canView Boolean   @default(false)
-  canEdit Boolean   @default(false)
+  id       String    @id @default(cuid())
+  tenantId String    @default("smmplan")
+  roleId   String
+  role     StaffRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  section  String // e.g. "orders", "finance", "catalog", "settings"
+  canView  Boolean   @default(false)
+  canEdit  Boolean   @default(false)
 
   @@unique([roleId, section])
   @@index([roleId])
+  @@index([tenantId])
 }
 
 // ── Security: Login Log ──
 // Per OWASP A07: Authentication Failures monitoring
 model LoginLog {
   id         String   @id @default(cuid())
+  tenantId   String?  @default("smmplan")
   email      String // Attempted email
   userId     String? // Resolved userId if login succeeded
   ipAddress  String
@@ -787,6 +865,7 @@ model LoginLog {
   @@index([email])
   @@index([ipAddress])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 model ServiceRoute {
@@ -911,6 +990,7 @@ model ContentItem {
 
 model SecurityEvent {
   id        String   @id @default(cuid())
+  tenantId  String?  @default("smmplan")
   event     String // SIGNATURE_FAILED | REPLAY_ATTEMPT | INVALID_FORMAT
   severity  String // WARNING | CRITICAL
   ip        String?
@@ -919,6 +999,7 @@ model SecurityEvent {
 
   @@index([event])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 enum SmartCampaignStatus {
@@ -1122,3 +1203,231 @@ model UserNote {
   @@index([orderId])
   @@index([ticketId])
 }
+
+model BalanceAdjustmentPolicy {
+  id String @id @default(cuid())
+
+  scopeType String // GLOBAL | ROLE | USER
+
+  staffRoleId String?
+  userId      String?
+
+  isActive Boolean @default(true)
+
+  enabled Boolean @default(false)
+
+  canRequestCredit Boolean @default(false)
+  canRequestDebit  Boolean @default(false)
+
+  canApprove Boolean @default(false)
+  canReject  Boolean @default(false)
+
+  canViewAll   Boolean @default(false)
+  canViewStats Boolean @default(false)
+
+  maxCreditPerRequest BigInt @default(0)
+  maxDebitPerRequest  BigInt @default(0)
+
+  maxCreditPerDay BigInt @default(0)
+  maxDebitPerDay  BigInt @default(0)
+  maxTotalPerDay  BigInt @default(0)
+
+  maxApprovalPerRequest BigInt @default(0)
+
+  allowedCreditReasonCodes Json
+  allowedDebitReasonCodes  Json
+  allowedTargetRoles       Json
+
+  requireTicket        Boolean @default(true)
+  requireOrderForDebit Boolean @default(false)
+
+  blockBannedTargets  Boolean @default(true)
+  blockDeletedTargets Boolean @default(true)
+
+  autoExecuteBelow BigInt @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scopeType, staffRoleId])
+  @@index([scopeType, userId])
+}
+
+model ManualBalanceAdjustment {
+  id String @id @default(cuid())
+
+  userId      String
+  requestedBy String
+
+  direction String // CREDIT | DEBIT
+
+  amount BigInt
+
+  reasonCode String
+  reasonNote String
+
+  ticketId  String?
+  orderId   String?
+  paymentId String?
+
+  status String @default("PENDING_APPROVAL")
+  // PENDING_APPROVAL | APPROVED | REJECTED | EXECUTED | EXECUTION_FAILED | CANCELED
+
+  idempotencyKey String @unique
+
+  approvedBy      String?
+  approvedAt      DateTime?
+
+  rejectedBy      String?
+  rejectedAt      DateTime?
+  rejectionReason String?
+
+  executionError String?
+
+  ledgerEntryId String?
+
+  policySnapshot Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User  @relation("targetBalanceAdjustments", fields: [userId], references: [id], onDelete: Cascade)
+  requester User  @relation("requestedBalanceAdjustments", fields: [requestedBy], references: [id], onDelete: Cascade)
+  approver  User? @relation("approvedBalanceAdjustments", fields: [approvedBy], references: [id], onDelete: SetNull)
+  rejecter  User? @relation("rejectedBalanceAdjustments", fields: [rejectedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([requestedBy, createdAt])
+  @@index([status, createdAt])
+  @@index([direction, status, createdAt])
+  @@index([ticketId])
+}
+
+// ── Financial Policy & Audit Engine ──
+
+model SupportLimitUsage {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  staffUserId     String
+  dayKey          String   // YYYY-MM-DD in Europe/Moscow (MSK)
+  direction       String   // CREDIT | DEBIT | ALL
+  amountCents     BigInt   @default(0)
+  operationsCount Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([staffUserId, dayKey, direction])
+  @@index([staffUserId, dayKey])
+  @@index([tenantId, dayKey])
+}
+
+model SupportHourlyUsage {
+  id              String   @id @default(cuid())
+  tenantId        String?  @default("smmplan")
+  staffUserId     String
+  hourKey         String   // YYYY-MM-DDTHH in Europe/Moscow (MSK)
+  direction       String   // CREDIT | DEBIT | ALL
+  amountCents     BigInt   @default(0)
+  operationsCount Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([staffUserId, hourKey, direction])
+  @@index([staffUserId, hourKey])
+  @@index([tenantId, hourKey])
+}
+
+model LegalDocumentVersion {
+  id            String   @id @default(cuid())
+  tenantId      String   @default("smmplan")
+  type          String   // SUPPORT_FINANCIAL_RESPONSIBILITY, NDA, PRIVACY, TOS
+  version       String
+  title         String
+  contentHash   String
+  isActive      Boolean  @default(true)
+  effectiveAt   DateTime @default(now())
+  createdBy     String?
+  createdAt     DateTime @default(now())
+
+  consents      EmployeeResponsibilityConsent[]
+
+  @@unique([type, version])
+  @@index([type, isActive])
+  @@index([tenantId])
+}
+
+model EmployeeResponsibilityConsent {
+  id                  String   @id @default(cuid())
+  userId              String
+  tenantId            String   @default("smmplan")
+  documentVersionId   String?
+  documentVersionText String   @default("1.0")
+  documentHash        String
+  acceptedAt          DateTime @default(now())
+  acceptedIp          String?
+  acceptedUserAgent   String?
+  status              String   @default("ACTIVE") // ACTIVE | SUPERSEDED | REVOKED
+  createdAt           DateTime @default(now())
+
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentVersion     LegalDocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([documentVersionId])
+  @@index([tenantId])
+}
+
+model SupportFinancialAction {
+  id              String   @id @default(cuid())
+  tenantId        String?
+  staffUserId     String
+  targetUserId    String
+  direction       String   // CREDIT | DEBIT
+  source          String   // SUPPORT_COMPENSATION | BALANCE_REQUEST | DIRECT_ADJUSTMENT | TICKET_REFUND | ORDER_REFUND
+  amountCents     BigInt
+  reasonCode      String
+  reasonNote      String
+  ticketId        String?
+  orderId         String?
+  paymentId       String?
+  policyId        String?
+  policySnapshot  Json?
+  idempotencyKey  String   @unique
+  status          String   // INITIATED | EXECUTED | REJECTED | QUARANTINE | FAILED | REVIEW_REQUIRED
+  ledgerEntryId   String?
+  consentId       String?
+  reviewStatus    String   @default("PENDING") // PENDING | REVIEWED | FLAGGED | VIOLATION | APPROVED
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNote      String?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  staff           User     @relation("staffFinancialActions", fields: [staffUserId], references: [id], onDelete: Cascade)
+  target          User     @relation("targetFinancialActions", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([staffUserId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([ticketId])
+  @@index([orderId])
+  @@index([reviewStatus])
+  @@index([status])
+  @@index([tenantId, createdAt])
+}
+
+model B2bRequestLog {
+  id          String   @id @default(cuid())
+  apiKeyHash  String   @map("api_key_hash")
+  action      String
+  params      Json?
+  httpStatus  Int      @map("http_status")
+  latencyMs   Int      @map("latency_ms")
+  ip          String?
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([apiKeyHash, createdAt])
+  @@index([createdAt])
+  @@map("b2b_request_log")
+}
+

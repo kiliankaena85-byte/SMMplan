@@ -27,8 +27,13 @@ class TicketService {
 
       if (existing) return existing;
 
+      const user = await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { tenantId: true }
+      });
+
       return tx.ticket.create({
-        data: { userId, subject, source }
+        data: { userId, subject, source, tenantId: user.tenantId }
       });
     }, {
       isolationLevel: 'Serializable'

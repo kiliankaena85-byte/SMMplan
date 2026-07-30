@@ -14,28 +14,33 @@ const STATUS_LABELS: Record<string, string> = {
   ERROR: 'Ошибка',
 };
 
+import Link from 'next/link';
+
 type Props = {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; cursor?: string }>;
 };
 
 import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export default async function AdminRefillsPage({ searchParams }: Props) {
-  await enforceSectionAccess('orders');
+  await enforceSectionAccess('refills');
   const params = await searchParams;
   const statusFilter = params.status || 'ALL';
+  const cursor = params.cursor || undefined;
+  const pageSize = 50;
 
   const where: Record<string, unknown> = {};
   if (statusFilter !== 'ALL') {
     where.status = statusFilter;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [refills, stats] = await Promise.all([
+  const [rawRefills, totalCount, pendingCount, completedCount] = await Promise.all([
     db.refill.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: 100,
+      take: pageSize + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
       include: {
         order: {
           select: {
@@ -48,17 +53,14 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
         },
       },
     }),
-    db.refill.aggregate({
-      _count: {
-        id: true,
-      },
-      where: { status: 'PENDING' }, // example for pending
-    })
+    db.refill.count(),
+    db.refill.count({ where: { status: 'PENDING' } }),
+    db.refill.count({ where: { status: 'COMPLETED' } }),
   ]);
 
-  const totalCount = await db.refill.count();
-  const pendingCount = await db.refill.count({ where: { status: 'PENDING' } });
-  const completedCount = await db.refill.count({ where: { status: 'COMPLETED' } });
+  const hasMore = rawRefills.length > pageSize;
+  const refills = hasMore ? rawRefills.slice(0, pageSize) : rawRefills;
+  const nextCursor = hasMore ? refills[refills.length - 1].id : null;
 
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
@@ -88,10 +90,32 @@ export default async function AdminRefillsPage({ searchParams }: Props) {
       </div>
 
       {/* Refills Table */}
-      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 overflow-hidden">
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 overflow-hidden p-6">
         <div className="w-full">
           <RefillsTable refills={refills} />
         </div>
+
+        {/* Pagination */}
+        {(cursor || hasMore) && (
+          <div className="flex justify-between items-center mt-6 pt-4 border-t border-border">
+            {cursor ? (
+              <Link
+                href={`/admin/refills?status=${statusFilter}`}
+                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-md hover:bg-muted/50 transition-colors"
+              >
+                ← В начало
+              </Link>
+            ) : <div />}
+            {hasMore && nextCursor && (
+              <Link
+                href={`/admin/refills?status=${statusFilter}&cursor=${nextCursor}`}
+                className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary transition-colors"
+              >
+                Следующая →
+              </Link>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

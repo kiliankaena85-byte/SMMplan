@@ -16,7 +16,7 @@ import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 
 const massOrderSchema = z.object({
-  text: z.string().min(1, 'Введите данные для заказа'),
+  text: z.string().min(1, 'Введите данные для заказа').max(20480, 'Текст заказа слишком длинный'),
   email: z.string().email('Введите корректный email').nullable().optional(),
   gateway: z.enum(['yookassa', 'cryptobot', 'balance']).default('yookassa'),
   idempotencyKey: z.string().optional(),
@@ -26,7 +26,7 @@ const massOrderSchema = z.object({
 const structuredMassOrderSchema = z.object({
   orders: z.array(z.object({
     serviceId: z.string(),
-    link: z.string(),
+    link: z.string().max(2048, 'Ссылка слишком длинная'),
     quantity: z.number().positive(),
   })).min(1, 'Заказы не найдены'),
   email: z.string().email('Введите корректный email').nullable().optional(),
@@ -37,6 +37,9 @@ const structuredMassOrderSchema = z.object({
 
 const parseMassOrderText = async (text: string) => {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length > 500) {
+    throw new Error('Превышен максимальный размер пакета массового заказа (максимум 500 строк)');
+  }
   const orders: { 
     serviceId: string; 
     numericId: number; 
@@ -182,8 +185,7 @@ export const massOrderCalculateAction = async (input: { text: string }) => {
 };
 
 export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSchema>) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return createSafeAction(massOrderSchema as any, input, async (data: any) => {
+  return createSafeAction(massOrderSchema, input, async (data) => {
     const { text, email, gateway, idempotencyKey } = data;
     
     // 0. IDOR Prevention & Anti-Fraud
@@ -201,13 +203,15 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     if (!userId) {
        if (!email) throw new Error("Email обязателен для гостей");
        const lowerEmail = email.toLowerCase();
-       let user = await db.user.findUnique({ where: { email: lowerEmail } });
+       const reqHeaders = await headers();
+       const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+       let user = await db.user.findUnique({ where: { email_tenantId: { email: lowerEmail, tenantId } } });
        if (user && (user.isDeleted === true || user.isActive === false)) {
          throw new Error("Ваш аккаунт заблокирован или удален");
        }
        if (!user) {
          user = await db.user.create({
-           data: { email: lowerEmail, role: 'USER' }
+           data: { email: lowerEmail, tenantId, role: 'USER' }
          });
          isNewUser = true;
        }
@@ -271,6 +275,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
        totalCents += pricing.totalCents;
        orderCreationData.push({
          userId: user.id,
+         tenantId: user.tenantId,
          serviceId: order.serviceId,
          providerId: order.providerId,
          providerServiceId: order.providerServiceId,
@@ -306,6 +311,12 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
+    // 54-ФЗ: CryptoBot не пробивает чеки. Лимит для физлиц до решения по облачной ККТ.
+    // TODO: интегрировать облачную ККТ (АТОЛ/Эвотор) для снятия лимита.
+    if (gateway === 'cryptobot' && paymentAmount > 1_500_000) {
+      throw new Error('Криптовалюта доступна для пополнений до 15 000 ₽. Для больших сумм используйте карту.');
+    }
+
     if (gateway === 'balance' && user.balance < totalCents) {
       throw new Error("Недостаточно средств на балансе");
     }
@@ -315,6 +326,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       const payment = await tx.payment.create({
         data: {
           userId: user.id,
+          tenantId: user.tenantId,
           amount: paymentAmount,
           currency: 'RUB',
           status: 'PENDING',
@@ -332,14 +344,15 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       return { paymentId: payment.id };
     });
 
-    let paymentUrl = '';
-    const host = reqHeaders.get("host") || "localhost:3000";
+
+    const host = reqHeaders.get("host") || new URL(getBaseUrlSync()).host;
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?paymentId=${result.paymentId}`;
 
     // [Phase 3 Surgeon] Generate capability token for sessionless payment return validation
     let token = '';
+    let paymentUrl: string | undefined;
     try {
       const { SignJWT } = await import('jose');
       const { getEncodedKey } = await import('@/lib/session');
@@ -429,13 +442,15 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     if (!userId) {
        if (!email) throw new Error("Email обязателен для гостей");
        const lowerEmail = email.toLowerCase();
-       let user = await db.user.findUnique({ where: { email: lowerEmail } });
+       const reqHeaders = await headers();
+       const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+       let user = await db.user.findUnique({ where: { email_tenantId: { email: lowerEmail, tenantId } } });
        if (user && (user.isDeleted === true || user.isActive === false)) {
          throw new Error("Ваш аккаунт заблокирован или удален");
        }
        if (!user) {
          user = await db.user.create({
-           data: { email: lowerEmail, role: 'USER' }
+           data: { email: lowerEmail, tenantId, role: 'USER' }
          });
          isNewUser = true;
        }
@@ -470,7 +485,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     } catch (e) {
       reqHeaders = {
         get: (key: string) => {
-          if (key === 'host') return 'localhost:3000';
+          if (key === 'host') return new URL(getBaseUrlSync()).host;
           if (key === 'x-forwarded-proto') return 'http';
           return null;
         }
@@ -524,6 +539,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
        totalCents += pricing.totalCents;
        orderCreationData.push({
          userId: user.id,
+         tenantId: user.tenantId,
          serviceId: order.serviceId,
          providerId: service.providerId,
          providerServiceId: service.externalId,
@@ -556,6 +572,12 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       paymentAmount = 1000;
     }
 
+    // 54-ФЗ: CryptoBot не пробивает чеки. Лимит для физлиц до решения по облачной ККТ.
+    // TODO: интегрировать облачную ККТ (АТОЛ/Эвотор) для снятия лимита.
+    if (gateway === 'cryptobot' && paymentAmount > 1_500_000) {
+      throw new Error('Криптовалюта доступна для пополнений до 15 000 ₽. Для больших сумм используйте карту.');
+    }
+
     if (gateway === 'balance' && user.balance < totalCents) {
       throw new Error("Недостаточно средств на балансе");
     }
@@ -564,6 +586,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       const payment = await tx.payment.create({
         data: {
           userId: user.id,
+          tenantId: user.tenantId,
           amount: paymentAmount,
           currency: 'RUB',
           status: 'PENDING',
@@ -581,7 +604,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     });
 
     let paymentUrl: string | undefined;
-    const host = reqHeaders.get("host") || "localhost:3000";
+    const host = reqHeaders.get("host") || new URL(getBaseUrlSync()).host;
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?paymentId=${result.paymentId}`;

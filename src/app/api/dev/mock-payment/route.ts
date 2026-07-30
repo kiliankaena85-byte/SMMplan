@@ -3,11 +3,12 @@ import { db } from "@/lib/db";
 import { WalletOps } from "@/services/financial/wallet-ops";
 
 export async function GET(req: NextRequest) {
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+    return new Response('Not Found', { status: 404 });
+  }
   try {
     // BUG-004 FIX: Жёстко блокируем в production — isTestMode НЕ должен открывать этот endpoint
-    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_MOCK_PAYMENT !== 'true') {
-      return new NextResponse("Not Found", { status: 404 });
-    }
+    
 
     const { searchParams } = new URL(req.url);
     const paymentId = searchParams.get("paymentId");

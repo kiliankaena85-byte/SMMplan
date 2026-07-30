@@ -10,8 +10,11 @@ import { NextRequest, NextResponse } from 'next/server';
  *   - If MOCK_PROVIDER_KEY not set → 503 (endpoint unconfigured).
  */
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+    return new Response('Not Found', { status: 404 });
+  }
   // Guard: In production, only allow when isTestMode is enabled in AdminPanel
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = (process.env.NODE_ENV as string) === 'production';
   if (isProduction) {
     const { SettingsManager } = await import('@/lib/settings');
     const isTestMode = await SettingsManager.isTestMode();

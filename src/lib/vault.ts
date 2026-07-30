@@ -56,8 +56,8 @@ export class VaultService {
     
     const parts = encryptedPayload.split(':');
     if (parts.length !== 3) {
-      // Legacy unencrypted data or invalid format - return as-is
-      return encryptedPayload;
+      console.error(`[VaultService] Non-encrypted or malformed secret payload detected. Rejecting access.`);
+      throw new Error('[VaultService] Plaintext or malformed secret payload detected. Access denied.');
     }
     
     try {

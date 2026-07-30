@@ -185,10 +185,46 @@ export function useMultiOrderEngine() {
   const totalCents = tasks.reduce((sum, t) => sum + (t.priceCents || 0), 0);
   const isReadyToPay = totalTasks > 0 && configuredTasks === totalTasks;
 
+  const addEmptyTask = useCallback((networkId?: string) => {
+    let platform = IntelligencePlatform.OTHER;
+    let defaultCategoryId = "";
+    if (networkId && catalog.length > 0) {
+      const net = catalog.find(n => n.id === networkId);
+      if (net) {
+        platform = net.slug as IntelligencePlatform;
+        if (net.categories.length > 0) {
+          defaultCategoryId = net.categories[0].id;
+        }
+      }
+    }
+    const newTaskId = crypto.randomUUID();
+    const newTask: OrderTask = {
+      id: newTaskId,
+      url: "",
+      cleanTitle: "Новая ссылка",
+      platform,
+      categoryId: defaultCategoryId,
+      serviceId: "",
+      quantity: 100,
+      status: "new",
+      priceCents: 0,
+      availableServices: [],
+      isLoadingServices: defaultCategoryId ? true : false,
+    };
+    setTasks(prev => [...prev, newTask]);
+
+    if (defaultCategoryId) {
+      getServicesByCategoryAction(defaultCategoryId).then(svcs => {
+        setTasks(prev => prev.map(t => t.id === newTaskId ? { ...t, availableServices: svcs, isLoadingServices: false } : t));
+      });
+    }
+  }, [catalog]);
+
   return {
     tasks,
     catalog,
     addLinks,
+    addEmptyTask,
     removeTask,
     updateTask,
     applyToAllSamePlatform,

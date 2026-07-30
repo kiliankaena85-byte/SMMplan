@@ -9,6 +9,7 @@ interface LegalCheckboxProps {
   id: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  variant?: "all" | "terms" | "privacy";
   className?: string;
   labelClassName?: string;
   onOpenDocument?: (slug: string) => void;
@@ -18,6 +19,7 @@ export function LegalCheckbox({
   id,
   checked,
   onChange,
+  variant = "all",
   className = "",
   labelClassName = "",
   onOpenDocument,
@@ -74,36 +76,80 @@ export function LegalCheckbox({
       </div>
 
       <span className={`text-[11px] leading-snug text-left text-foreground/80 font-bold select-none ${labelClassName}`}>
-        Я согласен с{" "}
-        <Link
-          href={ROUTES.LEGAL.TERMS}
-          target="_blank"
-          className="underline text-primary hover:text-primary-600 transition-colors font-extrabold"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onOpenDocument) {
-              e.preventDefault();
-              onOpenDocument("terms");
-            }
-          }}
-        >
-          Офертой
-        </Link>{" "}
-        и{" "}
-        <Link
-          href={ROUTES.LEGAL.PRIVACY}
-          target="_blank"
-          className="underline text-primary hover:text-primary-600 transition-colors font-extrabold"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onOpenDocument) {
-              e.preventDefault();
-              onOpenDocument("privacy");
-            }
-          }}
-        >
-          Политикой конфиденциальности
-        </Link>
+        {variant === "terms" && (
+          <>
+            Я согласен с условиями{" "}
+            <Link
+              href={ROUTES.LEGAL.TERMS}
+              target="_blank"
+              className="underline text-primary hover:text-primary-600 transition-colors font-extrabold"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenDocument) {
+                  e.preventDefault();
+                  onOpenDocument("terms");
+                }
+              }}
+            >
+              Договора публичной оферты
+            </Link>
+          </>
+        )}
+
+        {variant === "privacy" && (
+          <>
+            Я даю согласие на обработку персональных данных в соответствии с{" "}
+            <Link
+              href={ROUTES.LEGAL.PRIVACY}
+              target="_blank"
+              className="underline text-primary hover:text-primary-600 transition-colors font-extrabold"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenDocument) {
+                  e.preventDefault();
+                  onOpenDocument("privacy");
+                }
+              }}
+            >
+              Политикой конфиденциальности (152-ФЗ)
+            </Link>
+          </>
+        )}
+
+        {variant === "all" && (
+          <>
+            Я согласен с{" "}
+            <Link
+              href={ROUTES.LEGAL.TERMS}
+              target="_blank"
+              className="underline text-primary hover:text-primary-600 transition-colors font-extrabold"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenDocument) {
+                  e.preventDefault();
+                  onOpenDocument("terms");
+                }
+              }}
+            >
+              Офертой
+            </Link>{" "}
+            и{" "}
+            <Link
+              href={ROUTES.LEGAL.PRIVACY}
+              target="_blank"
+              className="underline text-primary hover:text-primary-600 transition-colors font-extrabold"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenDocument) {
+                  e.preventDefault();
+                  onOpenDocument("privacy");
+                }
+              }}
+            >
+              Политикой конфиденциальности
+            </Link>
+          </>
+        )}
       </span>
     </label>
   );

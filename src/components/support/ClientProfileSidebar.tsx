@@ -57,7 +57,8 @@ export default function ClientProfileSidebar({
   supportSpentTodayCents,
   onClose,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isMobile
+  isMobile,
+  canSeeFinances = true
 }: { 
   user: ClientProfileData; 
   ticketId: string;
@@ -65,6 +66,7 @@ export default function ClientProfileSidebar({
   supportSpentTodayCents?: number;
   onClose?: () => void;
   isMobile?: boolean;
+  canSeeFinances?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(true);
@@ -218,11 +220,11 @@ export default function ClientProfileSidebar({
         <div className="flex w-full gap-2">
           <div className="flex-1 bg-muted/30 rounded-xl p-3 border border-border">
             <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Баланс</div>
-            <div className="font-bold text-success-text text-sm">{formatBalance(user.balance)}</div>
+            <div className="font-bold text-success-text text-sm">{canSeeFinances ? formatBalance(user.balance) : '🔒 *** ₽'}</div>
           </div>
           <div className="flex-1 bg-muted/30 rounded-xl p-3 border border-border">
             <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">LTV</div>
-            <div className="font-bold text-foreground text-sm">{formatBalance(user.totalSpent)}</div>
+            <div className="font-bold text-foreground text-sm">{canSeeFinances ? formatBalance(user.totalSpent) : '🔒 *** ₽'}</div>
           </div>
         </div>
 

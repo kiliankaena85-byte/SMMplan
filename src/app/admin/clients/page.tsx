@@ -11,6 +11,9 @@ import { ActionForm } from '@/components/admin/action-form';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 
+import { resolveAdminTenantContext } from '@/utils/admin-tenant';
+import { TenantSelector } from '@/components/admin/tenant-selector';
+
 export const dynamic = 'force-dynamic';
 
 type Props = {
@@ -18,13 +21,14 @@ type Props = {
     q?: string;
     cursor?: string;
     userId?: string;
+    tenant?: string;
   }>;
 };
 
 import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export default async function AdminClientsPage({ searchParams }: Props) {
-  await enforceSectionAccess('finance');
+  await enforceSectionAccess('clients');
   const session = await verifySession();
   const user = session ? await db.user.findUnique({ 
     where: { id: session.userId },
@@ -39,14 +43,25 @@ export default async function AdminClientsPage({ searchParams }: Props) {
   const search = params.q || '';
   const cursor = params.cursor || undefined;
   const selectedUserId = params.userId;
+  const selectedTenant = params.tenant;
+
+  const activeTenantId = resolveAdminTenantContext(user, selectedTenant);
 
   const { items: users, nextCursor, hasMore } = await adminUserService.listUsers({
     search: search || undefined,
     cursor,
     pageSize: 50,
+    tenantId: activeTenantId,
   });
 
-  const stats = await adminUserService.getUserStats();
+  const stats = await adminUserService.getUserStats(undefined, undefined, activeTenantId);
+
+  const tenants = await db.tenant.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, slug: true }
+  });
+
+  const showTenantSelector = isOwner || user?.role === 'ADMIN' || user?.tenantId === 'all';
 
   // If a user is selected, load their full card
   const userCard = selectedUserId ? await adminUserService.getUserCard(selectedUserId).catch(() => null) : null;
@@ -67,12 +82,17 @@ export default async function AdminClientsPage({ searchParams }: Props) {
           </div>
         }
         action={(
-          <a
-            href={`/api/admin/export?type=users&q=${encodeURIComponent(search)}`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-foreground bg-background border border-border shadow-sm rounded-lg hover:bg-muted/50 hover:text-primary transition-colors"
-          >
-            <Download className="w-4 h-4" /> Экспорт CSV
-          </a>
+          <div className="flex items-center gap-3">
+            {showTenantSelector && (
+              <TenantSelector tenants={tenants} activeFilter={selectedTenant || 'all'} />
+            )}
+            <a
+              href={`/api/admin/export?type=users&q=${encodeURIComponent(search)}`}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-foreground bg-background border border-border shadow-sm rounded-lg hover:bg-muted/50 hover:text-primary transition-colors"
+            >
+              <Download className="w-4 h-4" /> Экспорт CSV
+            </a>
+          </div>
         )}
         tabs={FINANCE_TABS}
         onboardingKey="clients"
@@ -106,9 +126,9 @@ export default async function AdminClientsPage({ searchParams }: Props) {
               totalSpent: Number(u.totalSpent),
               balance: Number(u.balance),
               quarantineBalance: Number(u.quarantineBalance),
-              tier: getVolumeTier(Number(u.totalSpent))
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            })) as any}
+              tier: getVolumeTier(Number(u.totalSpent)),
+              tenantId: u.tenantId
+            }))}
           >
             {userCard ? (
               <div className="space-y-4">

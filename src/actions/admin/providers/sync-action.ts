@@ -20,23 +20,36 @@ export async function adminSyncProviderCatalog() {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
     return MutexManager.withLock('catalog-sync', 60000, 100, async () => {
       try {
-        const pDbRecord = await db.provider.findFirst({ where: { isActive: true } });
-        if (!pDbRecord) return { success: false, error: "No primary provider found." };
+        const activeProviders = await db.provider.findMany({ where: { isActive: true } });
+        if (!activeProviders.length) return { success: false, error: "Нет активных провайдеров." };
         
-        const stats = await adminCatalogService.syncProviderCatalog(pDbRecord.id, admin);
-        
-        const updatedCount = stats.priceUpdatedSilent;
-        const disabledCount = stats.priceAnomalies + stats.zombiesDisabled;
-        const unchangedCount = 0;
+        let updatedCount = 0;
+        let disabledCount = 0;
+
+        for (const provider of activeProviders) {
+          try {
+            const stats = await adminCatalogService.syncProviderCatalog(provider.id, admin);
+            updatedCount += stats.priceUpdatedSilent;
+            disabledCount += stats.priceAnomalies + stats.zombiesDisabled;
+          } catch (pErr: unknown) {
+            const errMsg = pErr instanceof Error ? pErr.message : String(pErr);
+            console.error(`[CatalogSync] Provider ${provider.name} (${provider.id}) sync error:`, pErr);
+            const { sendAdminAlert } = await import('@/lib/notifications');
+            await sendAdminAlert(`⚠️ Sync провайдера "${provider.name}" не удался: ${errMsg}`, 'WARNING');
+          }
+        }
 
         return {
           success: true,
-          message: `Синхронизация Бутика завершена: 🔄${updatedCount} цен обновлено, 🧟${disabledCount} мертвых душ отключено, ⚡${unchangedCount} без изменений.`,
-          stats: { updatedCount, disabledCount, unchangedCount },
+          message: `Синхронизация Бутика завершена (${activeProviders.length} провайд.): 🔄${updatedCount} цен обновлено, 🧟${disabledCount} мертвых душ отключено.`,
+          stats: { updatedCount, disabledCount, unchangedCount: 0 },
         };
       } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
         console.error("Critical Sync Error:", err);
-        return { success: false, error: err instanceof Error ? err.message : "Unknown sync error" };
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        await sendAdminAlert(`🚨 Критический сбой синхронизации каталога: ${errMsg}`, 'CRITICAL');
+        return { success: false, error: errMsg };
       }
     });
   });

@@ -6,7 +6,9 @@ import { sendMagicLink, sendWelcomeLetter } from "@/lib/smtp";
 import { RateLimitService } from "@/services/core/rate-limit.service";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { getClientIp } from "@/utils/ip";
+import { normalizeTenantId } from "@/lib/tenant-resolver";
 
 const log = logger.child({ component: 'MagicLink' });
 
@@ -27,7 +29,7 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
   const cleanEmail = parsed.data.email.toLowerCase();
 
   try {
-    const isIpAllowed = await RateLimitService.check('auth:magic-link:ip', 15, 3600);
+    const isIpAllowed = await RateLimitService.check('auth:magic-link:ip', 15, 3600, true);
     if (!isIpAllowed) {
       log.warn('Magic link rate limit exceeded IP', { email: cleanEmail });
       return { error: "Слишком много запросов. Пожалуйста, подождите 1 час перед новым запросом.", success: false };
@@ -44,7 +46,16 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
     const txResult = await db.$transaction(async (tx) => {
       let isNewUser = false;
-      let user = await tx.user.findUnique({ where: { email: cleanEmail } });
+      const reqHeaders = await headers();
+      const rawTenantId = reqHeaders.get("x-tenant-id");
+      const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
+      
+      let user = await tx.user.findFirst({
+        where: { 
+          email: cleanEmail,
+          tenantId
+        }
+      });
 
       if (user && (user.isDeleted || !user.isActive)) {
         return { type: 'blocked' as const };
@@ -52,14 +63,24 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
       if (!user) {
         isNewUser = true;
-        const isIpAllowedForReg = await RateLimitService.check('auth:register:ip', 3, 86400);
+        const isIpAllowedForReg = await RateLimitService.check('auth:register:ip', 3, 86400, true);
         if (!isIpAllowedForReg) {
           return { type: 'rate_limit_reg' as const };
         }
 
-        const ownerCount = await tx.user.count({ where: { role: "OWNER" } });
+        const ownerCount = await tx.user.count({ where: { role: "OWNER", tenantId } });
         const role = ownerCount === 0 ? "OWNER" : "USER";
-        user = await tx.user.create({ data: { email: cleanEmail, role, referredById } });
+        const consentIp = await getClientIp();
+        user = await tx.user.create({
+          data: {
+            email: cleanEmail,
+            role,
+            referredById,
+            tenantId,
+            tosAcceptedAt: new Date(),
+            tosAcceptedIp: consentIp,
+          }
+        });
       }
 
       const rawToken = crypto.randomBytes(32).toString("hex");
@@ -99,11 +120,18 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
       log.error('Magic link SMTP error', { error: smtpError });
       console.error("Exact SMTP error:", smtpError);
       if (isNewUser) {
-        log.info('Deleting newly created user due to SMTP failure', { email: cleanEmail });
+        log.info('Soft-deleting newly created user due to SMTP failure', { email: cleanEmail });
         try {
-          await db.user.delete({ where: { id: user.id } });
+          await db.user.update({
+            where: { id: user.id },
+            data: {
+              isDeleted: true,
+              isActive: false,
+              email: `failed_${user.id}@smmplan.local`
+            }
+          });
         } catch (e) {
-          log.error('Failed to delete newly created user', { error: e });
+          log.error('Failed to soft-delete newly created user', { error: e });
         }
       }
       return { error: "Не удалось отправить письмо. Проверьте правильность email или попробуйте позже.", success: false };
@@ -111,7 +139,6 @@ export async function requestMagicLink(prevState: any, formData: FormData) {
 
     return { success: true, error: null };
   } catch (error) {
-    console.error("DEBUG ERROR", error);
     log.error('Magic link request failed', { error: error instanceof Error ? error.message : String(error) });
     return { error: "Произошла ошибка при обработке запроса", success: false };
   }
