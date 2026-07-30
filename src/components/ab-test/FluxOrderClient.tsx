@@ -232,16 +232,16 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center font-sans min-h-[60vh] pb-12 pt-8 px-4 relative overflow-visible">
-      {/* TOP AURORA MESH GRADIENT BACKGROUND */}
-      <div className="absolute -top-32 inset-x-0 h-[700px] pointer-events-none z-0 overflow-hidden select-none">
+      {/* TOP AURORA MESH GRADIENT BACKGROUND (Full Bleed) */}
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-screen h-[750px] pointer-events-none z-0 overflow-hidden select-none">
         <div 
-          className="absolute -top-20 left-1/2 -translate-x-1/2 w-[1400px] h-[650px] rounded-full blur-[100px] pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.6) 0%, rgba(124,58,237,0.55) 30%, rgba(214,36,159,0.5) 55%, rgba(245,158,107,0.4) 80%, transparent 100%)' }}
+          className="absolute -top-20 left-1/2 -translate-x-1/2 w-[1600px] h-[700px] rounded-full blur-[110px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.45) 0%, rgba(124,58,237,0.4) 30%, rgba(214,36,159,0.35) 55%, rgba(245,158,107,0.25) 80%, transparent 100%)' }}
         />
-        <div className="absolute top-0 left-[10%] w-96 h-96 rounded-full bg-blue-500/40 blur-[100px]" />
-        <div className="absolute top-8 left-[35%] w-80 h-80 rounded-full bg-purple-600/45 blur-[90px]" />
-        <div className="absolute top-4 right-[15%] w-96 h-96 rounded-full bg-pink-500/40 blur-[100px]" />
-        <div className="absolute top-24 right-[5%] w-72 h-72 rounded-full bg-orange-400/30 blur-[80px]" />
+        <div className="absolute top-0 left-[5%] w-[500px] h-[500px] rounded-full bg-blue-500/30 blur-[120px]" />
+        <div className="absolute top-8 left-[30%] w-[450px] h-[450px] rounded-full bg-purple-600/35 blur-[110px]" />
+        <div className="absolute top-4 right-[10%] w-[500px] h-[500px] rounded-full bg-pink-500/30 blur-[120px]" />
+        <div className="absolute top-24 right-[2%] w-[400px] h-[400px] rounded-full bg-orange-400/25 blur-[100px]" />
       </div>
       {step !== 'link' && (
         <motion.div 
