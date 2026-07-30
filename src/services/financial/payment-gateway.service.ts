@@ -66,7 +66,7 @@ class YooKassaGateway extends BasePaymentGateway {
     };
 
     if (!params.isTestMode) {
-      // Подсчитываем оборот за год для динамического переключения НДС 22% (ФЗ-54)
+      // Подсчитываем оборот за год для динамического переключения НДС 5% (ФЗ-54)
       const currentYear = new Date().getFullYear();
       const annualRevenue = await db.payment.aggregate({
         _sum: { amount: true },
@@ -76,8 +76,8 @@ class YooKassaGateway extends BasePaymentGateway {
         }
       }).then(res => Number(res._sum.amount || 0));
 
-      const isVatThresholdExceeded = annualRevenue >= 2000000000; // 20 млн рублей (Порог УСН НДС 2026)
-      const vatCode = isVatThresholdExceeded ? 4 : 1; // 4 = Базовая ставка 22%, 1 = Без НДС
+      const isVatThresholdExceeded = annualRevenue >= 6000000000; // 60 млн рублей (Порог УСН НДС 5% 2025-2026)
+      const vatCode = isVatThresholdExceeded ? 7 : 1; // 7 = НДС 5%, 1 = Без НДС
 
       payload.receipt = {
         customer: { email: params.email || `no-reply@${supportDomain}` },
@@ -361,26 +361,12 @@ class RobokassaGateway extends BasePaymentGateway {
     const sigStr = `${login}:${outSum}:${invId}:${password}:shp_paymentId=${params.paymentId}`;
     const signature = crypto.createHash('sha256').update(sigStr).digest('hex');
 
-    let taxCode = "none";
-    if (!params.isTestMode) {
-      const currentYear = new Date().getFullYear();
-      const annualRevenue = await db.payment.aggregate({
-        _sum: { amount: true },
-        where: {
-          status: 'SUCCEEDED',
-          createdAt: { gte: new Date(currentYear, 0, 1) }
-        }
-      }).then(res => Number(res._sum.amount || 0));
-      // Robokassa: "vat20" исторически обозначает базовую ставку, которая в 2026 году составляет 22%
-      taxCode = annualRevenue >= 2000000000 ? "vat20" : "none";
-    }
-
     const receipt = {
       items: [{
         name: "Информационные услуги",
         quantity: 1,
         sum: params.amountRub.toFixed(2),
-        tax: taxCode,
+        tax: "none",
         payment_method: "full_prepayment",
         payment_subject: "service"
       }]
