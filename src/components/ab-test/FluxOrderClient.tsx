@@ -233,13 +233,15 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center font-sans min-h-[60vh] pb-12 pt-8 px-4 relative overflow-visible">
       {/* TOP AURORA MESH GRADIENT BACKGROUND */}
-      <div className="absolute -top-24 inset-x-0 h-[600px] pointer-events-none z-0 overflow-hidden select-none">
+      <div className="absolute -top-32 inset-x-0 h-[700px] pointer-events-none z-0 overflow-hidden select-none">
         <div 
-          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] rounded-full blur-[120px] opacity-60 dark:opacity-40 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.35) 0%, rgba(124,58,237,0.4) 35%, rgba(214,36,159,0.35) 65%, rgba(245,158,107,0.25) 100%)' }}
+          className="absolute -top-20 left-1/2 -translate-x-1/2 w-[1400px] h-[650px] rounded-full blur-[100px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.6) 0%, rgba(124,58,237,0.55) 30%, rgba(214,36,159,0.5) 55%, rgba(245,158,107,0.4) 80%, transparent 100%)' }}
         />
-        <div className="absolute top-12 left-[15%] w-72 h-72 rounded-full bg-pink-500/25 blur-3xl" />
-        <div className="absolute top-20 right-[15%] w-80 h-80 rounded-full bg-purple-500/25 blur-3xl" />
+        <div className="absolute top-0 left-[10%] w-96 h-96 rounded-full bg-blue-500/40 blur-[100px]" />
+        <div className="absolute top-8 left-[35%] w-80 h-80 rounded-full bg-purple-600/45 blur-[90px]" />
+        <div className="absolute top-4 right-[15%] w-96 h-96 rounded-full bg-pink-500/40 blur-[100px]" />
+        <div className="absolute top-24 right-[5%] w-72 h-72 rounded-full bg-orange-400/30 blur-[80px]" />
       </div>
       {step !== 'link' && (
         <motion.div 
@@ -310,7 +312,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                 >
                   <LinkIcon className="text-muted-foreground w-5 h-5 sm:w-6 sm:h-6 ml-2 sm:ml-3 flex-shrink-0 group-focus-within:text-foreground transition-colors" />
                   <input
-                    autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}
+                    ref={linkRef}
                     className="flex-1 text-base sm:text-lg py-2 sm:py-3 px-3 sm:px-4 bg-transparent outline-none w-full font-medium text-foreground placeholder:text-muted-foreground/50"
                     placeholder="Вставьте ссылку..."
                     value={link}

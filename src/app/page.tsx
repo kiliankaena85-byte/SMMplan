@@ -10,6 +10,7 @@ import { FluxReviews } from "@/components/ab-test/FluxReviews";
 import { FluxFAQ } from "@/components/ab-test/FluxFAQ";
 import { ROUTES } from "@/lib/routes";
 import { SettingsProvider } from "@/lib/settings";
+import { TENANTS } from "@/config/tenants";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
@@ -58,7 +59,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "SMMplan";
+  const tenantConfig = TENANTS.find(t => t.id === tenantId);
+  const siteName = tenantConfig?.name || settings.SITE_NAME || "SMMplan";
   const baseUrl = await getBaseUrlAsync();
 
   // Resolve user session and email
