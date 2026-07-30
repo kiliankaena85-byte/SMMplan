@@ -71,20 +71,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301); // 301 Permanent Redirect
   }
 
-  // 3. Tenant-based rewrites (FLux / Aurora landing)
-  if (pathname === '/' && (finalTenantId === 'flux' || finalTenantId === 'lovable')) {
-    const rewriteUrl = new URL('/ab-lovable', request.url);
-    // Preserve query parameters
-    request.nextUrl.searchParams.forEach((val, key) => {
-      rewriteUrl.searchParams.set(key, val);
-    });
-    requestHeaders.set('x-pathname', '/ab-lovable');
-    return applyStickyCookie(NextResponse.rewrite(rewriteUrl, {
-      request: {
-        headers: requestHeaders,
-      }
-    }));
-  }
+  // 3. Legacy redirects handled above
 
   // 4. Auth Route Protection
   const protectedPaths = ['/admin', '/dashboard', '/operator'];
