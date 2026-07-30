@@ -5,6 +5,7 @@ import { SettingsProvider } from "@/lib/settings";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
+import { normalizeTenantId } from "@/lib/tenant-resolver";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +43,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   }
 
   const reqHeaders = await headers();
-  const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+  const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id")) || "smmplan";
 
   const userBalanceCents = 0;
-  const catalogResult = await getPublicCatalogAction();
+  const catalogResult = await getPublicCatalogAction(tenantId);
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
   const settings = await SettingsProvider.getContactAndLegalSettings();

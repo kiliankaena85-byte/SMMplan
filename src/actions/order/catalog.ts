@@ -8,6 +8,7 @@ import { SettingsProvider } from "@/lib/settings";
 import { unstable_cache } from "next/cache";
 
 import { sanitizeServiceDescription } from "@/lib/sanitize";
+import { logger } from "@/lib/logger";
 
 const getCachedNetworks = (tenantId: string) => unstable_cache(
   async () => {
@@ -165,7 +166,15 @@ export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
 
     return { success: true, data: catalog };
   } catch (error: unknown) {
-    console.error("Failed to fetch public catalog:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    logger.error("getPublicCatalogAction failed", { tenantId, error: errMsg });
+
+    import('@/lib/notifications').then(({ sendAdminAlert }) => {
+      try {
+        sendAdminAlert(`🚨 Hero catalog fetch failed (tenant=${tenantId}): ${errMsg}`, 'CRITICAL');
+      } catch {}
+    }).catch(() => {});
+
     return { success: false, error: "Failed to load catalog" };
   }
 }
