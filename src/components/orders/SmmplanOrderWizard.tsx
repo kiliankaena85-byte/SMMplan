@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   CheckCircle2, 
   ArrowRight, 
@@ -26,7 +27,7 @@ import { formatCents } from '@/lib/utils';
 import { formatEtaSpeedBadge } from '@/utils/format-eta';
 import { UniversalOrderForm } from '@/components/orders/UniversalOrderForm';
 
-export function SmmplanOrderWizard({
+function SmmplanOrderWizardInner({
   userEmail = '',
   userBalanceCents = 0,
   initialReorderData,
@@ -35,6 +36,8 @@ export function SmmplanOrderWizard({
   userBalanceCents?: number;
   initialReorderData?: { serviceId: string; categoryId: string; link: string; quantity: number } | null;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'wizard' | 'multi'>('wizard');
   const [networks, setNetworks] = useState<PublicNetwork[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
@@ -78,6 +81,62 @@ export function SmmplanOrderWizard({
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
 
+  // Helper to sync params to URL
+  const changeStep = (newStep: 1 | 2 | 3 | 4, srvId?: string, catId?: string, netId?: string) => {
+    setStep(newStep);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (newStep === 1) {
+        params.delete('step');
+        params.delete('serviceId');
+        params.delete('categoryId');
+        params.delete('networkId');
+      } else {
+        params.set('step', String(newStep));
+        const activeSrvId = srvId ?? selectedService?.id;
+        const activeCatId = catId ?? selectedCategory?.id;
+        const activeNetId = netId ?? selectedNetwork?.id;
+        if (activeSrvId && newStep === 4) params.set('serviceId', activeSrvId); else params.delete('serviceId');
+        if (activeCatId && newStep >= 3) params.set('categoryId', activeCatId); else params.delete('categoryId');
+        if (activeNetId && newStep >= 2) params.set('networkId', activeNetId); else params.delete('networkId');
+      }
+      const q = params.toString();
+      const newUrl = q ? `${window.location.pathname}?${q}` : window.location.pathname;
+      router.replace(newUrl, { scroll: false });
+    }
+  };
+
+  // Restore state from URL searchParams if present
+  useEffect(() => {
+    if (!isLoadingCatalog && networks.length > 0 && !initialReorderData) {
+      const paramStep = searchParams.get('step');
+      const paramServiceId = searchParams.get('serviceId');
+      const paramCategoryId = searchParams.get('categoryId');
+      const paramNetworkId = searchParams.get('networkId');
+
+      if (paramStep) {
+        const parsedStep = parseInt(paramStep, 10);
+        if (parsedStep >= 1 && parsedStep <= 4) {
+          let foundNet = selectedNetwork;
+          if (paramNetworkId) {
+            foundNet = networks.find(n => n.id === paramNetworkId) || null;
+          }
+          if (!foundNet && paramCategoryId) {
+            foundNet = networks.find(n => n.categories.some(c => c.id === paramCategoryId)) || null;
+          }
+          if (foundNet) {
+            setSelectedNetwork(foundNet);
+            if (paramCategoryId) {
+              const foundCat = foundNet.categories.find(c => c.id === paramCategoryId) || null;
+              if (foundCat) setSelectedCategory(foundCat);
+            }
+          }
+          setStep(parsedStep as 1 | 2 | 3 | 4);
+        }
+      }
+    }
+  }, [isLoadingCatalog, networks, searchParams, initialReorderData]);
+
   // Load Public Catalog on Mount
   useEffect(() => {
     async function loadCatalog() {
@@ -118,13 +177,21 @@ export function SmmplanOrderWizard({
       try {
         const servs = await getServicesByCategoryAction(selectedCategory!.id);
         setServices(servs);
-        if (initialReorderData && initialReorderData.serviceId) {
-          const s = servs.find(srv => srv.id === initialReorderData.serviceId);
+        const paramServiceId = searchParams.get('serviceId');
+        const targetSrvId = initialReorderData?.serviceId || paramServiceId;
+        if (targetSrvId) {
+          const s = servs.find(srv => srv.id === targetSrvId);
           if (s) {
             setSelectedService(s);
-            setQuantity(initialReorderData.quantity);
-            setLink(initialReorderData.link);
-            setStep(4);
+            if (initialReorderData) {
+              setQuantity(initialReorderData.quantity);
+              setLink(initialReorderData.link);
+            } else {
+              setQuantity(s.minQty || 100);
+            }
+            if (searchParams.get('step') === '4' || initialReorderData) {
+              setStep(4);
+            }
           }
         }
       } catch (err) {
@@ -134,7 +201,7 @@ export function SmmplanOrderWizard({
       }
     }
     loadServices();
-  }, [selectedCategory, initialReorderData]);
+  }, [selectedCategory, initialReorderData, searchParams]);
 
   // Auto-fill minQty when service is selected (AGENTS.md Rule)
   const handleSelectService = (srv: PublicService) => {
@@ -146,7 +213,7 @@ export function SmmplanOrderWizard({
     setCustomData("");
     setIsRequirementsConfirmed(false);
     setErrors({});
-    setStep(4);
+    changeStep(4, srv.id, selectedCategory?.id, selectedNetwork?.id);
   };
 
   const totalQuantity = isDripFeedEnabled ? quantity * dripRuns : quantity;
@@ -308,8 +375,23 @@ export function SmmplanOrderWizard({
     ? selectedNetwork.categories.filter(c => c.name.toLowerCase().includes(searchCategory.toLowerCase()))
     : [];
 
+  const normalizeUrl = (raw: string): string => {
+    const trimmed = raw.trim();
+    if (!trimmed) return '';
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+    return trimmed;
+  };
+
+  const handleBlurLink = () => {
+    if (link) {
+      setLink(normalizeUrl(link));
+    }
+  };
+
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto pb-28 sm:pb-24 md:pb-0">
       {/* ── Top Header & Tab Switcher ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/60 backdrop-blur-md p-5 rounded-3xl border border-border/60 shadow-sm">
         <div>
@@ -377,7 +459,7 @@ export function SmmplanOrderWizard({
                   key={s.num}
                   type="button"
                   disabled={s.num > step && (!selectedNetwork || (s.num === 3 && !selectedCategory) || (s.num === 4 && !selectedService))}
-                  onClick={() => setStep(s.num as 1 | 2 | 3 | 4)}
+                  onClick={() => changeStep(s.num as 1 | 2 | 3 | 4)}
                   className={`flex items-center justify-center md:justify-start gap-2.5 p-2.5 rounded-xl text-xs md:text-sm font-bold transition-all ${
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]'
@@ -435,7 +517,7 @@ export function SmmplanOrderWizard({
                           setSelectedNetwork(net);
                           setSelectedCategory(null);
                           setSelectedService(null);
-                          setStep(2);
+                          changeStep(2, undefined, undefined, net.id);
                         }}
                         className={`group p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col items-center text-center gap-3 relative overflow-hidden ${
                           isSelected
@@ -470,7 +552,7 @@ export function SmmplanOrderWizard({
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setStep(1)}
+                    onClick={() => changeStep(1)}
                     className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground transition-all"
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -507,7 +589,7 @@ export function SmmplanOrderWizard({
                       onClick={() => {
                         setSelectedCategory(cat);
                         setSelectedService(null);
-                        setStep(3);
+                        changeStep(3, undefined, cat.id, selectedNetwork?.id);
                       }}
                       className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 ${
                         isSelected
@@ -536,7 +618,7 @@ export function SmmplanOrderWizard({
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setStep(2)}
+                    onClick={() => changeStep(2)}
                     className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground transition-all"
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -646,7 +728,7 @@ export function SmmplanOrderWizard({
 
                 <button
                   type="button"
-                  onClick={() => setStep(3)}
+                  onClick={() => changeStep(3)}
                   className="text-xs font-bold text-primary hover:underline px-3 py-1.5 rounded-lg bg-primary/10"
                 >
                   Изменить
@@ -680,6 +762,7 @@ export function SmmplanOrderWizard({
                     setLink(e.target.value);
                     if (errors.link) setErrors(prev => ({ ...prev, link: undefined }));
                   }}
+                  onBlur={handleBlurLink}
                   placeholder={getTargetTypeHint(selectedCategory?.name, selectedService.targetType).placeholder}
                   className={`w-full px-4 py-3 text-sm bg-background border rounded-2xl text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 transition-all ${
                     errors.link ? 'border-destructive ring-2 ring-destructive/20' : 'border-border/60 focus:ring-primary/30'
@@ -1022,5 +1105,17 @@ export function SmmplanOrderWizard({
         </div>
       )}
     </div>
+  );
+}
+
+export function SmmplanOrderWizard(props: {
+  userEmail?: string;
+  userBalanceCents?: number;
+  initialReorderData?: { serviceId: string; categoryId: string; link: string; quantity: number } | null;
+}) {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Загрузка визарда заказа...</div>}>
+      <SmmplanOrderWizardInner {...props} />
+    </Suspense>
   );
 }
