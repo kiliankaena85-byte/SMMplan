@@ -9,8 +9,28 @@ import { SettingsProvider } from "@/lib/settings";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { inferTargetTypeFromCategory } from "@/utils/target-type";
 
+export async function ensureTaxonomyTenantAccess(categoryId: string) {
+  const category = await db.category.findUnique({
+    where: { id: categoryId },
+    select: { id: true, tenantId: true, networkId: true }
+  });
+  if (category && category.tenantId !== 'all') {
+    await db.category.update({
+      where: { id: categoryId },
+      data: { tenantId: 'all' }
+    });
+    if (category.networkId) {
+      await db.network.update({
+        where: { id: category.networkId },
+        data: { tenantId: 'all' }
+      });
+    }
+  }
+}
+
 // Validation schema for manual Service CRUD operations
 const serviceSchema = z.object({
+  tenantId: z.enum(["smmplan", "flux"]).default("smmplan"),
   name: z.string().min(1, "Название услуги обязательно").max(255, "Название слишком длинное"),
   description: z.string().optional().nullable(),
   categoryId: z.string().min(1, "Категория обязательна"),
@@ -45,12 +65,21 @@ export async function createServiceAction(rawData: unknown) {
     }
     const data = parsed.data;
 
-    // Verify category exists
+    // Verify category exists and ensure taxonomy is accessible to all tenants
     const category = await db.category.findUnique({
       where: { id: data.categoryId }
     });
     if (!category) {
       return { success: false as const, error: 'Указанная категория не найдена' };
+    }
+    await ensureTaxonomyTenantAccess(data.categoryId);
+
+    const slugCandidate = data.name.toLowerCase().trim().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || `service-${Date.now()}`;
+    const existingSlugService = await db.service.findFirst({
+      where: { tenantId: data.tenantId, slug: slugCandidate }
+    });
+    if (existingSlugService) {
+      return { success: false as const, error: 'Услуга уже существует для выбранного сайта' };
     }
 
     // Verify provider exists if provided
@@ -80,6 +109,8 @@ export async function createServiceAction(rawData: unknown) {
     const service = await db.$transaction(async (tx) => {
       return await tx.service.create({
         data: {
+          tenantId: data.tenantId,
+          slug: slugCandidate,
           name: data.name,
           description: data.description,
           categoryId: data.categoryId,
@@ -166,6 +197,7 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     if (!category) {
       return { success: false as const, error: 'Указанная категория не найдена' };
     }
+    await ensureTaxonomyTenantAccess(data.categoryId);
 
     // Verify provider exists if provided
     let providerCurrency = service.providerCurrency;
