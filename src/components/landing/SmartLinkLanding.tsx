@@ -172,7 +172,7 @@ export function SmartLinkLanding({
       
       <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-primary/5 to-background pointer-events-none z-0 select-none overflow-hidden" />
 
-      <Header initialEmail={initialEmail} siteName={companyName} activePath={ROUTES.HOME} />
+      <Header initialEmail={initialEmail} siteName={companyName} tenantId={tenantId} activePath={ROUTES.HOME} />
 
       <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 pt-12 md:pt-28 pb-16 md:pb-40 flex flex-col items-center relative z-10">
 

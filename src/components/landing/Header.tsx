@@ -6,20 +6,21 @@ import { Zap, LogIn, LogOut, Menu } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
+import { TenantLogo } from "@/components/ui/TenantLogo";
+
 interface HeaderProps {
   initialEmail?: string;
   siteName: string;
+  tenantId?: string;
   activePath?: string;
 }
 
-export function Header({ initialEmail, siteName, activePath }: HeaderProps) {
+export function Header({ initialEmail, siteName, tenantId, activePath }: HeaderProps) {
   return (
     <header className="w-full sticky top-0 z-50 bg-background/80 backdrop-blur-2xl border-b border-border/50 shadow-[0_4px_30px_rgba(0,0,0,0.02)] transition-all">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-[0_2px_10px] shadow-primary/10">
-            <Zap className="w-4 h-4 text-primary fill-current" />
-          </div>
+          <TenantLogo tenantId={tenantId} className="w-8 h-8" iconClassName="w-4 h-4" />
           <span className="text-base sm:text-xl font-extrabold tracking-normal text-foreground">{siteName}</span>
         </Link>
 

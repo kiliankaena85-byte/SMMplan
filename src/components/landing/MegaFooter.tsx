@@ -1,8 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { Zap, Heart, Mail, ArrowUpRight } from "lucide-react";
+import { Mail, ArrowUpRight } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { TENANTS } from "@/config/tenants";
+import { TenantLogo } from "@/components/ui/TenantLogo";
 
 export function MegaFooter({ 
   contactSettings,
@@ -19,11 +21,11 @@ export function MegaFooter({
   },
   tenantId?: string
 }) {
-  const isFluxBrand = normalizeTenantId(tenantId) === 'flux';
-  const siteName = isFluxBrand ? "SMMflux" : (contactSettings?.SITE_NAME || "SMMplan");
-  const companyName = contactSettings?.COMPANY_NAME && contactSettings.COMPANY_NAME !== "SMMplan" && !contactSettings.COMPANY_NAME.includes("Укажите")
-    ? contactSettings.COMPANY_NAME
-    : "ИП Соколов Артём Андреевич";
+  const normalizedTenant = normalizeTenantId(tenantId) || 'smmplan';
+  const tenantConfig = TENANTS.find(t => t.id === normalizedTenant) ?? TENANTS[0];
+  const isFluxBrand = tenantConfig.id === 'flux';
+  const brandName = tenantConfig.name;
+
   const supportEmail = isFluxBrand ? "support@smmflux.ru" : (contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro");
   const inn = contactSettings?.LEGAL_INN && contactSettings.LEGAL_INN !== "Укажите ИНН" && contactSettings.LEGAL_INN !== "000000000000"
     ? contactSettings.LEGAL_INN
@@ -46,15 +48,10 @@ export function MegaFooter({
         {/* Column 1: Brand & Payments (Takes more space) */}
         <div className="md:col-span-5 space-y-6 pr-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shadow-inner">
-              {isFluxBrand ? (
-                <Heart className="w-5 h-5 text-primary" fill="currentColor" />
-              ) : (
-                <Zap className="w-5 h-5 text-primary" />
-              )}
-            </div>
-            <span className="text-2xl font-black tracking-tight text-foreground">{siteName}</span>
+            <TenantLogo tenantId={tenantConfig.id} className="w-10 h-10" iconClassName="w-5 h-5" />
+            <span className="text-2xl font-black tracking-tight text-foreground">{brandName}</span>
           </div>
+          {/* // TODO: tenant-specific tagline */}
           <p className="text-base text-muted-foreground leading-relaxed max-w-sm">
             Платформа нового поколения для B2B продвижения. Мгновенный запуск, строгая конфиденциальность и официальная работа с гарантиями.
           </p>
@@ -145,7 +142,7 @@ export function MegaFooter({
 
       <div className="max-w-7xl mx-auto px-6 border-t border-border/40 pt-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs font-medium text-foreground/80 relative z-10">
         <div className="flex flex-col gap-1.5">
-          <p className="text-sm">© {new Date().getFullYear()} {companyName}. Все права защищены.</p>
+          <p className="text-sm">© {new Date().getFullYear()} {brandName}. Все права защищены.</p>
           <p className="text-xs opacity-80">
             Официальный сервис продвижения. ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""}
           </p>
