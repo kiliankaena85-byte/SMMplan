@@ -987,10 +987,18 @@ class AdminCatalogService {
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const categoryWhere: any = {};
+    if (tenantId) categoryWhere.tenantId = { in: [tenantId, 'all'] };
+    if (startDate && endDate) {
+      categoryWhere.createdAt = { gte: startDate, lte: endDate };
+    }
+
     const [totalServices, activeServices, categories] = await Promise.all([
       db.service.count({ where }),
       db.service.count({ where: { ...where, isActive: true } }),
-      db.category.count({ where }),
+      db.category.count({ where: categoryWhere }),
     ]);
 
     return { totalServices, activeServices, categories };
