@@ -232,19 +232,6 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center font-sans min-h-[60vh] pb-12 pt-8 px-4 relative overflow-visible">
-      {/* TOP AURORA MESH GRADIENT BACKGROUND (Full Bleed & High Saturation) */}
-      <div className="absolute -top-48 left-1/2 -translate-x-1/2 w-screen h-[850px] pointer-events-none z-0 overflow-hidden select-none">
-        <div 
-          className="absolute -top-10 left-1/2 -translate-x-1/2 w-[1600px] h-[750px] rounded-full blur-[90px] pointer-events-none"
-          style={{ 
-            background: 'radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.7) 0%, rgba(147,51,234,0.65) 30%, rgba(236,72,153,0.6) 55%, rgba(249,115,22,0.45) 80%, transparent 100%)' 
-          }}
-        />
-        <div className="absolute top-0 left-[2%] w-[600px] h-[600px] rounded-full bg-blue-500/55 blur-[100px]" />
-        <div className="absolute top-6 left-[28%] w-[550px] h-[550px] rounded-full bg-purple-600/60 blur-[90px]" />
-        <div className="absolute top-2 right-[8%] w-[600px] h-[600px] rounded-full bg-pink-500/55 blur-[100px]" />
-        <div className="absolute top-20 right-[1%] w-[450px] h-[450px] rounded-full bg-orange-400/40 blur-[80px]" />
-      </div>
       {step !== 'link' && (
         <motion.div 
           layoutId="hero-input"
