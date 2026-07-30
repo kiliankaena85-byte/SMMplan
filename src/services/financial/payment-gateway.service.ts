@@ -66,7 +66,7 @@ class YooKassaGateway extends BasePaymentGateway {
     };
 
     if (!params.isTestMode) {
-      // Подсчитываем оборот за год для динамического переключения НДС 5% (ФЗ-54)
+      // Подсчитываем оборот за год для переключения НДС 22% (ФЗ № 425-ФЗ, ФЗ № 176-ФЗ, ст. 145, 164 НК РФ)
       const currentYear = new Date().getFullYear();
       const annualRevenue = await db.payment.aggregate({
         _sum: { amount: true },
@@ -76,8 +76,8 @@ class YooKassaGateway extends BasePaymentGateway {
         }
       }).then(res => Number(res._sum.amount || 0));
 
-      const isVatThresholdExceeded = annualRevenue >= 6000000000; // 60 млн рублей (Порог УСН НДС 5% 2025-2026)
-      const vatCode = isVatThresholdExceeded ? 7 : 1; // 7 = НДС 5%, 1 = Без НДС
+      const isVatThresholdExceeded = annualRevenue >= 2000000000; // 20 млн рублей (Порог освобождения от НДС на УСН ст. 145 НК РФ)
+      const vatCode = isVatThresholdExceeded ? 10 : 1; // 10 = НДС 22% (п. 3 ст. 164 НК РФ), 1 = Без НДС
 
       payload.receipt = {
         customer: { email: params.email || `no-reply@${supportDomain}` },
