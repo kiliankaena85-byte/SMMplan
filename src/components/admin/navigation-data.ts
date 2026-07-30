@@ -13,6 +13,7 @@ export const FINANCE_TABS = [
 
 export const CATALOG_TABS = [
   { label: 'Каталог услуг', href: '/admin/catalog' },
+  { label: 'Синхронизация', href: '/admin/catalog/sync' },
   { label: 'Карантин цен', href: '/admin/catalog/quarantine' },
   { label: 'Провайдеры API', href: '/admin/providers' },
   { label: 'Импорт услуг', href: '/admin/providers/import' },
