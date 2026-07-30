@@ -187,6 +187,18 @@ export async function POST(req: NextRequest) {
           );
 
           if (success) {
+            const LARGE_PAYMENT_THRESHOLD = BigInt(50_000_00);
+            if (amountCents >= LARGE_PAYMENT_THRESHOLD) {
+              import('@/lib/notifications').then(async ({ sendAdminAlert }) => {
+                const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+                const email = user?.email || userId;
+                const formattedRub = (Number(amountCents) / 100).toLocaleString('ru-RU');
+                sendAdminAlert(
+                  `💰 Large payment: ${formattedRub} ₽ from ${email}`,
+                  'INFO'
+                );
+              }).catch(err => console.error('[YooKassa Webhook] Large payment alert failed', err));
+            }
             return NextResponse.json({ success: true, status: 'Payment processed strictly' }, { status: 200 });
           } else {
             return NextResponse.json({ error: 'Payment double-check validation failed' }, { status: 400 });
