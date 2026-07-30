@@ -111,13 +111,34 @@ async function main() {
   console.log(`Upserted Test Client: ${testClientEmail}`);
 
   // 4. Default Category & Service
+  let telegramNetwork = await prisma.network.findFirst({ where: { slug: 'telegram' } });
+  if (!telegramNetwork) {
+    telegramNetwork = await prisma.network.create({
+      data: {
+        name: 'Telegram',
+        slug: 'telegram',
+        tenantId: 'all',
+        isActive: true,
+        sort: 0
+      }
+    });
+    console.log('Created Default Network Telegram');
+  }
+
   let existingCategory = await prisma.category.findFirst({ where: { slug: 'telegram' } });
   if (!existingCategory) {
     existingCategory = await prisma.category.create({
       data: {
         name: 'Telegram',
-        slug: 'telegram'
+        slug: 'telegram',
+        tenantId: 'all',
+        networkId: telegramNetwork.id
       }
+    });
+  } else if (!existingCategory.networkId) {
+    existingCategory = await prisma.category.update({
+      where: { id: existingCategory.id },
+      data: { networkId: telegramNetwork.id }
     });
   }
 
