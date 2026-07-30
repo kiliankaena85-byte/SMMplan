@@ -975,7 +975,7 @@ class AdminCatalogService {
    * Supports: by category, by platform, or all services.
    */
   async bulkUpdateMarkup(
-    filter: { categoryId?: string; platform?: string },
+    filter: { categoryId?: string; platform?: string; tenantId?: string },
     newMarkup: number,
     admin: { id: string; email: string }
   ): Promise<{ updatedCount: number }> {
@@ -986,6 +986,9 @@ class AdminCatalogService {
     const where: Record<string, unknown> = {
       isQuarantined: false
     };
+    if (filter.tenantId) {
+      where.tenantId = filter.tenantId;
+    }
     if (filter.categoryId) {
       where.categoryId = filter.categoryId;
     }
