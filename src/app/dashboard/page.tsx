@@ -67,9 +67,18 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
   const catalogResult = await getPublicCatalogAction();
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
 
+  const userForClient = {
+    email: user.email,
+    balanceCents: Number(user.balance ?? 0),
+    totalSpent: Number(user.totalSpent ?? 0),
+    referralCode: user.referralCode,
+    createdAt: user.createdAt,
+    tenantId: user.tenantId,
+  };
+
   return (
     <HomeView
-      user={user}
+      user={userForClient}
       orders={orders}
       referralCount={referralCount}
       activeOrders={activeOrders}

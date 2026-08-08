@@ -41,13 +41,13 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
   {
     name: 'Пополнение баланса',
     label: 'Баланс',
-    href: '/dashboard/deposit',
+    href: '/dashboard/add-funds',
     icon: Wallet,
   },
   {
     name: 'Поддержка',
     label: 'Помощь',
-    href: '/dashboard/support',
+    href: '/dashboard/tickets',
     icon: HelpCircle,
   },
 ];
