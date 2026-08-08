@@ -493,7 +493,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         if (hasMediaGroup && normalizedMediaGroupLink) {
           const secondOrder = await tx.order.create({
             data: {
-              userId: user.id,
+              userId: user?.id,
               serviceId,
               providerId: service.providerId,
               providerServiceId: service.externalId,
@@ -556,14 +556,14 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         }
 
         const { logPromoCodeUsageIfNeeded } = await import('@/services/marketing-utils');
-        if (gateway === 'balance' && promoCodeId) {
+        if (gateway === 'balance' && promoCodeId && user?.id) {
           await logPromoCodeUsageIfNeeded(tx, newOrder.id, user.id);
           if (secondOrderId) {
             await logPromoCodeUsageIfNeeded(tx, secondOrderId, user.id);
           }
         }
 
-        if (isSmartDrip && smartConfig) {
+        if (isSmartDrip && smartConfig && user?.id) {
           await SmartDripService.createCampaign(tx, {
             userId: user.id,
             serviceId,
@@ -589,7 +589,8 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
           paymentUrl: existingOrder.payment?.checkoutUrl || ''
         };
       }
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002' && idempotencyKey) {
+      const isP2002 = err instanceof Prisma.PrismaClientKnownRequestError ? err.code === 'P2002' : (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'P2002');
+      if (isP2002 && idempotencyKey) {
         const existingOrder = await db.order.findUnique({
           where: { idempotencyKey },
           include: { payment: true }
@@ -646,7 +647,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       }
 
       void sendOrderPaidMail(
-        user.email,
+        user?.email || email,
         result.numericId.toString(),
         service.name
       ).catch((err: unknown) => console.error('[H1] sendOrderPaidMail balance failed', err));
@@ -654,7 +655,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       revalidatePath('/dashboard', 'layout');
 
       // Auto-Login using cookies (Frictionless checkout)
-      if (isNewUser || (currentSession && currentSession.userId === user!.id)) {
+      if (user && (isNewUser || (currentSession && currentSession.userId === user.id))) {
         await createSession(user.id);
       }
 
@@ -671,7 +672,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       const gatewayResult = await gatewaySvc.createPayment({
         paymentId: result.paymentId,
         orderId: result.orderId,
-        userId: user.id,
+        userId: user?.id || '',
         amountRub: paymentAmount / 100,
         email: email,
         successUrl,
@@ -699,15 +700,15 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rollbackPromises: Promise<any>[] = [
-        db.payment.update({
+        Promise.resolve(db.payment.update({
           where: { id: result.paymentId },
           data: { status: 'CANCELED' }
-        }).catch(e => console.error('[Checkout] Failed to cancel payment:', e)),
+        })).catch(e => console.error('[Checkout] Failed to cancel payment:', e)),
         
-        db.order.update({
+        Promise.resolve(db.order.update({
           where: { id: result.orderId },
           data: { status: 'ERROR', error: gatewayErr.message || 'Ошибка генерации платежа' }
-        }).catch(e => console.error('[Checkout] Failed to error order:', e))
+        })).catch(e => console.error('[Checkout] Failed to error order:', e))
       ];
 
       if (promoCodeStr && transactionCompleted) {
@@ -736,11 +737,11 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
 
     // 8. Auto-Login using cookies (Frictionless checkout)
     // SECURITY FIX: Prevent Account Takeover by only auto-logging in NEW users, or already authenticated users
-    if (isNewUser || (currentSession && currentSession.userId === user.id)) {
+    if (user && (isNewUser || (currentSession && currentSession.userId === user.id))) {
       await createSession(user.id);
     }
 
-    if (gateway === 'balance') {
+    if (gateway === 'balance' && user) {
       void sendOrderPaidMail(
         user.email,
         result.numericId.toString(),

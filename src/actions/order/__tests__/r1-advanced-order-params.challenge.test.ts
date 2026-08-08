@@ -186,6 +186,7 @@ describe('Requirement R1: Advanced Order Parameters Integration (Empirical Chall
     id: 'usr-1',
     email: 'test@example.com',
     tenantId: 'smmplan',
+    telegramId: '12345678',
     isActive: true,
     isDeleted: false,
   };
@@ -196,6 +197,7 @@ describe('Requirement R1: Advanced Order Parameters Integration (Empirical Chall
     (featureFlagService.isEnabled as any).mockResolvedValue(true);
     (verifySession as any).mockResolvedValue({ userId: 'usr-1' });
     (db.user.findUnique as any).mockResolvedValue(mockUser);
+    (db.user.findFirst as any).mockResolvedValue(mockUser);
     (db.service.findUnique as any).mockResolvedValue(mockService);
     (db.order.create as any).mockResolvedValue({ id: 'ord-100' });
     (db.payment.create as any).mockResolvedValue({ id: 'pay-100' });

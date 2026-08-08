@@ -150,6 +150,14 @@ vi.mock('@/lib/smtp', () => ({
 describe('checkoutAction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(db.user.findFirst).mockResolvedValue({
+      id: 'user-1',
+      email: 'test@test.com',
+      balance: 5000,
+      telegramId: '12345678',
+      isActive: true,
+      isDeleted: false,
+    } as any);
   });
 
   const validData = {
@@ -214,6 +222,13 @@ describe('checkoutAction', () => {
       id: 'user-1',
       email: 'test@test.com',
       balance: 0, // 0 balance
+      isActive: true,
+      isDeleted: false,
+    } as any);
+    vi.mocked(db.user.findFirst).mockResolvedValue({
+      id: 'user-1',
+      email: 'test@test.com',
+      balance: 0,
       isActive: true,
       isDeleted: false,
     } as any);
@@ -292,6 +307,20 @@ describe('checkoutAction', () => {
   });
 
   it('4. Idempotency key deduplication', async () => {
+    vi.mocked(db.service.findUnique).mockResolvedValue({
+      id: 'service-1',
+      isActive: true,
+      externalId: 'ext-1',
+      minQty: 10,
+      maxQty: 1000,
+      targetType: 'POST',
+      category: { network: { slug: 'tg' } },
+    } as any);
+
+    vi.mocked(db.contentItem.findUnique).mockResolvedValue({
+      updatedAt: new Date(),
+    } as any);
+
     vi.mocked(db.order.findUnique).mockResolvedValue({
       id: 'existing-order-1',
       paymentId: 'existing-payment-1',
@@ -308,7 +337,7 @@ describe('checkoutAction', () => {
     const result = await checkoutAction({
       ...validData,
       gateway: 'yookassa',
-      idempotencyKey: 'idemp-123',
+      idempotencyKey: 'idemp-123456',
     });
 
     expect(result.success).toBe(true);
