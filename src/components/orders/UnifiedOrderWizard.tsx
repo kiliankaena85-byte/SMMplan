@@ -446,16 +446,29 @@ export function UnifiedOrderWizard({
                   )}
                 </div>
                 
-                {gateway === 'balance' && (userBalanceCents < engine.stats.totalCents) && (
-                   <div className="text-[11px] font-bold text-red-500 text-center uppercase tracking-wider animate-pulse bg-red-500/10 p-1.5 rounded-lg">
-                      Недостаточно средств ({formatCents(userBalanceCents)} ₽)
+                {error && (
+                   <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-semibold text-center animate-in fade-in">
+                      {error}
                    </div>
                 )}
 
                 <button
-                  onClick={handleCheckout}
-                  disabled={!engine.stats.isReadyToPay || isLoading || (gateway === 'balance' && userBalanceCents < engine.stats.totalCents)}
-                  className="w-full h-12 bg-primary hover:bg-primary/95 text-primary-foreground font-black text-sm uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-primary/20"
+                  onClick={(e) => {
+                    if (!engine.stats.isReadyToPay || isLoading || (gateway === 'balance' && userBalanceCents < engine.stats.totalCents)) {
+                      e.preventDefault();
+                      if (!engine.stats.isReadyToPay) {
+                        setError("Пожалуйста, укажите верные ссылки и параметры для всех добавлений.");
+                      } else if (gateway === 'balance' && userBalanceCents < engine.stats.totalCents) {
+                        setError(`Недостаточно средств на балансе. Требуется ${formatCents(engine.stats.totalCents)} ₽, у вас ${formatCents(userBalanceCents)} ₽.`);
+                      }
+                      const errElem = document.querySelector('[data-error-container]');
+                      errElem?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      return;
+                    }
+                    setError(null);
+                    handleCheckout();
+                  }}
+                  className="w-full h-12 bg-primary hover:bg-primary/95 text-primary-foreground font-black text-sm uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20"
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -471,12 +484,6 @@ export function UnifiedOrderWizard({
 
           </div>
         </section>
-      )}
-
-      {error && (
-         <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-semibold text-center animate-in fade-in">
-            {error}
-         </div>
       )}
 
     </div>
