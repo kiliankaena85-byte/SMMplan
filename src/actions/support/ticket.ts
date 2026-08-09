@@ -22,9 +22,9 @@ import { CompensationService } from '@/services/financial/compensation.service';
 // ... (rest of imports)
 
 export async function generateSmartReplyAction(ticketId: string) {
-  return requireStaffPermission('orders', 'view', async () => {
+  return requireStaffPermission('orders', 'view', async (admin) => {
     try {
-      const reply = await aiSupportService.generateReply(ticketId);
+      const reply = await aiSupportService.generateReply(ticketId, admin.tenantId ?? 'smmplan');
       return { success: true, reply };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
@@ -492,7 +492,9 @@ export async function adminManualTelegramBind(formData: FormData) {
 
 export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[]) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
-    const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
+    const ticket = await db.ticket.findFirst({
+      where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' }
+    });
     if (!ticket) throw new Error('Тикет не найден');
 
     let processedCount = 0;
@@ -581,8 +583,8 @@ export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[
 
 export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[]) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
-    const ticket = await db.ticket.findUnique({ 
-      where: { id: ticketId },
+    const ticket = await db.ticket.findFirst({ 
+      where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
       include: { user: true }
     });
     if (!ticket) throw new Error('Тикет не найден');

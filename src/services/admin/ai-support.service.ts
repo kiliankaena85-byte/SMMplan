@@ -5,9 +5,9 @@ class AiSupportService {
   /**
    * Generates a suggested reply for a ticket based on context.
    */
-  async generateReply(ticketId: string) {
-    const ticket = await db.ticket.findUnique({
-      where: { id: ticketId },
+  async generateReply(ticketId: string, tenantId: string = 'smmplan') {
+    const ticket = await db.ticket.findFirst({
+      where: { id: ticketId, tenantId },
       include: {
         messages: { orderBy: { createdAt: 'asc' }, take: 10 },
         user: {
