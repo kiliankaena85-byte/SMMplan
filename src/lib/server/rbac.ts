@@ -32,7 +32,7 @@ export type StaffPermissionSection =
 export async function requireStaffPermission<T>(
   section: StaffPermissionSection | string,
   actionMode: 'view' | 'edit',
-  action: (user: User, role?: StaffRole | null) => Promise<T>
+  action: (user: User, role?: StaffRole | null, tenantId?: string) => Promise<T>
 ): Promise<T | { success: false; error: string }> {
   try {
     const userId = await getSessionUserId();
@@ -56,9 +56,11 @@ export async function requireStaffPermission<T>(
       return { success: false, error: "Forbidden: Administrator/Staff context required" };
     }
 
+    const tenantId = user.tenantId ?? 'smmplan';
+
     // OWNER & ADMIN bypass
     if (user.role === 'OWNER' || user.role === 'ADMIN') {
-      return await action(user, user.staffRole);
+      return await action(user, user.staffRole, tenantId);
     }
 
     // Requires StaffRole for granular permissions
@@ -82,7 +84,7 @@ export async function requireStaffPermission<T>(
         return { success: false, error: `Forbidden: Cannot view [${section}]` };
     }
 
-    return await action(user, user.staffRole);
+    return await action(user, user.staffRole, tenantId);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("[RBAC] Execution Error:", error);
@@ -93,7 +95,7 @@ export async function requireStaffPermission<T>(
 
 // W3-3 SECURITY FIX: Strict guard for OWNER-only operations (e.g. settings changes, ownership transfers)
 export async function requireOwnerPermission<T>(
-  action: (user: User) => Promise<T>
+  action: (user: User, tenantId?: string) => Promise<T>
 ): Promise<T | { success: false; error: string }> {
   try {
     const userId = await getSessionUserId();
@@ -107,7 +109,8 @@ export async function requireOwnerPermission<T>(
        return { success: false, error: "Forbidden: OWNER context required" };
     }
 
-    return await action(user);
+    const tenantId = user.tenantId ?? 'smmplan';
+    return await action(user, tenantId);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("[RBAC] Execution Error:", error);
@@ -134,7 +137,7 @@ export async function enforcePageRole(allowedRoles: string[]) {
 
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, isDeleted: true, isActive: true }
+    select: { id: true, role: true, isDeleted: true, isActive: true, tenantId: true }
   });
 
   if (!user || user.isDeleted || !user.isActive) {
