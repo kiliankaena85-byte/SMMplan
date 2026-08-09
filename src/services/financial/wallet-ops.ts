@@ -237,21 +237,25 @@ export const WalletOps = {
         }
       }
 
-      // Read current totalSpent first to cap the decrement
-      const currentUser = await tx.user.findUnique({
-        where: { id: userId },
-        select: { totalSpent: true }
-      });
-      const safeDecrement = Math.min(amountCents, Number(currentUser?.totalSpent ?? 0));
-
+      // Execute atomic balance increment and totalSpent decrement in single Prisma update step
+      const rawCents = BigInt(amountCents);
       const updatedUser = await tx.user.update({
         where: { id: userId },
         data: {
-          balance: { increment: amountCents },
-          totalSpent: safeDecrement > 0 ? { decrement: safeDecrement } : undefined
+          balance: { increment: rawCents },
+          // Atomic totalSpent decrement: ensure totalSpent does not go negative
+          totalSpent: { decrement: rawCents }
         },
-        select: { balance: true }
+        select: { balance: true, totalSpent: true }
       });
+
+      // Safety guard: if totalSpent became negative due to race or edge cases, auto-clamp to 0
+      if (updatedUser.totalSpent < BigInt(0)) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { totalSpent: BigInt(0) }
+        });
+      }
 
       const entry = await tx.ledgerEntry.create({
         data: {

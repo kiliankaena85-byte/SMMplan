@@ -40,13 +40,11 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Access control: verify user owns ticket or is staff
-    const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
-    if (!ticket) return new NextResponse('Ticket not found', { status: 404 });
-
     const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
-    if (ticket.userId !== userId && !isStaff) {
-      return new NextResponse('Forbidden', { status: 403 });
-    }
+    const ticket = await db.ticket.findFirst({
+      where: isStaff ? { id: ticketId } : { id: ticketId, userId }
+    });
+    if (!ticket) return new NextResponse('Ticket not found or access denied', { status: 404 });
 
     // 5. Save the file locally
     const buffer = Buffer.from(await file.arrayBuffer());

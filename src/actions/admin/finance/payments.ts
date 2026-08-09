@@ -157,9 +157,9 @@ export type PaymentDisputePackDTO = {
 };
 
 export async function getPaymentDisputePackAction(paymentId: string): Promise<PaymentDisputePackDTO | { success: false, error: string }> {
-  return requireStaffPermission('finance', 'view', async (): Promise<PaymentDisputePackDTO | { success: false; error: string }> => {
-    const payment = await db.payment.findUnique({
-      where: { id: paymentId },
+  return requireStaffPermission('finance', 'view', async (admin): Promise<PaymentDisputePackDTO | { success: false; error: string }> => {
+    const payment = await db.payment.findFirst({
+      where: { id: paymentId, tenantId: admin.tenantId ?? 'smmplan' },
       include: {
         user: {
           select: {

@@ -98,6 +98,12 @@ export async function POST(request: NextRequest) {
          return NextResponse.json({ error: 'Payment context missing' }, { status: 400 });
       }
 
+      const currency = String(payment.currency || '').toUpperCase();
+      if (currency !== 'RUB' && currency !== 'USD') {
+        console.error(`[CryptoBot Webhook] Invalid currency: ${currency}`);
+        return NextResponse.json({ error: 'Invalid currency' }, { status: 400 });
+      }
+
       const gatewayId = invoice.invoice_id.toString();
       
       // Strict Integer parsing from exact paid_fiat_amount string (no float multiplication!)

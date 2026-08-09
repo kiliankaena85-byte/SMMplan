@@ -102,8 +102,10 @@ export async function addTicketMessage(formData: FormData) {
   if (!parsed.success) throw new Error('Сообщение не может быть пустым');
   const { ticketId, message, mediaUrl, mediaType, replyToId, orderId } = parsed.data;
 
-  const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
-  if (!ticket || ticket.userId !== session.userId) throw new Error('Forbidden');
+  const ticket = await db.ticket.findFirst({
+    where: { id: ticketId, userId: session.userId }
+  });
+  if (!ticket) throw new Error('Ticket not found or access denied');
 
   let verifiedOrderId: string | undefined = undefined;
   if (orderId) {

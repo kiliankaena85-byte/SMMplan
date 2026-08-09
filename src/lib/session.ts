@@ -76,17 +76,16 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
     });
     
     const sessionId = payload.sessionId as string;
-    console.warn(`[verifySession] Verifying sessionId: "${sessionId}"`);
     const session = await db.session.findUnique({
       where: { id: sessionId },
       include: { user: true }
     });
     if (!session) {
-      console.warn(`[verifySession] null because: session "${sessionId}" not found in DB`);
+      console.warn(`[verifySession] Session not found in DB or revoked`);
       return null;
     }
     if (session.expiresAt < new Date()) {
-      console.warn(`[verifySession] null because: session "${sessionId}" expired at ${session.expiresAt.toISOString()}`);
+      console.warn(`[verifySession] Session expired in DB`);
       return null;
     }
 

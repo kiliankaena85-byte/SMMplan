@@ -244,7 +244,7 @@ export async function bulkCancelOrdersAction(
     const skippedCount = parsed.data.orderIds.length - targetIds.length;
 
     const orders = await db.order.findMany({
-      where: { id: { in: targetIds } },
+      where: { id: { in: targetIds }, tenantId: admin.tenantId ?? 'smmplan' },
     });
 
     let totalRefunded = 0;
@@ -254,8 +254,8 @@ export async function bulkCancelOrdersAction(
       if (!['COMPLETED', 'CANCELED', 'ERROR'].includes(order.status)) {
         try {
           await runSerializableTransaction(async (tx) => {
-            const safeOrder = await tx.order.findUnique({
-              where: { id: order.id }
+            const safeOrder = await tx.order.findFirst({
+              where: { id: order.id, tenantId: admin.tenantId ?? 'smmplan' }
             });
             
             if (!safeOrder || ['COMPLETED', 'CANCELED', 'ERROR'].includes(safeOrder.status)) return;
@@ -346,9 +346,9 @@ export async function bulkRestartOrdersAction(orderIds: string[]) {
 // ── Manual Failover Actions ──
 
 export async function getFailoverPreview(orderId: string) {
-  return requireStaffPermission('orders', 'edit', async () => {
-    const order = await db.order.findUnique({
-      where: { id: orderId },
+  return requireStaffPermission('orders', 'edit', async (admin) => {
+    const order = await db.order.findFirst({
+      where: { id: orderId, tenantId: admin.tenantId ?? 'smmplan' },
       include: {
         service: {
           include: {
@@ -427,8 +427,8 @@ export async function getFailoverPreview(orderId: string) {
 export async function manualRerouteOrder(orderId: string, newRouteId: string, acknowledgeBlindReroute = false) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
     const result = await runSerializableTransaction(async (tx) => {
-      const order = await tx.order.findUnique({
-        where: { id: orderId },
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId: admin.tenantId ?? 'smmplan' },
         select: { id: true, numericId: true, status: true, charge: true, userId: true, serviceId: true, providerId: true }
       });
 
