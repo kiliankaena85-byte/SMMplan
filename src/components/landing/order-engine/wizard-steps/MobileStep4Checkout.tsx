@@ -34,6 +34,7 @@ export function MobileStep4Checkout({
 }: MobileStep4CheckoutProps) {
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
+  const [shake, setShake] = useState(false);
 
   const {
     selectedService,
@@ -43,6 +44,7 @@ export function MobileStep4Checkout({
     agreedToTerms, setAgreedToTerms,
     isCalculating,
     totalPriceFormatted,
+    url,
   } = engine;
 
   React.useEffect(() => {
@@ -50,6 +52,22 @@ export function MobileStep4Checkout({
       setShowPromo(true);
     }
   }, [promoCode]);
+
+  // Handle validation feedback on button click
+  const handleButtonClick = () => {
+    if (!agreedToTerms || !email || !url) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      
+      const firstError = step4Ref.current?.querySelector('[aria-invalid="true"], input:invalid');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+        (firstError as HTMLElement).focus();
+      }
+      return;
+    }
+    handleCheckout();
+  };
 
   if (currentStep !== 4 || !shouldShowParameters || !selectedService) {
     return null;
@@ -185,13 +203,18 @@ export function MobileStep4Checkout({
       )}
 
       {/* FZ-152 compliance marker: согласие на обработку персональных данных /legal/privacy */}
-      <LegalCheckbox
-        id="standard-legal-checkbox"
-        checked={agreedToTerms}
-        onChange={(val) => setAgreedToTerms(val)}
-        labelClassName="text-muted-foreground font-medium text-xs"
-        onOpenDocument={onOpenDocument}
-      />
+      <motion.div
+        animate={shake ? { x: [0, -6, 6, -6, 6, 0] } : {}}
+        transition={{ duration: 0.4 }}
+      >
+        <LegalCheckbox
+          id="standard-legal-checkbox"
+          checked={agreedToTerms}
+          onChange={(val) => setAgreedToTerms(val)}
+          labelClassName="text-muted-foreground font-medium text-xs"
+          onOpenDocument={onOpenDocument}
+        />
+      </motion.div>
 
       <div className="flex gap-2">
         <Button
@@ -206,8 +229,8 @@ export function MobileStep4Checkout({
 
       <div className="pt-4 border-t border-border/30 space-y-2">
         <Button
-          onClick={handleCheckout}
-          disabled={isSubmitting}
+          onClick={handleButtonClick}
+          disabled={isSubmitting || isCalculating}
           className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-black text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] min-h-[48px]"
         >
           {isSubmitting ? (

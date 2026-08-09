@@ -60,6 +60,7 @@ export function InlineCheckoutForm({
 }: InlineCheckoutFormProps) {
   const [gateway, setGateway] = React.useState<"yookassa" | "cryptobot" | "balance">("yookassa");
   const formRef = useRef<HTMLDivElement>(null);
+  const [shake, setShake] = React.useState(false);
 
   // Smooth scroll to form on mount
   useEffect(() => {
@@ -67,6 +68,24 @@ export function InlineCheckoutForm({
       formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [selectedService?.id]);
+
+  // Handle validation feedback on button click
+  const handleButtonClick = (gateway?: string) => {
+    if (!engine.agreedToTerms || !email || !url) {
+      // Trigger shake animation
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      
+      // Scroll to first invalid field
+      const firstError = formRef.current?.querySelector('[aria-invalid="true"], input:invalid, textarea:invalid');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+        (firstError as HTMLElement).focus();
+      }
+      return;
+    }
+    handleCheckout(gateway);
+  };
 
   if (!selectedService) return null;
 
@@ -153,7 +172,11 @@ export function InlineCheckoutForm({
 
           {/* Checkout Action Panel */}
           <div className="bg-content2/60 border border-border/20 rounded-3xl p-5 md:p-6 space-y-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <motion.div
+              animate={shake ? { x: [0, -6, 6, -6, 6, 0] } : {}}
+              transition={{ duration: 0.4 }}
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            >
               <div>
                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-0.5">
                   Итого к оплате
@@ -172,7 +195,7 @@ export function InlineCheckoutForm({
 
               <Button
                 type="button"
-                onClick={() => handleCheckout(gateway)}
+                onClick={() => handleButtonClick(gateway)}
                 disabled={isSubmitting || isCalculating}
                 className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-sm shadow-md shadow-primary/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
               >
@@ -189,10 +212,10 @@ export function InlineCheckoutForm({
 
             {/* Legal terms agreement with Shake & Glow feedback on error */}
             <motion.div
-              animate={termsHasError ? { x: [0, -6, 6, -6, 6, 0] } : {}}
+              animate={termsHasError || shake ? { x: [0, -6, 6, -6, 6, 0] } : {}}
               transition={{ duration: 0.4 }}
               className={`w-full rounded-2xl transition-all ${
-                termsHasError
+                termsHasError || shake
                   ? "ring-2 ring-destructive/40 bg-destructive/5 border border-destructive/20 p-2.5"
                   : ""
               }`}

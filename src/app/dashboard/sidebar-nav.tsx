@@ -137,11 +137,12 @@ export function MobileBottomNav() {
             href={href}
             aria-current={active ? 'page' : undefined}
             aria-label={label}
-            className={`relative flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-colors duration-200 ${
-              active ? 'text-primary' : 'text-muted-foreground hover:text-primary'
-            }`}
+            className="relative flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-colors duration-200 min-h-[44px] touch-target"
+            style={{ minWidth: '44px' }}
           >
-            <Icon className="w-5 h-5" />
+            <div className={`flex items-center justify-center w-11 h-11 rounded-lg ${active ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
+              <Icon className="w-5 h-5" />
+            </div>
             <span className={`text-[10px] font-semibold tracking-wide ${active ? 'font-bold' : ''}`}>
               {label}
             </span>
