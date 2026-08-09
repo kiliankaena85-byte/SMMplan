@@ -335,7 +335,7 @@ const requestBindSchema = z.object({
 });
 
 export async function requestTelegramBind(formData: FormData) {
-  return requireStaffPermission('orders', 'edit', async () => {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
     try {
       console.info('[requestTelegramBind] Action started');
       const parsed = requestBindSchema.safeParse(Object.fromEntries(formData.entries()));
