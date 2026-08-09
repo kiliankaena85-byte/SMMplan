@@ -222,9 +222,9 @@ class AdminTicketService {
   /**
    * Get full ticket detail with messages and user profile (DTO-safe).
    */
-  async getTicketDetails(ticketId: string) {
-    const ticket = await db.ticket.findUnique({
-      where: { id: ticketId },
+  async getTicketDetails(ticketId: string, tenantId: string = 'smmplan') {
+    const ticket = await db.ticket.findFirst({
+      where: { id: ticketId, tenantId },
       include: {
         order: {
           select: {

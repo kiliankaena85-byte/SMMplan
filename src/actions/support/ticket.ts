@@ -158,8 +158,8 @@ export async function adminReplyTicket(formData: FormData) {
     if (!parsed.success) throw new Error('Ошибка валидации сообщения');
     const { ticketId, message, isInternal, mediaUrl, mediaType, replyToId, orderId } = parsed.data;
 
-    const ticket = await db.ticket.findUnique({
-      where: { id: ticketId },
+    const ticket = await db.ticket.findFirst({
+      where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
       select: { id: true, userId: true, orderId: true }
     });
     if (!ticket) throw new Error('Ticket not found');
@@ -238,8 +238,8 @@ export async function changeTicketStatus(formData: FormData) {
     if (!parsed.success) throw new Error('Неверный статус');
     const { ticketId, status } = parsed.data;
 
-    const oldTicket = await db.ticket.findUnique({
-      where: { id: ticketId },
+    const oldTicket = await db.ticket.findFirst({
+      where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
       select: { status: true }
     });
 
@@ -346,7 +346,10 @@ export async function requestTelegramBind(formData: FormData) {
       const { ticketId } = parsed.data;
       console.info('[requestTelegramBind] Processing ticketId:', ticketId);
 
-      const ticket = await db.ticket.findUnique({ where: { id: ticketId }, include: { user: true } });
+      const ticket = await db.ticket.findFirst({
+        where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
+        include: { user: true }
+      });
       if (!ticket) throw new Error('Ticket not found');
 
       if (!ticket.user.email.startsWith('tg_')) {
@@ -386,7 +389,10 @@ export async function adminManualTelegramBind(formData: FormData) {
       if (!parsed.success) throw new Error('Invalid input');
       const { ticketId, targetEmail, confirm } = parsed.data;
 
-      const ticket = await db.ticket.findUnique({ where: { id: ticketId }, include: { user: true } });
+      const ticket = await db.ticket.findFirst({
+        where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
+        include: { user: true }
+      });
       if (!ticket) throw new Error('Ticket not found');
 
       const tempUser = ticket.user;

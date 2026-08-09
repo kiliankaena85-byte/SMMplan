@@ -531,9 +531,9 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string, ac
 }
 
 export async function getOrderDetailsAction(orderId: string) {
-  return requireStaffPermission('orders', 'view', async () => {
-    const order = await db.order.findUnique({
-      where: { id: orderId },
+  return requireStaffPermission('orders', 'view', async (admin) => {
+    const order = await db.order.findFirst({
+      where: { id: orderId, tenantId: admin.tenantId ?? 'smmplan' },
       include: {
         user: { select: { email: true } },
         provider: { select: { name: true } },
