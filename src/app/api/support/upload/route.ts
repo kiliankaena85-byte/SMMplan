@@ -39,18 +39,30 @@ export async function POST(req: NextRequest) {
       return new NextResponse('Unsupported file type', { status: 400 });
     }
 
-    // 4. Access control: verify user owns ticket or is staff
+    // 4. Access control: verify user owns ticket or is staff with strict tenant boundary
     const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
+    const tenantId = user.tenantId ?? 'smmplan';
     const ticket = await db.ticket.findFirst({
-      where: isStaff ? { id: ticketId } : { id: ticketId, userId }
+      where: isStaff ? { id: ticketId, tenantId } : { id: ticketId, userId, tenantId }
     });
     if (!ticket) return new NextResponse('Ticket not found or access denied', { status: 404 });
 
-    // 5. Save the file locally
+    // 5. Save the file locally & Magic Byte Validation
     const buffer = Buffer.from(await file.arrayBuffer());
+    
+    // Magic Byte validation (header signature check)
+    const isPng = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+    const isJpg = buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+    const isWebp = buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+    const isPdf = buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46;
+
+    if (!isPng && !isJpg && !isWebp && !isPdf) {
+      return new NextResponse('Invalid file signature (magic byte mismatch)', { status: 400 });
+    }
+
     const hash = crypto.createHash('md5').update(buffer).digest('hex');
     
-    // W6-3 SECURITY FIX: Enforce strict mime-to-extension mapping to prevent malicious extensions (e.g., .php uploaded as image/png)
+    // Enforce strict mime-to-extension mapping
     const mimeToExt: Record<string, string> = {
       'image/jpeg': 'jpg',
       'image/png': 'png',
