@@ -212,14 +212,18 @@ export class QuarantineService {
     }
 
     /**
-     * Loss Prevention: check if the calculated retail cost pricePerUnitRub is less than the purchase cost in rubles.
+     * Loss Prevention: check if the calculated retail cost pricePerUnitRub is less than the purchase cost in rubles 
+     * or breaches the strict SAFETY_FLOOR_MARKUP (retail < purchase * SAFETY_FLOOR_MARKUP).
      */
     static isLossBreach(newRate: number, markup: number, exchangeRate: number): boolean {
+        const { SAFETY_FLOOR_MARKUP } = require('@/lib/financial-constants');
         const pricePer1kRub = newRate * markup * exchangeRate;
         const pricePer1kRubRounded = applyBeautifulRounding(pricePer1kRub);
         const pricePerUnitRub = pricePer1kRubRounded / 1000;
         const purchaseCostPerUnitRub = (newRate * exchangeRate) / 1000;
-        return pricePerUnitRub < purchaseCostPerUnitRub;
+        
+        // Strict guard: retail price must cover cost AND minimum SAFETY_FLOOR_MARKUP multiplier
+        return pricePerUnitRub < (purchaseCostPerUnitRub * SAFETY_FLOOR_MARKUP);
     }
 }
 
