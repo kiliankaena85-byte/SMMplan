@@ -229,6 +229,14 @@ const shutdown = async () => {
   process.exit(0);
 };
 
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('Unhandled Rejection in Worker process:', { reason, promise });
+});
+
+process.on('uncaughtException', (error) => {
+  log.error('Uncaught Exception in Worker process:', { error: error.message, stack: error.stack });
+});
+
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
