@@ -82,6 +82,8 @@ export async function createProvider(rawData: {
       }
       const data = parsed.data;
 
+      const normalizedApiUrl = data.apiUrl.trim().replace(/\/+$/, '');
+
       // Encrypt the API key before saving!
       const encryptedKey = VaultService.encrypt(data.apiKey);
       
@@ -93,7 +95,7 @@ export async function createProvider(rawData: {
       const provider = await db.provider.create({
         data: {
           name: data.name,
-          apiUrl: data.apiUrl,
+          apiUrl: normalizedApiUrl,
           apiKey: encryptedKey,
           isActive: data.isActive,
           balanceCurrency: data.balanceCurrency,
@@ -146,10 +148,12 @@ export async function updateProvider(rawId: string, rawData: {
       }
       const data = parsed.data;
       
+      const normalizedApiUrl = data.apiUrl.trim().replace(/\/+$/, '');
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: any = {
         name: data.name,
-        apiUrl: data.apiUrl,
+        apiUrl: normalizedApiUrl,
         isActive: data.isActive,
         balanceCurrency: data.balanceCurrency,
         metadata: {

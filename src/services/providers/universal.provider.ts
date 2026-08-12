@@ -36,7 +36,8 @@ export class UniversalProvider implements BaseProvider {
   private userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
   constructor(apiUrl: string, apiKey: string, metadata?: { mapping?: ApiMappingDTO | null }) {
-    this.apiUrl = apiUrl;
+    // Automatically strip trailing slashes to prevent 301 redirect issues
+    this.apiUrl = apiUrl ? apiUrl.trim().replace(/\/+$/, '') : apiUrl;
     // W0-4 FIX: Accept already-decrypted key. Decryption happens in ProviderService.
     // Previously had double-decrypt here which caused silent failures with keys containing ':'
     this.apiKey = apiKey;
@@ -133,7 +134,7 @@ export class UniversalProvider implements BaseProvider {
           method: httpMethod,
           headers,
           body,
-          redirect: 'error',
+          redirect: 'follow',
           signal: controller.signal
         });
 

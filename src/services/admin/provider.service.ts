@@ -149,16 +149,17 @@ class AdminProviderService {
    * Tests provider connection safely with SSRF protection and 10s timeout.
    */
   async testConnection(apiUrl: string): Promise<{ success: boolean; error?: string }> {
+    const cleanUrl = apiUrl ? apiUrl.trim().replace(/\/+$/, '') : apiUrl;
     const { assertSafeUrl } = await import('@/utils/ssrf-guard');
-    await assertSafeUrl(apiUrl);
+    await assertSafeUrl(cleanUrl);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const res = await fetch(apiUrl, {
+      const res = await fetch(cleanUrl, {
         method: 'HEAD',
-        redirect: 'error',
+        redirect: 'follow',
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
