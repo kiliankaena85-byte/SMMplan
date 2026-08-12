@@ -17,8 +17,8 @@ async function deleteSessionFromDB(token?: string) {
   }
 }
 
-export async function GET() {
-  return new NextResponse('Method Not Allowed. Logout must be initiated via POST.', { status: 405 });
+export async function GET(request: Request) {
+  return POST(request);
 }
 
 export async function POST(request: Request) {
