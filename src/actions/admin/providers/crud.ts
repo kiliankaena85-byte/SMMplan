@@ -195,31 +195,133 @@ export async function checkProviderConnection(rawId: string) {
             const providerRecord = await db.provider.findUnique({ where: { id } });
             if (!providerRecord) throw new Error("Provider not found");
             
-            const { assertSafeUrl } = await import('@/utils/ssrf-guard');
-            await assertSafeUrl(providerRecord.apiUrl);
-            
-            const instance = await providerService.getProviderInstance(providerRecord);
-            
-            // 🌊 WAVE 3.1: Network Timeout Protection
-            // Force a 5-second timeout so the UI gets a clean error instead of 504 Gateway Timeout
-            const timeoutPromise = new Promise<never>((_, reject) => 
-                setTimeout(() => reject(new Error("Таймаут ожидания ответа провайдера (5 сек)")), 5000)
+            const { ProviderDiagnosticService } = await import('@/services/admin/provider-diagnostic.service');
+            const decryptedKey = VaultService.decrypt(providerRecord.apiKey) || providerRecord.apiKey;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const mapping = providerRecord.metadata && typeof providerRecord.metadata === 'object' ? (providerRecord.metadata as any).mapping : null;
+
+            const probeResult = await ProviderDiagnosticService.probe(
+              providerRecord.apiUrl,
+              decryptedKey,
+              mapping
             );
-            const balanceData = await Promise.race([
-                instance.getBalance(),
-                timeoutPromise
-            ]);
+
+            if (!probeResult.success) {
+              return { 
+                success: false, 
+                error: probeResult.errorMessage || "Connection failed",
+                suggestedFix: probeResult.suggestedFix,
+                suggestedUrl: probeResult.suggestedUrl,
+                latencyMs: probeResult.latencyMs
+              };
+            }
             
             return { 
                 success: true, 
-                balance: balanceData.balance, 
-                currency: balanceData.currency 
+                balance: probeResult.balance, 
+                currency: probeResult.detectedCurrency || providerRecord.balanceCurrency,
+                servicesCount: probeResult.servicesCount,
+                latencyMs: probeResult.latencyMs
             };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             return { success: false, error: e.message || "Connection failed" };
         }
     });
+}
+
+export async function probeProviderAction(params: {
+  providerId?: string;
+  apiUrl?: string;
+  apiKey?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mapping?: any;
+}) {
+  return requireStaffPermission('catalog', 'view', async () => {
+    const { ProviderDiagnosticService } = await import('@/services/admin/provider-diagnostic.service');
+    
+    let targetUrl = params.apiUrl || '';
+    let targetKey = params.apiKey || '';
+    let mapping = params.mapping;
+
+    if (params.providerId) {
+      const p = await db.provider.findUnique({ where: { id: params.providerId } });
+      if (p) {
+        if (!targetUrl) targetUrl = p.apiUrl;
+        if (!targetKey && p.apiKey) {
+          targetKey = VaultService.decrypt(p.apiKey) || p.apiKey;
+        }
+        if (!mapping && p.metadata && typeof p.metadata === 'object') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          mapping = (p.metadata as any).mapping;
+        }
+      }
+    }
+
+    return await ProviderDiagnosticService.probe(targetUrl, targetKey, mapping);
+  });
+}
+
+export async function getProviderCatalogPreviewAction(params: {
+  providerId?: string;
+  apiUrl?: string;
+  apiKey?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mapping?: any;
+}) {
+  return requireStaffPermission('catalog', 'view', async () => {
+    let targetUrl = params.apiUrl || '';
+    let targetKey = params.apiKey || '';
+    let mapping = params.mapping;
+
+    if (params.providerId) {
+      const p = await db.provider.findUnique({ where: { id: params.providerId } });
+      if (p) {
+        if (!targetUrl) targetUrl = p.apiUrl;
+        if (!targetKey && p.apiKey) {
+          targetKey = VaultService.decrypt(p.apiKey) || p.apiKey;
+        }
+        if (!mapping && p.metadata && typeof p.metadata === 'object') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          mapping = (p.metadata as any).mapping;
+        }
+      }
+    }
+
+    const { ProviderDiagnosticService } = await import('@/services/admin/provider-diagnostic.service');
+    const { cleanUrl } = ProviderDiagnosticService.sanitizeUrl(targetUrl);
+    const cleanKey = ProviderDiagnosticService.sanitizeKey(targetKey);
+
+    if (!cleanUrl || !cleanKey) {
+      return { success: false, error: 'URL и API-ключ обязательны для предпросмотра услуг.' };
+    }
+
+    try {
+      const { assertSafeUrl } = await import('@/utils/ssrf-guard');
+      await assertSafeUrl(cleanUrl);
+
+      const { UniversalProvider } = await import('@/services/providers/universal.provider');
+      const instance = new UniversalProvider(cleanUrl, cleanKey, { mapping: mapping || null });
+      const services = await instance.getServices();
+
+      return {
+        success: true,
+        total: services.length,
+        services: services.slice(0, 50).map(s => ({
+          service: String(s.service),
+          name: s.name || 'Без названия',
+          category: s.category || 'Общая категория',
+          rate: String(s.rate),
+          min: String(s.min),
+          max: String(s.max),
+          type: s.type || 'Default',
+        }))
+      };
+    } catch (err: unknown) {
+      const translated = ProviderDiagnosticService.translateError(err, cleanUrl);
+      return { success: false, error: translated.message, suggestedFix: translated.suggestedFix };
+    }
+  });
 }
 
 export async function getGlobalProviderLiquidity() {

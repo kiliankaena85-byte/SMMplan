@@ -4,12 +4,29 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
+  Activity,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Eye,
+  Layers,
+  RefreshCw,
+  Zap,
+  Sparkles,
+  Search,
+  X,
+  ExternalLink,
+} from 'lucide-react';
+import {
   createProvider,
   updateProvider,
   checkProviderConnection,
+  probeProviderAction,
+  getProviderCatalogPreviewAction,
   inferProviderSchema,
 } from '@/actions/admin/providers/crud';
 import type { ProviderDetailDTO } from '@/services/admin/provider.service';
+import type { ProviderProbeResult } from '@/services/admin/provider-diagnostic.service';
 
 interface ProviderFormProps {
   /** If provided — edit mode. DTO-safe: never includes raw apiKey. */
@@ -246,22 +263,119 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
     }
   }
 
-  async function handleCheck() {
-    if (!initialData) return;
+  const [probeResult, setProbeResult] = useState<ProviderProbeResult | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [previewServices, setPreviewServices] = useState<any[]>([]);
+  const [previewSearch, setPreviewSearch] = useState('');
+  const [previewTotal, setPreviewTotal] = useState(0);
+
+  function handleUrlBlur() {
+    let val = (formData.apiUrl || '').trim().replace(/[\r\n\t]/g, '');
+    if (val && !val.startsWith('http://') && !val.startsWith('https://')) {
+      val = 'https://' + val;
+    }
+    val = val.replace(/\/+$/, '');
+    if (val !== formData.apiUrl) {
+      setFormData(prev => ({ ...prev, apiUrl: val }));
+    }
+  }
+
+  function handleKeyBlur() {
+    const clean = (formData.apiKey || '').replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/[\r\n\t]/g, '').trim();
+    if (clean !== formData.apiKey) {
+      setFormData(prev => ({ ...prev, apiKey: clean }));
+    }
+  }
+
+  async function handleDeepProbe() {
     setCheckLoading(true);
+    setProbeResult(null);
+
+    let cleanUrl = (formData.apiUrl || '').trim().replace(/[\r\n\t]/g, '');
+    if (cleanUrl && !cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+    cleanUrl = cleanUrl.replace(/\/+$/, '');
+    const cleanKey = (formData.apiKey || '').replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/[\r\n\t]/g, '').trim();
+
+    if (cleanUrl !== formData.apiUrl || cleanKey !== formData.apiKey) {
+      setFormData(prev => ({ ...prev, apiUrl: cleanUrl, apiKey: cleanKey }));
+    }
+
     try {
-      const res = await checkProviderConnection(initialData.id);
-      if (res.success && res.balance !== undefined) {
-        toast.success(`Успешно! Баланс: ${String(res.balance)} ${res.currency}`);
+      const res = await probeProviderAction({
+        providerId: initialData?.id,
+        apiUrl: cleanUrl,
+        apiKey: cleanKey,
+        mapping: integrationMode === 'visual' ? mapping : undefined,
+      });
+
+      if ('error' in res && typeof (res as any).error === 'string') {
+        const errorMsg = (res as any).error;
+        toast.error(errorMsg || 'Ошибка доступа');
+        setProbeResult({
+          success: false,
+          sanitizedUrl: cleanUrl,
+          sanitizedKey: cleanKey,
+          latencyMs: 0,
+          balanceSuccess: false,
+          servicesSuccess: false,
+          errorMessage: errorMsg || 'Ошибка доступа',
+        });
+        return;
+      }
+
+      const probeData = res as ProviderProbeResult;
+      setProbeResult(probeData);
+
+      if (probeData.success) {
+        toast.success(`Соединение успешно! Баланс: ${probeData.balance} ${probeData.detectedCurrency || ''}`);
+        if (probeData.detectedCurrency && probeData.detectedCurrency !== formData.balanceCurrency) {
+          setFormData(prev => ({ ...prev, balanceCurrency: probeData.detectedCurrency! }));
+          toast.info(`Валюта баланса автоматически обновлена на ${probeData.detectedCurrency}`);
+        }
       } else {
-        toast.error(`Ошибка: ${(res as { error?: string }).error || 'Нет ответа от сервера'}`);
+        toast.error(probeData.errorMessage || 'Ошибка подключения к провайдеру');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Ошибка соединения';
+      const msg = err instanceof Error ? err.message : 'Ошибка проверки';
       toast.error(msg);
     } finally {
       setCheckLoading(false);
     }
+  }
+
+  async function handleOpenPreview() {
+    setIsPreviewOpen(true);
+    setPreviewLoading(true);
+    try {
+      const res = await getProviderCatalogPreviewAction({
+        providerId: initialData?.id,
+        apiUrl: formData.apiUrl,
+        apiKey: formData.apiKey,
+        mapping: integrationMode === 'visual' ? mapping : undefined,
+      });
+
+      if (res.success && res.services) {
+        setPreviewServices(res.services);
+        setPreviewTotal(res.total || res.services.length);
+      } else {
+        toast.error(res.error || 'Не удалось загрузить каталог');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Ошибка загрузки каталога';
+      toast.error(msg);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  function applySuggestedUrl(suggestedUrl: string) {
+    setFormData(prev => ({ ...prev, apiUrl: suggestedUrl }));
+    setProbeResult(prev => prev ? { ...prev, suggestedUrl: undefined } : null);
+    toast.success(`URL обновлен на: ${suggestedUrl}`);
   }
 
   async function handleInferSchema() {
@@ -411,7 +525,10 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
 
           {/* API URL */}
           <div className="sm:col-span-6">
-            <label className={labelCls} htmlFor="provider-url">API URL</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className={labelCls} htmlFor="provider-url">API URL</label>
+              <span className="text-[11px] text-muted-foreground">Автоматически очищаются слэши и пробелы</span>
+            </div>
             <input
               id="provider-url"
               type="url"
@@ -419,11 +536,29 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               placeholder="https://example.com/api/v2"
               value={formData.apiUrl}
               onChange={handleChange}
+              onBlur={handleUrlBlur}
               className={`${inputCls} font-mono ${fieldErrors.apiUrl ? 'border-destructive focus:ring-destructive/20' : ''}`}
               aria-label="API URL провайдера"
             />
             {fieldErrors.apiUrl && (
               <p className="text-xs font-bold text-destructive mt-1">{fieldErrors.apiUrl[0]}</p>
+            )}
+
+            {/* Suggested URL Quick-Fix Banner */}
+            {probeResult?.suggestedUrl && probeResult.suggestedUrl !== formData.apiUrl && (
+              <div className="mt-2 p-3 rounded-xl bg-primary/10 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 text-foreground font-medium">
+                  <Sparkles className="w-4 h-4 text-primary shrink-0 animate-pulse" />
+                  <span>Рекомендуемый рабочий адрес API: <strong className="font-mono text-primary">{probeResult.suggestedUrl}</strong></span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => applySuggestedUrl(probeResult.suggestedUrl!)}
+                  className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all duration-200 shrink-0"
+                >
+                  Применить в 1 клик
+                </button>
+              </div>
             )}
           </div>
 
@@ -445,6 +580,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               placeholder={initialData?.hasApiKey ? '******** (Скрыто)' : 'Введите API ключ...'}
               value={formData.apiKey}
               onChange={handleChange}
+              onBlur={handleKeyBlur}
               autoComplete="new-password"
               className={`${inputCls} font-mono border-amber-300 bg-background/80 ${fieldErrors.apiKey ? 'border-destructive focus:ring-destructive/20' : ''}`}
               aria-label="API ключ провайдера"
@@ -809,24 +945,123 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="pt-5 border-t border-border flex justify-between items-center">
-          {/* Test connection */}
-          <div>
-            {initialData && (
-              <button
-                type="button"
-                onClick={handleCheck}
-                disabled={checkLoading}
-                aria-label="Протестировать API соединение"
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-all duration-200 disabled:opacity-50"
-              >
-                {checkLoading ? '⟳ Проверка...' : '🔌 Тест соединения'}
-              </button>
+        {/* Live Diagnostic HUD */}
+        {probeResult && (
+          <div className="mt-6 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2 duration-300">
+            {probeResult.success ? (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-sm">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Все тесты пройдены успешно! Провайдер готов к работе.</span>
+                  </div>
+                  <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                    Отклик: {probeResult.latencyMs} ms
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="p-3 rounded-xl bg-background/80 border border-emerald-500/20">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Баланс провайдера</div>
+                    <div className="text-base font-extrabold text-foreground mt-0.5">
+                      {probeResult.balance} <span className="text-xs text-primary font-bold">{probeResult.detectedCurrency}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-background/80 border border-emerald-500/20">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Каталог услуг</div>
+                    <div className="text-base font-extrabold text-foreground mt-0.5">
+                      {probeResult.servicesCount ?? 0} <span className="text-xs text-muted-foreground font-normal">услуг в API</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-background/80 border border-emerald-500/20">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Связь & Протокол</div>
+                    <div className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1.5">
+                      <Zap className="w-4 h-4" /> v2 API Ready
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <XCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <div className="text-sm font-bold text-destructive">
+                      {probeResult.errorMessage || 'Ошибка связи с провайдером'}
+                    </div>
+                    {probeResult.suggestedFix && (
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        💡 <strong>Как исправить:</strong> {probeResult.suggestedFix}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {probeResult.suggestedUrl && probeResult.suggestedUrl !== formData.apiUrl && (
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => applySuggestedUrl(probeResult.suggestedUrl!)}
+                      className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all duration-200"
+                    >
+                      Исправить URL на {probeResult.suggestedUrl}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
+        )}
 
-          <div className="flex gap-3">
+        {/* Actions */}
+        <div className="pt-5 border-t border-border flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+          {/* Diagnostic & Preview Tools */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDeepProbe}
+              disabled={checkLoading}
+              aria-label="Запустить глубокий тест соединения"
+              className="px-4 py-2 text-sm font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-all duration-200 disabled:opacity-50 flex items-center gap-2 shadow-sm"
+            >
+              {checkLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                  <span>Диагностика...</span>
+                </>
+              ) : (
+                <>
+                  <Activity className="w-4 h-4 text-primary" />
+                  <span>🔌 Глубокий тест</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenPreview}
+              disabled={previewLoading || !formData.apiUrl || (!formData.apiKey && !initialData?.hasApiKey)}
+              aria-label="Предпросмотр каталога услуг провайдера"
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-all duration-200 disabled:opacity-40 flex items-center gap-2 shadow-sm"
+            >
+              {previewLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <span>Загрузка...</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                  <span>👁 Предпросмотр каталога</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Form Submit & Cancel */}
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => router.push('/admin/providers')}
@@ -840,13 +1075,118 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               onClick={handleSave}
               disabled={loading}
               aria-label={initialData ? 'Сохранить изменения провайдера' : 'Создать провайдера'}
-              className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 disabled:opacity-50 shadow-sm"
+              className="px-5 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 disabled:opacity-50 shadow-sm"
             >
               {loading ? 'Сохранение...' : initialData ? 'Сохранить' : 'Создать подключение'}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Shadow Catalog Preview Modal */}
+      {isPreviewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-4xl max-h-[85vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" />
+                <div>
+                  <h3 className="text-base font-extrabold text-foreground">
+                    Каталог провайдера ({previewTotal} услуг)
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Первые 50 услуг из реального API для сверки цен и категорий
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(false)}
+                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Закрыть предпросмотр"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="p-3 border-b border-border bg-background/50">
+              <div className="relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Поиск по названию или ID услуги..."
+                  value={previewSearch}
+                  onChange={(e) => setPreviewSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+
+            {/* Table Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {previewLoading ? (
+                <div className="py-16 text-center text-muted-foreground space-y-2">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary" />
+                  <p className="text-sm">Загрузка каталога из API провайдера...</p>
+                </div>
+              ) : previewServices.length === 0 ? (
+                <div className="py-16 text-center text-muted-foreground">
+                  <p className="text-sm">Услуги не найдены или каталог пуст.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border text-muted-foreground">
+                        <th className="pb-2 font-bold w-16">ID</th>
+                        <th className="pb-2 font-bold">Название услуги</th>
+                        <th className="pb-2 font-bold">Категория</th>
+                        <th className="pb-2 font-bold text-right">Тариф (за 1k)</th>
+                        <th className="pb-2 font-bold text-right">Лимиты (Min / Max)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {previewServices
+                        .filter(s => 
+                          !previewSearch || 
+                          s.name.toLowerCase().includes(previewSearch.toLowerCase()) || 
+                          s.service.includes(previewSearch) ||
+                          s.category.toLowerCase().includes(previewSearch.toLowerCase())
+                        )
+                        .map((s, idx) => (
+                          <tr key={idx} className="hover:bg-muted/40 transition-colors">
+                            <td className="py-2.5 font-mono text-muted-foreground">{s.service}</td>
+                            <td className="py-2.5 font-medium text-foreground max-w-xs truncate">{s.name}</td>
+                            <td className="py-2.5 text-muted-foreground max-w-[150px] truncate">{s.category}</td>
+                            <td className="py-2.5 text-right font-mono font-bold text-primary">
+                              {s.rate} <span className="text-[10px] text-muted-foreground">{formData.balanceCurrency}</span>
+                            </td>
+                            <td className="py-2.5 text-right font-mono text-muted-foreground">
+                              {s.min} – {s.max}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 border-t border-border bg-muted/20 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(false)}
+                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors"
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
