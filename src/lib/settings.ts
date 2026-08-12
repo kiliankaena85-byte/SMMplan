@@ -36,11 +36,8 @@ export class SettingsProvider {
     if (typeof process === 'undefined') return false;
     const nodeEnv = process.env.NODE_ENV;
     const appEnv = process.env.APP_ENV;
-    const dbUrl = process.env.DATABASE_URL;
 
-    return nodeEnv === 'test' || 
-           appEnv === 'test' || 
-           dbUrl?.includes('smmplan_test') === true;
+    return nodeEnv === 'test' || appEnv === 'test';
   }
 
   /**

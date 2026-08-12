@@ -115,12 +115,16 @@ export const globalSettingsSchema = z.object({
   contactWhatsApp: z.string().trim().max(150).nullable().optional(),
   contactVk: z.string().trim().max(150).nullable().optional(),
   legalCompanyName: z.string().trim().max(250).nullable().optional(),
-  legalCompanyInn: z.string().trim().regex(/^(\d{10}|\d{12})$/, "ИНН должен состоять строго из 10 или 12 цифр").or(z.literal("")).nullable().optional()
+  legalCompanyInn: z.string().trim().nullable().optional()
+    .transform((val) => (val === 'Укажите ИНН' || !val ? '' : val))
+    .refine((val) => !val || /^(\d{10}|\d{12})$/.test(val), "ИНН должен состоять строго из 10 или 12 цифр")
     .refine((val) => {
       if (!val) return true;
       return validateInn(val);
     }, "Некорректная контрольная сумма ИНН"),
-  legalCompanyOgrnip: z.string().trim().regex(/^(\d{13}|\d{15})$/, "ОГРН/ОГРНИП должен состоять строго из 13 или 15 цифр").or(z.literal("")).nullable().optional()
+  legalCompanyOgrnip: z.string().trim().nullable().optional()
+    .transform((val) => (val === 'Укажите ОГРНИП' || !val ? '' : val))
+    .refine((val) => !val || /^(\d{13}|\d{15})$/.test(val), "ОГРН/ОГРНИП должен состоять строго из 13 или 15 цифр")
     .refine((val) => {
       if (!val) return true;
       return validateOgrn(val);

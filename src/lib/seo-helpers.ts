@@ -1,12 +1,13 @@
 export function normalizeTenantId(tenantId: string | null | undefined): string {
   if (!tenantId) return 'smmplan';
   const tid = tenantId.toLowerCase().trim();
-  if (tid === 'flux' || tid === 'lovable') return 'smmflux';
+  if (tid === 'flux' || tid === 'lovable' || tid === 'smmflux') return 'flux';
   return tid;
 }
 
 export function getTenantHost(tenantId: string): string {
   switch (normalizeTenantId(tenantId)) {
+    case 'flux':
     case 'smmflux': return 'smmflux.ru';
     default: return 'smmplan.pro';
   }
@@ -14,6 +15,7 @@ export function getTenantHost(tenantId: string): string {
 
 export function getTenantSiteName(tenantId: string): string {
   switch (normalizeTenantId(tenantId)) {
+    case 'flux':
     case 'smmflux': return 'SMMflux';
     default: return 'SMMplan';
   }
