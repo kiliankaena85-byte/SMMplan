@@ -49,7 +49,7 @@ If the user needs a refund, explain that support can issue compensations up to 5
      const apiKey = process.env.GEMINI_API_KEY;
      if (!apiKey) return "AI API Key missing";
 
-     const model = 'gemini-3-flash';
+     const model = process.env.GEMINI_MODEL || 'gemini-3.7-flash';
      const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
      const url = `${baseUrl}/v1beta/models/${model}:generateContent`;
      

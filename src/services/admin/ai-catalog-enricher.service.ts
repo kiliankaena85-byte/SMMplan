@@ -27,7 +27,7 @@ export interface EnrichedServiceOutput {
 
 class AiCatalogEnricherService {
   private getModel(): string {
-    return process.env.GEMINI_MODEL || 'gemini-3-flash';
+    return process.env.GEMINI_MODEL || 'gemini-3.7-flash';
   }
 
   /**
