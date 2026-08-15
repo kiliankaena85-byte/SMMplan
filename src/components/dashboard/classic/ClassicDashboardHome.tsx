@@ -147,7 +147,7 @@ export function ClassicDashboardHome({
         </div>
 
         {/* Всего потрачено */}
-        <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-6 shadow-md hover:shadow-xl hover:border-border transition-all duration-300 flex flex-col justify-between space-y-4">
+        <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-border transition-all duration-300 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
               Всего потрачено
@@ -157,8 +157,11 @@ export function ClassicDashboardHome({
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-foreground font-mono tracking-tight">
-              {(Number(user.totalSpent) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-foreground">
+                {(Number(user.totalSpent) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+              </span>
+              <span className="text-sm font-bold text-muted-foreground">₽</span>
             </div>
             <span className="text-[11px] text-muted-foreground font-medium block mt-0.5">
               Суммарный объем за все время
@@ -173,7 +176,7 @@ export function ClassicDashboardHome({
         </div>
 
         {/* В работе (с живым пульсом) */}
-        <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-6 shadow-md hover:shadow-xl hover:border-sky-500/40 transition-all duration-300 flex flex-col justify-between space-y-4">
+        <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-sky-500/40 transition-all duration-300 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
               Заказы в работе
@@ -207,7 +210,7 @@ export function ClassicDashboardHome({
         </div>
 
         {/* Реферальная программа */}
-        <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-6 shadow-md hover:shadow-xl hover:border-purple-500/40 transition-all duration-300 flex flex-col justify-between space-y-4">
+        <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-purple-500/40 transition-all duration-300 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
               Рефералы
@@ -217,8 +220,11 @@ export function ClassicDashboardHome({
             </div>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-black text-foreground font-mono tracking-tight">
-              {referralCount} чел.
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-foreground">
+                {referralCount}
+              </span>
+              <span className="text-sm font-bold text-muted-foreground">чел.</span>
             </div>
             <span className="text-[11px] text-muted-foreground font-medium block mt-0.5">
               Партнерская комиссия до 10%
@@ -235,9 +241,9 @@ export function ClassicDashboardHome({
 
       {/* ══════════ QUICK LAUNCHPAD (БЫСТРЫЙ ЗАКАЗ ПО ПЛАТФОРМАМ) ══════════ */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-black text-foreground tracking-tight">
+            <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
               Быстрый заказ по платформам
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -246,9 +252,10 @@ export function ClassicDashboardHome({
           </div>
           <Link
             href="/dashboard/new-order"
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-primary hover:underline flex items-center gap-1 shrink-0 self-start sm:self-auto"
           >
-            Все 34 платформы <ArrowRight className="w-3.5 h-3.5" />
+            <span>Все 34 платформы</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 

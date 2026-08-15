@@ -48,7 +48,7 @@ export function ClassicDashboardShell({
       <MobileBottomNav />
 
       {/* ── Main content ── */}
-      <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 pt-16 pb-24 md:pt-0 md:pb-0 overflow-y-auto outline-none relative z-10">
+      <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 pt-[72px] sm:pt-20 md:pt-0 pb-24 md:pb-0 overflow-y-auto outline-none relative z-10">
         <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto">
           {children}
         </div>
