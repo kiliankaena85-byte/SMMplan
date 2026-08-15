@@ -1,6 +1,6 @@
-import { ProxyAgent } from 'undici';
 import { SecuritySanitizer } from '@/utils/security-sanitizer';
 import { checkServiceRefill } from '@/utils/service-refill';
+import { GeminiClient } from '@/services/ai/gemini-client';
 
 export interface RawServiceToEnrich {
   externalId?: string;
@@ -26,12 +26,8 @@ export interface EnrichedServiceOutput {
 }
 
 class AiCatalogEnricherService {
-  private getModel(): string {
-    return process.env.GEMINI_MODEL || 'gemini-3.7-flash';
-  }
-
   /**
-   * Обогащает и стандартизирует название и описание услуги через Gemini Flash.
+   * Обогащает и стандартизирует название и описание услуги через самовосстанавливающийся GeminiClient.
    */
   async enrichService(raw: RawServiceToEnrich): Promise<EnrichedServiceOutput> {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -86,42 +82,13 @@ class AiCatalogEnricherService {
     });
 
     try {
-      const model = this.getModel();
-      const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
-      const url = `${baseUrl}/v1beta/models/${model}:generateContent`;
-
-      const proxyUrl = process.env.GEMINI_PROXY || process.env.HTTPS_PROXY;
-      const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemInstruction }] },
-          contents: [{ role: 'user', parts: [{ text: promptText }] }],
-          generationConfig: {
-            response_mime_type: 'application/json',
-            temperature: 0.2,
-          },
-        }),
-        dispatcher,
-        signal: AbortSignal.timeout(15000),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
-
-      if (!res.ok) {
-        console.warn(`[AiCatalogEnricher] Gemini HTTP ${res.status}, falling back to rule-based parser`);
-        return this.fallbackRuleBasedEnrich(raw);
-      }
-
-      const data = await res.json();
-      const rawJson = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawJson) {
-        return this.fallbackRuleBasedEnrich(raw);
-      }
+      const rawJson = await GeminiClient.generateContent({
+        systemInstruction,
+        contents: [{ role: 'user', parts: [{ text: promptText }] }],
+        jsonMode: true,
+        temperature: 0.2,
+        timeoutMs: 15000,
+      });
 
       const parsed = JSON.parse(rawJson);
       return {
@@ -134,7 +101,7 @@ class AiCatalogEnricherService {
         isRefillConfirmed: Boolean(parsed.isRefillConfirmed),
       };
     } catch (e) {
-      console.warn('[AiCatalogEnricher] Generation error, falling back to rules:', e);
+      console.warn('[AiCatalogEnricher] Generation failed, falling back to rule-based parser:', e);
       return this.fallbackRuleBasedEnrich(raw);
     }
   }

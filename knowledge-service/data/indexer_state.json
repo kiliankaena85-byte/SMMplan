@@ -1291,7 +1291,7 @@
   "/app/codebase/.agents/worker_m2_1/progress.md": "5d6fe69b1304994c",
   "/app/codebase/.agent/skills/tech-relevance-auditor/SKILL.md": "3ebf34b11d364a37",
   "/app/codebase/.agents/worker_cat3/handoff.md": "915df2ca6d6e8cdd",
-  "/app/codebase/src/services/admin/ai-support.service.ts": "e1bb3700bdef0807",
+  "/app/codebase/src/services/admin/ai-support.service.ts": "5e2d967398ba569e",
   "/app/codebase/src/app/admin/analytics/ltv-charts.tsx": "93d6690d6772bb37",
   "/app/codebase/.agent/skills/round-table-planning/README.md": "4715399bae0e470d",
   "/app/codebase/scratch/pw_run_err_utf8.txt": "39649f85e382447a",
@@ -2787,5 +2787,8 @@
   "/app/codebase/scripts/browser-ui-deep-audit.ts": "bf554041f20758af",
   "/app/codebase/scripts/scan-all-visual-bugs.ts": "b3fdcd558223dbb8",
   "/app/codebase/src/utils/service-refill.ts": "da039827f386da7e",
-  "/app/codebase/src/utils/__tests__/service-refill.test.ts": "2911e43349343e32"
+  "/app/codebase/src/utils/__tests__/service-refill.test.ts": "2911e43349343e32",
+  "/app/codebase/src/services/admin/__tests__/ai-catalog-enricher.test.ts": "6345559dc0737031",
+  "/app/codebase/src/actions/admin/catalog/ai-enrich.action.ts": "3f65db6c30d1fbfc",
+  "/app/codebase/src/services/admin/ai-catalog-enricher.service.ts": "887e6857154e4cf9"
 }
