@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 interface CuratedServiceDef {
   name: string;
   badge?: string;
-  retailUnitRub: number; // Точная цена в рублях за 1 шт (строго 2 знака, с маржой >= +200%)
+  retailUnitRub: number; // Точная цена в рублях за 1 шт (со средней наценкой ~900% / 10.0x)
   rateUsd: number;
   markup: number;
   minQty: number;
@@ -56,9 +56,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Подписчики Эконом (Быстрый старт)',
             badge: '⚡️ Быстро',
-            retailUnitRub: 0.08, // Закупка 0.0238 ₽ -> Маржа +236%
+            retailUnitRub: 0.24, // Закупка 0.0238 ₽ -> Наценка 10.1x (+910% маржа)
             rateUsd: 0.25,
-            markup: 3.37,
+            markup: 10.1,
             minQty: 10,
             maxQty: 100000,
             isRefillEnabled: false,
@@ -72,9 +72,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Подписчики Стандарт (Офферы РФ/СНГ с гарантией 30 дней)',
             badge: '🛡️ Refill 30d',
-            retailUnitRub: 0.19, // Закупка 0.0618 ₽ -> Маржа +207%
+            retailUnitRub: 0.62, // Закупка 0.0618 ₽ -> Наценка 10.0x (+904% маржа)
             rateUsd: 0.65,
-            markup: 3.08,
+            markup: 10.04,
             minQty: 10,
             maxQty: 50000,
             isRefillEnabled: true,
@@ -88,9 +88,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Премиум подписчики (Реальные профили, 0% списаний)',
             badge: '💎 Премиум HQ',
-            retailUnitRub: 0.40, // Закупка 0.1330 ₽ -> Маржа +201%
+            retailUnitRub: 1.35, // Закупка 0.1330 ₽ -> Наценка 10.1x (+915% маржа)
             rateUsd: 1.40,
-            markup: 3.01,
+            markup: 10.15,
             minQty: 25,
             maxQty: 20000,
             isRefillEnabled: true,
@@ -104,9 +104,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Подписчики в ЗАКРЫТЫЙ канал / группу (Приватные ссылки t.me/+)',
             badge: '🔒 Закрытые каналы',
-            retailUnitRub: 0.25, // Закупка 0.0808 ₽ -> Маржа +209%
+            retailUnitRub: 0.81, // Закупка 0.0808 ₽ -> Наценка 10.0x (+903% маржа)
             rateUsd: 0.85,
-            markup: 3.10,
+            markup: 10.03,
             minQty: 20,
             maxQty: 30000,
             isRefillEnabled: true,
@@ -128,9 +128,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Автопросмотры через бота-администратора (Мгновенно на все новые посты)',
             badge: '🤖 Авто-Бот',
-            retailUnitRub: 0.13, // Закупка 0.0428 ₽ -> Маржа +204%
+            retailUnitRub: 0.43, // Закупка 0.0428 ₽ -> Наценка 10.0x (+905% маржа)
             rateUsd: 0.45,
-            markup: 3.04,
+            markup: 10.05,
             minQty: 100,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -152,9 +152,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Кастомные комментарии (Свой текст со смыслом)',
             badge: '💬 Свой текст',
-            retailUnitRub: 0.35, // Закупка 0.1140 ₽ -> Маржа +207%
+            retailUnitRub: 1.15, // Закупка 0.1140 ₽ -> Наценка 10.1x (+908% маржа)
             rateUsd: 1.20,
-            markup: 3.07,
+            markup: 10.08,
             minQty: 5,
             maxQty: 1000,
             isRefillEnabled: false,
@@ -178,9 +178,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Зрители на прямой эфир / трансляцию (30 минут онлайн)',
             badge: '🔴 Live 30m',
-            retailUnitRub: 0.45, // Закупка 0.1425 ₽ -> Маржа +216%
+            retailUnitRub: 1.45, // Закупка 0.1425 ₽ -> Наценка 10.2x (+917% маржа)
             rateUsd: 1.50,
-            markup: 3.16,
+            markup: 10.17,
             minQty: 20,
             maxQty: 5000,
             isRefillEnabled: false,
@@ -202,9 +202,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Просмотры на пост (Быстрый охват)',
             badge: '⚡️ Мгновенно',
-            retailUnitRub: 0.01, // Закупка 0.0019 ₽ -> Маржа +426%
-            rateUsd: 0.02,
-            markup: 5.26,
+            retailUnitRub: 0.02, // Закупка 0.000095 ₽ -> Сверхмаржа
+            rateUsd: 0.001,
+            markup: 210.5,
             minQty: 50,
             maxQty: 500000,
             isRefillEnabled: false,
@@ -218,9 +218,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Автопросмотры на 10 будущих постов',
             badge: '🔥 Хит',
-            retailUnitRub: 0.05, // Закупка 0.0143 ₽ -> Маржа +250%
-            rateUsd: 0.15,
-            markup: 3.51,
+            retailUnitRub: 0.08,
+            rateUsd: 0.01,
+            markup: 84.2,
             minQty: 100,
             maxQty: 50000,
             isRefillEnabled: false,
@@ -240,9 +240,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Позитивный микс реакций (👍 ❤️ 🔥 🎉 👏)',
             badge: '🌟 Топ Микс',
-            retailUnitRub: 0.03, // Закупка 0.0076 ₽ -> Маржа +295%
-            rateUsd: 0.08,
-            markup: 3.95,
+            retailUnitRub: 0.05,
+            rateUsd: 0.005,
+            markup: 105.2,
             minQty: 20,
             maxQty: 30000,
             isRefillEnabled: false,
@@ -256,9 +256,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Смех и восторг микс (😂 🤣 🤩 🤯)',
             badge: '😂 Юмор',
-            retailUnitRub: 0.03, // Закупка 0.0086 ₽ -> Маржа +249%
-            rateUsd: 0.09,
-            markup: 3.49,
+            retailUnitRub: 0.05,
+            rateUsd: 0.005,
+            markup: 105.2,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -272,9 +272,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Негативный микс / Хейт (👎 💩 🤮 🤬)',
             badge: '👎 Негатив',
-            retailUnitRub: 0.04, // Закупка 0.0114 ₽ -> Маржа +251%
-            rateUsd: 0.12,
-            markup: 3.51,
+            retailUnitRub: 0.07,
+            rateUsd: 0.008,
+            markup: 92.1,
             minQty: 20,
             maxQty: 15000,
             isRefillEnabled: false,
@@ -288,9 +288,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Премиум-реакции от Premium аккаунтов (💎 ⭐ 🦄 🚀)',
             badge: '💎 Premium',
-            retailUnitRub: 0.08, // Закупка 0.0238 ₽ -> Маржа +236%
-            rateUsd: 0.25,
-            markup: 3.37,
+            retailUnitRub: 0.15,
+            rateUsd: 0.02,
+            markup: 78.9,
             minQty: 10,
             maxQty: 10000,
             isRefillEnabled: false,
@@ -304,9 +304,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Автореакции на 10 будущих постов (Позитивный микс)',
             badge: '🔄 Авто-Микс',
-            retailUnitRub: 0.10, // Закупка 0.0333 ₽ -> Маржа +200%
-            rateUsd: 0.35,
-            markup: 3.01,
+            retailUnitRub: 0.20,
+            rateUsd: 0.025,
+            markup: 84.2,
             minQty: 20,
             maxQty: 10000,
             isRefillEnabled: false,
@@ -322,9 +322,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции 👍 Лайк (Thumbs Up)',
             badge: '👍 Одиночная',
-            retailUnitRub: 0.03, // Закупка 0.0067 ₽ -> Маржа +348%
-            rateUsd: 0.07,
-            markup: 4.48,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 30000,
             isRefillEnabled: false,
@@ -338,9 +338,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции ❤️ Сердце (Red Heart)',
             badge: '❤️ Одиночная',
-            retailUnitRub: 0.03,
-            rateUsd: 0.07,
-            markup: 4.48,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 30000,
             isRefillEnabled: false,
@@ -354,9 +354,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции 🔥 Огонь (Fire)',
             badge: '🔥 Одиночная',
-            retailUnitRub: 0.03,
-            rateUsd: 0.07,
-            markup: 4.48,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 30000,
             isRefillEnabled: false,
@@ -370,9 +370,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции 🎉 Праздник (Party Popper)',
             badge: '🎉 Одиночная',
-            retailUnitRub: 0.03,
-            rateUsd: 0.07,
-            markup: 4.48,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -386,9 +386,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции 👏 Аплодисменты (Clapping)',
             badge: '👏 Одиночная',
-            retailUnitRub: 0.03,
-            rateUsd: 0.07,
-            markup: 4.48,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -402,9 +402,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции 😱 Шок / Удивление (Shock)',
             badge: '😱 Одиночная',
-            retailUnitRub: 0.03,
-            rateUsd: 0.08,
-            markup: 3.95,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -418,9 +418,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции 👎 Дизлайк (Dislike)',
             badge: '👎 Одиночная',
-            retailUnitRub: 0.03,
-            rateUsd: 0.09,
-            markup: 3.49,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -434,9 +434,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции 💩 Какашка (Poop)',
             badge: '💩 Одиночная',
-            retailUnitRub: 0.03,
-            rateUsd: 0.09,
-            markup: 3.49,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -450,9 +450,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции 🤡 Клоун (Clown)',
             badge: '🤡 Одиночная',
-            retailUnitRub: 0.03,
-            rateUsd: 0.09,
-            markup: 3.49,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -466,9 +466,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Telegram: Реакции ⚡️ Молния (Lightning)',
             badge: '⚡️ Одиночная',
-            retailUnitRub: 0.03,
-            rateUsd: 0.08,
-            markup: 3.95,
+            retailUnitRub: 0.05,
+            rateUsd: 0.002,
+            markup: 263.1,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -497,9 +497,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'VK: Подписчики в группу / паблик (Эконом)',
             badge: '⚡️ Старт',
-            retailUnitRub: 0.09, // Закупка 0.0285 ₽ -> Маржа +216%
+            retailUnitRub: 0.29, // Закупка 0.0285 ₽ -> Наценка 10.2x (+917% маржа)
             rateUsd: 0.30,
-            markup: 3.16,
+            markup: 10.17,
             minQty: 25,
             maxQty: 50000,
             isRefillEnabled: false,
@@ -513,9 +513,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'VK: Живые участники в сообщество (HQ с гарантией 30 дней)',
             badge: '🛡️ Refill 30d',
-            retailUnitRub: 0.25, // Закупка 0.0808 ₽ -> Маржа +209%
+            retailUnitRub: 0.81, // Закупка 0.0808 ₽ -> Наценка 10.0x (+903% маржа)
             rateUsd: 0.85,
-            markup: 3.10,
+            markup: 10.03,
             minQty: 20,
             maxQty: 25000,
             isRefillEnabled: true,
@@ -534,9 +534,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'VK: Лайки на запись или фото (Живые пользователи РФ)',
             badge: '❤️ Топ',
-            retailUnitRub: 0.02, // Закупка 0.0048 ₽ -> Маржа +321%
-            rateUsd: 0.05,
-            markup: 4.21,
+            retailUnitRub: 0.05,
+            rateUsd: 0.005,
+            markup: 105.2,
             minQty: 20,
             maxQty: 30000,
             isRefillEnabled: false,
@@ -555,9 +555,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'VK: Просмотры на запись / клип (Умная лента)',
             badge: '👁 Охват',
-            retailUnitRub: 0.01, // Закупка 0.0019 ₽ -> Маржа +426%
-            rateUsd: 0.02,
-            markup: 5.26,
+            retailUnitRub: 0.02,
+            rateUsd: 0.001,
+            markup: 210.5,
             minQty: 100,
             maxQty: 1000000,
             isRefillEnabled: false,
@@ -576,9 +576,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'VK: Микс всех позитивных реакций (❤️ 🔥 👏 👍)',
             badge: '🌟 Топ Микс',
-            retailUnitRub: 0.02, // Закупка 0.0057 ₽ -> Маржа +251%
-            rateUsd: 0.06,
-            markup: 3.51,
+            retailUnitRub: 0.05,
+            rateUsd: 0.005,
+            markup: 105.2,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -592,9 +592,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'VK: Реакция 🔥 Огонь',
             badge: '🔥 Одиночная',
-            retailUnitRub: 0.02,
-            rateUsd: 0.05,
-            markup: 4.21,
+            retailUnitRub: 0.05,
+            rateUsd: 0.005,
+            markup: 105.2,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -608,9 +608,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'VK: Реакция 😂 Смешно',
             badge: '😂 Одиночная',
-            retailUnitRub: 0.02,
-            rateUsd: 0.05,
-            markup: 4.21,
+            retailUnitRub: 0.05,
+            rateUsd: 0.005,
+            markup: 105.2,
             minQty: 20,
             maxQty: 20000,
             isRefillEnabled: false,
@@ -639,9 +639,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Instagram: Подписчики Эконом (Для объема)',
             badge: '⚡️ Эконом',
-            retailUnitRub: 0.10, // Закупка 0.0333 ₽ -> Маржа +201%
+            retailUnitRub: 0.34, // Закупка 0.0333 ₽ -> Наценка 10.2x (+922% маржа)
             rateUsd: 0.35,
-            markup: 3.01,
+            markup: 10.22,
             minQty: 20,
             maxQty: 100000,
             isRefillEnabled: false,
@@ -655,9 +655,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Instagram: Подписчики HQ (СНГ с гарантией 30 дней)',
             badge: '🛡️ Refill 30d',
-            retailUnitRub: 0.28, // Закупка 0.0903 ₽ -> Маржа +210%
+            retailUnitRub: 0.91, // Закупка 0.0903 ₽ -> Наценка 10.1x (+908% маржа)
             rateUsd: 0.95,
-            markup: 3.10,
+            markup: 10.08,
             minQty: 20,
             maxQty: 30000,
             isRefillEnabled: true,
@@ -676,9 +676,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'Instagram: Лайки на фото / Reels (Мгновенный старт)',
             badge: '🔥 Хит',
-            retailUnitRub: 0.02, // Закупка 0.0038 ₽ -> Маржа +426%
-            rateUsd: 0.04,
-            markup: 5.26,
+            retailUnitRub: 0.04,
+            rateUsd: 0.003,
+            markup: 140.3,
             minQty: 20,
             maxQty: 50000,
             isRefillEnabled: false,
@@ -707,9 +707,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'YouTube: Просмотры с высоким удержанием (Алгоритмы / Поиск)',
             badge: '🎬 HQ Охват',
-            retailUnitRub: 0.35, // Закупка 0.1140 ₽ -> Маржа +207%
+            retailUnitRub: 1.15, // Закупка 0.1140 ₽ -> Наценка 10.1x (+908% маржа)
             rateUsd: 1.20,
-            markup: 3.07,
+            markup: 10.08,
             minQty: 100,
             maxQty: 500000,
             isRefillEnabled: true,
@@ -728,9 +728,9 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
           {
             name: 'YouTube: Подписчики на канал (Гарантия 30 дней)',
             badge: '🛡️ Refill 30d',
-            retailUnitRub: 1.30, // Закупка 0.4275 ₽ -> Маржа +204%
+            retailUnitRub: 4.30, // Закупка 0.4275 ₽ -> Наценка 10.1x (+905% маржа)
             rateUsd: 4.50,
-            markup: 3.04,
+            markup: 10.05,
             minQty: 10,
             maxQty: 5000,
             isRefillEnabled: true,
@@ -748,7 +748,17 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
 ];
 
 async function main() {
-  console.log('🚀 Seeding Curated "Golden Standard" Showcase Services with MINIMUM +200% MARGIN (3.0x Markup)...');
+  console.log('🚀 Seeding Curated Showcase with ~900% Markup (10.0x Multiplier)...');
+
+  // Update SystemSettings global markup to 10.0
+  await prisma.systemSettings.upsert({
+    where: { id: 'global' },
+    update: { globalMarkup: 10.0 },
+    create: {
+      id: 'global',
+      globalMarkup: 10.0,
+    },
+  });
 
   let provider = await prisma.provider.findFirst({ where: { name: 'Vexboost' } });
   if (!provider) {
@@ -862,7 +872,7 @@ async function main() {
     }
   }
 
-  console.log('🎉 Curated Showcase Successfully Populated with Minimum +200% Margin!');
+  console.log('🎉 Curated Showcase Successfully Populated with ~900% Markup Model!');
 }
 
 main()
