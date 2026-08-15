@@ -566,7 +566,7 @@
   "/app/codebase/.agents/auditor_milestone1_3/ORIGINAL_REQUEST.md": "33dcfa192193a9c9",
   "/app/codebase/.agents/teamwork_preview_reviewer_testing_m4/progress.md": "4824d6b1586d7bb2",
   "/app/codebase/.agents/teamwork_preview_explorer_vk_article_18_2/progress.md": "661bad58d9160ddc",
-  "/app/codebase/src/actions/order/catalog.ts": "e7f9d11e0610e7de",
+  "/app/codebase/src/actions/order/catalog.ts": "ff2fda3a109c5af1",
   "/app/codebase/.agents/worker_milestone1_3/plan.md": "e3a2789a64ec137a",
   "/app/codebase/src/validators/admin.validators.ts": "cb3ae52e52eeb97a",
   "/app/codebase/src/app/admin/pages/[slug]/page.tsx": "3e6e25ca85a560d8",
@@ -2134,7 +2134,7 @@
   "/app/codebase/src/data/knowledge/telegram-safe-boost.mdx": "931f73dac216e8c2",
   "/app/codebase/src/components/support/ClientProfileSidebar.tsx": "80b3d23ff348807f",
   "/app/codebase/src/components/landing/order-engine/LinkModal.tsx": "8459b97d8c1a8dc2",
-  "/app/codebase/src/components/landing/order-engine/InlineCheckoutForm.tsx": "894750a5d9ba9b1f",
+  "/app/codebase/src/components/landing/order-engine/InlineCheckoutForm.tsx": "0925ea7eae2f4a99",
   "/app/codebase/src/data/knowledge/account-security-smm-promotion.mdx": "400a93567cecaa9b",
   "/app/codebase/src/app/api/webhooks/yookassa/route.ts": "8e86ed18ca4d509e",
   "/app/codebase/src/components/landing/order-engine/MobileWizard.tsx": "959b30e0c9021ba5",
@@ -2146,7 +2146,7 @@
   "/app/codebase/src/data/knowledge/order-canceled-reasons.md": "b01ac5397181c923",
   "/app/codebase/src/components/landing/order-engine/guides/getInstagramSteps.tsx": "55eb1df31beabdbf",
   "/app/codebase/src/components/orders/OrderProgressBar.tsx": "f1d45fb61165edeb",
-  "/app/codebase/src/components/landing/order-engine/ServiceGrid.tsx": "7b221f41a3ed8ba7",
+  "/app/codebase/src/components/landing/order-engine/ServiceGrid.tsx": "da3ade605473a966",
   "/app/codebase/src/app/dashboard/layout.tsx": "6d014f4b9c8f9f11",
   "/app/codebase/src/components/admin/test-mode-panel.tsx": "d5e10d725b9ffb3e",
   "/app/codebase/src/components/orders/OrderFilters.tsx": "0c8ba203f197e63a",
@@ -2285,7 +2285,7 @@
   "/app/codebase/src/app/knowledge/[slug]/page.tsx": "debb13b1c7648681",
   "/app/codebase/scripts/gen-magic.ts": "7a16264628ea920a",
   "/app/codebase/src/actions/admin/health.ts": "69d485f6af12957c",
-  "/app/codebase/src/components/orders/SmmplanOrderWizard.tsx": "f42262b740dfb3b7",
+  "/app/codebase/src/components/orders/SmmplanOrderWizard.tsx": "d6db4c0b37c1402c",
   "/app/codebase/src/lib/prisma-tenant-scope.ts": "2a81de130bec5eaf",
   "/app/codebase/src/tenants/factory.ts": "08b497ab8d3422be",
   "/app/codebase/src/tenants/smmplan/strategy.ts": "a08ae4a2a0346460",
@@ -2786,5 +2786,6 @@
   "/app/codebase/src/components/orders/DashboardHeroLinkInput.tsx": "bb20efed9730a7d6",
   "/app/codebase/scripts/browser-ui-deep-audit.ts": "bf554041f20758af",
   "/app/codebase/scripts/scan-all-visual-bugs.ts": "b3fdcd558223dbb8",
-  "/app/codebase/src/utils/service-refill.ts": "da039827f386da7e"
+  "/app/codebase/src/utils/service-refill.ts": "da039827f386da7e",
+  "/app/codebase/src/utils/__tests__/service-refill.test.ts": "2911e43349343e32"
 }
