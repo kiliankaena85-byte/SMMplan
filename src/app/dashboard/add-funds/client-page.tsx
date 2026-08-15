@@ -192,7 +192,7 @@ export default function AddFundsPage() {
 
         {/* Error */}
         {error && (
-          <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-4 py-2.5" role="alert">
+          <p className="text-sm font-semibold text-destructive bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-2.5 animate-shake" role="alert">
             {error}
           </p>
         )}
@@ -201,18 +201,18 @@ export default function AddFundsPage() {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isPending || amount < 10}
+          disabled={isPending}
           aria-label={`Перейти к оплате ${amount} рублей`}
           className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50
-            font-semibold min-h-[44px] md:min-h-[36px] py-3.5 rounded-xl transition-all duration-200 shadow-sm text-base
-            focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+            font-bold min-h-[48px] py-3.5 rounded-xl transition-all duration-200 shadow-md shadow-primary/20 text-base
+            focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none cursor-pointer"
         >
           {isPending
             ? '⟳ Создаём платёж...'
             : `Оплатить ${amount.toLocaleString('ru-RU')} ₽`}
         </button>
 
-        {/* Legal notice instead of checkbox for seamless UX */}
+        {/* Legal notice */}
         <p className="text-[10px] leading-relaxed text-muted-foreground text-center px-2">
           Нажимая «Оплатить», вы принимаете{' '}
           <Link
@@ -232,16 +232,24 @@ export default function AddFundsPage() {
           </Link>.
         </p>
 
-        <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
-          <Wallet className="w-3 h-3" />
-          Минимум 10 ₽ · Безопасная оплата через {method === 'yookassa' ? 'ЮKassa' : method === 'robokassa' ? 'Робокассу' : 'CryptoBot'} · Мгновенное зачисление
-        </p>
+        {/* Trust Badges */}
+        <div className="pt-3 border-t border-border/50 flex flex-wrap items-center justify-center gap-4 text-[11px] font-semibold text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" /> МИР / СБП / Карты РФ
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" /> 54-ФЗ Онлайн-чеки
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" /> SSL 256-bit Защита
+          </span>
+        </div>
       </div>
 
       {/* Promo Code Section */}
       <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
             <Gift className="w-4 h-4" />
           </div>
           <div>
@@ -261,18 +269,18 @@ export default function AddFundsPage() {
           <button
             onClick={handlePromoSubmit}
             disabled={isPromoPending || !promoCode.trim()}
-            className="w-full sm:w-auto px-6 py-3 min-h-[44px] md:min-h-[36px] bg-foreground text-background hover:opacity-90 disabled:opacity-50 font-bold rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none shrink-0"
+            className="w-full sm:w-auto px-6 py-3 min-h-[44px] md:min-h-[36px] bg-foreground text-background hover:opacity-90 disabled:opacity-50 font-bold rounded-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none shrink-0 cursor-pointer"
           >
             {isPromoPending ? '...' : 'Применить'}
           </button>
         </div>
 
         {promoError && (
-          <p className="text-xs text-rose-600 font-semibold">{promoError}</p>
+          <p className="text-xs font-semibold text-destructive">{promoError}</p>
         )}
         {promoSuccess && (
           <p className="text-xs text-emerald-800 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-            <CheckCircle2 className="w-3 h-3" />
+            <CheckCircle2 className="w-3.5 h-3.5" />
             {promoSuccess}
           </p>
         )}
