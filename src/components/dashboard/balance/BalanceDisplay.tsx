@@ -61,11 +61,11 @@ export function BalanceDisplay({ initialBalance, variant }: BalanceDisplayProps)
 
   if (variant === 'mobile-header') {
     return (
-      <div className="flex items-center gap-1.5 text-foreground shrink-0 select-none">
-        <span className="text-xs font-bold tabular-nums tracking-wide">{balance}</span>
+      <div className="flex items-center gap-1.5 text-foreground shrink-0 select-none bg-secondary/80 px-2.5 py-1 rounded-xl border border-border/60">
+        <span className="text-xs font-black font-mono tabular-nums tracking-wide">{balance}</span>
         <button
           onClick={handleManualClick}
-          className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200 active:scale-90 cursor-pointer"
+          className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200 active:scale-90 cursor-pointer"
           title="Обновить баланс"
           aria-label="Обновить баланс"
           disabled={isRefreshing}
@@ -77,13 +77,13 @@ export function BalanceDisplay({ initialBalance, variant }: BalanceDisplayProps)
   }
 
   return (
-    <div className="mx-3 mt-4 p-3.5 rounded-2xl bg-primary/[0.03] border border-primary/10 shadow-sm relative overflow-hidden group">
-      {/* Light glow pattern inside balance card */}
-      <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+    <div className="p-4 rounded-2xl bg-card/85 backdrop-blur-xl border border-border/80 shadow-md relative overflow-hidden group">
+      {/* Soft background glow */}
+      <div className="absolute -top-6 -right-6 w-20 h-20 bg-primary/10 rounded-full blur-xl pointer-events-none" />
       
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-[10px] uppercase font-extrabold text-muted-foreground/80 tracking-wider">
-          Баланс
+      <div className="flex justify-between items-center mb-1.5 relative z-10">
+        <span className="text-[10px] uppercase font-extrabold text-muted-foreground tracking-wider">
+          Текущий баланс
         </span>
         <button
           onClick={handleManualClick}
@@ -96,16 +96,16 @@ export function BalanceDisplay({ initialBalance, variant }: BalanceDisplayProps)
         </button>
       </div>
       
-      <div className="text-xl font-black text-foreground tabular-nums tracking-tight mb-2">
+      <div className="text-xl font-black font-mono tracking-tight text-foreground mb-3 relative z-10">
         {balance}
       </div>
 
       <Link
         href="/dashboard/add-funds"
-        className="w-full flex items-center justify-center gap-1.5 text-xs font-extrabold bg-primary text-primary-foreground rounded-xl py-2 shadow-sm shadow-primary/20 hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer"
+        className="w-full flex items-center justify-center gap-1.5 text-xs font-bold bg-primary text-primary-foreground rounded-xl py-2 shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer relative z-10"
       >
         <Wallet className="w-3.5 h-3.5" />
-        <span>Пополнить</span>
+        <span>Пополнить баланс</span>
       </Link>
     </div>
   );
