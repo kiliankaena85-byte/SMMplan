@@ -1430,7 +1430,7 @@
   "/app/codebase/.agents/sub_orch_vk_article_17/task_explorer.md": "85f9708b143fda89",
   "/app/codebase/.agents/auditor_marketing_rewrite_1/README.md": "2f0829085e0cf4ad",
   "/app/codebase/.agents/worker_cat2/handoff.md": "dbfcc6b1b2d68ff9",
-  "/app/codebase/src/app/admin/settings/team-management.tsx": "6123f8ce0dcf7a04",
+  "/app/codebase/src/app/admin/settings/team-management.tsx": "a1c20619ddd4f05d",
   "/app/codebase/.agent/skills/internationalization-localization/references/i18n-details.md": "534c1b8c26ce868f",
   "/app/codebase/project-docs/legal_audit/legal_audit.md": "c37a58f33d850213",
   "/app/codebase/src/services/admin/escrow.service.ts": "c992423d50607bf8",
@@ -2792,5 +2792,5 @@
   "/app/codebase/src/actions/admin/catalog/ai-enrich.action.ts": "3f65db6c30d1fbfc",
   "/app/codebase/src/services/admin/ai-catalog-enricher.service.ts": "be10dce0cfdb7907",
   "/app/codebase/src/services/ai/__tests__/gemini-client.test.ts": "74821eabb64770ff",
-  "/app/codebase/src/services/ai/gemini-client.ts": "785c25e4c6639d33"
+  "/app/codebase/src/services/ai/gemini-client.ts": "3f15d41e38b25467"
 }
