@@ -728,9 +728,7 @@ function SmmplanOrderWizardInner({
 
                           <div className="text-right">
                             <span className="text-lg font-black text-primary">
-                              {srv.pricePerUnitRub < 0.01 
-                                ? srv.pricePerUnitRub.toFixed(4) 
-                                : srv.pricePerUnitRub.toFixed(2)} ₽
+                              {srv.pricePerUnitRub.toFixed(2)} ₽
                             </span>
                             <span className="text-[10px] text-muted-foreground block">/ шт</span>
                           </div>
@@ -1142,8 +1140,8 @@ function SmmplanOrderWizardInner({
                     </span>
                     <span className="text-xs text-muted-foreground font-semibold">
                       {isDripFeedEnabled
-                        ? `(${quantity || 0} шт × ${dripRuns} запусков × ${selectedService.pricePerUnitRub.toFixed(4)} ₽)`
-                        : `(${quantity || 0} шт × ${selectedService.pricePerUnitRub.toFixed(4)} ₽)`}
+                        ? `(${quantity || 0} шт × ${dripRuns} запусков × ${selectedService.pricePerUnitRub.toFixed(2)} ₽)`
+                        : `(${quantity || 0} шт × ${selectedService.pricePerUnitRub.toFixed(2)} ₽)`}
                     </span>
                   </div>
                 </div>

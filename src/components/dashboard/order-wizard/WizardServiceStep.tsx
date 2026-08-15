@@ -73,7 +73,7 @@ export function WizardServiceStep({
                   </div>
                   <div className="text-right shrink-0">
                     <div className="font-mono text-sm font-black text-foreground">
-                      {pricePerUnit.toFixed(4)} ₽ <span className="text-[10px] font-normal text-muted-foreground">/ шт</span>
+                      {pricePerUnit.toFixed(2)} ₽ <span className="text-[10px] font-normal text-muted-foreground">/ шт</span>
                     </div>
                     <span className="text-[9px] font-semibold text-muted-foreground">
                       Мин: {srv.minQty} • Макс: {srv.maxQty}

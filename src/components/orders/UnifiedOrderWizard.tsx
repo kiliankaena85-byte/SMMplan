@@ -16,21 +16,7 @@ import { SocialIcon } from '@/components/ui/SocialIcon';
 
 function formatPricePerUnit(price: number): string {
   if (price === 0) return '0.00';
-  let formatted: string;
-  if (price < 0.01) {
-    formatted = price.toFixed(6);
-  } else if (price < 0.1) {
-    formatted = price.toFixed(4);
-  } else {
-    formatted = price.toFixed(2);
-  }
-  
-  if (formatted.includes('.')) {
-    while (formatted.endsWith('0') && formatted.split('.')[1].length > 2) {
-      formatted = formatted.slice(0, -1);
-    }
-  }
-  return formatted;
+  return price.toFixed(2);
 }
 
 export function UnifiedOrderWizard({ 

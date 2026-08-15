@@ -2793,5 +2793,5 @@
   "/app/codebase/src/services/admin/ai-catalog-enricher.service.ts": "be10dce0cfdb7907",
   "/app/codebase/src/services/ai/__tests__/gemini-client.test.ts": "74821eabb64770ff",
   "/app/codebase/src/services/ai/gemini-client.ts": "3f15d41e38b25467",
-  "/app/codebase/scripts/seed-curated-showcase.ts": "5705b059ad0bc883"
+  "/app/codebase/scripts/seed-curated-showcase.ts": "dfb0576785e8111a"
 }
