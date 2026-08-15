@@ -2793,5 +2793,7 @@
   "/app/codebase/src/services/admin/ai-catalog-enricher.service.ts": "be10dce0cfdb7907",
   "/app/codebase/src/services/ai/__tests__/gemini-client.test.ts": "74821eabb64770ff",
   "/app/codebase/src/services/ai/gemini-client.ts": "3f15d41e38b25467",
-  "/app/codebase/scripts/seed-curated-showcase.ts": "9e6c82ca51c24c63"
+  "/app/codebase/scripts/seed-curated-showcase.ts": "49df0eade5b25c84",
+  "/app/codebase/src/services/admin/__tests__/pricing-intelligence.test.ts": "a42dd27587d869a0",
+  "/app/codebase/src/services/admin/pricing-intelligence.service.ts": "aa4408fac7054d8a"
 }

@@ -52,6 +52,7 @@ import {
 
 import { BatchActionBar } from './catalog/batch-action-bar';
 import { ProviderServiceSearchModal } from './catalog/provider-service-search-modal';
+import { AdminPricingIntelligenceModal } from './catalog/AdminPricingIntelligenceModal';
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
 function calcDisplayPrice(rate: number, markup: number, usdToRub: number, curr: 'RUB' | 'USD', vol: 'UNIT' | '1K') {
@@ -837,17 +838,39 @@ export function EditServiceModal({
   usdToRub: number;
 }) {
   const [open, setOpen] = useState(false);
+  const [openPricingModal, setOpenPricingModal] = useState(false);
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={`Редактировать услугу ${service.name}`}
-        className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
-      >
-        <Pencil className="w-4 h-4" />
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setOpenPricingModal(true)}
+          title="ML Обоснование наценки и юнит-экономика"
+          aria-label={`ML Обоснование наценки для ${service.name}`}
+          className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-all duration-200 cursor-pointer"
+        >
+          <span className="text-base">🧠</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={`Редактировать услугу ${service.name}`}
+          className="h-10 w-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+      </div>
+
+      {openPricingModal && (
+        <AdminPricingIntelligenceModal
+          serviceId={service.id}
+          isOpen={openPricingModal}
+          onClose={() => setOpenPricingModal(false)}
+        />
+      )}
+
       {open && (
         <ServiceFormSheet
           service={service}
