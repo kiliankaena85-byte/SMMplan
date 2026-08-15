@@ -17,10 +17,10 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
     <section aria-labelledby="why-us-heading" className="mx-auto max-w-6xl px-4 py-12 md:py-24">
       <div className="text-center mb-16">
         <h2 id="why-us-heading" className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-normal text-foreground mb-4 text-balance">
-          Платформа нового поколения
+          Прямой доступ к оптовым шлюзам
         </h2>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium text-pretty">
-          Более 10 000 клиентов доверяют {companyName} своё продвижение не просто так. Мы переосмыслили B2B опыт продвижения.
+        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto font-medium text-pretty">
+          Экономьте до 70% на продвижении за счет оптовых тарифов без посредников. Надежная автоматизация для блогеров, агентств и брендов.
         </p>
       </div>
 

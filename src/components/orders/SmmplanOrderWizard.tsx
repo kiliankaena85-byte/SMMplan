@@ -673,8 +673,20 @@ function SmmplanOrderWizardInner({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {services.map((srv: PublicService) => {
+                  {services.map((srv: PublicService, idx: number) => {
                     const isSelected = selectedService?.id === srv.id;
+                    const isRefill = srv.name.toLowerCase().includes('гарант') || srv.name.toLowerCase().includes('refill') || (srv.description?.toLowerCase().includes('гарант') ?? false);
+                    const isFast = srv.name.toLowerCase().includes('быстр') || srv.name.toLowerCase().includes('мгновен');
+                    const smartBadge = srv.badge || (
+                      isRefill
+                        ? '🛡️ Refill'
+                        : isFast
+                        ? '⚡️ Топ скорость'
+                        : idx === 0
+                        ? '🔥 Выбор клиентов'
+                        : null
+                    );
+
                     return (
                       <div
                         key={srv.id}
@@ -690,9 +702,9 @@ function SmmplanOrderWizardInner({
                             <h3 className="font-bold text-base text-foreground line-clamp-2">
                               {srv.name}
                             </h3>
-                            {srv.badge && (
-                              <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary rounded-md shrink-0">
-                                {srv.badge}
+                            {smartBadge && (
+                              <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 rounded-md shrink-0">
+                                {smartBadge}
                               </span>
                             )}
                           </div>
@@ -1091,6 +1103,14 @@ function SmmplanOrderWizardInner({
                       <span className="text-[11px] text-muted-foreground block">USDT / Кратко</span>
                     </div>
                   </button>
+                </div>
+              </div>
+
+              {/* 🛡️ Risk Reversal & Security Note */}
+              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/15 flex items-start gap-3 text-xs text-muted-foreground leading-relaxed">
+                <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-foreground">100% Безопасный запуск:</span> соблюдаем суточные лимиты соцсетей без ввода паролей. Если заказ не запустится или задержится — автоматический возврат средств на баланс.
                 </div>
               </div>
 

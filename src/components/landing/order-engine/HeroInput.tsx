@@ -2,7 +2,7 @@
 // audit-disable STR-002
 
 import React, { useState } from "react";
-import { Loader2, Link2, Mail, HelpCircle, Target, CreditCard } from "lucide-react";
+import { Loader2, Link2, Mail, HelpCircle, Target, CreditCard, Sparkles, Zap, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { motion, AnimatePresence } from "framer-motion";
@@ -315,15 +315,33 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
             </div>
           </div>
 
-          <div className="flex justify-between items-center px-6">
+          <div className="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-6 gap-3">
             <button
               type="button"
               onClick={onOpenGuide}
               className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-all duration-200 cursor-pointer"
             >
-              <HelpCircle className="w-3.5 h-3.5 text-primary/80 animate-pulse" />
+              <HelpCircle className="w-3.5 h-3.5 text-primary/80 animate-pulse shrink-0" />
               Как правильно скопировать ссылку для заказа?
             </button>
+
+            {/* Micro-Trust Highlights */}
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-semibold">
+              <span className="flex items-center gap-1 text-foreground">
+                <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />
+                <span className="font-bold">4.9/5</span> (12k+ отзывов)
+              </span>
+              <span className="w-1 h-1 rounded-full bg-border" />
+              <span className="flex items-center gap-1">
+                <Zap className="w-3 h-3 text-primary shrink-0" />
+                Старт за 30с
+              </span>
+              <span className="w-1 h-1 rounded-full bg-border" />
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                Без паролей
+              </span>
+            </div>
           </div>
         </div>
       )}

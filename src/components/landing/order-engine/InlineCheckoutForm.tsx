@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { X, Loader2, ChevronRight } from "lucide-react";
+import { X, Loader2, ChevronRight, ShieldCheck } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { PublicService } from "@/actions/order/catalog";
 import { DrawerOrderSummary } from "./drawer/DrawerOrderSummary";
@@ -185,6 +185,14 @@ export function InlineCheckoutForm({
                   </>
                 )}
               </Button>
+            </div>
+
+            {/* 🛡️ Risk Reversal & Security Note */}
+            <div className="p-3 rounded-2xl bg-primary/5 border border-primary/15 flex items-start gap-2.5 text-[11px] text-muted-foreground leading-relaxed">
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-foreground">100% Безопасный запуск:</span> соблюдаем суточные лимиты соцсетей без ввода паролей. Если заказ задержится — автоматический возврат средств.
+              </div>
             </div>
 
             {/* Legal terms agreement with Shake & Glow feedback on error */}

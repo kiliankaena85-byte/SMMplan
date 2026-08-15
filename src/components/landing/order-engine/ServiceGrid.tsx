@@ -47,22 +47,42 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
           >
             <div className={`absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/20 to-transparent ${isSelected && !isQuarantined ? 'opacity-100' : 'group-hover:opacity-10'}`} />
           
-          {srv.badge && !isQuarantined && (
-            <div 
-              className={`absolute -top-3 -right-2 z-20 px-3 py-1 rounded-full text-[10px] tracking-widest font-black uppercase transition-all duration-300 pointer-events-none flex items-center justify-center transform-gpu border-2 ${
-                isSelected 
-                  ? 'bg-content1 text-primary border-primary shadow-lg shadow-primary/30' 
-                  : 'bg-primary text-primary-foreground border-transparent shadow-md'
-              }`}
-            >
-              {srv.badge}
-            </div>
-          )}
-          {isQuarantined && (
-            <div className="absolute -top-3 -right-2 z-20 px-3 py-1 rounded-full text-[10px] tracking-widest font-black uppercase shadow-sm bg-danger text-danger-foreground border-2 border-danger-200">
-              КАРАНТИН
-            </div>
-          )}
+          {(() => {
+            const isRefill = srv.name.toLowerCase().includes('гарант') || srv.name.toLowerCase().includes('refill') || (srv.description?.toLowerCase().includes('гарант') ?? false);
+            const isFast = srv.name.toLowerCase().includes('быстр') || srv.name.toLowerCase().includes('мгновен') || srv.name.toLowerCase().includes('speed');
+            const displayBadge = srv.badge || (
+              isRefill
+                ? '🛡️ Refill Гарантия'
+                : isFast
+                ? '⚡️ Топ скорость'
+                : i === 0
+                ? '🔥 Выбор клиентов'
+                : null
+            );
+
+            if (isQuarantined) {
+              return (
+                <div className="absolute -top-3 -right-2 z-20 px-3 py-1 rounded-full text-[10px] tracking-widest font-black uppercase shadow-sm bg-danger text-danger-foreground border-2 border-danger-200">
+                  КАРАНТИН
+                </div>
+              );
+            }
+
+            if (displayBadge) {
+              return (
+                <div 
+                  className={`absolute -top-3 -right-2 z-20 px-3 py-1 rounded-full text-[10px] tracking-wider font-black uppercase transition-all duration-300 pointer-events-none flex items-center justify-center transform-gpu border-2 ${
+                    isSelected 
+                      ? 'bg-content1 text-primary border-primary shadow-lg shadow-primary/30' 
+                      : 'bg-primary text-primary-foreground border-transparent shadow-md'
+                  }`}
+                >
+                  {displayBadge}
+                </div>
+              );
+            }
+            return null;
+          })()}
           
           <div className="flex-1 flex flex-col pt-2 relative z-10">
              <h4 className={`font-extrabold text-base transition-colors duration-300 leading-snug mb-4 min-h-[44px] break-words flex items-center flex-wrap gap-2 ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>

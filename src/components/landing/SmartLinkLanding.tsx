@@ -240,15 +240,15 @@ export function SmartLinkLanding({
           <div className="mb-4">
             <ThemeSwitcher />
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.05] drop-shadow-md text-balance">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.08] drop-shadow-md text-balance">
             {customHeroTitle || (
               <>
-                Ускоряем ваши <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">соцсети</span>
+                Продвижение в <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">Telegram, VK и соцсетях</span> от 0.01 ₽
               </>
             )}
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed font-medium max-w-xl mx-auto drop-shadow-sm text-pretty">
-            {customHeroSubtitle || "Автоматическая платформа для продвижения в социальных сетях с мгновенным запуском."}
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-medium max-w-2xl mx-auto drop-shadow-sm text-pretty">
+            {customHeroSubtitle || "Прямой доступ к оптовым шлюзам продвижения без наценок агентств. Без паролей и регистрации — мгновенный запуск за 30 секунд."}
           </p>
           <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-10 pt-2">
             <div className="text-center">
