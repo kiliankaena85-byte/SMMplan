@@ -98,7 +98,7 @@ export function AdminPricingIntelligenceModal({
               {/* Key Metrics Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3.5 rounded-xl bg-muted/40 border border-border/50">
-                  <span className="text-xs text-muted-foreground block">Закупка ($ $\to$ ₽)</span>
+                  <span className="text-xs text-muted-foreground block">Закупка ($ → ₽)</span>
                   <span className="text-sm font-bold text-foreground mt-0.5 block">
                     {data.procurementCostRub.toFixed(4)} ₽
                   </span>

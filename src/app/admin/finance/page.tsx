@@ -97,7 +97,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
     },
     {
       label: 'Возвраты',
-      value: `-${fmt(metrics.refunds)}`,
+      value: metrics.refunds > 0 ? `-${fmt(metrics.refunds)}` : fmt(0),
       sub: 'Отмены и частичные',
       icon: TrendingDown,
       color: 'bg-destructive',
@@ -105,7 +105,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
     },
     {
       label: 'Закупка (COGS)',
-      value: `-${fmt(metrics.cogs)}`,
+      value: metrics.cogs > 0 ? `-${fmt(metrics.cogs)}` : fmt(0),
       sub: 'Расход провайдерам',
       icon: TrendingDown,
       color: 'bg-warning',

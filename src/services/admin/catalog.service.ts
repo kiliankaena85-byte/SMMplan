@@ -111,7 +111,7 @@ class AdminCatalogService {
     const where: any = {};
 
     if (params.tenantId) {
-      where.tenantId = params.tenantId;
+      where.tenantId = { in: [params.tenantId, 'all'] };
     }
 
     if (params.categoryId) {
@@ -983,7 +983,7 @@ class AdminCatalogService {
   async getCatalogStats(tenantId?: string, startDate?: Date, endDate?: Date) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
-    if (tenantId) where.tenantId = tenantId;
+    if (tenantId) where.tenantId = { in: [tenantId, 'all'] };
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
@@ -1152,7 +1152,7 @@ class AdminCatalogService {
   }> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { isActive: true };
-    if (tenantId) where.tenantId = tenantId;
+    if (tenantId) where.tenantId = { in: [tenantId, 'all'] };
 
     const services = await db.service.findMany({
       where,
@@ -1253,7 +1253,7 @@ class AdminCatalogService {
   async getQuarantineCount(tenantId?: string): Promise<number> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { isQuarantined: true };
-    if (tenantId) where.tenantId = tenantId;
+    if (tenantId) where.tenantId = { in: [tenantId, 'all'] };
     return db.service.count({ where });
   }
 }

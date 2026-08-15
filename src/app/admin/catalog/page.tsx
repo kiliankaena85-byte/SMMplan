@@ -51,12 +51,12 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
     include: { staffRole: { include: { permissions: true } } }
   }) : null;
 
-  const isOwner = user?.role === 'OWNER';
+  const isSuperAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
   const permissions = user?.staffRole?.permissions || [];
 
-  const canSeeRates = isOwner || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && (p.canView || p.canEdit));
-  const canEdit = isOwner || permissions.some(p => p.section.toUpperCase() === 'CATALOG' && p.canEdit);
-  const canEditFinance = isOwner || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && p.canEdit);
+  const canSeeRates = isSuperAdmin || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && (p.canView || p.canEdit));
+  const canEdit = isSuperAdmin || permissions.some(p => p.section.toUpperCase() === 'CATALOG' && p.canEdit);
+  const canEditFinance = isSuperAdmin || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && p.canEdit);
 
   const params = await searchParams;
   const selectedTenant = params.tenant || normalizeTenantId(reqHeaders.get('x-tenant-id')) || 'smmplan';

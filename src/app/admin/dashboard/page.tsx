@@ -133,7 +133,7 @@ export default async function AdminDashboardPage({
               <span className="text-success text-xs font-bold bg-success/10 px-2 py-0.5 rounded-full shadow-sm">Gross</span>
             </div>
             <div className="text-2xl font-black text-foreground tabular-nums tracking-tight">
-              {formatKopecks(revenueGross)} ₽
+              {formatKopecks(revenueGross)}
             </div>
             <p className="text-[11px] text-muted-foreground mt-2 font-medium">Все успешные платежи в системе</p>
             <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-success/5 rounded-full blur-2xl group-hover:bg-success/10 transition-colors pointer-events-none" />
@@ -147,7 +147,7 @@ export default async function AdminDashboardPage({
               <span className="text-warning text-xs font-bold bg-warning/10 px-2 py-0.5 rounded-full shadow-sm">Шлюзы</span>
             </div>
             <div className="text-2xl font-black text-foreground tabular-nums tracking-tight">
-              {formatKopecks(checkoutCommission)} ₽
+              {formatKopecks(checkoutCommission)}
             </div>
             <p className="text-[11px] text-muted-foreground mt-2 font-medium">Комиссионные расходы эквайринга</p>
             <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-warning/5 rounded-full blur-2xl group-hover:bg-warning/10 transition-colors pointer-events-none" />
@@ -161,7 +161,7 @@ export default async function AdminDashboardPage({
               <span className="text-danger text-xs font-bold bg-danger/10 px-2 py-0.5 rounded-full shadow-sm">COGS</span>
             </div>
             <div className="text-2xl font-black text-foreground tabular-nums tracking-tight">
-              {formatKopecks(cumulativeProviderCost)} ₽
+              {formatKopecks(cumulativeProviderCost)}
             </div>
             <p className="text-[11px] text-muted-foreground mt-2 font-medium">Себестоимость у провайдеров API</p>
             <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-danger/5 rounded-full blur-2xl group-hover:bg-danger/10 transition-colors pointer-events-none" />
@@ -177,7 +177,7 @@ export default async function AdminDashboardPage({
               </span>
             </div>
             <div className="text-2xl font-black text-foreground tabular-nums tracking-tight">
-              {formatKopecks(metrics.taxes)} ₽
+              {formatKopecks(metrics.taxes)}
             </div>
             <div className="mt-2 space-y-1">
               <p className="text-[10px] font-medium text-muted-foreground">
@@ -215,7 +215,7 @@ export default async function AdminDashboardPage({
               </span>
             </div>
             <div className="text-2xl font-black tabular-nums tracking-tight">
-              {formatKopecks(profitNet)} ₽
+              {formatKopecks(profitNet)}
             </div>
             <p className="text-[11px] opacity-80 mt-2 font-medium">
               {metrics.profitNet <= 0 
@@ -273,7 +273,7 @@ export default async function AdminDashboardPage({
                    </div>
                  </div>
               <div className="text-4xl font-extrabold text-foreground tabular-nums tracking-tight">
-                {netPositionStr} ₽
+                {netPositionStr}
               </div>
               <div className="mt-2 text-xs font-medium text-success bg-success/10 w-max px-2.5 py-1 rounded-md mb-8 shadow-sm">
                 Капитал за вычетом балансов юзеров
@@ -298,15 +298,15 @@ export default async function AdminDashboardPage({
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-background/50 backdrop-blur-sm p-3 rounded-xl border border-border/50 transition-all hover:border-success/30 hover:bg-success/5">
                   <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1 flex items-center justify-between">Все пополнения <span className="w-1.5 h-1.5 rounded-full bg-success"></span></div>
-                  <div className="font-bold text-foreground text-sm tabular-nums tracking-tight">{formatKopecks(revenueGross)} ₽</div>
+                  <div className="font-bold text-foreground text-sm tabular-nums tracking-tight">{formatKopecks(revenueGross)}</div>
                 </div>
                 <div className="bg-background/50 backdrop-blur-sm p-3 rounded-xl border border-border/50 transition-all hover:border-amber-500/30 hover:bg-warning/5">
                   <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1 flex items-center justify-between">Обязательства <span className="w-1.5 h-1.5 rounded-full bg-warning"></span></div>
-                  <div className="font-bold text-foreground text-sm tabular-nums tracking-tight">{formatKopecks(totalLiability)} ₽</div>
+                  <div className="font-bold text-foreground text-sm tabular-nums tracking-tight">{formatKopecks(totalLiability)}</div>
                 </div>
                 <div className="bg-background/50 backdrop-blur-sm p-3 rounded-xl border border-border/50 transition-all hover:border-primary/30 hover:bg-primary/5">
                    <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1 flex items-center justify-between">Чистая прибыль <span className="w-1.5 h-1.5 rounded-full bg-primary/50"></span></div>
-                   <div className="font-bold text-foreground text-sm tabular-nums tracking-tight">{formatKopecks(profitNet)} ₽</div>
+                   <div className="font-bold text-foreground text-sm tabular-nums tracking-tight">{formatKopecks(profitNet)}</div>
                  </div>
                </div>
              </div>
