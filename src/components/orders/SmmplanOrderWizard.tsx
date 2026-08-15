@@ -26,6 +26,7 @@ import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { formatCents } from '@/lib/utils';
 import { formatEtaSpeedBadge } from '@/utils/format-eta';
 import { UniversalOrderForm } from '@/components/orders/UniversalOrderForm';
+import { DashboardHeroLinkInput } from '@/components/orders/DashboardHeroLinkInput';
 
 function SmmplanOrderWizardInner({
   userEmail = '',
@@ -446,6 +447,34 @@ function SmmplanOrderWizardInner({
       {/* ── Step-by-Step Wizard Mode Render ── */}
       {activeTab === 'wizard' && (
         <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Shimmer Smart Link Input Bar (Landing Page Mirror) */}
+          <DashboardHeroLinkInput
+            link={link}
+            setLink={setLink}
+            networks={networks}
+            selectedNetwork={selectedNetwork}
+            setSelectedNetwork={(net) => {
+              setSelectedNetwork(net);
+              if (net) {
+                changeStep(2, undefined, undefined, net.id);
+              }
+            }}
+            selectedCategory={selectedCategory}
+            selectedService={selectedService}
+            step={step}
+            onAdvanceStep={() => {
+              if (selectedService) {
+                changeStep(4);
+              } else if (selectedCategory) {
+                changeStep(3);
+              } else if (selectedNetwork) {
+                changeStep(2);
+              } else {
+                changeStep(1);
+              }
+            }}
+          />
+
           {/* Progress Indicator */}
           <div className="grid grid-cols-4 gap-2 bg-card/40 p-2 rounded-2xl border border-border/40">
             {[

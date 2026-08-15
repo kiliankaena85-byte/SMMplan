@@ -2038,7 +2038,7 @@
   "/app/codebase/src/data/knowledge/14-vk-dogs-and-drops.mdx": "4958240cb9642426",
   "/app/codebase/src/app/dashboard/error.tsx": "d159ae667bde4d1b",
   "/app/codebase/src/components/orders/RepeatOrderButton.tsx": "f3e40db7ea991b0f",
-  "/app/codebase/src/components/dashboard/classic/ClassicDashboardHome.tsx": "d1ead238b7d00648",
+  "/app/codebase/src/components/dashboard/classic/ClassicDashboardHome.tsx": "73e0640fbe17b842",
   "/app/codebase/src/components/landing/order-engine/warnings/CustomFieldWarning.tsx": "c2086f56e5b319b2",
   "/app/codebase/src/data/knowledge/telegram-old-posts-views.mdx": "f1979ad98d50e86d",
   "/app/codebase/src/app/services/[network]/[category]/page.tsx": "849515f55a75b3cb",
@@ -2171,7 +2171,7 @@
   "/app/codebase/src/app/operator/orders/components/orders-filter.tsx": "19968b6efff68a3d",
   "/app/codebase/src/data/knowledge/vk_deleted_followers_dogs.md": "892c1773826640c0",
   "/app/codebase/src/components/admin/page-header.tsx": "745585e03e3d5509",
-  "/app/codebase/src/components/dashboard/classic/ClassicDashboardShell.tsx": "2ab220c363171fcc",
+  "/app/codebase/src/components/dashboard/classic/ClassicDashboardShell.tsx": "c7c56f768ef57dab",
   "/app/codebase/src/data/knowledge/20-instagram-shadowban-recovery.mdx": "40f96344106a4f46",
   "/app/codebase/src/lib/queue-manager.ts": "d5f376d9d98577d6",
   "/app/codebase/src/lib/admin-audit.ts": "deee1d52d60f7804",
@@ -2181,7 +2181,7 @@
   "/app/codebase/src/app/operator/orders/components/orders-table.tsx": "220761dd326152ff",
   "/app/codebase/src/components/landing/order-engine/wizard-steps/MobileStickyCTA.tsx": "d825b0d2fe5051c8",
   "/app/codebase/src/hooks/useMultiOrderEngine.ts": "476d87348502386b",
-  "/app/codebase/src/app/dashboard/sidebar-nav.tsx": "3f5bcaa234a95b04",
+  "/app/codebase/src/app/dashboard/sidebar-nav.tsx": "2cf1ef094705b81b",
   "/app/codebase/src/app/api/webhooks/vexboost/route.ts": "b3ac7a8e9612691e",
   "/app/codebase/src/components/seo/JsonLd.tsx": "11db31a631fef2a7",
   "/app/codebase/src/components/landing/SmartLinkLanding.tsx": "353d8137035acfd3",
@@ -2240,7 +2240,7 @@
   "/app/codebase/src/components/dashboard/transactions/TransactionsClient.tsx": "71c00d98c959e4cb",
   "/app/codebase/src/data/knowledge/12-telegram-auto-views.mdx": "e9ff2a884ea68b5b",
   "/app/codebase/src/lib/redis.ts": "491ec5bf9a50119e",
-  "/app/codebase/src/components/dashboard/balance/BalanceDisplay.tsx": "69c5eac56c7980a9",
+  "/app/codebase/src/components/dashboard/balance/BalanceDisplay.tsx": "5405d59abefb0330",
   "/app/codebase/src/components/admin/cms/DynamicEditor.tsx": "451affc0fdcebb47",
   "/app/codebase/src/components/operator/shell/operator-sidebar.tsx": "e2b974494f8cfd99",
   "/app/codebase/src/app/operator/tickets/components/ticket-chat.tsx": "ba468843b240bd09",
@@ -2781,5 +2781,6 @@
   "/app/codebase/scripts/deep-seo-audit.ts": "a0a7f008b234aad4",
   "/app/codebase/src/app/api/og/route.tsx": "77ddd6456fb30516",
   "/app/codebase/src/components/seo/LandingSeoHub.tsx": "75259c39eee28c15",
-  "/app/codebase/scripts/verify-seo-aeo-proofs.ts": "5f6e35c2e9341061"
+  "/app/codebase/scripts/verify-seo-aeo-proofs.ts": "5f6e35c2e9341061",
+  "/app/codebase/src/components/dashboard/UserCommandMenu.tsx": "a38651f6d0e479de"
 }
