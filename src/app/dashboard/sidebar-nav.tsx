@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import { BalanceDisplay } from '@/components/dashboard/balance/BalanceDisplay';
+import { UserCommandMenu } from '@/components/dashboard/UserCommandMenu';
 
 export const NAV = [
   { href: '/dashboard',              icon: LayoutDashboard, label: 'Главная'     },
@@ -65,8 +66,9 @@ export function SidebarNav({
       </div>
 
       {/* Balance display client component */}
-      <div className="p-3">
+      <div className="px-3 pt-3 pb-1 space-y-2.5">
         <BalanceDisplay initialBalance={balanceRub} variant="sidebar" />
+        <UserCommandMenu />
       </div>
 
       {/* Navigation */}
