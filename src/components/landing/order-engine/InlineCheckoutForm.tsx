@@ -12,6 +12,7 @@ import { DrawerPaymentSelector } from "./drawer/DrawerPaymentSelector";
 import { DripFeedConfigurator } from "./DripFeedConfigurator";
 import { LegalCheckbox } from "./LegalCheckbox";
 import { Button } from "@/components/ui/button";
+import { checkServiceRefill } from "@/utils/service-refill";
 
 interface InlineCheckoutFormProps {
   selectedService: PublicService | null;
@@ -188,12 +189,25 @@ export function InlineCheckoutForm({
             </div>
 
             {/* 🛡️ Risk Reversal & Security Note */}
-            <div className="p-3 rounded-2xl bg-primary/5 border border-primary/15 flex items-start gap-2.5 text-[11px] text-muted-foreground leading-relaxed">
-              <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-foreground">100% Безопасный запуск:</span> соблюдаем суточные лимиты соцсетей без ввода паролей. Если заказ задержится — автоматический возврат средств.
-              </div>
-            </div>
+            {(() => {
+              const { hasRefill } = selectedService ? checkServiceRefill(selectedService) : { hasRefill: false };
+              return (
+                <div className="p-3 rounded-2xl bg-primary/5 border border-primary/15 flex items-start gap-2.5 text-[11px] text-muted-foreground leading-relaxed">
+                  <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    {hasRefill ? (
+                      <>
+                        <span className="font-bold text-foreground">🛡️ Гарантия Refill активна:</span> действует защита от списаний с автоматической докруткой. Запуск без паролей.
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold text-foreground">100% Безопасный запуск:</span> соблюдаем суточные лимиты соцсетей без ввода паролей. При сбое или отмене — возврат средств.
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Legal terms agreement with Shake & Glow feedback on error */}
             <motion.div

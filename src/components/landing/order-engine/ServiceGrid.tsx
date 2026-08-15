@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Check, CheckCircle2, ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
+import { checkServiceRefill } from "@/utils/service-refill";
 
 export function ServiceGrid({ engine }: { engine: OrderEngine }) {
   const { services, selectedService, setSelectedService, networkId, catalog, isLoading } = engine;
@@ -48,11 +49,11 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
             <div className={`absolute inset-0 rounded-[2rem] opacity-0 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/20 to-transparent ${isSelected && !isQuarantined ? 'opacity-100' : 'group-hover:opacity-10'}`} />
           
           {(() => {
-            const isRefill = srv.name.toLowerCase().includes('гарант') || srv.name.toLowerCase().includes('refill') || (srv.description?.toLowerCase().includes('гарант') ?? false);
+            const { hasRefill, badgeLabel } = checkServiceRefill(srv);
             const isFast = srv.name.toLowerCase().includes('быстр') || srv.name.toLowerCase().includes('мгновен') || srv.name.toLowerCase().includes('speed');
             const displayBadge = srv.badge || (
-              isRefill
-                ? '🛡️ Refill Гарантия'
+              hasRefill
+                ? (badgeLabel || '🛡️ Refill Гарантия')
                 : isFast
                 ? '⚡️ Топ скорость'
                 : i === 0

@@ -264,7 +264,7 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
           speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',
           badge,
           isDripFeedEnabled: s.isDripFeedEnabled,
-          isRefillEnabled: s.isRefillEnabled,
+          isRefillEnabled: Boolean(s.isRefillEnabled),
           targetType: s.targetType,
           customDataType: s.customDataType,
           customDataLabel: s.customDataLabel,
