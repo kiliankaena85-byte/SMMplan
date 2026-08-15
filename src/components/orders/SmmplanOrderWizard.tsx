@@ -741,14 +741,14 @@ function SmmplanOrderWizardInner({
               }`}
             >
               {/* Selected Summary Banner */}
-              <div className="flex items-center justify-between p-4 bg-muted/40 rounded-2xl border border-border/50">
-                <div className="flex items-center gap-3">
-                  {selectedNetwork && <SocialIcon slug={selectedNetwork.slug || selectedNetwork.name} className="w-8 h-8" />}
-                  <div>
-                    <span className="text-xs font-semibold text-muted-foreground">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-muted/40 rounded-2xl border border-border/50">
+                <div className="flex items-center gap-3 min-w-0">
+                  {selectedNetwork && <SocialIcon slug={selectedNetwork.slug || selectedNetwork.name} className="w-8 h-8 shrink-0" />}
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-semibold text-muted-foreground block truncate">
                       {selectedNetwork?.name} / {selectedCategory?.name}
                     </span>
-                    <h3 className="text-base font-bold text-foreground truncate max-w-md">
+                    <h3 className="text-sm sm:text-base font-bold text-foreground truncate">
                       {selectedService.name}
                     </h3>
                     <span className="text-xs text-primary font-semibold block mt-0.5">
@@ -760,7 +760,7 @@ function SmmplanOrderWizardInner({
                 <button
                   type="button"
                   onClick={() => changeStep(3)}
-                  className="text-xs font-bold text-primary hover:underline px-3 py-1.5 rounded-lg bg-primary/10"
+                  className="text-xs font-bold text-primary hover:underline px-3 py-1.5 rounded-lg bg-primary/10 self-start sm:self-auto shrink-0"
                 >
                   Изменить
                 </button>
@@ -776,15 +776,16 @@ function SmmplanOrderWizardInner({
 
               {/* Link Input Field */}
               <div className="space-y-2">
-                <label className="text-sm font-bold text-foreground flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <LinkIcon className="w-4 h-4 text-primary" />
-                    Ссылка на объект продвижения <span className="text-destructive">*</span>
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <LinkIcon className="w-4 h-4 text-primary shrink-0" />
+                    <span>Ссылка на объект продвижения</span>
+                    <span className="text-destructive">*</span>
+                  </label>
                   <span className="text-xs text-muted-foreground font-normal">
                     {getTargetTypeHint(selectedCategory?.name, selectedService.targetType).hint}
                   </span>
-                </label>
+                </div>
 
                 <input
                   type="text"
@@ -942,14 +943,15 @@ function SmmplanOrderWizardInner({
 
               {/* Quantity Input Field */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <label className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                    <Hash className="w-4 h-4 text-primary" />
-                    Количество <span className="text-destructive">*</span>
+                    <Hash className="w-4 h-4 text-primary shrink-0" />
+                    <span>Количество</span>
+                    <span className="text-destructive">*</span>
                   </label>
 
                   <span className="text-xs text-muted-foreground font-medium">
-                    Мин: <strong>{selectedService.minQty}</strong> / Макс: <strong>{selectedService.maxQty.toLocaleString('ru-RU')}</strong>
+                    Лимиты: <strong>{selectedService.minQty}</strong> – <strong>{selectedService.maxQty.toLocaleString('ru-RU')}</strong> шт.
                   </span>
                 </div>
 
