@@ -37,27 +37,41 @@ export interface GeminiCallOptions {
 
 export class GeminiClient {
   /**
-   * Получает Dispatcher для работы через Прокси (из БД или .env).
+   * Получает список ProxyAgent диспетчеров (для Multi-Proxy Failover пула).
+   * Поддерживает несколько прокси через запятую или перевод строки.
    */
-  static async getDispatcher(): Promise<ProxyAgent | undefined> {
-    let proxyUrl =
+  static async getDispatchers(): Promise<Array<ProxyAgent | undefined>> {
+    let proxyRaw =
       process.env.GEMINI_PROXY ||
       process.env.HTTPS_PROXY ||
       process.env.HTTP_PROXY ||
-      process.env.ALL_PROXY;
+      process.env.ALL_PROXY ||
+      '';
 
-    // Пытаемся получить прокси из настроек БД
     try {
       const settings = await db.systemSettings.findFirst({ select: { geminiProxy: true } });
       if (settings?.geminiProxy && settings.geminiProxy.trim()) {
-        proxyUrl = settings.geminiProxy.trim();
+        proxyRaw = settings.geminiProxy.trim();
       }
     } catch {
       // Игнорируем ошибку при недоступности БД
     }
 
-    if (!proxyUrl) return undefined;
-    return new ProxyAgent(proxyUrl.trim());
+    const proxyUrls = proxyRaw
+      .split(/[,\n]/)
+      .map((p) => p.trim())
+      .filter((p) => p.startsWith('http://') || p.startsWith('https://') || p.startsWith('socks5://'));
+
+    if (proxyUrls.length === 0) {
+      return [undefined]; // Прямое соединение без прокси
+    }
+
+    return proxyUrls.map((url) => new ProxyAgent(url));
+  }
+
+  static async getDispatcher(): Promise<ProxyAgent | undefined> {
+    const list = await this.getDispatchers();
+    return list[0];
   }
 
   static getBaseUrl(): string {
@@ -133,12 +147,10 @@ export class GeminiClient {
     // 4. Ключи из .env
     candidateKeys.push(...this.getEnvApiKeys());
 
-    // Убираем дубликаты
     const uniqueKeys = Array.from(new Set(candidateKeys));
     if (uniqueKeys.length === 0) return [];
 
     const now = Date.now();
-    // Очищаем истекшие кулдауны
     for (const [key, expiresAt] of keyCooldownMap.entries()) {
       if (now >= expiresAt) {
         keyCooldownMap.delete(key);
@@ -173,44 +185,52 @@ export class GeminiClient {
 
     try {
       const baseUrl = this.getBaseUrl();
-      const dispatcher = await this.getDispatcher();
-      const res = await fetch(`${baseUrl}/v1beta/models?key=${apiKey}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        dispatcher,
-        signal: AbortSignal.timeout(5000),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      const dispatchers = await this.getDispatchers();
+      
+      for (const dispatcher of dispatchers) {
+        try {
+          const res = await fetch(`${baseUrl}/v1beta/models?key=${apiKey}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            dispatcher,
+            signal: AbortSignal.timeout(5000),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any);
 
-      if (res.ok) {
-        const data = await res.json();
-        const models = (data?.models || []) as Array<{
-          name: string;
-          supportedGenerationMethods?: string[];
-        }>;
+          if (res.ok) {
+            const data = await res.json();
+            const models = (data?.models || []) as Array<{
+              name: string;
+              supportedGenerationMethods?: string[];
+            }>;
 
-        const flashModels = models
-          .filter(
-            (m) =>
-              m.supportedGenerationMethods?.includes('generateContent') &&
-              m.name.includes('flash') &&
-              !m.name.includes('vision') &&
-              !m.name.includes('8b')
-          )
-          .map((m) => m.name.replace(/^models\//, ''));
+            const flashModels = models
+              .filter(
+                (m) =>
+                  m.supportedGenerationMethods?.includes('generateContent') &&
+                  m.name.includes('flash') &&
+                  !m.name.includes('vision') &&
+                  !m.name.includes('8b')
+              )
+              .map((m) => m.name.replace(/^models\//, ''));
 
-        if (flashModels.length > 0) {
-          flashModels.sort((a, b) => {
-            const getVer = (str: string) => {
-              const match = str.match(/gemini-(\d+(?:\.\d+)?)/);
-              return match ? parseFloat(match[1]) : 0;
-            };
-            return getVer(b) - getVer(a);
-          });
+            if (flashModels.length > 0) {
+              flashModels.sort((a, b) => {
+                const getVer = (str: string) => {
+                  const match = str.match(/gemini-(\d+(?:\.\d+)?)/);
+                  return match ? parseFloat(match[1]) : 0;
+                };
+                return getVer(b) - getVer(a);
+              });
 
-          const highestModel = flashModels[0];
-          modelCache = { resolvedModel: highestModel, cachedAt: now };
-          return highestModel;
+              const highestModel = flashModels[0];
+              modelCache = { resolvedModel: highestModel, cachedAt: now };
+              return highestModel;
+            }
+          }
+        } catch {
+          // Пробуем следующий диспетчер
+          continue;
         }
       }
     } catch (e) {
@@ -222,8 +242,8 @@ export class GeminiClient {
   }
 
   /**
-   * Выполняет запрос к Gemini с ротацией ключей, поддержкой персональных ключей сотрудников,
-   * прокси и каскадным перебором моделей.
+   * Выполняет запрос к Gemini с ротацией ключей, поддержкой пула прокси с авто-переключением (Multi-Proxy Failover)
+   * и каскадным перебором моделей.
    */
   static async generateContent(payload: GeminiCallOptions): Promise<string> {
     const activeKeys = await this.getActiveKeyPool(payload.staffUserId, payload.customApiKey);
@@ -231,7 +251,6 @@ export class GeminiClient {
       throw new Error('GEMINI_API_KEY / GEMINI_API_KEYS is not configured');
     }
 
-    // Выбираем ключ с учетом Round-Robin ротации
     const startIndex = keyRotationIndex % activeKeys.length;
     keyRotationIndex = (keyRotationIndex + 1) % 100000;
 
@@ -241,7 +260,7 @@ export class GeminiClient {
     ];
 
     let lastError: Error | null = null;
-    const dispatcher = await this.getDispatcher();
+    const dispatchers = await this.getDispatchers();
 
     for (const apiKey of keysToTry) {
       const primaryModel = await this.resolveLatestModel(apiKey);
@@ -250,70 +269,75 @@ export class GeminiClient {
       );
 
       for (const model of candidateModels) {
-        try {
-          const baseUrl = this.getBaseUrl();
-          const url = `${baseUrl}/v1beta/models/${model}:generateContent`;
+        // Перебираем прокси в случае сбоя соединения (Multi-Proxy Failover)
+        for (const dispatcher of dispatchers) {
+          try {
+            const baseUrl = this.getBaseUrl();
+            const url = `${baseUrl}/v1beta/models/${model}:generateContent`;
 
-          const body: Record<string, unknown> = {
-            contents: payload.contents,
-          };
-
-          if (payload.systemInstruction) {
-            body.system_instruction = {
-              parts: [{ text: payload.systemInstruction }],
+            const body: Record<string, unknown> = {
+              contents: payload.contents,
             };
-          }
 
-          if (payload.jsonMode || payload.temperature !== undefined) {
-            body.generationConfig = {
-              ...(payload.jsonMode ? { response_mime_type: 'application/json' } : {}),
-              ...(payload.temperature !== undefined ? { temperature: payload.temperature } : {}),
-            };
-          }
+            if (payload.systemInstruction) {
+              body.system_instruction = {
+                parts: [{ text: payload.systemInstruction }],
+              };
+            }
 
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': apiKey,
-            },
-            body: JSON.stringify(body),
-            dispatcher,
-            signal: AbortSignal.timeout(payload.timeoutMs || 25000),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any);
+            if (payload.jsonMode || payload.temperature !== undefined) {
+              body.generationConfig = {
+                ...(payload.jsonMode ? { response_mime_type: 'application/json' } : {}),
+                ...(payload.temperature !== undefined ? { temperature: payload.temperature } : {}),
+              };
+            }
 
-          if (res.status === 429 || res.status === 403) {
-            const errText = await res.text();
-            this.markKeyCooldown(apiKey, `HTTP ${res.status}: ${errText.slice(0, 100)}`);
-            break;
-          }
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey,
+              },
+              body: JSON.stringify(body),
+              dispatcher,
+              signal: AbortSignal.timeout(payload.timeoutMs || 25000),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any);
 
-          if (res.status === 404 || res.status === 400) {
-            console.warn(`[GeminiClient] Model ${model} returned HTTP ${res.status}. Trying next model in cascade...`);
-            modelCache = null;
+            if (res.status === 429 || res.status === 403) {
+              const errText = await res.text();
+              this.markKeyCooldown(apiKey, `HTTP ${res.status}: ${errText.slice(0, 100)}`);
+              break; // Меняем API-ключ
+            }
+
+            if (res.status === 404 || res.status === 400) {
+              console.warn(`[GeminiClient] Model ${model} returned HTTP ${res.status}. Trying next model in cascade...`);
+              modelCache = null;
+              break; // Меняем модель
+            }
+
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(`Gemini API HTTP ${res.status}: ${errText}`);
+            }
+
+            const data = await res.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (text) {
+              modelCache = { resolvedModel: model, cachedAt: Date.now() };
+              return text;
+            }
+          } catch (e: unknown) {
+            lastError = e instanceof Error ? e : new Error(String(e));
+            console.warn(`[GeminiClient] Proxy/Model attempt failed:`, lastError.message);
+            // Переходим к следующему прокси в пуле
             continue;
           }
-
-          if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Gemini API HTTP ${res.status}: ${errText}`);
-          }
-
-          const data = await res.json();
-          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-          if (text) {
-            modelCache = { resolvedModel: model, cachedAt: Date.now() };
-            return text;
-          }
-        } catch (e: unknown) {
-          lastError = e instanceof Error ? e : new Error(String(e));
-          console.warn(`[GeminiClient] Key ...${apiKey.slice(-6)} / Model ${model} failed:`, lastError.message);
         }
       }
     }
 
-    throw lastError || new Error('All Gemini API keys and models exhausted');
+    throw lastError || new Error('All Gemini API keys, proxies, and models exhausted');
   }
 }
