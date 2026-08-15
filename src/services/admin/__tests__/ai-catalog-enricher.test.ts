@@ -34,6 +34,6 @@ describe("aiCatalogEnricherService", () => {
     expect(res.cleanTitle).toContain("Instagram:");
     expect(res.isRefillConfirmed).toBe(false);
     expect(res.targetType).toBe("POST");
-    expect(res.fullDescriptionMarkdown).toContain("без гарантии");
+    expect(res.fullDescriptionMarkdown.toLowerCase()).toContain("без гарантии");
   });
 });

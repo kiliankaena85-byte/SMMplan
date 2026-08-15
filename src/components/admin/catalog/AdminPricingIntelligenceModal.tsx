@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAdminServicePricingIntelligence } from '@/actions/admin/pricing-intelligence';
+import { getServiceMarketComparison } from '@/actions/admin/market-intelligence';
 import type { AdminPricingIntelligenceDTO } from '@/services/admin/pricing-intelligence.service';
+import type { ServiceCompetitorComparison } from '@/services/admin/market-intelligence.service';
 import { Button } from '@/components/ui/button';
 
 interface AdminPricingIntelligenceModalProps {
@@ -18,15 +20,20 @@ export function AdminPricingIntelligenceModal({
 }: AdminPricingIntelligenceModalProps) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<AdminPricingIntelligenceDTO | null>(null);
+  const [marketData, setMarketData] = useState<ServiceCompetitorComparison | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && serviceId) {
       setLoading(true);
       setError(null);
-      getAdminServicePricingIntelligence(serviceId)
-        .then((res) => {
-          setData(res);
+      Promise.all([
+        getAdminServicePricingIntelligence(serviceId),
+        getServiceMarketComparison(serviceId).catch(() => null),
+      ])
+        .then(([pricingRes, marketRes]) => {
+          setData(pricingRes);
+          setMarketData(marketRes);
         })
         .catch((err) => {
           setError(err instanceof Error ? err.message : 'Ошибка загрузки ML-аналитики');
@@ -53,8 +60,8 @@ export function AdminPricingIntelligenceModal({
               🧠
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">ML Обоснование Наценки</h2>
-              <p className="text-xs text-muted-foreground">Финансовый аудит и юнит-экономика услуги</p>
+              <h2 className="text-lg font-bold text-foreground">ML Обоснование Наценки & Разведка</h2>
+              <p className="text-xs text-muted-foreground">Финансовый аудит, себестоимость и радар конкурентов (PrimeLike)</p>
             </div>
           </div>
           <button
@@ -71,7 +78,7 @@ export function AdminPricingIntelligenceModal({
           {loading && (
             <div className="py-12 flex flex-col items-center justify-center space-y-3">
               <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-muted-foreground animate-pulse">Анализ финансовых потоков и рисков...</p>
+              <p className="text-sm text-muted-foreground animate-pulse">Анализ финансовых потоков и цен конкурентов...</p>
             </div>
           )}
 
@@ -122,6 +129,64 @@ export function AdminPricingIntelligenceModal({
                   <span className="text-[10px] text-emerald-600/80">Gross Margin</span>
                 </div>
               </div>
+
+              {/* Competitive Intelligence Radar (PrimeLike vs Our Price vs Market) */}
+              {marketData && (
+                <div className="p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🛰️</span>
+                      <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                        Радар конкурентов (PrimeLike & Рынок)
+                      </span>
+                    </div>
+                    {marketData.primeLikeDeltaPercent !== null && (
+                      <span
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                          marketData.primeLikeDeltaPercent < 0
+                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                            : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                        }`}
+                      >
+                        {marketData.primeLikeDeltaPercent < 0
+                          ? `На ${Math.abs(marketData.primeLikeDeltaPercent)}% дешевле PrimeLike`
+                          : `На ${marketData.primeLikeDeltaPercent}% дороже PrimeLike`}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Competitor Price Comparison Bars */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-primary">SMMplan (Вы):</span>
+                      </div>
+                      <span className="font-bold text-primary">{marketData.ourPriceRub.toFixed(2)} ₽</span>
+                    </div>
+
+                    {marketData.competitors.map((comp) => (
+                      <div key={comp.name} className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <span className={comp.isDirect ? 'font-semibold text-foreground' : ''}>
+                            {comp.name} {comp.isDirect && <span className="text-[10px] text-primary">(Прямой)</span>}:
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span>{comp.priceRub.toFixed(2)} ₽</span>
+                          <span className="text-[10px] text-muted-foreground/80">
+                            ({comp.priceRub > marketData.ourPriceRub ? `+${comp.deltaPercent}%` : `${comp.deltaPercent}%`})
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Profit Optimization Advice */}
+                  <div className="pt-2 border-t border-border/50 text-xs text-muted-foreground leading-relaxed">
+                    💡 <strong className="text-foreground">Инсайт разведки:</strong> {marketData.profitOptimizationAdvice.narrative}
+                  </div>
+                </div>
+              )}
 
               {/* Income Allocation Breakdown */}
               <div className="p-4 rounded-xl bg-muted/20 border border-border space-y-3">
