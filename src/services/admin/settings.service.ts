@@ -37,6 +37,7 @@ class SettingsService {
             name: true,
           }
         },
+        geminiApiKey: true,
         createdAt: true,
         _count: { select: { orders: true, tickets: true } }
       }

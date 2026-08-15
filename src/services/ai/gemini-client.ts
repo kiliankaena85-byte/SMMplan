@@ -1,4 +1,6 @@
 import { ProxyAgent } from 'undici';
+import { db } from '@/lib/db';
+import { VaultService } from '@/lib/vault';
 
 // Приоритетный каскад моделей на случай недоступности или смены версий Google API
 const FALLBACK_MODEL_CASCADES = [
@@ -23,7 +25,9 @@ const KEY_COOLDOWN_MS = 5 * 60 * 1000; // 5 минут отлежки при и�
 
 let keyRotationIndex = 0;
 
-export interface GeminiCallPayload {
+export interface GeminiCallOptions {
+  staffUserId?: string;
+  customApiKey?: string;
   systemInstruction?: string;
   contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
   jsonMode?: boolean;
@@ -33,14 +37,24 @@ export interface GeminiCallPayload {
 
 export class GeminiClient {
   /**
-   * Получает Dispatcher для работы через Прокси (например, Clash Verge: http://127.0.0.1:7890)
+   * Получает Dispatcher для работы через Прокси (из БД или .env).
    */
-  static getDispatcher(): ProxyAgent | undefined {
-    const proxyUrl =
+  static async getDispatcher(): Promise<ProxyAgent | undefined> {
+    let proxyUrl =
       process.env.GEMINI_PROXY ||
       process.env.HTTPS_PROXY ||
       process.env.HTTP_PROXY ||
       process.env.ALL_PROXY;
+
+    // Пытаемся получить прокси из настроек БД
+    try {
+      const settings = await db.systemSettings.findFirst({ select: { geminiProxy: true } });
+      if (settings?.geminiProxy && settings.geminiProxy.trim()) {
+        proxyUrl = settings.geminiProxy.trim();
+      }
+    } catch {
+      // Игнорируем ошибку при недоступности БД
+    }
 
     if (!proxyUrl) return undefined;
     return new ProxyAgent(proxyUrl.trim());
@@ -51,24 +65,77 @@ export class GeminiClient {
   }
 
   /**
-   * Извлекает список доступных API-ключей из GEMINI_API_KEYS (через запятую) или GEMINI_API_KEY.
+   * Извлекает ключи из .env
    */
-  static getAvailableApiKeys(): string[] {
+  static getEnvApiKeys(): string[] {
     const raw = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
-    const keys = raw
+    return raw
       .split(/[,\n]/)
       .map((k) => k.trim())
       .filter((k) => k.length > 5);
+  }
 
-    return keys;
+  static getAvailableApiKeys(): string[] {
+    return this.getEnvApiKeys();
   }
 
   /**
-   * Возвращает пул активных ключей, отсеивая те, что находятся на кулдауне (429/403).
+   * Собирает многоуровневый пул ключей:
+   * 1. Персональный ключ сотрудника (User.geminiApiKey)
+   * 2. Глобальные ключи из админ-панели (SystemSettings.geminiApiKeys)
+   * 3. Переменные окружения (.env)
    */
-  static getActiveKeyPool(): string[] {
-    const allKeys = this.getAvailableApiKeys();
-    if (allKeys.length === 0) return [];
+  static async getActiveKeyPool(staffUserId?: string, customApiKey?: string): Promise<string[]> {
+    const candidateKeys: string[] = [];
+
+    // 1. Явно переданный ключ
+    if (customApiKey && customApiKey.trim().length > 5) {
+      candidateKeys.push(customApiKey.trim());
+    }
+
+    // 2. Персональный ключ сотрудника из БД
+    if (staffUserId) {
+      try {
+        const user = await db.user.findUnique({
+          where: { id: staffUserId },
+          select: { geminiApiKey: true },
+        });
+        if (user?.geminiApiKey) {
+          const decrypted = VaultService.decrypt(user.geminiApiKey);
+          if (decrypted && decrypted.trim().length > 5) {
+            candidateKeys.push(decrypted.trim());
+          }
+        }
+      } catch (err) {
+        console.warn(`[GeminiClient] Failed to read staff user key for ${staffUserId}:`, err);
+      }
+    }
+
+    // 3. Глобальные ключи из БД (SystemSettings)
+    try {
+      const settings = await db.systemSettings.findFirst({
+        select: { geminiApiKeys: true },
+      });
+      if (settings?.geminiApiKeys) {
+        const decrypted = VaultService.decrypt(settings.geminiApiKeys);
+        if (decrypted) {
+          const dbKeys = decrypted
+            .split(/[,\n]/)
+            .map((k) => k.trim())
+            .filter((k) => k.length > 5);
+          candidateKeys.push(...dbKeys);
+        }
+      }
+    } catch {
+      // Игнорируем ошибку при инициализации
+    }
+
+    // 4. Ключи из .env
+    candidateKeys.push(...this.getEnvApiKeys());
+
+    // Убираем дубликаты
+    const uniqueKeys = Array.from(new Set(candidateKeys));
+    if (uniqueKeys.length === 0) return [];
 
     const now = Date.now();
     // Очищаем истекшие кулдауны
@@ -78,9 +145,8 @@ export class GeminiClient {
       }
     }
 
-    const available = allKeys.filter((k) => !keyCooldownMap.has(k));
-    // Если все ключи на кулдауне, принудительно возвращаем все, чтобы попробовать снова
-    return available.length > 0 ? available : allKeys;
+    const available = uniqueKeys.filter((k) => !keyCooldownMap.has(k));
+    return available.length > 0 ? available : uniqueKeys;
   }
 
   /**
@@ -94,7 +160,6 @@ export class GeminiClient {
 
   /**
    * Динамически определяет самую свежую рабочую Flash-модель из официального Google API.
-   * Кэширует результат на 12 часов, чтобы не делать лишних запросов.
    */
   static async resolveLatestModel(apiKey: string): Promise<string> {
     if (process.env.GEMINI_MODEL) {
@@ -108,10 +173,11 @@ export class GeminiClient {
 
     try {
       const baseUrl = this.getBaseUrl();
+      const dispatcher = await this.getDispatcher();
       const res = await fetch(`${baseUrl}/v1beta/models?key=${apiKey}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        dispatcher: this.getDispatcher(),
+        dispatcher,
         signal: AbortSignal.timeout(5000),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
@@ -156,10 +222,11 @@ export class GeminiClient {
   }
 
   /**
-   * Выполняет запрос к Gemini с ротацией ключей, поддержкой прокси и каскадным перебором моделей.
+   * Выполняет запрос к Gemini с ротацией ключей, поддержкой персональных ключей сотрудников,
+   * прокси и каскадным перебором моделей.
    */
-  static async generateContent(payload: GeminiCallPayload): Promise<string> {
-    const activeKeys = this.getActiveKeyPool();
+  static async generateContent(payload: GeminiCallOptions): Promise<string> {
+    const activeKeys = await this.getActiveKeyPool(payload.staffUserId, payload.customApiKey);
     if (activeKeys.length === 0) {
       throw new Error('GEMINI_API_KEY / GEMINI_API_KEYS is not configured');
     }
@@ -168,22 +235,20 @@ export class GeminiClient {
     const startIndex = keyRotationIndex % activeKeys.length;
     keyRotationIndex = (keyRotationIndex + 1) % 100000;
 
-    // Упорядочиваем ключи начиная с выбранного
     const keysToTry = [
       ...activeKeys.slice(startIndex),
       ...activeKeys.slice(0, startIndex),
     ];
 
     let lastError: Error | null = null;
+    const dispatcher = await this.getDispatcher();
 
-    // Перебираем доступные ключи
     for (const apiKey of keysToTry) {
       const primaryModel = await this.resolveLatestModel(apiKey);
       const candidateModels = Array.from(
         new Set([primaryModel, ...FALLBACK_MODEL_CASCADES])
       );
 
-      // Перебираем модели для текущего ключа
       for (const model of candidateModels) {
         try {
           const baseUrl = this.getBaseUrl();
@@ -213,20 +278,17 @@ export class GeminiClient {
               'x-goog-api-key': apiKey,
             },
             body: JSON.stringify(body),
-            dispatcher: this.getDispatcher(),
+            dispatcher,
             signal: AbortSignal.timeout(payload.timeoutMs || 25000),
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any);
 
-          // Обработка исчерпания квоты / Rate limit (429) или невалидного ключа (403)
           if (res.status === 429 || res.status === 403) {
             const errText = await res.text();
             this.markKeyCooldown(apiKey, `HTTP ${res.status}: ${errText.slice(0, 100)}`);
-            // Прерываем перебор моделей для этого ключа и переходим к следующему ключу!
             break;
           }
 
-          // Если модель устарела (404/400), пробуем следующую модель из каскада
           if (res.status === 404 || res.status === 400) {
             console.warn(`[GeminiClient] Model ${model} returned HTTP ${res.status}. Trying next model in cascade...`);
             modelCache = null;

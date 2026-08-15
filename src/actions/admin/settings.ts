@@ -114,6 +114,8 @@ export async function updateGlobalSettings(formData: FormData) {
       safetyFloor,
       siteLogoUrl,
       siteFaviconUrl,
+      geminiApiKeys: rawGeminiKeys,
+      geminiProxy,
     } = parsed.data;
 
     const oldSettings = await db.systemSettings.findUnique({ where: { id: 'global' } });
@@ -212,6 +214,12 @@ export async function updateGlobalSettings(formData: FormData) {
     if (formData.has('supportEmailDomain') && supportEmailDomain !== null) dataToUpdate.supportEmailDomain = supportEmailDomain;
     if (rawInboundSecret && !isPlaceholder(rawInboundSecret)) dataToUpdate.inboundEmailWebhookSecret = VaultService.encrypt(rawInboundSecret);
 
+    // Google Gemini AI & Proxy
+    if (formData.has('geminiProxy') && geminiProxy !== null) dataToUpdate.geminiProxy = geminiProxy;
+    if (rawGeminiKeys && !isPlaceholder(rawGeminiKeys)) {
+      dataToUpdate.geminiApiKeys = VaultService.encrypt(rawGeminiKeys.trim());
+    }
+
     await settingsService.updateSystemSettings(dataToUpdate);
 
     // Atomic Re-pricing: trigger background sync if rate changed
@@ -225,7 +233,7 @@ export async function updateGlobalSettings(formData: FormData) {
 
     const ipAddress = await getClientIp();
 
-    const sensitiveKeys = ['yookassaSecretKey', 'yookassaTestSecretKey', 'cryptoBotToken', 'robokassaPassword', 'robokassaWebhookPassword', 'resendApiKey', 'smtpPassword', 'inboundEmailWebhookSecret'];
+    const sensitiveKeys = ['yookassaSecretKey', 'yookassaTestSecretKey', 'cryptoBotToken', 'robokassaPassword', 'robokassaWebhookPassword', 'resendApiKey', 'smtpPassword', 'inboundEmailWebhookSecret', 'geminiApiKeys'];
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const safeDataToUpdate: any = { ...dataToUpdate };
@@ -311,4 +319,38 @@ export async function generateInboundSecretAction() {
   }
   return result;
 }
+
+// ── Staff Personal Gemini API Key Update ──
+export async function updateStaffGeminiApiKeyAction(targetUserId: string, apiKey: string | null) {
+  return requireStaffPermission('settings', 'view', async (admin) => {
+    // Only owner/admin or the staff user themselves can change their key
+    if (admin.role !== 'OWNER' && admin.role !== 'ADMIN' && admin.id !== targetUserId) {
+      return { success: false, error: 'Недостаточно прав для изменения ключа сотрудника' };
+    }
+
+    const encryptedKey = apiKey && apiKey.trim().length > 5 ? VaultService.encrypt(apiKey.trim()) : null;
+
+    await db.user.update({
+      where: { id: targetUserId },
+      data: { geminiApiKey: encryptedKey }
+    });
+
+    const ipAddress = await getClientIp();
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'USER_ROLE_CHANGE',
+      target: targetUserId,
+      targetType: 'USER',
+      oldValue: { action: 'UPDATE_PERSONAL_GEMINI_KEY' },
+      newValue: { hasKey: Boolean(encryptedKey) },
+      ipAddress
+    });
+
+    revalidatePath('/admin/settings');
+    return { success: true };
+  });
+}
+
 

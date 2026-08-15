@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { updateGlobalSettings, generateInboundSecretAction } from '@/actions/admin/settings';
 import { toast } from 'sonner';
 import { useActionState, useEffect } from 'react';
-import { Loader2, Eye, EyeOff, Key } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Key, Sparkles, Bot, ShieldCheck } from 'lucide-react';
 
 interface IntegrationsSettingsProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -384,6 +384,86 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md">
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Сохранить настройки почты
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Card>
+
+      {/* ── SECTION 4: GOOGLE GEMINI AI & PROXY ── */}
+      <Card className="p-6 border-border/60 shadow-sm bg-card/40 backdrop-blur-xs relative overflow-hidden">
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 border-b border-border pb-4">
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-foreground">Google Gemini AI & Прокси для РФ</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                  gemini-3.7-flash
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Глобальный пул ключей для ИИ-рерайта каталога и генерации ответов техподдержки с авто-ротацией и проксированием Clash Verge.
+              </p>
+            </div>
+          </div>
+
+          <form action={formAction} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* API Keys Pool */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Глобальные API-ключи Gemini (через запятую)
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground font-mono">AES-256 Encrypted</span>
+                </div>
+                <Textarea
+                  name="geminiApiKeys"
+                  rows={3}
+                  placeholder={settings.geminiApiKeys ? '•••••••••••••••• (Ключи сохранены в зашифрованном виде)' : 'AIzaSyKey1..., AIzaSyKey2...'}
+                  className="font-mono text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  Система автоматически распределяет нагрузку между ключами (Round-Robin) и переключается при исчерпании лимитов (429).
+                </p>
+              </div>
+
+              {/* Proxy Settings */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Прокси для работы в РФ (Clash Verge / HTTP / SOCKS5)
+                </Label>
+                <Input
+                  name="geminiProxy"
+                  defaultValue={settings.geminiProxy || ''}
+                  placeholder="http://127.0.0.1:7890"
+                  className="font-mono text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  Для локального Clash Verge укажите порт <code>http://127.0.0.1:7890</code>. Для внешнего сервера: <code>http://user:pass@host:port</code>.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-card border border-border/80 flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <div className="text-xs text-muted-foreground leading-relaxed space-y-1">
+                <p className="font-semibold text-foreground">Персональные ключи сотрудников:</p>
+                <p>
+                  Каждый сотрудник (оператор, менеджер) может подключить свой личный API-ключ во вкладке <strong>«Команда»</strong>.
+                  При генерации ответов система сначала расходует личный ключ сотрудника, а при его отсутствии использует этот общий пул.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border flex justify-between items-center">
+              <p className="text-[10px] text-muted-foreground">Если поля не заполнены, используются настройки из .env</p>
+              <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md">
+                {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Сохранить настройки Gemini
               </Button>
             </div>
           </form>

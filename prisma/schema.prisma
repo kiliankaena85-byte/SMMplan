@@ -45,6 +45,9 @@ model User {
   adminNoteUpdatedAt DateTime? // When the note was last updated
   adminNoteUpdatedBy String? // Email of operator who wrote the note
 
+  // Personal AI API Key (Encrypted AES-256) for staff actions
+  geminiApiKey       String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -562,6 +565,10 @@ model SystemSettings {
   robokassaLogin    String?
   robokassaPassword String?
   robokassaWebhookPassword String?
+
+  // Google Gemini AI (Encrypted AES-256 pool & Proxy)
+  geminiApiKeys String?
+  geminiProxy   String?
 
   updatedAt DateTime @updatedAt
 

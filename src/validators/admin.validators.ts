@@ -140,6 +140,8 @@ export const globalSettingsSchema = z.object({
   safetyFloor: z.coerce.number().min(1, "Порог безопасности не должен быть меньше 1.0").max(100, "Порог безопасности не должен превышать 100.0").optional(),
   siteLogoUrl: z.string().trim().max(500).nullable().optional(),
   siteFaviconUrl: z.string().trim().max(500).nullable().optional(),
+  geminiApiKeys: z.string().trim().max(2000).nullable().optional(),
+  geminiProxy: z.string().trim().max(500).nullable().optional(),
 });
 
 // Orders

@@ -48,6 +48,7 @@ export default async function AdminSettingsPage({
     inboundEmailWebhookSecret: settings.inboundEmailWebhookSecret ? '••••••••••••••••' : null,
     robokassaPassword: settings.robokassaPassword ? '••••••••••••••••' : null,
     robokassaWebhookPassword: settings.robokassaWebhookPassword ? '••••••••••••••••' : null,
+    geminiApiKeys: settings.geminiApiKeys ? '••••••••••••••••' : null,
   };
 
   const regularUsers = users.filter((u) => u.id !== admin.id);

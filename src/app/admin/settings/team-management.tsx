@@ -18,7 +18,7 @@ import {
   updateStaffRolePermissionsAction, 
   deleteStaffRoleAction 
 } from '@/actions/admin/team';
-import { updateUserRole } from '@/actions/admin/settings';
+import { updateUserRole, updateStaffGeminiApiKeyAction } from '@/actions/admin/settings';
 import { toast } from 'sonner';
 import {
   Table,
@@ -92,7 +92,28 @@ export function TeamManagement({
     return initialLimits;
   });
 
+  // Gemini API Keys client-side state
+  const [staffGeminiKeys, setStaffGeminiKeys] = useState<Record<string, string>>({});
+  const [savingKeyForUserId, setSavingKeyForUserId] = useState<string | null>(null);
+
   const isOwner = currentAdminRole === 'OWNER';
+
+  async function handleSaveStaffGeminiKey(userId: string) {
+    const keyVal = staffGeminiKeys[userId];
+    setSavingKeyForUserId(userId);
+    try {
+      const res = await updateStaffGeminiApiKeyAction(userId, keyVal || null);
+      if (res.success) {
+        toast.success(keyVal ? 'Персональный ключ Gemini сохранен' : 'Персональный ключ удален (будет использоваться общий пул)');
+      } else {
+        toast.error(res.error || 'Ошибка при сохранении ключа');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка при сохранении ключа');
+    } finally {
+      setSavingKeyForUserId(null);
+    }
+  }
 
   async function handleUpdateLimit(formData: FormData) {
     try {
@@ -205,23 +226,26 @@ export function TeamManagement({
                 <TableRow>
                   <TableHead className="px-6 py-4">EMAIL</TableHead>
                   <TableHead className="px-6 py-4">НАЗНАЧЕНИЕ РОЛИ И ПРАВ</TableHead>
+                  <TableHead className="px-6 py-4">ПЕРСОНАЛЬНЫЙ GEMINI AI КЛЮЧ</TableHead>
                   <TableHead className="px-6 py-4 text-right">ДНЕВНОЙ ЛИМИТ (₽) И ДЕЙСТВИЕ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {staffUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="h-28 text-center text-xs text-muted-foreground">
+                    <TableCell colSpan={4} className="h-28 text-center text-xs text-muted-foreground">
                       Сотрудников нет
                     </TableCell>
                   </TableRow>
                 ) : (
                   staffUsers.map((u) => {
                     const supportLimitRub = limits[u.id] ? Math.round(parseFloat(limits[u.id]) * 100) : 0;
+                    const hasKey = Boolean(u.geminiApiKey);
+                    const isSaving = savingKeyForUserId === u.id;
                     return (
                       <TableRow key={u.id} className="hover:bg-muted/10 transition-colors">
                         <TableCell className="px-6 py-5">
-                          <span className="font-mono text-xs font-bold text-foreground bg-muted/40 px-2 py-1.5 rounded-lg border border-border/30 truncate max-w-[200px] inline-block" title={u.email}>{u.email}</span>
+                          <span className="font-mono text-xs font-bold text-foreground bg-muted/40 px-2 py-1.5 rounded-lg border border-border/30 truncate max-w-[180px] inline-block" title={u.email}>{u.email}</span>
                         </TableCell>
                         <TableCell className="px-6 py-5">
                           <form action={handleUpdateRole} className="flex flex-col sm:flex-row gap-4 items-center">
@@ -248,7 +272,7 @@ export function TeamManagement({
                             <div className="flex flex-col gap-1 w-full sm:w-auto">
                               <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Группа прав</span>
                               <Select name="staffRoleId" defaultValue={u.staffRoleId || 'NONE'}>
-                                <SelectTrigger className="w-full sm:w-48 h-11 bg-background text-xs font-bold rounded-xl" size="default">
+                                <SelectTrigger className="w-full sm:w-44 h-11 bg-background text-xs font-bold rounded-xl" size="default">
                                   <SelectValue>
                                     {(value: string) => {
                                       if (!value || value === 'NONE') return 'Все права (OWNER)';
@@ -271,6 +295,38 @@ export function TeamManagement({
                           </form>
                         </TableCell>
                         <TableCell className="px-6 py-5">
+                          <div className="flex flex-col gap-1.5 min-w-[200px]">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Ключ сотрудника</span>
+                              {hasKey ? (
+                                <Badge intent="outline" className="text-[9px] py-0 px-1.5 border-emerald-500/30 text-emerald-500 bg-emerald-500/10">
+                                  🟢 Свой ключ
+                                </Badge>
+                              ) : (
+                                <span className="text-[9px] text-muted-foreground">⚪️ Общий пул</span>
+                              )}
+                            </div>
+                            <div className="flex gap-1.5 items-center">
+                              <Input
+                                type="password"
+                                placeholder={hasKey ? '••••••••••••••••' : 'AIzaSy... (Личный ключ)'}
+                                value={staffGeminiKeys[u.id] ?? ''}
+                                onChange={(e) => setStaffGeminiKeys(prev => ({ ...prev, [u.id]: e.target.value }))}
+                                className="h-9 font-mono text-xs rounded-lg"
+                              />
+                              <Button
+                                size="sm"
+                                intent="outline"
+                                disabled={isSaving}
+                                onClick={() => handleSaveStaffGeminiKey(u.id)}
+                                className="h-9 px-2.5 font-bold text-[10px] uppercase tracking-wider shrink-0"
+                              >
+                                {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
+                              </Button>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-5">
                           <form action={handleUpdateLimit} className="flex gap-2 items-center justify-end">
                             <input type="hidden" name="userId" value={u.id} />
                             <Input 
@@ -278,7 +334,7 @@ export function TeamManagement({
                               step="0.01"
                               value={limits[u.id] ?? ''} 
                               onChange={e => setLimits(prev => ({ ...prev, [u.id]: e.target.value }))}
-                              className="w-32 h-11 text-right font-mono font-bold text-xs rounded-xl"
+                              className="w-28 h-11 text-right font-mono font-bold text-xs rounded-xl"
                             />
                             <input 
                               type="hidden" 
@@ -303,6 +359,8 @@ export function TeamManagement({
             ) : (
               staffUsers.map((u) => {
                 const supportLimitRub = limits[u.id] ? Math.round(parseFloat(limits[u.id]) * 100) : 0;
+                const hasKey = Boolean(u.geminiApiKey);
+                const isSaving = savingKeyForUserId === u.id;
                 return (
                   <div key={u.id} className="p-4 space-y-4">
                     <div className="flex justify-between items-center gap-2">
@@ -352,6 +410,38 @@ export function TeamManagement({
                       </div>
                       <SubmitButton label="Сменить роль" className="w-full h-10 text-xs" />
                     </form>
+
+                    {/* Mobile Gemini API Key */}
+                    <div className="p-3 rounded-xl border border-border/40 bg-muted/20 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Личный Gemini API-ключ</span>
+                        {hasKey ? (
+                          <Badge intent="outline" className="text-[9px] py-0 px-1.5 border-emerald-500/30 text-emerald-500 bg-emerald-500/10">
+                            🟢 Свой ключ
+                          </Badge>
+                        ) : (
+                          <span className="text-[9px] text-muted-foreground">⚪️ Общий пул</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          type="password"
+                          placeholder={hasKey ? '••••••••••••••••' : 'AIzaSy...'}
+                          value={staffGeminiKeys[u.id] ?? ''}
+                          onChange={(e) => setStaffGeminiKeys(prev => ({ ...prev, [u.id]: e.target.value }))}
+                          className="h-10 font-mono text-xs rounded-xl flex-1"
+                        />
+                        <Button
+                          size="sm"
+                          intent="outline"
+                          disabled={isSaving}
+                          onClick={() => handleSaveStaffGeminiKey(u.id)}
+                          className="h-10 px-3 font-bold text-xs uppercase tracking-wider shrink-0"
+                        >
+                          {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Сохранить'}
+                        </Button>
+                      </div>
+                    </div>
 
                     <form action={handleUpdateLimit} className="flex gap-3 items-center justify-between p-3 rounded-xl border border-border/40 bg-muted/20">
                       <input type="hidden" name="userId" value={u.id} />
