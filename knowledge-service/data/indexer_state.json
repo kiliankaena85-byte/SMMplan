@@ -2807,5 +2807,6 @@
   "/app/codebase/scripts/capture-admin-visuals.ts": "00ec8fb6be64ea21",
   "/app/codebase/scripts/capture-ml-modal.ts": "f5e33b661f553afa",
   "/app/codebase/scripts/capture-all-admin-tabs.ts": "ff78bda3cb04ebcf",
-  "/app/codebase/scripts/seed-massive-catalog.ts": "8e15f0e116dd30e7"
+  "/app/codebase/scripts/seed-massive-catalog.ts": "3af41a0cbd76a411",
+  "/app/codebase/scripts/seed-enterprise-catalog-800.ts": "55f3789224c73aab"
 }
