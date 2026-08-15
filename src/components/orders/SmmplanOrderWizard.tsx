@@ -418,7 +418,7 @@ function SmmplanOrderWizardInner({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-primary" />
+            <Sparkles className="w-4 h-4 text-primary shrink-0" />
             Пошаговый выбор
           </button>
 
@@ -431,7 +431,7 @@ function SmmplanOrderWizardInner({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Zap className="w-4 h-4 text-amber-500" />
+            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
             Быстрый ввод ссылок
           </button>
         </div>
@@ -584,22 +584,22 @@ function SmmplanOrderWizardInner({
                   <button
                     type="button"
                     onClick={() => changeStep(1)}
-                    className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground transition-all"
+                    className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground transition-all shrink-0"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-4 h-4 shrink-0" />
                   </button>
 
-                  <div className="flex items-center gap-2">
-                    {selectedNetwork && <SocialIcon slug={selectedNetwork.slug || selectedNetwork.name} className="w-6 h-6" />}
-                    <div>
-                      <h2 className="text-xl font-bold text-foreground">Шаг 2: Категория ({selectedNetwork?.name})</h2>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {selectedNetwork && <SocialIcon slug={selectedNetwork.slug || selectedNetwork.name} className="w-6 h-6 shrink-0" />}
+                    <div className="min-w-0">
+                      <h2 className="text-xl font-bold text-foreground truncate">Шаг 2: Категория ({selectedNetwork?.name})</h2>
                       <p className="text-muted-foreground text-xs">Выберите направление услуги</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="relative w-full md:w-56">
-                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground shrink-0" />
                   <input
                     type="text"
                     value={searchCategory}
@@ -628,13 +628,13 @@ function SmmplanOrderWizardInner({
                           : 'border-border/60 bg-background/60 hover:bg-card hover:border-primary/40'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                          <Layers className="w-4 h-4" />
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                          <Layers className="w-4 h-4 shrink-0" />
                         </div>
-                        <span className="text-sm font-semibold text-foreground">{cat.name}</span>
+                        <span className="text-sm font-semibold text-foreground truncate">{cat.name}</span>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                     </button>
                   );
                 })}
@@ -650,9 +650,9 @@ function SmmplanOrderWizardInner({
                   <button
                     type="button"
                     onClick={() => changeStep(2)}
-                    className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground transition-all"
+                    className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-foreground transition-all shrink-0"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-4 h-4 shrink-0" />
                   </button>
 
                   <div>

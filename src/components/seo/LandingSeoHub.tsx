@@ -225,7 +225,7 @@ export function LandingSeoHub({
             </h2>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground bg-secondary px-3 py-1.5 rounded-xl w-fit">
-            <Sparkles className="w-4 h-4 text-amber-500" />
+            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
             <span>Верифицировано {siteName}</span>
           </div>
         </div>
@@ -332,7 +332,7 @@ export function LandingSeoHub({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 text-xs">
           <div className="space-y-2">
             <h3 className="font-extrabold text-foreground text-sm flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
+              <Zap className="w-4 h-4 text-primary shrink-0" />
               Влияние на умную ленту и охваты
             </h3>
             <p className="text-muted-foreground leading-relaxed">
@@ -342,7 +342,7 @@ export function LandingSeoHub({
 
           <div className="space-y-2">
             <h3 className="font-extrabold text-foreground text-sm flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
               Белые методы без риска блокировки
             </h3>
             <p className="text-muted-foreground leading-relaxed">
@@ -403,11 +403,11 @@ export function LandingSeoHub({
       {/* ── 6. КОММЕРЧЕСКИЕ ПЛАТЕЖНЫЕ ЛОГОТИПЫ (ДОВЕРИЕ ЯНДЕКСА) ── */}
       <div className="pt-6 border-t border-border flex flex-wrap items-center justify-between gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-3 font-semibold">
-          <CreditCard className="w-4 h-4 text-primary" />
+          <CreditCard className="w-4 h-4 text-primary shrink-0" />
           <span>Безопасная оплата: МИР, СБП, Visa, Mastercard, T-Pay, SberPay</span>
         </div>
         <div className="flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400">
-          <ShieldCheck className="w-4 h-4" />
+          <ShieldCheck className="w-4 h-4 shrink-0" />
           <span>Электронный чек 54-ФЗ на email</span>
         </div>
       </div>

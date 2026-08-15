@@ -146,7 +146,7 @@ export function MobileBottomNav() {
               active ? 'text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-5 h-5 shrink-0" />
             <span className={`text-[10px] tracking-tight ${active ? 'font-black' : 'font-semibold'}`}>
               {label}
             </span>
