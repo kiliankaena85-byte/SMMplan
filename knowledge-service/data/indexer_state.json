@@ -172,7 +172,7 @@
   "/app/codebase/scripts/storm-test.ts": "ce844ab687e31bf6",
   "/app/codebase/src/workers/processors/__tests__/sync.processor.test.ts": "ebe5550a5579b995",
   "/app/codebase/.agents/worker_milestone1_3/SKILL_delivery_engineer_v3.md": "c27e45c4f0144cef",
-  "/app/codebase/src/app/admin/finance/page.tsx": "9bb5c2561ae8d1e2",
+  "/app/codebase/src/app/admin/finance/page.tsx": "b26699e01b3abd11",
   "/app/codebase/docs/secops/SECURITY_POLICY.md": "74af7e804cc6e1b9",
   "/app/codebase/scripts/seed-volume.ts": "b623dbdb92a968c7",
   "/app/codebase/plans/021-external-http-timeout-hardening.md": "7536430ce1b2ebb7",
@@ -2806,5 +2806,6 @@
   "/app/codebase/src/services/admin/__tests__/market-intelligence.test.ts": "1d52d3f10572a498",
   "/app/codebase/scripts/capture-admin-visuals.ts": "00ec8fb6be64ea21",
   "/app/codebase/scripts/capture-ml-modal.ts": "f5e33b661f553afa",
-  "/app/codebase/scripts/capture-all-admin-tabs.ts": "ff78bda3cb04ebcf"
+  "/app/codebase/scripts/capture-all-admin-tabs.ts": "ff78bda3cb04ebcf",
+  "/app/codebase/scripts/seed-massive-catalog.ts": "8e15f0e116dd30e7"
 }
