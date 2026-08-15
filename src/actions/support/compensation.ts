@@ -75,6 +75,7 @@ export async function logManualCompensation(formData: FormData) {
           throw new Error(policyCheck.error);
         }
 
+        // eslint-disable-next-line no-useless-assignment
         let ledgerEntryId: string | undefined = undefined;
 
         // Perform financial wallet modification via WalletOps

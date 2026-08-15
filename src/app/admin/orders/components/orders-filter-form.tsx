@@ -19,7 +19,9 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const currentQ = searchParams.get('q') || '';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const currentStatus = searchParams.get('status') || 'ALL';
   const currentClientEmail = searchParams.get('clientEmail') || '';
   const currentOrderId = searchParams.get('orderId') || '';

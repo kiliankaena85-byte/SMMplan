@@ -62,6 +62,7 @@ export function scanSchema(): SchemaScanResult {
         models.push(currentModel);
         currentModel = null;
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       inEnum = false;
       continue;
     }

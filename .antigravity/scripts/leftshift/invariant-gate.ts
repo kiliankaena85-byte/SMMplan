@@ -11,6 +11,7 @@ export interface InvariantGateResult {
   timestamp: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const safeJsonStringify = (obj: any) =>
   JSON.stringify(obj, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2);
 

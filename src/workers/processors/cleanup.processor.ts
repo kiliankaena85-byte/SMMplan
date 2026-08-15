@@ -433,6 +433,7 @@ export async function runInProgressTTLSweep(): Promise<void> {
               remains = parsedRemains;
             }
           }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (apiErr: any) {
           log.error('Failed to get status from provider during TTL sweep, falling back to local database values', { orderId: order.id, error: apiErr.message });
           if (apiErr.message?.includes('Incorrect order ID') || apiErr.message?.includes('not found') || apiErr.message?.includes('not exist')) {
@@ -602,6 +603,7 @@ async function runPendingCheckTTLSweep(): Promise<void> {
         const provider = await providerService.getWorkerProviderInstance(order.service.provider);
         const providerStatus = await provider.getOrderStatus(order.externalId);
         statusFromProvider = providerStatus.status?.toLowerCase() || null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (apiErr: any) {
         log.error('Failed to get status from provider during PENDING_CHECK TTL sweep', { orderId: order.id, error: apiErr.message });
         if (apiErr.message?.includes('Incorrect order ID') || apiErr.message?.includes('not found') || apiErr.message?.includes('not exist')) {

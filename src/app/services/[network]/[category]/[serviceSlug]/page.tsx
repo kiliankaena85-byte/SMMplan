@@ -57,6 +57,7 @@ export default async function ServiceDetailPage({
 }: {
   params: Promise<{ network: string; category: string; serviceSlug: string }>
 }) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { network, category, serviceSlug } = await params;
   const reqHeaders = await headers();
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));

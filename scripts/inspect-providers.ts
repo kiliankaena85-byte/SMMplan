@@ -1,13 +1,5 @@
-import { db } from '../src/lib/db';
+import * as fs from 'fs';
 
-async function main() {
-  const providers = await db.provider.findMany();
-  console.log("Providers count:", providers.length);
-  for (const p of providers) {
-    console.log(`ID: ${p.id}, Name: ${p.name}, API URL: ${p.apiUrl}, Key length: ${p.apiKey?.length}, Active: ${p.isActive}`);
-  }
-}
-
-main()
-  .catch(console.error)
-  .finally(() => db.$disconnect());
+const curated = JSON.parse(fs.readFileSync('scripts/curated-catalog.json', 'utf-8'));
+const providerNames = new Set(curated.map((s: any) => s.providerName));
+console.log('Unique Provider Names in curated-catalog.json:', Array.from(providerNames));

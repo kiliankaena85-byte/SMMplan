@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import React from "react";
 import { db } from "@/lib/db";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { JsonLd } from "@/components/seo/JsonLd";
 import { headers } from "next/headers";
 import { SettingsProvider } from "@/lib/settings";
@@ -294,6 +295,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   }
 
   // Schema.org structured data setup
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const schemas: any[] = [
     {
       "@context": "https://schema.org",

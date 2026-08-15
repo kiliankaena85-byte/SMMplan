@@ -67,6 +67,7 @@ export default function PaymentRedirectPage() {
 
         // Continue polling
         timeoutId = setTimeout(pollStatus, 1500);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         if (!isMounted) return;
         setStatus('error');

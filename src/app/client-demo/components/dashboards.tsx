@@ -197,6 +197,7 @@ export const DASHBOARD_DATA = {
 /* ==========================================================================
    SMMPLAN DASHBOARD COMPONENT (SaaS Terminal Professional)
    ========================================================================== */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function SmmPlanDashboard({ isPreviewMode = false }: { isPreviewMode?: boolean }) {
   const [selectedNetwork, setSelectedNetwork] = useState('tg');
   const [selectedCategory, setSelectedCategory] = useState('subs');
@@ -672,8 +673,10 @@ export function SmmPlanDashboard({ isPreviewMode = false }: { isPreviewMode?: bo
 /* ==========================================================================
    SMMFLUX DASHBOARD COMPONENT (Aurora Consumer App)
    ========================================================================== */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function SmmFluxDashboard({ isPreviewMode = false }: { isPreviewMode?: boolean }) {
   const [selectedNetwork, setSelectedNetwork] = useState('tg');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedCategory, setSelectedCategory] = useState('subs');
   const [selectedTariff, setSelectedTariff] = useState('std');
 
@@ -871,7 +874,7 @@ export function SmmFluxDashboard({ isPreviewMode = false }: { isPreviewMode?: bo
                 { id: 'ig', label: 'Instagram', icon: '📸' },
                 { id: 'yt', label: 'YouTube', icon: '▶️' },
                 { id: 'tt', label: 'TikTok', icon: '🎵' },
-                { id: 'vk', label: 'VKontakte', icon: '🟦' },
+                { id: 'vk', label: 'VK', icon: '🟦' },
               ].map((chip) => {
                 const isSelected = selectedNetwork === chip.id;
                 return (

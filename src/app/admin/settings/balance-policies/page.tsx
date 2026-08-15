@@ -36,6 +36,7 @@ interface PolicyItem {
 
 export default function BalancePoliciesPage() {
   const [policies, setPolicies] = useState<PolicyItem[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -124,6 +125,7 @@ export default function BalancePoliciesPage() {
       } else {
         setError(res.error || "Не удалось сохранить политику");
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || "Ошибка системы");
     } finally {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Card, Button, Checkbox } from '@heroui/react';
 import { ShieldAlert, AlertTriangle } from 'lucide-react';
 import { getEmployeeConsentStatusAction, acceptEmployeeResponsibilityConsentAction } from '@/actions/admin/legal-consent';
@@ -44,6 +45,7 @@ export function EmployeeConsentModalGuard({ children }: { children: React.ReactN
         setHasConsent(true);
         setIsOpen(false);
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       alert(err.message || 'Ошибка принятия согласия');
     } finally {

@@ -135,6 +135,7 @@ export class SettingsProvider {
 
     try {
       if (SettingsProvider.isTestEnvironment()) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         localSettingsCache[targetTenantId] = undefined as any;
         const fresh = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
         if (fresh) return fresh;

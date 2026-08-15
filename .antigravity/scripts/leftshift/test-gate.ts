@@ -11,6 +11,7 @@ export interface TestGateResult {
 }
 
 export function runTestGate(baseCommit?: string): TestGateResult {
+  // eslint-disable-next-line no-useless-assignment
   let changedFiles: string[] = [];
   try {
     const gitDiffOutput = baseCommit
@@ -21,6 +22,7 @@ export function runTestGate(baseCommit?: string): TestGateResult {
       .split('\n')
       .map(line => line.trim().replace(/^..\s+/, ''))
       .filter(Boolean);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (err) {
     changedFiles = [];
   }

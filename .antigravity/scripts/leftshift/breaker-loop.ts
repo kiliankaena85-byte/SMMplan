@@ -42,7 +42,9 @@ export function runBreakerLoop(): BreakerReport {
 
   for (const vec of attackVectors) {
     const start = Date.now();
+    // eslint-disable-next-line no-useless-assignment
     let result: 'blocked' | 'exploited' = 'blocked';
+    // eslint-disable-next-line no-useless-assignment
     let evidence = '';
 
     try {
@@ -56,6 +58,7 @@ export function runBreakerLoop(): BreakerReport {
       const lines = output.split('\n');
       const passLine = lines.find(l => l.includes('passed') || l.includes('Test Files')) || lines.slice(-5).join(' ');
       evidence = `Command executed cleanly. Summary: ${passLine.trim()}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       result = 'exploited'; // Test suite failed -> attack succeeded in exploiting system!
       evidence = `Attack test failed with exit code ${err.status}: ${err.stderr || err.stdout || err.message}`;

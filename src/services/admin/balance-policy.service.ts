@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { BalanceAdjustmentPolicy } from "@prisma/client";
 import { BALANCE_ADJUSTMENT_REASONS } from "@/constants/balance-adjustments";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getEffectiveBalancePolicy(staffUserId: string, client: any = db): Promise<BalanceAdjustmentPolicy | null> {
   const staffUser = await client.user.findUnique({
     where: { id: staffUserId },

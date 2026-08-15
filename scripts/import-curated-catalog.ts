@@ -29,7 +29,7 @@ interface CuratedService {
 
 // Platform → slug mapping
 const PLATFORM_SLUGS: Record<string, string> = {
-  'TELEGRAM': 'telegram', 'VK': 'vkontakte', 'INSTAGRAM': 'instagram',
+  'TELEGRAM': 'telegram', 'VK': 'vk', 'INSTAGRAM': 'instagram',
   'YOUTUBE': 'youtube', 'TIKTOK': 'tiktok', 'TWITTER': 'twitter',
   'TWITCH': 'twitch', 'KICK': 'kick', 'FACEBOOK': 'facebook',
   'OK': 'ok', 'RUTUBE': 'rutube', 'DISCORD': 'discord',
@@ -70,13 +70,30 @@ async function main() {
     console.log(`⚠️  В базе ${orderCount} заказов. Услуги с заказами будут деактивированы, не удалены.`);
   }
   
-  // 3. Load providers
+  // 3. Load or create providers
   const providers = await db.provider.findMany();
   const providerMap = new Map<string, string>();
   for (const p of providers) {
     providerMap.set(p.name, p.id);
   }
-  console.log(`Провайдеров в базе: ${providers.length}`);
+  
+  const uniqueProviders = new Set(curated.map(s => s.providerName));
+  for (const provName of uniqueProviders) {
+    if (!providerMap.has(provName)) {
+      const created = await db.provider.create({
+        data: {
+          name: provName,
+          apiUrl: `https://api.${provName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com/v2`,
+          apiKey: 'test-api-key',
+          balanceCurrency: 'USD',
+          isActive: true
+        }
+      });
+      providerMap.set(provName, created.id);
+      console.log(`  ✅ Создан провайдер: ${provName}`);
+    }
+  }
+  console.log(`Провайдеров готово: ${providerMap.size}`);
   
   // 4. Deactivate ALL existing services
   console.log('\n--- Шаг 1: Деактивация старых услуг ---');

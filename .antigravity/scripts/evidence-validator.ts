@@ -13,6 +13,7 @@ export interface EvidenceControl {
   positive_tests?: string[];
   negative_tests?: string[];
   concurrency_tests?: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sql_checks?: any[];
   reconciliation_output?: string | object;
   logs?: string[];
@@ -75,6 +76,7 @@ function isPlaceholderText(text: string | undefined | null): boolean {
   return trimmed === '' || PLACEHOLDERS.includes(trimmed);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function validateJsonSchema(pack: any): string[] {
   const schemaErrors: string[] = [];
   if (!pack || typeof pack !== 'object') {

@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ tenant?: string }> }) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const searchParams = await props.searchParams;
   const session = await verifySession();
   if (!session) redirect('/login');

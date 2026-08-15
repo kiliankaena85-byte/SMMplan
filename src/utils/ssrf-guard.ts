@@ -54,6 +54,7 @@ export async function assertSafeUrl(url: string): Promise<void> {
       throw err;
     }
     // If DNS resolution fails, throw invalid target error
+    // eslint-disable-next-line preserve-caught-error
     throw new Error(`Failed to resolve target hostname: ${hostname}`);
   }
 }

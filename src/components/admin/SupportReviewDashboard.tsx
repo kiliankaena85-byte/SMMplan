@@ -5,6 +5,7 @@ import { ShieldAlert, Download, Filter } from 'lucide-react';
 import { getSupportActionsReviewListAction, reviewSupportFinancialAction, exportSupportActionsCSVAction } from '@/actions/admin/support-review';
 
 export function SupportReviewDashboard() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -42,6 +43,7 @@ export function SupportReviewDashboard() {
       } else {
         alert(res.error);
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       alert(err.message || 'Ошибка обновления статуса');
     }
@@ -59,6 +61,7 @@ export function SupportReviewDashboard() {
         a.click();
         URL.revokeObjectURL(url);
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       alert(err.message || 'Ошибка экспорта CSV');
     }

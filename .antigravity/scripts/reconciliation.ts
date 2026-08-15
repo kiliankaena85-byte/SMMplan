@@ -6,6 +6,7 @@ export interface ReconciliationCheckResult {
   check_id: string;
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
   query: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rows: any[];
   passed: boolean;
   error?: string;
@@ -164,6 +165,7 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
 
   for (const item of checkQueries) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows = await db.$queryRawUnsafe<any[]>(item.query);
       const passed = rows.length === 0;
 
@@ -179,6 +181,7 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
         rows,
         passed
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       checks.push({
         check_id: item.id,

@@ -1,0 +1,36 @@
+[
+  {
+    "testId": "EVD-001",
+    "category": "Concurrency / Race Condition",
+    "name": "20 Parallel Deductions with Single-Balance Budget",
+    "timestamp": "2026-08-15T03:30:51.536Z",
+    "durationMs": 121,
+    "inputPayload": {
+      "initialBalance": 50000,
+      "attemptCount": 20,
+      "costPerAttempt": 50000
+    },
+    "databaseProof": {
+      "affectedRows": 1,
+      "postConditionHash": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    "verdict": "PASS",
+    "rawOutput": "Success: 1, Rejected: 19, Final Balance in DB: 0"
+  },
+  {
+    "testId": "EVD-002",
+    "category": "Financial Ledger Integrity",
+    "name": "PostgreSQL Native Trigger DELETE Block",
+    "timestamp": "2026-08-15T03:30:51.553Z",
+    "durationMs": 16,
+    "inputPayload": {
+      "targetLedgerId": "cmsttjgnl000m1buw449l962p"
+    },
+    "databaseProof": {
+      "affectedRows": 0,
+      "immutableTriggerFired": true
+    },
+    "verdict": "PASS",
+    "rawOutput": "PostgreSQL Trigger P0001 successfully raised an exception on DELETE statement"
+  }
+]

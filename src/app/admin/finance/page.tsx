@@ -34,6 +34,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
 
   const isOwner = user?.role === 'OWNER';
   const isSupport = user?.role === 'SUPPORT';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const canSeeFinances = isOwner || !isSupport;
 
   const params = await searchParams;

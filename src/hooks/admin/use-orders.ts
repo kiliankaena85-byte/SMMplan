@@ -90,6 +90,7 @@ export function useOrderManagement({ initialData }: { initialData: OrderColumn[]
         } else {
           toast.error('Неизвестная ошибка при пакетной отмене');
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (e.name === 'AbortError') {
           toast.error('Превышено время ожидания ответа от сервера');

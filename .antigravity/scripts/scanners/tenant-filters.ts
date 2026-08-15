@@ -37,7 +37,7 @@ export function scanTenantFilters(): TenantScanResult {
 
   // Scan src for Prisma queries
   let scopedQueriesCount = 0;
-  let unscopedQueriesCount = 0;
+  const unscopedQueriesCount = 0;
 
   function walk(dir: string) {
     if (!fs.existsSync(dir)) return;

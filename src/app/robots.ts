@@ -12,29 +12,38 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const protocol = isLocal ? 'http' : 'https';
   const host = isLocal ? rawHost : getTenantHost(tenantId);
 
+  const disallowList = [
+    '/admin',
+    '/admin/',
+    '/dashboard',
+    '/dashboard/',
+    '/operator',
+    '/operator/',
+    '/api',
+    '/api/',
+    '/client-demo',
+    '/client-demo/',
+    '/login',
+    '/register',
+    '/payment-redirect',
+    '/support/payment-error',
+    '/dev',
+    '/test',
+  ];
+
   return {
-    rules: {
-      userAgent: '*',
-      allow: ['/', '/_next/static'],
-      disallow: [
-        '/admin',
-        '/admin/',
-        '/dashboard',
-        '/dashboard/',
-        '/operator',
-        '/operator/',
-        '/api',
-        '/api/',
-        '/client-demo',
-        '/client-demo/',
-        '/login',
-        '/register',
-        '/payment-redirect',
-        '/support/payment-error',
-        '/dev',
-        '/test',
-      ],
-    },
+    rules: [
+      {
+        userAgent: '*',
+        allow: ['/', '/services', '/knowledge', '/legal', '/_next/static', '/brands/'],
+        disallow: disallowList,
+      },
+      {
+        userAgent: ['GPTBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended', 'YandexBot'],
+        allow: ['/', '/services', '/knowledge', '/legal', '/llms.txt', '/brands/'],
+        disallow: disallowList,
+      }
+    ],
     sitemap: `${protocol}://${host}/sitemap.xml`,
   };
 }

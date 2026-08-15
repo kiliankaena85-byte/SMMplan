@@ -135,13 +135,7 @@ export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
       : await getCachedNetworks(tenantId);
 
     const catalog: PublicNetwork[] = rawNetworks.map(net => {
-      let icon = "/brands/web.svg";
-      if (net.slug.includes('instagram')) icon = "/brands/instagram.svg";
-      if (net.slug.includes('telegram')) icon = "/brands/telegram.svg";
-      if (net.slug.includes('vk')) icon = "/brands/vk.svg";
-      if (net.slug.includes('youtube')) icon = "/brands/youtube.svg";
-      if (net.slug.includes('tiktok')) icon = "/brands/tiktok.svg";
-
+      let icon = `/brands/${net.slug}.svg`;
       let finalIcon = net.icon && (net.icon.startsWith('/') || net.icon.startsWith('http')) ? net.icon : icon;
       if (finalIcon.startsWith('/icons/')) {
         finalIcon = finalIcon.replace('/icons/', '/brands/');
@@ -172,6 +166,7 @@ export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
     import('@/lib/notifications').then(({ sendAdminAlert }) => {
       try {
         sendAdminAlert(`🚨 Hero catalog fetch failed (tenant=${tenantId}): ${errMsg}`, 'CRITICAL');
+      // eslint-disable-next-line no-empty
       } catch {}
     }).catch(() => {});
 

@@ -11,6 +11,7 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 
 const serviceIdSchema = z.string().min(1);

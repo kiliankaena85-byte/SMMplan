@@ -110,6 +110,7 @@ function SmmplanOrderWizardInner({
   useEffect(() => {
     if (!isLoadingCatalog && networks.length > 0 && !initialReorderData) {
       const paramStep = searchParams.get('step');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const paramServiceId = searchParams.get('serviceId');
       const paramCategoryId = searchParams.get('categoryId');
       const paramNetworkId = searchParams.get('networkId');

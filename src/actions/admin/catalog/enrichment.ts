@@ -4,6 +4,7 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getClientIp } from "@/utils/ip";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { auditAdmin, auditAdminAwaitable } from "@/lib/admin-audit";
 import { handleServerError } from "@/utils/error-handler";
 

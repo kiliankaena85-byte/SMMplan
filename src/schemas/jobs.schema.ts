@@ -13,12 +13,12 @@ export const CatalogJobSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('SYNC_PROVIDER_CATALOG'),
     providerId: z.string().min(1),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     admin: z.any()
   }),
   z.object({
     type: z.literal('SYNC_ALL_CATALOGS'),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     admin: z.any()
   }),
   z.object({
@@ -28,7 +28,7 @@ export const CatalogJobSchema = z.discriminatedUnion('type', [
       platform: z.string().optional()
     }),
     markupPercent: z.number(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     admin: z.any()
   })
 ]);
@@ -52,6 +52,6 @@ export const PaymentGatewayJobSchema = z.object({
   description: z.string().min(1),
   isTestMode: z.boolean(),
   gateway: z.enum(['yookassa', 'cryptobot', 'robokassa']),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   metadata: z.any().optional()
 });

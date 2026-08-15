@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { updateB2bWebhookAction } from '@/actions/user/settings-extra';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { B2bWebhookInput, UpdateB2bWebhookResult } from '@/actions/user/settings-extra.types';
 import { Webhook, Copy, CheckCheck, RefreshCw, Save, ShieldCheck, Power } from 'lucide-react';
 import { toast } from 'sonner';

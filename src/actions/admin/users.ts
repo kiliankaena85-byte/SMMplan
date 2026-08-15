@@ -54,6 +54,7 @@ export async function updateBalanceAction(formData: FormData) {
     const idempotencyKey = `direct-adjust-${userId}-${amount}-${Date.now()}`;
 
     // 4. For non-OWNER staff, run through Policy Engine first
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let policyCheck: any = null;
     if (admin.role !== 'OWNER') {
       policyCheck = await db.$transaction(async (tx) => {

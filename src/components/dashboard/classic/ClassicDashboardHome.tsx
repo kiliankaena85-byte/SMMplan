@@ -32,7 +32,9 @@ export function ClassicDashboardHome({
   hasPendingPayments,
   origin,
 }: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   orders: any[];
   referralCount: number;
   activeOrders: number;

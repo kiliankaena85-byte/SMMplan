@@ -291,6 +291,7 @@ export const getCustomValidator = (customDataType?: string | null) => {
     return z.string().trim()
       .min(1, "Поле не может быть пустым")
       .max(10000, "Текст слишком длинный (максимум 10000 символов)")
+      // eslint-disable-next-line no-control-regex
       .refine(val => !/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(val), "Текст содержит недопустимые управляющие символы");
   }
   return z.string().trim().min(1, "Поле не может быть пустым");

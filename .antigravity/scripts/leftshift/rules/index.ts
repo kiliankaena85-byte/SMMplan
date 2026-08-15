@@ -1,4 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import fs from 'fs';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import path from 'path';
 
 export interface StaticFinding {

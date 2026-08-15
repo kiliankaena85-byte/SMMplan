@@ -13,17 +13,26 @@ export interface MergeGateStepResult {
   step: number;
   name: string;
   passed: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   details: any;
 }
 
 export interface MergeGateReport {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   baseline: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static_findings: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   test_gate: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invariant_gate: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   aearh_evals: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   leftshift_tests: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   breaker: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   runtime_checks: any;
   steps: MergeGateStepResult[];
   blocked: boolean;
@@ -33,6 +42,7 @@ export interface MergeGateReport {
   timestamp: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const safeJsonStringify = (obj: any) =>
   JSON.stringify(obj, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2);
 
@@ -41,10 +51,12 @@ export async function runMergeGate(allowDirtyFlag: boolean = false): Promise<Mer
   const steps: MergeGateStepResult[] = [];
 
   // Step 1: Baseline Gate
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let baseline: any = null;
   let step1Passed = true;
   try {
     baseline = getBaselineEvidence(allowDirtyFlag);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     step1Passed = false;
     block_reasons.push(`STEP_1_BASELINE_FAILED: ${err.message}`);

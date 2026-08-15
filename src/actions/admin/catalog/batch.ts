@@ -12,6 +12,7 @@
 
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';

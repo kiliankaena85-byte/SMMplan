@@ -141,6 +141,7 @@ export class ProviderDiagnosticService {
     rawUrl: string,
     rawKey: string,
     mapping?: ApiMappingDTO | null,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     timeoutMs = 10000
   ): Promise<ProviderProbeResult> {
     const { cleanUrl, suggestedUrl } = this.sanitizeUrl(rawUrl);
@@ -168,6 +169,7 @@ export class ProviderDiagnosticService {
 
     try {
       await assertSafeUrl(cleanUrl);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       result.errorMessage = `URL заблокирован политикой безопасности: ${e.message}`;
       return result;

@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`));
 
       // Message listener — pushes new messages to SSE stream
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const listener = (message: any) => {
         try {
           if (message?.sender === 'INTERNAL' && !isStaff) {

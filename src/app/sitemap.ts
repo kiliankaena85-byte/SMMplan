@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next';
 import { getPublicCatalogAction, getServicesByCategoryAction } from '@/actions/order/catalog';
 import { headers } from 'next/headers';
 import { db } from '@/lib/db';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { normalizeTenantId, absoluteCanonical } from '@/lib/seo-helpers';
 
 // sitemap.ts uses headers() -> force-dynamic

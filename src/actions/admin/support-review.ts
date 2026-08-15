@@ -19,6 +19,7 @@ export async function getSupportActionsReviewListAction(options?: {
     const limit = Math.min(100, Math.max(10, options?.limit || 20));
     const skip = (page - 1) * limit;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
     if (options?.reviewStatus && options.reviewStatus !== 'ALL') {
       where.reviewStatus = options.reviewStatus;

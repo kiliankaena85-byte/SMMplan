@@ -59,7 +59,10 @@ export function SmartLinkLanding({
   initialCategoryId = "",
   initialNetworkId = "",
   userBalanceCents = 0,
-  tenantId
+  tenantId,
+  customHeroTitle,
+  customHeroSubtitle,
+  seoHubContent
 }: {
   initialCatalog: PublicNetwork[];
   initialEmail?: string;
@@ -77,6 +80,9 @@ export function SmartLinkLanding({
   initialNetworkId?: string;
   userBalanceCents?: number;
   tenantId?: string;
+  customHeroTitle?: React.ReactNode;
+  customHeroSubtitle?: string;
+  seoHubContent?: React.ReactNode;
 }) {
   const companyName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "SMMplan";
   const engine = useOrderEngine(initialCatalog, initialEmail, initialServiceId, initialCategoryId, initialNetworkId);
@@ -235,10 +241,14 @@ export function SmartLinkLanding({
             <ThemeSwitcher />
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.05] drop-shadow-md text-balance">
-            Ускоряем ваши <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">соцсети</span>
+            {customHeroTitle || (
+              <>
+                Ускоряем ваши <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">соцсети</span>
+              </>
+            )}
           </h1>
           <p className="text-lg text-muted-foreground leading-relaxed font-medium max-w-xl mx-auto drop-shadow-sm text-pretty">
-            Автоматическая платформа для продвижения в социальных сетях с мгновенным запуском.
+            {customHeroSubtitle || "Автоматическая платформа для продвижения в социальных сетях с мгновенным запуском."}
           </p>
           <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-10 pt-2">
             <div className="text-center">
@@ -406,6 +416,11 @@ export function SmartLinkLanding({
       </main>
 
       <div className="relative z-10 -mt-10 bg-background">
+        {seoHubContent && (
+          <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+            {seoHubContent}
+          </div>
+        )}
         <TrustBar />
         <WhyUs companyName={companyName} />
         <Reviews />

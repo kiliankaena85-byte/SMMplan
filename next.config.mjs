@@ -35,9 +35,19 @@ const nextConfig = {
   images: {
     unoptimized: false,
   },
-  poweredByHeader: false,
   async redirects() {
-    return [];
+    return [
+      {
+        source: '/services/vkontakte/:path*',
+        destination: '/services/vk/:path*',
+        permanent: true,
+      },
+      {
+        source: '/services/vkontakte',
+        destination: '/services/vk',
+        permanent: true,
+      },
+    ];
   },
   async headers() {
     return [

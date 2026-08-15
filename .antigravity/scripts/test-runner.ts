@@ -10,12 +10,14 @@ export interface TestRunnerResult {
 
 export function runTests(testPath?: string): TestRunnerResult {
   const target = testPath || 'test/integration/smart-drip.test.ts';
+  // eslint-disable-next-line no-useless-assignment
   let rawOutput = '';
   let failed = 0;
   let passed = 0;
 
   try {
     rawOutput = execSync(`npx vitest run ${target}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     rawOutput = (err.stdout || '') + '\n' + (err.stderr || '');
   }

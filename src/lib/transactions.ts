@@ -11,6 +11,7 @@ export async function runSerializableTransaction<T>(
       return await db.$transaction(fn, { isolationLevel: 'Serializable', timeout: 30000 });
     } catch (err: unknown) {
       attempt++;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const error = err as any;
       const isSerializationError = 
         error.code === 'P2034' || 

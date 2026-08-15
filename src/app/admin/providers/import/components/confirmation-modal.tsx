@@ -74,6 +74,7 @@ export function ConfirmationModal({
                 <button
                   key={t.id}
                   type="button"
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onClick={() => onTargetTenantChange(t.id as any)}
                   className={`py-2 px-3 text-xs font-extrabold rounded-lg border transition-all cursor-pointer ${
                     targetTenant === t.id
