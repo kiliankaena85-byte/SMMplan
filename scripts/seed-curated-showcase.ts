@@ -17,6 +17,12 @@ interface CuratedServiceDef {
   audience: string;
   warranty: string;
   clientReq: string;
+  requireWarning?: boolean;
+  warningMessage?: string;
+  clientConfirmation?: string;
+  customDataType?: string;
+  customDataLabel?: string;
+  isMediaGroupAware?: boolean;
 }
 
 interface CuratedCategoryDef {
@@ -87,6 +93,95 @@ const CURATED_CATALOG: CuratedNetworkDef[] = [
             audience: 'Живая активная аудитория с Premium-статусами и историей',
             warranty: '60 дней полная гарантия защиты от отписок',
             clientReq: 'Ссылка на публичный канал (https://t.me/username)',
+          },
+          {
+            name: 'Telegram: Подписчики в ЗАКРЫТЫЙ канал / группу (Приватные ссылки t.me/+)',
+            badge: '🔒 Закрытые каналы',
+            rateUsd: 0.85,
+            markup: 2.5,
+            minQty: 20,
+            maxQty: 30000,
+            isRefillEnabled: true,
+            targetType: 'CHANNEL',
+            startSpeed: '5–20 минут',
+            speedPerDay: 'до 4 000 в сутки',
+            audience: 'Офферы РФ/СНГ, вступающие по закрытой инвайт-ссылке',
+            warranty: '30 дней автодокрутка при списаниях',
+            clientReq: 'Постоянная инвайт-ссылка формата https://t.me/+AbCdEfGh (без заявок на вступление)',
+            requireWarning: true,
+            warningMessage: 'Канал должен быть закрытым, а ссылка должна быть постоянной инвайт-ссылкой (+ или joinchat). Функция "Заявки на вступление" должна быть отключена!',
+            clientConfirmation: 'Я проверил, что ссылка постоянная и заявки на вступление отключены',
+          },
+        ],
+      },
+      {
+        name: 'Авто-услуги и Боты',
+        services: [
+          {
+            name: 'Telegram: Автопросмотры через бота-администратора (Мгновенно на все новые посты)',
+            badge: '🤖 Авто-Бот',
+            rateUsd: 0.45,
+            markup: 2.5,
+            minQty: 100,
+            maxQty: 20000,
+            isRefillEnabled: false,
+            targetType: 'CHANNEL',
+            startSpeed: 'Мгновенно (в течение 10 секунд после выхода поста)',
+            speedPerDay: 'Неограниченно по числу новых постов',
+            audience: 'Плавные просмотры от аудитории через веб-шлюз бота',
+            warranty: 'Покрытие 30 следующих постов',
+            clientReq: 'Ссылка на канал + добавление бота @VexViewBot в администраторы с правом публикации',
+            requireWarning: true,
+            warningMessage: 'Перед оформлением заказа обязательно добавьте сервисного бота в администраторы вашего канала. Бот отслеживает новые посты и моментально запускает на них просмотры.',
+            clientConfirmation: 'Я добавил сервисного бота в администраторы канала',
+          },
+        ],
+      },
+      {
+        name: 'Комментарии',
+        services: [
+          {
+            name: 'Telegram: Кастомные комментарии (Свой текст со смыслом)',
+            badge: '💬 Свой текст',
+            rateUsd: 1.20,
+            markup: 2.8,
+            minQty: 5,
+            maxQty: 1000,
+            isRefillEnabled: false,
+            targetType: 'POST',
+            startSpeed: '5–15 минут',
+            speedPerDay: 'до 500 в сутки (естественные интервалы)',
+            audience: 'Реальные профили РФ/СНГ, оставляющие ваш заданный текст',
+            warranty: 'Несгораемые комментарии',
+            clientReq: 'Прямая ссылка на пост в канале с открытыми комментариями',
+            customDataType: 'TEXTAREA',
+            customDataLabel: 'Введите текст комментариев (каждый комментарий с новой строки):',
+            requireWarning: true,
+            warningMessage: 'Убедитесь, что в канале подключен чат для комментариев и они открыты для всех пользователей!',
+            clientConfirmation: 'Комментарии под постом открыты для всех',
+          },
+        ],
+      },
+      {
+        name: 'Прямой эфир (Стримы)',
+        services: [
+          {
+            name: 'Telegram: Зрители на прямой эфир / трансляцию (30 минут онлайн)',
+            badge: '🔴 Live 30m',
+            rateUsd: 1.50,
+            markup: 2.5,
+            minQty: 20,
+            maxQty: 5000,
+            isRefillEnabled: false,
+            targetType: 'CHANNEL',
+            startSpeed: '1–3 минуты (мгновенный вход)',
+            speedPerDay: 'Удержание в онлайне 30 минут',
+            audience: 'Аккаунты с эмуляцией живого присутствия на трансляции',
+            warranty: 'Гарантия удержания счетчика онлайна',
+            clientReq: 'Ссылка на канал, где ПРЯМО СЕЙЧАС идет голосовой или видео-чат',
+            requireWarning: true,
+            warningMessage: 'Трансляция должна быть уже запущена до момента оплаты! Если трансляция завершится раньше 30 минут, заказ считается выполненным.',
+            clientConfirmation: 'Прямой эфир уже запущен и идет прямо сейчас',
           },
         ],
       },
@@ -688,43 +783,40 @@ async function main() {
           where: { categoryId: category.id, name: srvDef.name },
         });
 
+        const servicePayload = {
+          name: srvDef.name,
+          description: structuredMarkdownDescription,
+          rate: srvDef.rateUsd,
+          markup: srvDef.markup,
+          pricePer1000Cents,
+          minQty: srvDef.minQty,
+          maxQty: srvDef.maxQty,
+          isRefillEnabled: srvDef.isRefillEnabled,
+          targetType: srvDef.targetType,
+          clientRequirement: srvDef.clientReq,
+          requireWarning: Boolean(srvDef.requireWarning),
+          warningMessage: srvDef.warningMessage || null,
+          clientConfirmation: srvDef.clientConfirmation || null,
+          customDataType: srvDef.customDataType || 'NONE',
+          customDataLabel: srvDef.customDataLabel || null,
+          isMediaGroupAware: Boolean(srvDef.isMediaGroupAware),
+          isActive: true,
+          tenantId: 'all',
+        };
+
         if (!service) {
           service = await prisma.service.create({
             data: {
-              name: srvDef.name,
-              description: structuredMarkdownDescription,
+              ...servicePayload,
               category: { connect: { id: category.id } },
               provider: { connect: { id: provider.id } },
-              rate: srvDef.rateUsd,
-              markup: srvDef.markup,
-              pricePer1000Cents,
-              minQty: srvDef.minQty,
-              maxQty: srvDef.maxQty,
-              isRefillEnabled: srvDef.isRefillEnabled,
-              targetType: srvDef.targetType,
-              clientRequirement: srvDef.clientReq,
-              isActive: true,
-              tenantId: 'all',
             },
           });
           console.log(`    ✨ Created Service: ${srvDef.name} (${(pricePer1000Cents / 100 / 1000).toFixed(4)} ₽/шт)`);
         } else {
           await prisma.service.update({
             where: { id: service.id },
-            data: {
-              name: srvDef.name,
-              description: structuredMarkdownDescription,
-              rate: srvDef.rateUsd,
-              markup: srvDef.markup,
-              pricePer1000Cents,
-              minQty: srvDef.minQty,
-              maxQty: srvDef.maxQty,
-              isRefillEnabled: srvDef.isRefillEnabled,
-              targetType: srvDef.targetType,
-              clientRequirement: srvDef.clientReq,
-              isActive: true,
-              tenantId: 'all',
-            },
+            data: servicePayload,
           });
           console.log(`    🔄 Updated Service: ${srvDef.name}`);
         }
