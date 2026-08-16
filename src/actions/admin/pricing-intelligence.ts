@@ -27,8 +27,8 @@ export async function getAdminServicePricingIntelligence(serviceId: string): Pro
 
     const exchangeRateUSD = await SettingsProvider.getExchangeRateUSD();
 
-    // Розничная цена за 1 шт в рублях
-    const retailUnitRub = Number(((service.pricePer1000Cents / 100) / 1000).toFixed(2));
+    // Розничная цена за 1 шт в рублях (с сохранением точности до 4 знаков)
+    const retailUnitRub = Number(((service.pricePer1000Cents / 100) / 1000).toFixed(4));
 
     return AdminPricingIntelligenceService.analyzeServicePricing({
       serviceId: service.id,
