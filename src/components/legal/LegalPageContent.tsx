@@ -45,10 +45,10 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
   // 4. Замена {{тегов}} на реальные значения
   const settings = await SettingsProvider.getContactAndLegalSettings();
   const replacements: Record<string, string> = {
-    '{{COMPANY_NAME}}': settings.COMPANY_NAME || 'ИП Соколов А.А.',
+    '{{COMPANY_NAME}}': settings.COMPANY_NAME || 'Индивидуальный предприниматель Соколов Артём Андреевич',
     '{{COMPANY_INN}}': settings.COMPANY_INN || '695006320024',
     '{{COMPANY_OGRNIP}}': settings.COMPANY_OGRNIP || '320695200000000',
-    '{{COMPANY_ADDRESS}}': settings.COMPANY_ADDRESS || 'г. Москва',
+    '{{COMPANY_ADDRESS}}': settings.COMPANY_ADDRESS || 'Российская Федерация, Тверская область, г. Тверь',
     '{{SUPPORT_EMAIL}}': settings.SUPPORT_EMAIL || 'support@smmplan.pro',
     '{{PRIVACY_EMAIL}}': settings.PRIVACY_EMAIL || 'privacy@smmplan.pro',
     '{{SITE_NAME}}': settings.SITE_NAME || 'SMMplan',

@@ -143,7 +143,7 @@ export function MegaFooter({
         <div className="flex flex-col gap-1.5">
           <p className="text-sm font-bold text-foreground">© {new Date().getFullYear()} {brandName}. Все права защищены.</p>
           <p className="text-xs text-foreground/70 font-medium">
-            Официальный сервис продвижения. ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""}
+            Официальный сервис продвижения. ИП Соколов А.А. (ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""})
           </p>
           <p className="text-xs text-foreground/70 font-medium">Адрес: {address}</p>
         </div>

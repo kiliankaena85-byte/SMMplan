@@ -170,7 +170,7 @@ export function FluxCyberFooter({
         <div className="flex flex-col gap-1">
           <p className="font-bold text-neutral-200">© {new Date().getFullYear()} {brandName}. Все права защищены.</p>
           <p className="text-[11px] text-neutral-400">
-            Официальный сервис продвижения. ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""}
+            Официальный сервис продвижения. ИП Соколов А.А. (ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""})
           </p>
           <p className="text-[11px] text-neutral-400">Адрес: {address}</p>
         </div>
