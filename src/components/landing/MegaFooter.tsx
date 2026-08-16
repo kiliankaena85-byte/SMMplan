@@ -5,6 +5,7 @@ import { ROUTES } from "@/lib/routes";
 import { normalizeTenantId } from "@/lib/tenant-resolver";
 import { TENANTS } from "@/config/tenants";
 import { TenantLogo } from "@/components/ui/TenantLogo";
+import { FluxCyberFooter } from "./flux/FluxCyberFooter";
 
 export function MegaFooter({ 
   contactSettings,
@@ -26,7 +27,12 @@ export function MegaFooter({
   const isFluxBrand = tenantConfig.id === 'flux';
   const brandName = tenantConfig.name;
 
-  const supportEmail = isFluxBrand ? "support@smmflux.ru" : (contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro");
+  // Render authentic Prism Cyberpunk Footer for SMMflux
+  if (isFluxBrand) {
+    return <FluxCyberFooter contactSettings={contactSettings} brandName={brandName} />;
+  }
+
+  const supportEmail = contactSettings?.SUPPORT_EMAIL || "support@smmplan.pro";
   const inn = contactSettings?.LEGAL_INN && contactSettings.LEGAL_INN !== "Укажите ИНН" && contactSettings.LEGAL_INN !== "000000000000"
     ? contactSettings.LEGAL_INN
     : "695006320024";
@@ -39,13 +45,13 @@ export function MegaFooter({
 
   return (
     <footer className="bg-card/90 dark:bg-card/40 text-foreground pt-12 md:pt-20 pb-8 md:pb-12 border-t border-border/80 relative overflow-hidden mt-auto shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
-      {/* Premium Glow & Grid */}
+      {/* SMMplan B2B Blueprint Glow & Subtle Grid */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" style={{ maskImage: 'linear-gradient(to bottom, white, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, white, transparent)' }} />
       
       <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 md:grid-cols-12 gap-12 mb-14 relative z-10">
         
-        {/* Column 1: Brand & Payments (Takes more space) */}
+        {/* Column 1: Brand & Payments */}
         <div className="md:col-span-5 space-y-6 pr-4">
           <div className="flex items-center gap-3">
             <TenantLogo tenantId={tenantConfig.id} className="w-10 h-10" iconClassName="w-5 h-5" />
@@ -56,29 +62,25 @@ export function MegaFooter({
           </p>
           <div className="pt-4 flex flex-wrap items-center gap-5 text-foreground/60 select-none border-t border-border/20 max-w-sm">
             {/* SBP */}
-            {!isFluxBrand && (
-              <div className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer">
-                <svg className="h-4.5 w-auto text-foreground/60 hover:text-foreground transition-colors" viewBox="0 0 97 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M0 26.12l14.532 25.975v15.844L.017 93.863 0 26.12z" />
-                  <path d="M55.797 42.643l13.617-8.346 27.868-.026-41.485 25.414V42.643z" />
-                  <path d="M55.72 25.967l.077 34.39-14.566-8.95V0l14.49 25.967z" />
-                  <path d="M97.282 34.271l-27.869.026-13.693-8.33L41.231 0l56.05 34.271z" />
-                  <path d="M55.797 94.007V77.322l-14.566-8.78.008 51.458 14.558-25.993z" />
-                  <path d="M69.38 85.737L14.531 52.095 0 26.12l97.223 59.583-27.844.034z" />
-                  <path d="M41.24 120l14.556-25.993 13.583-8.27 27.843-.034L41.24 120z" />
-                  <path d="M.017 93.863l41.333-25.32-13.896-8.526-12.922 7.922L.017 93.863z" />
-                </svg>
-                <span className="font-black text-[11px] tracking-wider leading-none">СБП</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer">
+              <svg className="h-4.5 w-auto text-foreground/60 hover:text-foreground transition-colors" viewBox="0 0 97 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 26.12l14.532 25.975v15.844L.017 93.863 0 26.12z" />
+                <path d="M55.797 42.643l13.617-8.346 27.868-.026-41.485 25.414V42.643z" />
+                <path d="M55.72 25.967l.077 34.39-14.566-8.95V0l14.49 25.967z" />
+                <path d="M97.282 34.271l-27.869.026-13.693-8.33L41.231 0l56.05 34.271z" />
+                <path d="M55.797 94.007V77.322l-14.566-8.78.008 51.458 14.558-25.993z" />
+                <path d="M69.38 85.737L14.531 52.095 0 26.12l97.223 59.583-27.844.034z" />
+                <path d="M41.24 120l14.556-25.993 13.583-8.27 27.843-.034L41.24 120z" />
+                <path d="M.017 93.863l41.333-25.32-13.896-8.526-12.922 7.922L.017 93.863z" />
+              </svg>
+              <span className="font-black text-[11px] tracking-wider leading-none">СБП</span>
+            </div>
 
             {/* MIR */}
-            {!isFluxBrand && (
-              <svg className="h-4.5 w-auto text-foreground/60 hover:text-foreground transition-colors cursor-pointer" viewBox="0 0 400 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="m31 13h33c3 0 12-1 16 13 3 9 7 23 13 44h2c6-22 11-37 13-44 4-14 14-13 18-13h31v96h-32v-57h-2l-17 57h-24l-17-57h-3v57h-31m139-96h32v57h3l21-47c4-9 13-10 13-10h30v96h-32v-57h-2l-21 47c-4 9-14 10-14 10h-30m142-29v29h-30v-50h98c-4 12-18 21-34 21" />
-                <path d="m382 53c4-18-8-40-34-40h-68c2 21 20 40 39 40" />
-              </svg>
-            )}
+            <svg className="h-4.5 w-auto text-foreground/60 hover:text-foreground transition-colors cursor-pointer" viewBox="0 0 400 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="m31 13h33c3 0 12-1 16 13 3 9 7 23 13 44h2c6-22 11-37 13-44 4-14 14-13 18-13h31v96h-32v-57h-2l-17 57h-24l-17-57h-3v57h-31m139-96h32v57h3l21-47c4-9 13-10 13-10h30v96h-32v-57h-2l-21 47c-4 9-14 10-14 10h-30m142-29v29h-30v-50h98c-4 12-18 21-34 21" />
+              <path d="m382 53c4-18-8-40-34-40h-68c2 21 20 40 39 40" />
+            </svg>
 
             {/* Visa */}
             <svg className="h-3.5 w-auto text-foreground/60 hover:text-foreground transition-colors cursor-pointer" viewBox="0 0 780 500" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -94,11 +96,9 @@ export function MegaFooter({
               <span className="font-black text-[11px] tracking-wider leading-none">Cryptobot</span>
             </div>
           </div>
-          {!isFluxBrand && (
-            <p className="text-xs text-foreground/60 max-w-sm leading-relaxed mt-4">
-              * Сервисы Instagram и Facebook принадлежат компании Meta, признанной экстремистской организацией и запрещенной на территории РФ.
-            </p>
-          )}
+          <p className="text-xs text-foreground/60 max-w-sm leading-relaxed mt-4">
+            * Сервисы Instagram и Facebook принадлежат компании Meta, признанной экстремистской организацией и запрещенной на территории РФ.
+          </p>
         </div>
 
         {/* Column 2: Legal Links */}
