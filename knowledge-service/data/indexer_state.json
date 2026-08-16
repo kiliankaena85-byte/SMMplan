@@ -2282,7 +2282,7 @@
   "/app/codebase/src/app/knowledge/[slug]/page.tsx": "debb13b1c7648681",
   "/app/codebase/scripts/gen-magic.ts": "7a16264628ea920a",
   "/app/codebase/src/actions/admin/health.ts": "69d485f6af12957c",
-  "/app/codebase/src/components/orders/SmmplanOrderWizard.tsx": "0808d6cb186cb96d",
+  "/app/codebase/src/components/orders/SmmplanOrderWizard.tsx": "29a80d324c2ade2d",
   "/app/codebase/src/lib/prisma-tenant-scope.ts": "2a81de130bec5eaf",
   "/app/codebase/src/tenants/factory.ts": "08b497ab8d3422be",
   "/app/codebase/src/tenants/smmplan/strategy.ts": "a08ae4a2a0346460",
@@ -2620,7 +2620,7 @@
   "/app/codebase/CWV_AUDIT.md": "bade42411f8822f3",
   "/app/codebase/YANDEX_WEBMASTER_SETUP.md": "c6d68be517da0d94",
   "/app/codebase/src/components/ab-test/FluxFAQ.tsx": "78403788193d033e",
-  "/app/codebase/src/components/ab-test/FluxOrderClient.tsx": "9051784f86299f2c",
+  "/app/codebase/src/components/ab-test/FluxOrderClient.tsx": "0bca7b7162eb9d22",
   "/app/codebase/src/components/ab-test/FluxWhyUs.tsx": "bf46590721083645",
   "/app/codebase/src/components/ab-test/FluxReviews.tsx": "c93390c882254d73",
   "/app/codebase/src/components/ab-test/FluxTrustBar.tsx": "83edb111d8aada25",
@@ -2880,5 +2880,7 @@
   "/app/codebase/test/integration/tenants-admin.test.ts": "b03b98d48159fc3e",
   "/app/codebase/src/actions/order/link-guide.ts": "6d300e0703fb68ab",
   "/app/codebase/test/unit/link-guide.test.ts": "7b66d49daac85867",
-  "/app/codebase/src/services/catalog/link-guide.service.ts": "2f1893b30a0936c2"
+  "/app/codebase/src/services/catalog/link-guide.service.ts": "2f1893b30a0936c2",
+  "/app/codebase/src/components/orders/TelegramLinkGuideModal.tsx": "b958edcdbe6b4ccd",
+  "/app/codebase/test/unit/telegram-link-guide-modal.test.ts": "fc73aef5b3c2bcab"
 }
