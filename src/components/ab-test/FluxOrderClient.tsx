@@ -236,11 +236,11 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
   const price = selectedService ? (selectedService.pricePerUnitRub * effectiveQuantity).toFixed(2) : "0.00";
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center font-sans min-h-[60vh] pb-12 pt-8 px-4 relative overflow-visible">
+    <div className={`w-full max-w-5xl mx-auto flex flex-col items-center justify-center font-sans px-4 relative overflow-visible ${step === 'link' ? 'pt-4 md:pt-8 pb-2' : 'min-h-[50vh] pt-4 pb-8'}`}>
       {step !== 'link' && (
         <motion.div 
           layoutId="hero-input"
-          className="w-full max-w-3xl mb-8 flex items-center bg-background/80 backdrop-blur-3xl border border-border/20 shadow-sm h-14 rounded-2xl px-2 z-10"
+          className="w-full max-w-3xl mb-6 flex items-center bg-background/80 backdrop-blur-3xl border border-border/20 shadow-sm h-14 rounded-2xl px-2 z-10"
         >
           <button
             onClick={() => {
@@ -279,7 +279,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="w-full max-w-3xl flex flex-col items-center"
           >
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tighter text-foreground mb-8 md:mb-10 text-center leading-tight px-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tighter text-foreground mb-6 md:mb-8 text-center leading-tight px-2">
               Что хотите <span className="inline-block px-2 sm:px-3 py-1 bg-foreground text-background rounded-[1rem] sm:rounded-2xl rotate-[-2deg] mx-1 shadow-md">продвигать</span> сегодня?
             </h1>
             <div className="relative group w-full max-w-2xl px-2 sm:px-0">
@@ -330,15 +330,15 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
               </motion.div>
             </div>
             
-            <div className="mt-12 flex justify-center w-full">
+            <div className="mt-4 sm:mt-5 flex justify-center w-full">
               <button 
                 type="button"
                 onClick={() => navigateTo('network')}
-                className="mt-6 sm:mt-8 text-foreground/80 hover:text-foreground bg-background/80 hover:bg-background px-4 sm:px-6 py-2.5 sm:py-3 rounded-full backdrop-blur-md border border-border/40 transition-all font-medium text-sm sm:text-base flex items-center gap-2 sm:gap-3 group shadow-sm hover:shadow-md"
+                className="text-foreground/80 hover:text-foreground bg-background/80 hover:bg-background px-5 py-2.5 rounded-full backdrop-blur-md border border-border/40 transition-all font-medium text-xs sm:text-sm flex items-center gap-2 group shadow-sm hover:shadow-md cursor-pointer active:scale-95"
               >
                 Или выберите услугу из каталога 
                 <div className="bg-background rounded-full p-1 group-hover:bg-background shadow-sm transition-colors">
-                  <ArrowDownIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <ArrowDownIcon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </div>
               </button>
             </div>

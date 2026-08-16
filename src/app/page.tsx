@@ -143,11 +143,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
               <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath={ROUTES.HOME} />
             </div>
 
-            <div className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-4 md:pt-12 pb-8 md:pb-16 flex flex-col items-center relative z-10">
+            <div className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-2 md:pt-6 pb-2 md:pb-4 flex flex-col items-center relative z-10">
               <FluxOrderClient initialCatalog={catalog} initialEmail={userEmail} />
             </div>
 
-            <div className="relative z-10 w-full mb-8 md:mb-12">
+            <div className="relative z-10 w-full my-2 md:my-4">
               <FluxTrustBar />
             </div>
 
