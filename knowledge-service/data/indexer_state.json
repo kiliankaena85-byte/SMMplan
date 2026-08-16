@@ -2881,6 +2881,6 @@
   "/app/codebase/src/actions/order/link-guide.ts": "6d300e0703fb68ab",
   "/app/codebase/test/unit/link-guide.test.ts": "7b66d49daac85867",
   "/app/codebase/src/services/catalog/link-guide.service.ts": "2f1893b30a0936c2",
-  "/app/codebase/src/components/orders/TelegramLinkGuideModal.tsx": "b958edcdbe6b4ccd",
+  "/app/codebase/src/components/orders/TelegramLinkGuideModal.tsx": "22e9348d63565b61",
   "/app/codebase/test/unit/telegram-link-guide-modal.test.ts": "fc73aef5b3c2bcab"
 }

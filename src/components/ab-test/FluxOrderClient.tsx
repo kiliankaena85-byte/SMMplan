@@ -9,7 +9,7 @@ import { checkoutAction } from "@/actions/order/checkout";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
 import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByUrl } from "@/hooks/useOrderWizard";
 import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
-import { TelegramLinkGuideModal } from "@/components/orders/TelegramLinkGuideModal";
+import { FluxCyberLinkDrawer } from "@/components/orders/flux/FluxCyberLinkDrawer";
 import { LinkGuideService } from "@/services/catalog/link-guide.service";
 
 type Step = 'link' | 'network' | 'category' | 'service' | 'checkout';
@@ -716,11 +716,10 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                     )}
                   </div>
 
-                  <TelegramLinkGuideModal
+                  <FluxCyberLinkDrawer
                     isOpen={isTgGuideOpen}
                     onClose={() => setIsTgGuideOpen(false)}
                     onApplyLink={l => setLink(l)}
-                    tenantVariant="neon"
                   />
                   <input 
                     ref={linkRef}
