@@ -15,7 +15,13 @@ import {
   MoreVertical,
   MousePointer,
   Share2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Layers,
+  ClipboardPaste,
+  ShieldCheck,
+  Zap,
+  Info,
+  CheckCircle
 } from 'lucide-react';
 import { LinkGuideService, PlatformDeviceGuide } from '@/services/catalog/link-guide.service';
 
@@ -36,11 +42,23 @@ export function TelegramLinkGuideModal({
   const [selectedDevice, setSelectedDevice] = useState<'ios' | 'android' | 'desktop'>('ios');
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
   const [testLink, setTestLink] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
 
   if (!isOpen) return null;
 
   const currentDeviceGuide: PlatformDeviceGuide = 
     guideData.devices.find(d => d.device === selectedDevice) || guideData.devices[0];
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (navigator?.clipboard?.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) setTestLink(text);
+      }
+    } catch {
+      // Fallback
+    }
+  };
 
   const handleTestLinkValidation = () => {
     if (!testLink.trim()) return null;
@@ -54,7 +72,9 @@ export function TelegramLinkGuideModal({
       if (isPost) {
         return {
           valid: true,
-          message: `Ссылка корректна! Сообщение #${lastPart} ${isSingle ? '(конкретное фото)' : ''}`
+          postId: lastPart,
+          isSingle,
+          message: `Ссылка валидна! Сообщение #${lastPart} ${isSingle ? '(конкретное фото)' : '(основной пост)'}`
         };
       }
       return {
@@ -64,7 +84,7 @@ export function TelegramLinkGuideModal({
     }
     return {
       valid: false,
-      message: 'Укажите ссылку формата https://t.me/...'
+      message: 'Укажите ссылку формата https://t.me/channel/123'
     };
   };
 
@@ -72,28 +92,35 @@ export function TelegramLinkGuideModal({
   const isNeon = tenantVariant === 'neon';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-xl animate-in fade-in duration-200">
       <div 
-        className={`w-full max-w-4xl bg-card border rounded-3xl p-5 sm:p-7 max-h-[94vh] overflow-y-auto shadow-2xl space-y-6 relative transition-all ${
+        className={`w-full max-w-4xl bg-card border rounded-[2.5rem] p-5 sm:p-8 max-h-[94vh] overflow-y-auto shadow-2xl space-y-6 relative transition-all ${
           isNeon 
-            ? 'border-purple-500/30 shadow-purple-500/10' 
-            : 'border-border shadow-primary/5'
+            ? 'border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.15)] bg-card/95' 
+            : 'border-border/80 shadow-2xl bg-card/98'
         }`}
       >
-        {/* ── HEADER ── */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-4 sticky top-0 bg-card z-20">
+        {/* ── STYLISH HEADER ── */}
+        <div className="flex items-center justify-between border-b border-border/60 pb-4 sticky top-0 bg-card/90 backdrop-blur-md z-20">
           <div className="flex items-center gap-3">
-            <span className={`p-2.5 rounded-2xl shrink-0 ${
-              isNeon ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400 border border-purple-500/30' : 'bg-primary/10 text-primary'
+            <span className={`p-3 rounded-2xl shrink-0 ${
+              isNeon 
+                ? 'bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-purple-600/20 text-purple-400 border border-purple-500/30 shadow-lg shadow-purple-500/10' 
+                : 'bg-primary/10 text-primary border border-primary/20'
             }`}>
               <Sparkles className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight">
-                Интерактивный гид: как скопировать ссылку на фото
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight">
+                  Как скопировать ссылку на фото в Telegram
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  Без ошибок
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Нажмите на шаги, чтобы увидеть интерактивную демонстрацию на экране Telegram
+                Интерактивный симулятор экрана и пошаговые подсказки для всех моделей смартфонов
               </p>
             </div>
           </div>
@@ -101,7 +128,7 @@ export function TelegramLinkGuideModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer"
+            className="p-2.5 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer"
             aria-label="Закрыть"
           >
             <X className="w-5 h-5" />
@@ -109,7 +136,7 @@ export function TelegramLinkGuideModal({
         </div>
 
         {/* ── DEVICE SWITCHER TABS ── */}
-        <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-secondary/50 border border-border/50">
+        <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-secondary/40 border border-border/50">
           {guideData.devices.map(dev => {
             const isActive = selectedDevice === dev.device;
             return (
@@ -120,55 +147,60 @@ export function TelegramLinkGuideModal({
                   setSelectedDevice(dev.device);
                   setActiveStepIndex(0);
                 }}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer min-h-[44px] ${
+                className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer min-h-[46px] ${
                   isActive
                     ? isNeon
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/20 scale-[1.02]'
-                      : 'bg-primary text-primary-foreground shadow-sm scale-[1.02]'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25 scale-[1.02]'
+                      : 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 }`}
               >
                 <span className="text-base">{dev.icon}</span>
-                <span className="hidden sm:inline">{dev.label}</span>
-                <span className="sm:hidden">{dev.device.toUpperCase()}</span>
+                <span className="font-extrabold">{dev.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* ── MAIN INTERACTIVE AREA: PHONE VISUAL SIMULATOR + STEP CARDS ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ── MAIN INTERACTIVE GRID: HIGH-FIDELITY PHONE + INTERACTIVE STEPS ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
           
-          {/* 📱 LEFT/TOP: GRAPHICAL TELEGRAM PHONE SIMULATOR (5 cols) */}
+          {/* 📱 LEFT: ULTRA-STYLISH TELEGRAM PHONE SCREEN (5 cols) */}
           <div className="lg:col-span-5 flex flex-col items-center">
-            <div className="w-full max-w-[290px] sm:max-w-[310px] rounded-[2.5rem] p-3.5 bg-neutral-900 border-4 border-neutral-700 shadow-2xl text-white font-sans relative overflow-hidden">
+            <div className="w-full max-w-[290px] sm:max-w-[315px] rounded-[2.8rem] p-4 bg-neutral-950 border-[5px] border-neutral-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] text-white font-sans relative overflow-hidden ring-1 ring-neutral-700/50">
               
-              {/* Dynamic Island / Notch */}
-              <div className="flex justify-center mb-2">
-                <div className="w-24 h-4 bg-black rounded-full flex items-center justify-center gap-1.5">
+              {/* Dynamic Island / Status Bar */}
+              <div className="flex items-center justify-between px-3 pt-0.5 pb-2 text-[10px] text-neutral-400 font-mono">
+                <span>09:41</span>
+                <div className="w-20 h-4 bg-black rounded-full flex items-center justify-center gap-1.5 border border-neutral-800">
                   <div className="w-2 h-2 rounded-full bg-neutral-800" />
-                  <div className="w-2 h-2 rounded-full bg-blue-950" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-950" />
                 </div>
+                <span>5G 100%</span>
               </div>
 
-              {/* Telegram App Header */}
-              <div className="flex items-center justify-between px-2 py-1.5 border-b border-neutral-800 text-xs">
+              {/* Telegram Channel Header Bar */}
+              <div className="flex items-center justify-between px-2 py-2 border-b border-neutral-800/80 bg-neutral-900/60 rounded-2xl mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-[10px] font-black text-white">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 flex items-center justify-center text-xs font-black text-white shadow-md">
                     TG
                   </div>
                   <div>
-                    <span className="font-bold text-[11px] block leading-tight">Канал / Блог</span>
-                    <span className="text-[9px] text-neutral-400">12 400 подписчиков</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-extrabold text-xs block leading-tight text-neutral-100">Блог & Медиа</span>
+                      <span className="text-blue-400 text-[10px]">✓</span>
+                    </div>
+                    <span className="text-[9px] text-neutral-400 font-medium">18 500 подписчиков</span>
                   </div>
                 </div>
 
+                {/* Top Action Menu */}
                 {selectedDevice === 'ios' ? (
-                  <div className={`p-1 rounded-lg ${activeStepIndex === 1 ? 'bg-primary text-white animate-pulse ring-2 ring-primary' : 'text-neutral-400'}`}>
+                  <div className={`p-1.5 rounded-xl transition-all ${activeStepIndex === 1 ? 'bg-primary text-white scale-110 ring-2 ring-primary/80 animate-pulse' : 'text-neutral-400'}`}>
                     <MoreHorizontal className="w-4 h-4" />
                   </div>
                 ) : selectedDevice === 'android' ? (
-                  <div className={`p-1 rounded-lg ${activeStepIndex === 1 ? 'bg-primary text-white animate-pulse ring-2 ring-primary' : 'text-neutral-400'}`}>
+                  <div className={`p-1.5 rounded-xl transition-all ${activeStepIndex === 1 ? 'bg-primary text-white scale-110 ring-2 ring-primary/80 animate-pulse' : 'text-neutral-400'}`}>
                     <MoreVertical className="w-4 h-4" />
                   </div>
                 ) : (
@@ -177,25 +209,30 @@ export function TelegramLinkGuideModal({
               </div>
 
               {/* Telegram Post Body with Simulated Photo */}
-              <div className="py-3 px-1 space-y-2.5">
-                <div className={`rounded-2xl p-2.5 bg-neutral-800/80 border transition-all ${
-                  activeStepIndex === 0 ? 'border-primary ring-2 ring-primary/40' : 'border-neutral-700/60'
+              <div className="space-y-2">
+                <div className={`rounded-2xl p-2.5 bg-neutral-900 border transition-all duration-300 ${
+                  activeStepIndex === 0 
+                    ? 'border-primary ring-2 ring-primary/50 shadow-lg shadow-primary/20' 
+                    : 'border-neutral-800'
                 }`}>
                   
                   {/* Photo Canvas Simulation */}
-                  <div className="relative rounded-xl overflow-hidden bg-gradient-to-tr from-slate-800 via-blue-950 to-indigo-900 h-36 flex flex-col items-center justify-center p-3 text-center border border-neutral-700">
-                    <ImageIcon className="w-8 h-8 text-blue-400/80 mb-1 animate-bounce" />
-                    <span className="text-[11px] font-bold text-white leading-snug">
-                      Фотография в публикации #150
+                  <div 
+                    onClick={() => setActiveStepIndex(1)}
+                    className="relative rounded-xl overflow-hidden bg-gradient-to-tr from-slate-900 via-indigo-950 to-purple-950 h-36 flex flex-col items-center justify-center p-3 text-center border border-neutral-700/80 cursor-pointer group"
+                  >
+                    <ImageIcon className="w-9 h-9 text-blue-400/90 mb-1.5 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-black text-white leading-snug">
+                      Публикация #150
                     </span>
-                    <span className="text-[9px] text-neutral-300 mt-0.5">
-                      (Тапните для открытия во весь экран)
+                    <span className="text-[9px] text-neutral-300 mt-0.5 font-medium">
+                      (Тапните для увеличения)
                     </span>
 
                     {/* Cursor pointer highlight on Step 1 */}
                     {activeStepIndex === 0 && (
-                      <div className="absolute inset-0 bg-primary/20 backdrop-blur-[1px] flex items-center justify-center">
-                        <span className="px-3 py-1 rounded-full bg-primary text-white font-extrabold text-[10px] shadow-lg animate-pulse">
+                      <div className="absolute inset-0 bg-primary/25 backdrop-blur-[1px] flex items-center justify-center">
+                        <span className="px-3.5 py-1.5 rounded-full bg-primary text-white font-black text-[11px] shadow-2xl animate-bounce flex items-center gap-1">
                           👆 Нажмите на фото
                         </span>
                       </div>
@@ -203,66 +240,71 @@ export function TelegramLinkGuideModal({
                   </div>
 
                   <p className="text-[10px] text-neutral-300 mt-2 leading-tight">
-                    🔥 Новый пост с фотографиями из фотосессии. Оцените кадры!
+                    📸 Премьера новой коллекции кадров! Оцените качество съемки.
                   </p>
                   <div className="flex items-center justify-end gap-1 text-[9px] text-neutral-500 mt-1 font-mono">
                     <span>14:20</span>
-                    <span>✓✓</span>
+                    <span className="text-blue-400">✓✓</span>
                   </div>
                 </div>
 
                 {/* Simulated Telegram Context Menu Popup on Step 2 and 3 */}
                 {activeStepIndex >= 1 && (
-                  <div className="rounded-2xl p-2 bg-neutral-800 border border-neutral-600 shadow-2xl space-y-1 animate-in zoom-in-95 duration-150">
+                  <div className="rounded-2xl p-2 bg-neutral-800/95 backdrop-blur-md border border-neutral-700 shadow-2xl space-y-1 animate-in zoom-in-95 duration-200">
                     <div className="text-[9px] font-bold text-neutral-400 px-2 py-0.5 uppercase tracking-wider">
-                      Меню действий Telegram
+                      Действия с медиафайлом
                     </div>
                     
-                    <div className="px-2.5 py-1.5 rounded-lg text-[10px] text-neutral-300 flex items-center justify-between opacity-60">
+                    <div className="px-2.5 py-1.5 rounded-xl text-[10px] text-neutral-400 flex items-center justify-between">
                       <span>Сохранить в галерею</span>
                     </div>
 
-                    {/* THE TARGET COPY LINK BUTTON HIGHLIGHTED */}
-                    <div className={`px-2.5 py-2 rounded-xl text-[11px] font-black flex items-center justify-between ${
-                      activeStepIndex === 2 
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30 scale-102 ring-2 ring-white' 
-                        : 'bg-primary text-white animate-pulse'
-                    }`}>
+                    {/* TARGET HIGHLIGHTED BUTTON */}
+                    <div 
+                      onClick={() => setActiveStepIndex(2)}
+                      className={`px-3 py-2 rounded-xl text-xs font-black flex items-center justify-between cursor-pointer transition-all duration-200 ${
+                        activeStepIndex === 2 
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xl shadow-emerald-500/40 ring-2 ring-white scale-102' 
+                          : 'bg-primary text-white shadow-md animate-pulse'
+                      }`}
+                    >
                       <div className="flex items-center gap-1.5">
                         <Copy className="w-3.5 h-3.5" />
                         <span>Скопировать ссылку</span>
                       </div>
-                      <span className="text-[9px] bg-black/20 px-1.5 py-0.5 rounded font-mono">
+                      <span className="text-[9px] bg-black/30 px-1.5 py-0.5 rounded font-mono font-bold">
                         {selectedDevice === 'ios' ? '?single' : 'URL'}
                       </span>
                     </div>
 
-                    <div className="px-2.5 py-1.5 rounded-lg text-[10px] text-neutral-300 flex items-center justify-between opacity-60">
+                    <div className="px-2.5 py-1.5 rounded-xl text-[10px] text-neutral-400 flex items-center justify-between">
                       <span>Поделиться...</span>
-                      <Share2 className="w-3 h-3" />
+                      <Share2 className="w-3.5 h-3.5" />
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Bottom Home Indicator */}
-              <div className="flex justify-center pt-2 pb-1">
-                <div className="w-28 h-1 bg-neutral-600 rounded-full" />
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-28 h-1 bg-neutral-700 rounded-full" />
               </div>
             </div>
 
-            <span className="text-[11px] text-muted-foreground font-medium mt-2 text-center">
-              💡 Интерактивная визуализация меню Telegram для {currentDeviceGuide.label}
+            <span className="text-[11px] text-muted-foreground font-medium mt-3 text-center flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-primary" />
+              Интерактивный экран Telegram для {currentDeviceGuide.label}
             </span>
           </div>
 
-          {/* 📋 RIGHT: STEP CARDS & CONTROLS (7 cols) */}
+          {/* 📋 RIGHT: DETAILED STEP CARDS WITH RICH EXPLANATIONS (7 cols) */}
           <div className="lg:col-span-7 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                Шаги выполнения (кликните на шаг):
+              <span className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-primary" />
+                Пошаговые действия:
               </span>
-              <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-secondary text-foreground font-bold border border-border/40">
+              <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-secondary text-foreground font-bold border border-border/50 shadow-sm">
                 {currentDeviceGuide.badge}
               </span>
             </div>
@@ -274,26 +316,31 @@ export function TelegramLinkGuideModal({
                   <div 
                     key={step.stepNumber}
                     onClick={() => setActiveStepIndex(idx)}
-                    className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                    className={`p-4 sm:p-4.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
                       isCurrent
                         ? isNeon
-                          ? 'bg-purple-500/10 border-purple-500 shadow-md shadow-purple-500/10 ring-1 ring-purple-500'
-                          : 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary'
+                          ? 'bg-purple-500/10 border-purple-500 shadow-lg shadow-purple-500/10 ring-1 ring-purple-500'
+                          : 'bg-primary/5 border-primary shadow-md shadow-primary/5 ring-1 ring-primary'
                         : 'bg-card border-border/70 hover:border-border hover:bg-secondary/40'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
+                        <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 shadow-sm ${
                           isCurrent
-                            ? isNeon ? 'bg-purple-600 text-white' : 'bg-primary text-primary-foreground'
+                            ? isNeon 
+                              ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white' 
+                              : 'bg-primary text-primary-foreground'
                             : 'bg-secondary text-muted-foreground'
                         }`}>
                           {step.stepNumber}
                         </span>
                         <div className="space-y-1">
-                          <h4 className="text-xs sm:text-sm font-black text-foreground">
-                            {step.title}
+                          <h4 className="text-xs sm:text-sm font-black text-foreground flex items-center gap-2">
+                            <span>{step.title}</span>
+                            {isCurrent && (
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            )}
                           </h4>
                           <p className="text-xs text-muted-foreground leading-relaxed">
                             {step.instruction}
@@ -301,7 +348,7 @@ export function TelegramLinkGuideModal({
                         </div>
                       </div>
 
-                      <span className="text-[10px] font-bold font-mono px-2 py-1 rounded-lg bg-secondary text-muted-foreground shrink-0 hidden sm:inline">
+                      <span className="text-[10px] font-bold font-mono px-2.5 py-1 rounded-xl bg-secondary text-foreground shrink-0 border border-border/40 hidden sm:inline">
                         {step.buttonHighlight}
                       </span>
                     </div>
@@ -310,15 +357,15 @@ export function TelegramLinkGuideModal({
               })}
             </div>
 
-            {/* Album note box */}
+            {/* 🖼️ ALBUM / MEDIAGROUP EXPLANATION BOX */}
             <div className={`p-4 rounded-2xl border flex items-start gap-3 text-xs ${
               isNeon 
                 ? 'bg-purple-500/10 border-purple-500/30 text-purple-200' 
                 : 'bg-blue-500/10 border-blue-500/20 text-blue-900 dark:text-blue-200'
             }`}>
-              <span className="text-lg shrink-0">💡</span>
+              <span className="text-xl shrink-0">💡</span>
               <div className="space-y-1">
-                <span className="font-bold block">Как заказать просмотры на альбом (карусель фото):</span>
+                <span className="font-extrabold block">Специфика альбомов (карусели из нескольких фото):</span>
                 <p className="leading-relaxed opacity-90">
                   {currentDeviceGuide.mediaGroupAlbumNote}
                 </p>
@@ -327,12 +374,23 @@ export function TelegramLinkGuideModal({
           </div>
         </div>
 
-        {/* ── INTERACTIVE LINK TEST FIELD ── */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-secondary/40 border border-border/60 space-y-3">
-          <label className="text-xs font-bold text-foreground block flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span>Проверьте вашу ссылку прямо здесь:</span>
-          </label>
+        {/* ── LIVE LINK VALIDATOR & CLIPBOARD PASTE ── */}
+        <div className="p-4 sm:p-5 rounded-3xl bg-secondary/40 border border-border/60 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <span>Проверьте скопированную ссылку прямо здесь:</span>
+            </label>
+
+            <button
+              type="button"
+              onClick={handlePasteFromClipboard}
+              className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer bg-primary/10 px-2.5 py-1 rounded-xl transition-all"
+            >
+              <ClipboardPaste className="w-3.5 h-3.5" />
+              <span>Вставить из буфера</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <input
@@ -340,7 +398,7 @@ export function TelegramLinkGuideModal({
               placeholder="Вставьте ссылку, например: https://t.me/durov/150"
               value={testLink}
               onChange={e => setTestLink(e.target.value)}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary focus:outline-none text-foreground font-mono text-xs"
+              className="flex-1 px-4 py-3 rounded-2xl bg-background border border-border focus:border-primary focus:outline-none text-foreground font-mono text-xs shadow-inner"
             />
             {onApplyLink && testLink && validationResult?.valid && (
               <button
@@ -349,10 +407,10 @@ export function TelegramLinkGuideModal({
                   onApplyLink(testLink);
                   onClose();
                 }}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer shrink-0 ${
+                className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer shrink-0 shadow-md ${
                   isNeon
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
-                    : 'bg-primary text-primary-foreground shadow-sm'
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-purple-500/25'
+                    : 'bg-primary text-primary-foreground shadow-primary/20'
                 }`}
               >
                 Применить в заказ
@@ -361,30 +419,34 @@ export function TelegramLinkGuideModal({
           </div>
 
           {validationResult && (
-            <div className={`flex items-center gap-2 text-xs font-bold ${
-              validationResult.valid ? 'text-emerald-500' : 'text-danger'
+            <div className={`p-3 rounded-2xl flex items-center gap-2 text-xs font-bold ${
+              validationResult.valid 
+                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+                : 'bg-danger/10 border border-danger/20 text-danger'
             }`}>
-              {validationResult.valid ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+              {validationResult.valid ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
               <span>{validationResult.message}</span>
             </div>
           )}
         </div>
 
         {/* ── FOOTER ── */}
-        <div className="pt-3 border-t border-border flex items-center justify-between sticky bottom-0 bg-card z-20">
-          <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
-            Все ссылки проверяются перед запуском заказа
-          </span>
+        <div className="pt-3 border-t border-border flex items-center justify-between sticky bottom-0 bg-card/90 backdrop-blur-md z-20">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium hidden sm:flex">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span>Качественная накрутка без блокировок и списаний</span>
+          </div>
+
           <button
             type="button"
             onClick={onClose}
-            className={`px-6 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer min-h-[40px] ${
+            className={`px-7 py-3 rounded-2xl font-black text-xs transition-all cursor-pointer min-h-[44px] shadow-md ${
               isNeon
-                ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-md shadow-purple-500/20'
-                : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white shadow-purple-500/25'
+                : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20'
             }`}
           >
-            Понятно, закрыть
+            Понятно, продолжить
           </button>
         </div>
       </div>
