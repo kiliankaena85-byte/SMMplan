@@ -361,12 +361,25 @@ class RobokassaGateway extends BasePaymentGateway {
     const sigStr = `${login}:${outSum}:${invId}:${password}:shp_paymentId=${params.paymentId}`;
     const signature = crypto.createHash('sha256').update(sigStr).digest('hex');
 
+    // Подсчитываем оборот за год для переключения НДС 22% (ФЗ № 425-ФЗ, ФЗ № 176-ФЗ, ст. 145, 164 НК РФ)
+    const currentYear = new Date().getFullYear();
+    const annualRevenue = await db.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'SUCCEEDED',
+        createdAt: { gte: new Date(currentYear, 0, 1) }
+      }
+    }).then(res => Number(res._sum.amount || 0));
+
+    const isVatThresholdExceeded = annualRevenue >= 2000000000; // 20 млн рублей (Порог освобождения от НДС на УСН ст. 145 НК РФ)
+    const taxRate = isVatThresholdExceeded ? "vat22" : "none"; // vat22 = 22% (п. 3 ст. 164 НК РФ), none = без НДС
+
     const receipt = {
       items: [{
         name: "Информационные услуги",
         quantity: 1,
         sum: params.amountRub.toFixed(2),
-        tax: "none",
+        tax: taxRate,
         payment_method: "full_prepayment",
         payment_subject: "service"
       }]

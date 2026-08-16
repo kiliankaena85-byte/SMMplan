@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
           if (k !== 'key') paramsObj[k] = val.toString();
         });
       }
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || null;
-      const userAgent = request.headers.get('user-agent') || null;
+      const ip = request?.headers?.get?.('x-forwarded-for')?.split(',')[0] || request?.headers?.get?.('x-real-ip') || null;
+      const userAgent = request?.headers?.get?.('user-agent') || null;
 
       db.b2bRequestLog.create({
         data: {
