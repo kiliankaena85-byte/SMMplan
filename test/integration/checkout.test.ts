@@ -29,9 +29,27 @@ describe('Server Actions: Checkout Integration', () => {
     
     // Enable test mode in DB so it doesn't crash on Payment Gateways
     await db.systemSettings.upsert({
+      where: { id: 'smmplan' },
+      create: { id: 'smmplan', isTestMode: true },
+      update: { isTestMode: true }
+    });
+    await db.systemSettings.upsert({
       where: { id: 'global' },
       create: { id: 'global', isTestMode: true },
       update: { isTestMode: true }
+    });
+    await db.systemSettings.updateMany({
+      data: {
+        isTestMode: true,
+        yookassaShopId: null,
+        yookassaSecretKey: null,
+        yookassaTestShopId: null,
+        yookassaTestSecretKey: null,
+        cryptoBotToken: null,
+        robokassaLogin: null,
+        robokassaPassword: null,
+        robokassaWebhookPassword: null
+      }
     });
     revalidateTag('settings');
     // Wipe out rate limit from previous runs or other loops

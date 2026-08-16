@@ -13,7 +13,7 @@ export class CBRRateService {
    * 
    * @returns The combined payload: nominal rate, system rate (with spread), and update status.
    */
-  static async syncCBRExchangeRate(): Promise<{ nominalRate: number; systemRate: number; updated: boolean }> {
+  static async syncCBRExchangeRate(tenantId?: string): Promise<{ nominalRate: number; systemRate: number; updated: boolean }> {
     try {
       let usdRate: number | null = null;
 
@@ -60,14 +60,14 @@ export class CBRRateService {
       const systemRate = parseFloat((usdRate * this.SPREAD_MULTIPLIER).toFixed(2));
 
       // Update in DB with the spread-adjusted system rate
-      await SettingsManager.setExchangeRateUSD(systemRate);
+      await SettingsManager.setExchangeRateUSD(systemRate, tenantId);
 
       return { nominalRate: usdRate, systemRate, updated: true };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("[CBRRateService] CBR sync failed:", error.message);
       // Fallback to existing settings on failure
-      const existingRate = await SettingsManager.getExchangeRateUSD();
+      const existingRate = await SettingsManager.getExchangeRateUSD(tenantId);
       return { nominalRate: existingRate, systemRate: existingRate, updated: false };
     }
   }

@@ -42,7 +42,7 @@ class YooKassaGateway extends BasePaymentGateway {
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
 
-    const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey.startsWith('test_') || process.env.NODE_ENV === 'development';
+    const isDummyKeys = params.isTestMode || !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey.startsWith('test_') || process.env.NODE_ENV === 'development';
 
     if (isDummyKeys) {
       return {
@@ -345,7 +345,7 @@ class RobokassaGateway extends BasePaymentGateway {
     const login = secrets.robokassaLogin;
     const password = secrets.robokassaPassword;
 
-    const isDummyKeys = !login || !password || login === 'test_login';
+    const isDummyKeys = params.isTestMode || !login || !password || login === 'test_login';
 
     if (isDummyKeys) {
       return {

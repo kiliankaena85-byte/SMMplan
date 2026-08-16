@@ -145,7 +145,7 @@ describe('Checkout Voucher Rejection', () => {
         providerId: provider.id,
         externalId: 'ext-456',
         rate: 1.0,
-        pricePer1000Cents: 2000,
+        markup: 6.0,
         minQty: 10,
         maxQty: 1000,
         isActive: true,
@@ -161,7 +161,7 @@ describe('Checkout Voucher Rejection', () => {
     const checkoutResult = await checkoutAction({
       serviceId: service.id,
       link: 'https://instagram.com/test',
-      quantity: 1000, // Cost is 2000 cents
+      quantity: 1000,
       email: `${userId}@example.com`,
       promoCodeStr: promoCodeStr
     });
@@ -174,7 +174,7 @@ describe('Checkout Voucher Rejection', () => {
       where: { id: orderId }
     });
     expect(order?.promoCodeId).toBe(promo.id);
-    expect(order?.discountCents).toBe(2900n); // 10% of 29000 cents is 2900 cents
+    expect(order?.discountCents).toBe(5700n); // 10% of 57000 cents is 5700 cents
 
     const { logPromoCodeUsageIfNeeded } = await import('../../src/services/marketing-utils');
     await db.$transaction(async (tx) => {
@@ -188,8 +188,8 @@ describe('Checkout Voucher Rejection', () => {
     expect(usage).toBeDefined();
     expect(usage?.promoCodeId).toBe(promo.id);
     expect(usage?.userId).toBe(userId);
-    expect(usage?.discountCents).toBe(2900n);
-    expect(usage?.revenueCents).toBe(26100n); // 29000 - 2900 discount = 26100 cents charged
+    expect(usage?.discountCents).toBe(5700n);
+    expect(usage?.revenueCents).toBe(51300n); // 57000 - 5700 discount = 51300 cents charged
     expect(usage?.isSuspicious).toBe(true); // Persists suspicious status from the PromoCode
 
     // Clean up

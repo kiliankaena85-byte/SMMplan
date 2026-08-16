@@ -4,18 +4,26 @@ import { POST } from '@/app/api/v2/route';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 
+import { RateLimitService } from '@/services/core/rate-limit.service';
+import { vi } from 'vitest';
+
 describe('Security & Concurrency (Race Conditions)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let user: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let service: any;
 
   beforeEach(async () => {
+    vi.spyOn(RateLimitService, 'checkCustomKey').mockResolvedValue(true);
+
     const apiKey = `RACE_SECRET_${Date.now()}_${Math.random()}`;
     const hashedKey = crypto.createHash('sha256').update(apiKey).digest('hex');
 
     // 1. Seed user with precisely enough balance for ONLY 1 order
     user = await db.user.create({
       data: {
-        email: 'race.user@test.com',
+        email: `race.user.${Date.now()}@test.com`,
+        tenantId: 'smmplan',
         apiKeyHash: hashedKey,
         balance: 30000, // 300 RUB
       }
@@ -24,22 +32,33 @@ describe('Security & Concurrency (Race Conditions)', () => {
     user.apiKey = apiKey;
 
     const category = await db.category.create({
-      data: { name: 'Race Test Services' }
+      data: { name: 'Race Test Services', tenantId: 'smmplan' }
     });
 
     // 2. Seed a service with fixed cost
     service = await db.service.create({
       data: {
         name: 'API Service Race',
+        tenantId: 'smmplan',
         categoryId: category.id,
         rate: 100 / 95, 
-        markup: 3.0, // Total cost per 1k should be 300 RUB = 30000 cents
+        markup: 3.0,
         minQty: 10,
         maxQty: 10000,
         isActive: true,
-        numericId: 999
+        numericId: Math.floor(Math.random() * 800000) + 100000
       }
     });
+
+    const { marketingService } = await import('@/services/marketing.service');
+    const pricing = await marketingService.calculatePrice(user.id, service.id, 1000);
+
+    // Set user balance to precisely enough for exactly 1 order
+    user = await db.user.update({
+      where: { id: user.id },
+      data: { balance: pricing.totalCents }
+    });
+    user.apiKey = apiKey;
 
     // Disable rate limiting for this user to allow parallel execution test
     await db.rateLimit.deleteMany();
@@ -65,18 +84,19 @@ describe('Security & Concurrency (Race Conditions)', () => {
     const promises = Array.from({ length: 50 }).map(() => makeRequest({ 
       key: user.apiKey, 
       action: 'add',
-      service: '999',
+      service: service.numericId.toString(),
       link: 'https://example.com/race',
       quantity: '1000' 
     }));
 
     const responses = await Promise.all(promises);
+    const jsonResults = await Promise.all(responses.map(r => r.json().catch(() => ({}))));
 
     let successCount = 0;
     let failCount = 0;
 
-    for (const res of responses) {
-      if (res.status === 200) {
+    for (let i = 0; i < responses.length; i++) {
+      if (responses[i].status === 200 && jsonResults[i].order) {
         successCount++;
       } else {
         failCount++;

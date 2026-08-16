@@ -7,10 +7,10 @@ describe('CBR Rate Synchronization Integration', () => {
     // Unstub globals for integration test to allow real network requests
     vi.unstubAllGlobals();
     
-    // Ensure "global" settings row exists in DB
+    // Ensure "smmplan" settings row exists in DB
     await db.systemSettings.upsert({
-      where: { id: 'global' },
-      create: { id: 'global', exchangeRateUSD: 90.0 },
+      where: { id: 'smmplan' },
+      create: { id: 'smmplan', exchangeRateUSD: 90.0 },
       update: { exchangeRateUSD: 90.0 }
     });
   });
@@ -21,7 +21,7 @@ describe('CBR Rate Synchronization Integration', () => {
   });
 
   it('connects to live CBR over the real internet, parses rate, and updates DB', async () => {
-    const result = await CBRRateService.syncCBRExchangeRate();
+    const result = await CBRRateService.syncCBRExchangeRate('smmplan');
     
     expect(result.updated).toBe(true);
     expect(result.nominalRate).toBeGreaterThan(50);
@@ -32,7 +32,7 @@ describe('CBR Rate Synchronization Integration', () => {
 
     // Verify database update
     const dbSettings = await db.systemSettings.findUnique({
-      where: { id: 'global' }
+      where: { id: 'smmplan' }
     });
     expect(dbSettings?.exchangeRateUSD).toBe(expectedSystemRate);
     expect(dbSettings?.exchangeRateUpdatedAt).not.toBeNull();
@@ -50,7 +50,7 @@ describe('CBR Rate Synchronization Integration', () => {
       return originalFetch(url, init);
     }));
 
-    const result = await CBRRateService.syncCBRExchangeRate();
+    const result = await CBRRateService.syncCBRExchangeRate('smmplan');
 
     expect(result.updated).toBe(true);
     expect(result.nominalRate).toBeGreaterThan(50);
@@ -60,7 +60,7 @@ describe('CBR Rate Synchronization Integration', () => {
     expect(result.systemRate).toBe(expectedSystemRate);
 
     const dbSettings = await db.systemSettings.findUnique({
-      where: { id: 'global' }
+      where: { id: 'smmplan' }
     });
     expect(dbSettings?.exchangeRateUSD).toBe(expectedSystemRate);
   });

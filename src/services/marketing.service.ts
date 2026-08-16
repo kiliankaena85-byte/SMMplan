@@ -132,8 +132,8 @@ class MarketingService {
     const safetyFloorCents = calculateSafetyFloorCents(providerCostCents);
     if (totalCents < safetyFloorCents) {
       totalCents = safetyFloorCents;
-      // Recalculate true discount applied so receipts match the actual charge
-      discountCents = originalTotalCents - totalCents;
+      // Recalculate true discount applied so receipts match the actual charge (never negative)
+      discountCents = Math.max(0, originalTotalCents - totalCents);
     }
 
     // Enforce a minimum price of 1 cent (0.01 ₽) for any calculated order

@@ -119,7 +119,7 @@ describe('Server Actions: MediaGroup Order Checkout Integration Flow', () => {
     const orders = await db.order.findMany({ where: { paymentId } });
     expect(orders.length).toBe(1);
     expect(orders[0].link).toBe('https://t.me/durov/248');
-    expect(orders[0].charge).toBe(10527n); // 90 RUB base is below safety floor of 105.27 RUB (10527 cents)
+    expect(orders[0].charge).toBe(21053n); // Safety Floor 3.0
   });
 
   it('Successfully splits order into two separate orders when mediaGroupUrl IS provided', async () => {
@@ -152,18 +152,18 @@ describe('Server Actions: MediaGroup Order Checkout Integration Flow', () => {
 
     // Check primary order
     expect(order1.link).toBe(mainLink);
-    expect(order1.charge).toBe(10527n);
+    expect(order1.charge).toBe(21053n);
     expect(order1.customData).toBeNull();
 
     // Check secondary order
     expect(order2.link).toBe(secondaryLink);
-    expect(order2.charge).toBe(10527n);
+    expect(order2.charge).toBe(21053n);
     expect(order2.customData).toContain('Медиагруппа: последнее медиа. Основной заказ:');
 
-    // Confirm payment total amount is doubled (10527 * 2 = 21054 cents)
+    // Confirm payment total amount is doubled (21053 * 2 = 42106 cents)
     const payment = await db.payment.findUnique({ where: { id: paymentId } });
     expect(payment).toBeDefined();
-    expect(payment?.amount).toBe(21054n);
+    expect(payment?.amount).toBe(42106n);
   });
 
   it('Fails checkout when secondary mediaGroupUrl is an invalid Telegram link', async () => {
