@@ -1967,7 +1967,7 @@
   "/app/codebase/src/data/knowledge/shadowban-and-antifraud.mdx": "b12edd0e2be8a1c5",
   "/app/codebase/src/components/ui/CategoryIcon.tsx": "dcb411c71bde9870",
   "/app/codebase/src/components/ui/status-badge.tsx": "2399bfaa77c847b2",
-  "/app/codebase/src/components/landing/MegaFooter.tsx": "a06b86effcffb982",
+  "/app/codebase/src/components/landing/MegaFooter.tsx": "d86422c67e0390c6",
   "/app/codebase/src/lib/revalidate-cache.ts": "c07ec355358a2596",
   "/app/codebase/src/components/landing/Reviews.tsx": "0b460c270728d3e2",
   "/app/codebase/src/components/landing/order-engine/FullscreenCheckoutVariantC.tsx": "0ad4efa26b5e52c0",
@@ -2260,7 +2260,7 @@
   "/app/codebase/src/components/admin/navigation-data.ts": "2820ed7ac8123e1f",
   "/app/codebase/src/app/services/[network]/page.tsx": "16ab902b6a91be26",
   "/app/codebase/src/components/landing/order-engine/StickyCheckoutTriggerBar.tsx": "a0fecec898471a47",
-  "/app/codebase/src/components/legal/LegalPageContent.tsx": "773d53c93af2b931",
+  "/app/codebase/src/components/legal/LegalPageContent.tsx": "896130ddd34113db",
   "/app/codebase/src/app/dashboard/new-order/client-page.tsx": "097eb332d5ad9d71",
   "/app/codebase/src/components/dashboard/settings/api/ApiReferenceDocs.tsx": "4d84f3977f512ab8",
   "/app/codebase/src/components/admin/routing/ProviderComparisonHub.tsx": "17d4219edff41635",
@@ -2896,5 +2896,5 @@
   "/app/codebase/docs/ARCHITECTURE.md": "c1c832400ff2a535",
   "/app/codebase/test/unit/flux-footer-isolation.test.ts": "e1c466a50422aaf3",
   "/app/codebase/docs/INSTALLATION.md": "18bb125e762747bf",
-  "/app/codebase/src/components/landing/flux/FluxCyberFooter.tsx": "7cd1edf5922c8c14"
+  "/app/codebase/src/components/landing/flux/FluxCyberFooter.tsx": "d20ea7e5a0b2e6f7"
 }
