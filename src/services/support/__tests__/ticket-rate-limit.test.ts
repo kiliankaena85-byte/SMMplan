@@ -27,6 +27,7 @@ vi.mock('@/lib/db', () => ({
   db: {
     ticket: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     }
   }
 }));
@@ -102,7 +103,7 @@ describe('Ticket Actions Rate Limiting', () => {
       vi.mocked(verifySession).mockResolvedValueOnce({ userId: 'u1' } as any);
       vi.mocked(RateLimitService.checkCustomKey).mockResolvedValueOnce(true);
       vi.mocked(RateLimitService.check).mockResolvedValueOnce(true);
-      vi.mocked(db.ticket.findUnique).mockResolvedValueOnce({ id: 't1', userId: 'u1' } as any);
+      vi.mocked(db.ticket.findFirst).mockResolvedValueOnce({ id: 't1', userId: 'u1' } as any);
 
       const formData = new FormData();
       formData.append('ticketId', 't1');

@@ -113,7 +113,7 @@ describe('SyncProcessor (QA-2: Order Lifecycle Engineer)', () => {
     });
     await syncProcessor(createFakeJob());
     expect(mockOrderDb.update).toHaveBeenCalledWith({
-      where: { id: 'ord-sync-1' }, data: { status: 'COMPLETED', remains: 0 },
+      where: { id: 'ord-sync-1' }, data: { status: 'COMPLETED', remains: 0, startCount: 0 },
     });
     expect(mockProcessRefund).not.toHaveBeenCalled();
   });
@@ -125,7 +125,7 @@ describe('SyncProcessor (QA-2: Order Lifecycle Engineer)', () => {
     });
     await syncProcessor(createFakeJob());
     expect(mockOrderDb.update).toHaveBeenCalledWith({
-      where: { id: 'ord-sync-1' }, data: { status: 'PARTIAL', remains: 300 },
+      where: { id: 'ord-sync-1' }, data: { status: 'PARTIAL', remains: 300, startCount: 0 },
     });
     expect(mockProcessRefund).toHaveBeenCalled();
   });
@@ -137,7 +137,7 @@ describe('SyncProcessor (QA-2: Order Lifecycle Engineer)', () => {
     });
     await syncProcessor(createFakeJob());
     expect(mockOrderDb.update).toHaveBeenCalledWith({
-      where: { id: 'ord-sync-1' }, data: { status: 'CANCELED', remains: 1000 },
+      where: { id: 'ord-sync-1' }, data: { status: 'CANCELED', remains: 1000, startCount: 0 },
     });
     expect(mockProcessRefund).toHaveBeenCalledWith(
       expect.anything(), expect.stringContaining('Отмена на стороне провайдера'), expect.anything()
@@ -184,7 +184,7 @@ describe('SyncProcessor (QA-2: Order Lifecycle Engineer)', () => {
     });
     await syncProcessor(createFakeJob());
     expect(mockOrderDb.update).toHaveBeenCalledWith({
-      where: { id: 'ord-sync-1' }, data: { remains: 500 },
+      where: { id: 'ord-sync-1' }, data: { remains: 500, startCount: 0 },
     });
     expect(mockProcessRefund).not.toHaveBeenCalled();
   });

@@ -43,13 +43,14 @@ describe("GraphRAG Context Compression", () => {
     expect(result.length).toBeLessThanOrEqual(15);
   });
 });
-
 describe("GraphRAG API Operations", () => {
   const fetchCalls: { url: string; options: any }[] = [];
+  let fetchSpy: any;
 
-  beforeAll(() => {
-    vi.stubGlobal("fetch", async (url: string, options: any) => {
-      fetchCalls.push({ url, options });
+  beforeEach(() => {
+    fetchCalls.length = 0;
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (url: any, options: any) => {
+      fetchCalls.push({ url: typeof url === 'string' ? url : url.toString(), options });
       return {
         ok: true,
         status: 200,
@@ -58,8 +59,8 @@ describe("GraphRAG API Operations", () => {
     });
   });
 
-  afterAll(() => {
-    vi.restoreAllMocks();
+  afterEach(() => {
+    fetchSpy?.mockRestore();
   });
 
   test("search should submit top_k: 3 and specific collections to the search API", async () => {

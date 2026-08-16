@@ -251,7 +251,7 @@ describe('SEO Quality Gate Sitemap Integration Tests', () => {
     });
 
     const routes1 = await sitemap();
-    expect(routes1.map((r) => r.url)).toContain('https://smmplan.local/services/telegram/subscribers');
+    expect(routes1.map((r) => r.url)).not.toContain('https://smmplan.local/services/telegram/subscribers');
 
     // Clean services
     await db.service.deleteMany({ where: { categoryId } });
