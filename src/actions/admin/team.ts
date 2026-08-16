@@ -38,7 +38,8 @@ export async function updateSupportLimit(formData: FormData) {
       data: { supportLimitCents: limitCents },
     });
 
-    auditAdmin({
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'UPDATE_TRUST_BUDGET',
@@ -46,6 +47,7 @@ export async function updateSupportLimit(formData: FormData) {
       targetType: 'USER',
       oldValue: { limit: target.supportLimitCents },
       newValue: { limit: limitCents },
+      ipAddress
     });
 
     revalidatePath('/admin/settings');
