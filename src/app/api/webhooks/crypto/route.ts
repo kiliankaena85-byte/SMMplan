@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
     }
 
+    const isTestMode = await SettingsManager.isTestMode();
     const secrets = await SettingsManager.getPaymentSecrets();
     const CRYPTO_BOT_TOKEN = secrets.cryptoBotToken;
     if (!CRYPTO_BOT_TOKEN) {
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
         gatewayId, 
         amount, 
         payment.userId,
-        false,
+        isTestMode,
         'cryptobot',
         payment.id,
         metadataType // Теперь 'deposit' будет корректно передан
