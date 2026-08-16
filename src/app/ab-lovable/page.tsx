@@ -11,7 +11,7 @@ import { FluxReviews as LovableReviews } from "@/components/ab-test/FluxReviews"
 import { FluxFAQ as LovableFAQ } from "@/components/ab-test/FluxFAQ";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 
-import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { normalizeTenantId, getTenantHost, absoluteCanonical } from "@/lib/seo-helpers";
 
 export const revalidate = 300;
 
@@ -23,7 +23,7 @@ export async function generateMetadata() {
   const siteName = settings.SITE_NAME || (tenantId === 'flux' ? "SMMflux" : "SMMplan");
   
   const rawHost = reqHeaders.get("host") || "";
-  const safeHost = /^[a-z0-9.-]+(?::\d+)?$/i.test(rawHost) ? rawHost : "smmflux.ru";
+  const safeHost = /^[a-z0-9.-]+(?::\d+)?$/i.test(rawHost) ? rawHost : getTenantHost(tenantId);
   const baseUrl = `https://${safeHost}`;
   
   return {
@@ -31,7 +31,7 @@ export async function generateMetadata() {
     title: `${siteName} | Продвижение социальных сетей`,
     description: `Современная платформа продвижения ${siteName} (Next-Gen AI Growth). Быстрый запуск, автоматизация и гарантия качества.`,
     alternates: {
-      canonical: `${baseUrl}/ab-lovable`,
+      canonical: absoluteCanonical(tenantId, '/ab-lovable'),
     },
     openGraph: {
       title: `${siteName} | Продвижение социальных сетей`,

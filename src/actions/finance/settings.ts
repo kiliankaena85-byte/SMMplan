@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
 
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
 
 const financeSettingsSchema = z.object({
@@ -31,7 +31,7 @@ export async function updateSystemSettings(formData: FormData) {
     await accountingService.updateSettings(taxRate, opexMonthly);
   
     const ipAddress = await getClientIp('unknown');
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'UPDATE_FINANCE_SETTINGS',

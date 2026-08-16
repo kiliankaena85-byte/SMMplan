@@ -192,7 +192,7 @@ export function DashboardHeroLinkInput({
           }`}
         />
 
-        <div className="relative flex items-center w-full bg-card rounded-full p-1.5 sm:p-2 h-14 sm:h-16 z-10 border border-border/60 shadow-lg shadow-black/5">
+        <div className="relative flex items-center w-full bg-card rounded-full p-1.5 sm:p-2 h-14 sm:h-16 z-10 border border-border/60 shadow-sm">
           <div className="pl-3 sm:pl-4 pr-2 flex-shrink-0">
             <Link2 className="w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           </div>

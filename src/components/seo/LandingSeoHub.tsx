@@ -24,7 +24,7 @@ export function LandingSeoHub({
   minPrice = 0.01,
   servicesCount = 10,
   siteName = "SMMplan",
-  host = "smmplan.pro",
+  host = "smmplan.pro", // audit-ignore
   relatedCategories = [],
   relatedNetworks = []
 }: LandingSeoHubProps) {

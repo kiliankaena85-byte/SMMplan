@@ -42,15 +42,15 @@ export function TariffCard({ service, isSelected, onSelect, compact, brandStyle 
     : "border-border/50 bg-card hover:border-primary/40 md:hover:-translate-y-0.5 md:hover:shadow-[0_12px_25px_-8px_rgba(0,0,0,0.06)] dark:md:hover:shadow-[0_12px_25px_-8px_rgba(0,0,0,0.25)]";
 
   const textColorClass = isBranded
-    ? (brandStyle.activeText === "text-black" ? "text-black" : "text-white")
+    ? brandStyle.activeText
     : "text-foreground";
 
   const mutedColorClass = isBranded
-    ? (brandStyle.activeText === "text-black" ? "text-black/70" : "text-white/75")
+    ? `${brandStyle.activeText} opacity-75`
     : "text-muted-foreground";
 
   const checkColorClass = isBranded
-    ? (brandStyle.activeText === "text-black" ? "text-black" : "text-white")
+    ? brandStyle.activeText
     : "text-primary";
 
   return (
@@ -105,7 +105,7 @@ export function TariffCard({ service, isSelected, onSelect, compact, brandStyle 
           {service.description && (!compact || isSelected) && (
             <p className={`text-[11px] mt-2 leading-relaxed whitespace-pre-line transition-all duration-300 ${
               isBranded
-                ? (brandStyle.activeText === "text-black" ? "text-black/70" : "text-white/70")
+                ? `${brandStyle.activeText} opacity-70`
                 : "text-muted-foreground/70"
             } ${isSelected ? "" : "line-clamp-2"}`}>
               {service.description.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {

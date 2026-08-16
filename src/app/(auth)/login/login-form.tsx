@@ -209,7 +209,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={isPending || !email || !password}
-            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-2xl text-sm font-black bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-all duration-200 shadow-lg shadow-blue-600/30 cursor-pointer active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-2xl text-sm font-black bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 transition-all duration-200 shadow-sm cursor-pointer active:scale-[0.98]"
           >
             {isPending ? (
               <>
@@ -226,11 +226,11 @@ export function LoginForm() {
 
           <p className="text-center text-[11px] font-medium text-foreground/70 leading-relaxed px-2 mt-3">
             Нажимая кнопку, вы соглашаетесь с{' '}
-            <Link href="/legal/terms" className="underline font-bold text-foreground hover:text-blue-500 transition-colors">
+            <Link href="/legal/terms" className="underline font-bold text-foreground hover:text-primary transition-colors">
               Условиями сервиса
             </Link>{' '}
             и{' '}
-            <Link href="/legal/privacy" className="underline font-bold text-foreground hover:text-blue-500 transition-colors">
+            <Link href="/legal/privacy" className="underline font-bold text-foreground hover:text-primary transition-colors">
               Политикой конфиденциальности
             </Link>
           </p>

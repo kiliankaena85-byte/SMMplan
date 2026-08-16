@@ -28,22 +28,22 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  COMPLETED:       'text-success bg-success/10 border-emerald-500/20',
-  IN_PROGRESS:     'text-blue-500    bg-blue-500/10    border-blue-500/20',
+  COMPLETED:       'text-success bg-success/10 border-success/20',
+  IN_PROGRESS:     'text-primary bg-primary/10 border-primary/20',
   PENDING:         'text-warning-text bg-warning/10 border-warning/20',
   AWAITING_PAYMENT:'text-warning-text bg-warning/10 border-warning/20',
-  PROVISIONING:    'text-indigo-500  bg-indigo-500/10  border-indigo-500/20',
-  ERROR:           'text-destructive     bg-destructive/10     border-red-500/20',
+  PROVISIONING:    'text-secondary bg-secondary/10 border-secondary/20',
+  ERROR:           'text-destructive bg-destructive/10 border-destructive/20',
   PARTIAL:         'text-warning-text bg-warning/10 border-warning/20',
   CANCELED:        'text-muted-foreground bg-muted border-border',
 };
 
 const STATUS_ACCENT_BORDER: Record<string, string> = {
   COMPLETED:       'border-l-success',
-  IN_PROGRESS:     'border-l-blue-500',
+  IN_PROGRESS:     'border-l-primary',
   PENDING:         'border-l-warning',
   AWAITING_PAYMENT:'border-l-warning',
-  PROVISIONING:    'border-l-indigo-500',
+  PROVISIONING:    'border-l-secondary',
   ERROR:           'border-l-destructive',
   PARTIAL:         'border-l-warning',
   CANCELED:        'border-l-muted-foreground/30',
