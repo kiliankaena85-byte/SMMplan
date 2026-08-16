@@ -2009,7 +2009,7 @@
   "/app/codebase/src/lib/settings.ts": "33dd51ae6a8f3156",
   "/app/codebase/src/components/support/TemplateCommandPalette.tsx": "8a2dd65191494724",
   "/app/codebase/src/data/knowledge/target-type-error.md": "02e79029679001f4",
-  "/app/codebase/src/components/landing/order-engine/PlatformLinkGuideData.ts": "dbdd230dd316c3e1",
+  "/app/codebase/src/components/landing/order-engine/PlatformLinkGuideData.ts": "52d2fa4c39738773",
   "/app/codebase/src/components/landing/order-engine/DynamicPayloadWarnings.tsx": "7b4e722de24b5fd9",
   "/app/codebase/src/components/support/chat/ChatTemplateManager.tsx": "0bf23390a8d1a04b",
   "/app/codebase/src/components/ui/sonner.tsx": "715626e0b1756d29",
@@ -2877,5 +2877,8 @@
   "/app/codebase/src/app/admin/tenants/tenants-manager.tsx": "3fccb95032025f11",
   "/app/codebase/src/actions/admin/tenants.ts": "5794b183704793c5",
   "/app/codebase/src/app/admin/tenants/page.tsx": "40e1e3b108f568ef",
-  "/app/codebase/test/integration/tenants-admin.test.ts": "b03b98d48159fc3e"
+  "/app/codebase/test/integration/tenants-admin.test.ts": "b03b98d48159fc3e",
+  "/app/codebase/src/actions/order/link-guide.ts": "6d300e0703fb68ab",
+  "/app/codebase/test/unit/link-guide.test.ts": "7b66d49daac85867",
+  "/app/codebase/src/services/catalog/link-guide.service.ts": "2f1893b30a0936c2"
 }

@@ -28,6 +28,9 @@ import { formatEtaSpeedBadge } from '@/utils/format-eta';
 import { UniversalOrderForm } from '@/components/orders/UniversalOrderForm';
 import { DashboardHeroLinkInput } from '@/components/orders/DashboardHeroLinkInput';
 import { checkServiceRefill } from '@/utils/service-refill';
+import { TelegramLinkGuideModal } from '@/components/orders/TelegramLinkGuideModal';
+import { LinkGuideService } from '@/services/catalog/link-guide.service';
+import { HelpCircle } from 'lucide-react';
 
 function SmmplanOrderWizardInner({
   userEmail = '',
@@ -66,6 +69,7 @@ function SmmplanOrderWizardInner({
   const [dripInterval, setDripInterval] = useState(60);
   const [customData, setCustomData] = useState("");
   const [isRequirementsConfirmed, setIsRequirementsConfirmed] = useState(false);
+  const [isTgGuideOpen, setIsTgGuideOpen] = useState(false);
 
   // Validation & Submitting State
   const [errors, setErrors] = useState<{ link?: string; quantity?: string; customData?: string; requirement?: string; general?: string }>({});
@@ -828,17 +832,40 @@ function SmmplanOrderWizardInner({
               )}
 
               {/* Link Input Field */}
+              {/* Link Input Field with Multi-Device Guide */}
               <div className="space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                    <LinkIcon className="w-4 h-4 text-primary shrink-0" />
-                    <span>Ссылка на объект продвижения</span>
-                    <span className="text-destructive">*</span>
-                  </label>
-                  <span className="text-xs text-muted-foreground font-normal">
-                    {getTargetTypeHint(selectedCategory?.name, selectedService.targetType).hint}
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                      <LinkIcon className="w-4 h-4 text-primary shrink-0" />
+                      <span>Ссылка на объект продвижения</span>
+                      <span className="text-destructive">*</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {LinkGuideService.isTelegramViewsService(selectedNetwork?.slug, selectedCategory?.slug, selectedService.name) && (
+                      <button
+                        type="button"
+                        onClick={() => setIsTgGuideOpen(true)}
+                        className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-xl transition-all"
+                      >
+                        <HelpCircle className="w-3.5 h-3.5" />
+                        <span>Как скопировать ссылку на фото? (iOS/Android)</span>
+                      </button>
+                    )}
+                    <span className="text-xs text-muted-foreground font-normal hidden md:inline">
+                      {getTargetTypeHint(selectedCategory?.name, selectedService.targetType).hint}
+                    </span>
+                  </div>
                 </div>
+
+                <TelegramLinkGuideModal
+                  isOpen={isTgGuideOpen}
+                  onClose={() => setIsTgGuideOpen(false)}
+                  onApplyLink={l => setLink(l)}
+                  tenantVariant="classic"
+                />
 
                 <input
                   id="order-url"

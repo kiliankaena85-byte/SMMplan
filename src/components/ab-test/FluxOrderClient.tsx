@@ -2,13 +2,15 @@
 
 import React, { useState, useRef, useActionState, useEffect, Suspense } from "react";
 import { Button } from "@heroui/react";
-import { LinkIcon, SparklesIcon, ArrowRightIcon, Box, ArrowLeftIcon, ArrowDownIcon, AlertCircle } from "lucide-react";
+import { LinkIcon, SparklesIcon, ArrowRightIcon, Box, ArrowLeftIcon, ArrowDownIcon, AlertCircle, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getServicesByCategoryAction } from "@/actions/order/catalog";
 import { checkoutAction } from "@/actions/order/checkout";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
 import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByUrl } from "@/hooks/useOrderWizard";
 import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
+import { TelegramLinkGuideModal } from "@/components/orders/TelegramLinkGuideModal";
+import { LinkGuideService } from "@/services/catalog/link-guide.service";
 
 type Step = 'link' | 'network' | 'category' | 'service' | 'checkout';
 
@@ -83,6 +85,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
   const [dripRuns, setDripRuns] = useState(5);
   const [dripInterval, setDripInterval] = useState(60);
   const [customData, setCustomData] = useState("");
+  const [isTgGuideOpen, setIsTgGuideOpen] = useState(false);
   const [showShakeError, setShowShakeError] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
 
@@ -696,8 +699,29 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                 )}
 
                 {/* 2. Ссылка */}
-                <div id="field-link" className="mb-3">
-                  <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1 ml-1">Ссылка на {selectedService.targetType === 'CHANNEL' ? 'канал/профиль' : selectedService.targetType === 'POST' ? 'пост' : 'объект'}</label>
+                <div id="field-link" className="mb-3 space-y-1.5">
+                  <div className="flex items-center justify-between flex-wrap gap-1 px-1">
+                    <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider">
+                      Ссылка на {selectedService.targetType === 'CHANNEL' ? 'канал/профиль' : selectedService.targetType === 'POST' ? 'пост' : 'объект'}
+                    </label>
+                    {LinkGuideService.isTelegramViewsService(activeNetwork?.slug || 'telegram', activeCategory?.slug, selectedService.name) && (
+                      <button
+                        type="button"
+                        onClick={() => setIsTgGuideOpen(true)}
+                        className="text-[11px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 cursor-pointer bg-purple-500/10 border border-purple-500/20 px-2.5 py-0.5 rounded-full transition-all"
+                      >
+                        <HelpCircle className="w-3 h-3" />
+                        <span>Как скопировать ссылку на фото?</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <TelegramLinkGuideModal
+                    isOpen={isTgGuideOpen}
+                    onClose={() => setIsTgGuideOpen(false)}
+                    onApplyLink={l => setLink(l)}
+                    tenantVariant="neon"
+                  />
                   <input 
                     ref={linkRef}
                     name="link"
