@@ -7,13 +7,39 @@ import { motion } from "framer-motion";
 import React from "react";
 import { ROUTES } from "@/lib/routes";
 import { TrustBar } from "./TrustBar";
-import { WhyUs } from "./WhyUs";
-import { FAQ } from "./FAQ";
-import { Reviews } from "./Reviews";
 import { LinkModal } from "./order-engine/LinkModal";
-import { CheckoutDrawer } from "./order-engine/drawer/CheckoutDrawer";
 import { useABTest } from "@/hooks/useABTest";
 import dynamic from "next/dynamic";
+
+const WhyUs = dynamic(() => import("./WhyUs").then((mod) => mod.WhyUs));
+const FAQ = dynamic(() => import("./FAQ").then((mod) => mod.FAQ));
+const Reviews = dynamic(() => import("./Reviews").then((mod) => mod.Reviews));
+const MegaFooter = dynamic(() => import("./MegaFooter").then((mod) => mod.MegaFooter));
+
+const CheckoutDrawer = dynamic(
+  () => import("./order-engine/drawer/CheckoutDrawer").then((mod) => mod.CheckoutDrawer),
+  { ssr: false }
+);
+
+const PaymentGatewaySelectionModal = dynamic(
+  () => import("./order-engine/PaymentGatewaySelectionModal").then((mod) => mod.PaymentGatewaySelectionModal),
+  { ssr: false }
+);
+
+const LegalDocumentModal = dynamic(
+  () => import("./order-engine/LegalDocumentModal").then((mod) => mod.LegalDocumentModal),
+  { ssr: false }
+);
+
+const PlatformLinkGuideDrawer = dynamic(
+  () => import("./order-engine/PlatformLinkGuideDrawer").then((mod) => mod.PlatformLinkGuideDrawer),
+  { ssr: false }
+);
+
+const MassConfirmEmailModal = dynamic(
+  () => import("./order-engine/MassConfirmEmailModal").then((mod) => mod.MassConfirmEmailModal),
+  { ssr: false }
+);
 
 const InlineCheckoutForm = dynamic(
   () => import("./order-engine/InlineCheckoutForm").then((mod) => mod.InlineCheckoutForm),
@@ -34,15 +60,10 @@ import { CategorySidebar } from "./order-engine/CategorySidebar";
 import { ServiceGrid } from "./order-engine/ServiceGrid";
 import { MobileWizard } from "./order-engine/MobileWizard";
 import { MobileCatalogModal } from "./order-engine/MobileCatalogModal";
-import { LegalDocumentModal } from "./order-engine/LegalDocumentModal";
 import { useCheckoutOrchestrator } from "./order-engine/useCheckoutOrchestrator";
 import { HeroInput } from "./order-engine/HeroInput";
 import { DynamicPayloadWarnings } from "./order-engine/DynamicPayloadWarnings";
-import { MegaFooter } from "./MegaFooter";
-import { PlatformLinkGuideDrawer } from "./order-engine/PlatformLinkGuideDrawer";
-import { PaymentGatewaySelectionModal } from "./order-engine/PaymentGatewaySelectionModal";
 import { Box } from "lucide-react";
-import { MassConfirmEmailModal } from "./order-engine/MassConfirmEmailModal";
 import { PlatformSelectorFallback } from "@/components/orders/PlatformSelectorFallback";
 import { UniversalOrderForm } from "@/components/orders/UniversalOrderForm";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";

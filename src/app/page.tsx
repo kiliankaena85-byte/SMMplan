@@ -1,13 +1,16 @@
 import { getPublicCatalogAction } from "@/actions/order/catalog";
 import { getBaseUrlAsync } from "@/utils/get-base-url";
 import { SmartLinkLanding } from "@/components/landing/SmartLinkLanding";
+import dynamicImport from "next/dynamic";
 import { Header } from "@/components/landing/Header";
-import { MegaFooter } from "@/components/landing/MegaFooter";
 import { FluxOrderClient } from "@/components/ab-test/FluxOrderClient";
 import { FluxTrustBar } from "@/components/ab-test/FluxTrustBar";
-import { FluxWhyUs } from "@/components/ab-test/FluxWhyUs";
-import { FluxReviews } from "@/components/ab-test/FluxReviews";
-import { FluxFAQ } from "@/components/ab-test/FluxFAQ";
+
+const FluxWhyUs = dynamicImport(() => import("@/components/ab-test/FluxWhyUs").then(m => m.FluxWhyUs));
+const FluxReviews = dynamicImport(() => import("@/components/ab-test/FluxReviews").then(m => m.FluxReviews));
+const FluxFAQ = dynamicImport(() => import("@/components/ab-test/FluxFAQ").then(m => m.FluxFAQ));
+const MegaFooter = dynamicImport(() => import("@/components/landing/MegaFooter").then(m => m.MegaFooter));
+
 import { ROUTES } from "@/lib/routes";
 import { SettingsProvider } from "@/lib/settings";
 import { TENANTS } from "@/config/tenants";
