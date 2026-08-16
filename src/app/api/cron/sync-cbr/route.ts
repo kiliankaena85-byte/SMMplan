@@ -26,8 +26,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const { SettingsProvider } = await import('@/lib/settings');
     // Check if the system is in manual mode (i.e. exchangeRateUpdatedAt is null, and rate is not 0)
-    const settings = await db.systemSettings.findUnique({ where: { id: 'global' } });
+    const settings = await SettingsProvider.getDirect();
     if (settings && settings.exchangeRateUpdatedAt === null && settings.exchangeRateUSD !== 0) {
       console.info('[SyncCBRCron] Skipped. System is in manual exchange rate mode.');
       return NextResponse.json({ success: false, reason: 'manual_mode_prevented' }, { status: 200 });
