@@ -33,10 +33,16 @@ export async function GET(request: Request) {
     let csv = '';
     let filename = 'export.csv';
 
+    // Multi-tenant isolation: non-OWNER staff are restricted strictly to their tenant
+    const effectiveTenantId = user.tenantId ?? 'smmplan';
+    const tenantFilter = user.role === 'OWNER' ? {} : { tenantId: effectiveTenantId };
+
     switch (type) {
       case 'orders': {
         const status = searchParams.get('status');
-        const where: Record<string, unknown> = {};
+        const where: Record<string, unknown> = {
+          ...tenantFilter
+        };
         if (status && status !== 'ALL') where.status = status;
 
         const orders = await db.order.findMany({
@@ -70,6 +76,7 @@ export async function GET(request: Request) {
 
       case 'users': {
         const users = await db.user.findMany({
+          where: tenantFilter,
           orderBy: { createdAt: 'desc' },
           take: 5000,
           include: { _count: { select: { orders: true } } },
@@ -112,6 +119,16 @@ export async function GET(request: Request) {
       default:
         return NextResponse.json({ error: `Unknown export type: ${type}` }, { status: 400 });
     }
+
+    const { auditAdmin } = await import('@/lib/admin-audit');
+    auditAdmin({
+      adminId: user.id,
+      adminEmail: user.email,
+      action: 'DATA_EXPORT',
+      target: type,
+      targetType: 'SYSTEM_SETTINGS',
+      newValue: { type, filename, tenant: effectiveTenantId }
+    });
 
     return new NextResponse(csv, {
       headers: {
