@@ -8,12 +8,11 @@ import { SettingsProvider } from '@/lib/settings';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const hostHeader = req.headers.get('host') || '';
-  const tenantId = hostHeader.includes('lovable') ? 'lovable' : 'smmplan';
+  const tenantId = await SettingsProvider.getTenantId();
 
   const contactSettings = await SettingsProvider.getContactAndLegalSettings();
   let botUsername = contactSettings.TELEGRAM_SUPPORT_BOT;
-  if (tenantId === 'lovable') {
+  if (tenantId === 'flux' || tenantId === 'lovable') {
     botUsername = process.env.FLUX_TELEGRAM_BOT || 'smmflux_support_bot';
   }
 

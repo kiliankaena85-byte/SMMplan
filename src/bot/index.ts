@@ -106,10 +106,13 @@ bot.start(async (ctx: any) => {
 
       try {
         await db.$transaction(async (tx) => {
-          await tx.authToken.update({
-            where: { id: bindToken.id },
+          const consumedToken = await tx.authToken.updateMany({
+            where: { id: bindToken.id, used: false },
             data: { used: true }
           });
+          if (consumedToken.count === 0) {
+            throw new Error("Токен привязки уже использован");
+          }
 
           const tempUser = await tx.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
           

@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { ticketService } from '@/services/support/ticket.service';
 import { publishMessageSSE } from '@/services/support/sse.service';
 import { getClientIp } from '@/utils/ip';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -55,7 +55,7 @@ export async function replyTicketAction(data: {
 
       // Audit Action
       const ipAddress = await getClientIp('unknown');
-      auditAdmin({
+      await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: isInternal ? 'TICKET_INTERNAL_NOTE_ADD' : 'TICKET_REPLY_SEND',

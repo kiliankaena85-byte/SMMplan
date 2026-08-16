@@ -3,7 +3,7 @@
 import { requireOperatorPermission } from '@/lib/operator/rbac';
 import { db } from '@/lib/db';
 import { getClientIp } from '@/utils/ip';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -42,7 +42,7 @@ export async function changeTicketStatusAction(data: {
       });
 
       const ipAddress = await getClientIp('unknown');
-      auditAdmin({
+      await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: 'TICKET_STATUS_CHANGE',
