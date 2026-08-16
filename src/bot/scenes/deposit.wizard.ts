@@ -99,6 +99,7 @@ depositWizard.action('cancel_deposit', async (ctx: any) => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: any) => {
+  await ctx.answerCbQuery().catch(() => {});
   const gateway = ctx.match[1] as 'yookassa' | 'cryptobot';
   const amount = ctx.wizard.state.depositData?.amount;
   const tgId = ctx.from.id;

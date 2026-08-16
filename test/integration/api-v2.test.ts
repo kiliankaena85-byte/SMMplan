@@ -77,7 +77,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBe(1);
     expect(data[0].service).toBe(777); // the numericId
-    expect(data[0].rate).toBe('233.9181'); // constrained by safety floor 
+    expect(data[0].rate).toBe('467.8363'); // constrained by safety floor 3.0
   });
 
   it('Successfully creates order and deduces balance (action: add)', async () => {
@@ -97,7 +97,7 @@ describe('B2B API v2: Zod & Compatibility', () => {
 
     // Verify DB
     const checkDbUser = await db.user.findUnique({ where: { id: user.id } });
-    expect(checkDbUser?.balance).toBe(BigInt(476608)); // Deduced 23392 cents due to safety floor
+    expect(checkDbUser?.balance).toBe(BigInt(453216)); // Deduced 46784 cents due to safety floor 3.0
   });
 
   it('Loose Compatibility: Prevents attacks, but emits standard errors', async () => {

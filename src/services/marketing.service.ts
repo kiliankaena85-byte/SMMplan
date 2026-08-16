@@ -4,6 +4,7 @@ import {
   calculateSafetyFloorCents,
   MAX_TOTAL_DISCOUNT,
   TOTAL_MANDATORY_DEDUCTIONS,
+  SAFETY_FLOOR_MARKUP,
   applyBeautifulRounding,
 } from '@/lib/financial-constants';
 import { SettingsProvider } from '@/lib/settings';
@@ -215,8 +216,8 @@ class MarketingService {
       const discountVal = (originalRatePer1000 * maxDiscountPercent) / 100;
       let finalRatePer1000 = originalRatePer1000 - discountVal;
 
-      // 3. Safety Floor: never below cost × 2.34 (covers taxes + gateway + 100% margin) in RUB
-      const safetyFloor = (s.rate * sExchangeRate * (1 + 1.0)) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
+      // 3. Safety Floor: never below cost × (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS) in RUB
+      const safetyFloor = (s.rate * sExchangeRate * (1 + SAFETY_FLOOR_MARKUP)) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
       if (finalRatePer1000 < safetyFloor) {
         finalRatePer1000 = safetyFloor;
       }

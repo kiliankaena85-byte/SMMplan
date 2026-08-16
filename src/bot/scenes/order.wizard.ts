@@ -368,6 +368,7 @@ orderWizard.action('confirm_reqs', async (ctx: any) => {
 // ──────────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 orderWizard.action('confirm_order', async (ctx: any) => {
+  await ctx.answerCbQuery().catch(() => {});
   const {
     service, totalQuantity, totalCents, providerCostCents,
     link, isDripFeed, runs, interval, isLinkOverridden
@@ -383,6 +384,7 @@ orderWizard.action('confirm_order', async (ctx: any) => {
 
     if (Number(user.balance) >= totalCents) {
       // ── SUFFICIENT BALANCE: Atomic deduction via Lite core ──
+      const idempotencyKey = `bot-${user.id}-${service.id}-${totalQuantity}-${Date.now()}`;
       const result = await orderService.createOrder(user.id, {
         serviceId: service.id,
         link,
@@ -392,7 +394,7 @@ orderWizard.action('confirm_order', async (ctx: any) => {
         providerCost: providerCostCents,
         runs: isDripFeed ? runs : undefined,
         interval: isDripFeed ? interval : undefined,
-      });
+      }, idempotencyKey);
 
       if (result.success) {
         await ctx.editMessageText('✅ <b>Заказ успешно создан!</b>\nОн уже передан в работу.', { parse_mode: 'HTML' });
