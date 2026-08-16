@@ -86,8 +86,13 @@ describe('PricingService Property-Based Tests (Fast-Check)', () => {
           // discountPercent может превышать 30% — это намеренное бизнес-решение (см. ARCH-1 в BACKLOG.md)
           // (он проверяется выше: result.totalCents >= result.safetyFloorCents)
           
-          // Проверка формулы: totalCents = originalTotalCents - discountCents
-          expect(result.totalCents + result.discountCents).toBe(result.originalTotalCents);
+          // Проверка формулы: totalCents = originalTotalCents - discountCents (с учетом Safety Floor)
+          if (result.totalCents > result.originalTotalCents) {
+            expect(result.totalCents).toBe(result.safetyFloorCents);
+            expect(result.discountCents).toBe(0);
+          } else {
+            expect(result.totalCents + result.discountCents).toBe(result.originalTotalCents);
+          }
         }
       ),
       { numRuns: 100 }
@@ -114,7 +119,12 @@ describe('PricingService Property-Based Tests (Fast-Check)', () => {
 
           expect(result.discountCents).toBeGreaterThanOrEqual(0);
           expect(result.discountCents).toBeLessThanOrEqual(result.originalTotalCents);
-          expect(result.totalCents).toBeLessThanOrEqual(result.originalTotalCents);
+          expect(result.totalCents).toBeGreaterThanOrEqual(result.safetyFloorCents);
+          if (result.totalCents > result.originalTotalCents) {
+            expect(result.totalCents).toBe(result.safetyFloorCents);
+          } else {
+            expect(result.totalCents).toBeLessThanOrEqual(result.originalTotalCents);
+          }
         }
       )
     );

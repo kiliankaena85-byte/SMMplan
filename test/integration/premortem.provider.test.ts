@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { db } from '@/lib/db';
+import { NextRequest } from 'next/server';
 // Мокаем ordersQueue для симуляции падения Redis во время добавления заказа
 vi.mock('@/workers/queues', async (importOriginal) => {
   const actual: any = await importOriginal();
@@ -77,7 +78,7 @@ describe.skip('💀 Premortem Test: Provider Outage during Checkout', () => {
     });
 
     // Формируем B2B запрос (action=add)
-    const req = new Request('http://localhost/api/v2', {
+    const req = new NextRequest('http://localhost/api/v2', {
       method: 'POST',
       body: `key=premortem-key&action=add&service=${serviceNumericId}&link=https://example.com&quantity=100`,
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }

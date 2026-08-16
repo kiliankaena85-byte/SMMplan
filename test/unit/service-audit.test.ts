@@ -52,13 +52,13 @@ describe('ServiceAuditEngine Unit Tests', () => {
   });
 
   describe('auditAndFixService Markup & Price Correction', () => {
-    it('should auto-correct markup and price when below 5.0', async () => {
+    it('should auto-correct markup and price when below MIN_MARKUP (3.0)', async () => {
       const mockService = {
         id: 'srv-1',
         name: 'Normal Service',
         description: 'No advertising here',
-        markup: 3.5,
-        pricePer1000Cents: 350,
+        markup: 1.5,
+        pricePer1000Cents: 150,
         rate: 1.0,
         isActive: true,
         isQuarantined: false,
@@ -72,13 +72,13 @@ describe('ServiceAuditEngine Unit Tests', () => {
 
       await ServiceAuditEngine.auditAndFixService(mockService as any, mockExternal, exchangeRate);
 
-      expect(mockService.markup).toBe(5.0);
-      expect(mockService.pricePer1000Cents).toBeGreaterThan(350);
+      expect(mockService.markup).toBe(3.0);
+      expect(mockService.pricePer1000Cents).toBeGreaterThan(150);
 
       expect(db.service.update).toHaveBeenCalledWith({
         where: { id: 'srv-1' },
         data: expect.objectContaining({
-          markup: 5.0,
+          markup: 3.0,
           pricePer1000Cents: mockService.pricePer1000Cents,
         }),
       });

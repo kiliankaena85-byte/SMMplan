@@ -50,15 +50,8 @@ test.describe('Catalog & Pricing Flow', () => {
 
     // 3. Find our specific row in the table
     // It might be paginated, so search for it
-    const searchInput = page.locator('input[name="q"]');
-    try {
-      await expect(searchInput).toBeVisible({ timeout: 10000 });
-    } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const fs = require('fs');
-      fs.writeFileSync('catalog-error.html', await page.content());
-      throw err;
-    }
+    const searchInput = page.locator('input[placeholder*="Название или ID"], input[name="q"]').first();
+    await expect(searchInput).toBeVisible({ timeout: 15000 });
     await searchInput.fill('E2E Test Safety Floor Service');
     await searchInput.press('Enter');
     await page.waitForTimeout(500); // Wait for debounce / reload

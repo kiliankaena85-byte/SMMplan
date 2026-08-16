@@ -228,11 +228,10 @@ describe('Security Tests (QA-4: Security & Penetration Tester)', () => {
       expect(() => VaultService.decrypt(tampered)).toThrowError(/Decryption failed/);
     });
 
-    // TC-SEC-EXTRA: Non-formatted string returns original
-    it('TC-SEC-EXTRA: Non-encrypted string returns original (not 3-part format)', () => {
+    // TC-SEC-EXTRA: Non-formatted plaintext string is rejected with error
+    it('TC-SEC-EXTRA: Non-encrypted string is rejected (not 3-part format)', () => {
       const payload = 'just-a-plain-key';
-      const result = VaultService.decrypt(payload);
-      expect(result).toBe(payload);
+      expect(() => VaultService.decrypt(payload)).toThrowError(/Plaintext or malformed secret payload/);
     });
 
     // TC-SEC-EXTRA: Empty string returns empty

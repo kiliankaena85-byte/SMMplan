@@ -154,6 +154,9 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
 }
 
 async function handleDevAutoLogin() {
+  if (process.env.APP_ENV === 'test') {
+    return null;
+  }
   if (
     process.env.NODE_ENV === 'development' &&
     (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')

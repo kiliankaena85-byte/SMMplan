@@ -140,6 +140,7 @@ describe('Server Actions: MediaGroup Order Checkout Integration Flow', () => {
 
     const paymentId = res.data.paymentId;
     expect(paymentId).toBeDefined();
+    if (!paymentId) throw new Error('paymentId is undefined');
 
     // Confirm that exactly 2 orders were created
     const orders = await db.order.findMany({

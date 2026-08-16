@@ -5,8 +5,13 @@ import { db } from '../../src/lib/db';
 // Mock the Prisma DB client
 vi.mock('../../src/lib/db', () => ({
   db: {
+    tenant: {
+      findUnique: vi.fn().mockResolvedValue({ id: 'tenant-1', slug: 'smmplan' }),
+      findFirst: vi.fn().mockResolvedValue({ id: 'tenant-1', slug: 'smmplan' }),
+    },
     systemSettings: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       upsert: vi.fn(),
       create: vi.fn(),
     }
@@ -28,7 +33,7 @@ describe('SettingsProvider (Dynamic Branding)', () => {
     (db.systemSettings.upsert as any).mockRejectedValue(new Error('DB Error'));
 
     const settings = await SettingsProvider.getContactAndLegalSettings();
-    expect(settings.SITE_NAME).toBe('Smmplan Lite');
+    expect(settings.SITE_NAME).toBe('SMMplan');
   });
 
   it('should return default values from create if DB is empty but accessible', async () => {

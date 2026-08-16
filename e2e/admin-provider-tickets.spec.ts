@@ -18,10 +18,10 @@ test.describe('Admin Provider Support Links Flow', () => {
 
     // 2. Prepare test data
     const testEmail = 'support-links-tester@test.com';
-    let testUser = await prisma.user.findUnique({ where: { email: testEmail } });
+    let testUser = await prisma.user.findFirst({ where: { email: testEmail } });
     if (!testUser) {
       testUser = await prisma.user.create({
-        data: { email: testEmail, balance: 100000, role: 'USER' }
+        data: { email: testEmail, tenantId: 'smmplan', balance: 100000, role: 'USER' }
       });
     }
 

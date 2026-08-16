@@ -85,7 +85,8 @@ export async function middleware(request: NextRequest) {
 
     const isDevBypassAllowed =
       process.env.NODE_ENV === 'development' &&
-      process.env.ENABLE_DEV_BYPASS === 'true';
+      process.env.ENABLE_DEV_BYPASS === 'true' &&
+      process.env.APP_ENV !== 'test';
 
     if (explicitLogout === 'true' || !sessionToken) {
       if (isRSC) {

@@ -21,11 +21,12 @@ test.describe('Admin Panel Flow', () => {
   test('Admin can view and reply to tickets', async ({ adminPage }) => {
     // 1. Seed a test ticket into the DB so the table doesn't render empty state
     const prisma = new PrismaClient();
-    let testUser = await prisma.user.findUnique({ where: { email: 'e2e-tester@test.com' } });
+    let testUser = await prisma.user.findFirst({ where: { email: 'e2e-tester@test.com' } });
     if (!testUser) {
       testUser = await prisma.user.create({
         data: {
           email: 'e2e-tester@test.com',
+          tenantId: 'smmplan',
           role: 'USER'
         }
       });
@@ -531,7 +532,7 @@ test.describe('Admin Panel Flow', () => {
     });
     
     try {
-      const testerUser = await prisma.user.findUnique({ where: { email: 'balance-tester@test.com' } });
+      const testerUser = await prisma.user.findFirst({ where: { email: 'balance-tester@test.com' } });
       if (testerUser) {
         // Skip ledger deletion because ledger is immutable
         try {

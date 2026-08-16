@@ -11,17 +11,7 @@
 
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import crypto from 'crypto';
-
-function hashPassword(password: string): Promise<string> {
-  const salt = crypto.randomBytes(16).toString('hex');
-  return new Promise((resolve, reject) => {
-    crypto.scrypt(password, salt, 64, { N: 16384, r: 8, p: 1 }, (err, derivedKey) => {
-      if (err) reject(err);
-      else resolve(`$s2$16384$${salt}$${derivedKey.toString('hex')}`);
-    });
-  });
-}
+import { hashPassword } from '../src/lib/auth/password';
 
 // Fresh context — no pre-seeded admin session cookie
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -33,6 +23,10 @@ test.describe('Auth Flow — Registration & Login', () => {
   const userEmail = `e2e-auth-user-${ts}@smmplan.local`;
   const userPassword = 'TestPass123!';
   const bannedEmail = `e2e-banned-${ts}@smmplan.local`;
+
+  test.beforeEach(async ({ context }) => {
+    await context.clearCookies();
+  });
 
   test.afterAll(async () => {
     // Cleanup: sessions cascade-delete via FK on User
@@ -99,13 +93,14 @@ test.describe('Auth Flow — Registration & Login', () => {
     const hash = await hashPassword(userPassword);
     await db.user.upsert({
       where: { email_tenantId: { email: userEmail, tenantId: 'smmplan' } },
-      update: { passwordHash: hash, isActive: true },
+      update: { passwordHash: hash, isActive: true, isEmailVerified: true },
       create: {
         email: userEmail,
         tenantId: 'smmplan',
         passwordHash: hash,
         role: 'USER',
         isActive: true,
+        isEmailVerified: true,
         balance: 0,
       },
     });

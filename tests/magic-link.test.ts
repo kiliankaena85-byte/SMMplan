@@ -8,12 +8,15 @@ vi.mock('@/lib/db', () => ({
   db: {
     user: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
       count: vi.fn()
     },
     authToken: {
       create: vi.fn(),
+      deleteMany: vi.fn(),
     },
     $transaction: vi.fn(),
   }
@@ -34,7 +37,8 @@ vi.mock('@/services/core/rate-limit.service', () => ({
 vi.mock('next/headers', () => ({
   cookies: vi.fn(() => ({
     get: vi.fn(() => null)
-  }))
+  })),
+  headers: vi.fn(async () => new Headers())
 }));
 
 describe('requestMagicLink', () => {
@@ -56,7 +60,7 @@ describe('requestMagicLink', () => {
     expect(db.user.create).not.toHaveBeenCalled();
   });
 
-  it('should delete user if sendMagicLink fails', async () => {
+  it('should soft-delete user if sendMagicLink fails', async () => {
     vi.mocked(RateLimitService.check).mockResolvedValue(true);
     vi.mocked(db.user.findUnique).mockResolvedValue(null); // New user
     
@@ -73,17 +77,22 @@ describe('requestMagicLink', () => {
     
     const result = await requestMagicLink(null, formData);
     
-    console.log("RESULT", result);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Не удалось отправить письмо');
     await new Promise(r => setTimeout(r, 50));
     expect(db.$transaction).toHaveBeenCalled();
     expect(smtp.sendMagicLink).toHaveBeenCalled();
-    expect(db.user.delete).toHaveBeenCalledWith({ where: { id: mockUser.id } });
+    expect(db.user.update).toHaveBeenCalledWith({
+      where: { id: mockUser.id },
+      data: expect.objectContaining({
+        isDeleted: true,
+        isActive: false,
+      })
+    });
     expect(smtp.sendWelcomeLetter).not.toHaveBeenCalled(); // Orphaned email prevented
   });
 
-  it('should catch db.user.delete error if it fails during SMTP fallback', async () => {
+  it('should catch db.user.update error if it fails during SMTP fallback', async () => {
     vi.mocked(RateLimitService.check).mockResolvedValue(true);
     vi.mocked(db.user.findUnique).mockResolvedValue(null); // New user
     
@@ -93,7 +102,7 @@ describe('requestMagicLink', () => {
     });
     
     vi.mocked(smtp.sendMagicLink).mockRejectedValue(new Error('SMTP Down'));
-    vi.mocked(db.user.delete).mockRejectedValue(new Error('DB Delete failed'));
+    vi.mocked(db.user.update).mockRejectedValue(new Error('DB Update failed'));
     
     const formData = new FormData();
     formData.append('email', 'test@example.com');
@@ -103,7 +112,13 @@ describe('requestMagicLink', () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain('Не удалось отправить письмо');
     await new Promise(r => setTimeout(r, 50));
-    expect(db.user.delete).toHaveBeenCalledWith({ where: { id: mockUser.id } });
+    expect(db.user.update).toHaveBeenCalledWith({
+      where: { id: mockUser.id },
+      data: expect.objectContaining({
+        isDeleted: true,
+        isActive: false,
+      })
+    });
   });
 
 });

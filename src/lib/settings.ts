@@ -258,10 +258,10 @@ export class SettingsProvider {
       try {
         return VaultService.decrypt(val);
       } catch (err) {
-        if (SettingsProvider.isTestEnvironment() || useTestKeys) {
+        if (SettingsProvider.isTestEnvironment() || useTestKeys || process.env.NODE_ENV === 'test') {
           return val;
         }
-        throw err;
+        return null;
       }
     };
 

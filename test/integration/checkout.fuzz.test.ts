@@ -52,7 +52,7 @@ describe('Financial Fuzzing: Checkout & WalletOps', () => {
     const gw = PaymentGatewayFactory.getGateway('yookassa');
     // Force YooKassa to run the real logic instead of mock by temporarily replacing NODE_ENV
     const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    (process.env as any).NODE_ENV = 'production';
 
     await fc.assert(
       fc.asyncProperty(
@@ -78,6 +78,6 @@ describe('Financial Fuzzing: Checkout & WalletOps', () => {
       ),
       { numRuns: 10 }
     );
-    process.env.NODE_ENV = originalEnv;
+    (process.env as any).NODE_ENV = originalEnv;
   });
 });

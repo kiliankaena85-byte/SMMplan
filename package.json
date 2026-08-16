@@ -17,6 +17,7 @@
     "test:tenant": "tsx scripts/test-tenant-resolution.ts",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
+    "test:ux": "playwright test e2e/ux-quality/",
     "visual-qa": "dotenv -e .env -- tsx scripts/visual-qa.js",
     "visual-qa:compare": "dotenv -e .env -- tsx scripts/visual-qa.js --compare",
     "test:visual": "dotenv -e .env.test -- playwright test e2e/visual-regression.spec.ts",

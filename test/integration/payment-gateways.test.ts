@@ -30,7 +30,7 @@ describe('Payment Gateways Integration Tests', () => {
 
   afterEach(() => {
     // Restore environment and mocks
-    process.env.NODE_ENV = originalEnv;
+    (process.env as any).NODE_ENV = originalEnv;
     vi.restoreAllMocks();
     vi.stubGlobal('fetch', vi.fn());
   });
@@ -49,7 +49,7 @@ describe('Payment Gateways Integration Tests', () => {
       });
 
       // Force NODE_ENV to production to verify that dummy credentials trigger mock URL fallback even in "production"
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
 
       const yookassa = PaymentGatewayFactory.getGateway('yookassa');
       const robokassa = PaymentGatewayFactory.getGateway('robokassa');
@@ -101,7 +101,7 @@ describe('Payment Gateways Integration Tests', () => {
       });
 
       // Force NODE_ENV to production to avoid E2E-tester mocks and invoke real requests
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
 
       const params = {
         paymentId: 'pay_456',
@@ -223,7 +223,7 @@ describe('Payment Gateways Integration Tests', () => {
       const isTestModeSpy = vi.spyOn(SettingsProvider, 'isTestMode').mockResolvedValue(false);
 
       // Force NODE_ENV to production so the gateway doesn't E2E mock
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
 
       const mockYooKassaResponse = {
         confirmation: { confirmation_url: 'https://yookassa.ru/confirmation-fallback-789' },

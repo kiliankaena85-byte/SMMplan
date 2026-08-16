@@ -39,7 +39,7 @@ test.describe('E2E Registration and Ordering Flow', () => {
     }
 
     // 2. Ensure test user does not exist
-    const oldUser = await prisma.user.findUnique({ where: { email: testEmail } });
+    const oldUser = await prisma.user.findFirst({ where: { email: testEmail } });
     if (oldUser) {
       await prisma.order.deleteMany({ where: { userId: oldUser.id } }).catch(() => {});
       await prisma.payment.deleteMany({ where: { userId: oldUser.id } }).catch(() => {});
@@ -50,7 +50,7 @@ test.describe('E2E Registration and Ordering Flow', () => {
 
   test.afterAll(async () => {
     // Cleanup
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { email: testEmail }
     });
     if (user) {

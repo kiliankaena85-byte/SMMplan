@@ -15,10 +15,10 @@ test.describe('Orders Management Flow', () => {
   test('Admin can perform partial refund via Order Drawer', async ({ page }) => {
     // 1. Prepare test user, service, and order
     const testEmail = 'order-tester-e2e@test.com';
-    let testUser = await prisma.user.findUnique({ where: { email: testEmail } });
+    let testUser = await prisma.user.findFirst({ where: { email: testEmail } });
     if (!testUser) {
       testUser = await prisma.user.create({
-        data: { email: testEmail, balance: 100000, role: 'USER' } // 1000 RUB
+        data: { email: testEmail, tenantId: 'smmplan', balance: 100000, role: 'USER' } // 1000 RUB
       });
     } else {
       testUser = await prisma.user.update({

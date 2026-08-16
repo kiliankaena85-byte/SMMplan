@@ -22,6 +22,9 @@ describe('Security: Data Leak Prevention (Trust Boundaries)', () => {
       totalCents: 10000,
       originalTotalCents: 10000,
       discountCents: 0,
+      discountPercent: 0,
+      safetyFloorCents: 6000,
+      tier: 'REGULAR',
       providerCostCents: 2000, // HIGHLY CONFIDENTIAL: Buy price
     });
 

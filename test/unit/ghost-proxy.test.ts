@@ -41,13 +41,14 @@ vi.mock('@/lib/settings', async (importOriginal) => {
 
 import { ProviderService } from '@/services/providers/provider.service';
 import { SettingsManager, SettingsProvider } from '@/lib/settings';
+import { VaultService } from '@/lib/vault';
 
 // ---- Test Data ----
 const REAL_PROVIDER_CONFIG = {
   id: 'prov-vexboost',
   name: 'Vexboost',
   apiUrl: 'https://smm.vexboost.com/v2',
-  apiKey: 'encrypted_real_key_abc123',
+  apiKey: '',
   isActive: true,
   metadata: {},
   syncLock: false,
@@ -63,6 +64,7 @@ describe('Ghost Proxy v2: Routing Architecture', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    REAL_PROVIDER_CONFIG.apiKey = VaultService.encrypt('real_key_abc123');
     service = new ProviderService();
   });
 

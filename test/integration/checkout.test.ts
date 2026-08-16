@@ -51,7 +51,7 @@ describe('Server Actions: Checkout Integration', () => {
         robokassaWebhookPassword: null
       }
     });
-    revalidateTag('settings');
+    (revalidateTag as any)('settings');
     // Wipe out rate limit from previous runs or other loops
     await db.rateLimit.deleteMany();
     // Also wipe out from Redis!

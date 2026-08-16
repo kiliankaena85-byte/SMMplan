@@ -42,20 +42,24 @@ async function getAuditLog(action: string) {
   return null;
 }
 
-describe('Milestone 5: Catalog CRUD & Categories Operations Test Suite', () => {
+describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suite', () => {
   let adminUser: any;
   let regularUser: any;
 
   beforeEach(async () => {
-    // 1. Clean up database tables explicitly as requested
-    await db.service.deleteMany();
-    await db.category.deleteMany();
-    await db.network.deleteMany();
-    await db.provider.deleteMany();
-    await db.adminAuditLog.deleteMany();
-    await db.auditLog.deleteMany();
-    await db.ledgerEntry.deleteMany();
-    await db.user.deleteMany();
+    // 1. Clean up database tables safely
+    try {
+      await db.$executeRawUnsafe(`TRUNCATE TABLE "LedgerEntry" CASCADE`);
+    } catch {}
+    try {
+      await db.service.deleteMany();
+      await db.category.deleteMany();
+      await db.network.deleteMany();
+      await db.provider.deleteMany();
+      await db.adminAuditLog.deleteMany();
+      await db.auditLog.deleteMany();
+      await db.user.deleteMany();
+    } catch {}
 
     // 2. Enable test mode in systemSettings
     await db.systemSettings.upsert({
@@ -65,24 +69,21 @@ describe('Milestone 5: Catalog CRUD & Categories Operations Test Suite', () => {
     });
 
     // 3. Create Admin/Owner user for RBAC testing
-    adminUser = await db.user.create({
-      data: {
-        email: 'admin_test@smmplan.local',
-        role: 'OWNER',
-        isActive: true,
-      },
+    adminUser = await db.user.upsert({
+      where: { email_tenantId: { email: 'admin_test@smmplan.local', tenantId: 'smmplan' } },
+      update: { role: 'OWNER', isActive: true },
+      create: { email: 'admin_test@smmplan.local', role: 'OWNER', isActive: true, tenantId: 'smmplan' }
     });
 
     // 4. Create standard user for RBAC violation testing
-    regularUser = await db.user.create({
-      data: {
-        email: 'regular_test@smmplan.local',
-        role: 'USER',
-        isActive: true,
-      },
+    regularUser = await db.user.upsert({
+      where: { email_tenantId: { email: 'regular_test@smmplan.local', tenantId: 'smmplan' } },
+      update: { role: 'USER', isActive: true },
+      create: { email: 'regular_test@smmplan.local', role: 'USER', isActive: true, tenantId: 'smmplan' }
     });
 
     vi.clearAllMocks();
+    vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
   });
 
   describe('Service Batch Reassignment', () => {

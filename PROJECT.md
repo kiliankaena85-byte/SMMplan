@@ -1,45 +1,44 @@
-# Project: Smmplan Stage 4 Hardening (B2B Admin & Support Security and UX)
+# Project: Smmplan Platform Test Failure Elimination & Integrity Hardening
 
 ## Architecture
-This project hardens the Smmplan B2B administration panel and client-support flows. It implements visual ergonomics, auto-pricing with elastic quarantine and loss prevention, detailed financial dashboard metrics, a double-check ledger balance verifier, and a Playwright visual QA script.
+This project resolves all unit test failures across the SMMplan platform (1004/1004 passing Vitest tests), fixes database teardown & PostgreSQL immutable ledger constraints in E2E tests (`e2e/utils/db-cleaner.ts`), modernizes legacy E2E test selectors to HeroUI v3 & UnifiedOrderWizard, and synchronizes architectural decisions to GraphRAG.
 
 - **Stack**: Next.js 16.0.10, React 19.0.0, Tailwind CSS 4.0.0, HeroUI v3 (dot notation), Prisma 5 (PostgreSQL), Vitest 4, Playwright.
 - **Key Modules**:
-  - **Support UX (R1)**: `src/app/admin/tickets/components/unified-workspace.tsx` and `src/components/support/ClientProfileSidebar.tsx`. Warm pastel palette (Zinc/Ivory/Amber) defined in `src/app/globals.css`.
-  - **Auto-pricing (R2)**: `src/services/system/cbr-rate.service.ts`, `src/actions/admin/providers/sync-action.ts`, and `src/services/providers/quarantine.service.ts`.
-  - **Financial Dashboard & USN (R3)**: `src/app/admin/dashboard/page.tsx` and `src/services/financial/accounting.service.ts`.
-  - **Balance Verifier (R4)**: `src/utils/balance-verifier.ts` triggered via `npm run check-balances`.
-  - **Visual QA (R5)**: `scripts/visual-qa.js` and `e2e/visual-regression.spec.ts`.
+  - **Unit Testing**: `test/unit/` (17 test files including `service-audit.test.ts`, `settings.test.ts`, `smart-drip-checkout.test.ts`, `pricing-sync.test.ts`, `services-data.test.ts`, etc.)
+  - **Financial Rules**: Safety Floor markup 3.0, unit pricing ₽ / шт, BigInt kopecks, multi-tenant isolation.
+  - **E2E Infrastructure**: `e2e/utils/db-cleaner.ts` with clean immutable ledger handling.
+  - **E2E Test Suites**: `e2e/user-flow.spec.ts`, `e2e/providers.spec.ts`, `e2e/api-v2-mass-orders.spec.ts`.
+  - **GraphRAG Synchronization**: `http://localhost:8100/api/decision`.
+
+## Feature Inventory
+| # | Feature | Description | Milestone | Source |
+|---|---|---|---|---|
+| 1 | Vitest Unit Tests Alignment | Fix failing unit tests across test/unit/ (Safety floor markup 3.0, ₽/шт, multi-tenant Prisma rules, Vault encryption) -> 1004/1004 passing | M1 | ORIGINAL_REQUEST §R1 |
+| 2 | E2E DB Cleaner & Ledger Teardown | Update `e2e/utils/db-cleaner.ts` with session replication role / trigger bypass to cleanly handle PostgreSQL immutable ledger triggers without FK violations | M2 | ORIGINAL_REQUEST §R2 |
+| 3 | Modern E2E Selectors Alignment | Update outdated selectors in `e2e/user-flow.spec.ts`, `e2e/providers.spec.ts`, `e2e/api-v2-mass-orders.spec.ts` for HeroUI v3 & UnifiedOrderWizard | M3 | ORIGINAL_REQUEST §R3 |
+| 4 | GraphRAG Decision Synchronization | Log 3 final architectural decisions (Test Isolation, Financial Safety Floor 3.0, Multi-Tenant Session Verification) to `http://localhost:8100/api/decision` | M4 | ORIGINAL_REQUEST §R4 |
+| 5 | Platform Verification & Forensic Audit | Verify `npx tsc --noEmit` exits with 0 errors, `npx vitest run` passes 1004/1004, and Forensic Audit verifies integrity | M5 | ORIGINAL_REQUEST §Acceptance Criteria |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|---|---|---|---|
-| 1 | R1: Ergonomic UX & Warm Theme | Support panel ergonomic layout, soft Zinc/Ivory theme, 1.6 line-height, >=44px touch targets, hidden/collapsible profile sidebar on desktop, bottom drawer on mobile, auto-copy and provider bridge. | None | DONE |
-| 2 | R2: CBR Pricing & Quarantine | CBR USD/RUB exchange API sync, safety floor retail pricing, Elastic Quarantine for >20% spikes, Loss Prevention auto-block, and sync execution checks. | None | DONE |
-| 3 | R3: Financial Dashboard Analytics | dashboard metrics (Revenue, YooKassa fees, Provider cost COGS), dynamic USN tax selection (Income vs. Income minus Expenses), and clear net profit indicators (green/yellow/red). | M1, M2 | DONE |
-| 4 | R4: Balance Verification Ledger | Double-check Ledger verifier utility `src/utils/balance-verifier.ts` (`npm run check-balances`) to compare user.balance with ledger entries sum, auto-block fraud, and write alerts. | None | DONE |
-| 5 | R5: Visual QA Script & E2E Tests | `scripts/visual-qa.js` utilizing Playwright with `--compare` using pixelmatch, native visual regression test spec, and 100% build checks. | M1, M3 | DONE |
-| 6 | R6: Ads Analytics Promo Campaign | UTM campaign promo tracking in Prisma, atomic logging at payment time, UI promo creation forms with Ruble-to-cents conversion, dynamic CAC/LTV/ROMI columns with Ivory/Zinc colors and >= 44px hitboxes. | M1, M2, M3 | DONE |
+| 0 | Survey & Scope Mapping | 3 parallel Explorers surveying unit test failures, E2E teardown/selectors, and GraphRAG/typecheck | None | DONE |
+| 1 | M1: Vitest Unit Test Failure Elimination | Fix failing tests across test/unit/ and services -> 1004/1004 passed | M0 | IN_PROGRESS |
+| 2 | M2: E2E DB Cleaner & Ledger Teardown | Clean PostgreSQL immutable ledger handling in db-cleaner.ts | M0 | PLANNED |
+| 3 | M3: Modern E2E Selectors Alignment | HeroUI v3 & UnifiedOrderWizard selectors in 3 E2E spec files | M0 | PLANNED |
+| 4 | M4: GraphRAG Decision Sync | Sync test isolation, financial safety floor, and session verification decisions | M0 | PLANNED |
+| 5 | M5: Final Verification & Audit | Zero tsc errors, 1004/1004 Vitest, Maker-Checker Review and Forensic Audit | M1, M2, M3, M4 | PLANNED |
 
-
-## Interface Contracts
-- **Ergonomic Palette**: Theme colors must be derived exclusively from the `@theme` variable definitions in `src/app/globals.css` (Zinc / Ivory backgrounds, graphite/slate slate text, amber highlight elements). Hardcoded tailwind colors (like `bg-slate-950` or `text-emerald-600`) are forbidden.
-- **USN Scheme Schema Enum**: Define `UsnScheme` as `enum` in Prisma schema:
-  ```prisma
-  enum UsnScheme {
-    INCOME
-    INCOME_EXPENSES
-  }
-  ```
-  And add `usnScheme UsnScheme @default(INCOME_EXPENSES)` to `SystemSettings` model.
-- **Double-Entry Ledger Integrity**: Every balance adjustment must write an approved `LedgerEntry` record in PostgreSQL. The `BalanceVerifier` utility must run dynamically against these records.
-- **Ads Campaign Metrics Integrity**: All promotional UTM metrics (LTV, CAC, ROMI) displayed in tables must compute dynamically in-memory from transactional `PromoCodeUsage` rows to completely prevent drift or race condition desynchronization. ROMI efficiency cell rendering must conform to warm Ivory/Zinc theme visual color indicator depending on efficiency (Green for ROMI >= 50%, Yellow for 0-49%, Red for loss).
-- **Visual Thresholds**: The Playwright visual QA comparisons must use pixelmatch with a strict `maxDiffPixelRatio: 0.01` (1% limit).
+## Interface Contracts & Constraints
+- **Pricing & Safety Floor**: Safety Floor markup factor is 3.0 (`SAFETY_FLOOR_MARKUP = 3.0`). Unit pricing is strictly in rubles per 1 unit (`₽ / шт`) and internal calculations in BigInt kopecks.
+- **Vault Security**: All mock provider and gateway API credentials in test fixtures must use `VaultService.encrypt()` format. Plaintext secrets must be rejected.
+- **Multi-Tenant Prisma**: Mocks for `@/lib/db` must include `tenant` and `featureFlag` models.
+- **Immutable Ledger Teardown**: In E2E tests, cleaning the database must use session replication role or trigger disable to prevent ledger immutability errors.
+- **HeroUI v3 Selectors**: Use modern interactive card locators, button texts (`Создать подключение`, `Сохранить`), and input placeholders (`input[placeholder*="ссылк"]`).
 
 ## Code Layout
-- `src/actions/` - Server Actions (guarded by `requireAdmin()`)
-- `src/app/` - Next.js page routes & split ticket workspace
-- `src/components/` - React shared and layout components
-- `src/services/` - Core financial and business services
-- `src/utils/` - Balance verifier and other utility scripts
-- `scripts/` - QA scripting environment
+- `test/unit/` - Vitest unit test files
+- `e2e/utils/` - E2E helpers and DB cleaner utilities
+- `e2e/` - Playwright E2E test specs
+- `src/` - Production application source code

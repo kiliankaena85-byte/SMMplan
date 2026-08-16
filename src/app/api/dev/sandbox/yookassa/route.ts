@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireStaffPermission } from '@/lib/server/rbac';
+import { WalletOps } from '@/services/financial/wallet-ops';
 
 /**
  * Dev Sandbox: Simulate a YooKassa balance top-up for testing.
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     const fakeGatewayId = `dev_yookassa_${Date.now()}`;
     const amountCents = Math.round(amount * 100);
 
-    // Create payment record and credit balance directly
+    // Create payment record and credit balance via WalletOps to respect Trust Boundary
     await db.$transaction(async (tx) => {
       await tx.payment.create({
         data: {
@@ -45,21 +46,13 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      await tx.user.update({
-        where: { id: userId },
-        data: { balance: { increment: amountCents } }
-      });
-
-      // Insert Ledger Entry to satisfy financial audit requirements
-      await tx.ledgerEntry.create({
-        data: {
-          userId,
-          amount: amountCents,
-          reason: `Пополнение баланса (Dev Sandbox ЮKassa)`,
-          status: 'APPROVED',
-          idempotencyKey: `sandbox-${fakeGatewayId}`
-        }
-      });
+      await WalletOps.credit(
+        tx,
+        userId,
+        amountCents,
+        'Пополнение баланса (Dev Sandbox ЮKassa)',
+        { idempotencyKey: `sandbox-${fakeGatewayId}` }
+      );
     });
 
     return NextResponse.json({ success: true, message: 'Dev Sandbox Payment Succeeded' }, { status: 200 });

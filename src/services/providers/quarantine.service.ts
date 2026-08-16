@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { sendAdminAlert } from '@/lib/notifications';
-import { applyBeautifulRounding } from '@/lib/financial-constants';
+import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from '@/lib/financial-constants';
 
 export class QuarantineService {
     /**
@@ -216,8 +216,6 @@ export class QuarantineService {
      * or breaches the strict SAFETY_FLOOR_MARKUP (retail < purchase * SAFETY_FLOOR_MARKUP).
      */
     static isLossBreach(newRate: number, markup: number, exchangeRate: number): boolean {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { SAFETY_FLOOR_MARKUP } = require('@/lib/financial-constants');
         const pricePer1kRub = newRate * markup * exchangeRate;
         const pricePer1kRubRounded = applyBeautifulRounding(pricePer1kRub);
         const pricePerUnitRub = pricePer1kRubRounded / 1000;

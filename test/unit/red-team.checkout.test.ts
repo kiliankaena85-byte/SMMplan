@@ -8,13 +8,20 @@ import { Prisma } from '@prisma/client';
 // Mocking dependencies
 vi.mock('@/lib/db', () => ({
   db: {
-    service: { findUnique: vi.fn() },
-    user: { upsert: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
-    order: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    service: { findUnique: vi.fn(), findFirst: vi.fn() },
+    user: { upsert: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    order: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     payment: { create: vi.fn(), update: vi.fn() },
     promoCode: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     session: { create: vi.fn() },
     contentItem: { findUnique: vi.fn() },
+    tenant: {
+      findUnique: vi.fn().mockResolvedValue({ id: 'tenant-1', slug: 'smmplan' }),
+      findFirst: vi.fn().mockResolvedValue({ id: 'tenant-1', slug: 'smmplan' }),
+    },
+    featureFlag: {
+      findUnique: vi.fn().mockResolvedValue({ state: 'ON' }),
+    },
     $transaction: vi.fn(async (cb) => {
       // Имитация асинхронности через microtask queue без блокировки Fake Timers
       await Promise.resolve();
@@ -66,8 +73,14 @@ vi.mock('@/services/marketing.service', () => ({
 vi.mock('@/lib/settings', () => ({
   SettingsManager: {
     isTestMode: vi.fn().mockResolvedValue(true),
-    getPaymentSecrets: vi.fn().mockResolvedValue({})
-  }
+    getPaymentSecrets: vi.fn().mockResolvedValue({}),
+  },
+  SettingsProvider: {
+    isTestMode: vi.fn().mockResolvedValue(true),
+    getContactAndLegalSettings: vi.fn().mockResolvedValue({}),
+    getSystemSettings: vi.fn().mockResolvedValue({}),
+    getExchangeRateUSD: vi.fn().mockResolvedValue(100.0),
+  },
 }));
 
 vi.mock('next/headers', () => ({
@@ -90,6 +103,9 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-13T12:00:00Z'));
+    vi.mocked(db.user.findFirst).mockImplementation((args?: any) => {
+      return (db.user.findUnique as any)(args);
+    });
   });
 
   afterEach(() => {
@@ -124,7 +140,7 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
     });
 
     let isSecondCreate = false;
-    vi.mocked(db.order.create).mockImplementation(async () => {
+    vi.mocked(db.order.create as any).mockImplementation(async () => {
       if (isSecondCreate) {
         throw new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: '5.0.0' });
       }
@@ -132,8 +148,9 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
       return { id: 'order_new', charge: BigInt(1000) } as any;
     });
     vi.mocked(db.payment.create).mockResolvedValue({ id: 'pay_new' } as any);
-    vi.mocked(db.user.upsert).mockResolvedValue({ id: 'user_123', balance: BigInt(5000), totalSpent: BigInt(0) } as any);
-    vi.mocked(db.user.create).mockResolvedValue({ id: 'user_123', balance: BigInt(5000), totalSpent: BigInt(0) } as any);
+    vi.mocked(db.user.upsert).mockResolvedValue({ id: 'user_123', balance: BigInt(5000), totalSpent: BigInt(0), isActive: true, isDeleted: false } as any);
+    vi.mocked(db.user.findFirst).mockResolvedValue({ id: 'user_123', balance: BigInt(5000), totalSpent: BigInt(0), isActive: true, isDeleted: false } as any);
+    vi.mocked(db.user.create).mockResolvedValue({ id: 'user_123', balance: BigInt(5000), totalSpent: BigInt(0), isActive: true, isDeleted: false } as any);
 
     // Simulate 2 parallel requests
     const [res1, res2] = await Promise.all([

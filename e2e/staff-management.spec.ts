@@ -8,7 +8,7 @@ test.describe('Staff Management Flow', () => {
 
   test.beforeAll(async () => {
     // Clear any previous artifacts from this test user
-    const existingUser = await prisma.user.findUnique({ where: { email: testEmail } });
+    const existingUser = await prisma.user.findFirst({ where: { email: testEmail } });
     if (existingUser) {
       await prisma.adminAuditLog.deleteMany({ where: { target: existingUser.id, targetType: 'USER' } });
       await prisma.session.deleteMany({ where: { userId: existingUser.id } });
@@ -25,6 +25,7 @@ test.describe('Staff Management Flow', () => {
     await prisma.user.create({
       data: {
         email: testEmail,
+        tenantId: 'smmplan',
         role: 'USER',
         balance: 0,
       },
@@ -33,7 +34,7 @@ test.describe('Staff Management Flow', () => {
 
   test.afterAll(async () => {
     // Cleanup
-    const user = await prisma.user.findUnique({ where: { email: testEmail } });
+    const user = await prisma.user.findFirst({ where: { email: testEmail } });
     if (user) {
       await prisma.adminAuditLog.deleteMany({ where: { target: user.id, targetType: 'USER' } });
       await prisma.session.deleteMany({ where: { userId: user.id } });

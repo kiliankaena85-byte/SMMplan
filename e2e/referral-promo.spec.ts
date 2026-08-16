@@ -59,10 +59,15 @@ test.describe('Referral and Promo System', () => {
       }
     });
 
-    const secretKey = process.env.JWT_SECRET || 'fallback-secret-for-dev-only-v2';
-    const encodedKey = new TextEncoder().encode(secretKey);
+    const { getEncodedKey } = await import('../src/lib/session-edge');
+    const encodedKey = getEncodedKey();
 
-    sessionToken = await new SignJWT({ sessionId: session.id, userId: referred.id })
+    sessionToken = await new SignJWT({
+      sessionId: session.id,
+      userId: referred.id,
+      role: 'USER',
+      tenantId: 'smmplan'
+    })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('7d')
@@ -83,13 +88,45 @@ test.describe('Referral and Promo System', () => {
 
   test('Should activate promo code (start bonus) in dashboard', async ({ page, context }) => {
     // 1. Inject auth session for the referred user
+    const expiryUnix = Math.floor(Date.now() / 1000) + 7 * 86400;
     await context.addCookies([
+      {
+        name: 'session_token',
+        value: sessionToken,
+        domain: '127.0.0.1',
+        path: '/',
+        expires: expiryUnix,
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
+      },
       {
         name: 'session_token',
         value: sessionToken,
         domain: 'localhost',
         path: '/',
+        expires: expiryUnix,
         httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
+      },
+      {
+        name: 'x_tenant',
+        value: 'smmplan',
+        domain: '127.0.0.1',
+        path: '/',
+        expires: expiryUnix,
+        httpOnly: false,
+        secure: false,
+        sameSite: 'Lax',
+      },
+      {
+        name: 'x_tenant',
+        value: 'smmplan',
+        domain: 'localhost',
+        path: '/',
+        expires: expiryUnix,
+        httpOnly: false,
         secure: false,
         sameSite: 'Lax',
       }

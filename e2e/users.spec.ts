@@ -7,42 +7,38 @@ test.describe('Users Management Flow', () => {
     // 1. Prepare test user
     const prisma = new PrismaClient();
     const testEmail = 'balance-tester-e2e@test.com';
-    let testUser = await prisma.user.findUnique({ where: { email: testEmail } });
+    let testUser = await prisma.user.findFirst({ where: { email: testEmail } });
     if (!testUser) {
       // eslint-disable-next-line no-useless-assignment
       testUser = await prisma.user.create({
-        data: { email: testEmail, balance: 0, role: 'USER' }
+        data: { email: testEmail, tenantId: 'smmplan', balance: 0, role: 'USER' }
       });
     } else {
       // eslint-disable-next-line no-useless-assignment
       testUser = await prisma.user.update({
-        where: { email: testEmail },
+        where: { id: testUser.id },
         data: { balance: 0 }
       });
     }
 
-    // 2. Go to Clients page
-    await page.goto('/admin/clients');
-
-    // Get the user link and perform a hard navigation to bypass router cache
-    const userLink = page.locator(`a:has-text("${testEmail}")`);
-    await expect(userLink).toBeVisible({ timeout: 10000 });
-    const href = await userLink.getAttribute('href');
-    await page.goto(href!);
+    // 2. Go directly to Client detail page
+    await page.goto(`/admin/clients/${testUser.id}`);
     
     // Wait for the UI to load inside the page
-    await page.waitForTimeout(2000); // give it a moment
-    await expect(page.locator('input[name="amount"]')).toBeVisible({ timeout: 15000 });
+    const amountInput = page.locator('input[placeholder*="Пример: 500"], input[type="number"]').first();
+    await expect(amountInput).toBeVisible({ timeout: 15000 });
 
     // 3. Fill amount and reason
-    await page.locator('input[name="amount"]').fill('50000'); // 500 RUB (50000 kopecks)
-    await page.locator('input[name="reason"]').fill('TEST_REWARD');
+    await amountInput.fill('500'); // 500 RUB
+    await page.locator('input[name="reason"], textarea[name="reason"]').first().fill('TEST_REWARD');
 
-    // 4. Intercept the JS confirmation dialog automatically
-    page.once('dialog', dialog => dialog.accept());
-
-    // 5. Submit
+    // 4. Submit form to open modal
     await page.getByRole('button', { name: 'Применить изменение' }).click();
+
+    // 5. Click 'Продолжить' in the confirmation modal
+    const confirmModalBtn = page.getByRole('button', { name: 'Продолжить' });
+    await expect(confirmModalBtn).toBeVisible({ timeout: 5000 });
+    await confirmModalBtn.click();
 
     // 6. Verify balance in UI reflects 500.00
     // Because the UI formats 50000 kopecks as '500.00 ₽'

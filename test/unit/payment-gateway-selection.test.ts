@@ -6,6 +6,7 @@ import { VaultService } from '@/lib/vault';
 
 describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
   const originalNodeEnv = process.env.NODE_ENV;
+  let targetTenantId = 'smmplan';
   
   const testParams = {
     paymentId: 'pay-test-123',
@@ -18,10 +19,12 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    const resolved = await SettingsProvider.resolveTenantRecordId('smmplan');
+    if (resolved) targetTenantId = resolved;
     
     // Reset DB settings to clean defaults before each test
     await db.systemSettings.upsert({
-      where: { id: 'global' },
+      where: { id: targetTenantId },
       update: {
         yookassaShopId: null,
         yookassaSecretKey: null,
@@ -33,7 +36,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
         isTestMode: false,
       },
       create: {
-        id: 'global',
+        id: targetTenantId,
         taxRate: 6.0,
         opexMonthly: 0,
         maintenanceMode: false,
@@ -53,7 +56,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
     it('should fall back to mock-payment URL when credentials are dummy', async () => {
       // 1. Seed dummy credentials
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           yookassaShopId: 'test_shop_id',
           yookassaSecretKey: VaultService.encrypt('test_secret'),
@@ -78,7 +81,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
     it('should fall back to mock-payment URL when credentials are empty/null', async () => {
       // 1. Seed null credentials
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           yookassaShopId: null,
           yookassaSecretKey: null,
@@ -101,7 +104,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
     it('should make real API request when non-dummy credentials are configured', async () => {
       // 1. Seed real credentials
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           yookassaShopId: 'real_shop_123',
           yookassaSecretKey: VaultService.encrypt('real_secret_key_abc'),
@@ -122,7 +125,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
       } as any);
 
       const gateway = PaymentGatewayFactory.getGateway('yookassa');
-      const result = await gateway.createPayment({ ...testParams, isTestMode: true });
+      const result = await gateway.createPayment(testParams);
 
       expect(result.paymentUrl).toBe('https://confirmation-yookassa-url');
       expect(result.remoteGatewayId).toBe('yoo_remote_id_123');
@@ -140,7 +143,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
     it('should fall back to Sandbox/Test keys when production credentials are dummy but test keys are configured', async () => {
       // 1. Seed dummy production credentials but real test/sandbox credentials
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           yookassaShopId: 'test_shop_id',
           yookassaSecretKey: VaultService.encrypt('test_secret'),
@@ -162,7 +165,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
       } as any);
 
       const gateway = PaymentGatewayFactory.getGateway('yookassa');
-      const result = await gateway.createPayment({ ...testParams, isTestMode: true });
+      const result = await gateway.createPayment(testParams);
 
       expect(result.paymentUrl).toBe('https://sandbox-yookassa-url');
       expect(result.remoteGatewayId).toBe('sandbox_remote_id_555');
@@ -181,7 +184,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
   describe('Robokassa Gateway fallback and URL construction', () => {
     it('should fall back to mock-payment URL when credentials are dummy', async () => {
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           robokassaLogin: 'test_login',
           robokassaPassword: VaultService.encrypt('test_pass'),
@@ -200,7 +203,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
 
     it('should fall back to mock-payment URL when credentials are empty/null', async () => {
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           robokassaLogin: null,
           robokassaPassword: null,
@@ -219,7 +222,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
 
     it('should construct correct redirect URL when non-dummy credentials are configured', async () => {
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           robokassaLogin: 'real_robo_login',
           robokassaPassword: VaultService.encrypt('real_robo_password'),
@@ -242,7 +245,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
   describe('CryptoBot Gateway fallback and real call', () => {
     it('should fall back to mock-payment URL when credentials are dummy', async () => {
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           cryptoBotToken: VaultService.encrypt('test_token'),
         }
@@ -263,7 +266,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
 
     it('should fall back to mock-payment URL when credentials are empty/null', async () => {
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           cryptoBotToken: null,
         }
@@ -284,7 +287,7 @@ describe('Payment Gateway Selection & Credential Fallback (R2)', () => {
 
     it('should make real API request when non-dummy credentials are configured', async () => {
       await db.systemSettings.update({
-        where: { id: 'global' },
+        where: { id: targetTenantId },
         data: {
           cryptoBotToken: VaultService.encrypt('real_crypto_token_val'),
         }

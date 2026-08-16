@@ -19,14 +19,14 @@ test.describe('Finance & Ledger Flow', () => {
     });
     // 1. Prepare target user and quarantine entry
     const testEmail = 'quarantine-tester-e2e@test.com';
-    let testUser = await prisma.user.findUnique({ where: { email: testEmail } });
+    let testUser = await prisma.user.findFirst({ where: { email: testEmail } });
     if (!testUser) {
       testUser = await prisma.user.create({
-        data: { email: testEmail, balance: 0, quarantineBalance: 50000, role: 'USER' } // 500 RUB quarantined
+        data: { email: testEmail, tenantId: 'smmplan', balance: 0, quarantineBalance: 50000, role: 'USER' } // 500 RUB quarantined
       });
     } else {
       testUser = await prisma.user.update({
-        where: { email: testEmail },
+        where: { id: testUser.id },
         data: { balance: 0, quarantineBalance: 50000 }
       });
     }

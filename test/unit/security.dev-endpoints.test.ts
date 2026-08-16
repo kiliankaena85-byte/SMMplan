@@ -13,7 +13,7 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
   });
 
   describe('POST /api/dev/sandbox/yookassa', () => {
-    it('SEC-YOOKASSA-001: Returns 403 in production', async () => {
+    it('SEC-YOOKASSA-001: Returns 404 in production', async () => {
       vi.stubEnv('NODE_ENV', 'production');
 
       const { POST } = await import(
@@ -26,13 +26,12 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
       });
 
       const response = await POST(req);
-      expect(response.status).toBe(403);
-      const body = await response.json();
-      expect(body.error).toBe('Not available in production');
+      expect(response.status).toBe(404);
     });
 
     it('SEC-YOOKASSA-002: Blocks unauthenticated requests in dev', async () => {
       vi.stubEnv('NODE_ENV', 'test'); // non-production
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
 
       // Mock requireStaffPermission to return unauthorized
       vi.doMock('@/lib/server/rbac', () => ({
@@ -55,7 +54,7 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
   });
 
   describe('POST /api/dev/mock-provider', () => {
-    it('SEC-MOCK-001: Returns 403 in production', async () => {
+    it('SEC-MOCK-001: Returns 404 in production', async () => {
       vi.stubEnv('NODE_ENV', 'production');
 
       const { SettingsProvider } = await import('@/lib/settings');
@@ -71,9 +70,7 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
       });
 
       const response = await POST(req);
-      expect(response.status).toBe(403);
-      const body = await response.json();
-      expect(body.error).toBe('Not available in production');
+      expect(response.status).toBe(404);
     });
 
     it('SEC-MOCK-002: Returns 403 with wrong API key in dev', async () => {

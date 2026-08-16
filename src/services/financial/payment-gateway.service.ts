@@ -42,7 +42,7 @@ class YooKassaGateway extends BasePaymentGateway {
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
 
-    const isDummyKeys = params.isTestMode || !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey.startsWith('test_') || process.env.NODE_ENV === 'development';
+    const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey === 'test_secret' || secretKey === 'test_secret_key';
 
     if (isDummyKeys) {
       return {

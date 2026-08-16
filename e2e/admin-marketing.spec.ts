@@ -22,26 +22,26 @@ test.describe('Admin Marketing & Referrals Flow', () => {
     const richEmail = 'rich-referrer-e2e@test.com';
     const poorEmail = 'poor-referrer-e2e@test.com';
 
-    let richUser = await prisma.user.findUnique({ where: { email: richEmail } });
+    let richUser = await prisma.user.findFirst({ where: { email: richEmail } });
     if (!richUser) {
       richUser = await prisma.user.create({
-        data: { email: richEmail, balance: 0, referralBalance: 25000, role: 'USER' } // 250 RUB (eligible for payout)
+        data: { email: richEmail, tenantId: 'smmplan', balance: 0, referralBalance: 25000, role: 'USER' } // 250 RUB (eligible for payout)
       });
     } else {
       richUser = await prisma.user.update({
-        where: { email: richEmail },
+        where: { id: richUser.id },
         data: { balance: 0, referralBalance: 25000 }
       });
     }
 
-    let poorUser = await prisma.user.findUnique({ where: { email: poorEmail } });
+    let poorUser = await prisma.user.findFirst({ where: { email: poorEmail } });
     if (!poorUser) {
       poorUser = await prisma.user.create({
-        data: { email: poorEmail, balance: 0, referralBalance: 5000, role: 'USER' } // 50 RUB (not eligible for payout)
+        data: { email: poorEmail, tenantId: 'smmplan', balance: 0, referralBalance: 5000, role: 'USER' } // 50 RUB (not eligible for payout)
       });
     } else {
       poorUser = await prisma.user.update({
-        where: { email: poorEmail },
+        where: { id: poorUser.id },
         data: { balance: 0, referralBalance: 5000 }
       });
     }

@@ -1,191 +1,34 @@
 # Original User Request
 
-## 2026-07-04T14:00:33Z
+## 2026-08-16T13:41:14Z
 
-Провести внешний аудит безопасности и бизнес-логики проекта SMMplan (B2B SMM-панель) по трём критическим направлениям. Цель — найти реальные баги, race conditions, финансовые утечки и логические ошибки в production-коде.
+Eliminate all remaining test failures across the entire SMMplan platform, achieving 100% test pass rate in both Vitest (1004/1004) and Playwright E2E suites, with clean database teardowns.
 
-Working directory: d:\SMM_plan_2
-Integrity mode: development
-
-## Контекст проекта
-
-- **Стек**: Next.js 16, React 19, Prisma 5 (PostgreSQL), BullMQ, Redis, TypeScript 5.7+
-- **Бизнес-модель**: SMM-панель перепродажи услуг провайдеров. Пользователи пополняют баланс (YooKassa/CryptoBot/Robokassa), оформляют заказы, система пересылает их провайдерам через API. Все финансы в копейках (cents, BigInt-safe integers).
-- **Ранее закрытые области (НЕ проверять повторно)**:
-  - Checkout транзакции и Serializable ретраи (`src/actions/order/checkout.ts`)
-  - RBAC/BOLA защита админ-панели
-  - Escrow-карантин лимитов
-  - Каталог sync, quarantine bypass, hot swap pricing
-
-## Requirements
-
-### R1. Аудит промокодов, UTM-кампаний и реферальной системы
-
-Проверить бизнес-логику промо-акций и реферальных начислений на предмет:
-- **Race-to-Apply**: возможность параллельного применения лимитированного промокода (обход лимита `maxUses`) несколькими пользователями одновременно.
-- **Финансовые расчеты**: деление на ноль, потеря копеек при округлении ROMI/CAC/LTV, переполнение числовых диапазонов.
-- **Реферальный фрод**: возможность создания цепочек саморефералов, двойного начисления реферального бонуса за один платёж, начисление бонуса при отменённом/возвращённом заказе.
-
-Ключевые файлы для проверки:
-- `src/services/marketing-utils.ts`
-- `src/actions/marketing/` (все файлы)
-- `src/actions/order/checkout.ts` (только блок применения промокода)
-- Prisma-модели `PromoCode`, `PromoCodeUsage`, `User.referralCode`, `User.referredBy`
-
-### R2. Аудит воркеров BullMQ и жизненного цикла заказов
-
-Проверить фоновые процессы обработки заказов на предмет:
-- **Race-to-Cancel**: состояние гонки, если вебхук об успешном выполнении от провайдера приходит одновременно с попыткой воркера по таймауту отменить заказ.
-- **DLQ & Failover**: корректность обработки критических ошибок провайдера (Rate Limits, IP blocks, сбои DNS, невалидные ответы) с сохранением консистентности баланса.
-- **Повторные отправки**: риск дублирования заказов у провайдеров при сетевых сбоях (отсутствие дедупликации).
-- **Refill lifecycle**: корректность повторной отправки заказов и обработки статусов refill.
-
-Ключевые файлы для проверки:
-- `src/workers/` (все воркеры)
-- `src/services/providers/universal.provider.ts`
-- `src/services/providers/quarantine.service.ts`
-- `src/actions/order/` (жизненный цикл заказов)
-
-### R3. Финансовый аудит Ledger-балансов и верификатора
-
-Проверить целостность финансовых записей и утилиту верификации:
-- **Dirty Read / Concurrency**: ложные срабатывания верификатора из-за чтения незавершённых параллельных транзакций.
-- **Двойные округления**: расхождение копеек при конвертации валютных списаний провайдеров (USD→RUB) в рублёвую себестоимость при формировании налоговой отчётности (USN).
-- **Необратимость логов**: возможность изменения или удаления записей `LedgerEntry` через побочные системные методы (мимо основных Server Actions).
-- **Phantom Entries**: наличие записей LedgerEntry без соответствующего Order/Payment (осиротевшие записи).
-
-Ключевые файлы для проверки:
-- `src/utils/balance-verifier.ts`
-- `src/services/financial/accounting.service.ts`
-- `src/services/financial/payment.service.ts`
-- `src/lib/transactions.ts`
-- Prisma-модели `LedgerEntry`, `Payment`, `User.balance`
-
-## Acceptance Criteria
-
-### Формат отчёта
-- [ ] Каждый найденный дефект содержит: **Severity** (🔴 P0 Critical / 🟠 P1 High / 🟡 P2 Medium / 🟢 P3 Low), **точный путь к файлу и номера строк**, **описание проблемы**, **сценарий воспроизведения** (шаги атакующего или триггерный сценарий), **рекомендуемое исправление** (псевдокод или описание).
-- [ ] Отчёт структурирован по трём доменам (R1, R2, R3) с подсчётом дефектов по severity.
-
-### Качество находок
-- [ ] Найдено минимум 3 реальных дефекта уровня P0 или P1 (если они существуют в коде).
-- [ ] Каждая находка подтверждена ссылкой на конкретный код (файл + строка), а не является теоретическим рассуждением.
-- [ ] Ложноположительные находки (теоретические проблемы, не подтверждённые кодом) явно отмечены как "Low Confidence".
-
-### Верификация
-- [ ] Аудитор должен прочитать реальный исходный код файлов, а не гадать о содержимом.
-- [ ] Для каждого P0/P1 дефекта указан конкретный фрагмент кода, демонстрирующий уязвимость.
-
-## 2026-07-05T15:32:56Z
-
-# Teamwork Project Prompt
-
-Проверить анализатор ссылок SMMplan (в частности файл `src/services/analyzer/link-analyzer.ts` и `src/services/analyzer/link-rules.ts`) на предмет обработки закрытых ссылок Telegram вида `https://t.me/c/2341882599/1046`. Выяснить тип ссылки, допустимые услуги с учетом реальных ограничений SMM-панелей, и ожидаемое поведение системы.
-
-Working directory: d:\SMM_plan_2
+Working directory: d:/SMM_plan_2
 Integrity mode: development
 
 ## Requirements
 
-### R1. Статический анализ кода
-Провести глубокий аудит текущей логики `IntelligenceLinkAnalyzer` для ссылок формата `https://t.me/c/ID/ID`. Определить, как регулярные выражения обрабатывают такую ссылку сейчас и как система ее классифицирует.
+### R1. Fix All Failing Vitest Unit Tests (P0)
+Resolve all 51 failing unit tests across the 17 files in test/unit/ (e.g. service-audit.test.ts, settings.test.ts, smart-drip-checkout.test.ts, pricing-sync.test.ts, services-data.test.ts, etc.) to align with current financial constants (Safety Floor markup 3.0, unit pricing ₽ / шт, and multi-tenant Prisma rules).
 
-### R2. Написание unit-теста
-Написать и запустить локальный unit-тест (используя инфраструктуру проекта, например Vitest), который передает ссылку `https://t.me/c/2341882599/1046` в анализатор и выводит фактический результат работы текущего кода.
+### R2. Resolve Database Teardown & Immutable Ledger Constraint in E2E (P1)
+Update e2e/utils/db-cleaner.ts to cleanly handle PostgreSQL's immutable ledger trigger during test teardowns without throwing foreign key violations or leaving console warnings.
 
-### R3. Рекомендации с учетом бизнес-ограничений
-Учитывая технические ограничения SMM-панелей и Telegram API (боты не могут зайти в приватный канал, поэтому накрутка/услуги невозможны), определить, какие категории услуг должны подгружаться для пользователя (ожидаемое поведение: ноль услуг + предупреждение).
+### R3. Align Remaining Legacy E2E Test Selectors (P1)
+Update outdated selectors in e2e/user-flow.spec.ts, e2e/providers.spec.ts, and e2e/api-v2-mass-orders.spec.ts to match modern HeroUI v3 components and UnifiedOrderWizard.
 
-## Acceptance Criteria
-
-### [Проверка логики и тесты]
-- [ ] Предоставлен точный диагноз текущей проблемы с регулярными выражениями.
-- [ ] Успешно запущен unit-тест, доказывающий, что анализатор выдает неверный/неполный результат для закрытой ссылки.
-- [ ] Предложено четкое техническое решение: конкретный Regex и объект правила для `link-rules.ts`, который возвращает `private_post` с `isPrivate: true` и пустой массив `suggestedCategories`.
-- [ ] Предложено описание того, как UI должен реагировать на пустой список категорий для закрытого канала (например, блокировка заказа и вывод текста "Это закрытый канал").
-
-## 2026-07-26T11:09:08Z
-
-# Teamwork Project Prompt — Client Dashboard Advanced Backend Features Integration
-
-Интеграция всех расширенных настроек бэкенда SMMplan (Drip-Feed, Auto-Refill, Custom Data, ETA, 152-ФЗ, B2B Вебхуки, ИНН/КПП, Промокоды) в полноэкранные клиенты SMMplan и SMMflux.
-
-Working directory: d:\SMM_plan_2
-Integrity mode: development
-
-## Requirements
-
-### R1. Интеграция расширенных параметров заказа (Drip-Feed, Custom Data, ETA, JIT Warnings)
-В формы создания заказа (`new-order`) обоих клиентов добавить:
-- **Drip-Feed (Авто-докрутка частями):** переключатель «Запускать частями», поля `Интервал (мин)` и `Количество запусков` (при `isDripFeedEnabled === true`).
-- **Custom Data / Комментарии (`customDataType`):** динамическое текстовое поле textarea с плейсхолдером или числовое поле выбора варианта (при `customDataType === 'TEXTAREA' | 'NUMBER'`).
-- **Расчётное время выполнения (ETA P50/P90):** плашка вероятной скорости `⚡ Высокая (ETA P50: 12 мин, P90: 45 мин)`.
-- **Чекбокс юридического согласия (JIT Warning):** обязательная галочка подписи `clientConfirmation` (например: «Канал открыт для всех»).
-
-### R2. Интеграция Управления Заказами (Докрутка/Refill, Drip-Feed прогресс, Перезапуск)
-В реестр заказов (`orders`) добавить:
-- Кнопку **«Запросить бесплатную докрутку»** (Refill) с созданием заявки в бэкенде.
-- Отображение Drip-Feed прогресса: `Запуск 2 из 5 (следующий через 15 мин)`.
-- Подробную детализацию списания по курсу ЦБ РФ и скидке.
-
-### R3. Расширенный Профиль и Настройки Безопасности (152-ФЗ, B2B Вебхуки, Реквизиты)
-В раздел настроек (`settings`) добавить:
-- **152-ФЗ и Согласия:** карточку с датой и IP принятия условий (`tosAcceptedAt`, `tosAcceptedIp`).
-- **B2B Вебхуки & Настройки:** поле `Webhook URL`, `Webhook Secret` и статус B2B подключения.
-- **Бухгалтерские реквизиты (для юрлиц):** `Название компании`, `ИНН`, `КПП`, `Юридический адрес`.
-- **Генерация и Сброс API Ключа (`apiKeyHash`)**.
-
-### R4. Промокоды & Воучеры в Пополнении Баланса (`deposit`)
-В форму пополнения баланса добавить:
-- Инпут активации промокода (`PromoCode` / `Voucher`), расчет моментальной скидки или фикс-бонуса в копейках.
+### R4. Synchronize Architecture Decisions to GraphRAG (P2)
+Log all final test isolation, financial safety floor, and session verification architectural decisions to the GraphRAG memory service at http://localhost:8100/api/decision.
 
 ## Acceptance Criteria
 
-### Функциональность формы заказа
-- [ ] Drip-feed параметры передаются в форму и рассчитывают итоговый бюджет (`qty * runs * price`).
-- [ ] Поле `customData` валидируется и выводится для услуг с комментариями/опросами.
-- [ ] Чекбокс `clientConfirmation` блокирует отправку заказа, пока не поставлен, с анимацией подсвечивания.
+### Vitest Unit Suite
+- [ ] npx vitest run completes with 0 failed tests (1004 / 1004 passed).
 
-### Реестр заказов и Докрутка
-- [ ] Клик на «Запросить докрутку» отправляет запрос на создание `Refill` записи и показывает статус `PENDING`.
+### Playwright E2E Suite
+- [ ] All Playwright E2E test suites pass without selector timeouts.
+- [ ] E2E database teardowns run cleanly without unhandled errors.
 
-### Профиль и B2B Реквизиты
-- [ ] Поля ИНН, КПП, Название компании сохраняются и отображаются в профиле.
-- [ ] Поле Webhook URL сохраняется для B2B интеграций.
-
-## 2026-07-27T14:49:51Z
-
-Комплексный полный аудит и проверка работоспособности проекта SMMplan от и до: E2E регрессия, билд Next.js 16, статический анализ TypeScript, проверка платежных API/провайдеров в тестовом режиме, аудит безопасности (Trust Boundaries) и оптимизация производительности/гидратации.
-
-Working directory: d:\SMM_plan_2
-Integrity mode: development
-
-## Requirements
-
-### R1. Полный E2E аудит и статический анализ
-Запустить E2E регрессионный сюит тенантов (`npm run test:tenant`), виртуальное тестирование основных пользовательских сценариев, проверку типов TypeScript (`npx tsc --noEmit`) и финальную сборку проекта (`npm run build`).
-
-### R2. Проверка интеграций платежных шлюзов и провайдеров
-Проверить работоспособность интеграций с платежными системами (ЮKassa, Robokassa, CryptoBot) и API провайдеров SMM в тестовом/песочном режиме. Убедиться в корректной обработке вебхуков, подписей и статусов заказов.
-
-### R3. Аудит безопасности и границ Server/Client (Security & Trust Boundaries)
-Проверить Server Actions и API роуты на соблюдение авторизационных гвардов (`requireAdmin`, `verifySession`), защиту от подмены цен/количества на стороне клиента, IDOR и корректную передачу `x-tenant-id`.
-
-### R4. Аудит производительности и UX (Hydration & Rendering)
-Проверить отсутствие ошибок гидратации React 19, циклических ререндеров, проверить контрастность компонентов и семантику токенов Tailwind v4 / HeroUI v3.
-
-## Acceptance Criteria
-
-### Build & Type Safety
-- [ ] `npx tsc --noEmit` завершается с 0 ошибок.
-- [ ] `npm run build` успешно собирает продакшн-бандл без фатальных сбоев.
-
-### Multitenancy & Order Flow
-- [ ] E2E регрессионный тест (`npm run test:tenant`) показывает 100% GREEN (33/33 сценариев).
-- [ ] Авторизация, слияние старых `lovable` профилей в `flux` и вычисление цен (`pricePerUnitRub`) работают безупречно.
-
-### Security & Integrations
-- [ ] Все Server Actions защищены соответствующими проверками подлинности сессий и ролей.
-- [ ] Интеграции шлюзов и провайдеров корректно обрабатывают ошибки и тестовые события.
-
-
+### TypeScript & Code Integrity
+- [ ] npx tsc --noEmit exits with 0 errors.

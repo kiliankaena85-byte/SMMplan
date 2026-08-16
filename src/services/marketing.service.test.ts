@@ -5,6 +5,7 @@ import {
   calculateSafetyFloorCents,
   MAX_TOTAL_DISCOUNT,
   TOTAL_MANDATORY_DEDUCTIONS,
+  SAFETY_FLOOR_MARKUP,
   applyBeautifulRounding,
 } from '@/lib/financial-constants';
 
@@ -62,11 +63,11 @@ describe('MarketingService', () => {
     });
 
     it('calculates default price with no user/discounts', async () => {
-      vi.mocked(db.service.findUnique).mockResolvedValueOnce({ id: 'srv1', minQty: 10, maxQty: 100, rate: 1.0, markup: 3.0 } as any);
+      vi.mocked(db.service.findUnique).mockResolvedValueOnce({ id: 'srv1', minQty: 10, maxQty: 100, rate: 1.0, markup: 6.0 } as any);
       const res = await marketingService.calculatePrice(null, 'srv1', 50);
       
       const expectedProviderCostCents = Math.round(((1.0 * MOCK_USD_TO_RUB * 100) / 1000) * 50);
-      const rawRetailPer1000Rub = 1.0 * 3.0 * MOCK_USD_TO_RUB;
+      const rawRetailPer1000Rub = 1.0 * 6.0 * MOCK_USD_TO_RUB;
       const beautifulRetailPer1000Rub = applyBeautifulRounding(rawRetailPer1000Rub);
       const expectedTotal = Math.round((beautifulRetailPer1000Rub * 100 / 1000) * 50);
       
@@ -79,7 +80,7 @@ describe('MarketingService', () => {
 
     it('applies maximum discount and capping at 30%', async () => {
       vi.mocked(db.user.findUnique).mockResolvedValueOnce({ id: 'user1', totalSpent: 100_000_00, personalDiscount: 35.0 } as any);
-      vi.mocked(db.service.findUnique).mockResolvedValueOnce({ id: 'srv1', minQty: 10, maxQty: 100, rate: 1.0, markup: 5.0 } as any);
+      vi.mocked(db.service.findUnique).mockResolvedValueOnce({ id: 'srv1', minQty: 10, maxQty: 100, rate: 1.0, markup: 8.0 } as any);
 
       const res = await marketingService.calculatePrice('user1', 'srv1', 50);
       expect(res.discountPercent).toBe(30.0); // Capped at MAX_TOTAL_DISCOUNT (30)
@@ -110,15 +111,15 @@ describe('MarketingService', () => {
        
        expect(res.originalTotalCents).toBe(1);
        expect(res.providerCostCents).toBe(1);
-       expect(res.totalCents).toBe(3); // safety floor is 3 cents when providerCostCents is 1
+       expect(res.totalCents).toBe(5); // safety floor is 5 cents when providerCostCents is 1 with SAFETY_FLOOR_MARKUP 3.0
     });
 
-    it('enforces a minimum price of 1 cent (clamped to safety floor of 3 cents) even with 100% discount on free provider service', async () => {
+    it('enforces a minimum price of 1 cent (clamped to safety floor of 5 cents) even with 100% discount on free provider service', async () => {
        vi.mocked(db.service.findUnique).mockResolvedValueOnce({ id: 'srv1', minQty: 10, maxQty: 100, rate: 0.0, markup: 1.5 } as any);
        vi.mocked(db.promoCode.findUnique).mockResolvedValueOnce({ id: 'pr1', code: 'FREE', isActive: true, maxUses: 0, expiresAt: null, type: 'DISCOUNT', discountPercent: 100.0 } as any);
        
        const res = await marketingService.calculatePrice(null, 'srv1', 10, 'FREE');
-       expect(res.totalCents).toBe(3); // safety floor is 3 cents when providerCostCents is 1
+       expect(res.totalCents).toBe(5); // safety floor is 5 cents when providerCostCents is 1 with SAFETY_FLOOR_MARKUP 3.0
     });
   });
 
@@ -167,7 +168,7 @@ describe('MarketingService', () => {
     it('returns mapped array capping rates at safety floor with max discounts', async () => {
       const user = { totalSpent: 100_000_00, personalDiscount: 35.0 }; // Platinum (15%), personal (35%) => Capped at 30%
       const services = [{
-        numericId: 1, name: 'S1', rate: 1.0, markup: 5.0, minQty: 10, maxQty: 100, isDripFeedEnabled: false, isRefillEnabled: true, isCancelEnabled: true, category: { name: 'C1' }
+        numericId: 1, name: 'S1', rate: 1.0, markup: 8.0, minQty: 10, maxQty: 100, isDripFeedEnabled: false, isRefillEnabled: true, isCancelEnabled: true, category: { name: 'C1' }
       }];
       
       const res = await marketingService.getB2BFormattedServices(user, services);
@@ -175,7 +176,7 @@ describe('MarketingService', () => {
       expect(res[0].service).toBe(1);
       expect(res[0].rate).toBeDefined();
 
-      const originalRate = 1.0 * 5.0 * MOCK_USD_TO_RUB;
+      const originalRate = 1.0 * 8.0 * MOCK_USD_TO_RUB;
       const expectedDiscounted = originalRate * (1 - 30 / 100);
       expect(Number(res[0].rate)).toBe(Number(expectedDiscounted.toFixed(4)));
     });
@@ -189,7 +190,7 @@ describe('MarketingService', () => {
       
       const res = await marketingService.getB2BFormattedServices(user, services);
       
-      const safetyFloor = (1.0 * MOCK_USD_TO_RUB * 2.0) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
+      const safetyFloor = (1.0 * MOCK_USD_TO_RUB * (1 + SAFETY_FLOOR_MARKUP)) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
       expect(Number(res[0].rate)).toBe(Number(safetyFloor.toFixed(4)));
     });
   });

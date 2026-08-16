@@ -48,8 +48,8 @@ describe('Multi-Tenant Catalog Administration (P0)', () => {
       data: { name: 'Подписчики MT', networkId: network.id, tenantId: 'smmplan' }
     });
 
-    vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
     vi.clearAllMocks();
+    vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
   });
 
   afterEach(() => {

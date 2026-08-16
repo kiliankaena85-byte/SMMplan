@@ -2,11 +2,41 @@
   "cookies": [
     {
       "name": "session_token",
-      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzZXNzaW9uSWQiOiJjbXNxcHJ1aHUwMDAybjZiajl0MGRycGF5IiwidXNlcklkIjoiY21zcXBrd250MDAwMDFvajY4ZzdjemVybiIsInJvbGUiOiJPV05FUiIsInRlbmFudElkIjoic21tcGxhbiIsImlhdCI6MTc4NjU3NjkyNSwiZXhwIjoxNzg3MTgxNzI1fQ.Ts-LgvVokaCxE1nTcYsszUYOFBZQf9p6eoXGGWW1P8E",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzZXNzaW9uSWQiOiJjbXN3ODNqejEwMDAyOGJ5cndxY2k4dng2IiwidXNlcklkIjoiY21zdzgzanlxMDAwMDhieXJsandjbjh2cSIsInJvbGUiOiJPV05FUiIsInRlbmFudElkIjoic21tcGxhbiIsImlhdCI6MTc4NjkxMDAzNSwiZXhwIjoxNzg3NTE0ODM1fQ.0mfLRRFV0DFEIKfaGbZp2bxccUzz-qwGbiH0S5rdrcU",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": -1,
+      "expires": 1787514835,
       "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "session_token",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzZXNzaW9uSWQiOiJjbXN3ODNqejEwMDAyOGJ5cndxY2k4dng2IiwidXNlcklkIjoiY21zdzgzanlxMDAwMDhieXJsandjbjh2cSIsInJvbGUiOiJPV05FUiIsInRlbmFudElkIjoic21tcGxhbiIsImlhdCI6MTc4NjkxMDAzNSwiZXhwIjoxNzg3NTE0ODM1fQ.0mfLRRFV0DFEIKfaGbZp2bxccUzz-qwGbiH0S5rdrcU",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1787514835,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "x_tenant",
+      "value": "smmplan",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1787514835,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "x_tenant",
+      "value": "smmplan",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1787514835,
+      "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     }

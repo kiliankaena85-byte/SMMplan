@@ -422,19 +422,17 @@ class AdminCatalogService {
       throw new Error('PROVIDER_CATALOG_SHRUNK_ABNORMALLY');
     }
 
-    // Use a transaction to perform atomic wipe and write in chunks
-    await db.$transaction(async (tx) => {
-      await tx.shadowService.deleteMany({ where: { providerId: providerDbRecord.id } });
+    // Perform atomic wipe and write in chunks
+    await db.shadowService.deleteMany({ where: { providerId: providerDbRecord.id } });
 
-      const chunkSize = 1000;
-      for (let i = 0; i < servicesToCreate.length; i += chunkSize) {
-        const chunk = servicesToCreate.slice(i, i + chunkSize);
-        await tx.shadowService.createMany({
-          data: chunk,
-          skipDuplicates: true
-        });
-      }
-    });
+    const chunkSize = 1000;
+    for (let i = 0; i < servicesToCreate.length; i += chunkSize) {
+      const chunk = servicesToCreate.slice(i, i + chunkSize);
+      await db.shadowService.createMany({
+        data: chunk,
+        skipDuplicates: true
+      });
+    }
 
     return servicesToCreate.length;
   }

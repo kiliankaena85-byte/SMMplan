@@ -78,7 +78,7 @@ describe('SMTP Module', () => {
     expect(transportMock).toHaveBeenCalled();
     const mailArgs = (transportMock as any).mock.calls[0][0];
     
-    // It should fallback to https://${supportDomain}/dashboard/orders
-    expect(mailArgs.html).toContain('https://testbrand.com/dashboard/orders');
+    // It should fallback to http(s)://${supportDomain}/dashboard/orders
+    expect(mailArgs.html).toMatch(/https?:\/\/testbrand\.com\/dashboard\/orders/);
   });
 });

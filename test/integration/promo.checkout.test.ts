@@ -80,7 +80,7 @@ describe('Checkout Voucher Rejection', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('VOUCHER_USE_BALANCE');
+    expect((result as any).error).toContain('VOUCHER_USE_BALANCE');
 
     const finalUser = await db.user.findUnique({ where: { id: userId } });
     const finalPayments = await db.payment.count({ where: { userId } });
@@ -160,7 +160,7 @@ describe('Checkout Voucher Rejection', () => {
     // Run checkoutAction with campaign discount promo code
     const checkoutResult = await checkoutAction({
       serviceId: service.id,
-      link: 'https://instagram.com/test',
+      link: 'https://instagram.com/p/test1234567/',
       quantity: 1000,
       email: `${userId}@example.com`,
       promoCodeStr: promoCodeStr

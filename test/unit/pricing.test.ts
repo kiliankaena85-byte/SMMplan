@@ -95,7 +95,7 @@ describe('Pricing Invariants & Property Tests', () => {
     expect(result.totalCents).toBe(result.safetyFloorCents);
     expect(result.discountPercent).toBeLessThanOrEqual(100);
     // True discount applied: original - total
-    expect(result.discountCents).toBe(result.originalTotalCents - result.totalCents);
+    expect(result.discountCents).toBe(Math.max(0, result.originalTotalCents - result.totalCents));
   });
 
   // Fuzzy test simulating property-based testing

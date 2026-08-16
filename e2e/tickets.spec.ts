@@ -6,11 +6,12 @@ test.describe('Support Tickets Flow', () => {
   test('Optimistic UI: Admin replies to a ticket', async ({ page }) => {
     // 1. Seed a test user and an OPEN ticket
     const prisma = new PrismaClient();
-    let testUser = await prisma.user.findUnique({ where: { email: 'e2e_ticket_user@test.local' } });
+    let testUser = await prisma.user.findFirst({ where: { email: 'e2e_ticket_user@test.local' } });
     if (!testUser) {
       testUser = await prisma.user.create({
         data: {
           email: 'e2e_ticket_user@test.local',
+          tenantId: 'smmplan',
           role: 'USER',
         }
       });
@@ -107,11 +108,12 @@ test.describe('Telegram Support Binding Flows', () => {
   test('Level 2 & 3: Admin UI Request Auth & Manual Bind', async ({ page }) => {
     const prisma = new PrismaClient();
     
-    let tempUser = await prisma.user.findUnique({ where: { email: 'tg_99999@smmplan.bot' } });
+    let tempUser = await prisma.user.findFirst({ where: { email: 'tg_99999@smmplan.bot' } });
     if (!tempUser) {
       tempUser = await prisma.user.create({
         data: {
           email: 'tg_99999@smmplan.bot',
+          tenantId: 'smmplan',
           telegramId: '99999',
           role: 'USER',
         }
@@ -131,12 +133,13 @@ test.describe('Telegram Support Binding Flows', () => {
       }
     });
     
-    let webUser = await prisma.user.findUnique({ where: { email: 'e2e_target_web@test.local' } });
+    let webUser = await prisma.user.findFirst({ where: { email: 'e2e_target_web@test.local' } });
     if (!webUser) {
       // eslint-disable-next-line no-useless-assignment
       webUser = await prisma.user.create({
         data: {
           email: 'e2e_target_web@test.local',
+          tenantId: 'smmplan',
           role: 'USER',
         }
       });
@@ -186,14 +189,14 @@ test.describe('Telegram Support Binding Flows', () => {
     for (let i = 0; i < 5; i++) {
       await page.waitForTimeout(1500);
       const pCheck = new PrismaClient();
-      deletedTempUser = await pCheck.user.findUnique({ where: { email: 'tg_99999@smmplan.bot' } });
+      deletedTempUser = await pCheck.user.findFirst({ where: { email: 'tg_99999@smmplan.bot' } });
       await pCheck.$disconnect();
       if (deletedTempUser === null) break;
     }
     expect(deletedTempUser).toBeNull();
     
     const finalPrisma = new PrismaClient();
-    const updatedWebUser = await finalPrisma.user.findUnique({ 
+    const updatedWebUser = await finalPrisma.user.findFirst({ 
       where: { email: 'e2e_target_web@test.local' },
       include: { tickets: true }
     });

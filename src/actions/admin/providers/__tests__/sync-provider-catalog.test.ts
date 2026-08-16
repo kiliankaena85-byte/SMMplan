@@ -56,32 +56,34 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
       role: 'SUPERADMIN',
     };
 
+    const ts = Date.now() + Math.floor(Math.random() * 100000);
+
     // 4. Create provider
     provider = await db.provider.create({
       data: {
-        name: 'Sync Test Provider',
-        apiUrl: 'http://localhost/api/sync',
-        apiKey: 'key-sync',
+        name: `Sync Test Provider ${ts}`,
+        apiUrl: `http://localhost/api/sync-${ts}`,
+        apiKey: `key-sync-${ts}`,
         balanceCurrency: 'USD',
         isActive: true,
         syncLock: false
       }
     });
 
-    // 5. Create social network and category
+    // 5. Create social network and category with unique slug
     const network = await db.network.create({
-      data: { name: 'Telegram', slug: 'telegram' }
+      data: { name: `Telegram ${ts}`, slug: `tg-sync-${ts}` }
     });
 
     category = await db.category.create({
-      data: { name: 'TG Views', networkId: network.id }
+      data: { name: `TG Views ${ts}`, networkId: network.id }
     });
 
     // 6. Pre-create active services
     // Service A: rate = 0.50 USD/1k, markup = 6.0 (x6), retail price = 300 RUB
     serviceA = await db.service.create({
       data: {
-        name: 'TG Views Fast',
+        name: `TG Views Fast ${ts}`,
         categoryId: category.id,
         providerId: provider.id,
         rate: 0.50,
@@ -97,7 +99,7 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     // Service B: rate = 1.00 USD/1k, markup = 1.2 (very low markup), retail price = 120 RUB
     serviceB = await db.service.create({
       data: {
-        name: 'TG Views High Quality',
+        name: `TG Views High Quality ${ts}`,
         categoryId: category.id,
         providerId: provider.id,
         rate: 1.00,
@@ -113,8 +115,13 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
+    if (provider?.id) {
+      await db.service.deleteMany({ where: { providerId: provider.id } });
+      await db.shadowService.deleteMany({ where: { providerId: provider.id } });
+      await db.provider.deleteMany({ where: { id: provider.id } });
+    }
   });
 
   it('should mark services deleted by the provider as inactive (Zombie Eraser)', async () => {

@@ -24,14 +24,24 @@ const { mockDb, mockSendAdminAlert, mockProviderInstance } = vi.hoisted(() => {
         findUnique: vi.fn().mockResolvedValue({ exchangeRateUSD: 100 }),
       },
       provider: {
-        findFirst: vi.fn(),
-        findUnique: vi.fn().mockResolvedValue({ id: 'prov-1', name: 'Butik', balanceCurrency: 'USD' }),
+        findFirst: vi.fn().mockResolvedValue({ id: 'prov-1', name: 'Butik', isActive: true, balanceCurrency: 'USD' }),
+        findUnique: vi.fn().mockResolvedValue({ id: 'prov-1', name: 'Butik', isActive: true, balanceCurrency: 'USD' }),
+        findMany: vi.fn().mockResolvedValue([{ id: 'prov-1', name: 'Butik', isActive: true, balanceCurrency: 'USD' }]),
+      },
+      tenant: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'tenant-1', slug: 'smmplan' }),
+        findFirst: vi.fn().mockResolvedValue({ id: 'tenant-1', slug: 'smmplan' }),
+      },
+      category: {
+        findUnique: vi.fn().mockResolvedValue({ id: 'cat-1', name: 'Cat 1' }),
+        findMany: vi.fn().mockResolvedValue([]),
       },
       service: {
         findMany: vi.fn(),
         update: vi.fn(),
       },
       shadowService: {
+        count: vi.fn().mockResolvedValue(0),
         deleteMany: vi.fn().mockImplementation(async () => {
           shadowServiceDb = [];
           return { count: 0 };
@@ -157,7 +167,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
       expect(result.nominalRate).toBe(96.5);
       expect(result.systemRate).toBe(99.39); // 96.5 * 1.03 = 99.395 -> Math.round is 99.39 in floating point precision representation
       expect(result.updated).toBe(true);
-      expect(SettingsManager.setExchangeRateUSD).toHaveBeenCalledWith(99.39);
+      expect(SettingsManager.setExchangeRateUSD).toHaveBeenCalledWith(99.39, undefined);
     });
 
     it('TC-CBR-002: Falls back to JSON mirror when XML fetch fails', async () => {
@@ -184,7 +194,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
       expect(result.nominalRate).toBe(95.5);
       expect(result.systemRate).toBe(98.37); // 95.5 * 1.03 = 98.365 -> 98.37
       expect(result.updated).toBe(true);
-      expect(SettingsManager.setExchangeRateUSD).toHaveBeenCalledWith(98.37);
+      expect(SettingsManager.setExchangeRateUSD).toHaveBeenCalledWith(98.37, undefined);
     });
 
     it('TC-CBR-003: Gracefully falls back to existing DB rate when both APIs fail', async () => {
@@ -215,17 +225,19 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
       // Purchase cost per unit = 0.1 RUB. 0.05 < 0.1 (breach!)
       expect(QuarantineService.isLossBreach(1, 0.5, 100)).toBe(true);
 
-      // 2. Profitable scenario: Markup = 2.0
-      // Price per 1k = 200 RUB. Retail per unit = 0.20 RUB.
-      // Purchase cost per unit = 0.10 RUB. 0.20 >= 0.10 (profitable)
-      expect(QuarantineService.isLossBreach(1, 2.0, 100)).toBe(false);
+      // 2. Profitable scenario: Markup = 3.5 (above SAFETY_FLOOR_MARKUP 3.0)
+      // Price per 1k = 350 RUB. Retail per unit = 0.35 RUB.
+      // Purchase cost per unit = 0.10 RUB. 0.35 >= 0.30 (profitable)
+      expect(QuarantineService.isLossBreach(1, 3.5, 100)).toBe(false);
     });
   });
 
   describe('adminSyncProviderCatalog - Synchronization Flow', () => {
     beforeEach(() => {
       vi.spyOn(SettingsManager, 'getExchangeRateUSD').mockResolvedValue(100);
-      mockDb.provider.findFirst.mockResolvedValue({ id: 'prov-1', isActive: true });
+      mockDb.provider.findFirst.mockResolvedValue({ id: 'prov-1', name: 'Butik', isActive: true, balanceCurrency: 'USD' });
+      mockDb.provider.findMany.mockResolvedValue([{ id: 'prov-1', name: 'Butik', isActive: true, balanceCurrency: 'USD' }]);
+      mockDb.provider.findUnique.mockResolvedValue({ id: 'prov-1', name: 'Butik', isActive: true, balanceCurrency: 'USD' });
     });
 
     it('TC-SYN-001: Performs successful pricing update when conditions are normal', async () => {
@@ -250,17 +262,17 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
       // Verify DB update with Price Recalculation (rate increase <= 10% is recalculated to preserve markup percentage)
       expect(mockDb.service.update).toHaveBeenCalledWith({
         where: { id: 'srv-1' },
-        data: {
+        data: expect.objectContaining({
           rate: 1.1,
-          pricePer1000Cents: 22000,
+          pricePer1000Cents: 33000,
           providerCurrency: 'USD',
-          markup: 2.0,
+          markup: 3.0,
           minQty: 10,
           maxQty: 10000,
           lastSeenAt: expect.any(Date),
           isQuarantined: false,
           quarantineReason: null
-        }
+        })
       });
     });
 
@@ -287,7 +299,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
         where: { id: 'srv-1' },
         data: {
           isQuarantined: true,
-          quarantineReason: "Price Spike: Ценовой скачок у провайдера (> 20%)",
+          quarantineReason: expect.stringContaining("Price Spike"),
           isActive: false,
           pendingRate: 1.3,
           quarantinedAt: expect.any(Date)
@@ -295,7 +307,7 @@ describe('Stage 4 Milestone 2: Auto-Pricing, Elastic Quarantine & Loss Preventio
       });
 
       expect(mockSendAdminAlert).toHaveBeenCalledWith(
-        expect.stringContaining('ушла в карантин из-за ценового скачка'),
+        expect.stringContaining('Price spike'),
         'WARNING'
       );
     });

@@ -5,9 +5,9 @@ import { db } from '@/lib/db';
 // Mock DB
 vi.mock('@/lib/db', () => ({
   db: {
-    service: { findUnique: vi.fn() },
-    user: { upsert: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
-    order: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    service: { findUnique: vi.fn(), findFirst: vi.fn() },
+    user: { upsert: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    order: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     payment: { create: vi.fn(), update: vi.fn() },
     promoCode: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     session: { create: vi.fn() },
@@ -54,6 +54,12 @@ vi.mock('@/lib/settings', () => ({
     isTestMode: vi.fn().mockResolvedValue(true),
     getPaymentSecrets: vi.fn().mockResolvedValue({}),
   },
+  SettingsProvider: {
+    isTestMode: vi.fn().mockResolvedValue(true),
+    getContactAndLegalSettings: vi.fn().mockResolvedValue({}),
+    getSystemSettings: vi.fn().mockResolvedValue({}),
+    getExchangeRateUSD: vi.fn().mockResolvedValue(100.0),
+  },
 }));
 
 vi.mock('next/headers', () => ({
@@ -81,12 +87,26 @@ describe('Smart Dripfeed Checkout Integration', () => {
       isActive: true,
       isDeleted: false,
     } as any);
+    vi.mocked(db.user.findFirst).mockResolvedValue({
+      id: 'user_123',
+      email: 'tester@test.com',
+      balance: BigInt(100000),
+      isActive: true,
+      isDeleted: false,
+    } as any);
     vi.mocked(db.user.create).mockResolvedValue({
       id: 'user_123',
       email: 'tester@test.com',
       balance: BigInt(100000),
       isActive: true,
       isDeleted: false,
+    } as any);
+    vi.mocked(db.order.create).mockResolvedValue({
+      id: 'order_1',
+      serviceId: 'svc_smart',
+      quantity: 1000,
+      link: 'https://t.me/durov',
+      status: 'PENDING',
     } as any);
   });
 

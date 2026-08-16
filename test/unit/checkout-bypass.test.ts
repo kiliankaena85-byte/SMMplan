@@ -6,12 +6,19 @@ import { db } from '@/lib/db';
 vi.mock('@/lib/db', () => ({
   db: {
     service: { findUnique: vi.fn() },
-    user: { upsert: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
+    user: { upsert: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
     order: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     payment: { create: vi.fn(), update: vi.fn() },
     promoCode: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     session: { create: vi.fn() },
     contentItem: { findUnique: vi.fn() },
+    tenant: {
+      findUnique: vi.fn().mockResolvedValue({ id: 'tenant-1', slug: 'smmplan' }),
+      findFirst: vi.fn().mockResolvedValue({ id: 'tenant-1', slug: 'smmplan' }),
+    },
+    featureFlag: {
+      findUnique: vi.fn().mockResolvedValue({ state: 'ON' }),
+    },
     $transaction: vi.fn(async (cb) => {
       await Promise.resolve();
       return cb(db);
@@ -53,6 +60,11 @@ vi.mock('@/lib/settings', () => ({
   SettingsManager: {
     isTestMode: vi.fn().mockResolvedValue(true),
     getPaymentSecrets: vi.fn().mockResolvedValue({})
+  },
+  SettingsProvider: {
+    isTestMode: vi.fn().mockResolvedValue(true),
+    getContactAndLegalSettings: vi.fn().mockResolvedValue({ COMPANY_NAME: 'SMMplan' }),
+    getExchangeRateUSD: vi.fn().mockResolvedValue(100),
   }
 }));
 
@@ -76,6 +88,9 @@ describe('Checkout Validation Bypass Override', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-13T12:00:00Z'));
+    vi.mocked(db.user.findFirst).mockImplementation((args?: any) => {
+      return (db.user.findUnique as any)(args);
+    });
   });
 
   afterEach(() => {

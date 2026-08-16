@@ -134,6 +134,15 @@ function SmmplanOrderWizardInner({
               if (foundCat) setSelectedCategory(foundCat);
             }
           }
+          if (paramServiceId && paramCategoryId) {
+            getServicesByCategoryAction(paramCategoryId).then(servs => {
+              const s = servs.find(srv => srv.id === paramServiceId);
+              if (s) {
+                setSelectedService(s);
+                setQuantity(s.minQty || 100);
+              }
+            }).catch(() => {});
+          }
           setStep(parsedStep as 1 | 2 | 3 | 4);
         }
       }
@@ -389,8 +398,34 @@ function SmmplanOrderWizardInner({
   };
 
   const handleBlurLink = () => {
-    if (link) {
-      setLink(normalizeUrl(link));
+    if (!link) return;
+    const normalized = normalizeUrl(link);
+    setLink(normalized);
+
+    // Validate link based on service targetType
+    if (selectedService && normalized) {
+      const targetType = selectedService.targetType || 'POST';
+      if (targetType === 'CHANNEL') {
+        if (/\/[0-9]+(\/|$)/.test(normalized)) {
+          setErrors(prev => ({ ...prev, link: 'Укажите публичную ссылку на канал или группу (не отдельный пост)' }));
+          return;
+        }
+      } else if (targetType === 'POST') {
+        if (/t\.me\/[a-zA-Z0-9_]+$/.test(normalized) || /instagram\.com\/[a-zA-Z0-9_.]+\/?$/.test(normalized)) {
+          setErrors(prev => ({ ...prev, link: 'Укажите ссылку на конкретный пост или публикацию' }));
+          return;
+        }
+      } else if (targetType === 'STORY') {
+        if (/\/p\/|\/reel\/|\/stories\//.test(normalized)) {
+          setErrors(prev => ({ ...prev, link: 'Укажите ссылку на профиль Instagram для накрутки историй' }));
+          return;
+        }
+      } else if (targetType === 'CUSTOM') {
+        if (!/^https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(normalized)) {
+          setErrors(prev => ({ ...prev, link: 'Укажите корректную ссылку для выполнения услуги' }));
+          return;
+        }
+      }
     }
   };
 
@@ -742,6 +777,13 @@ function SmmplanOrderWizardInner({
           )}
 
           {/* ── STEP 4: Checkout & Options ── */}
+          {step === 4 && (!selectedService || isLoadingServices) && (
+            <div className="py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground bg-card/70 backdrop-blur-xl p-8 rounded-3xl border border-border/60">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <span className="text-sm font-medium">Загружаем тариф и форму заказа...</span>
+            </div>
+          )}
+
           {step === 4 && selectedService && (
             <form
               ref={formRef}
@@ -799,6 +841,8 @@ function SmmplanOrderWizardInner({
                 </div>
 
                 <input
+                  id="order-url"
+                  name="link"
                   type="text"
                   value={link}
                   onChange={e => {

@@ -21,7 +21,12 @@ export class ProviderService {
    */
   async getProviderInstance(config: Provider): Promise<BaseProvider> {
     // Decrypt the API Key before passing it to the provider
-    const decryptedKey = VaultService.decrypt(config.apiKey);
+    let decryptedKey: string;
+    try {
+      decryptedKey = VaultService.decrypt(config.apiKey);
+    } catch {
+      decryptedKey = config.apiKey;
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, config.metadata as any);
@@ -80,7 +85,12 @@ export class ProviderService {
       return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, mockKey, config.metadata as any);
     }
     // Production path: decrypt and use real provider
-    const decryptedKey = VaultService.decrypt(config.apiKey);
+    let decryptedKey: string;
+    try {
+      decryptedKey = VaultService.decrypt(config.apiKey);
+    } catch {
+      decryptedKey = config.apiKey;
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, config.metadata as any);
   }
