@@ -50,6 +50,7 @@ const ADMIN_NAVIGATION = [
     group: 'Система',
     items: [
       { href: '/admin/settings', icon: 'Settings', label: 'Настройки', section: 'settings' },
+      { href: '/admin/tenants', icon: 'Globe', label: 'Бренды & Домены', section: 'settings' },
       { href: '/admin/settings/balance-policies', icon: 'Shield', label: 'Политики баланса', section: 'balance_policy' },
       { href: '/admin/system/features', icon: 'ToggleLeft', label: 'Фичи', section: 'features' },
     ]

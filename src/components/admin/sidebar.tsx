@@ -9,7 +9,7 @@ import {
   Home, Users, Package, RefreshCw, ShoppingCart, 
   MessageSquare, CreditCard, Link as LinkIcon, Gift, FileText, Settings,
   PanelLeftClose, PanelLeftOpen, ArrowLeft, BarChart, BarChart3, Inbox, Shield, AlertTriangle, ToggleLeft, Activity, Cpu, BookOpen,
-  Sun, Moon, ArrowLeftRight
+  Sun, Moon, ArrowLeftRight, Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
@@ -39,7 +39,7 @@ interface SidebarProps {
 const ICON_MAP: Record<string, any> = {
   Home, Users, Package, RefreshCw, ShoppingCart, AlertTriangle,
   MessageSquare, CreditCard, Link: LinkIcon, Gift, FileText, Settings, BarChart, BarChart3, Inbox, Shield,
-  ToggleLeft, Activity, Cpu, BookOpen, ArrowLeftRight
+  ToggleLeft, Activity, Cpu, BookOpen, ArrowLeftRight, Globe
 };
 
 export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) {

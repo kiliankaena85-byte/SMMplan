@@ -1674,7 +1674,7 @@
   "/app/codebase/.agents/teamwork_preview_explorer_vk_article_18_2/analysis.md": "d8e9bd1be939b107",
   "/app/codebase/.agents/teamwork_preview_reviewer_testing_m4/test_output.txt": "1f2cece500ef500e",
   "/app/codebase/.agents/worker_m2_1/BRIEFING.md": "562580c19c1e1690",
-  "/app/codebase/src/app/admin/layout.tsx": "2942ccbc2708d0c1",
+  "/app/codebase/src/app/admin/layout.tsx": "791d6b275e23f895",
   "/app/codebase/plans/017-order-processing-correctness.md": "168470f86fd21eb3",
   "/app/codebase/scripts/synthetic-ux-lab/capture-add-funds.ts": "fb6f593d7f10d144",
   "/app/codebase/.agents/explorer_milestone1_2/progress.md": "5bea51a5bdaedb1e",
@@ -2088,7 +2088,7 @@
   "/app/codebase/src/app/dashboard/transactions/page.tsx": "6d226da0290cad24",
   "/app/codebase/src/data/knowledge/telegram-channel-vs-post-links.mdx": "5528d5965103db06",
   "/app/codebase/src/app/api/webhooks/robokassa/route.ts": "92c72e616d393c67",
-  "/app/codebase/src/components/admin/sidebar.tsx": "2a8c199e4d479efa",
+  "/app/codebase/src/components/admin/sidebar.tsx": "ba7ff3a26151cee6",
   "/app/codebase/src/data/knowledge/vk_smart_feed_2026.md": "ae620ed729ea6f97",
   "/app/codebase/src/app/dashboard/smart-drip/page.tsx": "bd2692c0eced48ca",
   "/app/codebase/src/components/ui/textarea.tsx": "281e3b3a2d25a74c",
@@ -2872,5 +2872,10 @@
   "/app/codebase/src/components/seo/sub/LandingSeoExpertise.tsx": "f4b654d685871d27",
   "/app/codebase/src/components/seo/sub/LandingSeoTariffComparison.tsx": "0eb7ad0dc3158e0a",
   "/app/codebase/src/components/seo/sub/LandingSeoFactBox.tsx": "0e156fceed777c31",
-  "/app/codebase/src/components/seo/sub/LandingSeoHowTo.tsx": "49c245c3c219217e"
+  "/app/codebase/src/components/seo/sub/LandingSeoHowTo.tsx": "49c245c3c219217e",
+  "/app/codebase/test/integration/cross-tenant-e2e.test.ts": "36f40d4ac26e4552",
+  "/app/codebase/src/app/admin/tenants/tenants-manager.tsx": "53ca3b3c399a7649",
+  "/app/codebase/src/actions/admin/tenants.ts": "5794b183704793c5",
+  "/app/codebase/src/app/admin/tenants/page.tsx": "40e1e3b108f568ef",
+  "/app/codebase/test/integration/tenants-admin.test.ts": "b03b98d48159fc3e"
 }
