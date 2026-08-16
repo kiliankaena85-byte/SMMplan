@@ -64,8 +64,8 @@ export async function createOfflineTicketAction(input: OfflineTicketInput) {
     }
 
     // 3. Squatting Guard & Shadow User Creation
-    const reqHeaders = await headers();
-    const tenantId = reqHeaders.get("x-tenant-id") || "smmplan";
+    const { SettingsProvider } = await import('@/lib/settings');
+    const tenantId = await SettingsProvider.getTenantId();
     const existingUser = await db.user.findUnique({
       where: { email_tenantId: { email: lowerEmail, tenantId } },
       select: { id: true, passwordHash: true, telegramId: true }

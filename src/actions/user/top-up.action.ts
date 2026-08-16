@@ -60,6 +60,9 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
     ? `Оплата услуг IT-агентства (Digital Consulting, Счёт: ${payment.id})`
     : `Пополнение баланса (Счёт: ${payment.id})`;
 
+  const { SettingsProvider } = await import('@/lib/settings');
+  const isTestMode = await SettingsProvider.isTestMode();
+
   try {
     const gatewayResult = await gatewaySvc.createPayment({
       paymentId: payment.id,
@@ -68,7 +71,7 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
       email: dbUser.email,
       successUrl,
       description,
-      isTestMode: false,
+      isTestMode: isTestMode || dbUser.email === 'e2e-tester@test.com',
       metadata: { type: 'deposit' }
     });
 

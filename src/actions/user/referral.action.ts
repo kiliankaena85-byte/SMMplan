@@ -3,12 +3,14 @@
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
 import { WalletOps } from "@/services/financial/wallet-ops";
+import crypto from "crypto";
 
 export async function transferReferralBalanceAction() {
   const session = await verifySession();
   if (!session) throw new Error("Unauthorized");
 
   let transferAmount = 0;
+  const transferId = crypto.randomUUID();
   
   await db.$transaction(async (tx) => {
     const user = await tx.user.findUnique({
@@ -39,13 +41,13 @@ export async function transferReferralBalanceAction() {
       throw new Error("Недостаточно средств на реферальном балансе");
     }
 
-    // 2. Safe main balance credit via WalletOps primitive
+    // 2. Safe main balance credit via WalletOps primitive with unique transfer ID
     await WalletOps.credit(
       tx,
       session.userId,
       transferAmount,
       `Перевод реферального баланса на основной`,
-      { idempotencyKey: `referral-transfer-${session.userId}-${transferAmount}` }
+      { idempotencyKey: `referral-transfer-${session.userId}-${transferId}` }
     );
 
     await tx.payment.create({
@@ -54,7 +56,8 @@ export async function transferReferralBalanceAction() {
         amount: transferAmount,
         currency: "RUB",
         status: "COMPLETED",
-        gateway: "referral_transfer"
+        gateway: "referral_transfer",
+        gatewayId: transferId
       }
     });
   }, { isolationLevel: 'Serializable' });
