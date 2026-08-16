@@ -81,11 +81,7 @@ export function LoginForm() {
         }
 
         toast.success(res.message || 'Регистрация успешна!');
-        if (res.redirectTo) {
-          window.location.href = res.redirectTo;
-        } else {
-          setActiveTab('password');
-        }
+        setActiveTab('password');
       } catch {
         toast.error('Произошла непредвиденная ошибка при регистрации.');
         setRegisterPending(false);

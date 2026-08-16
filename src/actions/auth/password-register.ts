@@ -40,12 +40,17 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       return { error: "Превышен лимит регистраций с вашего IP. Попробуйте завтра.", success: false };
     }
 
+    // Extract request context before database transaction to prevent context loss
+    const reqHeaders = await headers();
+    const rawTenantId = reqHeaders.get("x-tenant-id");
+    const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
+    const cookieStore = await cookies();
+    const refCode = cookieStore.get("ref")?.value;
+    const clientIp = await getClientIp();
+    const passwordHash = await hashPassword(password);
+
     // 2. Transaction for atomic user creation
     const result = await db.$transaction(async (tx) => {
-      const reqHeaders = await headers();
-      const rawTenantId = reqHeaders.get("x-tenant-id");
-      const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
-
       // Check if user already exists in this tenant
       const existingUser = await tx.user.findFirst({
         where: { 
@@ -55,31 +60,18 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
         select: { id: true, tenantId: true, isDeleted: true, isActive: true, passwordHash: true }
       });
 
-      const passwordHash = await hashPassword(password);
-
       if (existingUser) {
         if (existingUser.isDeleted || !existingUser.isActive) {
           return { type: 'blocked' as const };
         }
-        // If user was created via Magic Link (no password set yet), set their password now!
-        if (!existingUser.passwordHash) {
-          const updatedUser = await tx.user.update({
-            where: { id: existingUser.id },
-            data: {
-              passwordHash,
-              isEmailVerified: true,
-            }
-          });
-          return { type: 'password_set' as const, user: updatedUser };
-        }
+        // VULN-FIX: Account Takeover Prevention.
+        // Never allow setting a password directly for an existing account without email proof.
+        // Return 'exists' so user must log in or use 'Forgot Password' / Magic Link flow.
         return { type: 'exists' as const };
       }
 
       // Handle referral code if present in cookies
-      const cookieStore = await cookies();
-      const refCode = cookieStore.get("ref")?.value;
       let referredById = null;
-
       if (refCode) {
         const referrer = await tx.user.findUnique({ where: { referralCode: refCode } });
         if (referrer) referredById = referrer.id;
@@ -96,10 +88,10 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           role,
           referredById,
           isActive: true,
-          isEmailVerified: true,
+          isEmailVerified: false,
           tenantId,
           tosAcceptedAt: new Date(),
-          tosAcceptedIp: await getClientIp(),
+          tosAcceptedIp: clientIp,
         }
       });
 
@@ -116,11 +108,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
 
     const { user } = result;
 
-    // 3. Create Session immediately so user doesn't get blocked
-    const { createSession } = await import('@/lib/session');
-    await createSession(user.id);
-
-    // 4. Try sending welcome email in background (non-blocking)
+    // 3. Send email verification token
     const rawToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
@@ -132,19 +120,18 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           expiresAt: new Date(Date.now() + 1000 * 60 * 15),
         }
       });
-      await sendMagicLink(cleanEmail, rawToken).catch(() => {});
+      await sendMagicLink(cleanEmail, rawToken);
     } catch {
-      log.warn('Registration email send skipped/failed', { email: cleanEmail });
+      log.warn('Registration email send failed', { email: cleanEmail });
     }
 
-    log.info('Password registration successful with auto-login', { email: cleanEmail, userId: user.id });
+    log.info('Password registration initiated with email verification link', { email: cleanEmail, userId: user.id });
 
-    let redirectTo = '/dashboard';
-    if (["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role)) {
-      redirectTo = '/admin/dashboard';
-    }
-
-    return { success: true, error: null, redirectTo, message: "Регистрация успешна! Выполняется вход..." };
+    return { 
+      success: true, 
+      error: null, 
+      message: "Регистрация успешна! На ваш email отправлена ссылка для подтверждения входа." 
+    };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log.error('Password registration action failed', { error: errorMessage, email: cleanEmail });

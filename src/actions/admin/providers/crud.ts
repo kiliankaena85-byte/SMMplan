@@ -84,6 +84,10 @@ export async function createProvider(rawData: {
 
       const normalizedApiUrl = data.apiUrl.trim().replace(/\/+$/, '');
 
+      // SSRF Protection: Ensure target API URL is not resolving to private/internal IPs
+      const { assertSafeUrl } = await import('@/utils/ssrf-guard');
+      await assertSafeUrl(normalizedApiUrl);
+
       // Encrypt the API key before saving!
       const encryptedKey = VaultService.encrypt(data.apiKey);
       
@@ -149,6 +153,10 @@ export async function updateProvider(rawId: string, rawData: {
       const data = parsed.data;
       
       const normalizedApiUrl = data.apiUrl.trim().replace(/\/+$/, '');
+
+      // SSRF Protection: Ensure target API URL is not resolving to private/internal IPs
+      const { assertSafeUrl } = await import('@/utils/ssrf-guard');
+      await assertSafeUrl(normalizedApiUrl);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: any = {
