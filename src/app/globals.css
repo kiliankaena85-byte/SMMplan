@@ -201,8 +201,33 @@
   }
 }
 
+/* --- THEME: SKY LIGHT / ROOT DEFAULTS --- */
+.sky-light, [data-theme="sky-light"], :root {
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #475569;
+  --color-border: #e2e8f0;
+  --color-primary: #0369a1;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #e0f2fe;
+  --color-secondary-foreground: #0369a1;
+  --color-ring: #bae6fd;
+}
+
 /* --- THEME: EMERALD LIGHT --- */
 .emerald-light, [data-theme="emerald-light"] {
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #475569;
+  --color-border: #e2e8f0;
   --color-primary: #047857; /* emerald-700 */
   --color-primary-foreground: #ffffff;
   --color-secondary: #d1fae5; /* emerald-100 */
@@ -218,11 +243,18 @@
 
 /* --- THEME: EMERALD DARK --- */
 .emerald-dark, [data-theme="emerald-dark"] {
-  --color-primary: #10b981; /* emerald-500 - desaturated green for WCAG AA */
+  --color-background: #0f172a;
+  --color-foreground: #f8fafc;
+  --color-card: #1e293b;
+  --color-card-foreground: #f8fafc;
+  --color-muted: #243042;
+  --color-muted-foreground: #cbd5e1;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-primary: #10b981; /* emerald-500 */
   --color-primary-foreground: #020617;
   --color-secondary: #064e3b; /* emerald-950 */
   --color-secondary-foreground: #34d399; /* emerald-400 */
-  --color-ring: rgba(16, 185, 129, 0.35); /* Soft emerald green focus ring glow */
+  --color-ring: rgba(16, 185, 129, 0.35);
   --animate-hover-pulse: hover-pulse-emerald-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -233,6 +265,13 @@
 
 /* --- THEME: VIOLET LIGHT --- */
 .violet-light, [data-theme="violet-light"] {
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #475569;
+  --color-border: #e2e8f0;
   --color-primary: #7c3aed; /* violet-600 */
   --color-primary-foreground: #ffffff;
   --color-secondary: #ede9fe; /* violet-100 */
@@ -248,11 +287,18 @@
 
 /* --- THEME: VIOLET DARK --- */
 .violet-dark, [data-theme="violet-dark"] {
-  --color-primary: #a78bfa; /* violet-400 - desaturated violet for WCAG AA */
+  --color-background: #0f172a;
+  --color-foreground: #f8fafc;
+  --color-card: #1e293b;
+  --color-card-foreground: #f8fafc;
+  --color-muted: #243042;
+  --color-muted-foreground: #cbd5e1;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-primary: #a78bfa; /* violet-400 */
   --color-primary-foreground: #020617;
   --color-secondary: #2e1065; /* violet-950 */
   --color-secondary-foreground: #c084fc; /* violet-400 */
-  --color-ring: rgba(167, 139, 250, 0.35); /* Soft violet focus ring glow */
+  --color-ring: rgba(167, 139, 250, 0.35);
   --animate-hover-pulse: hover-pulse-violet-dark 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -270,19 +316,19 @@
   --color-popover: #FFFFFF;
   --color-popover-foreground: #27272A;
   --color-muted: #F4F4F5;
-  --color-muted-foreground: #71717A;
+  --color-muted-foreground: #52525B; /* zinc-600 for AA contrast >= 4.5:1 */
   --color-border: #E4E4E7;
-  --color-primary: #D97706;
+  --color-primary: #B45309; /* amber-700 for WCAG AA >= 4.5:1 on white */
   --color-primary-foreground: #ffffff;
   --color-secondary: #FEF3C7;
-  --color-secondary-foreground: #B45309;
+  --color-secondary-foreground: #92400E;
   --color-ring: #FDE68A;
   --animate-hover-pulse: hover-pulse-warm 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes hover-pulse-warm {
-  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
-  100% { box-shadow: 0 0 0 1em rgba(217, 119, 6, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(180, 83, 9, 0.4); }
+  100% { box-shadow: 0 0 0 1em rgba(180, 83, 9, 0); }
 }
 
 /* --- THEME: WARM IVORY DARK --- */
@@ -294,7 +340,7 @@
   --color-popover: #18181B;
   --color-popover-foreground: #FAF9F6;
   --color-muted: #27272A;
-  --color-muted-foreground: #A1A1AA;
+  --color-muted-foreground: #D4D4D8; /* zinc-300 for AA contrast on 18181B */
   --color-border: rgba(255, 255, 255, 0.08); /* Luminance Border */
   --color-primary: #F59E0B;
   --color-primary-foreground: #09090B;

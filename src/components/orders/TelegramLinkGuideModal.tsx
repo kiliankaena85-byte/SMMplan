@@ -92,7 +92,7 @@ export function TelegramLinkGuideModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-xl animate-in fade-in duration-200">
-      <div className="w-full max-w-4xl bg-card border border-border/80 rounded-[2.5rem] p-5 sm:p-8 max-h-[94vh] overflow-y-auto shadow-2xl space-y-6 relative transition-all bg-card/98">
+      <div className="w-full max-w-4xl bg-card text-card-foreground border border-border/80 rounded-[2.5rem] p-5 sm:p-8 max-h-[94vh] overflow-y-auto shadow-2xl space-y-6 relative transition-all bg-card/98">
         
         {/* ── HEADER ── */}
         <div className="flex items-center justify-between border-b border-border/60 pb-4 sticky top-0 bg-card/90 backdrop-blur-md z-20">
