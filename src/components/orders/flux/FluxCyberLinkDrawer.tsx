@@ -16,9 +16,9 @@ import {
   CheckCircle2,
   ClipboardPaste,
   ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
-  ScanLine
+  ScanLine,
+  Layers,
+  HelpCircle
 } from 'lucide-react';
 import { LinkGuideService, PlatformDeviceGuide } from '@/services/catalog/link-guide.service';
 
@@ -78,14 +78,14 @@ export function FluxCyberLinkDrawer({
     }
     return {
       valid: false,
-      message: 'Требуется протокол https://t.me/...'
+      message: 'Требуется формат https://t.me/channel/123'
     };
   };
 
   const validationResult = handleTestLinkValidation();
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/80 backdrop-blur-xl animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/85 backdrop-blur-xl animate-in fade-in duration-300">
       
       {/* Backdrop tap to close */}
       <div 
@@ -95,7 +95,7 @@ export function FluxCyberLinkDrawer({
       />
 
       {/* ── PRISM CYBER BOTTOM SHEET DRAWER ── */}
-      <div className="relative z-10 w-full max-w-5xl mx-auto bg-[#090d16]/95 border-t border-x border-purple-500/30 rounded-t-[2.5rem] sm:rounded-t-[3rem] p-5 sm:p-8 max-h-[92vh] overflow-y-auto shadow-[0_-20px_60px_rgba(168,85,247,0.2)] space-y-6 animate-in slide-in-from-bottom duration-300">
+      <div className="relative z-10 w-full max-w-5xl mx-auto bg-[#080b14]/98 border-t border-x border-purple-500/35 rounded-t-[2.5rem] sm:rounded-t-[3rem] p-5 sm:p-8 max-h-[92vh] overflow-y-auto shadow-[0_-25px_60px_rgba(168,85,247,0.25)] space-y-6 animate-in slide-in-from-bottom duration-300">
         
         {/* Drag Handle Bar */}
         <div className="flex justify-center -mt-2 mb-1">
@@ -103,7 +103,7 @@ export function FluxCyberLinkDrawer({
         </div>
 
         {/* ── CYBER HEADER ── */}
-        <div className="flex items-center justify-between border-b border-purple-500/20 pb-4 sticky top-0 bg-[#090d16]/95 backdrop-blur-md z-20">
+        <div className="flex items-center justify-between border-b border-purple-500/20 pb-4 sticky top-0 bg-[#080b14]/95 backdrop-blur-md z-20">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-600/30 via-pink-600/20 to-purple-800/30 border border-purple-500/40 shadow-[0_0_20px_rgba(168,85,247,0.3)] text-purple-300">
               <Zap className="w-5 h-5 animate-pulse" />
@@ -111,14 +111,14 @@ export function FluxCyberLinkDrawer({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
-                  <span>Telegram Link Assistant</span>
+                  <span>Как скопировать ссылку в Telegram</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
                     FLUX HUD
                   </span>
                 </h2>
               </div>
               <p className="text-xs text-neutral-400 mt-0.5">
-                Интерактивное руководство по извлечению прямой ссылки на фото
+                Нажмите на шаги, чтобы увидеть, как найти кнопку в вашем Telegram
               </p>
             </div>
           </div>
@@ -161,11 +161,11 @@ export function FluxCyberLinkDrawer({
         {/* ── HUD CONTENT: HORIZONTAL STEP CAROUSEL + NEON PHONE SIMULATOR ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           
-          {/* 📱 LEFT: CYBER PHONE SIMULATOR (5 cols) */}
+          {/* 📱 LEFT: CYBER PHONE SIMULATOR WITH EXPLICIT "DEMO EXAMPLE" BADGE (5 cols) */}
           <div className="lg:col-span-5 flex flex-col items-center">
-            <div className="w-full max-w-[280px] sm:max-w-[300px] rounded-[2.5rem] p-3.5 bg-black border-[3px] border-purple-500/40 shadow-[0_0_40px_rgba(168,85,247,0.25)] text-white font-sans relative overflow-hidden">
+            <div className="w-full max-w-[280px] sm:max-w-[305px] rounded-[2.6rem] p-3.5 bg-black border-[3px] border-purple-500/40 shadow-[0_0_40px_rgba(168,85,247,0.25)] text-white font-sans relative overflow-hidden">
               
-              {/* Top Sensor Notch */}
+              {/* Dynamic Island / Status Bar */}
               <div className="flex items-center justify-between px-3 pt-0.5 pb-2 text-[9px] text-purple-300/70 font-mono">
                 <span>09:41</span>
                 <div className="w-16 h-3.5 bg-neutral-900 rounded-full flex items-center justify-center gap-1 border border-purple-500/30">
@@ -174,24 +174,36 @@ export function FluxCyberLinkDrawer({
                 <span>FLUX 5G</span>
               </div>
 
+              {/* 🏷️ EXPLICIT DEMO BADGE OVERLAY */}
+              <div className="flex items-center justify-between px-2 py-1 mb-1.5 rounded-xl bg-purple-950/80 border border-purple-500/30 text-[9px] text-purple-200">
+                <span className="font-bold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-pink-400" />
+                  НАГЛЯДНЫЙ ДЕМО-ОБРАЗЕЦ
+                </span>
+                <span className="text-[8px] font-mono text-purple-400">Шаблон</span>
+              </div>
+
               {/* Telegram Channel Header */}
-              <div className="flex items-center justify-between px-2 py-2 border-b border-neutral-800 bg-neutral-900/80 rounded-2xl mb-2">
+              <div className="flex items-center justify-between px-2 py-1.5 border-b border-neutral-800 bg-neutral-900/80 rounded-xl mb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-[10px] font-black text-white shadow-md">
-                    TG
+                    FX
                   </div>
                   <div>
-                    <span className="font-extrabold text-[11px] block leading-tight text-white">Канал / Media</span>
-                    <span className="text-[8px] text-purple-400 font-mono">24 900 subscribers</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-extrabold text-[11px] block leading-tight text-white">FLUX Creative Studio</span>
+                      <span className="text-pink-400 text-[9px]">★</span>
+                    </div>
+                    <span className="text-[8px] text-purple-400 font-mono">42 800 subscribers</span>
                   </div>
                 </div>
 
                 {selectedDevice === 'ios' ? (
-                  <div className={`p-1 rounded-lg ${activeStepIndex === 1 ? 'bg-purple-500 text-white animate-bounce' : 'text-neutral-500'}`}>
+                  <div className={`p-1 rounded-lg ${activeStepIndex === 1 ? 'bg-purple-500 text-white animate-bounce ring-2 ring-pink-400' : 'text-neutral-500'}`}>
                     <MoreHorizontal className="w-4 h-4" />
                   </div>
                 ) : selectedDevice === 'android' ? (
-                  <div className={`p-1 rounded-lg ${activeStepIndex === 1 ? 'bg-purple-500 text-white animate-bounce' : 'text-neutral-500'}`}>
+                  <div className={`p-1 rounded-lg ${activeStepIndex === 1 ? 'bg-purple-500 text-white animate-bounce ring-2 ring-pink-400' : 'text-neutral-500'}`}>
                     <MoreVertical className="w-4 h-4" />
                   </div>
                 ) : (
@@ -212,7 +224,7 @@ export function FluxCyberLinkDrawer({
                   >
                     <ImageIcon className="w-8 h-8 text-purple-400 mb-1 animate-pulse" />
                     <span className="text-[11px] font-black text-white">
-                      Публикация #150
+                      Пример: Фотография #150
                     </span>
                     <span className="text-[8px] text-purple-300/80">
                       [Тапните для зума]
@@ -221,14 +233,14 @@ export function FluxCyberLinkDrawer({
                     {activeStepIndex === 0 && (
                       <div className="absolute inset-0 bg-purple-600/30 backdrop-blur-[1px] flex items-center justify-center">
                         <span className="px-3 py-1 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-[10px] shadow-lg animate-bounce">
-                          👆 Тап по фото
+                          👆 Тапните по фото
                         </span>
                       </div>
                     )}
                   </div>
 
                   <p className="text-[9px] text-neutral-300 mt-1.5 leading-tight">
-                    🔥 Эксклюзивный релиз контента.
+                    🔥 Эксклюзивная фотосессия для нового релиза.
                   </p>
                 </div>
 
@@ -236,7 +248,7 @@ export function FluxCyberLinkDrawer({
                 {activeStepIndex >= 1 && (
                   <div className="rounded-2xl p-2 bg-neutral-900/95 border border-purple-500/40 shadow-2xl space-y-1 animate-in zoom-in-95 duration-200">
                     <div className="text-[8px] font-bold text-purple-400 px-2 uppercase tracking-wider">
-                      Опции сообщения
+                      Меню действий в Telegram
                     </div>
                     
                     {/* Highlighted Button */}
@@ -250,7 +262,7 @@ export function FluxCyberLinkDrawer({
                     >
                       <div className="flex items-center gap-1.5">
                         <Copy className="w-3.5 h-3.5" />
-                        <span>Копировать ссылку</span>
+                        <span>Скопировать ссылку</span>
                       </div>
                       <span className="text-[8px] bg-black/40 px-1 rounded font-mono">
                         {selectedDevice === 'ios' ? '?single' : 'URL'}
@@ -270,6 +282,10 @@ export function FluxCyberLinkDrawer({
                 <div className="w-20 h-1 bg-purple-500/40 rounded-full" />
               </div>
             </div>
+
+            <span className="text-[10px] text-neutral-400 font-medium mt-2 text-center">
+              💡 Это наглядный пример. В приложении Telegram выберите <strong>ваш</strong> пост.
+            </span>
           </div>
 
           {/* 📋 RIGHT: STEP TIMELINE SLIDER (7 cols) */}
@@ -277,7 +293,7 @@ export function FluxCyberLinkDrawer({
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-                Алгоритм действий:
+                Как найти ссылку в вашем Telegram:
               </span>
               <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-purple-950/60 text-purple-300 font-bold border border-purple-500/30">
                 Шаг {activeStepIndex + 1} из {currentDeviceGuide.steps.length}
@@ -331,7 +347,7 @@ export function FluxCyberLinkDrawer({
             <div className="p-4 rounded-3xl bg-gradient-to-r from-purple-950/40 via-neutral-900 to-pink-950/40 border border-purple-500/30 flex items-start gap-3 text-xs text-purple-200 shadow-inner">
               <span className="text-lg shrink-0">✨</span>
               <div className="space-y-1">
-                <span className="font-extrabold text-white block">Альбомы и фото-карусели:</span>
+                <span className="font-extrabold text-white block">Если у вас альбом из нескольких фото:</span>
                 <p className="leading-relaxed text-neutral-300">
                   {currentDeviceGuide.mediaGroupAlbumNote}
                 </p>
@@ -345,7 +361,7 @@ export function FluxCyberLinkDrawer({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <label className="text-xs font-black text-white flex items-center gap-1.5 tracking-wide">
               <ScanLine className="w-4 h-4 text-purple-400" />
-              <span>Cyber Scanner ссылки:</span>
+              <span>Проверьте ссылку на ваш пост:</span>
             </label>
 
             <button
@@ -361,7 +377,7 @@ export function FluxCyberLinkDrawer({
           <div className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="https://t.me/channel/150"
+              placeholder="Вставьте ссылку на ваш пост, например: https://t.me/mychannel/150"
               value={testLink}
               onChange={e => setTestLink(e.target.value)}
               className="flex-1 px-4 py-3 rounded-2xl bg-black border border-purple-500/40 focus:border-pink-500 focus:outline-none text-white font-mono text-xs shadow-inner"
@@ -393,10 +409,10 @@ export function FluxCyberLinkDrawer({
         </div>
 
         {/* ── DRAWER FOOTER ── */}
-        <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between sticky bottom-0 bg-[#090d16] z-20">
+        <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between sticky bottom-0 bg-[#080b14] z-20">
           <div className="flex items-center gap-2 text-xs text-neutral-400 font-mono hidden sm:flex">
             <ShieldCheck className="w-4 h-4 text-purple-400" />
-            <span>SMMFLUX AI Engine • Automated Routing</span>
+            <span>SMMFLUX AI Engine • Защита от ошибочных ссылок</span>
           </div>
 
           <button
@@ -404,7 +420,7 @@ export function FluxCyberLinkDrawer({
             onClick={onClose}
             className="w-full sm:w-auto px-8 py-3 rounded-2xl font-black text-xs bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white shadow-[0_0_25px_rgba(168,85,247,0.3)] transition-all cursor-pointer min-h-[44px]"
           >
-            Готово, вернуться к заказу
+            Понятно, вернуться к заказу
           </button>
         </div>
       </div>

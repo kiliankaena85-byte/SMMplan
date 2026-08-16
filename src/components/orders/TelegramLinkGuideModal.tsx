@@ -21,7 +21,8 @@ import {
   ShieldCheck,
   Zap,
   Info,
-  CheckCircle
+  CheckCircle,
+  HelpCircle
 } from 'lucide-react';
 import { LinkGuideService, PlatformDeviceGuide } from '@/services/catalog/link-guide.service';
 
@@ -42,7 +43,6 @@ export function TelegramLinkGuideModal({
   const [selectedDevice, setSelectedDevice] = useState<'ios' | 'android' | 'desktop'>('ios');
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
   const [testLink, setTestLink] = useState('');
-  const [isCopied, setIsCopied] = useState(false);
 
   if (!isOpen) return null;
 
@@ -74,7 +74,7 @@ export function TelegramLinkGuideModal({
           valid: true,
           postId: lastPart,
           isSingle,
-          message: `Ссылка валидна! Сообщение #${lastPart} ${isSingle ? '(конкретное фото)' : '(основной пост)'}`
+          message: `Ссылка корректна! Сообщение #${lastPart} ${isSingle ? '(конкретное фото)' : '(основной пост)'}`
         };
       }
       return {
@@ -89,25 +89,15 @@ export function TelegramLinkGuideModal({
   };
 
   const validationResult = handleTestLinkValidation();
-  const isNeon = tenantVariant === 'neon';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-xl animate-in fade-in duration-200">
-      <div 
-        className={`w-full max-w-4xl bg-card border rounded-[2.5rem] p-5 sm:p-8 max-h-[94vh] overflow-y-auto shadow-2xl space-y-6 relative transition-all ${
-          isNeon 
-            ? 'border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.15)] bg-card/95' 
-            : 'border-border/80 shadow-2xl bg-card/98'
-        }`}
-      >
-        {/* ── STYLISH HEADER ── */}
+      <div className="w-full max-w-4xl bg-card border border-border/80 rounded-[2.5rem] p-5 sm:p-8 max-h-[94vh] overflow-y-auto shadow-2xl space-y-6 relative transition-all bg-card/98">
+        
+        {/* ── HEADER ── */}
         <div className="flex items-center justify-between border-b border-border/60 pb-4 sticky top-0 bg-card/90 backdrop-blur-md z-20">
           <div className="flex items-center gap-3">
-            <span className={`p-3 rounded-2xl shrink-0 ${
-              isNeon 
-                ? 'bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-purple-600/20 text-purple-400 border border-purple-500/30 shadow-lg shadow-purple-500/10' 
-                : 'bg-primary/10 text-primary border border-primary/20'
-            }`}>
+            <span className="p-3 rounded-2xl shrink-0 bg-primary/10 text-primary border border-primary/20">
               <Sparkles className="w-5 h-5" />
             </span>
             <div>
@@ -115,12 +105,12 @@ export function TelegramLinkGuideModal({
                 <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight">
                   Как скопировать ссылку на фото в Telegram
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  Без ошибок
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                  SMMPLAN GUIDE
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Интерактивный симулятор экрана и пошаговые подсказки для всех моделей смартфонов
+                Нажмите на шаги, чтобы увидеть расположение кнопки в приложении Telegram
               </p>
             </div>
           </div>
@@ -149,9 +139,7 @@ export function TelegramLinkGuideModal({
                 }}
                 className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer min-h-[46px] ${
                   isActive
-                    ? isNeon
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25 scale-[1.02]'
-                      : 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]'
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                 }`}
               >
@@ -165,7 +153,7 @@ export function TelegramLinkGuideModal({
         {/* ── MAIN INTERACTIVE GRID: HIGH-FIDELITY PHONE + INTERACTIVE STEPS ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
           
-          {/* 📱 LEFT: ULTRA-STYLISH TELEGRAM PHONE SCREEN (5 cols) */}
+          {/* 📱 LEFT: B2B TELEGRAM PHONE SCREEN WITH EXPLICIT DEMO BADGE (5 cols) */}
           <div className="lg:col-span-5 flex flex-col items-center">
             <div className="w-full max-w-[290px] sm:max-w-[315px] rounded-[2.8rem] p-4 bg-neutral-950 border-[5px] border-neutral-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] text-white font-sans relative overflow-hidden ring-1 ring-neutral-700/50">
               
@@ -179,18 +167,27 @@ export function TelegramLinkGuideModal({
                 <span>5G 100%</span>
               </div>
 
+              {/* 🏷️ EXPLICIT DEMO BADGE */}
+              <div className="flex items-center justify-between px-2 py-1 mb-1.5 rounded-xl bg-blue-950/80 border border-blue-500/30 text-[9px] text-blue-200">
+                <span className="font-bold flex items-center gap-1">
+                  <Info className="w-3 h-3 text-blue-400" />
+                  НАГЛЯДНЫЙ ДЕМО-ОБРАЗЕЦ
+                </span>
+                <span className="text-[8px] font-mono text-blue-400">Шаблон</span>
+              </div>
+
               {/* Telegram Channel Header Bar */}
               <div className="flex items-center justify-between px-2 py-2 border-b border-neutral-800/80 bg-neutral-900/60 rounded-2xl mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 flex items-center justify-center text-xs font-black text-white shadow-md">
-                    TG
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 via-indigo-600 to-blue-700 flex items-center justify-center text-xs font-black text-white shadow-md">
+                    PRO
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <span className="font-extrabold text-xs block leading-tight text-neutral-100">Блог & Медиа</span>
+                      <span className="font-extrabold text-xs block leading-tight text-neutral-100">Бизнес & Маркетинг PRO</span>
                       <span className="text-blue-400 text-[10px]">✓</span>
                     </div>
-                    <span className="text-[9px] text-neutral-400 font-medium">18 500 подписчиков</span>
+                    <span className="text-[9px] text-neutral-400 font-medium">65 000 подписчиков</span>
                   </div>
                 </div>
 
@@ -219,11 +216,11 @@ export function TelegramLinkGuideModal({
                   {/* Photo Canvas Simulation */}
                   <div 
                     onClick={() => setActiveStepIndex(1)}
-                    className="relative rounded-xl overflow-hidden bg-gradient-to-tr from-slate-900 via-indigo-950 to-purple-950 h-36 flex flex-col items-center justify-center p-3 text-center border border-neutral-700/80 cursor-pointer group"
+                    className="relative rounded-xl overflow-hidden bg-gradient-to-tr from-slate-900 via-blue-950 to-indigo-950 h-36 flex flex-col items-center justify-center p-3 text-center border border-neutral-700/80 cursor-pointer group"
                   >
                     <ImageIcon className="w-9 h-9 text-blue-400/90 mb-1.5 group-hover:scale-110 transition-transform" />
                     <span className="text-xs font-black text-white leading-snug">
-                      Публикация #150
+                      Пример публикации #150
                     </span>
                     <span className="text-[9px] text-neutral-300 mt-0.5 font-medium">
                       (Тапните для увеличения)
@@ -240,7 +237,7 @@ export function TelegramLinkGuideModal({
                   </div>
 
                   <p className="text-[10px] text-neutral-300 mt-2 leading-tight">
-                    📸 Премьера новой коллекции кадров! Оцените качество съемки.
+                    📊 Аналитика за текущий квартал: конверсия выросла на 34%.
                   </p>
                   <div className="flex items-center justify-end gap-1 text-[9px] text-neutral-500 mt-1 font-mono">
                     <span>14:20</span>
@@ -279,7 +276,7 @@ export function TelegramLinkGuideModal({
 
                     <div className="px-2.5 py-1.5 rounded-xl text-[10px] text-neutral-400 flex items-center justify-between">
                       <span>Поделиться...</span>
-                      <Share2 className="w-3.5 h-3.5" />
+                      <Share2 className="w-3 h-3" />
                     </div>
                   </div>
                 )}
@@ -291,18 +288,18 @@ export function TelegramLinkGuideModal({
               </div>
             </div>
 
-            <span className="text-[11px] text-muted-foreground font-medium mt-3 text-center flex items-center gap-1.5">
+            <span className="text-[10px] text-muted-foreground font-medium mt-3 text-center flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-primary" />
-              Интерактивный экран Telegram для {currentDeviceGuide.label}
+              Это интерактивный пример. В приложении выберите <strong>ваш</strong> пост.
             </span>
           </div>
 
-          {/* 📋 RIGHT: DETAILED STEP CARDS WITH RICH EXPLANATIONS (7 cols) */}
+          {/* 📋 RIGHT: DETAILED STEP CARDS (7 cols) */}
           <div className="lg:col-span-7 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-primary" />
-                Пошаговые действия:
+                Как найти ссылку в вашем Telegram:
               </span>
               <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-secondary text-foreground font-bold border border-border/50 shadow-sm">
                 {currentDeviceGuide.badge}
@@ -318,9 +315,7 @@ export function TelegramLinkGuideModal({
                     onClick={() => setActiveStepIndex(idx)}
                     className={`p-4 sm:p-4.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
                       isCurrent
-                        ? isNeon
-                          ? 'bg-purple-500/10 border-purple-500 shadow-lg shadow-purple-500/10 ring-1 ring-purple-500'
-                          : 'bg-primary/5 border-primary shadow-md shadow-primary/5 ring-1 ring-primary'
+                        ? 'bg-primary/5 border-primary shadow-md shadow-primary/5 ring-1 ring-primary'
                         : 'bg-card border-border/70 hover:border-border hover:bg-secondary/40'
                     }`}
                   >
@@ -328,9 +323,7 @@ export function TelegramLinkGuideModal({
                       <div className="flex items-start gap-3">
                         <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 shadow-sm ${
                           isCurrent
-                            ? isNeon 
-                              ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white' 
-                              : 'bg-primary text-primary-foreground'
+                            ? 'bg-primary text-primary-foreground'
                             : 'bg-secondary text-muted-foreground'
                         }`}>
                           {step.stepNumber}
@@ -358,14 +351,10 @@ export function TelegramLinkGuideModal({
             </div>
 
             {/* 🖼️ ALBUM / MEDIAGROUP EXPLANATION BOX */}
-            <div className={`p-4 rounded-2xl border flex items-start gap-3 text-xs ${
-              isNeon 
-                ? 'bg-purple-500/10 border-purple-500/30 text-purple-200' 
-                : 'bg-blue-500/10 border-blue-500/20 text-blue-900 dark:text-blue-200'
-            }`}>
+            <div className="p-4 rounded-2xl border bg-blue-500/10 border-blue-500/20 text-blue-900 dark:text-blue-200 flex items-start gap-3 text-xs">
               <span className="text-xl shrink-0">💡</span>
               <div className="space-y-1">
-                <span className="font-extrabold block">Специфика альбомов (карусели из нескольких фото):</span>
+                <span className="font-extrabold block">Если у вас альбом из нескольких фото:</span>
                 <p className="leading-relaxed opacity-90">
                   {currentDeviceGuide.mediaGroupAlbumNote}
                 </p>
@@ -379,7 +368,7 @@ export function TelegramLinkGuideModal({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>Проверьте скопированную ссылку прямо здесь:</span>
+              <span>Проверьте ссылку на ваш пост:</span>
             </label>
 
             <button
@@ -395,7 +384,7 @@ export function TelegramLinkGuideModal({
           <div className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="Вставьте ссылку, например: https://t.me/durov/150"
+              placeholder="Вставьте ссылку на ваш пост, например: https://t.me/mychannel/150"
               value={testLink}
               onChange={e => setTestLink(e.target.value)}
               className="flex-1 px-4 py-3 rounded-2xl bg-background border border-border focus:border-primary focus:outline-none text-foreground font-mono text-xs shadow-inner"
@@ -407,11 +396,7 @@ export function TelegramLinkGuideModal({
                   onApplyLink(testLink);
                   onClose();
                 }}
-                className={`px-5 py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer shrink-0 shadow-md ${
-                  isNeon
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-purple-500/25'
-                    : 'bg-primary text-primary-foreground shadow-primary/20'
-                }`}
+                className="px-5 py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer shrink-0 shadow-md bg-primary text-primary-foreground shadow-primary/20"
               >
                 Применить в заказ
               </button>
@@ -434,17 +419,13 @@ export function TelegramLinkGuideModal({
         <div className="pt-3 border-t border-border flex items-center justify-between sticky bottom-0 bg-card/90 backdrop-blur-md z-20">
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium hidden sm:flex">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span>Качественная накрутка без блокировок и списаний</span>
+            <span>SMMPLAN ENGINE • Автоматическая маршрутизация заказов</span>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className={`px-7 py-3 rounded-2xl font-black text-xs transition-all cursor-pointer min-h-[44px] shadow-md ${
-              isNeon
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white shadow-purple-500/25'
-                : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20'
-            }`}
+            className="px-7 py-3 rounded-2xl font-black text-xs transition-all cursor-pointer min-h-[44px] shadow-md bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"
           >
             Понятно, продолжить
           </button>
