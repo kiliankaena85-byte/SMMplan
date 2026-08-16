@@ -2623,7 +2623,7 @@
   "/app/codebase/src/components/ab-test/FluxOrderClient.tsx": "4ccb9f8cb9dd0885",
   "/app/codebase/src/components/ab-test/FluxWhyUs.tsx": "bf46590721083645",
   "/app/codebase/src/components/ab-test/FluxReviews.tsx": "c93390c882254d73",
-  "/app/codebase/src/components/ab-test/FluxTrustBar.tsx": "83edb111d8aada25",
+  "/app/codebase/src/components/ab-test/FluxTrustBar.tsx": "4b8a957b2f3dcf19",
   "/app/codebase/LOVABLE_REMOVAL_CHECKLIST.md": "dc062bff0f5e6e70",
   "/app/codebase/.agent/checklists/seo-page.md": "e3e55eea29cf1c06",
   "/app/codebase/.agent/forbidden-patterns.md": "6a64aa2558bb0c9d",
@@ -2885,5 +2885,6 @@
   "/app/codebase/test/unit/telegram-link-guide-modal.test.ts": "fc73aef5b3c2bcab",
   "/app/codebase/src/components/orders/flux/FluxCyberLinkDrawer.tsx": "c23fd7f786274c59",
   "/app/codebase/test/unit/flux-cyber-drawer.test.ts": "723314eb1d99df56",
-  "/app/codebase/scripts/audit-all-themes-empirical.ts": "9aa46ae670730367"
+  "/app/codebase/scripts/audit-all-themes-empirical.ts": "9aa46ae670730367",
+  "/app/codebase/scripts/audit-wcag-contrast-final.ts": "b124ade8402a540d"
 }
