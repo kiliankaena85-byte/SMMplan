@@ -140,12 +140,11 @@ export function MegaFooter({
       </div>
 
       <div className="max-w-7xl mx-auto px-6 border-t border-border/50 pt-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs font-semibold text-foreground/80 relative z-10">
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1">
           <p className="text-sm font-bold text-foreground">© {new Date().getFullYear()} {brandName}. Все права защищены.</p>
           <p className="text-xs text-foreground/70 font-medium">
             Официальный сервис продвижения. ИП Соколов А.А. (ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""})
           </p>
-          <p className="text-xs text-foreground/70 font-medium">Адрес: {address}</p>
         </div>
         <p className="flex items-center gap-1 text-foreground/80 font-semibold">Designed with <span className="text-red-500">❤</span> for B2B Growth</p>
       </div>

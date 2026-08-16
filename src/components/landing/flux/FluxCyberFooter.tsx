@@ -172,7 +172,6 @@ export function FluxCyberFooter({
           <p className="text-[11px] text-neutral-400">
             Официальный сервис продвижения. ИП Соколов А.А. (ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""})
           </p>
-          <p className="text-[11px] text-neutral-400">Адрес: {address}</p>
         </div>
         
         <p className="flex items-center gap-1.5 text-neutral-300 font-medium">
