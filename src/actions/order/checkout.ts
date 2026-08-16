@@ -316,8 +316,8 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         throw new Error("Ваш аккаунт заблокирован или удален");
       }
       // IDOR / Account Hijacking Prevention:
-      // Prevent order injection / guest orders binding to existing accounts without session
-      if (!currentSession || currentSession.userId !== user.id) {
+      // Prevent order injection / guest orders binding to existing password-protected accounts without session
+      if (user.passwordHash && (!currentSession || currentSession.userId !== user.id)) {
         throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
       }
     }

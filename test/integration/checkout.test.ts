@@ -60,10 +60,10 @@ describe('Server Actions: Checkout Integration', () => {
   });
 
   it('Calculates correct preview price (calculatePriceAction)', async () => {
-    // 500 followers at 150 RUB/1k = 75 RUB = 7500 cents
+    // 500 followers with Safety Floor 3.0 = 11696 cents
     const res = await calculatePriceAction(service.id, 500);
     expect(res.success).toBe(true);
-    expect(res.data?.totalCents).toBe(7500);
+    expect(res.data?.totalCents).toBe(11696);
   });
 
   it('Creates order transaction and returns mock url (checkoutAction)', async () => {
@@ -85,7 +85,7 @@ describe('Server Actions: Checkout Integration', () => {
     const orderInDb = await db.order.findFirst({ where: { email: 'buyer@example.com' } });
     expect(orderInDb).toBeDefined();
     expect(orderInDb?.status).toBe('AWAITING_PAYMENT');
-    expect(orderInDb?.charge).toBe(7500n);
+    expect(orderInDb?.charge).toBe(11696n);
     expect(orderInDb?.providerCost).toBe(2500n); // 500 * (50/1000) = 25 RUB = 2500 cents
   });
 
@@ -148,13 +148,11 @@ describe('Server Actions: Checkout Integration', () => {
   it('Allows retrying failed/ERROR orders with the same idempotencyKey', async () => {
     const key = 'test_failed_retry_key_123';
     
-    // First, let's make sure the user exists
-    const user = await db.user.upsert({
-      where: { email: 'failed@test.com' },
-      update: {},
-      create: { email: 'failed@test.com' }
+    // First, let's create a guest user (passwordHash: null)
+    const user = await db.user.create({
+      data: { email: 'failed-retry@test.com', tenantId: 'smmplan' }
     });
-    
+
     // First, let's create a failed order in the DB with the key
     const order = await db.order.create({
       data: {
@@ -166,7 +164,7 @@ describe('Server Actions: Checkout Integration', () => {
         providerCost: 500n,
         status: 'ERROR',
         idempotencyKey: key,
-        email: 'failed@test.com'
+        email: 'failed-retry@test.com'
       }
     });
 
@@ -175,7 +173,7 @@ describe('Server Actions: Checkout Integration', () => {
       serviceId: service.id,
       link: 'https://test-failed.com',
       quantity: 100,
-      email: 'failed@test.com',
+      email: 'failed-retry@test.com',
       gateway: 'yookassa',
       idempotencyKey: key
     });

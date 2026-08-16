@@ -5,7 +5,7 @@ import { adminTicketService } from '../../admin/ticket.service';
 vi.mock('@/lib/db', () => ({
   db: {
     ticket: {
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
     }
@@ -42,7 +42,7 @@ describe('AdminTicketService', () => {
         }))
       };
 
-      vi.mocked(db.ticket.findUnique).mockResolvedValueOnce(currentTicket as any);
+      vi.mocked(db.ticket.findFirst).mockResolvedValueOnce(currentTicket as any);
       vi.mocked(db.ticket.findMany).mockResolvedValueOnce([histTicket1] as any);
 
       await adminTicketService.getTicketDetails('ticket-current');
@@ -61,35 +61,35 @@ describe('AdminTicketService', () => {
     });
 
     it('should expose originalText for deleted messages to STAFF (Audit Visibility)', async () => {
-      const mockMessage = {
-        id: 'msg-deleted',
-        sender: 'STAFF',
-        text: 'This was deleted',
-        isDeleted: true,
-        originalText: 'Oops I said a bad word',
-        createdAt: new Date()
-      };
-
       const currentTicket = {
-        id: 't-1',
+        id: 'ticket-audit',
+        userId: 'user-1',
         user: { 
-          id: 'u-1',
+          id: 'user-1',
           createdAt: new Date(),
           orders: [],
           payments: []
         },
-        messages: [mockMessage]
+        messages: [
+          {
+            id: 'msg-deleted-1',
+            text: '[Сообщение удалено пользователем]',
+            originalText: 'Настоящий текст до удаления',
+            isDeleted: true,
+            createdAt: new Date(),
+            sender: 'USER'
+          }
+        ]
       };
 
-      vi.mocked(db.ticket.findUnique).mockResolvedValueOnce(currentTicket as any);
-      vi.mocked(db.ticket.findMany).mockResolvedValueOnce([]);
+      vi.mocked(db.ticket.findFirst).mockResolvedValueOnce(currentTicket as any);
+      vi.mocked(db.ticket.findMany).mockResolvedValueOnce([] as any);
 
-      const result = await adminTicketService.getTicketDetails('t-1');
-      
-      expect(result).not.toBeNull();
-      // Admin API must NOT censor originalText, because staff needs to see what was deleted
-      expect(result!.messages[0].originalText).toBe('Oops I said a bad word');
-      expect(result!.messages[0].isDeleted).toBe(true);
+      const res = await adminTicketService.getTicketDetails('ticket-audit');
+
+      expect(res).not.toBeNull();
+      expect(res!.messages[0].originalText).toBe('Настоящий текст до удаления');
+      expect(res!.messages[0].isDeleted).toBe(true);
     });
   });
 });

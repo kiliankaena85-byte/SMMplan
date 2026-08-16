@@ -151,7 +151,7 @@ class CryptoBotGateway extends BasePaymentGateway {
     const secrets = await SettingsManager.getPaymentSecrets();
     const cryptoToken = secrets.cryptoBotToken;
 
-    const isDummyKeys = !cryptoToken || cryptoToken === 'test_token' || cryptoToken === 'test_shop_id' || cryptoToken === 'test_login';
+    const isDummyKeys = params.isTestMode || !cryptoToken || cryptoToken === 'test_token' || cryptoToken === 'test_shop_id' || cryptoToken === 'test_login' || cryptoToken.startsWith('test_') || process.env.NODE_ENV === 'development';
 
     if (isDummyKeys) {
       return {

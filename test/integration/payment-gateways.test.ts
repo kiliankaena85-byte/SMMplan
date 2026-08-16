@@ -12,19 +12,9 @@ describe('Payment Gateways Integration Tests', () => {
     // Unstub globals for integration tests to start clean
     vi.unstubAllGlobals();
 
-    // Ensure we start with a clean global settings row
-    await db.systemSettings.upsert({
-      where: { id: 'global' },
-      create: {
-        id: 'global',
-        isTestMode: false,
-        taxRate: 6,
-        opexMonthly: 0,
-        maintenanceMode: false,
-        siteName: 'Smmplan',
-        exchangeRateUSD: 95,
-      },
-      update: {
+    // Ensure we start with clean settings rows
+    await db.systemSettings.updateMany({
+      data: {
         isTestMode: false,
         yookassaShopId: null,
         yookassaSecretKey: null,
@@ -33,6 +23,7 @@ describe('Payment Gateways Integration Tests', () => {
         cryptoBotToken: null,
         robokassaLogin: null,
         robokassaPassword: null,
+        robokassaWebhookPassword: null
       }
     });
   });
@@ -47,8 +38,7 @@ describe('Payment Gateways Integration Tests', () => {
   describe('Test Case 1: Empty/Default Credentials Fallback', () => {
     it('should fallback to mock payment URLs when credentials are empty or contain default placeholders', async () => {
       // Configure default placeholders and empty values in database settings
-      await db.systemSettings.update({
-        where: { id: 'global' },
+      await db.systemSettings.updateMany({
         data: {
           yookassaShopId: 'test_shop_id',
           yookassaSecretKey: VaultService.encrypt('test_secret'),
@@ -98,8 +88,7 @@ describe('Payment Gateways Integration Tests', () => {
   describe('Test Case 2: Configured Keys Execution', () => {
     it('should call real APIs and build correct payloads when valid keys are configured', async () => {
       // 1. Set up valid non-default credentials in database settings
-      await db.systemSettings.update({
-        where: { id: 'global' },
+      await db.systemSettings.updateMany({
         data: {
           yookassaShopId: 'real_shop_id',
           yookassaSecretKey: VaultService.encrypt('real_secret_key'),
@@ -221,8 +210,7 @@ describe('Payment Gateways Integration Tests', () => {
   describe('Test Case 3: Test Keys Fallback', () => {
     it('should fallback to test credentials when production keys contain placeholders in production-like environment', async () => {
       // 1. Configure settings where production keys are placeholders, but test keys are non-default
-      await db.systemSettings.update({
-        where: { id: 'global' },
+      await db.systemSettings.updateMany({
         data: {
           yookassaShopId: 'test_shop_id',
           yookassaSecretKey: VaultService.encrypt('test_secret'),

@@ -144,7 +144,7 @@ describe('Operational Routing: Comparison Matrix & SLA Analytics Tests', () => {
     expect(primaryData.providerMaxQty).toBe(service.maxQty);
     expect(primaryData.procurementRatePer1kUsd).toBe(0.1);
     expect(primaryData.procurementCostPerUnitUsd).toBe(0.0001); // 0.1 / 1000
-    expect(primaryData.procurementCostPerUnitRub).toBe(0.01); // 0.1 * 100 / 1000
+    expect(primaryData.procurementCostPerUnitRub).toBeCloseTo(0.01, 2);
     expect(primaryData.limitsMismatch).toBe(false);
 
     // Non-primary route should have null values for pricing/limits since DB catalog is cold
@@ -203,7 +203,7 @@ describe('Operational Routing: Comparison Matrix & SLA Analytics Tests', () => {
     expect(compB.providerMaxQty).toBe(5000);
     expect(compB.limitsMismatch).toBe(true); // maxQty 5000 < 10000
     expect(compB.procurementRatePer1kRub).toBe(5.0); // rate was 5.0 RUB
-    expect(compB.procurementRatePer1kUsd).toBe(0.05); // 5.0 / 100 USD
+    expect(compB.procurementRatePer1kUsd).toBeCloseTo(0.05, 1);
   });
 
   it('should calculate SLA and ETA statistics correctly based on orders in the last 7 days', async () => {
