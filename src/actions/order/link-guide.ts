@@ -3,7 +3,7 @@
 import { LinkGuideService, ServiceLinkGuidePayload } from '@/services/catalog/link-guide.service';
 
 /**
- * Server Action to get link guide for a specific service.
+ * @public Server Action to get link guide for a specific service.
  * Accessible to all tenants (smmplan, flux, satellites).
  */
 export async function getServiceLinkGuideAction(

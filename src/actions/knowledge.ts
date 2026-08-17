@@ -61,7 +61,7 @@ async function isAdmin() {
 }
 
 /**
- * PUBLIC: Fetch all published articles with optional category filtering and search.
+ * @public Fetch all published articles with optional category filtering and search.
  */
 export async function getArticles(categoryFilter?: string, searchQuery?: string) {
   try {
@@ -103,7 +103,7 @@ export async function getArticles(categoryFilter?: string, searchQuery?: string)
 }
 
 /**
- * PUBLIC: Fetch article details by slug and increment view count.
+ * @public Fetch article details by slug and increment view count.
  */
 export async function getArticleBySlug(slug: string) {
   try {
@@ -252,7 +252,7 @@ export async function getArticleBySlug(slug: string) {
 }
 
 /**
- * PUBLIC: Fetch 3 related articles from the same category, excluding the current one.
+ * @public Fetch 3 related articles from the same category, excluding the current one.
  */
 export async function getRelatedArticles(currentArticleId: string, category: string) {
   try {
@@ -275,7 +275,7 @@ export async function getRelatedArticles(currentArticleId: string, category: str
 }
 
 /**
- * PUBLIC: Fetch all published articles grouped by target tree categories.
+ * @public Fetch all published articles grouped by target tree categories.
  */
 export async function getGroupedArticlesForTree() {
   try {
@@ -310,7 +310,7 @@ export async function getGroupedArticlesForTree() {
 }
 
 /**
- * PUBLIC: Get up to 3 recommended active services matching the article's category.
+ * @public Get up to 3 recommended active services matching the article's category.
  * Calculates retail unit pricing strictly matching standard SMMplan markup guidelines:
  * pricePerUnitRub = applyBeautifulRounding(s.rate * s.markup * usdToRub) / 1000
  */

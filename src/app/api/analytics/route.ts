@@ -86,6 +86,7 @@ function sanitizeInput(value: unknown): unknown {
 }
 
 
+/** @public Client telemetry ingestion with CSRF protection and rate limiting */
 export async function POST(req: Request) {
   try {
     // CSRF Protection: Verify Origin matches Host header if present

@@ -118,6 +118,13 @@ export async function createStaffRoleAction(formData: FormData) {
 }
 
 // ── Toggle Granular Section Permissions ──
+const updatePermissionsSchema = z.object({
+  roleId: z.string().min(1, 'roleId обязателен'),
+  section: z.string().min(1, 'section обязателен'),
+  canView: z.boolean().default(false),
+  canEdit: z.boolean().default(false),
+});
+
 export async function updateStaffRolePermissionsAction(formData: FormData) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
     // SECURITY: Only OWNER can edit permissions
@@ -125,14 +132,18 @@ export async function updateStaffRolePermissionsAction(formData: FormData) {
       return { success: false as const, error: 'Только Владелец может изменять права ролей' };
     }
 
-    const roleId = formData.get('roleId') as string;
-    const section = formData.get('section') as string;
-    const canViewVal = formData.get('canView') === 'true' || formData.get('canView') === 'on';
-    const canEditVal = formData.get('canEdit') === 'true' || formData.get('canEdit') === 'on';
-
-    if (!roleId || !section) {
-      return { success: false as const, error: 'Некорректные параметры' };
+    const rawPayload = {
+      roleId: formData.get('roleId'),
+      section: formData.get('section'),
+      canView: formData.get('canView') === 'true' || formData.get('canView') === 'on',
+      canEdit: formData.get('canEdit') === 'true' || formData.get('canEdit') === 'on',
+    };
+    const parsed = updatePermissionsSchema.safeParse(rawPayload);
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.errors[0]?.message || 'Некорректные параметры' };
     }
+
+    const { roleId, section, canView: canViewVal, canEdit: canEditVal } = parsed.data;
 
     const role = await db.staffRole.findUnique({ where: { id: roleId } });
     if (!role) {
@@ -176,6 +187,10 @@ export async function updateStaffRolePermissionsAction(formData: FormData) {
 }
 
 // ── Delete Custom Staff Role ──
+const deleteRoleSchema = z.object({
+  roleId: z.string().min(1, 'roleId обязателен'),
+});
+
 export async function deleteStaffRoleAction(formData: FormData) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
     // SECURITY: Only OWNER can delete roles
@@ -183,8 +198,9 @@ export async function deleteStaffRoleAction(formData: FormData) {
       return { success: false as const, error: 'Только Владелец может удалять роли' };
     }
 
-    const roleId = formData.get('roleId') as string;
-    if (!roleId) return { success: false as const, error: 'Некорректные параметры' };
+    const parsed = deleteRoleSchema.safeParse({ roleId: formData.get('roleId') });
+    if (!parsed.success) return { success: false as const, error: parsed.error.errors[0]?.message || 'Некорректные параметры' };
+    const { roleId } = parsed.data;
 
     const role = await db.staffRole.findUnique({ where: { id: roleId } });
     if (!role) return { success: false as const, error: 'Роль не найдена' };

@@ -16,6 +16,7 @@ const schema = z.object({
   password: z.string().min(1, "Введите пароль"),
 });
 
+/** @public Public user login action */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loginWithPasswordAction(prevState: any, formData: FormData) {
   if (!formData || typeof formData.entries !== 'function') {

@@ -50,7 +50,7 @@ export class EscrowService {
       if (amountCents > ANOMALOUS_LIMIT_CENTS) {
         await db.$transaction(async (tx) => {
           await this.executeQuarantineAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
-        });
+        }, { isolationLevel: 'Serializable', timeout: 15000 });
 
         // Trigger critical alert for Owner/Admin anomalous action
         try {

@@ -26,7 +26,7 @@ const offlineTicketSchema = z.object({
 export type OfflineTicketInput = z.infer<typeof offlineTicketSchema>;
 
 /**
- * Server Action: Submit offline support ticket directly from payment error screen
+ * @public Server Action: Submit offline support ticket directly from payment error screen
  */
 export async function createOfflineTicketAction(input: OfflineTicketInput) {
   try {

@@ -6,6 +6,7 @@ import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
 import { revalidatePath } from 'next/cache';
 import { createSecurityEvent } from '@/lib/security-events';
+import { z } from 'zod';
 
 export async function getSupportActionsReviewListAction(options?: {
   page?: number;
@@ -62,15 +63,26 @@ export async function getSupportActionsReviewListAction(options?: {
   });
 }
 
+const reviewSupportActionSchema = z.object({
+  actionId: z.string().min(1, 'ID операции обязателен'),
+  reviewStatus: z.enum(['REVIEWED', 'FLAGGED', 'VIOLATION', 'APPROVED'], {
+    errorMap: () => ({ message: 'Неверный статус проверки' })
+  }),
+  reviewNote: z.string().default(''),
+});
+
 export async function reviewSupportFinancialAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
-    const actionId = formData.get('actionId') as string;
-    const reviewStatus = formData.get('reviewStatus') as string; // REVIEWED | FLAGGED | VIOLATION | APPROVED
-    const reviewNote = (formData.get('reviewNote') as string) || '';
-
-    if (!actionId || !['REVIEWED', 'FLAGGED', 'VIOLATION', 'APPROVED'].includes(reviewStatus)) {
-      return { success: false as const, error: 'Неверные параметры проверки' };
+    const rawPayload = {
+      actionId: formData.get('actionId'),
+      reviewStatus: formData.get('reviewStatus'),
+      reviewNote: formData.get('reviewNote') || '',
+    };
+    const parsed = reviewSupportActionSchema.safeParse(rawPayload);
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.errors[0]?.message || 'Неверные параметры проверки' };
     }
+    const { actionId, reviewStatus, reviewNote } = parsed.data;
 
     const action = await db.supportFinancialAction.findUnique({
       where: { id: actionId },

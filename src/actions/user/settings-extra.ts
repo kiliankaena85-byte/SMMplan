@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { getClientIp } from '@/utils/ip';
 import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import type {
   CompanyRequisitesInput,
   UpdateCompanyRequisitesResult,
@@ -13,6 +14,30 @@ import type {
   Confirm152FzConsentResult,
   ApiKeyActionResult,
 } from './settings-extra.types';
+
+const taxRequisitesSchema = z.object({
+  companyName: z.string().max(255, 'Название компании не должно превышать 255 символов').nullable().optional(),
+  inn: z.string().refine(val => !val || /^\d{10}$|^\d{12}$/.test(val.trim()), {
+    message: 'ИНН должен содержать ровно 10 цифр (для организаций) или 12 цифр (для ИП)'
+  }).nullable().optional(),
+  kpp: z.string().refine(val => !val || /^\d{9}$/.test(val.trim()), {
+    message: 'КПП должен содержать ровно 9 цифр'
+  }).nullable().optional(),
+  legalAddress: z.string().max(500, 'Юридический адрес не должен превышать 500 символов').nullable().optional(),
+});
+
+const b2bWebhookSchema = z.object({
+  webhookUrl: z.string().refine(val => {
+    if (!val || val.trim() === '') return true;
+    try {
+      const u = new URL(val.trim());
+      return u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, { message: 'URL вебхука должен быть валидным и начинаться с https://' }).nullable().optional(),
+  isWebhookActive: z.boolean().optional(),
+});
 
 /**
  * Updates tax/company B2B requisites (companyName, inn, kpp, legalAddress).
@@ -25,38 +50,18 @@ export async function updateTaxRequisitesAction(
     return { success: false, error: 'Авторизуйтесь для выполнения этого действия' };
   }
 
-  const companyName = data.companyName?.trim() || null;
-  const inn = data.inn?.trim() || null;
-  const kpp = data.kpp?.trim() || null;
-  const legalAddress = data.legalAddress?.trim() || null;
-
-  // Validate ИНН if provided: 10 digits for orgs, 12 digits for IP / sole traders
-  if (inn) {
-    if (!/^\d{10}$|^\d{12}$/.test(inn)) {
-      return {
-        success: false,
-        error: 'ИНН должен содержать ровно 10 цифр (для организаций) или 12 цифр (для ИП)',
-      };
-    }
+  const parsed = taxRequisitesSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.errors[0]?.message || 'Некорректные реквизиты',
+    };
   }
 
-  // Validate КПП if provided: 9 digits (optional)
-  if (kpp) {
-    if (!/^\d{9}$/.test(kpp)) {
-      return {
-        success: false,
-        error: 'КПП должен содержать ровно 9 цифр',
-      };
-    }
-  }
-
-  if (companyName && companyName.length > 255) {
-    return { success: false, error: 'Название компании не должно превышать 255 символов' };
-  }
-
-  if (legalAddress && legalAddress.length > 500) {
-    return { success: false, error: 'Юридический адрес не должен превышать 500 символов' };
-  }
+  const companyName = parsed.data.companyName?.trim() || null;
+  const inn = parsed.data.inn?.trim() || null;
+  const kpp = parsed.data.kpp?.trim() || null;
+  const legalAddress = parsed.data.legalAddress?.trim() || null;
 
   try {
     await db.user.update({
@@ -83,7 +88,15 @@ export async function updateTaxRequisitesAction(
 export async function updateCompanyRequisitesAction(
   data: CompanyRequisitesInput
 ): Promise<UpdateCompanyRequisitesResult> {
-  return updateTaxRequisitesAction(data);
+  const session = await verifySession();
+  if (!session?.userId) {
+    return { success: false, error: 'Авторизуйтесь для выполнения этого действия' };
+  }
+  const parsed = taxRequisitesSchema.safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0]?.message || 'Некорректные реквизиты' };
+  }
+  return updateTaxRequisitesAction(parsed.data);
 }
 
 /**
@@ -97,24 +110,15 @@ export async function updateB2bWebhookAction(
     return { success: false, error: 'Авторизуйтесь для выполнения этого действия' };
   }
 
-  const rawUrl = data.webhookUrl?.trim() || null;
-
-  if (rawUrl) {
-    try {
-      const parsedUrl = new URL(rawUrl);
-      if (parsedUrl.protocol !== 'https:') {
-        return {
-          success: false,
-          error: 'URL вебхука должен начинаться с https://',
-        };
-      }
-    } catch {
-      return {
-        success: false,
-        error: 'Некорректный формат URL вебхука. URL должен начинаться с https://',
-      };
-    }
+  const parsed = b2bWebhookSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.errors[0]?.message || 'Некорректный формат URL вебхука',
+    };
   }
+
+  const rawUrl = parsed.data.webhookUrl?.trim() || null;
 
   try {
     const existingConfig = await db.b2bConfig.findUnique({
@@ -228,6 +232,10 @@ export async function generateApiKeyAction(): Promise<ApiKeyActionResult> {
  * Resets existing API Key with a newly generated one, updating User.apiKeyHash with SHA-256 hash.
  */
 export async function resetApiKeyAction(): Promise<ApiKeyActionResult> {
+  const session = await verifySession();
+  if (!session?.userId) {
+    return { success: false, error: 'Авторизуйтесь для выполнения этого действия' };
+  }
   return generateApiKeyAction();
 }
 

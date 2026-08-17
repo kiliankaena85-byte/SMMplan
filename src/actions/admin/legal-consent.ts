@@ -7,6 +7,7 @@ import { getClientIp } from '@/utils/ip';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import crypto from 'crypto';
+import { z } from 'zod';
 
 const LEGAL_DOCUMENT_VERSION = '2026.1-RU';
 const LEGAL_DOCUMENT_TEXT = `Регламент финансовой ответственности сотрудников службы поддержки SMM-панели (Версия ${LEGAL_DOCUMENT_VERSION}):
@@ -78,12 +79,17 @@ export async function acceptEmployeeResponsibilityConsentAction() {
   });
 }
 
+const revokeConsentSchema = z.object({
+  userId: z.string().min(1, 'Пользователь не указан')
+});
+
 export async function revokeEmployeeConsentAction(formData: FormData) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
-    const targetUserId = formData.get('userId') as string;
-    if (!targetUserId) {
-      return { success: false as const, error: 'Пользователь не указан' };
+    const parsed = revokeConsentSchema.safeParse({ userId: formData.get('userId') });
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.errors[0]?.message || 'Пользователь не указан' };
     }
+    const targetUserId = parsed.data.userId;
 
     await db.employeeResponsibilityConsent.updateMany({
       where: { userId: targetUserId, status: 'ACTIVE' },

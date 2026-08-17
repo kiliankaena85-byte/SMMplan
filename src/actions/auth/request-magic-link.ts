@@ -16,6 +16,7 @@ const schema = z.object({
   email: z.string().email("Введите корректный email"),
 });
 
+/** @public Public magic link request action */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function requestMagicLink(prevState: any, formData: FormData) {
   if (!formData || typeof formData.entries !== 'function') {

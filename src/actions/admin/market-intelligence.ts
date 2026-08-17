@@ -8,6 +8,7 @@ import {
   CompetitorProfile,
 } from '@/services/admin/market-intelligence.service';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 
 /**
  * Получает сравнение конкретной услуги с конкурентами (PrimeLike, DoctorSMM и др.)
@@ -77,6 +78,12 @@ export async function getFullMarketOverview(): Promise<{
   };
 }
 
+const competitorInputSchema = z.object({
+  name: z.string().min(1, 'Название конкурента обязательно'),
+  url: z.string().min(1, 'URL обязателен'),
+  pricingMatrix: z.record(z.string(), z.number()).default({}),
+});
+
 /**
  * Добавляет нового кастомного конкурента.
  */
@@ -86,13 +93,18 @@ export async function addCustomCompetitorAction(data: {
   pricingMatrix: Record<string, number>;
 }): Promise<{ success: boolean; competitor?: CompetitorProfile; error?: string }> {
   return requireStaffPermission('analytics', 'edit', async () => {
-    const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const parsed = competitorInputSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.errors[0]?.message || 'Некорректные данные конкурента' };
+    }
+    const { name, url, pricingMatrix } = parsed.data;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     const created = MarketIntelligenceService.addCustomCompetitor({
-      name: data.name,
+      name,
       slug,
-      url: data.url,
+      url,
       isActive: true,
-      pricingMatrix: data.pricingMatrix,
+      pricingMatrix,
     });
 
     revalidatePath('/admin/intel');

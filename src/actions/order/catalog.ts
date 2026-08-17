@@ -114,6 +114,7 @@ export type PublicNetwork = {
   categories: PublicCategory[];
 };
 
+/** @public Public catalog fetching action for storefront */
 export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
   try {
 

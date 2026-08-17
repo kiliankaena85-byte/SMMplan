@@ -12,6 +12,7 @@ const guestTicketSchema = z.object({
   message: z.string().min(10, "Вопрос должен быть не короче 10 символов").max(2000, "Вопрос слишком длинный")
 });
 
+/** @public Public guest ticket creation */
 export async function createGuestTicketAction(formData: FormData) {
   if (!formData || typeof formData.entries !== 'function') {
     return { success: false, error: "Некорректные данные формы" };

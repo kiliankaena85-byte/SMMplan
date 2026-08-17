@@ -383,7 +383,7 @@ export class PaymentService {
             { idempotencyKey: `deposit-${paymentId}` }
           );
         }
-      });
+      }, { isolationLevel: 'Serializable', timeout: 15000 });
 
       safeRevalidatePath('/dashboard', 'layout');
 

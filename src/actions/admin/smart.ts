@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { auditAdmin } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
 import { redis } from '@/lib/redis';
+import { z } from 'zod';
 
 export async function getSmartCampaigns(page: number = 1, limit: number = 20) {
   return requireStaffPermission('orders', 'view', async () => {
@@ -100,6 +101,17 @@ export async function getServiceConfigs() {
   });
 }
 
+const serviceConfigSchema = z.object({
+  isEnabled: z.boolean(),
+  isTestMode: z.boolean(),
+  minChunk: z.number().int().min(1),
+  maxChunk: z.number().int().min(1),
+  markup: z.number().min(1.0),
+  useInviteBuffer: z.boolean().optional(),
+  autoCompensate: z.boolean().optional(),
+  checkIntervalMins: z.number().int().min(1).optional(),
+});
+
 export async function updateServiceConfig(
   serviceId: string,
   data: {
@@ -114,6 +126,12 @@ export async function updateServiceConfig(
   }
 ) {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
+    const parsed = serviceConfigSchema.safeParse(data);
+    if (!parsed.success) {
+      throw new Error(parsed.error.errors[0]?.message || 'Некорректная конфигурация услуги');
+    }
+    const validatedData = parsed.data;
+
     const service = await db.service.findUnique({
       where: { id: serviceId },
     });
@@ -196,6 +214,14 @@ export async function toggleSmartGlobalStatus(disabled: boolean) {
   });
 }
 
+const bulkServiceConfigSchema = z.object({
+  isEnabled: z.boolean(),
+  isTestMode: z.boolean().optional(),
+  minChunk: z.number().int().min(1).optional(),
+  maxChunk: z.number().int().min(1).optional(),
+  markup: z.number().min(1.0).optional(),
+});
+
 export async function bulkUpdateServiceConfigs(
   serviceIds: string[],
   data: {
@@ -207,32 +233,34 @@ export async function bulkUpdateServiceConfigs(
   }
 ) {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
+    const parsed = bulkServiceConfigSchema.safeParse(data);
+    if (!parsed.success) {
+      throw new Error(parsed.error.errors[0]?.message || 'Некорректная конфигурация услуг');
+    }
+    const validatedData = parsed.data;
+
     if (!serviceIds || serviceIds.length === 0) {
       throw new Error('Не переданы ID услуг');
     }
 
     const results = [];
     for (const serviceId of serviceIds) {
-      const oldConfig = await db.serviceSmartConfig.findUnique({
-        where: { serviceId },
-      });
-
       const updatedConfig = await db.serviceSmartConfig.upsert({
         where: { serviceId },
-        update: {
-          isEnabled: data.isEnabled,
-          isTestMode: data.isTestMode !== undefined ? data.isTestMode : (oldConfig?.isTestMode ?? false),
-          minChunk: data.minChunk !== undefined ? data.minChunk : (oldConfig?.minChunk ?? 50),
-          maxChunk: data.maxChunk !== undefined ? data.maxChunk : (oldConfig?.maxChunk ?? 200),
-          markup: data.markup !== undefined ? data.markup : (oldConfig?.markup ?? 0.15),
-        },
         create: {
           serviceId,
-          isEnabled: data.isEnabled,
-          isTestMode: data.isTestMode !== undefined ? data.isTestMode : false,
-          minChunk: data.minChunk !== undefined ? data.minChunk : 50,
-          maxChunk: data.maxChunk !== undefined ? data.maxChunk : 200,
-          markup: data.markup !== undefined ? data.markup : 0.15,
+          isEnabled: validatedData.isEnabled,
+          isTestMode: validatedData.isTestMode ?? false,
+          minChunk: validatedData.minChunk ?? 10,
+          maxChunk: validatedData.maxChunk ?? 500,
+          markup: validatedData.markup ?? 1.5,
+        },
+        update: {
+          isEnabled: validatedData.isEnabled,
+          ...(validatedData.isTestMode !== undefined ? { isTestMode: validatedData.isTestMode } : {}),
+          ...(validatedData.minChunk !== undefined ? { minChunk: validatedData.minChunk } : {}),
+          ...(validatedData.maxChunk !== undefined ? { maxChunk: validatedData.maxChunk } : {}),
+          ...(validatedData.markup !== undefined ? { markup: validatedData.markup } : {}),
         },
       });
       results.push(updatedConfig);

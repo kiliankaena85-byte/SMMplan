@@ -11,22 +11,24 @@ import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { inferTargetTypeFromCategory } from "@/utils/target-type";
 
 export async function ensureTaxonomyTenantAccess(categoryId: string) {
-  const category = await db.category.findUnique({
-    where: { id: categoryId },
-    select: { id: true, tenantId: true, networkId: true }
-  });
-  if (category && category.tenantId !== 'all') {
-    await db.category.update({
+  return requireStaffPermission('CATALOG', 'edit', async () => {
+    const category = await db.category.findUnique({
       where: { id: categoryId },
-      data: { tenantId: 'all' }
+      select: { id: true, tenantId: true, networkId: true }
     });
-    if (category.networkId) {
-      await db.network.update({
-        where: { id: category.networkId },
+    if (category && category.tenantId !== 'all') {
+      await db.category.update({
+        where: { id: categoryId },
         data: { tenantId: 'all' }
       });
+      if (category.networkId) {
+        await db.network.update({
+          where: { id: category.networkId },
+          data: { tenantId: 'all' }
+        });
+      }
     }
-  }
+  });
 }
 
 // Validation schema for manual Service CRUD operations

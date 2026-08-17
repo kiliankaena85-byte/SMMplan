@@ -119,15 +119,23 @@ export async function upsertTemplate(formData: FormData) {
   });
 }
 
+const deleteTemplateSchema = z.object({
+  id: z.string().min(1, 'ID шаблона обязателен'),
+});
+
 export async function deleteTemplate(formData: FormData) {
   return requireStaffPermission('tickets', 'edit', async (admin) => {
+    const rawId = formData.get('id');
+    const parsed = deleteTemplateSchema.safeParse({ id: rawId });
+    if (!parsed.success) {
+      throw new Error(parsed.error.errors[0]?.message || 'No id provided');
+    }
 
-  const id = formData.get('id') as string;
-  if (!id) throw new Error('No id provided');
+    const { id } = parsed.data;
 
-  const oldTemplate = await db.supportTemplate.findUnique({
-    where: { id }
-  });
+    const oldTemplate = await db.supportTemplate.findUnique({
+      where: { id }
+    });
 
     await db.supportTemplate.delete({
       where: { id }

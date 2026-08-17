@@ -3,6 +3,7 @@
 import { db as prisma } from "@/lib/db";
 import { SettingsProvider } from "@/lib/settings";
 
+/** @public Public legal document reader */
 export async function getLegalDocumentAction(slug: string) {
   try {
     const post = await prisma.contentItem.findUnique({

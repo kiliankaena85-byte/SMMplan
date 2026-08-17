@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   }
 }
 
-// Support GET for simple health checks or ping tests
+/** @public Support GET for simple health checks or ping tests */
 export async function GET() {
   return NextResponse.json({ status: 'active', provider: 'VexBoost' });
 }

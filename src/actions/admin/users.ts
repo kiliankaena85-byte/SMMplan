@@ -11,6 +11,7 @@ import { SignJWT } from 'jose';
 import { updateBalanceSchema, userIdSchema } from '@/validators/admin.validators';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { getClientIp } from '@/utils/ip';
+import { z } from 'zod';
 
 import { getEncodedKey } from '@/lib/session';
 import { SupportBalancePolicyService } from '@/services/financial/support-balance-policy.service';
@@ -256,10 +257,15 @@ export async function loginAsAction(formData: FormData) {
   });
 }
 
+const quarantineActionSchema = z.object({
+  entryId: z.string().min(1, 'Missing entryId')
+});
+
 export async function approveQuarantineAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
-    const entryId = formData.get('entryId') as string;
-    if (!entryId) return { success: false as const, error: 'Missing entryId' };
+    const parsed = quarantineActionSchema.safeParse({ entryId: formData.get('entryId') });
+    if (!parsed.success) return { success: false as const, error: parsed.error.errors[0]?.message || 'Missing entryId' };
+    const { entryId } = parsed.data;
 
     if (!['OWNER', 'ADMIN'].includes(admin.role)) {
       return { success: false as const, error: 'Только Владелец и Админ могут одобрять карантин' };
@@ -279,8 +285,9 @@ export async function approveQuarantineAction(formData: FormData) {
 
 export async function rejectQuarantineAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
-    const entryId = formData.get('entryId') as string;
-    if (!entryId) return { success: false as const, error: 'Missing entryId' };
+    const parsed = quarantineActionSchema.safeParse({ entryId: formData.get('entryId') });
+    if (!parsed.success) return { success: false as const, error: parsed.error.errors[0]?.message || 'Missing entryId' };
+    const { entryId } = parsed.data;
 
     if (!['OWNER', 'ADMIN'].includes(admin.role)) {
       return { success: false as const, error: 'Только Владелец и Админ могут отклонять карантин' };
@@ -334,10 +341,15 @@ export async function adminChangeUserPasswordAction(userId: string, newPass: str
   });
 }
 
+const deleteUserSchema = z.object({
+  userId: z.string().min(1, 'Missing userId')
+});
+
 export async function adminDeleteUserAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
-    const userId = formData.get('userId') as string;
-    if (!userId) return { success: false as const, error: 'Missing userId' };
+    const parsed = deleteUserSchema.safeParse({ userId: formData.get('userId') });
+    if (!parsed.success) return { success: false as const, error: parsed.error.errors[0]?.message || 'Missing userId' };
+    const { userId } = parsed.data;
 
     if (!['OWNER', 'ADMIN'].includes(admin.role)) {
       return { success: false as const, error: 'Только Владелец и Админ могут удалять профили' };

@@ -32,7 +32,7 @@ class IdempotencyConflictError extends Error {
 
 
 /**
- * Calculates price for display on the order form (no auth required).
+ * @public Calculates price for display on the order form (no auth required).
  */
 export async function calculatePriceAction(
   serviceId: string,
@@ -1078,6 +1078,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
   });
 };
 
+/** @public Public gateway configuration for checkout */
 export async function getAvailableGatewaysAction() {
   try {
     const { SettingsProvider } = await import('@/lib/settings');

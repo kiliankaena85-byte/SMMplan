@@ -235,10 +235,19 @@ export async function createBalanceAdjustmentRequestAction(formData: FormData) {
   });
 }
 
+const cancelAdjustmentSchema = z.object({
+  id: z.string().min(1, "ID не указан")
+});
+
+const approveAdjustmentSchema = z.object({
+  id: z.string().min(1, "ID не указан")
+});
+
 export async function cancelBalanceAdjustmentRequestAction(formData: FormData) {
   return requireStaffPermission('balance_requests', 'edit', async (staffUser) => {
-    const id = formData.get("id") as string;
-    if (!id) return { success: false, error: "ID не указан" };
+    const parsed = cancelAdjustmentSchema.safeParse({ id: formData.get("id") });
+    if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message || "ID не указан" };
+    const { id } = parsed.data;
 
     const adjustment = await db.manualBalanceAdjustment.findUnique({ where: { id } });
     if (!adjustment) return { success: false, error: "Заявка не найдена" };
@@ -272,8 +281,9 @@ export async function cancelBalanceAdjustmentRequestAction(formData: FormData) {
 
 export async function approveBalanceAdjustmentAction(formData: FormData) {
   return requireStaffPermission('balance_approvals', 'edit', async (approver) => {
-    const id = formData.get("id") as string;
-    if (!id) return { success: false, error: "ID не указан" };
+    const parsed = approveAdjustmentSchema.safeParse({ id: formData.get("id") });
+    if (!parsed.success) return { success: false, error: parsed.error.errors[0]?.message || "ID не указан" };
+    const { id } = parsed.data;
 
     const adjustment = await db.manualBalanceAdjustment.findUnique({
       where: { id },
@@ -410,15 +420,40 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
   });
 }
 
+const rejectAdjustmentSchema = z.object({
+  id: z.string().min(1, "ID не указан"),
+  rejectionReason: z.string().min(5, "Причина отклонения должна содержать минимум 5 символов")
+});
+
+const getAdjustmentsSchema = z.object({
+  status: z.string().optional(),
+  direction: z.string().optional(),
+  userId: z.string().optional(),
+  requestedBy: z.string().optional(),
+  reasonCode: z.string().optional(),
+  ticketId: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20)
+});
+
+const getAdjustmentStatsSchema = z.object({
+  requestedBy: z.string().optional(),
+  direction: z.string().optional(),
+  reasonCode: z.string().optional(),
+  status: z.string().optional()
+});
+
 export async function rejectBalanceAdjustmentAction(formData: FormData) {
   return requireStaffPermission('balance_approvals', 'edit', async (rejecter) => {
-    const id = formData.get("id") as string;
-    const rejectionReason = formData.get("rejectionReason") as string;
-
-    if (!id) return { success: false, error: "ID не указан" };
-    if (!rejectionReason || rejectionReason.trim().length < 5) {
-      return { success: false, error: "Причина отклонения должна содержать минимум 5 символов" };
+    const rawPayload = {
+      id: formData.get("id"),
+      rejectionReason: formData.get("rejectionReason")
+    };
+    const parsed = rejectAdjustmentSchema.safeParse(rawPayload);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.errors[0]?.message || "Некорректные параметры отклонения" };
     }
+    const { id, rejectionReason } = parsed.data;
 
     const adjustment = await db.manualBalanceAdjustment.findUnique({ where: { id } });
     if (!adjustment) return { success: false, error: "Заявка не найдена" };
@@ -462,14 +497,13 @@ export async function getBalanceAdjustmentsAction(formData: FormData) {
     const policy = await getEffectiveBalancePolicy(staffUser.id);
     const canViewAll = staffUser.role === 'OWNER' || staffUser.role === 'ADMIN' || (policy?.canViewAll ?? false);
 
-    const status = (formData.get("status") as string) || undefined;
-    const direction = (formData.get("direction") as string) || undefined;
-    const userId = (formData.get("userId") as string) || undefined;
-    const requestedBy = (formData.get("requestedBy") as string) || undefined;
-    const reasonCode = (formData.get("reasonCode") as string) || undefined;
-    const ticketId = (formData.get("ticketId") as string) || undefined;
-    const page = parseInt((formData.get("page") as string) || "1", 10);
-    const pageSize = parseInt((formData.get("pageSize") as string) || "20", 10);
+    const rawPayload = Object.fromEntries(formData.entries());
+    const parsed = getAdjustmentsSchema.safeParse(rawPayload);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.errors[0]?.message || "Некорректные параметры фильтра" };
+    }
+
+    const { status, direction, userId, requestedBy, reasonCode, ticketId, page, pageSize } = parsed.data;
 
     // Filter construction
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -526,10 +560,13 @@ export async function getBalanceAdjustmentStatsAction(formData: FormData) {
     const policy = await getEffectiveBalancePolicy(staffUser.id);
     const canViewAll = staffUser.role === 'OWNER' || staffUser.role === 'ADMIN' || (policy?.canViewStats ?? false);
 
-    const requestedBy = (formData.get("requestedBy") as string) || undefined;
-    const direction = (formData.get("direction") as string) || undefined;
-    const reasonCode = (formData.get("reasonCode") as string) || undefined;
-    const status = (formData.get("status") as string) || undefined;
+    const rawPayload = Object.fromEntries(formData.entries());
+    const parsed = getAdjustmentStatsSchema.safeParse(rawPayload);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.errors[0]?.message || "Некорректные параметры статистики" };
+    }
+
+    const { requestedBy, direction, reasonCode, status } = parsed.data;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};

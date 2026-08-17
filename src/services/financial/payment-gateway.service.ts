@@ -322,7 +322,7 @@ class BalanceGateway extends BasePaymentGateway {
         }
         
         return ids;
-    });
+    }, { isolationLevel: 'Serializable', timeout: 15000 });
 
     for (const id of updatedOrderIds) {
       await ordersQueue.add('order-dispatch', { orderId: id }, { jobId: `dispatch-${id}`, delay: 3 * 60 * 1000 });

@@ -20,6 +20,7 @@ const schema = z.object({
   password: passwordPolicySchema,
 });
 
+/** @public Public user registration action */
 export async function registerWithPasswordAction(prevState: unknown, formData: FormData) {
   if (!formData || typeof formData.entries !== 'function') {
     return { error: "Некорректные данные формы", success: false };
