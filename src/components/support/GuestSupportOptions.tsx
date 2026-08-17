@@ -110,20 +110,20 @@ export function GuestSupportOptions({
           asChild
           intent="primary"
           size="lg"
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 rounded-full h-16 text-lg"
+          className="w-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_25px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 rounded-full h-14 text-base transition-all cursor-pointer"
         >
-          <a href={`https://t.me/${telegramBotUsername}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
-            <Send size={24} />
+          <a href={`https://t.me/${telegramBotUsername}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2.5">
+            <Send className="w-5 h-5" />
             <span>Написать в Telegram</span>
           </a>
         </Button>
       </Card>
 
       {/* Email Form Option */}
-      <Card className="p-8 bg-card border-border flex flex-col gap-8 rounded-[2.5rem] h-full">
+      <Card className="p-8 bg-card/90 backdrop-blur-2xl border-border/80 flex flex-col gap-8 rounded-[2.5rem] h-full shadow-[0_15px_40px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center shrink-0">
-            <Mail size={32} className="text-muted-foreground" />
+          <div className="w-14 h-14 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0 border border-purple-500/20">
+            <Mail className="w-6 h-6" />
           </div>
           <div>
             <h3 className="text-xl font-black text-foreground">Email Запрос</h3>
@@ -140,7 +140,7 @@ export function GuestSupportOptions({
               placeholder="Иван Иванов"
               required
               defaultValue={defaultName}
-              className="h-14 rounded-2xl bg-muted/50 border-border focus:bg-card transition-all"
+              className="h-12 rounded-2xl bg-muted/40 border-border/80 focus:bg-card transition-all"
             />
           </div>
           <div className="space-y-2">
@@ -152,7 +152,7 @@ export function GuestSupportOptions({
               placeholder="example@mail.com"
               required
               defaultValue={defaultEmail}
-              className="h-14 rounded-2xl bg-muted/50 border-border focus:bg-card transition-all"
+              className="h-12 rounded-2xl bg-muted/40 border-border/80 focus:bg-card transition-all"
             />
           </div>
           <div className="space-y-2">
@@ -163,7 +163,7 @@ export function GuestSupportOptions({
               placeholder="Опишите вашу проблему максимально подробно..."
               required
               defaultValue={defaultMessage}
-              className="min-h-[160px] rounded-2xl bg-muted/50 border-border focus:bg-card transition-all p-4"
+              className="min-h-[140px] rounded-2xl bg-muted/40 border-border/80 focus:bg-card transition-all p-4"
             />
           </div>
 
@@ -178,7 +178,7 @@ export function GuestSupportOptions({
             intent="primary"
             size="lg"
             disabled={isPending}
-            className="w-full h-16 rounded-full text-lg shadow-xl"
+            className="w-full h-14 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_25px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 rounded-full text-base transition-all cursor-pointer"
           >
             {isPending ? 'Отправка...' : 'Отправить сообщение'}
           </Button>

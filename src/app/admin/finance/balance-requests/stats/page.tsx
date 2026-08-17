@@ -20,6 +20,8 @@ interface StatsData {
   byDay: { day: string; count: number; creditSum: string; debitSum: string }[];
 }
 
+import { AdminBreadcrumbs } from "@/components/admin/AdminBreadcrumbs";
+
 export default function BalanceAdjustmentStatsPage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +58,13 @@ export default function BalanceAdjustmentStatsPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <AdminBreadcrumbs
+        items={[
+          { label: 'Финансы', href: '/admin/finance' },
+          { label: 'Заявки баланса', href: '/admin/finance/balance-requests' },
+          { label: 'Статистика заявок' },
+        ]}
+      />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Статистика и отчёты по заявкам</h1>

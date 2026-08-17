@@ -119,11 +119,11 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       {/* High Contrast Tabs control */}
-      <div className="flex p-1 bg-muted border border-border rounded-2xl">
+      <div className="flex p-1 bg-muted/60 border border-border/80 rounded-full">
         <button
           type="button"
           onClick={() => setActiveTab('password')}
-          className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-xl transition-all duration-200 ${
+          className={`flex-1 py-2 px-2 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${
             activeTab === 'password'
               ? 'bg-card text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground font-semibold'
@@ -134,7 +134,7 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setActiveTab('magic')}
-          className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-xl transition-all duration-200 ${
+          className={`flex-1 py-2 px-2 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${
             activeTab === 'magic'
               ? 'bg-card text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground font-semibold'
@@ -145,7 +145,7 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setActiveTab('register')}
-          className={`flex-1 py-2.5 px-2 text-xs font-bold rounded-xl transition-all duration-200 ${
+          className={`flex-1 py-2 px-2 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${
             activeTab === 'register'
               ? 'bg-card text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground font-semibold'
@@ -159,11 +159,11 @@ export function LoginForm() {
       {activeTab === 'password' && (
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="login-email" className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+            <label htmlFor="login-email" className="block text-xs font-black uppercase tracking-wider text-muted-foreground">
               Email адрес
             </label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
                 id="login-email"
                 type="email"
@@ -179,12 +179,12 @@ export function LoginForm() {
 
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <label htmlFor="login-password" className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+              <label htmlFor="login-password" className="block text-xs font-black uppercase tracking-wider text-muted-foreground">
                 Пароль
               </label>
             </div>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
                 id="login-password"
                 type={showPassword ? 'text' : 'password'}
@@ -198,7 +198,7 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={toggleShowPassword}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -209,7 +209,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={isPending || !email || !password}
-            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-2xl text-sm font-black bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 transition-all duration-200 shadow-sm cursor-pointer active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-full text-sm font-black bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]"
           >
             {isPending ? (
               <>
@@ -224,13 +224,13 @@ export function LoginForm() {
             )}
           </button>
 
-          <p className="text-center text-[11px] font-medium text-foreground/70 leading-relaxed px-2 mt-3">
+          <p className="text-center text-[11px] font-medium text-muted-foreground leading-relaxed px-2 mt-3">
             Нажимая кнопку, вы соглашаетесь с{' '}
-            <Link href="/legal/terms" className="underline font-bold text-foreground hover:text-primary transition-colors">
+            <Link href="/legal/terms" className="underline font-bold text-foreground hover:text-purple-600 transition-colors">
               Условиями сервиса
             </Link>{' '}
             и{' '}
-            <Link href="/legal/privacy" className="underline font-bold text-foreground hover:text-primary transition-colors">
+            <Link href="/legal/privacy" className="underline font-bold text-foreground hover:text-purple-600 transition-colors">
               Политикой конфиденциальности
             </Link>
           </p>
@@ -241,7 +241,7 @@ export function LoginForm() {
       {activeTab === 'magic' && (
         <form action={magicFormAction} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="login-email-magic" className="block text-sm font-medium text-foreground">
+            <label htmlFor="login-email-magic" className="block text-xs font-black uppercase tracking-wider text-muted-foreground">
               Email адрес
             </label>
             <div className="relative">
@@ -271,7 +271,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={magicPending}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all duration-200 shadow-sm cursor-pointer font-bold"
+            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-full text-sm font-black bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]"
           >
             {magicPending ? (
               <>
@@ -288,11 +288,11 @@ export function LoginForm() {
 
           <p className="text-center text-[11px] leading-tight text-muted-foreground px-2">
             Нажимая кнопку, вы принимаете условия{' '}
-            <Link href="/legal/terms" className="underline hover:text-foreground transition-colors">
+            <Link href="/legal/terms" className="underline hover:text-purple-600 transition-colors">
               Публичной оферты
             </Link>{' '}
             и даете согласие на обработку данных согласно{' '}
-            <Link href="/legal/privacy" className="underline hover:text-foreground transition-colors">
+            <Link href="/legal/privacy" className="underline hover:text-purple-600 transition-colors">
               Политике конфиденциальности
             </Link>
           </p>
@@ -303,7 +303,7 @@ export function LoginForm() {
       {activeTab === 'register' && (
         <form onSubmit={handleRegisterSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="register-email" className="block text-sm font-medium text-foreground">
+            <label htmlFor="register-email" className="block text-xs font-black uppercase tracking-wider text-muted-foreground">
               Email адрес
             </label>
             <div className="relative">
@@ -322,7 +322,7 @@ export function LoginForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="register-password" className="block text-sm font-medium text-foreground">
+            <label htmlFor="register-password" className="block text-xs font-black uppercase tracking-wider text-muted-foreground">
               Пароль
             </label>
             <div className="relative">
@@ -340,7 +340,7 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={toggleShowPassword}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -351,7 +351,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={registerPending || !registerEmail || registerPassword.length < 8}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all duration-200 shadow-sm cursor-pointer font-bold"
+            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-full text-sm font-black bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]"
           >
             {registerPending ? (
               <>
@@ -368,11 +368,11 @@ export function LoginForm() {
 
           <p className="text-center text-[11px] leading-tight text-muted-foreground px-2">
             Нажимая кнопку, вы принимаете условия{' '}
-            <Link href="/legal/terms" className="underline hover:text-foreground transition-colors">
+            <Link href="/legal/terms" className="underline hover:text-purple-600 transition-colors">
               Публичной оферты
             </Link>{' '}
             и даете согласие на обработку данных согласно{' '}
-            <Link href="/legal/privacy" className="underline hover:text-foreground transition-colors">
+            <Link href="/legal/privacy" className="underline hover:text-purple-600 transition-colors">
               Политике конфиденциальности
             </Link>
           </p>

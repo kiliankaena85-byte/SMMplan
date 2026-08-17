@@ -14,13 +14,24 @@ import {
 import {
   Home,
   Users,
+  Package,
   ShoppingCart,
   Settings,
   CreditCard,
-  Ticket,
+  MessageSquare,
   Link as LinkIcon,
   Search,
   Gift,
+  RefreshCw,
+  AlertTriangle,
+  ArrowLeftRight,
+  TrendingUp,
+  Inbox,
+  Shield,
+  Cpu,
+  Globe,
+  FileText,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -65,52 +76,97 @@ export function CommandMenu() {
 
       {mounted && (
         <CommandDialog open={open} onOpenChange={setOpen}>
-          <CommandInput placeholder="Поиск (Cmd+K)..." />
-          <CommandList>
+          <CommandInput placeholder="Поиск по разделам и модулям (Cmd+K)..." />
+          <CommandList className="max-h-[380px] overflow-y-auto">
             <CommandEmpty>Нет результатов.</CommandEmpty>
             
-            <CommandGroup heading="Навигация">
+            <CommandGroup heading="Операционка">
               <CommandItem onSelect={() => runCommand(() => router.push('/admin/dashboard'))}>
-                <Home className="mr-2 h-4 w-4" />
+                <Home className="mr-2 h-4 w-4 text-primary" />
                 <span>Дашборд</span>
               </CommandItem>
-              <CommandItem onSelect={() => runCommand(() => router.push('/admin/clients'))}>
-                <Users className="mr-2 h-4 w-4" />
-                <span>Клиенты</span>
-              </CommandItem>
               <CommandItem onSelect={() => runCommand(() => router.push('/admin/orders'))}>
-                <ShoppingCart className="mr-2 h-4 w-4" />
+                <Package className="mr-2 h-4 w-4 text-primary" />
                 <span>Заказы</span>
               </CommandItem>
-            </CommandGroup>
-            
-            <CommandSeparator />
-            
-            <CommandGroup heading="Модули">
-              <CommandItem onSelect={() => runCommand(() => router.push('/admin/finance'))}>
-                <CreditCard className="mr-2 h-4 w-4" />
-                <span>Финансы</span>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/refills'))}>
+                <RefreshCw className="mr-2 h-4 w-4 text-primary" />
+                <span>Докрутки (Refills)</span>
               </CommandItem>
               <CommandItem onSelect={() => runCommand(() => router.push('/admin/tickets'))}>
-                <Ticket className="mr-2 h-4 w-4" />
-                <span>Тикеты</span>
+                <MessageSquare className="mr-2 h-4 w-4 text-primary" />
+                <span>Тикеты и чаты</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/clients'))}>
+                <Users className="mr-2 h-4 w-4 text-primary" />
+                <span>Клиенты и пользователи</span>
+              </CommandItem>
+            </CommandGroup>
+            
+            <CommandSeparator />
+            
+            <CommandGroup heading="Финансы и Аналитика">
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/finance'))}>
+                <CreditCard className="mr-2 h-4 w-4 text-success" />
+                <span>Биллинг и касса</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/analytics'))}>
+                <TrendingUp className="mr-2 h-4 w-4 text-success" />
+                <span>Финансовая аналитика</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/finance/balance-requests'))}>
+                <Inbox className="mr-2 h-4 w-4 text-success" />
+                <span>Заявки на изменение баланса</span>
               </CommandItem>
               <CommandItem onSelect={() => runCommand(() => router.push('/admin/marketing'))}>
-                <Gift className="mr-2 h-4 w-4" />
-                <span>Маркетинг</span>
-              </CommandItem>
-              <CommandItem onSelect={() => runCommand(() => router.push('/admin/providers'))}>
-                <LinkIcon className="mr-2 h-4 w-4" />
-                <span>Провайдеры</span>
+                <Gift className="mr-2 h-4 w-4 text-violet-500" />
+                <span>Маркетинг и промокоды</span>
               </CommandItem>
             </CommandGroup>
 
             <CommandSeparator />
 
-            <CommandGroup heading="Система">
+            <CommandGroup heading="Каталог и Провайдеры">
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/catalog'))}>
+                <ShoppingCart className="mr-2 h-4 w-4 text-amber-500" />
+                <span>Каталог услуг</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/catalog/quarantine'))}>
+                <AlertTriangle className="mr-2 h-4 w-4 text-destructive" />
+                <span>Карантин и аномалии цен</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/catalog/sync'))}>
+                <ArrowLeftRight className="mr-2 h-4 w-4 text-sky-500" />
+                <span>Синхронизация с провайдерами</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/smart'))}>
+                <Cpu className="mr-2 h-4 w-4 text-purple-500" />
+                <span>Умный Dripfeed</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/providers'))}>
+                <LinkIcon className="mr-2 h-4 w-4 text-sky-500" />
+                <span>Провайдеры (API)</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/pages'))}>
+                <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                <span>Страницы и База знаний</span>
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandSeparator />
+
+            <CommandGroup heading="Система и Настройки">
               <CommandItem onSelect={() => runCommand(() => router.push('/admin/settings'))}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Настройки</span>
+                <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
+                <span>Общие настройки сервиса</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/settings/balance-policies'))}>
+                <Shield className="mr-2 h-4 w-4 text-indigo-500" />
+                <span>Политики лимитов баланса</span>
+              </CommandItem>
+              <CommandItem onSelect={() => runCommand(() => router.push('/admin/tenants'))}>
+                <Globe className="mr-2 h-4 w-4 text-teal-500" />
+                <span>Мульти-тенант (Бренды и домены)</span>
               </CommandItem>
             </CommandGroup>
           </CommandList>

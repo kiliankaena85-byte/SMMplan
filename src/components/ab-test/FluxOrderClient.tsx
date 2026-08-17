@@ -285,7 +285,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             <div className="relative group w-full max-w-2xl px-2 sm:px-0">
               <motion.div 
                 layoutId="hero-input"
-                className={`relative w-full group rounded-[2rem] transition-all duration-500 select-text ${isAnalyzing ? 'p-[3px] scale-[1.01]' : 'p-[2px] scale-100'}`}
+                className={`relative w-full group rounded-[2rem] transition-all duration-500 select-text ${isAnalyzing ? 'p-1 scale-[1.01]' : 'p-0.5 scale-100'}`}
               >
                 {/* Shimmer Border */}
                 <div
@@ -330,22 +330,13 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
               </motion.div>
             </div>
             
-            <div className="mt-4 sm:mt-5 flex justify-center w-full">
-              <button 
-                type="button"
-                onClick={() => navigateTo('network')}
-                className="text-foreground/80 hover:text-foreground bg-background/80 hover:bg-background px-5 py-2.5 rounded-full backdrop-blur-md border border-border/40 transition-all font-medium text-xs sm:text-sm flex items-center gap-2 group shadow-sm hover:shadow-md cursor-pointer active:scale-95"
-              >
-                Или выберите услугу из каталога 
-                <div className="bg-background rounded-full p-1 group-hover:bg-background shadow-sm transition-colors">
-                  <ArrowDownIcon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                </div>
-              </button>
+            <div className="mt-8 text-center text-xs text-muted-foreground">
+              <span>Или выберите платформу вручную ниже</span>
             </div>
           </motion.div>
         )}
 
-        {/* STEP 1.5: NETWORK SELECTION */}
+        {/* STEP 1: NETWORK SELECTION */}
         {step === 'network' && (
           <motion.div
             key="step-network"
@@ -358,7 +349,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             className="w-full"
           >
             <div className="mb-6 w-full">
-              <h2 className="text-2xl font-bold text-foreground mb-6">Выберите соцсеть</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-6 tracking-tight">Выберите соцсеть</h2>
               
               <motion.div 
                 variants={containerVariants}
@@ -402,7 +393,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             <div className="mb-6 w-full">
               <div className="flex items-center gap-3 mb-6">
                 <img src={activeNetwork.icon || undefined} alt={activeNetwork.name} className="w-8 h-8 object-contain" />
-                <h2 className="text-2xl font-bold text-foreground">Выберите категорию</h2>
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Выберите категорию</h2>
               </div>
             </div>
 
@@ -447,7 +438,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             className="w-full"
           >
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-foreground">{activeCategory.name}</h2>
+              <h2 className="text-2xl font-bold text-foreground tracking-tight">{activeCategory.name}</h2>
             </div>
 
             {isLoadingServices ? (
@@ -484,13 +475,13 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                         </p>
                         <p className="text-[12px] sm:text-[13px] text-muted-foreground flex items-center gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> 
-                          Лимиты: <span className="font-medium text-foreground">{service.minQty} - {service.maxQty} шт.</span>
+                          Лимиты: <span className="font-medium text-foreground tabular-nums font-mono">{service.minQty} - {service.maxQty} шт.</span>
                         </p>
                       </div>
                     </div>
                     
-                    <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 bg-foreground text-background px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-[13px] sm:text-[14px] shadow-[0_4px_20px_rgb(0,0,0,0.1)] pointer-events-none">
-                      {service.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽ <span className="font-normal opacity-80">/ шт</span>
+                    <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 bg-foreground text-background px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-[13px] sm:text-[14px] shadow-[0_4px_20px_rgb(0,0,0,0.1)] pointer-events-none tabular-nums font-mono">
+                      {service.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽ <span className="font-normal opacity-80 font-sans">/ шт</span>
                     </div>
                   </motion.div>
                 ))}
@@ -517,10 +508,10 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             >
               <div className="mb-4 sm:mb-5 flex justify-between items-start gap-3 sm:gap-4">
                 <div>
-                  <motion.h2 layoutId={`title-${selectedService.id}`} className="text-xl sm:text-2xl font-bold text-foreground leading-tight">{selectedService.name}</motion.h2>
+                  <motion.h2 layoutId={`title-${selectedService.id}`} className="text-xl sm:text-2xl font-bold text-foreground leading-tight tracking-tight">{selectedService.name}</motion.h2>
                 </div>
                 <div className="flex-shrink-0 text-right">
-                  <span className="text-primary font-black text-lg sm:text-xl">{selectedService.pricePerUnitRub.toFixed(2)} ₽</span>
+                  <span className="text-primary font-black text-lg sm:text-xl tabular-nums font-mono">{selectedService.pricePerUnitRub.toFixed(2)} ₽</span>
                   <span className="text-muted-foreground font-medium text-[10px] sm:text-xs block">за 1 шт.</span>
                 </div>
               </div>
@@ -662,7 +653,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                           onChange={(e) => setIsDripFeedEnabled(e.target.checked)} 
                           className="sr-only peer"
                         />
-                        <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                        <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-primary-foreground after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-card after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                       </label>
                     </div>
 
@@ -708,9 +699,9 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                       <button
                         type="button"
                         onClick={() => setIsTgGuideOpen(true)}
-                        className="text-[11px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 cursor-pointer bg-purple-500/10 border border-purple-500/20 px-2.5 py-0.5 rounded-full transition-all"
+                        className="text-[11px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1.5 cursor-pointer bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 min-h-[36px] rounded-full transition-all"
                       >
-                        <HelpCircle className="w-3 h-3" />
+                        <HelpCircle className="w-3.5 h-3.5" />
                         <span>Как скопировать ссылку на фото?</span>
                       </button>
                     )}
@@ -834,17 +825,17 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
 
                   <div className="w-full flex items-center justify-between mb-4 px-2">
                     <span className="text-muted-foreground font-semibold">К оплате:</span>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-black text-foreground">
+                    <div className="flex items-baseline gap-1.5 tabular-nums font-mono">
+                      <span className="text-2xl font-black text-foreground tracking-tight">
                         {parseFloat(price) < 10 ? "10.00" : price}
                       </span>
-                      <span className="text-lg font-bold text-muted-foreground">₽</span>
+                      <span className="text-lg font-bold text-muted-foreground font-sans">₽</span>
                     </div>
                   </div>
                   
                   {parseFloat(price) < 10 && parseFloat(price) > 0 && (
-                     <div className="w-full mb-4 p-3 bg-amber-50 rounded-[1.5rem] border border-amber-200">
-                       <p className="text-xs text-amber-700 font-medium text-center">
+                     <div className="w-full mb-4 p-3 bg-amber-500/10 rounded-[1.5rem] border border-amber-500/20">
+                       <p className="text-xs text-amber-600 dark:text-amber-400 font-medium text-center">
                          Минимальное пополнение — 10 ₽. Остаток зачислится на баланс.
                        </p>
                      </div>
@@ -854,7 +845,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                     id="form-submit-btn"
                     type="submit"
                     isPending={isPending}
-                    className="w-full bg-primary rounded-[1.5rem] text-primary-foreground font-bold text-lg h-14 shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.12)] hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-full text-primary-foreground font-black text-lg h-14 shadow-[0_8px_30px_rgba(168,85,247,0.35)] hover:shadow-[0_12px_40px_rgba(236,72,153,0.45)] hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer border-0"
                   >
                     Оплатить заказ
                   </Button>

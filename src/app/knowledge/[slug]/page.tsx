@@ -15,6 +15,7 @@ import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
 import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
+import { FluxArticleReader } from "@/components/knowledge/flux/FluxArticleReader";
 
 export const dynamic = "force-dynamic";
 
@@ -196,10 +197,11 @@ export default async function ArticleDetailPage({ params }: PageProps) {
 
   const reqHeaders = await headers();
   const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id"));
+  const isFlux = tenantId === 'flux';
 
   // Resolve settings and siteName
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = getTenantSiteName(tenantId) || settings.SITE_NAME || "SMMplan";
+  const siteName = isFlux ? "SMMflux" : (getTenantSiteName(tenantId) || settings.SITE_NAME || "SMMplan");
   const host = getTenantHost(tenantId);
   const canonical = absoluteCanonical(tenantId, `/knowledge/${article.slug}`);
 
@@ -356,6 +358,50 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   // Safe serialization preventing XSS injection inside raw scripts
   const escapedJsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
 
+  if (isFlux) {
+    return (
+      <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
+        {/* SMMFLUX RADIANT HERO BACKGROUND (Matching main page) */}
+        <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.55), transparent 70%), ' +
+                'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.45), transparent 70%), ' +
+                'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.45), transparent 70%), ' +
+                'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.40), transparent 70%), ' +
+                'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.50), transparent 75%)',
+            }}
+          />
+          <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-blue-500/35 blur-[120px] pointer-events-none" />
+          <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/40 blur-[110px] pointer-events-none" />
+          <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/35 blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-0 inset-x-0 h-[300px] bg-gradient-to-t from-background to-transparent" />
+        </div>
+
+        <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath="/knowledge" />
+        
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: escapedJsonLd }}
+        />
+
+        <main className="flex-1 w-full relative z-10">
+          <FluxArticleReader
+            article={article}
+            renderedMarkdown={renderMarkdown(article.content)}
+            relatedArticles={relatedArticles}
+            recommendedServices={recommendedServices}
+            allCategoryServices={mappedServicesForWidget}
+          />
+        </main>
+
+        <MegaFooter contactSettings={settings} tenantId={tenantId} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
       
@@ -364,7 +410,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       <div className="absolute top-0 inset-x-0 h-[600px] z-[-1] pointer-events-none overflow-hidden bg-gradient-to-b from-primary/5 to-background" />
 
       {/* ── Секция 1: Шапка ── */}
-      <Header initialEmail={userEmail} siteName={siteName} activePath="/knowledge" />
+      <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath="/knowledge" />
 
       {/* Dynamic JSON-LD injection */}
       <script

@@ -1,0 +1,349 @@
+{
+  "decisions": [
+    {
+      "title": "Целенаправленный штурм: Проверка синхронизации с GraphRAG Docker памятью",
+      "context": "Проведен штурм советом из 3 специалистов по теме: \"Проверка синхронизации с GraphRAG Docker памятью\".",
+      "decision": "Выработано P0 решение с защитой от точек отказа и согласованием метрик.",
+      "rationale": "Методология Six Thinking Hats + Anti-Sycophancy + Intentional Summoning.",
+      "tags": [
+        "brainstorm",
+        "dynamic-council",
+        "intentional-summoning",
+        "sqp"
+      ]
+    },
+    {
+      "title": "Юридический штурм v4.0 (Dual-Track Dialectic): Проверка синхронизации правового заключения с GraphRAG",
+      "context": "Проведен углубленный правовой анализ советом из 12 юристов с параллельной генерацией De Jure (Закон) и De Facto (Практика) и Divergence Gap Engine по теме: \"Проверка синхронизации правового заключения с GraphRAG\".",
+      "decision": "Сформирован синтезированный Золотой Стандарт документа, устраняющий судебные уязвимости и регуляторные риски.",
+      "rationale": "Legal Engineering 2026: Dual-Track Dialectic + Divergence Gap Analysis + 54-ФЗ/152-ФЗ.",
+      "tags": [
+        "legal",
+        "dual-track",
+        "divergence-analysis",
+        "de-jure-vs-de-facto",
+        "moot-court",
+        "54-fz",
+        "152-fz"
+      ]
+    },
+    {
+      "title": "Юридический штурм v5.0 (Full Suite): Генеральный правовой аудит пакета документов: Оферта, Privacy, Refund, Cookies, Service Rules",
+      "context": "Проведен комплексный правовой анализ советом из 12 юристов с Live Judge Scoring, Auto-Redline, Evidence Pack и Temporal Decay по теме: \"Генеральный правовой аудит пакета документов: Оферта, Privacy, Refund, Cookies, Service Rules\".",
+      "decision": "Сформированы: Золотой Стандарт договора, судебное досье, расчет вероятности победы (Win Rate 92.5%) и матрица рисков.",
+      "rationale": "Legal Tech 2026: Dual-Track Dialectic + Live Judge Scoring + Evidence Pack + 54-ФЗ/152-ФЗ.",
+      "tags": [
+        "legal",
+        "enterprise-suite-2026",
+        "win-rate",
+        "redline",
+        "evidence-pack",
+        "temporal-decay",
+        "54-fz",
+        "152-fz"
+      ]
+    },
+    {
+      "title": "Целенаправленный штурм: UX/UI и технический аудит системы шаблонов ответов в чатах поддержки: вызов через слеш-палитру, автоподстановка переменных, управление и редактирование шаблонов",
+      "context": "Проведен штурм советом из 3 специалистов по теме: \"UX/UI и технический аудит системы шаблонов ответов в чатах поддержки: вызов через слеш-палитру, автоподстановка переменных, управление и редактирование шаблонов\".",
+      "decision": "Выработано P0 решение с защитой от точек отказа и согласованием метрик.",
+      "rationale": "Методология Six Thinking Hats + Anti-Sycophancy + Intentional Summoning.",
+      "tags": [
+        "brainstorm",
+        "dynamic-council",
+        "intentional-summoning",
+        "sqp"
+      ]
+    },
+    {
+      "title": "Целенаправленный штурм: Глубокий UX/UI аудит админ-панели Smmplan: информационная архитектура, расположение вкладок навигации, эргономика рабочего места оператора, фильтры, таблицы и User-Friendly паттерны 2026",
+      "context": "Проведен штурм советом из 4 специалистов по теме: \"Глубокий UX/UI аудит админ-панели Smmplan: информационная архитектура, расположение вкладок навигации, эргономика рабочего места оператора, фильтры, таблицы и User-Friendly паттерны 2026\".",
+      "decision": "Выработано P0 решение с защитой от точек отказа и согласованием метрик.",
+      "rationale": "Методология Six Thinking Hats + Anti-Sycophancy + Intentional Summoning.",
+      "tags": [
+        "brainstorm",
+        "dynamic-council",
+        "intentional-summoning",
+        "sqp"
+      ]
+    },
+    {
+      "title": "Целенаправленный штурм: Архитектура флота ультра-узких дизайн-агентов: Атомарная специализация (Типографика, Кнопки, Сетки/Отступы, Орфография/UX-текст, Маркетинг/CRO, Анимации, Цвета, Доступность WCAG)",
+      "context": "Проведен штурм советом из 6 специалистов по теме: \"Архитектура флота ультра-узких дизайн-агентов: Атомарная специализация (Типографика, Кнопки, Сетки/Отступы, Орфография/UX-текст, Маркетинг/CRO, Анимации, Цвета, Доступность WCAG)\".",
+      "decision": "Выработано P0 решение с защитой от точек отказа и согласованием метрик.",
+      "rationale": "Методология Six Thinking Hats + Anti-Sycophancy + Intentional Summoning.",
+      "tags": [
+        "brainstorm",
+        "dynamic-council",
+        "intentional-summoning",
+        "sqp"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: ChatInput.tsx (Score: 60/100)",
+      "context": "Проверка компонента src/components/support/chat/ChatInput.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 8, Warnings 8, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxOrderClient.tsx (Score: 20/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxOrderClient.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 13, Critical 1",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxCyberFooter.tsx (Score: 95/100)",
+      "context": "Проверка компонента src/components/landing/flux/FluxCyberFooter.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 6, Warnings 1, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxTrustBar.tsx (Score: 100/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxTrustBar.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 8, Warnings 0, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxWhyUs.tsx (Score: 100/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxWhyUs.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 0, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxReviews.tsx (Score: 95/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxReviews.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 1, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxFAQ.tsx (Score: 95/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxFAQ.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 8, Warnings 1, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxButton.tsx (Score: 95/100)",
+      "context": "Проверка компонента src/components/ui/FluxButton.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 1, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxInput.tsx (Score: 100/100)",
+      "context": "Проверка компонента src/components/ui/FluxInput.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 0, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxCard.tsx (Score: 100/100)",
+      "context": "Проверка компонента src/components/ui/FluxCard.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 0, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxCyberFooter.tsx (Score: 100/100)",
+      "context": "Проверка компонента src/components/landing/flux/FluxCyberFooter.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 0, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxReviews.tsx (Score: 100/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxReviews.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 0, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxFAQ.tsx (Score: 95/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxFAQ.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 8, Warnings 1, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxFAQ.tsx (Score: 100/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxFAQ.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 8, Warnings 0, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxButton.tsx (Score: 95/100)",
+      "context": "Проверка компонента src/components/ui/FluxButton.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 1, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxButton.tsx (Score: 100/100)",
+      "context": "Проверка компонента src/components/ui/FluxButton.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 7, Warnings 0, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит: FluxOrderClient.tsx (Score: 65/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxOrderClient.tsx силами 9 узкоспециализированных дизайн-агентов.",
+      "decision": "Результат аудита: Pass 8, Warnings 4, Critical 1",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, соответствия 8pt сетке, типографике, WCAG 2.2 и Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит (14 Агентов): FluxOrderClient.tsx (Score: 70/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxOrderClient.tsx силами 14 узкоспециализированных дизайн-агентов (включая Theming, Dual-Brand, UI-Arsenal и Token Validation).",
+      "decision": "Результат аудита: Pass 14, Warnings 3, Critical 1",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, изоляции брендов SMMplan/SMMflux, двухрежимной читаемости Dark/Light и стандартов Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "theming",
+        "dual-brand",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит (14 Агентов): FluxOrderClient.tsx (Score: 90/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxOrderClient.tsx силами 14 узкоспециализированных дизайн-агентов (включая Theming, Dual-Brand, UI-Arsenal и Token Validation).",
+      "decision": "Результат аудита: Pass 14, Warnings 2, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, изоляции брендов SMMplan/SMMflux, двухрежимной читаемости Dark/Light и стандартов Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "theming",
+        "dual-brand",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    },
+    {
+      "title": "Атомарный Дизайн-Аудит (14 Агентов): FluxOrderClient.tsx (Score: 100/100)",
+      "context": "Проверка компонента src/components/ab-test/FluxOrderClient.tsx силами 14 узкоспециализированных дизайн-агентов (включая Theming, Dual-Brand, UI-Arsenal и Token Validation).",
+      "decision": "Результат аудита: Pass 14, Warnings 0, Critical 0",
+      "rationale": "Обеспечение бескомпромиссного качества UX/UI, изоляции брендов SMMplan/SMMflux, двухрежимной читаемости Dark/Light и стандартов Tailwind 4.",
+      "tags": [
+        "design-guild",
+        "ui-ux",
+        "theming",
+        "dual-brand",
+        "tailwind4",
+        "wcag",
+        "typography"
+      ]
+    }
+  ]
+}

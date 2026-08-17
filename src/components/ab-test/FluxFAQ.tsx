@@ -97,7 +97,7 @@ export function FluxFAQ({ companyName = "SMMflux" }: { companyName?: string }) {
               onClick={() => setOpen(open === i ? null : i)}
               aria-expanded={open === i}
               aria-controls={`faq-answer-${i}`}
-              className="w-full text-left px-6 py-5 flex justify-between items-center gap-4 group"
+              className="w-full text-left px-6 py-5 min-h-[44px] flex justify-between items-center gap-4 group transition-colors"
             >
               <span className="text-base font-bold text-foreground text-balance pr-4">{item.q}</span>
               <div 

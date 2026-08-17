@@ -34,6 +34,8 @@ interface PolicyItem {
   autoExecuteBelow: string;
 }
 
+import { AdminBreadcrumbs } from "@/components/admin/AdminBreadcrumbs";
+
 export default function BalancePoliciesPage() {
   const [policies, setPolicies] = useState<PolicyItem[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -135,6 +137,12 @@ export default function BalancePoliciesPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
+      <AdminBreadcrumbs
+        items={[
+          { label: 'Настройки', href: '/admin/settings' },
+          { label: 'Политики баланса' },
+        ]}
+      />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Политики корректировки баланса</h1>

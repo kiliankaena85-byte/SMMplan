@@ -28,9 +28,12 @@ interface TemplateCommandPaletteProps {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  general: '📋 Общие',
-  orders: '📦 Заказы',
-  payment: '💳 Оплата',
+  GENERAL: '📋 Общие',
+  ORDER: '📦 Заказы',
+  ORDERS: '📦 Заказы',
+  PAYMENT: '💳 Оплата и возвраты',
+  LEGAL: '⚖️ Юридические / 152-ФЗ',
+  ACCOUNT: '👤 Аккаунт и доступ',
 };
 
 function truncate(text: string, max = 60): string {
@@ -73,7 +76,7 @@ export function TemplateCommandPalette({
   const grouped = useMemo(() => {
     const map = new Map<string, typeof templates>();
     for (const t of templates) {
-      const key = t.category ?? 'general';
+      const key = (t.category ?? 'GENERAL').toUpperCase();
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(t);
     }

@@ -151,7 +151,10 @@ export function ChatInput({
   const parseSmartTemplate = (templateText: string) => {
     let result = templateText;
     const userNameVal = clientEmail ? clientEmail.split('@')[0] : 'Клиент';
+    const domainVal = typeof window !== 'undefined' ? window.location.host : 'smmplan.pro';
     result = result.replace(/{user_name}/g, userNameVal);
+    result = result.replace(/{user_email}/g, clientEmail || 'Клиент');
+    result = result.replace(/{domain}/g, domainVal);
     result = result.replace(/{ticket_id}/g, ticketId);
     
     if (selectedOrder) {
@@ -212,8 +215,14 @@ export function ChatInput({
       const lastWord = words[words.length - 1];
       
       if (lastWord && lastWord.startsWith('/')) {
-        const prefix = lastWord.slice(1).toLowerCase();
-        const filtered = templatesList.filter((t: { shortcut?: string }) => t.shortcut && t.shortcut.toLowerCase().startsWith(prefix));
+        const prefix = lastWord.slice(1).toLowerCase().trim();
+        const filtered = templatesList.filter((t: { shortcut?: string; label?: string; text?: string }) => {
+          if (!prefix) return true; // show all on standalone "/"
+          const matchShortcut = t.shortcut && t.shortcut.toLowerCase().includes(prefix);
+          const matchLabel = t.label && t.label.toLowerCase().includes(prefix);
+          const matchText = t.text && t.text.toLowerCase().includes(prefix);
+          return matchShortcut || matchLabel || matchText;
+        });
         
         if (filtered.length > 0) {
           setFilteredTemplates(filtered);
@@ -376,26 +385,40 @@ export function ChatInput({
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute bottom-full left-3 mb-2 w-[calc(100%-1.5rem)] md:w-80 bg-card border border-border rounded-xl shadow-xl z-[90] overflow-hidden py-1.5"
+            className="absolute bottom-full left-3 mb-2 w-[calc(100%-1.5rem)] md:w-96 bg-card/95 backdrop-blur-xl border border-border/80 rounded-2xl shadow-2xl z-[90] overflow-hidden py-1.5 ring-1 ring-border/10"
           >
-            <div className="px-3 py-1 border-b border-divider text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
-              Быстрые шаблоны
+            <div className="px-3.5 py-1.5 border-b border-border/60 flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-muted/30">
+              <span>⚡ Быстрые шаблоны ответов ({filteredTemplates.length})</span>
+              <span className="text-[9px] font-normal normal-case opacity-70">↑↓ навигация, Enter выбор</span>
             </div>
-            <div className="max-h-48 overflow-y-auto">
+            <div className="max-h-56 overflow-y-auto divide-y divide-border/30">
               {filteredTemplates.map((t, idx) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => handleSelectTemplate(t)}
-                  className={`w-full text-left px-3 py-2 flex flex-col transition-colors ${
-                    idx === activeTemplateIndex ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-default-50 text-foreground'
+                  className={`w-full text-left px-3.5 py-2.5 flex flex-col transition-all cursor-pointer ${
+                    idx === activeTemplateIndex ? 'bg-primary/10 text-primary border-l-2 border-primary font-medium pl-3' : 'hover:bg-muted/40 text-foreground'
                   }`}
                 >
-                  <div className="flex justify-between items-center w-full">
-                    <span className="text-xs font-bold">{t.label}</span>
-                    {t.shortcut && <span className="text-[9px] font-mono bg-default-100 text-muted-foreground px-1 py-0.5 rounded">/{t.shortcut}</span>}
+                  <div className="flex justify-between items-center w-full gap-2">
+                    <span className="text-xs font-bold truncate">{t.label}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {t.category && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-muted/60 text-muted-foreground uppercase">
+                          {t.category === 'LEGAL' ? '⚖️ 152-ФЗ' :
+                           t.category === 'PAYMENT' ? '💳 Оплата' :
+                           t.category === 'ORDER' ? '📦 Заказ' : '📋 Общие'}
+                        </span>
+                      )}
+                      {t.shortcut && (
+                        <span className="text-[10px] font-mono font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                          /{t.shortcut}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-[10px] text-muted-foreground truncate w-full mt-0.5">{t.text}</span>
+                  <span className="text-[11px] text-muted-foreground truncate w-full mt-0.5 opacity-90">{t.text}</span>
                 </button>
               ))}
             </div>

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, Spinner, Button } from '@heroui/react';
-import { ShieldCheck, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
+import { FluxCard, FluxButton, FluxBadge } from '@/components/ui';
 
 export default function PaymentRedirectPage() {
   const router = useRouter();
@@ -67,11 +67,11 @@ export default function PaymentRedirectPage() {
 
         // Continue polling
         timeoutId = setTimeout(pollStatus, 1500);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!isMounted) return;
         setStatus('error');
-        setErrorMessage(err.message || 'Произошла непредвиденная ошибка соединения.');
+        const msg = err instanceof Error ? err.message : 'Произошла непредвиденная ошибка соединения.';
+        setErrorMessage(msg);
       }
     };
 
@@ -84,53 +84,87 @@ export default function PaymentRedirectPage() {
   }, [paymentId]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <Card className="max-w-md w-full p-8 flex flex-col items-center text-center shadow-lg border border-divider">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Radiant Aurora Mesh Backdrop */}
+      <div 
+        className="absolute inset-0 pointer-events-none z-0 opacity-40 dark:opacity-20"
+        style={{
+          backgroundImage: `
+            radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.55), transparent 70%),
+            radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.45), transparent 70%),
+            radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.45), transparent 70%),
+            radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.40), transparent 70%),
+            radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.50), transparent 75%)
+          `
+        }}
+      />
+
+      <FluxCard variant="glass" padding="xl" className="max-w-md w-full flex flex-col items-center text-center shadow-[0_20px_60px_rgba(0,0,0,0.08)] relative z-10">
         {status === 'polling' && (
-          <>
-            <div className="mb-6 relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
-              <Spinner size="lg" color="current" className="text-primary" />
+          <div className="space-y-6">
+            <div className="flex justify-center">
+              <FluxBadge variant="primary" pulse icon={<ShieldCheck className="w-3.5 h-3.5" />}>
+                Безопасный эквайринг
+              </FluxBadge>
             </div>
-            <h1 className="text-xl font-semibold mb-2">Устанавливаем безопасное соединение...</h1>
-            <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-success" />
-              Генерируем уникальную ссылку для оплаты
-            </p>
-          </>
+            <div className="w-16 h-16 rounded-3xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto">
+              <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black text-foreground">Устанавливаем соединение...</h1>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Генерируем защищенную платежную сессию для вашего заказа.
+              </p>
+            </div>
+          </div>
         )}
 
         {status === 'redirecting' && (
-          <>
-            <div className="mb-6 w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center">
+          <div className="space-y-6">
+            <div className="flex justify-center">
+              <FluxBadge variant="success" pulse icon={<ShieldCheck className="w-3.5 h-3.5" />}>
+                Сессия подтверждена
+              </FluxBadge>
+            </div>
+            <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center mx-auto">
               <ShieldCheck className="w-8 h-8" />
             </div>
-            <h1 className="text-xl font-semibold mb-2">Соединение установлено!</h1>
-            <p className="text-muted-foreground text-sm">
-              Перенаправляем вас на страницу банка...
-            </p>
-          </>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black text-foreground">Перенаправляем в банк...</h1>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Сейчас откроется защищенная страница оплаты.
+              </p>
+            </div>
+          </div>
         )}
 
         {status === 'error' && (
-          <>
-            <div className="mb-6 w-16 h-16 bg-danger/20 text-danger rounded-full flex items-center justify-center">
+          <div className="space-y-6">
+            <div className="flex justify-center">
+              <FluxBadge variant="destructive" pulse icon={<AlertTriangle className="w-3.5 h-3.5" />}>
+                Сбой шлюза
+              </FluxBadge>
+            </div>
+            <div className="w-16 h-16 rounded-3xl bg-pink-500/10 border border-pink-500/20 text-pink-600 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h1 className="text-xl font-semibold text-danger mb-2">Ошибка создания платежа</h1>
-            <p className="text-muted-foreground text-sm mb-6">
-              {errorMessage}
-            </p>
-            <Button
-              variant="secondary"
-              onPress={() => router.back()}
-              className="w-full font-medium"
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black text-foreground">Ошибка создания платежа</h1>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {errorMessage}
+              </p>
+            </div>
+            <FluxButton
+              variant="primary"
+              size="md"
+              onClick={() => router.back()}
+              className="w-full"
             >
               Вернуться назад
-            </Button>
-          </>
+            </FluxButton>
+          </div>
         )}
-      </Card>
+      </FluxCard>
     </div>
   );
 }

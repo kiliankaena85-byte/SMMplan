@@ -436,6 +436,27 @@
   --radius: 0.625rem;
 }
 
+/* --- TENANT: SMMFLUX (PRISM CYBERPUNK IDENTITY) --- */
+[data-tenant="flux"], .theme-flux {
+  --color-primary: #9333ea; /* purple-600 for light background AA contrast >= 4.5:1 */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #fdf2f8; /* pink-50 */
+  --color-secondary-foreground: #be185d; /* pink-700 */
+  --color-ring: rgba(147, 51, 234, 0.35);
+  --color-accent: #faf5ff;
+  --color-accent-foreground: #7e22ce;
+}
+
+.dark[data-tenant="flux"], .dark.theme-flux, [data-theme*="dark"][data-tenant="flux"], [data-tenant="flux"] .dark {
+  --color-primary: #c084fc; /* purple-400 for dark background contrast */
+  --color-primary-foreground: #090d16;
+  --color-secondary: #3b0764; /* purple-950 */
+  --color-secondary-foreground: #f472b6; /* pink-400 */
+  --color-ring: rgba(192, 132, 252, 0.4);
+  --color-accent: #2e1065;
+  --color-accent-foreground: #e9d5ff;
+}
+
 /* --- Locked Layout Height for Desktop Support Page (Telegram Desktop lock layout style) --- */
 @media (min-width: 1024px) {
   main:has(.tickets-workspace) {

@@ -9,9 +9,10 @@ import { getArticles } from "@/actions/knowledge";
 interface SearchAutocompleteProps {
   initialSearch?: string;
   activeCategory?: string;
+  isFlux?: boolean;
 }
 
-export function SearchAutocomplete({ initialSearch = "", activeCategory = "Все" }: SearchAutocompleteProps) {
+export function SearchAutocomplete({ initialSearch = "", activeCategory = "Все", isFlux = false }: SearchAutocompleteProps) {
   const [query, setQuery] = useState(initialSearch);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -58,25 +59,29 @@ export function SearchAutocomplete({ initialSearch = "", activeCategory = "Вс�
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (activeIndex >= 0 && activeIndex < suggestions.length) {
-        const selected = suggestions[activeIndex];
-        router.push(`/knowledge/${selected.slug}`);
+        const item = suggestions[activeIndex];
+        router.push(`/knowledge/${item.slug}`);
         setIsOpen(false);
       } else {
-        // Standard form submit
         handleSubmit();
       }
     } else if (e.key === "Escape") {
       setIsOpen(false);
-      setActiveIndex(-1);
     }
   };
 
-  const handleSubmit = () => {
-    const url = `/knowledge?search=${encodeURIComponent(query.trim())}${
-      activeCategory !== "Все" ? `&category=${encodeURIComponent(activeCategory)}` : ""
-    }`;
-    router.push(url);
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setIsOpen(false);
+    const queryParts: string[] = [];
+    if (activeCategory !== "Все") {
+      queryParts.push(`category=${encodeURIComponent(activeCategory)}`);
+    }
+    if (query.trim()) {
+      queryParts.push(`search=${encodeURIComponent(query.trim())}`);
+    }
+    const url = `/knowledge${queryParts.length > 0 ? `?${queryParts.join("&")}` : ""}`;
+    router.push(url);
   };
 
   // Close suggestions popover when clicking outside
@@ -109,23 +114,27 @@ export function SearchAutocomplete({ initialSearch = "", activeCategory = "Вс�
             onKeyDown={handleKeyDown}
             onFocus={() => query.trim().length >= 2 && suggestions.length > 0 && setIsOpen(true)}
             placeholder="Поиск по статьям..."
-            className="w-full h-11 pl-10 pr-10 rounded-[10px] border border-border bg-card text-foreground focus:outline-none focus:border-primary transition-colors text-sm font-medium"
+            className={`w-full h-12 pl-11 pr-10 rounded-full border transition-all text-sm font-semibold focus:outline-none shadow-sm ${
+              isFlux
+                ? "bg-card/90 border-border/80 text-foreground placeholder:text-muted-foreground focus:border-purple-500 focus:ring-4 focus:ring-purple-500/15"
+                : "border-border bg-card text-foreground focus:border-primary"
+            }`}
             aria-autocomplete="list"
             aria-expanded={isOpen}
             aria-controls="autocomplete-suggestions"
           />
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
             {isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <Loader2 className={`w-4 h-4 animate-spin ${isFlux ? "text-purple-600" : "text-primary"}`} />
             ) : (
-              <Search className="w-4 h-4" />
+              <Search className={`w-4 h-4 ${isFlux ? "text-purple-600" : ""}`} />
             )}
           </div>
           {query && (
             <button
               type="button"
               onClick={handleClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm flex items-center justify-center min-h-[44px] min-w-[44px]"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm flex items-center justify-center min-h-[44px] min-w-[44px]"
               title="Очистить поиск"
             >
               <X className="w-4 h-4" />
@@ -135,7 +144,11 @@ export function SearchAutocomplete({ initialSearch = "", activeCategory = "Вс�
         <button
           type="button"
           onClick={handleSubmit}
-          className="h-11 px-5 bg-primary text-primary-foreground rounded-[10px] font-bold text-sm flex items-center justify-center hover:opacity-95 transition-opacity active:scale-[0.98] min-w-[80px]"
+          className={`h-12 px-7 rounded-full font-black text-sm flex items-center justify-center transition-all active:scale-[0.98] min-w-[90px] cursor-pointer ${
+            isFlux
+              ? "bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white shadow-[0_4px_16px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_22px_rgba(236,72,153,0.45)] hover:-translate-y-0.5"
+              : "bg-primary text-primary-foreground hover:opacity-95 shadow-sm"
+          }`}
         >
           Найти
         </button>
@@ -146,7 +159,7 @@ export function SearchAutocomplete({ initialSearch = "", activeCategory = "Вс�
         <ul
           id="autocomplete-suggestions"
           role="listbox"
-          className="absolute left-0 right-0 mt-2 bg-card border border-border rounded-[10px] shadow-lg z-50 overflow-hidden divide-y divide-border/40 max-h-[300px] overflow-y-auto"
+          className="absolute left-0 right-0 mt-2 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-border/50 bg-card border border-border max-h-[300px] overflow-y-auto"
         >
           {suggestions.map((item, index) => {
             const isHighlighted = index === activeIndex;
@@ -156,7 +169,9 @@ export function SearchAutocomplete({ initialSearch = "", activeCategory = "Вс�
                 role="option"
                 aria-selected={isHighlighted}
                 className={`transition-colors ${
-                  isHighlighted ? "bg-primary/10 text-primary" : "hover:bg-primary/5 text-foreground"
+                  isHighlighted 
+                    ? (isFlux ? "bg-purple-500/10 text-purple-700 dark:text-purple-300" : "bg-primary/10 text-primary") 
+                    : (isFlux ? "hover:bg-purple-500/5 text-foreground" : "hover:bg-primary/5 text-foreground")
                 }`}
               >
                 <Link
@@ -164,7 +179,7 @@ export function SearchAutocomplete({ initialSearch = "", activeCategory = "Вс�
                   onClick={() => setIsOpen(false)}
                   className="flex flex-col gap-0.5 px-4 py-3 min-h-[44px] w-full text-left"
                 >
-                  <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                  <span className={`text-xs font-bold uppercase tracking-wider ${isFlux ? "text-purple-600" : "text-primary"}`}>
                     {item.category}
                   </span>
                   <span className="text-sm font-semibold leading-tight line-clamp-1">

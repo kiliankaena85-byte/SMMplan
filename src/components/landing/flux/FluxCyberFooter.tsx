@@ -31,7 +31,7 @@ export function FluxCyberFooter({
     : "Российская Федерация, Тверская область, г. Тверь";
 
   return (
-    <footer className="w-full bg-[#0a0d18] text-white pt-14 md:pt-20 pb-10 md:pb-14 border-t border-purple-500/20 relative overflow-hidden mt-auto shadow-[0_-20px_50px_rgba(0,0,0,0.3)]">
+    <footer className="w-full bg-[#0a0d18] text-foreground pt-14 md:pt-20 pb-10 md:pb-14 border-t border-purple-500/20 relative overflow-hidden mt-auto shadow-[0_-20px_50px_rgba(0,0,0,0.3)]">
       {/* Prism Aurora Ambient Glow (No harsh grid lines) */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-72 bg-gradient-to-b from-purple-600/15 via-fuchsia-600/10 to-transparent blur-[100px] pointer-events-none rounded-full" />
       <div className="absolute top-0 right-10 w-96 h-96 bg-pink-500/10 blur-[120px] pointer-events-none rounded-full" />
@@ -44,7 +44,7 @@ export function FluxCyberFooter({
           <div className="flex items-center gap-3">
             <TenantLogo tenantId="flux" className="w-10 h-10" iconClassName="w-5 h-5" />
             <div className="flex flex-col">
-              <span className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+              <span className="text-2xl font-black tracking-tight text-neutral-100 flex items-center gap-2">
                 {brandName}
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
                   Media Hub
@@ -147,7 +147,7 @@ export function FluxCyberFooter({
               href="/api/support/telegram"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-sm shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_25px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 transition-all w-full sm:w-auto active:scale-95"
+              className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-neutral-100 font-bold text-sm shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_25px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 transition-all w-full sm:w-auto active:scale-95"
             >
               <Send className="w-4 h-4" />
               Поддержка в Telegram
@@ -177,7 +177,7 @@ export function FluxCyberFooter({
         <p className="flex items-center gap-1.5 text-neutral-300 font-medium">
           <span>Crafted with</span>
           <Zap className="w-3.5 h-3.5 text-purple-400 fill-current animate-bounce" />
-          <span className="text-white font-semibold">by FLUX Creative Lab</span>
+          <span className="text-neutral-100 font-semibold">by FLUX Creative Lab</span>
         </p>
       </div>
     </footer>

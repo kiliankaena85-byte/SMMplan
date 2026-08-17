@@ -186,9 +186,11 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                   onChange={(e) => setCategory(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-medium text-foreground"
                 >
-                  <option value="GENERAL">Общие</option>
-                  <option value="ORDER">Заказы</option>
-                  <option value="PAYMENT">Оплата</option>
+                  <option value="GENERAL">📋 Общие</option>
+                  <option value="ORDER">📦 Заказы</option>
+                  <option value="PAYMENT">💳 Оплата и возвраты</option>
+                  <option value="LEGAL">⚖️ Юридические / 152-ФЗ</option>
+                  <option value="ACCOUNT">👤 Аккаунт и доступ</option>
                 </select>
               </div>
 
@@ -209,11 +211,11 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                   rows={6}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Используйте переменные: {user_name}, {order_id}, {service_name}, {order_status}, {current_date}"
+                  placeholder="Используйте переменные: {user_name}, {order_id}, {service_name}, {order_status}, {ticket_id}, {user_email}, {domain}, {current_date}"
                   className="flex min-h-[120px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                 />
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {['{user_name}', '{order_id}', '{service_name}', '{order_status}', '{current_date}'].map(tag => (
+                  {['{user_name}', '{order_id}', '{service_name}', '{order_status}', '{ticket_id}', '{user_email}', '{domain}', '{current_date}'].map(tag => (
                     <button
                       key={tag}
                       type="button"
@@ -304,12 +306,16 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                          t.category === 'LEGAL' ? 'bg-primary/10 text-primary border border-primary/20' :
                           t.category === 'PAYMENT' ? 'bg-success/10 text-success border border-success/20' :
                           t.category === 'ORDER' ? 'bg-info/10 text-info border border-info/20' :
+                          t.category === 'ACCOUNT' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200' :
                           'bg-muted text-muted-foreground border border-border/40'
                         }`}>
-                          {t.category === 'PAYMENT' ? 'Оплата' :
-                           t.category === 'ORDER' ? 'Заказы' : 'Общие'}
+                          {t.category === 'LEGAL' ? '⚖️ 152-ФЗ' :
+                           t.category === 'PAYMENT' ? '💳 Оплата' :
+                           t.category === 'ORDER' ? '📦 Заказы' :
+                           t.category === 'ACCOUNT' ? '👤 Аккаунт' : '📋 Общие'}
                         </span>
                       </td>
                       <td className="px-6 py-4">

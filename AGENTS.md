@@ -41,11 +41,20 @@
 
 ---
 
-## 3. Стандарты верстки, UX и взаимодействия (CRITICAL)
+## 3. Стандарты верстки, UX и Дизайн-Системы (CRITICAL)
 
-### Design System Tokens
-- ❌ **НИКОГДА** не используй inline-цвета: `text-white`, `bg-black`, `text-blue-500`, `border-[1px]`.
-- ✅ **ВСЕГДА** используй семантические токены из `globals.css`: `text-foreground`, `bg-background`, `bg-card`, `text-primary`, `text-muted-foreground`.
+### Dual-Brand Design System Tokens & UI Forge Harness
+- ❌ **НИКОГДА** не используй inline-цвета и сырые стили: `text-white`, `bg-black`, `text-blue-500`, `border-[1px]`, `rounded-[17px]`.
+- ❌ **ЗАПРЕЩЕНО** писать сырые `<button>` и `<input>` в пользовательском UI.
+- ✅ **ВСЕГДА** используй компоненты UI Арсенала из `@/components/ui`:
+  - **SMMflux (Radiant Aurora):** `<FluxButton>`, `<FluxInput>`, `<FluxCard>`, `<FluxBadge>`, `<NumberTicker>`, `<BorderBeam>`, `<TiltCard>`, `<Marquee>`, `<Confetti>`.
+  - **SMMplan (Classic B2B):** `<PlanButton>`, `<PlanCard>`, `<PlanBadge>`, `<PlanTable>`, `<PlanTableHeader>`, `<PlanTableRow>`, `<PlanTableCell>`.
+- ⚡ **UI Forge Harness CLI:** Агенты обязаны использовать харнес для автоматизации:
+  - `npx tsx scripts/harness/ui-forge.ts list` — просмотр доступных компонентов
+  - `npx tsx scripts/harness/ui-forge.ts validate` — проверка токенов кодовой базы
+  - `npx tsx scripts/harness/ui-forge.ts scaffold --brand=smmplan <slug>` — генерация B2B-страницы для SMMplan
+  - `npx tsx scripts/harness/ui-forge.ts scaffold --brand=flux <slug>` — генерация страницы для SMMflux
+- ✅ **ВСЕГДА** используй семантические токены из `globals.css`: `text-foreground`, `bg-background`, `bg-card`, `text-primary`, `text-muted-foreground`, `border-border`.
 - Все интерактивные элементы обязаны иметь `transition-all duration-200`. Компоненты декомпозируются (до 150–200 строк).
 
 ### UX форм и валидации
@@ -64,23 +73,24 @@
 - ❌ **Strict Types:** Запрещено использовать `any` (`@typescript-eslint/no-explicit-any`). Используйте `unknown` с проверкой типов.
 - ❌ **Clean Scope:** Удаляйте неиспользуемые импорты и переменные (`@typescript-eslint/no-unused-vars`).
 - ❌ **No Useless Wrappers:** Запрещено писать `try { ... } catch (e) { throw e; }`.
-- ❌ **React 19:** Запрещен `forwardRef` (используется прямой `ref`) и `useFormState` (используется `useActionState`).
+- ❌ **React 19:** Запрещен `useFormState` (используется `useActionState`).
 - ✅ **Синтаксис батч-замен:** При использовании `multi_replace_file_content` всегда проверяйте баланс фигурных скобок `{}`.
 
 ---
 
-## 5. Протокол работы с памятью и субагентами (Maker-Checker Loop)
+## 5. Протокол работы с памятью и субагентами (4-Tier Memory & ACE Triad)
 
-1. **RAG & Память перед стартом:**
-   - Перед сложными задачами выполните поиск по векторной памяти: `npx tsx scripts/query-rag.ts "<контекст>"`.
+1. **RAG & Память перед стартом (Curator):**
+   - Перед сложными задачами выполните поиск по векторной памяти: `npx tsx scripts/memory-client.ts` или `npx tsx scripts/query-rag.ts "<контекст>"`.
    - Проверьте выученные уроки в [`MEMORY.md`](file:///d:/SMM_plan_2/MEMORY.md).
-2. **Закольцованный цикл (Skills > Agents):**
-   - Для выполнения задач используйте регламент из `.agents/skills/iterative-loop-orchestrator/SKILL.md` (Orchestrator → Generator → QA Auditor).
-   - Текущее состояние и замечания цикла фиксируются в `.planning/task_state.md`.
+2. **Логирование ошибок и эпизодов (Reflector):**
+   - При сбоях тестов или регрессиях логируйте пару `(action, observation, reflection)` через `SmmplanMemoryClient.logEpisode()`.
 3. **Обязательная верификация перед сдачей:**
    ```bash
-   npx tsc --noEmit           # 0 ошибок типизации
-   npm run build              # Успешная сборка Next.js
-   npx vitest run             # Прохождение юнит-тестов
+   npx tsx scripts/check-design-system.ts # 0 нарушений токенов
+   npx tsc --noEmit                       # 0 ошибок типизации
+   npm run build                          # Успешная сборка Next.js
+   npx vitest run                         # Прохождение юнит-тестов
    ```
-4. **Фиксация опыта:** При решении сложных багов или принятии архитектурных решений сделайте короткую запись в [`MEMORY.md`](file:///d:/SMM_plan_2/MEMORY.md).
+4. **Фиксация опыта (Semantic Consolidation):** При решении сложных багов или принятии архитектурных решений сделайте короткую запись в [`MEMORY.md`](file:///d:/SMM_plan_2/MEMORY.md) и отправьте решение через `SmmplanMemoryClient.recordDecision()`.
+

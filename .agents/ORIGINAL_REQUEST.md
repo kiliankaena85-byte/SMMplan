@@ -1,34 +1,42 @@
 # Original User Request
 
-## 2026-08-16T13:41:14Z
+## Initial Request — 2026-08-17T00:12:52Z
 
-Eliminate all remaining test failures across the entire SMMplan platform, achieving 100% test pass rate in both Vitest (1004/1004) and Playwright E2E suites, with clean database teardowns.
+<USER_REQUEST>
+Глубокое исследование и реверс-инжиниринг передовых AI-платформ генерации UI и веб-верстки (v0.dev, Lovable.dev, Bolt.new, Google Stitch, Framer AI) для интеграции их лучших архитектурных паттернов в экосистему SMMplan/SMMflux.
 
-Working directory: d:/SMM_plan_2
+Working directory: d:/SMM_plan_2/teamwork_projects/ai_ui_systems_research
 Integrity mode: development
 
 ## Requirements
 
-### R1. Fix All Failing Vitest Unit Tests (P0)
-Resolve all 51 failing unit tests across the 17 files in test/unit/ (e.g. service-audit.test.ts, settings.test.ts, smart-drip-checkout.test.ts, pricing-sync.test.ts, services-data.test.ts, etc.) to align with current financial constants (Safety Floor markup 3.0, unit pricing ₽ / шт, and multi-tenant Prisma rules).
+### R1. Сравнительный таксономический анализ платформ
+Провести детальное сопоставление ведущих платформ генерации интерфейсов (v0.dev, Lovable.dev, Bolt.new, Google Stitch, Framer AI, Cursor Composer) по критериям:
+- Целевая аудитория и назначение (компоненты vs фуллстек SaaS vs лендинги).
+- Визуальный стиль и дизайн-система (Tailwind, CSS-first, Radix/shadcn, Glassmorphism, Canvas).
+- Логика работы (Single-turn prompt vs Agentic Loop vs Click-to-Edit Canvas).
+- Архитектура runtime (WebContainers, Sandpack, Serverless Sandbox, local AST).
 
-### R2. Resolve Database Teardown & Immutable Ledger Constraint in E2E (P1)
-Update e2e/utils/db-cleaner.ts to cleanly handle PostgreSQL's immutable ledger trigger during test teardowns without throwing foreign key violations or leaving console warnings.
+### R2. Реверс-инжиниринг ключевых механизмов (Core Mechanics)
+Детально вскрыть и описать алгоритмы:
+- Генерация токенов и предотвращение галлюцинаций стилей.
+- Движки Live Preview и синхронизации кода с холстом.
+- Инструменты обратной связи (Visual Feedback Loops / PixelRAG).
+- Механизм контекстной памяти и диффов (Multi-file Patching).
 
-### R3. Align Remaining Legacy E2E Test Selectors (P1)
-Update outdated selectors in e2e/user-flow.spec.ts, e2e/providers.spec.ts, and e2e/api-v2-mass-orders.spec.ts to match modern HeroUI v3 components and UnifiedOrderWizard.
-
-### R4. Synchronize Architecture Decisions to GraphRAG (P2)
-Log all final test isolation, financial safety floor, and session verification architectural decisions to the GraphRAG memory service at http://localhost:8100/api/decision.
+### R3. Архитектурная адаптация для SMMplan/SMMflux
+Сформировать готовую спецификацию переноса лучших практик в наш стек (Next.js 16, React 19, Tailwind CSS 4 `@theme`, HeroUI v3, 4-Tier Memory):
+- Внедрение Click-to-Edit инспектора для дизайн-системы.
+- Автоматизированный генератор экранов на базе UI-SPEC.
+- Реверс-инженерный пайплайн Lovable/v0 для ускорения верстки страниц SMMflux.
 
 ## Acceptance Criteria
 
-### Vitest Unit Suite
-- [ ] npx vitest run completes with 0 failed tests (1004 / 1004 passed).
+### Аналитическая глубина
+- [ ] Готова сравнительная матрица 6 платформ по 12 параметрам.
+- [ ] Описаны внутренние промпты, схемы данных и системные контракты каждой системы.
 
-### Playwright E2E Suite
-- [ ] All Playwright E2E test suites pass without selector timeouts.
-- [ ] E2E database teardowns run cleanly without unhandled errors.
-
-### TypeScript & Code Integrity
-- [ ] npx tsc --noEmit exits with 0 errors.
+### Практическая применимость (Reverse-Engineering Blueprint)
+- [ ] Разработана схема архитектуры собственной дизайн-песочницы (Live Preview + AST Auto-Fix).
+- [ ] Сформирован набор готовых промпт-инструкций и HELP-скриптов для наших агентов (Curator, UI Architect, UI Designer, Reflector).
+</USER_REQUEST>

@@ -41,7 +41,7 @@ export function FluxReviews() {
       />
       <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-normal text-balance">
+          <h2 className="text-3xl md:text-4xl font-black text-foreground tracking-tight text-balance">
             Отзывы наших клиентов
           </h2>
           <p className="mt-4 text-muted-foreground font-medium max-w-xl mx-auto text-pretty">

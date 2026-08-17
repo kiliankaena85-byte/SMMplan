@@ -103,43 +103,53 @@ export default async function LoginPage({ searchParams }: PageProps) {
   if (isFlux) {
     return (
       <div className="min-h-screen bg-background text-foreground font-sans flex flex-col justify-center items-center relative overflow-x-clip p-4 md:p-8">
-        {/* SMMFLUX ELEGANT HERO BACKGROUND (Toned down for high contrast) */}
-        <div className="absolute top-0 inset-x-0 h-screen z-0 pointer-events-none overflow-hidden select-none bg-background">
-          <div className="absolute top-[-10%] left-[-5%] w-[55%] h-[45%] rounded-full bg-blue-500/35 blur-[140px] animate-pulse" style={{ animationDuration: '10s' }} />
-          <div className="absolute top-[5%] right-[-5%] w-[45%] h-[45%] rounded-full bg-indigo-400/30 blur-[140px] animate-pulse" style={{ animationDuration: '14s' }} />
-          <div className="absolute bottom-[-10%] left-[10%] w-[50%] h-[50%] rounded-full bg-purple-500/30 blur-[150px] animate-pulse" style={{ animationDuration: '12s' }} />
-          <div className="absolute bottom-[5%] right-[-5%] w-[50%] h-[50%] rounded-full bg-sky-400/30 blur-[130px] animate-pulse" style={{ animationDuration: '11s' }} />
+        {/* SMMFLUX RADIANT AURORA BACKGROUND */}
+        <div className="absolute top-0 inset-x-0 h-screen z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.55), transparent 70%), ' +
+                'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.45), transparent 70%), ' +
+                'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.45), transparent 70%), ' +
+                'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.40), transparent 70%), ' +
+                'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.50), transparent 75%)',
+            }}
+          />
+          <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-blue-500/35 blur-[120px] pointer-events-none" />
+          <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/40 blur-[110px] pointer-events-none" />
+          <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/35 blur-[120px] pointer-events-none" />
         </div>
 
         <div className="relative z-10 w-full max-w-5xl grid lg:grid-cols-2 gap-8 items-center">
           {/* Left Hero branding for SMMflux */}
           <div className="hidden lg:flex flex-col space-y-8 p-8">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-2xl shadow-xl shadow-blue-500/25">
-                F
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 text-white flex items-center justify-center font-black text-2xl shadow-xl shadow-purple-500/30">
+                <Sparkles className="w-6 h-6 animate-pulse" />
               </div>
               <span className="font-black text-3xl tracking-tight text-foreground">SMMflux</span>
-            </div>
+            </Link>
 
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-600/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-black uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Next-Gen AI Growth
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-700 dark:text-purple-300 text-xs font-black uppercase tracking-wider shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-pink-500" /> FLUX Next-Gen Platform
               </div>
               <h1 className="text-4xl xl:text-5xl font-black text-foreground tracking-tight leading-tight">
-                Продвижение нового уровня
+                Продвижение нового поколения
               </h1>
-              <p className="text-foreground/80 font-medium text-base leading-relaxed bg-card/70 backdrop-blur-md p-5 rounded-2xl border border-border/50 shadow-sm">
-                Войдите в личный кабинет SMMflux — управляйте проектами с невероятной скоростью и элегантным дизайном.
+              <p className="text-muted-foreground font-medium text-base leading-relaxed bg-card/85 backdrop-blur-md p-6 rounded-[2rem] border border-border/80 shadow-sm">
+                Войдите в личный кабинет SMMflux — управляйте заказами с максимальной скоростью, чеками 54-ФЗ и защитой от списаний.
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               {[
-                { icon: <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 mb-1" />, value: 'AI-Driven', label: 'Алгоритмы' },
-                { icon: <Zap className="w-5 h-5 text-amber-500 mb-1" />, value: 'Мгновенно', label: 'Старт заказов' },
-                { icon: <ShieldCheck className="w-5 h-5 text-emerald-500 mb-1" />, value: '24/7', label: 'Поддержка' },
+                { icon: <Sparkles className="w-5 h-5 text-purple-600 mb-1" />, value: 'AI-Driven', label: 'Алгоритмы' },
+                { icon: <Zap className="w-5 h-5 text-pink-500 mb-1" />, value: 'От 1 шт', label: 'Без опта' },
+                { icon: <ShieldCheck className="w-5 h-5 text-emerald-600 mb-1" />, value: '54-ФЗ', label: 'Чек на почту' },
               ].map(({ icon, value, label }) => (
-                <div key={label} className="bg-card border border-border/50 shadow-md p-4 text-center rounded-2xl flex flex-col items-center justify-center min-h-[104px] hover:scale-105 transition-all duration-300">
+                <div key={label} className="bg-card/90 backdrop-blur-xl border border-border/80 shadow-sm p-4 text-center rounded-2xl flex flex-col items-center justify-center min-h-[104px] hover:scale-105 transition-all duration-300">
                   {icon}
                   <div className="text-base font-black text-foreground">{value}</div>
                   <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">{label}</div>
@@ -148,17 +158,17 @@ export default async function LoginPage({ searchParams }: PageProps) {
             </div>
           </div>
 
-          {/* Right High-Contrast SMMflux Card */}
-          <div className="w-full max-w-md mx-auto bg-card border border-border/80 rounded-[2.5rem] p-8 md:p-10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] space-y-8 text-foreground">
+          {/* Right SMMflux Card */}
+          <div className="w-full max-w-md mx-auto bg-card/90 backdrop-blur-2xl border border-border/80 rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.08)] space-y-8 text-foreground">
             <div className="text-center lg:text-left">
               <div className="lg:hidden flex items-center justify-center gap-2 mb-6">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-lg">
-                  F
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 text-white flex items-center justify-center font-black text-lg shadow-lg">
+                  <Sparkles className="w-5 h-5" />
                 </div>
                 <span className="font-black text-2xl tracking-tight text-foreground">SMMflux</span>
               </div>
               <h2 className="text-2xl font-black text-foreground tracking-tight">Вход в SMMflux</h2>
-              <p className="text-muted-foreground text-sm mt-1 font-semibold">
+              <p className="text-muted-foreground text-sm mt-1 font-medium">
                 Введите email и пароль для доступа к кабинету.
               </p>
             </div>
@@ -180,7 +190,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
     );
   }
 
-  {/* ── CLASSIC SMMPLAN VARIANT ── */}
+  // ── CLASSIC SMMPLAN VARIANT ──
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* ── Left: Branding panel ── */}
