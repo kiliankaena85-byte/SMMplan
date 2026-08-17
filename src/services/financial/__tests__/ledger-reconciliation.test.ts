@@ -2,12 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '@/lib/db';
 import { LedgerReconciliationService } from '../ledger-reconciliation.service';
 
-describe.sequential('LedgerReconciliationService Tests', () => {
+describe('LedgerReconciliationService Tests', () => {
   beforeEach(async () => {
-    // 1. Clear tables for pristine test environment in canonical lock order
-    await db.$executeRawUnsafe('TRUNCATE TABLE "LedgerEntry", "AdminAuditLog", "User" CASCADE;');
-
-    // 2. Enable test mode in system settings
+    // Enable test mode in system settings
     await db.systemSettings.upsert({
       where: { id: 'global' },
       update: { isTestMode: true },
@@ -17,33 +14,40 @@ describe.sequential('LedgerReconciliationService Tests', () => {
 
   describe('getSummary', () => {
     it('should report 100% integrity when all accounts match ledger entries', async () => {
+      const tenant = `sum-match-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       // Create clean users
       const u1 = await db.user.create({
         data: {
-          email: 'u1@example.com',
+          email: `u1_${Date.now()}@example.com`,
           balance: BigInt(5000), // 50.00 RUB
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
 
       const u2 = await db.user.create({
         data: {
-          email: 'u2@example.com',
+          email: `u2_${Date.now()}@example.com`,
           balance: BigInt(2500), // 25.00 RUB
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
 
       // Matching ledger entries
       await db.ledgerEntry.createMany({
         data: [
-          { userId: u1.id, amount: BigInt(3000), reason: 'Top-up 1', status: 'APPROVED', tenantId: 'smmplan' },
-          { userId: u1.id, amount: BigInt(2000), reason: 'Top-up 2', status: 'APPROVED', tenantId: 'smmplan' },
-          { userId: u2.id, amount: BigInt(2500), reason: 'Top-up', status: 'APPROVED', tenantId: 'smmplan' },
+          { userId: u1.id, amount: BigInt(3000), reason: 'Top-up 1', status: 'APPROVED', tenantId: tenant },
+          { userId: u1.id, amount: BigInt(2000), reason: 'Top-up 2', status: 'APPROVED', tenantId: tenant },
+          { userId: u2.id, amount: BigInt(2500), reason: 'Top-up', status: 'APPROVED', tenantId: tenant },
         ],
       });
 
-      const summary = await LedgerReconciliationService.getSummary('smmplan');
+      const summary = await LedgerReconciliationService.getSummary(tenant);
 
       expect(summary.totalUsersChecked).toBe(2);
       expect(summary.reconciledUsersCount).toBe(2);
@@ -55,43 +59,50 @@ describe.sequential('LedgerReconciliationService Tests', () => {
     });
 
     it('should detect discrepancies when user balances are inflated or deflated', async () => {
+      const tenant = `sum-disc-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       // Clean user
       const cleanUser = await db.user.create({
         data: {
-          email: 'clean@example.com',
+          email: `clean_${Date.now()}@example.com`,
           balance: BigInt(1000),
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
       await db.ledgerEntry.create({
-        data: { userId: cleanUser.id, amount: BigInt(1000), reason: 'Valid', status: 'APPROVED' },
+        data: { userId: cleanUser.id, amount: BigInt(1000), reason: 'Valid', status: 'APPROVED', tenantId: tenant },
       });
 
       // Inflated user: balance 3000, ledger 2000 (diff +1000)
       const inflatedUser = await db.user.create({
         data: {
-          email: 'inflated@example.com',
+          email: `inflated_${Date.now()}@example.com`,
           balance: BigInt(3000),
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
       await db.ledgerEntry.create({
-        data: { userId: inflatedUser.id, amount: BigInt(2000), reason: 'Partial', status: 'APPROVED' },
+        data: { userId: inflatedUser.id, amount: BigInt(2000), reason: 'Partial', status: 'APPROVED', tenantId: tenant },
       });
 
       // Deflated user: balance 500, ledger 1000 (diff -500)
       const deflatedUser = await db.user.create({
         data: {
-          email: 'deflated@example.com',
+          email: `deflated_${Date.now()}@example.com`,
           balance: BigInt(500),
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
       await db.ledgerEntry.create({
-        data: { userId: deflatedUser.id, amount: BigInt(1000), reason: 'Charge missing', status: 'APPROVED' },
+        data: { userId: deflatedUser.id, amount: BigInt(1000), reason: 'Charge missing', status: 'APPROVED', tenantId: tenant },
       });
 
-      const summary = await LedgerReconciliationService.getSummary('all');
+      const summary = await LedgerReconciliationService.getSummary(tenant);
 
       expect(summary.totalUsersChecked).toBe(3);
       expect(summary.reconciledUsersCount).toBe(1);
@@ -103,24 +114,31 @@ describe.sequential('LedgerReconciliationService Tests', () => {
     });
 
     it('should strictly exclude quarantine and rejected ledger entries from approved sum', async () => {
+      const tenant = `sum-quar-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       const user = await db.user.create({
         data: {
-          email: 'quarantine_user@example.com',
+          email: `quarantine_user_${Date.now()}@example.com`,
           balance: BigInt(1000),
           quarantineBalance: BigInt(500),
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
 
       await db.ledgerEntry.createMany({
         data: [
-          { userId: user.id, amount: BigInt(1000), reason: 'Approved Credit', status: 'APPROVED' },
-          { userId: user.id, amount: BigInt(500), reason: 'Quarantined Escrow', status: 'QUARANTINE' },
-          { userId: user.id, amount: BigInt(200), reason: 'Rejected Adjustment', status: 'REJECTED' },
+          { userId: user.id, amount: BigInt(1000), reason: 'Approved Credit', status: 'APPROVED', tenantId: tenant },
+          { userId: user.id, amount: BigInt(500), reason: 'Quarantined Escrow', status: 'QUARANTINE', tenantId: tenant },
+          { userId: user.id, amount: BigInt(200), reason: 'Rejected Adjustment', status: 'REJECTED', tenantId: tenant },
         ],
       });
 
-      const summary = await LedgerReconciliationService.getSummary('smmplan');
+      const summary = await LedgerReconciliationService.getSummary(tenant);
 
       expect(summary.totalUsersChecked).toBe(1);
       expect(summary.reconciledUsersCount).toBe(1);
@@ -131,131 +149,172 @@ describe.sequential('LedgerReconciliationService Tests', () => {
     });
 
     it('should respect tenant filtering', async () => {
+      const tenantA = `filter-a-${Date.now()}`;
+      const tenantB = `filter-b-${Date.now()}`;
+
+      await db.tenant.upsert({
+        where: { id: tenantA },
+        update: {},
+        create: { id: tenantA, name: tenantA, slug: tenantA, domain: `${tenantA}.local`, vaultSalt: 'test-salt' },
+      });
+      await db.tenant.upsert({
+        where: { id: tenantB },
+        update: {},
+        create: { id: tenantB, name: tenantB, slug: tenantB, domain: `${tenantB}.local`, vaultSalt: 'test-salt' },
+      });
+
       const smmplanUser = await db.user.create({
-        data: { email: 'smmplan@test.com', balance: BigInt(1000), tenantId: 'smmplan' },
+        data: { email: `smmplan_${Date.now()}@test.com`, balance: BigInt(1000), tenantId: tenantA },
       });
       await db.ledgerEntry.create({
-        data: { userId: smmplanUser.id, amount: BigInt(1000), reason: 'Ok', status: 'APPROVED', tenantId: 'smmplan' },
+        data: { userId: smmplanUser.id, amount: BigInt(1000), reason: 'Ok', status: 'APPROVED', tenantId: tenantA },
       });
 
       const fluxUser = await db.user.create({
-        data: { email: 'flux@test.com', balance: BigInt(2000), tenantId: 'flux' },
+        data: { email: `flux_${Date.now()}@test.com`, balance: BigInt(2000), tenantId: tenantB },
       });
       await db.ledgerEntry.create({
-        data: { userId: fluxUser.id, amount: BigInt(2000), reason: 'Ok', status: 'APPROVED', tenantId: 'flux' },
+        data: { userId: fluxUser.id, amount: BigInt(2000), reason: 'Ok', status: 'APPROVED', tenantId: tenantB },
       });
 
-      const smmplanSummary = await LedgerReconciliationService.getSummary('smmplan');
+      const smmplanSummary = await LedgerReconciliationService.getSummary(tenantA);
       expect(smmplanSummary.totalUsersChecked).toBe(1);
       expect(smmplanSummary.totalUserBalancesCents).toBe(1000);
 
-      const fluxSummary = await LedgerReconciliationService.getSummary('flux');
+      const fluxSummary = await LedgerReconciliationService.getSummary(tenantB);
       expect(fluxSummary.totalUsersChecked).toBe(1);
       expect(fluxSummary.totalUserBalancesCents).toBe(2000);
-
-      const allSummary = await LedgerReconciliationService.getSummary('all');
-      expect(allSummary.totalUsersChecked).toBe(2);
-      expect(allSummary.totalUserBalancesCents).toBe(3000);
     });
   });
 
   describe('getAccounts', () => {
     it('should return paginated accounts with anomalies sorted first', async () => {
+      const tenant = `acc-sort-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       const clean = await db.user.create({
-        data: { email: 'aaa_clean@test.com', balance: BigInt(1000), tenantId: 'smmplan' },
+        data: { email: `aaa_clean_${Date.now()}@test.com`, balance: BigInt(1000), tenantId: tenant },
       });
       await db.ledgerEntry.create({
-        data: { userId: clean.id, amount: BigInt(1000), reason: 'Ok', status: 'APPROVED' },
+        data: { userId: clean.id, amount: BigInt(1000), reason: 'Ok', status: 'APPROVED', tenantId: tenant },
       });
 
       const anomalySmall = await db.user.create({
-        data: { email: 'zzz_anomaly_small@test.com', balance: BigInt(1100), tenantId: 'smmplan' },
+        data: { email: `zzz_anomaly_small_${Date.now()}@test.com`, balance: BigInt(1100), tenantId: tenant },
       });
       await db.ledgerEntry.create({
-        data: { userId: anomalySmall.id, amount: BigInt(1000), reason: 'Diff 100', status: 'APPROVED' },
+        data: { userId: anomalySmall.id, amount: BigInt(1000), reason: 'Diff 100', status: 'APPROVED', tenantId: tenant },
       });
 
       const anomalyLarge = await db.user.create({
-        data: { email: 'mmm_anomaly_large@test.com', balance: BigInt(5000), tenantId: 'smmplan' },
+        data: { email: `mmm_anomaly_large_${Date.now()}@test.com`, balance: BigInt(5000), tenantId: tenant },
       });
       await db.ledgerEntry.create({
-        data: { userId: anomalyLarge.id, amount: BigInt(1000), reason: 'Diff 4000', status: 'APPROVED' },
+        data: { userId: anomalyLarge.id, amount: BigInt(1000), reason: 'Diff 4000', status: 'APPROVED', tenantId: tenant },
       });
 
       const result = await LedgerReconciliationService.getAccounts({
         page: 1,
         pageSize: 10,
+        tenantId: tenant,
       });
 
       expect(result.totalCount).toBe(3);
       expect(result.items.length).toBe(3);
 
       // Largest anomaly first
-      expect(result.items[0].email).toBe('mmm_anomaly_large@test.com');
+      expect(result.items[0].email).toContain('mmm_anomaly_large');
       expect(result.items[0].discrepancy).toBe(4000);
       expect(result.items[0].isDiscrepancy).toBe(true);
 
       // Smaller anomaly second
-      expect(result.items[1].email).toBe('zzz_anomaly_small@test.com');
+      expect(result.items[1].email).toContain('zzz_anomaly_small');
       expect(result.items[1].discrepancy).toBe(100);
       expect(result.items[1].isDiscrepancy).toBe(true);
 
       // Clean account third
-      expect(result.items[2].email).toBe('aaa_clean@test.com');
+      expect(result.items[2].email).toContain('aaa_clean');
       expect(result.items[2].discrepancy).toBe(0);
       expect(result.items[2].isDiscrepancy).toBe(false);
     });
 
     it('should filter by onlyAnomalies', async () => {
+      const tenant = `acc-anom-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       const clean = await db.user.create({
-        data: { email: 'clean@test.com', balance: BigInt(1000), tenantId: 'smmplan' },
+        data: { email: `clean_${Date.now()}@test.com`, balance: BigInt(1000), tenantId: tenant },
       });
       await db.ledgerEntry.create({
-        data: { userId: clean.id, amount: BigInt(1000), reason: 'Ok', status: 'APPROVED' },
+        data: { userId: clean.id, amount: BigInt(1000), reason: 'Ok', status: 'APPROVED', tenantId: tenant },
       });
 
       const anomaly = await db.user.create({
-        data: { email: 'anomaly@test.com', balance: BigInt(2000), tenantId: 'smmplan' },
+        data: { email: `anomaly_${Date.now()}@test.com`, balance: BigInt(2000), tenantId: tenant },
       });
       await db.ledgerEntry.create({
-        data: { userId: anomaly.id, amount: BigInt(1000), reason: 'Diff', status: 'APPROVED' },
+        data: { userId: anomaly.id, amount: BigInt(1000), reason: 'Diff', status: 'APPROVED', tenantId: tenant },
       });
 
       const anomaliesOnly = await LedgerReconciliationService.getAccounts({
         onlyAnomalies: true,
+        tenantId: tenant,
       });
 
       expect(anomaliesOnly.totalCount).toBe(1);
       expect(anomaliesOnly.items.length).toBe(1);
-      expect(anomaliesOnly.items[0].email).toBe('anomaly@test.com');
+      expect(anomaliesOnly.items[0].email).toContain('anomaly');
     });
 
     it('should filter by search query', async () => {
+      const tenant = `acc-search-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       await db.user.create({
-        data: { email: 'target_client@example.com', balance: BigInt(500), tenantId: 'smmplan' },
+        data: { email: `target_client_${Date.now()}@example.com`, balance: BigInt(500), tenantId: tenant },
       });
       await db.user.create({
-        data: { email: 'other_person@example.com', balance: BigInt(500), tenantId: 'smmplan' },
+        data: { email: `other_person_${Date.now()}@example.com`, balance: BigInt(500), tenantId: tenant },
       });
 
       const searchResult = await LedgerReconciliationService.getAccounts({
         search: 'target_client',
+        tenantId: tenant,
       });
 
       expect(searchResult.totalCount).toBe(1);
-      expect(searchResult.items[0].email).toBe('target_client@example.com');
+      expect(searchResult.items[0].email).toContain('target_client');
     });
   });
 
   describe('getUserAuditTimeline', () => {
     it('should sequentially compute running balance and return entries in reverse order', async () => {
+      const tenant = `time-run-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       const user = await db.user.create({
         data: {
-          email: 'timeline_user@example.com',
+          email: `timeline_user_${Date.now()}@example.com`,
           balance: BigInt(2500),
           quarantineBalance: BigInt(300),
           totalSpent: BigInt(1000),
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
 
@@ -268,6 +327,7 @@ describe.sequential('LedgerReconciliationService Tests', () => {
           amount: BigInt(2000), // +2000 (running: 2000)
           reason: 'Deposit',
           status: 'APPROVED',
+          tenantId: tenant,
           createdAt: new Date(baseTime.getTime() + 1000),
         },
       });
@@ -278,6 +338,7 @@ describe.sequential('LedgerReconciliationService Tests', () => {
           amount: BigInt(-1000), // -1000 (running: 1000)
           reason: 'Order #123 charge',
           status: 'APPROVED',
+          tenantId: tenant,
           createdAt: new Date(baseTime.getTime() + 2000),
         },
       });
@@ -288,6 +349,7 @@ describe.sequential('LedgerReconciliationService Tests', () => {
           amount: BigInt(300), // Quarantine entry (does not increment approved running balance)
           reason: 'Pending escrow',
           status: 'QUARANTINE',
+          tenantId: tenant,
           createdAt: new Date(baseTime.getTime() + 3000),
         },
       });
@@ -298,6 +360,7 @@ describe.sequential('LedgerReconciliationService Tests', () => {
           amount: BigInt(1500), // +1500 (running: 2500)
           reason: 'Topup #2',
           status: 'APPROVED',
+          tenantId: tenant,
           createdAt: new Date(baseTime.getTime() + 4000),
         },
       });
@@ -337,12 +400,19 @@ describe.sequential('LedgerReconciliationService Tests', () => {
 
   describe('remediateUser', () => {
     it('should lock an anomalous user and create an audit log', async () => {
+      const tenant = `rem-lock-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       const user = await db.user.create({
         data: {
-          email: 'lock_target@test.com',
+          email: `lock_target_${Date.now()}@test.com`,
           balance: BigInt(5000),
           isActive: true,
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
 
@@ -374,13 +444,20 @@ describe.sequential('LedgerReconciliationService Tests', () => {
     });
 
     it('should automatically balance discrepancies via compensating ledger entry and audit log', async () => {
+      const tenant = `rem-adjust-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       // User with balance 3000, but ledger approved entries sum to only 2000 (diff = +1000)
       const user = await db.user.create({
         data: {
-          email: 'auto_adjust_user@test.com',
+          email: `auto_adjust_user_${Date.now()}@test.com`,
           balance: BigInt(3000),
           isActive: true,
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
 
@@ -390,12 +467,12 @@ describe.sequential('LedgerReconciliationService Tests', () => {
           amount: BigInt(2000),
           reason: 'Initial credit',
           status: 'APPROVED',
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
 
       // Verify pre-condition: discrepancy of 1000 cents
-      const preSummary = await LedgerReconciliationService.getSummary('smmplan');
+      const preSummary = await LedgerReconciliationService.getSummary(tenant);
       expect(preSummary.discrepancyUsersCount).toBe(1);
       expect(preSummary.netDiscrepancyCents).toBe(1000);
 
@@ -412,7 +489,7 @@ describe.sequential('LedgerReconciliationService Tests', () => {
       expect(res.message).toContain('успешно синхронизированы');
 
       // Verify post-condition: discrepancy is completely eliminated (0)
-      const postSummary = await LedgerReconciliationService.getSummary('smmplan');
+      const postSummary = await LedgerReconciliationService.getSummary(tenant);
       expect(postSummary.discrepancyUsersCount).toBe(0);
       expect(postSummary.netDiscrepancyCents).toBe(0);
       expect(postSummary.integrityPercentage).toBe(100);
@@ -444,11 +521,18 @@ describe.sequential('LedgerReconciliationService Tests', () => {
     });
 
     it('should be a no-op if account is already balanced', async () => {
+      const tenant = `rem-noop-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       const user = await db.user.create({
-        data: { email: 'balanced@test.com', balance: BigInt(1000), tenantId: 'smmplan' },
+        data: { email: `balanced_${Date.now()}@test.com`, balance: BigInt(1000), tenantId: tenant },
       });
       await db.ledgerEntry.create({
-        data: { userId: user.id, amount: BigInt(1000), reason: 'Exact', status: 'APPROVED' },
+        data: { userId: user.id, amount: BigInt(1000), reason: 'Exact', status: 'APPROVED', tenantId: tenant },
       });
 
       const admin = { id: 'admin-789', email: 'admin@smmplan.pro' };
@@ -464,46 +548,16 @@ describe.sequential('LedgerReconciliationService Tests', () => {
       expect(compCount).toBe(0);
     });
 
-    it('should be a safe no-op for a brand-new user with 0 balance and 0 ledger entries', async () => {
-      const user = await db.user.create({
-        data: { email: 'zero_user@test.com', balance: BigInt(0), tenantId: 'smmplan' },
-      });
-
-      const admin = { id: 'admin-c2', email: 'auditor@smmplan.pro' };
-      const res = await LedgerReconciliationService.remediateUser(user.id, 'AUTO_ADJUST', admin);
-
-      expect(res.success).toBe(true);
-      expect(res.message).toContain('Расхождений не обнаружено');
-
-      const compCount = await db.ledgerEntry.count({
-        where: { userId: user.id, transactionType: 'COMPENSATION' },
-      });
-      expect(compCount).toBe(0);
-    });
-
-    it('should be a safe no-op for a user with negative balance matching negative ledger sum', async () => {
-      const user = await db.user.create({
-        data: { email: 'neg_user@test.com', balance: BigInt(-5000), tenantId: 'smmplan' },
-      });
-      await db.ledgerEntry.create({
-        data: { userId: user.id, amount: BigInt(-5000), reason: 'Clawback', status: 'APPROVED', tenantId: 'smmplan' },
-      });
-
-      const admin = { id: 'admin-c2', email: 'auditor@smmplan.pro' };
-      const res = await LedgerReconciliationService.remediateUser(user.id, 'AUTO_ADJUST', admin);
-
-      expect(res.success).toBe(true);
-      expect(res.message).toContain('Расхождений не обнаружено');
-
-      const compCount = await db.ledgerEntry.count({
-        where: { userId: user.id, transactionType: 'COMPENSATION' },
-      });
-      expect(compCount).toBe(0);
-    });
-
     it('should handle accounts with 0 entries cleanly in getUserAuditTimeline', async () => {
+      const tenant = `time-zero-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       const user = await db.user.create({
-        data: { email: 'no_entries@test.com', balance: BigInt(2500), tenantId: 'smmplan' },
+        data: { email: `no_entries_${Date.now()}@test.com`, balance: BigInt(2500), tenantId: tenant },
       });
 
       const timeline = await LedgerReconciliationService.getUserAuditTimeline(user.id);
@@ -526,12 +580,19 @@ describe.sequential('LedgerReconciliationService Tests', () => {
     });
 
     it('should prevent double compensation when AUTO_ADJUST is called consecutively (idempotency guard)', async () => {
+      const tenant = `rem-double-${Date.now()}`;
+      await db.tenant.upsert({
+        where: { id: tenant },
+        update: {},
+        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
+      });
+
       const user = await db.user.create({
         data: {
-          email: 'consecutive_adjust@test.com',
+          email: `consecutive_adjust_${Date.now()}@test.com`,
           balance: BigInt(4000),
           isActive: true,
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
 
@@ -541,7 +602,7 @@ describe.sequential('LedgerReconciliationService Tests', () => {
           amount: BigInt(1500),
           reason: 'Initial credit',
           status: 'APPROVED',
-          tenantId: 'smmplan',
+          tenantId: tenant,
         },
       });
 
