@@ -1,5 +1,3 @@
-import { db } from './db';
-
 let tenantCache: Map<string, string> | null = null;
 let cacheExpiry = 0;
 let inflightTenantFetch: Promise<Map<string, string>> | null = null;
@@ -7,6 +5,8 @@ let inflightTenantFetch: Promise<Map<string, string>> | null = null;
 async function fetchTenantsFromDb(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   try {
+    // Dynamic import to prevent PrismaClient bundling in Next.js Edge Runtime (middleware)
+    const { db } = await import('./db');
     const tenants = await db.tenant.findMany({
       where: { isActive: true },
       select: { slug: true, domain: true, customDomain: true },
