@@ -698,6 +698,15 @@ class AdminCatalogService {
       pendingUpdates = [];
     }
 
+    // SAFETY GATE: If zombie count is abnormally high (> 30% of our services and > 3 services),
+    // it indicates a temporary provider API outage or mapping anomaly. Abort mass deactivation to protect storefront.
+    if (ourServices.length >= 5 && zombieIds.length > ourServices.length * 0.3) {
+      const alertMsg = `🚨 [Zombie Eraser Safety Gate] Массовое отключение заблокировано! Провайдер не вернул ${zombieIds.length} из ${ourServices.length} услуг (${((zombieIds.length / ourServices.length) * 100).toFixed(0)}%). Витрина защищена от блэкаута.`;
+      logger.warn(alertMsg, { providerId, totalServices: ourServices.length, zombieCount: zombieIds.length });
+      await sendAdminAlert(alertMsg, 'CRITICAL');
+      zombieIds.length = 0;
+    }
+
     // Process zombies in batches of 500 to avoid N+1 query spam and connection pool exhaustion
     const ZOMBIE_BATCH_SIZE = 500;
     for (let i = 0; i < zombieIds.length; i += ZOMBIE_BATCH_SIZE) {
