@@ -90,8 +90,9 @@ export function Header({ initialEmail, siteName, tenantId, activePath }: HeaderP
               <form method="POST" action="/api/auth/logout">
                 <button
                   type="submit"
-                  className="flex items-center justify-center p-2 sm:p-2.5 rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-destructive transition-colors border border-default-200 cursor-pointer"
+                  className="flex items-center justify-center p-2 sm:p-2.5 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-destructive transition-colors border border-default-200 cursor-pointer"
                   title="Выйти из аккаунта"
+                  aria-label="Выйти из аккаунта"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>

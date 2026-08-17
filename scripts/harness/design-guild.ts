@@ -543,20 +543,13 @@ export class DesignGuildOrchestrator {
 // CLI Execution
 // ==========================================
 async function main() {
-  const args = process.argv.slice(2);
-  const command = args[0] || 'audit';
-  const targetPath = args[1] || 'src/components/support/chat/ChatInput.tsx';
+  const rawArgs = process.argv.slice(2);
+  const target = (rawArgs[0] === 'audit' || rawArgs[0] === 'аудит' ? rawArgs[1] : rawArgs[0]) || 'smmplan';
 
   console.log('==================================================================');
   console.log('🎨 ANTIGRAVITY DESIGN GUILD HARNESS v5.5 (14 Atomic Specialists)');
   console.log('==================================================================\n');
 
-  if (!fs.existsSync(targetPath)) {
-    console.error(`❌ Файл не найден: ${targetPath}`);
-    process.exit(1);
-  }
-
-  console.log(`🔍 Целевой компонент: ${targetPath}`);
   console.log(`👥 Состав Гильдии Дизайна: 14 узкоспециализированных микро-агентов:\n`);
   console.log(`   1. 🅰️  Typography-Sentinel           8. ♿ WCAG-Accessibility-Guard`);
   console.log(`   2. 🔘 Button-Interactive-Ops        9. 📱 Mobile-Ergonomics-Lead`);
@@ -566,39 +559,99 @@ async function main() {
   console.log(`   6. 🪐 Motion-Microphysics-Lead      13. 💎 Elevation-Shadow-Director`);
   console.log(`   7. 🎨 Color-Token-Guardian          14. 🧬 Design-Token-Validator\n`);
 
-  const orchestrator = new DesignGuildOrchestrator(targetPath);
-  const report = orchestrator.audit();
+  let targetFiles: string[] = [];
 
-  console.log('------------------------------------------------------------------');
-  console.log(`📊 ИТОГОВЫЙ ДИЗАЙН-РЕЙТИНГ (GUILD SCORE): ${report.score} / 100`);
-  console.log(`✅ Пройдено: ${report.summary.passed} | ⚠️ Замечаний: ${report.summary.warnings} | ❌ Критических: ${report.summary.critical}`);
-  console.log('------------------------------------------------------------------\n');
+  const normalized = target.toLowerCase().trim();
+  if (normalized === 'smmplan' || normalized === 'plan') {
+    console.log('📦 Пакетный аудит экосистемы SMMPLAN (B2B Classic):');
+    targetFiles = [
+      'src/components/landing/Header.tsx',
+      'src/components/landing/MegaFooter.tsx',
+      'src/components/landing/TrustBar.tsx',
+      'src/components/landing/WhyUs.tsx',
+      'src/components/landing/FAQ.tsx',
+      'src/components/landing/Reviews.tsx',
+      'src/components/landing/SmartLinkLanding.tsx',
+      'src/components/ui/plan/PlanButton.tsx',
+      'src/components/ui/plan/PlanCard.tsx',
+      'src/components/ui/plan/PlanTable.tsx',
+    ];
+  } else if (normalized === 'smmflux' || normalized === 'flux') {
+    console.log('📦 Пакетный аудит экосистемы SMMFLUX (Radiant Aurora):');
+    targetFiles = [
+      'src/components/ab-test/FluxOrderClient.tsx',
+      'src/components/landing/flux/FluxCyberFooter.tsx',
+      'src/components/ab-test/FluxTrustBar.tsx',
+      'src/components/ab-test/FluxWhyUs.tsx',
+      'src/components/ab-test/FluxReviews.tsx',
+      'src/components/ab-test/FluxFAQ.tsx',
+      'src/components/ui/FluxButton.tsx',
+      'src/components/ui/FluxInput.tsx',
+      'src/components/ui/FluxCard.tsx',
+    ];
+  } else {
+    targetFiles = [target];
+  }
 
-  console.log('📋 Заключения Дизайн-Специалистов:');
-  report.findings.forEach(f => {
-    const badge = f.severity === 'PASS' ? '✅' : f.severity === 'CRITICAL' ? '❌' : f.severity === 'WARNING' ? '⚠️' : '💡';
-    console.log(`  ${badge} ${f.agentIcon} [${f.agent}] ${f.message}`);
-    if (f.fixSnippet) {
-      console.log(`     ↳ Рекомендация: ${f.fixSnippet}`);
+  const reports: GuildAuditReport[] = [];
+
+  for (const filePath of targetFiles) {
+    if (!fs.existsSync(filePath)) {
+      console.warn(`⚠️ Файл не найден: ${filePath}`);
+      continue;
     }
+
+    console.log(`\n------------------------------------------------------------------`);
+    console.log(`🔍 Аудит компонента: ${filePath}`);
+    const orchestrator = new DesignGuildOrchestrator(filePath);
+    const report = orchestrator.audit();
+    reports.push(report);
+
+    console.log(`📊 GUILD SCORE: ${report.score} / 100 | ✅ Pass: ${report.summary.passed} | ⚠️ Warn: ${report.summary.warnings} | ❌ Crit: ${report.summary.critical}`);
+    
+    report.findings.forEach(f => {
+      if (f.severity !== 'PASS') {
+        const badge = f.severity === 'CRITICAL' ? '❌' : f.severity === 'WARNING' ? '⚠️' : '💡';
+        console.log(`  ${badge} ${f.agentIcon} [${f.agent}] ${f.message}`);
+        if (f.fixSnippet) {
+          console.log(`     ↳ Рекомендация: ${f.fixSnippet}`);
+        }
+      }
+    });
+  }
+
+  // Summary Table
+  console.log('\n==================================================================');
+  console.log('📊 СВОДНЫЙ ОТЧЁТ ДИЗАЙН-ГИЛЬДИИ');
+  console.log('==================================================================');
+  let totalScore = 0;
+  reports.forEach(r => {
+    totalScore += r.score;
+    const status = r.score === 100 ? '🟢 PERFECT' : r.score >= 80 ? '🟡 GOOD' : '🔴 NEEDS POLISH';
+    console.log(`• ${path.basename(r.targetPath).padEnd(30)} ${r.score.toString().padStart(3)}/100  ${status}`);
   });
+
+  const avgScore = reports.length > 0 ? Math.round(totalScore / reports.length) : 0;
+  console.log('------------------------------------------------------------------');
+  console.log(`🏆 СРЕДНИЙ РЕЙТИНГ ЭКОСИСТЕМЫ: ${avgScore} / 100`);
+  console.log('==================================================================\n');
 
   // Sync with GraphRAG Docker Memory
   try {
-    console.log('\n💾 Синхронизация с GraphRAG Docker памятью (порт 8100)...');
+    console.log('💾 Синхронизация с GraphRAG Docker памятью (порт 8100)...');
     await memoryClient.recordDecision({
-      title: `Атомарный Дизайн-Аудит (14 Агентов): ${path.basename(targetPath)} (Score: ${report.score}/100)`,
-      context: `Проверка компонента ${targetPath} силами 14 узкоспециализированных дизайн-агентов (включая Theming, Dual-Brand, UI-Arsenal и Token Validation).`,
-      decision: `Результат аудита: Pass ${report.summary.passed}, Warnings ${report.summary.warnings}, Critical ${report.summary.critical}`,
-      rationale: `Обеспечение бескомпромиссного качества UX/UI, изоляции брендов SMMplan/SMMflux, двухрежимной читаемости Dark/Light и стандартов Tailwind 4.`,
-      tags: ['design-guild', 'ui-ux', 'theming', 'dual-brand', 'tailwind4', 'wcag', 'typography']
+      title: `Комплексный Дизайн-Аудит (14 Агентов): ${target.toUpperCase()} (Avg Score: ${avgScore}/100)`,
+      context: `Пакетный аудит ${reports.length} компонентов экосистемы ${target} силами 14 узкоспециализированных дизайн-агентов.`,
+      decision: `Проверено ${reports.length} компонентов. Средний балл: ${avgScore}/100.`,
+      rationale: `Обеспечение бескомпромиссного качества UX/UI, 8pt сетки, WCAG 2.2 и Tailwind 4.`,
+      tags: ['design-guild', 'ui-ux', target.toLowerCase(), 'tailwind4', 'wcag', 'theming']
     });
-    console.log('✅ Дизайн-вердикт зафиксирован в GraphRAG памяти!');
+    console.log('✅ Итоговый вердикт зафиксирован в GraphRAG памяти!');
   } catch (err) {
     console.warn('⚠️ Запись в GraphRAG память пропущена:', err);
   }
 
-  console.log('\n🎉 Аудит успешно завершен!');
+  console.log('\n🎉 Комплексный аудит успешно завершен!');
 }
 
 main().catch(console.error);

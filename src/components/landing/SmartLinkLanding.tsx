@@ -273,17 +273,17 @@ export function SmartLinkLanding({
           </p>
           <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-10 pt-2">
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums drop-shadow-sm">15+</p>
+              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight drop-shadow-sm">15+</p>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Платформ</p>
             </div>
             <div className="w-px h-10 bg-border"></div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums drop-shadow-sm">300+</p>
+              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight drop-shadow-sm">300+</p>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Услуг</p>
             </div>
             <div className="w-px h-10 bg-border"></div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums drop-shadow-sm">9-21</p>
+              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight drop-shadow-sm">9-21</p>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Поддержка (МСК)</p>
             </div>
           </div>
@@ -357,7 +357,7 @@ export function SmartLinkLanding({
                       <div className="flex flex-col flex-1 min-w-0 border-r border-border/50 pb-12 lg:pb-0">
                         <div className="p-4 md:p-6 lg:p-8 bg-content1 relative flex flex-col min-h-0">
                           <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
-                            <h3 className="font-extrabold text-foreground text-xl md:text-2xl flex items-center gap-3">
+                            <h3 className="font-extrabold text-foreground text-xl md:text-2xl tracking-tight flex items-center gap-3">
                               Выберите тариф {services.length > 0 && <span className="text-sm font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">{services.length}</span>}
                             </h3>
                           </div>

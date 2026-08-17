@@ -61,7 +61,7 @@ export function FAQ({ companyName = "SMMplan" }: { companyName?: string }) {
   return (
     <section id="faq" aria-labelledby="faq-heading" className="mx-auto max-w-3xl px-4 sm:px-6 py-12 md:py-24">
       <div className="text-center mb-12">
-        <h2 id="faq-heading" className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-normal text-foreground mb-4 text-balance">
+        <h2 id="faq-heading" className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-foreground mb-4 text-balance">
           Частые вопросы
         </h2>
         <p className="text-muted-foreground text-lg font-medium mt-2">

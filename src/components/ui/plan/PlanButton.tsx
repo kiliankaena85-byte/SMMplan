@@ -23,7 +23,7 @@ export function PlanButton({
   ...props
 }: PlanButtonProps) {
   const baseStyles =
-    "inline-flex items-center justify-center font-bold tracking-tight rounded-xl transition-all duration-150 active:scale-[0.98] select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30";
+    "inline-flex items-center justify-center font-bold tracking-tight rounded-xl min-h-[36px] sm:min-h-[44px] transition-all duration-150 active:scale-[0.98] select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30";
 
   const sizeStyles = {
     sm: "h-9 px-3.5 text-xs gap-1.5",
@@ -46,7 +46,7 @@ export function PlanButton({
 
   return (
     <button
-      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${
+      className={`min-h-[36px] sm:min-h-[44px] ${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${
         loading || disabled ? "opacity-70 pointer-events-none" : ""
       } ${className}`}
       disabled={disabled || loading}

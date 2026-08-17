@@ -16,7 +16,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
   return (
     <section aria-labelledby="why-us-heading" className="mx-auto max-w-6xl px-4 py-12 md:py-24">
       <div className="text-center mb-16">
-        <h2 id="why-us-heading" className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-normal text-foreground mb-4 text-balance">
+        <h2 id="why-us-heading" className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-foreground mb-4 text-balance">
           Прямой доступ к оптовым шлюзам
         </h2>
         <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto font-medium text-pretty">
@@ -35,7 +35,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform dark:bg-primary/10">
                 <Sparkles className="w-6 h-6" strokeWidth={1.5} />
               </div>
-              <h3 className="text-2xl font-bold text-foreground mb-3">AI-подбор услуг</h3>
+              <h3 className="text-2xl font-bold text-foreground mb-3 tracking-tight">AI-подбор услуг</h3>
               <p className="text-muted-foreground font-medium leading-relaxed max-w-md">
                 Вам больше не нужно разбираться в десятках категорий. Просто вставьте ссылку — наша система 
                 автоматически определит платформу (Telegram, VK, YT) и сама подберёт оптимальный пакет продвижения.
@@ -88,7 +88,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
                 </div>
                 <span className="text-xs font-bold text-primary-foreground/90 uppercase tracking-widest">B2B Интеграция</span>
               </div>
-              <h3 className="text-2xl font-bold text-primary-foreground mb-4">Решения для Реселлеров & API Hub</h3>
+              <h3 className="text-2xl font-bold text-primary-foreground mb-4 tracking-tight">Решения для Реселлеров & API Hub</h3>
               
               {/* Triple-Hook Feature List */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">

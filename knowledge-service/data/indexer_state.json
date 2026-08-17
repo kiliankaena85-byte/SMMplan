@@ -2620,7 +2620,7 @@
   "/app/codebase/CWV_AUDIT.md": "bade42411f8822f3",
   "/app/codebase/YANDEX_WEBMASTER_SETUP.md": "c6d68be517da0d94",
   "/app/codebase/src/components/ab-test/FluxFAQ.tsx": "1640baf531be4329",
-  "/app/codebase/src/components/ab-test/FluxOrderClient.tsx": "5dc5ea5d8511f0f8",
+  "/app/codebase/src/components/ab-test/FluxOrderClient.tsx": "aabd47049320f232",
   "/app/codebase/src/components/ab-test/FluxWhyUs.tsx": "bf46590721083645",
   "/app/codebase/src/components/ab-test/FluxReviews.tsx": "f6cd507333cd8725",
   "/app/codebase/src/components/ab-test/FluxTrustBar.tsx": "4b8a957b2f3dcf19",
@@ -2901,7 +2901,7 @@
   "/app/codebase/scripts/capture-flux-knowledge.ts": "f6dd959d97f03db4",
   "/app/codebase/src/components/knowledge/flux/FluxArticleReader.tsx": "b6a27bc1e80a5b78",
   "/app/codebase/src/components/services/flux/FluxServicesCatalog.tsx": "a8bb1394504b30fe",
-  "/app/codebase/src/components/ui/FluxButton.tsx": "78a0ecdff9a014ce",
+  "/app/codebase/src/components/ui/FluxButton.tsx": "0fee4ea9e0f2d857",
   "/app/codebase/scripts/consolidate-memory.ts": "5b1a9ee3e6ad519e",
   "/app/codebase/scripts/memory-client.ts": "d2531f2207ee89a8",
   "/app/codebase/src/components/ui/FluxBadge.tsx": "73fc2fdadf2786e7",
@@ -2995,7 +2995,7 @@
   "/app/codebase/scripts/harness/audit-skill-health.ts": "30b4a27bcc47f516",
   "/app/codebase/scripts/harness/legal-council.ts": "144c6f305b2cb59d",
   "/app/codebase/.agents/skills/legal-brainstorm-council/SKILL.md": "e6adc4ba840d9a82",
-  "/app/codebase/scripts/harness/design-guild.ts": "71f0089e0d10e72a",
+  "/app/codebase/scripts/harness/design-guild.ts": "10f8c1e306a95efe",
   "/app/codebase/src/components/admin/AdminBreadcrumbs.tsx": "36929afcae7b5e8d",
-  "/app/codebase/.agents/skills/design-guild-council/SKILL.md": "6baa9bc0c976148e"
+  "/app/codebase/.agents/skills/design-guild-council/SKILL.md": "54b668767cec5cd3"
 }
