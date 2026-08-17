@@ -32,8 +32,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { DataTable } from '@/components/ui/data-table';
 import { columns } from './ledger-columns';
 import { columns as paymentColumns, CopyButton } from './payment-columns';
-import { Wallet, History, AlertTriangle, DollarSign } from 'lucide-react';
+import { Wallet, History, AlertTriangle, DollarSign, Scale } from 'lucide-react';
 import Link from 'next/link';
+import { ReconciliationTab } from './components/reconciliation-tab';
+import type { ReconciliationSummaryDTO } from '@/services/financial/ledger-reconciliation.service';
 
 
 const PERIOD_OPTIONS = [
@@ -169,6 +171,7 @@ interface FinanceClientProps {
   initialPayments: PaymentsPageResult;
   initialPeriod: string;
   tenantId?: string;
+  initialReconciliationSummary?: ReconciliationSummaryDTO;
 }
 
 function fmt(cents: number, showSign = false): string {
@@ -439,7 +442,15 @@ function PaymentsTab({ initial, period: initPeriod, tenantId }: { initial: Payme
 }
 
 // ── Main Export ─────────────────────────────────────────────────────────────
-export function FinanceClient({ initialLedger, initialPayments, initialPeriod, tenantId }: FinanceClientProps) {
+export function FinanceClient({
+  initialLedger,
+  initialPayments,
+  initialPeriod,
+  tenantId,
+  initialReconciliationSummary,
+}: FinanceClientProps) {
+  const discrepancyCount = initialReconciliationSummary?.discrepancyUsersCount ?? 0;
+
   return (
     <Tabs defaultValue="ledger" className="w-full">
       <TabsList variant="line" className="gap-6 border-b border-divider w-full justify-start rounded-none h-auto p-0">
@@ -453,6 +464,17 @@ export function FinanceClient({ initialLedger, initialPayments, initialPeriod, t
           <div className="flex items-center gap-2">
             <DollarSign className="w-4 h-4" />
             <span>Реестр платежей</span>
+          </div>
+        </TabsTrigger>
+        <TabsTrigger value="reconciliation" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px]">
+          <div className="flex items-center gap-2">
+            <Scale className="w-4 h-4" />
+            <span>Сверка Ledger</span>
+            {discrepancyCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-destructive/15 text-destructive border border-destructive/20">
+                {discrepancyCount}
+              </span>
+            )}
           </div>
         </TabsTrigger>
         <TabsTrigger value="topup" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px]">
@@ -471,6 +493,10 @@ export function FinanceClient({ initialLedger, initialPayments, initialPeriod, t
         <PaymentsTab initial={initialPayments} period={initialPeriod} tenantId={tenantId} />
       </TabsContent>
       
+      <TabsContent value="reconciliation" className="pt-6">
+        <ReconciliationTab tenantId={tenantId} initialSummary={initialReconciliationSummary} />
+      </TabsContent>
+
       <TabsContent value="topup" className="pt-6">
         <BalanceCorrectionTab />
       </TabsContent>

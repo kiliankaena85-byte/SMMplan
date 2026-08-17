@@ -278,7 +278,7 @@ export function ServicesTable({
                       {showCategoryColumn && (
                         <div className="py-3 pr-2 min-w-0">
                           {s.alreadyImported ? (
-                            <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-slate-100 dark:bg-slate-800/50 px-2 py-1.5 rounded-[8px] border border-border w-fit max-w-full truncate">
+                            <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-muted px-2 py-1.5 rounded-[8px] border border-border w-fit max-w-full truncate">
                               📦 Импортировано
                             </span>
                           ) : (
@@ -402,7 +402,7 @@ export function ServicesTable({
                       {showCategoryColumn && (
                         <div className="ml-7 pt-2">
                           {s.alreadyImported ? (
-                            <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-slate-100 dark:bg-slate-800/50 px-2 py-1.5 rounded-[8px] border border-border w-fit">
+                            <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-muted px-2 py-1.5 rounded-[8px] border border-border w-fit">
                               📦 Уже импортировано
                             </span>
                           ) : (

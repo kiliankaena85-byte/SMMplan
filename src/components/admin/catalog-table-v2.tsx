@@ -32,6 +32,7 @@ import {
   SAFETY_FLOOR_MARKUP,
   TOTAL_MANDATORY_DEDUCTIONS,
 } from '@/lib/financial-constants';
+import { useRangeSelection } from '@/hooks/use-range-selection';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -907,7 +908,7 @@ function CatalogTableRow({
   canEditFinance?: boolean;
   canSeeRates?: boolean;
   isChecked: boolean;
-  onToggle: () => void;
+  onToggle: (e?: React.MouseEvent | React.ChangeEvent) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   categories: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1057,7 +1058,8 @@ function CatalogTableRow({
       <Table.Cell className={canEdit ? "py-4 px-4" : "hidden"}>
         <input
           type="checkbox" checked={isChecked}
-          onChange={onToggle}
+          onChange={() => {}}
+          onClick={(e) => onToggle(e)}
           className="rounded border-border text-primary focus:ring-primary cursor-pointer w-4 h-4"
           disabled={!canEdit}
         />
@@ -1267,7 +1269,15 @@ export function CatalogTable({
     );
   }
 
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const {
+    selectedIds,
+    selectedSet,
+    isAllSelected,
+    toggleRow,
+    toggleSelectAll,
+    clearSelection,
+  } = useRangeSelection({ items: services });
+
   const [currency, setCurrency] = useState<'RUB' | 'USD'>('RUB');
   const [volume, setVolume] = useState<'UNIT' | '1K'>('1K');
 
@@ -1294,24 +1304,6 @@ export function CatalogTable({
     params.delete('cursor'); // Reset pagination
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   }
-
-  const allIds = services.map(s => s.id);
-  const allSelected = selected.size === allIds.length && allIds.length > 0;
-
-  function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(allIds));
-  }
-
-  function toggleOne(id: string) {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  const selectedIds = Array.from(selected);
 
   // Filters State synced with URL
   const currentSearch = searchParams.get('q') || '';
@@ -1474,52 +1466,6 @@ export function CatalogTable({
               </SelectContent>
             </Select>
           </div>
-
-          {/* Выбор статуса активности */}
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Статус на сайте</label>
-            <Select value={currentIsActive} onValueChange={val => updateFilter('isActive', val)}>
-              <SelectTrigger className="w-full h-8 border border-border bg-background text-foreground text-xs rounded-xl cursor-pointer">
-                <SelectValue placeholder="Все">
-                  {(value: string) => {
-                    if (value === 'all') return 'Все статусы';
-                    if (value === 'true') return 'Активна';
-                    if (value === 'false') return 'Выключена';
-                    return value;
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" label="Все статусы" className="text-xs cursor-pointer">Все статусы</SelectItem>
-                <SelectItem value="true" label="Активна" className="text-xs cursor-pointer">Активна</SelectItem>
-                <SelectItem value="false" label="Выключена" className="text-xs cursor-pointer">Выключена</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Выбор статуса у провайдера */}
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Статус провайдера</label>
-            <Select value={currentProviderStatus} onValueChange={val => updateFilter('providerStatus', val)}>
-              <SelectTrigger className="w-full h-8 border border-border bg-background text-foreground text-xs rounded-xl cursor-pointer">
-                <SelectValue placeholder="Все">
-                  {(value: string) => {
-                    if (value === 'all') return 'Все статусы';
-                    if (value === 'active') return 'Активна у провайдера';
-                    if (value === 'zombie') return 'Удалена у провайдера';
-                    if (value === 'manual') return 'Вручную (без API)';
-                    return value;
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" label="Все статусы" className="text-xs cursor-pointer">Все статусы</SelectItem>
-                <SelectItem value="active" label="Активна у провайдера" className="text-xs cursor-pointer">Активна у провайдера</SelectItem>
-                <SelectItem value="zombie" label="Удалена у провайдера" className="text-xs cursor-pointer">Удалена у провайдера</SelectItem>
-                <SelectItem value="manual" label="Вручную (без API)" className="text-xs cursor-pointer">Вручную (без API)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
 
@@ -1570,8 +1516,8 @@ export function CatalogTable({
         </div>
       </div>
 
-      {selected.size > 0 && canEdit && (
-        <BatchActionBar selectedIds={selectedIds} onClear={() => setSelected(new Set())} canEditFinance={canEditFinance} categories={categories} />
+      {selectedIds.length > 0 && canEdit && (
+        <BatchActionBar selectedIds={selectedIds} onClear={clearSelection} canEditFinance={canEditFinance} categories={categories} />
       )}
 
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -1581,8 +1527,8 @@ export function CatalogTable({
               <Table.Header>
                 <Table.Column key="checkbox" className={canEdit ? "w-10 px-4 py-3" : "hidden"}>
                   <input
-                    type="checkbox" checked={allSelected}
-                    onChange={toggleAll}
+                    type="checkbox" checked={isAllSelected}
+                    onChange={toggleSelectAll}
                     className="rounded border-border text-primary focus:ring-primary cursor-pointer w-4 h-4"
                     disabled={!canEdit}
                   />
@@ -1618,8 +1564,8 @@ export function CatalogTable({
                       canEdit={canEdit}
                       canEditFinance={canEditFinance}
                       canSeeRates={canSeeRates}
-                      isChecked={selected.has(s.id)}
-                      onToggle={() => toggleOne(s.id)}
+                      isChecked={selectedSet.has(s.id)}
+                      onToggle={(e) => toggleRow(s.id, e)}
                       categories={categories}
                       providers={providers}
                       router={router}

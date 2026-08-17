@@ -269,7 +269,7 @@ export default async function AdminDashboardPage({
                  <div className="flex items-center justify-between mb-4">
                    <span className="text-muted-foreground text-sm font-semibold tracking-wide">Чистые активы</span>
                    <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border/50 text-xs font-bold text-foreground shadow-sm">
-                     <span className="w-3 h-3 rounded-full overflow-hidden bg-slate-800 border border-slate-700"></span> RUB <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                      <span className="w-3 h-3 rounded-full overflow-hidden bg-muted border border-border"></span> RUB <ChevronDown className="w-3 h-3 text-muted-foreground" />
                    </div>
                  </div>
               <div className="text-4xl font-extrabold text-foreground tabular-nums tracking-tight">
@@ -365,7 +365,7 @@ export default async function AdminDashboardPage({
               </Link>
               
               <Link href="/admin/orders?status=ERROR" className="bg-destructive text-primary-foreground rounded-2xl p-5 shadow-[0_8px_24px_rgb(244,63,94,0.25)] flex flex-col hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-                <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-colors pointer-events-none" />
+                <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary-foreground/10 rounded-full blur-2xl group-hover:bg-primary-foreground/20 transition-colors pointer-events-none" />
                 <div className="flex justify-between items-start mb-6 relative z-10">
                   <span className="text-danger-foreground text-sm font-medium">Ошибки</span>
                   <div className="w-8 h-8 rounded-full bg-background/20 flex items-center justify-center group-hover:bg-background/30 group-hover:scale-110 transition-all">

@@ -864,10 +864,10 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
                       <div className="w-2.5 h-2.5 rounded-full bg-destructive"></div>
                       <div className="w-2.5 h-2.5 rounded-full bg-warning"></div>
                       <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
-                      <span className="text-xs text-gray-400 font-mono ml-2">Live Preview: {mapping.httpMethod} /api</span>
+                      <span className="text-xs text-muted-foreground font-mono ml-2">Live Preview: {mapping.httpMethod} /api</span>
                     </div>
-                    <div className="p-4 text-xs font-mono text-blue-300 leading-relaxed overflow-x-auto">
-                      <span className="text-gray-400">// То, что уйдет провайдеру:</span>
+                    <div className="p-4 text-xs font-mono text-primary leading-relaxed overflow-x-auto">
+                      <span className="text-muted-foreground">// То, что уйдет провайдеру:</span>
                       <br/>
                       {mapping.authType === 'header' && (
                         <>
@@ -901,7 +901,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
                       )}
                       
                       <br/><br/>
-                      <span className="text-gray-400">// То, что мы ждем в ответ:</span>
+                      <span className="text-muted-foreground">// То, что мы ждем в ответ:</span>
                       <br/>
                       <span className="text-[#569cd6]">{"{"}</span>
                       <div className="pl-4">
@@ -1090,7 +1090,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
 
       {/* Shadow Catalog Preview Modal */}
       {isPreviewOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-4xl max-h-[85vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
             {/* Modal Header */}
             <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">

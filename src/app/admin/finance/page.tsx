@@ -2,6 +2,7 @@ import { accountingService } from '@/services/financial/accounting.service';
 import { escrowService } from '@/services/admin/escrow.service';
 import { getLedgerAction } from '@/actions/admin/finance/ledger';
 import { getPaymentsAction } from '@/actions/admin/finance/payments';
+import { getReconciliationSummaryAction } from '@/actions/admin/finance/reconciliation';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { FinanceClient } from './finance-client';
@@ -48,12 +49,13 @@ export default async function FinanceDashboard({ searchParams }: Props) {
   else if (period === 'week') { periodStart = new Date(Date.now() - 7*86400000); }
   else if (period === 'month') { periodStart = new Date(Date.now() - 30*86400000); }
 
-  const [metrics, settings, quarantineList, ledgerResult, paymentsResult, tenants] = await Promise.all([
+  const [metrics, settings, quarantineList, ledgerResult, paymentsResult, reconciliationSummaryResult, tenants] = await Promise.all([
     accountingService.getMetrics(periodStart, periodStart ? new Date() : undefined, activeTenantId),
     accountingService.getSettings(activeTenantId),
     escrowService.getQuarantineEntries(),
     getLedgerAction({ period, pageSize: 50, tenantId: activeTenantId }),
     getPaymentsAction({ period, pageSize: 50, tenantId: activeTenantId }),
+    getReconciliationSummaryAction(activeTenantId),
     db.tenant.findMany({ where: { isActive: true }, select: { id: true, name: true, slug: true } }),
   ]);
 
@@ -152,7 +154,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
                 </div>
               </div>
               <div className="flex items-center gap-1.5 mt-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
                 <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-tighter">{k.sub}</p>
               </div>
             </div>
@@ -213,12 +215,13 @@ export default async function FinanceDashboard({ searchParams }: Props) {
         </div>
       </div>
 
-      {/* ── Tabs: Ledger & Topup ── */}
+      {/* ── Tabs: Ledger, Payments, Reconciliation & Topup ── */}
       <FinanceClient 
         initialLedger={initialLedger} 
         initialPayments={initialPayments} 
         initialPeriod={period} 
         tenantId={activeTenantId} 
+        initialReconciliationSummary={'error' in reconciliationSummaryResult ? undefined : reconciliationSummaryResult}
       />
     </div>
   );

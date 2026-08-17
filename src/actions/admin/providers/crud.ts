@@ -332,77 +332,29 @@ export async function getProviderCatalogPreviewAction(params: {
   });
 }
 
-export async function getGlobalProviderLiquidity() {
-    return requireStaffPermission('catalog', 'view', async () => {
-        try {
-            const providers = await db.provider.findMany({ where: { isActive: true } });
-            
-            // Get exchange rate directly from SettingsManager/Provider to unify currency to RUB
-            const { SettingsProvider } = await import('@/lib/settings');
-            const usdRate = await SettingsProvider.getExchangeRateUSD();
-            
-            let totalRub = 0;
-            let activeCount = 0;
-            let errorCount = 0;
-
-            await Promise.allSettled(providers.map(async (provider) => {
-                try {
-                    const instance = await providerService.getProviderInstance(provider);
-                    
-                    const timeoutPromise = new Promise<never>((_, reject) => 
-                        setTimeout(() => reject(new Error("Timeout")), 5000)
-                    );
-                    const balanceData = await Promise.race([
-                        instance.getBalance(),
-                        timeoutPromise
-                    ]);
-                    
-                    const balance = parseFloat(balanceData.balance) || 0;
-                    const currency = (balanceData.currency || provider.balanceCurrency || 'RUB').toUpperCase();
-
-                    if (currency === 'USD') {
-                        totalRub += (balance * usdRate);
-                    } else if (currency === 'RUB') {
-                        totalRub += balance;
-                    } else if (currency === 'EUR') {
-                        // Rough approx if EUR is ever used, though SMMplan standard is USD/RUB
-                        totalRub += (balance * usdRate * 1.08); 
-                    }
-                    activeCount++;
-                } catch (e) {
-                    console.error(`Failed to fetch balance for provider ${provider.name}:`, e);
-                    errorCount++;
-                }
-            }));
-
-            // Calculate Burn Rate (Provider cost spent in last 24h)
-            const yesterday = new Date();
-            yesterday.setHours(yesterday.getHours() - 24);
-            
-            const recentOrders = await db.order.findMany({
-                where: {
-                    createdAt: { gte: yesterday },
-                    status: { notIn: ['ERROR', 'CANCELED'] }
-                },
-                select: { providerCost: true }
-            });
-
-            // providerCost is in Cents (RUB)
-            const burnRate24hCents = recentOrders.reduce((sum, order) => sum + Number(order.providerCost || 0), 0);
-            const burnRate24hRub = burnRate24hCents / 100;
-
-            return { 
-                success: true, 
-                totalRub, 
-                activeCount,
-                errorCount,
-                burnRate24h: burnRate24hRub
-            };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
-            return { success: false, error: e.message || "Failed to calculate global liquidity" };
-        }
-    });
+export async function getGlobalProviderLiquidity(forceRefresh = false) {
+  return requireStaffPermission('catalog', 'view', async () => {
+    try {
+      const { providerBalanceService } = await import('@/services/admin/provider-balance.service');
+      const summary = await providerBalanceService.getGlobalLiquiditySummary(forceRefresh);
+      return {
+        success: true,
+        totalRub: summary.totalRub,
+        totalUsd: summary.totalUsd,
+        activeCount: summary.activeCount,
+        healthyCount: summary.healthyCount,
+        warningCount: summary.warningCount,
+        criticalCount: summary.criticalCount,
+        errorCount: summary.errorCount,
+        burnRate24h: summary.burnRate24hRub,
+        runwayDays: summary.runwayDays,
+        providers: summary.providers,
+      };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to calculate global liquidity';
+      return { success: false, error: msg };
+    }
+  });
 }
 
 /**

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Toaster } from '@/components/ui/sonner';
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { CommandPalette } from '@/components/admin/command-palette';
+import { ShortcutsModal } from '@/components/admin/shortcuts-modal';
 import { SettingsManager } from '@/lib/settings';
 
 // RBAC: Allowed roles for admin panel access
@@ -180,6 +181,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       </div>
 
       <CommandPalette />
+      <ShortcutsModal />
       <Toaster position="top-right" richColors closeButton className="mt-4 mr-4" />
     </div>
   );

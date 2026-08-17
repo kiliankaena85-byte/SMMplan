@@ -1,26 +1,29 @@
-# BRIEFING — 2026-07-26T11:09:08Z
+# BRIEFING — 2026-08-17T07:54:31Z
 
 ## Mission
-Coordinate and monitor the integration of advanced backend features (Drip-Feed, Auto-Refill, Custom Data, ETA, 152-ФЗ, B2B Webhooks, ИНН/КПП, Promo codes) into SMMplan and SMMflux client dashboards.
+Orchestrate the development and integration of operational and financial reliability modules in the SMMplan / SMMflux admin panel.
 
 ## 🔒 My Identity
 - Archetype: sentinel
-- Working directory: d:\SMM_plan_2\.agents\sentinel
-- Orchestrator: e00ce62b-b888-4c16-82e2-46010e9e17a4 (re-spawned after 418e7e0f-6bb6-448c-aba9-3f0de096cf3c)
+- Working directory: d:/SMM_plan_2/.agents/sentinel
+- Orchestrator: 53a02144-ecf0-4b14-9d65-f2e3dd5bba9f
 - Victory Auditor: to be spawned on victory claim
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
 - Victory Audit is MANDATORY before reporting completion
-- Must run progress reporting cron (`*/8 * * * *`) and liveness check cron (`*/10 * * * *`)
+- Must route according to Routing Decision Table (General -> teamwork_preview_orchestrator)
+- Must not write code or analyze technical details directly
 
 ## User Context
-- **Last user request**: Client Dashboard Advanced Backend Features Integration (Drip-Feed, Refill, Custom Data, ETA, 152-ФЗ, B2B Webhooks, Tax/Requisites, Promo Codes)
+- **Last user request**: Modules for provider balance monitoring, ledger reconciliation, keyset pagination, and keyboard ergonomics in admin panel.
 - **Pending clarifications**: none
 - **Delivered results**: none
 
 ## Project Status
 - **Phase**: in progress
+- **Cron 1 (Progress)**: task-11 (`*/8 * * * *`)
+- **Cron 2 (Liveness)**: task-13 (`*/10 * * * *`)
 
 ## Victory Audit Status
 - **Triggered**: no
@@ -28,4 +31,7 @@ Coordinate and monitor the integration of advanced backend features (Drip-Feed, 
 - **Retry count**: 0
 
 ## Artifact Index
-- d:\SMM_plan_2\.agents\ORIGINAL_REQUEST.md — Original request record
+- d:/SMM_plan_2/.agents/ORIGINAL_REQUEST.md — Authoritative record of user request
+- d:/SMM_plan_2/ORIGINAL_REQUEST.md — Authoritative record of user request (root)
+- d:/SMM_plan_2/.agents/sentinel/BRIEFING.md — Sentinel persistent memory
+- d:/SMM_plan_2/.agents/orchestrator_1/ — Orchestrator workspace

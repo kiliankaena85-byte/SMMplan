@@ -94,6 +94,8 @@ model User {
 
   @@unique([email, tenantId])
   @@index([tenantId])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model B2bConfig {
@@ -414,6 +416,8 @@ model Order {
   @@index([tenantId])
   @@index([tenantId, userId])
   @@index([tenantId, status, createdAt])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([serviceId]) // Fast lookup for orders by service
   @@index([status])
   @@index([createdAt]) // P2.2: temporal queries & analytics
@@ -781,6 +785,9 @@ model LedgerEntry {
   @@index([adminId])
   @@index([adminId, createdAt])
   @@index([tenantId])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model SupportTemplate {

@@ -11,7 +11,7 @@ vi.mock('@/lib/notifications', () => ({
 describe('BalanceVerifier Service Tests', () => {
   beforeEach(async () => {
     // 1. Clear tables to have a pristine test environment using raw SQL truncation with CASCADE
-    await db.$executeRawUnsafe('TRUNCATE TABLE "User", "LedgerEntry", "AdminAuditLog" CASCADE;');
+    await db.$executeRawUnsafe('TRUNCATE TABLE "LedgerEntry", "AdminAuditLog", "User" CASCADE;');
 
     // 2. Enable test mode
     await db.systemSettings.upsert({

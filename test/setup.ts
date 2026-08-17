@@ -363,6 +363,7 @@ beforeEach(async () => {
         'format-eta',
         'link-normalizer',
         'balance-verifier',
+        'ledger-reconciliation',
         'link-analyzer',
         'category-matcher',
         'eta.fuzzing',
@@ -407,5 +408,9 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
-  await db.$disconnect();
+  try {
+    await db.$disconnect();
+  } catch {
+    // Silently ignore in jsdom/browser test environments
+  }
 });
