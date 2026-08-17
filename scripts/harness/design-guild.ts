@@ -48,12 +48,14 @@ export interface GuildAuditReport {
 
 export class DesignGuildOrchestrator {
   private rawContent: string = '';
+  private lines: string[] = [];
   private filePath: string = '';
 
   constructor(filePath: string) {
     this.filePath = filePath;
     if (fs.existsSync(filePath)) {
       this.rawContent = fs.readFileSync(filePath, 'utf-8');
+      this.lines = this.rawContent.split('\n');
     }
   }
 
@@ -446,6 +448,23 @@ export class DesignGuildOrchestrator {
         message: 'Риск невидимого текста: обнаружено сочетание bg-white и text-white в одном компоненте.',
       });
     }
+
+    // Check primary-foreground token collision in dark mode (line by line or component wide)
+    this.lines.forEach((line, idx) => {
+      if (line.includes('text-primary-foreground') && !line.includes('bg-primary') && !line.includes('dark:text-') && (line.includes('dark:bg-') || raw.includes('dark:bg-background'))) {
+        // If it's a heading or text paragraph with text-primary-foreground on a dark container
+        if (line.match(/<(h[1-6]|p|span|div)[^>]*text-primary-foreground/)) {
+          findings.push({
+            agent: 'Dark-Light-Contrast-Enforcer',
+            agentIcon: '🌓',
+            severity: 'CRITICAL',
+            ruleId: 'THEME-03-PRIMARY-FG-DARK-COLLISION',
+            message: `Критический баг контраста на строке ${idx + 1}: \`text-primary-foreground\` в тёмной теме становится тёмным (#0f172a). На тёмном фоне текст становится невидимым.`,
+            fixSnippet: 'Замените `text-primary-foreground` на `text-primary-foreground dark:text-foreground` или используйте `text-foreground`.'
+          });
+        }
+      }
+    });
 
     findings.push({
       agent: 'Dark-Light-Contrast-Enforcer',
