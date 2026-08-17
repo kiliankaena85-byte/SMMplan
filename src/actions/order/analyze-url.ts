@@ -31,6 +31,9 @@ function isUrlSafeForFetch(urlString: string): boolean {
   return true;
 }
 
+/**
+ * @public Safe public URL intelligence analyzer for order forms
+ */
 export async function analyzeUrl(url: string): Promise<{ success: boolean; data?: IntelligenceAnalysisResult; error?: string }> {
   try {
     if (!url || typeof url !== 'string' || url.length > 2048) {

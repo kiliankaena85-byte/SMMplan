@@ -688,8 +688,8 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
 
 import { getMSKMidnightUTC } from '@/services/admin/escrow.service';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getAdminSpentToday(adminId: string, tx?: any): Promise<number> {
+// Internal helper for limit calculation (not an exported Server Action)
+async function getAdminSpentToday(adminId: string, tx?: any): Promise<number> {
   const todayStart = getMSKMidnightUTC();
 
   const client = tx || db;

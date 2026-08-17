@@ -174,6 +174,9 @@ export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
   }
 }
 
+/**
+ * @public Public catalog endpoint for category services
+ */
 export async function getServicesByCategoryAction(categoryId: string, tenantId: string = 'smmplan'): Promise<PublicService[]> {
   try {
 
@@ -295,6 +298,9 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
   }
 }
 
+/**
+ * @public Public catalog lookup by service slug
+ */
 export async function getServiceBySlugAction(slug: string, tenantId: string = 'smmplan') {
   try {
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
