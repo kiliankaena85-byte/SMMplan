@@ -6,7 +6,7 @@ import { marketingService, PricingResult } from '@/services/marketing.service';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SettingsManager } from '@/lib/settings';
 import { verifySession, createSession } from '@/lib/session';
-import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';

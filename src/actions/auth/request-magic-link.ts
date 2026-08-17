@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { cookies, headers } from "next/headers";
 import { getClientIp } from "@/utils/ip";
-import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
 const log = logger.child({ component: 'MagicLink' });
 

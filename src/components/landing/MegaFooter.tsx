@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Mail, ArrowUpRight } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
-import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 import { TENANTS } from "@/config/tenants";
 import { TenantLogo } from "@/components/ui/TenantLogo";
 import { FluxCyberFooter } from "./flux/FluxCyberFooter";

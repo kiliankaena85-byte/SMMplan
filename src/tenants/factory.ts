@@ -1,7 +1,7 @@
 import { ITenantDashboardStrategy } from './types';
 import { getTenantLoader } from './registry';
 
-import { normalizeTenantId } from '@/lib/tenant-resolver';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 /**
  * Tenant View Factory (100% OCP Compliant)

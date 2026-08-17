@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
 export const dynamic = 'force-dynamic';
 

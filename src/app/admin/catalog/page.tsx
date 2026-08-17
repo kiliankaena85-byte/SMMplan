@@ -19,7 +19,7 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 
 import { headers } from 'next/headers';
-import { normalizeTenantId } from '@/lib/tenant-resolver';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { TenantSwitcher } from '@/components/admin/tenant-switcher';
 
 export const dynamic = 'force-dynamic';

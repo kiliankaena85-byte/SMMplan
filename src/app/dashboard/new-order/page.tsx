@@ -7,7 +7,7 @@ import { db } from '@/lib/db';
 import { getTenantDashboardViews } from '@/tenants/factory';
 
 import { headers } from 'next/headers';
-import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
 
 export const metadata: Metadata = {
   title: 'Новый заказ',

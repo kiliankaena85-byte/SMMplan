@@ -5,11 +5,11 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  if (process.env.NEXT_RUNTIME === 'edge') {
-    // Return mock proxy for Edge Runtime to prevent native binary evaluation crashes
+  if (typeof window !== 'undefined' || process.env.NEXT_RUNTIME === 'edge') {
+    // Return mock proxy for Browser/Edge Runtime to prevent native binary evaluation crashes
     return new Proxy({} as PrismaClient, {
       get() {
-        throw new Error('PrismaClient cannot be executed in Next.js Edge Runtime. Use Server Components or Server Actions.');
+        throw new Error('PrismaClient cannot be executed in Browser or Next.js Edge Runtime. Use Server Components or Server Actions.');
       }
     });
   }

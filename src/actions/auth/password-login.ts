@@ -7,7 +7,7 @@ import { createSession } from '@/lib/session';
 import { headers } from 'next/headers';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { logger } from '@/lib/logger';
-import { normalizeTenantId } from '@/lib/tenant-resolver';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 const log = logger.child({ component: 'PasswordLogin' });
 

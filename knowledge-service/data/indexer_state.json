@@ -1649,7 +1649,7 @@
   "/app/codebase/scripts/fix-slugs.ts": "471a1dde847156e3",
   "/app/codebase/scripts/dynamic-pricing.ts": "5fa310d0b68c4b44",
   "/app/codebase/.agents/teamwork_preview_explorer_vk_13_2/outline.md": "4050bac248b27bf1",
-  "/app/codebase/src/middleware.ts": "2170e115b0b97a90",
+  "/app/codebase/src/middleware.ts": "12ce8fe0f6607f43",
   "/app/codebase/.agent/skills/smm-legal-marketing-symbiosis/SKILL.md": "2475841c84af15d4",
   "/app/codebase/e2e/admin-provider-tickets.spec.ts": "3de6a96799acf08f",
   "/app/codebase/.agents/kb_populator_1/original_prompt.md": "34a9a965674f173b",
@@ -2112,7 +2112,7 @@
   "/app/codebase/src/data/knowledge/vk_group_seo_yandex_google.md": "2f23aa654cc5dd1d",
   "/app/codebase/src/app/operator/transactions/components/transactions-filter.tsx": "ea3fa3011dc71373",
   "/app/codebase/src/components/landing/order-engine/CategorySidebar.tsx": "6418e231cf351fb7",
-  "/app/codebase/src/lib/session-edge.ts": "491455f2dadfb021",
+  "/app/codebase/src/lib/session-edge.ts": "b76ea8116ec77922",
   "/app/codebase/src/app/operator/transactions/components/transactions-table.tsx": "e7185dd7aa1f97fe",
   "/app/codebase/src/components/ui/sheet.tsx": "d3017775e8bc324e",
   "/app/codebase/src/data/knowledge/18-vk-refill-guarantee.mdx": "cf72597d7dc3f2b6",
@@ -2289,7 +2289,7 @@
   "/app/codebase/src/tenants/fallback/neutral-maintenance-strategy.tsx": "1684ba7f6e5afa0f",
   "/app/codebase/src/tenants/types.ts": "eebd5994968a18e3",
   "/app/codebase/src/tenants/registry.ts": "1191708b550c3bc3",
-  "/app/codebase/src/lib/tenant-resolver.ts": "d1a7b135e4793bba",
+  "/app/codebase/src/lib/tenant-resolver.ts": "3906aafa7e9b1704",
   "/app/codebase/scripts/re-encrypt-secrets.ts": "1ea6604c2be1a02f",
   "/app/codebase/src/tenants/TenantErrorBoundary.tsx": "cb53d0ac023a1304",
   "/app/codebase/src/instrumentation.ts": "61f3caae0f5a84dd",
@@ -2998,5 +2998,6 @@
   "/app/codebase/scripts/harness/design-guild.ts": "14fcd99a05e48af4",
   "/app/codebase/src/components/admin/AdminBreadcrumbs.tsx": "36929afcae7b5e8d",
   "/app/codebase/.agents/skills/design-guild-council/SKILL.md": "d0bda53efe4edd86",
-  "/app/codebase/scratch/test-guard.ts": "e0d5b27dc7e93d81"
+  "/app/codebase/scratch/test-guard.ts": "e0d5b27dc7e93d81",
+  "/app/codebase/src/lib/tenant-resolver-edge.ts": "6686da862982ea9c"
 }

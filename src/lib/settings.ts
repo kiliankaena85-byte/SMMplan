@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { SystemSettings, UsnScheme } from "@prisma/client";
 import { VaultService } from "./vault";
 import { unstable_cache, revalidateTag } from "next/cache";
-import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
 const localSettingsCache: Record<string, { data: SystemSettings; expiresAt: number }> = {};
 const CACHE_TTL_MS = 60 * 1000; // 1 minute cache for workers

@@ -63,7 +63,7 @@ interface OrdersPageProps {
 }
 
 import { headers } from 'next/headers';
-import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const session = await verifySession();

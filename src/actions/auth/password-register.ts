@@ -9,7 +9,7 @@ import { cookies, headers } from 'next/headers';
 import crypto from 'crypto';
 import { sendMagicLink } from '@/lib/smtp';
 import { getClientIp } from '@/utils/ip';
-import { normalizeTenantId } from '@/lib/tenant-resolver';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 import { passwordPolicySchema } from '@/validators/password-policy';
 

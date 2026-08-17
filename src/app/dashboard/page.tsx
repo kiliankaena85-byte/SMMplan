@@ -10,7 +10,7 @@ import { getTenantDashboardViews } from '@/tenants/factory';
 
 export const dynamic = 'force-dynamic';
 
-import { resolveTenantFromRequest } from '@/lib/tenant-resolver';
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ tenant?: string }> }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

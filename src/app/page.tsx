@@ -17,7 +17,7 @@ import { TENANTS } from "@/config/tenants";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
-import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
 export const dynamic = "force-dynamic";
 

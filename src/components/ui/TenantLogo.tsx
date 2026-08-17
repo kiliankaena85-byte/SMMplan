@@ -1,6 +1,6 @@
 import React from "react";
 import { Zap, Sparkles } from "lucide-react";
-import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
 interface TenantLogoProps {
   tenantId?: string;

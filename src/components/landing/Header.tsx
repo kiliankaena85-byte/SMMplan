@@ -6,7 +6,7 @@ import { LogIn, LogOut, Menu } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { TenantLogo } from "@/components/ui/TenantLogo";
-import { normalizeTenantId } from "@/lib/tenant-resolver";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
 interface HeaderProps {
   initialEmail?: string;
