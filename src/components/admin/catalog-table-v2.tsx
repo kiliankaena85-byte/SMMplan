@@ -370,7 +370,7 @@ function ServiceFormSheet({
           <button
             type="button"
             onClick={() => setActiveTab('general')}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+            className={`px-4 py-2 min-h-[40px] flex items-center text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
               activeTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -379,7 +379,7 @@ function ServiceFormSheet({
           <button
             type="button"
             onClick={() => setActiveTab('pricing')}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+            className={`px-4 py-2 min-h-[40px] flex items-center text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
               activeTab === 'pricing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -388,7 +388,7 @@ function ServiceFormSheet({
           <button
             type="button"
             onClick={() => setActiveTab('validation')}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+            className={`px-4 py-2 min-h-[40px] flex items-center text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
               activeTab === 'validation' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -397,7 +397,7 @@ function ServiceFormSheet({
           <button
             type="button"
             onClick={() => setActiveTab('parameters')}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+            className={`px-4 py-2 min-h-[40px] flex items-center text-xs font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
               activeTab === 'parameters' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -505,7 +505,7 @@ function ServiceFormSheet({
                           intent="outline" 
                           size="sm" 
                           onClick={() => setIsSearchModalOpen(true)}
-                          className="flex-shrink-0 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                          className="flex-shrink-0 min-h-[36px] text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                         >
                           <Search className="w-4 h-4 mr-1.5" />
                           Поиск
@@ -762,13 +762,13 @@ function ServiceFormSheet({
           </div>
 
           <SheetFooter className="pt-6 mt-8 border-t border-border/40 flex justify-end gap-3 px-0 pb-0">
-            <SheetClose render={<Button intent="outline" size="sm" type="button" className="transition-all active:scale-[0.98] cursor-pointer">Отмена</Button>} />
+            <SheetClose render={<Button intent="outline" size="sm" type="button" className="min-h-[44px] transition-all active:scale-[0.98] cursor-pointer">Отмена</Button>} />
             <Button
               type="submit"
               intent="primary"
               size="sm"
               disabled={isPending}
-              className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 ease-out-cubic active:scale-[0.98] shadow-sm shadow-primary/20 cursor-pointer"
+              className="flex items-center gap-2 min-h-[44px] bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 ease-out-cubic active:scale-[0.98] shadow-sm shadow-primary/20 cursor-pointer"
             >
               {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Сохранить услугу
@@ -802,7 +802,7 @@ function CreateServiceModal({
         intent="primary"
         size="sm"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 cursor-pointer"
+        className="flex items-center gap-1.5 min-h-[44px] bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
       >
         <Plus className="w-4 h-4" />
         Создать услугу
@@ -1249,7 +1249,7 @@ export function CatalogTable({
       <button
         type="button"
         onClick={() => handleSortClick(field)}
-        className={`hover:text-primary transition-colors inline-flex items-center gap-1 font-extrabold uppercase cursor-pointer ${
+        className={`hover:text-primary transition-colors inline-flex items-center gap-1 font-extrabold uppercase min-h-[44px] py-1 cursor-pointer select-none ${
           alignRight ? 'ml-auto justify-end' : ''
         }`}
       >
@@ -1363,7 +1363,7 @@ export function CatalogTable({
           {(currentSearch || currentExternalId || currentCategory || selectedPlatform !== 'ALL' || currentProviderId !== 'all' || currentIsActive !== 'all' || currentProviderStatus !== 'all') && (
             <button 
               onClick={resetFilters} 
-              className="text-[11px] font-bold text-destructive hover:underline transition-all duration-200 cursor-pointer active:scale-95"
+              className="text-[11px] min-h-[36px] px-2 flex items-center font-bold text-destructive hover:underline transition-all duration-200 cursor-pointer active:scale-95"
             >
               Сбросить фильтры
             </button>
@@ -1374,7 +1374,7 @@ export function CatalogTable({
         <div className="flex flex-wrap gap-2 pb-1 border-b border-border/40">
           <button
             onClick={() => handlePlatformClick('ALL')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border ${
+            className={`px-3 py-1.5 min-h-[36px] text-xs font-bold rounded-xl transition-all cursor-pointer border flex items-center justify-center ${
               selectedPlatform === 'ALL'
                 ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                 : 'bg-background hover:bg-muted text-muted-foreground border-border/80'
@@ -1386,7 +1386,7 @@ export function CatalogTable({
             <button
               key={p.slug}
               onClick={() => handlePlatformClick(p.slug)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 min-h-[36px] text-xs font-bold rounded-xl transition-all cursor-pointer border flex items-center gap-1.5 justify-center ${
                 selectedPlatform === p.slug
                   ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                   : 'bg-background hover:bg-muted text-muted-foreground border-border/80'
@@ -1534,13 +1534,13 @@ export function CatalogTable({
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-tight px-2">Валюта:</span>
             <button
               onClick={() => setCurrency('RUB')}
-              className={`px-3 py-1 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${currency === 'RUB' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-3 py-1 min-h-[36px] flex items-center justify-center text-xs font-extrabold rounded-lg transition-all cursor-pointer ${currency === 'RUB' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
             >
               ₽ (RUB)
             </button>
             <button
               onClick={() => setCurrency('USD')}
-              className={`px-3 py-1 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${currency === 'USD' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-3 py-1 min-h-[36px] flex items-center justify-center text-xs font-extrabold rounded-lg transition-all cursor-pointer ${currency === 'USD' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
             >
               $ (USD)
             </button>
@@ -1550,13 +1550,13 @@ export function CatalogTable({
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-tight px-2">Объем:</span>
             <button
               onClick={() => setVolume('UNIT')}
-              className={`px-3 py-1 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${volume === 'UNIT' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-3 py-1 min-h-[36px] flex items-center justify-center text-xs font-extrabold rounded-lg transition-all cursor-pointer ${volume === 'UNIT' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
             >
               за 1 шт
             </button>
             <button
               onClick={() => setVolume('1K')}
-              className={`px-3 py-1 text-xs font-extrabold rounded-lg transition-all cursor-pointer ${volume === '1K' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-3 py-1 min-h-[36px] flex items-center justify-center text-xs font-extrabold rounded-lg transition-all cursor-pointer ${volume === '1K' ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}
             >
               за 1000 шт
             </button>

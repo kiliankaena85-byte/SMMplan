@@ -388,7 +388,7 @@ export function OrderDrawer({
           <button
             onClick={onClose}
             aria-label="Закрыть панель заказа"
-            className="p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200 active:scale-95"
+            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200 active:scale-95"
           >
             <X className="w-4 h-4" />
           </button>
@@ -545,7 +545,7 @@ export function OrderDrawer({
                   onClick={handleSetStatus}
                   disabled={isPending || (selectedStatus === currentOrder.status && selectedStatus !== 'PARTIAL')}
                   aria-label="Применить новый статус"
-                  className="w-full px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm bg-primary text-primary-foreground hover:opacity-90 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:active:scale-100"
+                  className="w-full px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-bold shadow-sm bg-primary text-primary-foreground hover:opacity-90 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:active:scale-100"
                 >
                   {isPending ? 'Применяется...' : 'Применить статус'}
                 </button>
@@ -558,7 +558,7 @@ export function OrderDrawer({
                 onClick={handleForceComplete}
                 disabled={isPending || currentOrder.status === 'COMPLETED'}
                 aria-label="Принудительно завершить заказ"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-emerald-500/30 bg-success/10 text-success hover:bg-success/20 transition-all duration-200 disabled:opacity-40"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-medium border border-emerald-500/30 bg-success/10 text-success hover:bg-success/20 transition-all duration-200 disabled:opacity-40 active:scale-95"
               >
                 <CheckCircle className="w-4 h-4" />
                 Завершить
@@ -567,7 +567,7 @@ export function OrderDrawer({
                 onClick={handleRestart}
                 disabled={isPending || currentOrder.status !== 'ERROR'}
                 aria-label="Перезапустить заказ"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 disabled:opacity-40"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-medium border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 disabled:opacity-40 active:scale-95"
               >
                 <RotateCcw className="w-4 h-4" />
                 Перезапустить <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">Alt+R</kbd>
@@ -576,7 +576,7 @@ export function OrderDrawer({
                 onClick={handleCancel}
                 disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL', 'IN_PROGRESS', 'ERROR'].includes(currentOrder.status)}
                 aria-label="Отменить заказ"
-                className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40"
+                className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-medium border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all duration-200 disabled:opacity-40 active:scale-95"
               >
                 <XCircle className="w-4 h-4" />
                 Отменить заказ <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">Alt+C</kbd>
@@ -586,7 +586,7 @@ export function OrderDrawer({
                   onClick={handleFailoverClick}
                   disabled={isPending}
                   aria-label="Ручной перезапуск (Failover)"
-                  className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 transition-all duration-200 disabled:opacity-40"
+                  className="col-span-2 flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-medium border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 transition-all duration-200 disabled:opacity-40 active:scale-95"
                 >
                   <RotateCcw className="w-4 h-4" />
                   Failover (Сменить провайдера) <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-background border border-border rounded text-muted-foreground">Alt+M</kbd>
@@ -705,14 +705,14 @@ export function OrderDrawer({
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setIsFailoverModalOpen(false)}
-                  className="flex-1 px-4 py-2 border border-border bg-background rounded-lg text-sm font-medium hover:bg-muted"
+                  className="flex-1 px-4 py-2 min-h-[44px] flex items-center justify-center border border-border bg-background rounded-lg text-sm font-medium hover:bg-muted active:scale-95 transition-all duration-200"
                 >
                   Отменить
                 </button>
                 <button
                   onClick={handleConfirmFailover}
                   disabled={isPending || failoverPreview.routes.length === 0 || failoverPreview.currentBalance < failoverPreview.clientPaidCents}
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="flex-1 px-4 py-2 min-h-[44px] flex items-center justify-center bg-primary text-primary-foreground rounded-lg text-sm font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 active:scale-95"
                 >
                   {isPending ? 'Запуск...' : 'Подтвердить'}
                 </button>

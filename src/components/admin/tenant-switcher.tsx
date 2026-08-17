@@ -39,7 +39,7 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '' }: Te
               key={t.id}
               type="button"
               onClick={() => handleSelect(t.id)}
-              className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all duration-200 active:scale-95 ${
+              className={`px-3 py-1.5 min-h-[36px] sm:min-h-[44px] flex items-center justify-center text-xs font-extrabold rounded-lg transition-all duration-200 active:scale-95 ${
                 isActive
                   ? 'bg-background text-primary shadow-sm ring-1 ring-border/50'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/40'

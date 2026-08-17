@@ -177,23 +177,23 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Всего услуг ({selectedTenant.toUpperCase()})</span>
-          <span className="text-2xl font-black text-foreground mt-1 tabular-nums">{stats.totalServices}</span>
+          <span className="text-2xl font-black text-foreground mt-1 tabular-nums tracking-tight">{stats.totalServices}</span>
         </div>
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Активных услуг</span>
-          <span className="text-2xl font-black text-success mt-1 tabular-nums">{stats.activeServices}</span>
+          <span className="text-2xl font-black text-success mt-1 tabular-nums tracking-tight">{stats.activeServices}</span>
         </div>
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">В карантине</span>
-          <span className="text-2xl font-black text-warning mt-1 tabular-nums">{quarantineCount}</span>
+          <span className="text-2xl font-black text-warning mt-1 tabular-nums tracking-tight">{quarantineCount}</span>
         </div>
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ср. Маржа</span>
-          <span className="text-2xl font-black text-primary mt-1 tabular-nums">x{markupAnalytics.averageMarkup.toFixed(2)}</span>
+          <span className="text-2xl font-black text-primary mt-1 tabular-nums tracking-tight">x{markupAnalytics.averageMarkup.toFixed(2)}</span>
         </div>
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between col-span-2 md:col-span-1">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Курс USD/RUB</span>
-          <span className="text-2xl font-black text-foreground mt-1 tabular-nums">{usdToRub.toFixed(2)} ₽</span>
+          <span className="text-2xl font-black text-foreground mt-1 tabular-nums tracking-tight">{usdToRub.toFixed(2)} ₽</span>
         </div>
       </div>
 
@@ -265,7 +265,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         {hasMore && (
            <div className="flex justify-center pt-4">
              <Link href={`/admin/catalog?tenant=${selectedTenant}&cursor=${nextCursor}${categoryId ? `&category=${categoryId}` : ''}${search ? `&q=${search}` : ''}${sortBy ? `&sortBy=${sortBy}` : ''}${sortOrder ? `&sortOrder=${sortOrder}` : ''}`}>
-               <Button intent="outline" size="sm" className="bg-background">Загрузить еще...</Button>
+               <Button intent="outline" size="sm" className="bg-background min-h-[44px]">Загрузить ещё...</Button>
              </Link>
            </div>
         )}

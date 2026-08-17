@@ -73,7 +73,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
         <button 
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
-          className="flex items-center justify-center w-8 h-8 rounded-[10px] bg-card/80 backdrop-blur-md border border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-300 active:scale-95 shadow-sm"
+          className="flex items-center justify-center w-9 h-9 min-h-[36px] min-w-[36px] rounded-[10px] bg-card/80 backdrop-blur-md border border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-300 active:scale-95 shadow-sm"
         >
           {collapsed ? <PanelLeftOpen className="w-4 h-4 ml-0.5" /> : <PanelLeftClose className="w-4 h-4 mr-0.5" />}
         </button>
@@ -199,7 +199,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                 <button
                   onClick={() => setMode('light')}
                   className={cn(
-                    "p-1.5 rounded-md transition-all cursor-pointer active:scale-[0.93]",
+                    "p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-md transition-all cursor-pointer active:scale-[0.93]",
                     !isDark ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   )}
                   title="Светлая тема"
@@ -210,11 +210,11 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                 <button
                   onClick={() => setMode('dark')}
                   className={cn(
-                    "p-1.5 rounded-md transition-all cursor-pointer active:scale-[0.93]",
+                    "p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-md transition-all cursor-pointer active:scale-[0.93]",
                     isDark ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   )}
-                  title="Темная тема"
-                  aria-label="Темная тема"
+                  title="Тёмная тема"
+                  aria-label="Тёмная тема"
                 >
                   <Moon className="w-3.5 h-3.5" />
                 </button>

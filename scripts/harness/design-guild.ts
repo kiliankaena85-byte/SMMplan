@@ -680,6 +680,20 @@ async function main() {
       'src/components/ui/FluxInput.tsx',
       'src/components/ui/FluxCard.tsx',
     ];
+  } else if (normalized === 'admin' || normalized === 'админ' || normalized === 'админка') {
+    console.log('📦 Пакетный аудит экосистемы ADMIN PANEL (Enterprise B2B / Calm Design):');
+    targetFiles = [
+      'src/app/admin/layout.tsx',
+      'src/app/admin/dashboard/page.tsx',
+      'src/app/admin/catalog/page.tsx',
+      'src/components/admin/sidebar.tsx',
+      'src/components/admin/page-header.tsx',
+      'src/components/admin/catalog-table-v2.tsx',
+      'src/components/admin/flux-catalog-grid.tsx',
+      'src/components/admin/OrderDrawer.tsx',
+      'src/components/admin/tenant-switcher.tsx',
+      'src/components/admin/command-palette.tsx',
+    ];
   } else {
     targetFiles = [target];
   }
