@@ -29,7 +29,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
         
         {/* Card 1: Large Span AI Selection */}
         <div className="md:col-span-2 bg-content1 rounded-[2rem] p-5 md:p-8 relative overflow-hidden group border border-border/50 ring-1 ring-black/5 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-300 min-h-[280px]">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/15 rounded-full blur-3xl opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 -translate-y-1/2 translate-x-1/2 dark:bg-primary/10" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/15 rounded-full blur-3xl opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500 -translate-y-1/2 translate-x-1/2 dark:bg-primary/10 pointer-events-none" />
           <div className="relative z-10 flex flex-col justify-between md:h-full">
             <div>
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 text-primary group-hover:scale-110 transition-transform dark:bg-primary/10">
@@ -75,7 +75,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
         {/* Card 4: Large B2B Reseller Suite & API Hub Card */}
         <div className="md:col-span-2 bg-primary text-primary-foreground dark:bg-content1 dark:text-foreground border border-primary/20 dark:border-border/60 rounded-[2rem] p-5 pb-8 md:p-8 md:pb-10 relative overflow-hidden group shadow-2xl ring-1 ring-black/5 transition-all duration-300 hover:shadow-primary/10 min-h-[380px]">
           {/* Background Ambient Glow */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-secondary/20 to-primary/20 dark:from-primary/10 dark:to-transparent rounded-full blur-3xl opacity-60 group-hover:opacity-90 group-hover:scale-110 transition-all duration-500 -translate-y-1/3 translate-x-1/3" />
+          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-secondary/20 to-primary/20 dark:from-primary/10 dark:to-transparent rounded-full blur-3xl opacity-60 group-hover:opacity-90 group-hover:scale-110 transition-all duration-500 -translate-y-1/3 translate-x-1/3 pointer-events-none" />
           
           {/* Grid Mesh Overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:16px_16px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30 pointer-events-none" />

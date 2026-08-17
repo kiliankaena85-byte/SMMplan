@@ -218,7 +218,7 @@ export function SmartLinkLanding({
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute top-[10%] left-[12%] w-72 h-72 rounded-full bg-pink-500/10 dark:bg-pink-500/5 blur-3xl"
+            className="absolute top-[10%] left-[12%] w-72 h-72 rounded-full bg-pink-500/10 dark:bg-pink-500/5 blur-3xl pointer-events-none"
           />
           <motion.div
             animate={{
@@ -231,7 +231,7 @@ export function SmartLinkLanding({
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute top-[15%] right-[15%] w-80 h-80 rounded-full bg-primary/10 dark:bg-primary/5 blur-3xl"
+            className="absolute top-[15%] right-[15%] w-80 h-80 rounded-full bg-primary/10 dark:bg-primary/5 blur-3xl pointer-events-none"
           />
           <motion.div
             animate={{
@@ -244,7 +244,7 @@ export function SmartLinkLanding({
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute top-[30%] left-[30%] w-64 h-64 rounded-full bg-emerald-500/10 dark:emerald-500/5 blur-3xl"
+            className="absolute top-[30%] left-[30%] w-64 h-64 rounded-full bg-emerald-500/10 dark:emerald-500/5 blur-3xl pointer-events-none"
           />
         </div>
 

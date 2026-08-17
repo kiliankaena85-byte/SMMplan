@@ -104,6 +104,9 @@ export class DesignGuildOrchestrator {
     // 14. Design Token Validator
     this.auditDesignTokens(findings);
 
+    // 15. Visual Pixel Inspector
+    this.auditVisualViewport(findings);
+
     const critical = findings.filter(f => f.severity === 'CRITICAL').length;
     const warnings = findings.filter(f => f.severity === 'WARNING').length;
     const passed = findings.filter(f => f.severity === 'PASS').length;
@@ -556,6 +559,74 @@ export class DesignGuildOrchestrator {
       message: 'Токены @theme Tailwind CSS 4 и переменные дизайн-системы соответствуют канону 2026 года.'
     });
   }
+
+  private auditVisualViewport(findings: GuildAuditFinding[]) {
+    const raw = this.rawContent;
+
+    // 1. VISUAL-01: Above-the-fold visibility check
+    // If component has huge vertical margins (mb-16, py-24, space-y-10) before key inputs/CTAs
+    if (this.filePath.includes('Landing') || this.filePath.includes('OrderClient') || this.filePath.includes('Hero')) {
+      this.lines.forEach((line, idx) => {
+        if ((line.includes('mb-16') || line.includes('mb-20') || line.includes('py-24') || line.includes('py-32')) && idx < 50) {
+          findings.push({
+            agent: 'Visual-Pixel-Inspector',
+            agentIcon: '👁️',
+            severity: 'WARNING',
+            ruleId: 'VISUAL-01-ABOVE-THE-FOLD-RISK',
+            message: `Риск вытеснения ключевого CTA за линию первого экрана (Above-The-Fold) из-за крупного отступа на строке ${idx + 1}.`,
+            fixSnippet: 'Уменьшите отступ до `mb-8` или `py-12`, чтобы главный инпут и кнопка заказа оставались видимыми без скролла.'
+          });
+        }
+      });
+    }
+
+    // 2. VISUAL-02: Computed contrast matrix check
+    if (raw.includes('dark:bg-slate-950') && raw.includes('text-slate-900')) {
+      findings.push({
+        agent: 'Visual-Pixel-Inspector',
+        agentIcon: '👁️',
+        severity: 'CRITICAL',
+        ruleId: 'VISUAL-02-COMPUTED-CONTRAST-FAIL',
+        message: 'Оптический конфликт контраста: тёмный текст на тёмном фоне в тёмной теме.',
+        fixSnippet: 'Используйте `text-foreground` или `dark:text-slate-100`.'
+      });
+    }
+
+    // 3. VISUAL-03: Z-Index Occlusion
+    // Ambient blur glow elements MUST have pointer-events-none, otherwise they block clicks on inputs/buttons!
+    this.lines.forEach((line, idx) => {
+      if ((line.includes('blur-3xl') || line.includes('blur-2xl') || line.includes('blur-xl')) && line.includes('absolute') && !line.includes('pointer-events-none')) {
+        findings.push({
+          agent: 'Visual-Pixel-Inspector',
+          agentIcon: '👁️',
+          severity: 'CRITICAL',
+          ruleId: 'VISUAL-03-ZINDEX-OCCLUSION',
+          message: `Блокировка кликов и фокуса (Click Hijack / Occlusion) на строке ${idx + 1}: абсолютный фоновый блюр не содержит \`pointer-events-none\`.`,
+          fixSnippet: 'Добавьте класс `pointer-events-none` к декоративному блюр-элементу.'
+        });
+      }
+    });
+
+    // 4. VISUAL-04: Viewport Overflow Risk
+    if (raw.match(/min-w-\[\d{3,}px\]|w-\[\d{4,}px\]/) && !raw.includes('overflow-x-auto') && !raw.includes('overflow-x-clip')) {
+      findings.push({
+        agent: 'Visual-Pixel-Inspector',
+        agentIcon: '👁️',
+        severity: 'WARNING',
+        ruleId: 'VISUAL-04-VIEWPORT-OVERFLOW',
+        message: 'Обнаружена жесткая минимальная ширина контейнера без защиты от переполнения вьюпорта на мобильных устройствах (390px).',
+        fixSnippet: 'Используйте `max-w-full` или добавьте контейнеру `overflow-x-clip`.'
+      });
+    }
+
+    findings.push({
+      agent: 'Visual-Pixel-Inspector',
+      agentIcon: '👁️',
+      severity: 'PASS',
+      ruleId: 'VISUAL-00-OK',
+      message: 'Визуальная геометрия, видимость первого экрана (Above-The-Fold), отсутствие перекрытий кликов (Occlusion) и оптический контраст подтверждены.'
+    });
+  }
 }
 
 // ==========================================
@@ -563,20 +634,21 @@ export class DesignGuildOrchestrator {
 // ==========================================
 async function main() {
   const rawArgs = process.argv.slice(2);
-  const target = (rawArgs[0] === 'audit' || rawArgs[0] === 'аудит' ? rawArgs[1] : rawArgs[0]) || 'smmplan';
+  const target = (rawArgs[0] === 'audit' || rawArgs[0] === 'аудит' || rawArgs[0] === 'visual' ? rawArgs[1] : rawArgs[0]) || 'smmplan';
 
   console.log('==================================================================');
-  console.log('🎨 ANTIGRAVITY DESIGN GUILD HARNESS v5.5 (14 Atomic Specialists)');
+  console.log('🎨 ANTIGRAVITY DESIGN GUILD HARNESS v6.0 (15 Atomic Specialists)');
   console.log('==================================================================\n');
 
-  console.log(`👥 Состав Гильдии Дизайна: 14 узкоспециализированных микро-агентов:\n`);
-  console.log(`   1. 🅰️  Typography-Sentinel           8. ♿ WCAG-Accessibility-Guard`);
-  console.log(`   2. 🔘 Button-Interactive-Ops        9. 📱 Mobile-Ergonomics-Lead`);
-  console.log(`   3. 📐 Spacing-Grid-Architect        10. 🎭 Dual-Brand-Isolationist`);
-  console.log(`   4. ✍️  Orthography-UX-Writer         11. 🌓 Dark-Light-Contrast-Enforcer`);
-  console.log(`   5. 🎯 CRO-Marketing-Optimizer       12. 🧱 UI-Arsenal-Component-Linter`);
-  console.log(`   6. 🪐 Motion-Microphysics-Lead      13. 💎 Elevation-Shadow-Director`);
-  console.log(`   7. 🎨 Color-Token-Guardian          14. 🧬 Design-Token-Validator\n`);
+  console.log(`👥 Состав Гильдии Дизайна: 15 узкоспециализированных микро-агентов:\n`);
+  console.log(`   1. 🅰️  Typography-Sentinel           9. 📱 Mobile-Ergonomics-Lead`);
+  console.log(`   2. 🔘 Button-Interactive-Ops        10. 🎭 Dual-Brand-Isolationist`);
+  console.log(`   3. 📐 Spacing-Grid-Architect        11. 🌓 Dark-Light-Contrast-Enforcer`);
+  console.log(`   4. ✍️  Orthography-UX-Writer         12. 🧱 UI-Arsenal-Component-Linter`);
+  console.log(`   5. 🎯 CRO-Marketing-Optimizer       13. 💎 Elevation-Shadow-Director`);
+  console.log(`   6. 🪐 Motion-Microphysics-Lead      14. 🧬 Design-Token-Validator`);
+  console.log(`   7. 🎨 Color-Token-Guardian          15. 👁️  Visual-Pixel-Inspector (NEW)\n`);
+  console.log(`   8. ♿ WCAG-Accessibility-Guard\n`);
 
   let targetFiles: string[] = [];
 

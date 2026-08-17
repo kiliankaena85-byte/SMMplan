@@ -2215,7 +2215,7 @@
   "/app/codebase/src/app/dashboard/orders/page.tsx": "21ccd3e0cbabaccd",
   "/app/codebase/src/components/landing/order-engine/wizard-steps/useMobileWizard.ts": "10e16710e0be2c2d",
   "/app/codebase/src/components/admin/OrderDrawer.tsx": "da90b62c4cc5965d",
-  "/app/codebase/src/components/landing/WhyUs.tsx": "e16667dda29b7070",
+  "/app/codebase/src/components/landing/WhyUs.tsx": "55100f02fa9d96b7",
   "/app/codebase/src/app/dashboard/tickets/[id]/page.tsx": "71b0f12656f4877b",
   "/app/codebase/src/components/ui/checkbox.tsx": "ddc7e32d5c81cdf4",
   "/app/codebase/src/data/knowledge/referral-program-passive-income.mdx": "1b0f22125d77e484",
@@ -2995,7 +2995,7 @@
   "/app/codebase/scripts/harness/audit-skill-health.ts": "30b4a27bcc47f516",
   "/app/codebase/scripts/harness/legal-council.ts": "144c6f305b2cb59d",
   "/app/codebase/.agents/skills/legal-brainstorm-council/SKILL.md": "e6adc4ba840d9a82",
-  "/app/codebase/scripts/harness/design-guild.ts": "192e5d9a1a857e6b",
+  "/app/codebase/scripts/harness/design-guild.ts": "42d29cc3cb79c76a",
   "/app/codebase/src/components/admin/AdminBreadcrumbs.tsx": "36929afcae7b5e8d",
   "/app/codebase/.agents/skills/design-guild-council/SKILL.md": "54b668767cec5cd3"
 }
