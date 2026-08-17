@@ -256,9 +256,9 @@ export function SmartLinkLanding({
             duration: 0.8,
             ease: "easeOut",
           }}
-          className="text-center space-y-5 mb-10 max-w-3xl relative z-10 w-full mt-4"
+          className="text-center space-y-4 mb-8 max-w-4xl relative z-20 w-full mt-2 px-2"
         >
-          <div className="mb-4">
+          <div className="mb-2">
             <ThemeSwitcher />
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.08] drop-shadow-md text-balance">
@@ -271,25 +271,36 @@ export function SmartLinkLanding({
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-medium max-w-2xl mx-auto drop-shadow-sm text-pretty">
             {customHeroSubtitle || "Прямой доступ к оптовым шлюзам продвижения без наценок агентств. Без паролей и регистрации — мгновенный запуск за 30 секунд."}
           </p>
-          <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-10 pt-2">
+          <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-10 pt-1">
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight drop-shadow-sm">15+</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Платформ</p>
+              <p className="text-xl sm:text-2xl font-black text-foreground tabular-nums tracking-tight drop-shadow-sm">15+</p>
+              <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Платформ</p>
             </div>
-            <div className="w-px h-10 bg-border"></div>
+            <div className="w-px h-8 bg-border"></div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight drop-shadow-sm">300+</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Услуг</p>
+              <p className="text-xl sm:text-2xl font-black text-foreground tabular-nums tracking-tight drop-shadow-sm">300+</p>
+              <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Услуг</p>
             </div>
-            <div className="w-px h-10 bg-border"></div>
+            <div className="w-px h-8 bg-border"></div>
             <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-black text-foreground tabular-nums tracking-tight drop-shadow-sm">9-21</p>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Поддержка (МСК)</p>
+              <p className="text-xl sm:text-2xl font-black text-foreground tabular-nums tracking-tight drop-shadow-sm">9-21</p>
+              <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider drop-shadow-sm">Поддержка (МСК)</p>
             </div>
+          </div>
+
+          {/* ГЛАВНЫЙ ИНПУТ ДЛЯ ВСТАВКИ ССЫЛКИ В HERO СЕКЦИИ */}
+          <div className="pt-3 w-full">
+            <HeroInput 
+              engine={engine} 
+              handleCheckout={handleCheckout} 
+              linkHasError={linkHasError} 
+              setLinkHasError={setLinkHasError} 
+              onOpenGuide={() => setIsGuideOpen(true)}
+            />
           </div>
         </motion.div>
  
-        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-2xl ring-1 ring-border/20 rounded-2xl md:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-8 relative">
+        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-2xl ring-1 ring-border/20 rounded-2xl md:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-6 relative">
           
           <div className="min-h-[500px] transition-all duration-300">
             {unfilteredCatalog.length === 0 ? (
@@ -317,18 +328,8 @@ export function SmartLinkLanding({
               </div>
             ) : (
               <>
-                <div className="hidden md:block">
-                  <HeroInput 
-                    engine={engine} 
-                    handleCheckout={handleCheckout} 
-                    linkHasError={linkHasError} 
-                    setLinkHasError={setLinkHasError} 
-                    onOpenGuide={() => setIsGuideOpen(true)}
-                  />
-                </div>
-
                 {url.trim().length >= 5 && !isLoading && (!engine.platform || !networkId) && !engine.manualPlatform && (
-                  <div className="mt-4 animate-in fade-in duration-300 w-full max-w-4xl mx-auto relative z-20 hidden md:block">
+                  <div className="mb-4 animate-in fade-in duration-300 w-full max-w-4xl mx-auto relative z-20">
                     <PlatformSelectorFallback
                       onSelect={engine.setManualPlatform}
                       availablePlatforms={availablePlatforms}
