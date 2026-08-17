@@ -16,6 +16,7 @@ import { sendOrderPaidMail } from "@/lib/smtp";
 import { getBaseUrlSync } from "@/utils/get-base-url";
 import { featureFlagService } from "@/services/system/feature-flag.service";
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
+import { validateProhibitedContent } from '@/validators/prohibited-content';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { safeUrlForLog } from '@/lib/log-safe';
 import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
@@ -143,6 +144,12 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     const isAllowed = await RateLimitService.check("checkoutCore", 15, 60, true);
     if (!isAllowed) {
       throw new Error("Слишком много запросов. Попробуйте через минуту.");
+    }
+
+    // 0.5 Content Guard & Legal Compliance (Prohibited Government & Political Resources)
+    const contentCheck = validateProhibitedContent(link, customData);
+    if (!contentCheck.isAllowed) {
+      throw new Error(contentCheck.error || "Продвижение государственных служб и политических ресурсов строго запрещено");
     }
 
 
