@@ -1004,7 +1004,7 @@
   "/app/codebase/plans/006-chatwindow-decomposition.md": "bec6766da763eb4f",
   "/app/codebase/.agents/teamwork_preview_reviewer_auth_gen4_1/handoff.md": "b39033e4e7fe56d4",
   "/app/codebase/.agents/teamwork_preview_explorer_r1_1/analysis.md": "0ec3b2947601e5ab",
-  "/app/codebase/prisma/seed.ts": "e127b5f0d250a6c6",
+  "/app/codebase/prisma/seed.ts": "7d780e24f434798c",
   "/app/codebase/.agents/teamwork_preview_victory_auditor_support_examples_1/progress.md": "ffd6602d6e46ac82",
   "/app/codebase/.agent/skills/round-table-planning/SKILL.md": "94f0ceb968070c6e",
   "/app/codebase/artifacts/extended_manual.md": "10cac0a270401134",
@@ -2135,7 +2135,7 @@
   "/app/codebase/src/data/knowledge/account-security-smm-promotion.mdx": "400a93567cecaa9b",
   "/app/codebase/src/app/api/webhooks/yookassa/route.ts": "8e86ed18ca4d509e",
   "/app/codebase/src/components/landing/order-engine/MobileWizard.tsx": "959b30e0c9021ba5",
-  "/app/codebase/src/lib/db.ts": "6aadc2a06b43946e",
+  "/app/codebase/src/lib/db.ts": "b01ff0ecbb2b1023",
   "/app/codebase/src/app/dashboard/add-funds/page.tsx": "3b6bbdac66cdde62",
   "/app/codebase/src/components/landing/order-engine/drawer/DrawerFormInputs.tsx": "2834997eb76f287b",
   "/app/codebase/src/components/providers/MaintenanceGuardian.tsx": "218af8a40d5300b5",
@@ -2289,7 +2289,7 @@
   "/app/codebase/src/tenants/fallback/neutral-maintenance-strategy.tsx": "1684ba7f6e5afa0f",
   "/app/codebase/src/tenants/types.ts": "eebd5994968a18e3",
   "/app/codebase/src/tenants/registry.ts": "1191708b550c3bc3",
-  "/app/codebase/src/lib/tenant-resolver.ts": "433d6cf2d91f5147",
+  "/app/codebase/src/lib/tenant-resolver.ts": "d1a7b135e4793bba",
   "/app/codebase/scripts/re-encrypt-secrets.ts": "1ea6604c2be1a02f",
   "/app/codebase/src/tenants/TenantErrorBoundary.tsx": "cb53d0ac023a1304",
   "/app/codebase/src/instrumentation.ts": "61f3caae0f5a84dd",
@@ -2997,5 +2997,6 @@
   "/app/codebase/.agents/skills/legal-brainstorm-council/SKILL.md": "e6adc4ba840d9a82",
   "/app/codebase/scripts/harness/design-guild.ts": "14fcd99a05e48af4",
   "/app/codebase/src/components/admin/AdminBreadcrumbs.tsx": "36929afcae7b5e8d",
-  "/app/codebase/.agents/skills/design-guild-council/SKILL.md": "d0bda53efe4edd86"
+  "/app/codebase/.agents/skills/design-guild-council/SKILL.md": "d0bda53efe4edd86",
+  "/app/codebase/scratch/test-guard.ts": "e0d5b27dc7e93d81"
 }

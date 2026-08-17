@@ -14,7 +14,7 @@ export function getEncodedKey() {
   return cachedEncodedKey;
 }
 
-import { normalizeTenantId } from '@/lib/tenant-resolver';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 /**
  * Decrypts JWT session token in an Edge-safe manner (no DB calls).

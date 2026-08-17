@@ -1,3 +1,10 @@
+/**
+ * Server & Dynamic Tenant Resolution (with DB fallback).
+ */
+export * from './tenant-resolver-edge';
+import { db } from './db';
+import { FLUX_DOMAINS } from './tenant-resolver-edge';
+
 let tenantCache: Map<string, string> | null = null;
 let cacheExpiry = 0;
 let inflightTenantFetch: Promise<Map<string, string>> | null = null;
@@ -5,8 +12,6 @@ let inflightTenantFetch: Promise<Map<string, string>> | null = null;
 async function fetchTenantsFromDb(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   try {
-    // Dynamic import to prevent PrismaClient bundling in Next.js Edge Runtime (middleware)
-    const { db } = await import('./db');
     const tenants = await db.tenant.findMany({
       where: { isActive: true },
       select: { slug: true, domain: true, customDomain: true },
@@ -24,16 +29,6 @@ async function fetchTenantsFromDb(): Promise<Map<string, string>> {
   }
   return map;
 }
-
-const FLUX_DOMAINS = new Set([
-  'lovable.local',
-  'lovable.smmplan.ru',
-  'smmflux.ru',
-  'www.smmflux.ru',
-  'flux.local',
-  'smmflux.local',
-  'flux.smmplan.ru',
-]);
 
 /**
  * Resolves tenantId from HTTP Host header using exact domain match.
@@ -58,30 +53,3 @@ export async function resolveTenantFromHost(host: string): Promise<string> {
   // Exact fallback matching using canonical FLUX_DOMAINS set
   return FLUX_DOMAINS.has(cleanHost) ? 'flux' : 'smmplan';
 }
-
-/**
- * Edge-compatible host resolver (without Prisma DB dependency) for Next.js Middleware.
- */
-export function resolveTenantFromHostEdge(host: string): string {
-  const cleanHost = host.split(':')[0].toLowerCase();
-  return FLUX_DOMAINS.has(cleanHost) ? 'flux' : 'smmplan';
-}
-
-/**
- * Pure tenant ID normalizer.
- * Maps legacy 'lovable' to canonical 'flux'. Returns null/undefined or other IDs as-is.
- */
-export function normalizeTenantId<T extends string | null | undefined>(tenantId: T): T {
-  if (!tenantId) return tenantId;
-  const clean = tenantId.trim().toLowerCase();
-  return (clean === 'lovable' ? 'flux' : clean) as T;
-}
-
-/**
- * Single Canonical View Strategy Resolver for Server Components & Actions.
- * Strategy MUST be resolved ONLY from the 'x-tenant-id' header set by Middleware.
- */
-export function resolveTenantFromRequest(headersList: Headers): string {
-  return normalizeTenantId(headersList.get('x-tenant-id')) || 'smmplan';
-}
-

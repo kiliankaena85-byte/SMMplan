@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { decryptSessionToken } from '@/lib/session-edge';
 import { ROUTES } from '@/lib/routes';
 
-import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver';
+import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 // Map of legacy routes to new static routes
 const legacyRedirects: Record<string, string> = {
