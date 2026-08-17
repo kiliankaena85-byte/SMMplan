@@ -881,6 +881,19 @@
         "sentinel",
         "ast"
       ]
+    },
+    {
+      "title": "Security Sentinel v2 Audit: 39 findings (Score: 0/100)",
+      "context": "Честный бескомпромиссный аудит кодовой базы без наивных белых списков",
+      "decision": "Выявлены риски: SEC-VAL-001, SEC-AUTH-001, SEC-IDOR-001, SEC-FIN-002",
+      "rationale": "Устранение Security Theater в пользу доказательной безопасности",
+      "tags": [
+        "security",
+        "v2",
+        "idor",
+        "audit",
+        "sentinel"
+      ]
     }
   ]
 }

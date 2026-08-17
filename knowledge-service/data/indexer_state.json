@@ -3052,5 +3052,6 @@
   "/app/codebase/src/hooks/use-range-selection.ts": "0bc114917681d6b4",
   "/app/codebase/.agents/challenger_m2_1/handoff.md": "524c7c19dd8824b8",
   "/app/codebase/.agents/challenger_m2_2/handoff.md": "180ddc7a89300752",
-  "/app/codebase/scripts/harness/security-sentinel.ts": "5432c4bd079f9eb3"
+  "/app/codebase/scripts/harness/security-sentinel.ts": "2ae0295acfc94529",
+  "/app/codebase/src/services/security/__tests__/security-sentinel-pov.test.ts": "f05419c2461289e2"
 }
