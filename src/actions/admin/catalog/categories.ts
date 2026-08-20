@@ -11,6 +11,7 @@ const categorySchema = z.object({
   name: z.string().min(1).max(255, "Category name too long"),
   networkId: z.string().min(1, "Network ID required"),
   sort: z.coerce.number().int().default(0),
+  activityType: z.string().optional().nullable(),
   requireWarning: z.coerce.boolean().default(false),
   warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable(),
   analyzerTags: z.string().max(255).optional().nullable()
@@ -18,7 +19,7 @@ const categorySchema = z.object({
 
 const idSchema = z.string().min(1);
 
-export async function createCategory(rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
+export async function createCategory(rawData: { name: string; networkId: string; sort: number; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const data = categorySchema.parse(rawData);
     const cat = await db.category.create({
@@ -26,6 +27,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
         name: data.name,
         networkId: data.networkId,
         sort: data.sort,
+        activityType: data.activityType,
         requireWarning: data.requireWarning,
         warningMessage: data.warningMessage,
         analyzerTags: data.analyzerTags
@@ -38,7 +40,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
       action: "CATEGORY_CREATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
+      newValue: { name: cat.name, networkId: cat.networkId, activityType: cat.activityType, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
     });
 
     revalidatePath("/admin/catalog/categories");
@@ -50,7 +52,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
   });
 }
 
-export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
+export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     const data = categorySchema.parse(rawData);
@@ -60,6 +62,7 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
         name: data.name,
         networkId: data.networkId,
         sort: data.sort,
+        activityType: data.activityType,
         requireWarning: data.requireWarning,
         warningMessage: data.warningMessage,
         analyzerTags: data.analyzerTags

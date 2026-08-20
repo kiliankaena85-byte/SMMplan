@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useMemo } from 'react';
+import React, { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -10,11 +10,21 @@ import {
   Calculator, 
   Eye, 
   Layers, 
-  Sparkles
+  Sparkles,
+  Search,
+  Check,
+  Bot,
+  Link as LinkIcon,
+  ShieldCheck,
+  Flame,
+  Zap,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { createServiceAction, updateServiceAction } from '@/actions/admin/catalog/services';
+import { searchShadowServicesAction, getLinkSpecificationAction } from '@/actions/admin/providers/search-services';
+import type { ShadowServiceSearchResult } from '@/services/admin/smart-provider-matcher';
 import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from '@/lib/financial-constants';
 
 interface NetworkOption {
@@ -25,6 +35,7 @@ interface NetworkOption {
     id: string;
     name: string;
     slug: string;
+    activityType?: string | null;
   }[];
 }
 
@@ -47,6 +58,14 @@ export interface InitialServiceData {
   providerId: string | null;
   externalId: string | null;
   targetType: string | null;
+  qualityTier?: string;
+  customDataType?: string;
+  customDataLabel?: string | null;
+  isMediaGroupAware?: boolean;
+  linkValidatorRegex?: string | null;
+  linkPlaceholder?: string | null;
+  linkHint?: string | null;
+  requiresBotAdmin?: boolean;
   isActive: boolean;
   isDripFeedEnabled: boolean;
   isRefillEnabled: boolean;
@@ -63,13 +82,22 @@ interface ServiceStudioFormProps {
 }
 
 const TARGET_TYPES = [
-  { value: 'CHANNEL', label: 'Канал / Группа (Подписчики, Бусты)' },
-  { value: 'POST', label: 'Пост / Публикация (Просмотры, Лайки)' },
-  { value: 'PROFILE', label: 'Личный Профиль / Аккаунт (Друзья)' },
-  { value: 'VIDEO', label: 'Видео / Shorts / Reels (Просмотры, Часы)' },
-  { value: 'STORY', label: 'История / Stories (Просмотры)' },
-  { value: 'POLL', label: 'Опрос / Голосование (Голоса)' },
-  { value: 'CUSTOM', label: 'Свой тип / Внешний API' },
+  { value: 'CHANNEL', label: '📢 Канал / Группа (Подписчики, Просмотры, Бусты)' },
+  { value: 'POST', label: '📝 Пост / Публикация (Лайки, Просмотры, Репосты, Альбомы)' },
+  { value: 'PROFILE', label: '👤 Личный Профиль / Аккаунт (Друзья, Фолловеры)' },
+  { value: 'VIDEO', label: '🎬 Видео / Shorts / Reels (Просмотры, Часы, Лайки)' },
+  { value: 'STORY', label: '⏱️ История / Stories (Просмотры)' },
+  { value: 'POLL', label: '📊 Опрос / Голосование (Голоса)' },
+  { value: 'COMMENT', label: '💬 Комментарии / Отзывы' },
+  { value: 'CUSTOM', label: '⚙️ Свой тип / Внешний API' },
+];
+
+const QUALITY_TIERS = [
+  { value: 'ECONOMY', label: 'Эконом', desc: 'Быстрые боты, базовое качество', icon: Flame, color: 'text-zinc-500 bg-zinc-500/10 border-zinc-500/20' },
+  { value: 'STANDARD', label: 'Стандарт', desc: 'Хит продаж, живые офферы, стабильно', icon: Zap, color: 'text-primary bg-primary/10 border-primary/20' },
+  { value: 'PREMIUM', label: 'Премиум', desc: 'Высокое качество, РФ/СНГ, с гарантией', icon: ShieldCheck, color: 'text-purple-600 bg-purple-500/10 border-purple-500/20' },
+  { value: 'VIP', label: 'VIP / Бизнес', desc: '100% реальные пользователи, без списаний', icon: Crown, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
+  { value: 'AUTO', label: 'Авто-услуга', desc: 'На будущие посты/активности канала', icon: Bot, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
 ];
 
 export function ServiceStudioForm({
@@ -107,6 +135,16 @@ export function ServiceStudioForm({
   const [name, setName] = useState(initialData?.name || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [targetType, setTargetType] = useState(initialData?.targetType || 'CHANNEL');
+  const [qualityTier, setQualityTier] = useState(initialData?.qualityTier || 'STANDARD');
+
+  // Link & Requirement State
+  const [linkPlaceholder, setLinkPlaceholder] = useState(initialData?.linkPlaceholder || '');
+  const [linkHint, setLinkHint] = useState(initialData?.linkHint || '');
+  const [linkValidatorRegex, setLinkValidatorRegex] = useState(initialData?.linkValidatorRegex || '');
+  const [requiresBotAdmin, setRequiresBotAdmin] = useState(initialData?.requiresBotAdmin ?? false);
+  const [isMediaGroupAware, setIsMediaGroupAware] = useState(initialData?.isMediaGroupAware ?? false);
+  const [customDataType, setCustomDataType] = useState(initialData?.customDataType || 'NONE');
+  const [customDataLabel, setCustomDataLabel] = useState(initialData?.customDataLabel || '');
 
   // Finance State
   const [rate, setRate] = useState<string>(initialData?.rate !== undefined ? String(initialData.rate) : '0.10');
@@ -121,6 +159,12 @@ export function ServiceStudioForm({
   const [isRefillEnabled, setIsRefillEnabled] = useState(initialData?.isRefillEnabled ?? false);
   const [isCancelEnabled, setIsCancelEnabled] = useState(initialData?.isCancelEnabled ?? false);
   const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(initialData?.isDripFeedEnabled ?? false);
+
+  // Smart Matcher State
+  const [shadowSearchQuery, setShadowSearchQuery] = useState('');
+  const [isSearchingShadow, setIsSearchingShadow] = useState(false);
+  const [shadowResults, setShadowResults] = useState<ShadowServiceSearchResult[]>([]);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Active Network and its Categories
   const activeNetwork = useMemo(() => {
@@ -156,6 +200,83 @@ export function ServiceStudioForm({
     } else {
       setSelectedCategoryId('');
     }
+  };
+
+  // Debounced Shadow Search
+  useEffect(() => {
+    if (!shadowSearchQuery.trim()) {
+      setShadowResults([]);
+      return;
+    }
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearchingShadow(true);
+      const res = await searchShadowServicesAction({
+        query: shadowSearchQuery.trim(),
+        providerId: providerId || undefined,
+        limit: 10
+      });
+      setIsSearchingShadow(false);
+      if (res.success && res.items) {
+        setShadowResults(res.items);
+      }
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [shadowSearchQuery, providerId]);
+
+  // Auto-apply link rules on targetType change
+  const handleTargetTypeChange = async (newType: string) => {
+    setTargetType(newType);
+    const specRes = await getLinkSpecificationAction({
+      targetType: newType,
+      networkSlug: activeNetwork?.slug || 'telegram',
+      activityType: activeCategory?.activityType || undefined
+    });
+    if (specRes.success && specRes.spec) {
+      setLinkPlaceholder(specRes.spec.placeholder);
+      setLinkHint(specRes.spec.hint);
+      if (specRes.spec.regex) setLinkValidatorRegex(specRes.spec.regex);
+      setIsMediaGroupAware(specRes.spec.isMediaGroupAware);
+      setCustomDataType(specRes.spec.customDataType);
+      if (specRes.spec.customDataLabel) setCustomDataLabel(specRes.spec.customDataLabel);
+    }
+  };
+
+  // Apply Shadow Service preset in 1-click
+  const handleApplyShadowService = (item: ShadowServiceSearchResult) => {
+    setProviderId(item.providerId);
+    setExternalId(item.externalId);
+    setRate(String(item.rate));
+    setMinQty(String(item.min));
+    setMaxQty(String(item.max));
+    setIsRefillEnabled(item.refill);
+    setIsCancelEnabled(item.cancel);
+    setIsDripFeedEnabled(item.dripfeed);
+
+    if (item.targetType) {
+      handleTargetTypeChange(item.targetType);
+    }
+    if (item.isMediaGroupAware) {
+      setIsMediaGroupAware(true);
+    }
+    if (item.customDataType && item.customDataType !== 'NONE') {
+      setCustomDataType(item.customDataType);
+    }
+
+    if (!name.trim()) {
+      setName(item.cleanName || item.name);
+    }
+
+    setShadowSearchQuery('');
+    setShadowResults([]);
+    toast.success(`✅ Параметры услуги #${item.externalId} (${item.providerName}) успешно применены!`);
   };
 
   // Quick Preset Name Tags
@@ -196,6 +317,14 @@ export function ServiceStudioForm({
         providerId: providerId || null,
         externalId: externalId.trim() || null,
         targetType: targetType || null,
+        qualityTier: qualityTier || 'STANDARD',
+        customDataType,
+        customDataLabel: customDataLabel.trim() || null,
+        isMediaGroupAware,
+        linkValidatorRegex: linkValidatorRegex.trim() || null,
+        linkPlaceholder: linkPlaceholder.trim() || null,
+        linkHint: linkHint.trim() || null,
+        requiresBotAdmin,
         isActive,
         isDripFeedEnabled,
         isRefillEnabled,
@@ -275,20 +404,91 @@ export function ServiceStudioForm({
         {/* ══════════ LEFT COLUMN (8 cols / Main Workspace) ══════════ */}
         <div className="lg:col-span-8 space-y-6">
 
-          {/* 1. Таксономия и Название */}
+          {/* ⚡ SMART PROVIDER MATCHER WIDGET */}
+          <div className="bg-gradient-to-br from-primary/5 via-card to-card border-2 border-primary/20 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                <h2 className="text-sm font-extrabold uppercase tracking-wider text-foreground">
+                  Умный подбор услуги от провайдера (Smart Matcher)
+                </h2>
+              </div>
+              <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                Авто-заполнение в 1 клик
+              </span>
+            </div>
+
+            <div className="relative">
+              <div className="relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={shadowSearchQuery}
+                  onChange={e => setShadowSearchQuery(e.target.value)}
+                  placeholder="Введите название услуги или ID у поставщика (например: TG Subscribers или 1042)..."
+                  className="w-full h-11 pl-10 pr-10 text-xs font-semibold bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground outline-hidden focus:ring-2 focus:ring-primary/30"
+                />
+                {isSearchingShadow && (
+                  <Loader2 className="w-4 h-4 animate-spin text-primary absolute right-3.5 top-1/2 -translate-y-1/2" />
+                )}
+              </div>
+
+              {/* Shadow search results dropdown */}
+              {shadowResults.length > 0 && (
+                <div className="absolute z-50 left-0 right-0 mt-2 bg-card border border-border/80 rounded-2xl shadow-xl overflow-hidden divide-y divide-border/50 max-h-80 overflow-y-auto">
+                  {shadowResults.map(item => (
+                    <div
+                      key={`${item.providerId}-${item.externalId}`}
+                      onClick={() => handleApplyShadowService(item)}
+                      className="p-3.5 hover:bg-primary/10 transition-colors cursor-pointer flex items-center justify-between gap-3 group"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-muted text-foreground">
+                            #{item.externalId}
+                          </span>
+                          <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                            {item.cleanName || item.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <span className="font-bold text-foreground">{item.providerName}</span>
+                          <span>•</span>
+                          <span>{item.category || item.normalizedCategory || 'Без категории'}</span>
+                          <span>•</span>
+                          <span>Лимит: {item.min} - {item.max.toLocaleString('ru-RU')}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-xs font-bold text-success tabular-nums">
+                          ${item.rate} / 1к
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          ~{item.rateRub.toFixed(2)} ₽
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 1. Таксономия и 4-уровневое позиционирование */}
           <div className="bg-card border border-border rounded-2xl p-6 shadow-xs space-y-5">
             <div className="flex items-center gap-2 border-b border-border/60 pb-3">
               <Layers className="w-4 h-4 text-primary" />
               <h2 className="text-sm font-extrabold uppercase tracking-wider text-foreground">
-                1. Таксономия и Позиционирование
+                1. 4-Уровневая Таксономия и Тариф
               </h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Соцсеть */}
+              {/* Уровень 1: Соцсеть */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wide">
-                  Социальная сеть <span className="text-destructive">*</span>
+                  Уровень 1: Социальная сеть <span className="text-destructive">*</span>
                 </label>
                 <select
                   value={selectedNetworkId}
@@ -301,10 +501,10 @@ export function ServiceStudioForm({
                 </select>
               </div>
 
-              {/* Категория */}
+              {/* Уровень 3: Категория активности */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wide">
-                  Категория услуг <span className="text-destructive">*</span>
+                  Уровень 3: Категория активности <span className="text-destructive">*</span>
                 </label>
                 {activeNetwork && activeNetwork.categories.length > 0 ? (
                   <select
@@ -327,13 +527,47 @@ export function ServiceStudioForm({
               </div>
             </div>
 
+            {/* Уровень 4: Тарифный уровень качества */}
+            <div className="space-y-2 pt-1">
+              <label className="text-xs font-bold text-foreground uppercase tracking-wide block">
+                Уровень 4: Тарифный уровень (Quality Tier)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                {QUALITY_TIERS.map(tier => {
+                  const Icon = tier.icon;
+                  const isSelected = qualityTier === tier.value;
+                  return (
+                    <button
+                      key={tier.value}
+                      type="button"
+                      onClick={() => setQualityTier(tier.value)}
+                      className={`p-3 rounded-xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between ${
+                        isSelected 
+                          ? `${tier.color} ring-2 ring-primary/40 font-bold shadow-xs` 
+                          : 'bg-background hover:bg-muted/50 border-border text-muted-foreground'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <Icon className="w-4 h-4" />
+                        {isSelected && <Check className="w-3.5 h-3.5" />}
+                      </div>
+                      <div>
+                        <div className="text-xs font-extrabold text-foreground">{tier.label}</div>
+                        <div className="text-[9px] text-muted-foreground leading-tight mt-0.5">{tier.desc}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Название услуги */}
-            <div className="space-y-2">
+            <div className="space-y-2 pt-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wide">
-                  Название тарифа <span className="text-destructive">*</span>
+                  Название тарифа в каталоге <span className="text-destructive">*</span>
                 </label>
-                <span className="text-[11px] text-muted-foreground">Формула: [Тип] • [Качество] • [ГЕО / Гарантия]</span>
+                <span className="text-[11px] text-muted-foreground">Формула: [Тип] • [Качество] • [ГЕО / Скорость]</span>
               </div>
               <input
                 type="text"
@@ -361,47 +595,103 @@ export function ServiceStudioForm({
             </div>
           </div>
 
-          {/* 2. Описание и Требования к ссылке */}
+          {/* 2. Уровень 2: Правила валидации ссылки и Специфика */}
           <div className="bg-card border border-border rounded-2xl p-6 shadow-xs space-y-5">
             <div className="flex items-center gap-2 border-b border-border/60 pb-3">
-              <Eye className="w-4 h-4 text-primary" />
+              <LinkIcon className="w-4 h-4 text-primary" />
               <h2 className="text-sm font-extrabold uppercase tracking-wider text-foreground">
-                2. Описание тарифа и Инструкция по ссылкам
+                2. Уровень 2: Правила Валидации Ссылки и Специфика Услуги
               </h2>
             </div>
 
-            {/* Тип цели (Target Type) */}
+            {/* Тип объекта (Target Type) */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground uppercase tracking-wide">
-                Тип объекта ссылки (Валидация клиента)
+                Тип объекта ссылки (Валидация покупателя)
               </label>
               <select
                 value={targetType}
-                onChange={e => setTargetType(e.target.value)}
+                onChange={e => handleTargetTypeChange(e.target.value)}
                 className="w-full h-10 px-3 text-xs font-semibold bg-background border border-border rounded-xl text-foreground outline-hidden focus:ring-2 focus:ring-primary/20 cursor-pointer"
               >
                 {TARGET_TYPES.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
-              <p className="text-[11px] text-muted-foreground">
-                Автоматический валидатор проверит ссылку покупателя на соответствие этому типу перед оплатой.
-              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Placeholder ссылки */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wide">
+                  Пример ссылки (Placeholder в чекауте)
+                </label>
+                <input
+                  type="text"
+                  value={linkPlaceholder}
+                  onChange={e => setLinkPlaceholder(e.target.value)}
+                  placeholder="https://t.me/channel_username"
+                  className="w-full h-10 px-3 text-xs font-mono bg-background border border-border rounded-xl text-foreground outline-hidden focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              {/* Подсказка для клиента */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wide">
+                  Текст-подсказка для покупателя
+                </label>
+                <input
+                  type="text"
+                  value={linkHint}
+                  onChange={e => setLinkHint(e.target.value)}
+                  placeholder="Ссылка на публичный или закрытый Telegram канал"
+                  className="w-full h-10 px-3 text-xs bg-background border border-border rounded-xl text-foreground outline-hidden focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+
+            {/* Специфические флаги (Бот-админ, Альбомы, Опросы) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <label className="flex items-center gap-2.5 p-3 rounded-xl border border-border bg-background cursor-pointer hover:bg-muted/30 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={requiresBotAdmin}
+                  onChange={e => setRequiresBotAdmin(e.target.checked)}
+                  className="w-4 h-4 rounded text-primary focus:ring-primary"
+                />
+                <div>
+                  <span className="text-xs font-bold text-foreground block">🤖 Требуется бот-администратор</span>
+                  <span className="text-[10px] text-muted-foreground">Для закрытых каналов с инвайт-ссылкой</span>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2.5 p-3 rounded-xl border border-border bg-background cursor-pointer hover:bg-muted/30 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isMediaGroupAware}
+                  onChange={e => setIsMediaGroupAware(e.target.checked)}
+                  className="w-4 h-4 rounded text-primary focus:ring-primary"
+                />
+                <div>
+                  <span className="text-xs font-bold text-foreground block">🖼️ Поддержка альбомов (Медиагруппы)</span>
+                  <span className="text-[10px] text-muted-foreground">Telegram посты из нескольких фото/видео</span>
+                </div>
+              </label>
             </div>
 
             {/* Описание услуги */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 pt-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-foreground uppercase tracking-wide">
-                  Подробное описание для карточки
+                  Подробное описание для карточки в каталоге
                 </label>
                 <span className="text-[11px] text-muted-foreground font-mono">{description.length} символов</span>
               </div>
               <textarea
-                rows={6}
+                rows={5}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                placeholder="⏱️ Старт: от 5 до 30 минут&#10;⚡ Скорость: до 5 000 в сутки&#10;🛡️ Гарантия: 30 дней с авто-докруткой&#10;&#10;🔗 Ссылка на открытый канал вида https://t.me/username"
+                placeholder="⏱️ Старт: от 5 до 30 минут&#10;⚡ Скорость: до 5 000 в сутки&#10;🛡️ Гарантия: 30 дней с авто-докруткой"
                 className="w-full p-3.5 text-xs font-mono leading-relaxed bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground outline-hidden focus:ring-2 focus:ring-primary/20"
               />
             </div>
@@ -412,7 +702,7 @@ export function ServiceStudioForm({
             <div className="flex items-center gap-2 border-b border-border/60 pb-3">
               <Sparkles className="w-4 h-4 text-primary" />
               <h2 className="text-sm font-extrabold uppercase tracking-wider text-foreground">
-                3. Интеграция с API Провайдера
+                3. Привязка к Поставщику (Провайдеру)
               </h2>
             </div>
 
@@ -498,193 +788,135 @@ export function ServiceStudioForm({
         <div className="lg:col-span-4 space-y-6 sticky top-6">
 
           {/* 1. Живой калькулятор цен и наценки */}
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-emerald-500" />
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
-                  Калькулятор цены
-                </h3>
-              </div>
-              <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded">
-                Курс USD: {exchangeRateUsd.toFixed(2)} ₽
-              </span>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-xs space-y-5">
+            <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+              <Calculator className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-extrabold uppercase tracking-wider text-foreground">
+                Ценообразование и Маржинальность
+              </h2>
             </div>
 
-            {/* Закупка */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase">
-                  Закупка ({isRubProvider ? '₽' : '$'}) / 1k
-                </label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  required
-                  value={rate}
-                  onChange={e => setRate(e.target.value)}
-                  className="w-full h-9 px-3 text-xs font-mono font-bold bg-background border border-border rounded-lg text-foreground outline-hidden focus:ring-2 focus:ring-primary/20"
-                />
+            {/* Поля себестоимости и наценки */}
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wide">
+                    Тариф поставщика (за 1 000 шт) <span className="text-destructive">*</span>
+                  </label>
+                  <span className="text-[10px] font-mono font-bold text-muted-foreground">
+                    {activeProvider?.balanceCurrency || 'USD'}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    required
+                    value={rate}
+                    onChange={e => setRate(e.target.value)}
+                    className="w-full h-10 px-3 font-mono text-sm font-bold bg-background border border-border rounded-xl text-foreground outline-hidden focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Себестоимость в рублях: <strong className="text-foreground">{costPer1000Rub.toFixed(2)} ₽</strong> / 1k
+                </div>
               </div>
 
-              {/* Множитель наценки */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase">
-                  Наценка (Множитель)
-                </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wide">
+                    Множитель наценки (Markup) <span className="text-destructive">*</span>
+                  </label>
+                  <span className="text-xs font-mono font-bold text-primary">
+                    +{((numericMarkup - 1) * 100).toFixed(0)}%
+                  </span>
+                </div>
                 <input
                   type="number"
                   step="0.1"
                   min="1.0"
-                  max="50.0"
                   required
                   value={markup}
                   onChange={e => setMarkup(e.target.value)}
-                  className="w-full h-9 px-3 text-xs font-mono font-bold bg-background border border-border rounded-lg text-foreground outline-hidden focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-10 px-3 font-mono text-sm font-bold bg-background border border-border rounded-xl text-foreground outline-hidden focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
 
-            {/* Quick Markup Presets */}
-            <div className="flex items-center gap-1 pt-1">
-              {[2.0, 2.5, 3.0, 4.0, 5.0].map(m => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMarkup(String(m))}
-                  className={`px-2 py-1 text-[11px] font-mono font-bold rounded-md border transition-colors cursor-pointer ${
-                    numericMarkup === m 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/40'
-                  }`}
-                >
-                  {m}x
-                </button>
-              ))}
-            </div>
-
-            {/* Итоговая розница (High-Visibility Block) */}
-            <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-2 font-mono">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-sans font-semibold">Цена для клиента:</span>
-                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+            {/* Результаты ценообразования */}
+            <div className="p-4 rounded-xl bg-muted/40 border border-border/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-semibold">Розничная цена:</span>
+                <span className="text-sm font-extrabold text-foreground tabular-nums">
+                  {retailPer1000Rub.toFixed(2)} ₽ <span className="text-[10px] text-muted-foreground font-normal">/ 1к</span>
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-semibold">Цена за 1 шт:</span>
+                <span className="text-base font-black text-primary tabular-nums">
                   {retailPerUnitRub} ₽ / шт
                 </span>
               </div>
-
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40">
-                <span className="text-muted-foreground font-sans font-semibold">Розничная за 1000 шт:</span>
-                <span className="font-bold text-foreground">{retailPer1000Rub.toFixed(2)} ₽</span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40">
-                <span className="text-muted-foreground font-sans font-semibold">Чистая маржа с 1000 шт:</span>
-                <span className="font-bold text-primary">+{profitPer1000Rub} ₽ ({marginPercent}%)</span>
+              <div className="border-t border-border/60 pt-2 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-semibold">Маржа с 1 000:</span>
+                <span className="text-xs font-bold text-success tabular-nums">
+                  +{profitPer1000Rub} ₽ ({marginPercent}%)
+                </span>
               </div>
             </div>
 
-            {/* Лимиты заказа */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase">Мин. заказ</label>
+            {/* Лимиты количества */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-foreground uppercase tracking-wide">
+                  Мин. заказ (шт)
+                </label>
                 <input
                   type="number"
+                  min="1"
                   required
                   value={minQty}
                   onChange={e => setMinQty(e.target.value)}
-                  className="w-full h-8 px-2.5 text-xs font-mono bg-background border border-border rounded-lg text-foreground outline-hidden"
+                  className="w-full h-9 px-2.5 font-mono text-xs bg-background border border-border rounded-xl text-foreground outline-hidden focus:ring-2 focus:ring-primary/20"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase">Макс. заказ</label>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-foreground uppercase tracking-wide">
+                  Макс. заказ (шт)
+                </label>
                 <input
                   type="number"
+                  min="1"
                   required
                   value={maxQty}
                   onChange={e => setMaxQty(e.target.value)}
-                  className="w-full h-8 px-2.5 text-xs font-mono bg-background border border-border rounded-lg text-foreground outline-hidden"
+                  className="w-full h-9 px-2.5 font-mono text-xs bg-background border border-border rounded-xl text-foreground outline-hidden focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
-          </div>
 
-          {/* 2. Live Storefront Preview Card */}
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-              <div className="flex items-center gap-1.5">
-                <Eye className="w-3.5 h-3.5 text-sky-500" />
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
-                  Превью на витрине
-                </h3>
-              </div>
-              <span className="text-[10px] text-muted-foreground">Вид для покупателя</span>
-            </div>
-
-            {/* Mock Client Card */}
-            <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
-              <div className="flex items-start justify-between gap-2">
+            {/* Статус активности */}
+            <div className="pt-2">
+              <label className="flex items-center justify-between p-3 rounded-xl border border-border bg-background cursor-pointer hover:bg-muted/30 transition-colors">
                 <div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wide">
-                    <span>🌐 {activeNetwork?.name || 'Соцсеть'}</span>
-                    <span>•</span>
-                    <span>{activeCategory?.name || 'Категория'}</span>
-                  </div>
-                  <h4 className="text-xs font-extrabold text-foreground mt-1 line-clamp-2">
-                    {name || 'Название вашей услуги появится здесь...'}
-                  </h4>
+                  <span className="text-xs font-bold text-foreground block">Опубликовать в каталоге</span>
+                  <span className="text-[10px] text-muted-foreground">Доступна покупателям на витрине</span>
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
-                  {targetType}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
-                <div>
-                  <span className="text-[10px] text-muted-foreground block font-mono">Цена за 1 действие</span>
-                  <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                    {retailPerUnitRub} ₽ / шт
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-muted-foreground block font-mono">Минимум</span>
-                  <span className="text-xs font-bold text-foreground font-mono">{minQty} шт</span>
-                </div>
-              </div>
+                <input
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={e => setIsActive(e.target.checked)}
+                  className="w-5 h-5 rounded text-primary focus:ring-primary cursor-pointer"
+                />
+              </label>
             </div>
-          </div>
-
-          {/* 3. Статус активности и Кнопка сохранения */}
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-xs space-y-4">
-            <label className="flex items-center justify-between p-3 rounded-xl border border-border bg-background cursor-pointer hover:bg-muted/30 transition-colors">
-              <div>
-                <span className="text-xs font-bold text-foreground block">Статус тарифа</span>
-                <span className="text-[11px] text-muted-foreground">
-                  {isActive ? '🟢 Активен и доступен для заказа' : '⚪ Отключен (скрыт с витрины)'}
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={isActive}
-                onChange={e => setIsActive(e.target.checked)}
-                className="w-5 h-5 rounded text-primary focus:ring-primary cursor-pointer"
-              />
-            </label>
-
-            <Button
-              type="submit"
-              intent="primary"
-              disabled={isPending}
-              className="w-full h-11 text-sm font-black cursor-pointer shadow-xs"
-            >
-              {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              {isEditMode ? 'Сохранить изменения' : 'Создать услугу'}
-            </Button>
           </div>
 
         </div>
 
       </div>
+
     </form>
   );
 }

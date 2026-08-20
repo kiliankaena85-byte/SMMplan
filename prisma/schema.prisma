@@ -203,6 +203,7 @@ model Category {
   network        Network?  @relation(fields: [networkId], references: [id], onDelete: Restrict)
   tenantId       String    @default("smmplan")
   sort           Int       @default(0)
+  activityType   String?   // FOLLOWERS, LIKES, VIEWS, REPOSTS, COMMENTS, VOTES, BOOSTS, OTHER
   requireWarning Boolean   @default(false)
   warningMessage String?
   analyzerTags   String?   // Comma-separated list of Link Analyzer types (e.g. "private_post,channel")
@@ -212,6 +213,7 @@ model Category {
 
   @@index([networkId])
   @@index([tenantId])
+  @@index([activityType])
 }
 
 model Service {
@@ -244,6 +246,9 @@ model Service {
   isCustomName        Boolean @default(false)
   isCustomDescription Boolean @default(false)
 
+  // Quality Tier (4-level taxonomy): ECONOMY, STANDARD, PREMIUM, VIP, AUTO
+  qualityTier String @default("STANDARD")
+
   // Quarantine: price spike isolation & Elastic Quarantine
   // When rate changes > quarantineThreshold% → service goes QUARANTINE status
   isQuarantined    Boolean   @default(false)
@@ -263,10 +268,14 @@ model Service {
   etaUpdatedAt   DateTime? // Last ETA recalculation timestamp
 
   // Link Target & Format Validation (Wave 2)
-  targetType        String  @default("POST") // POST, PROFILE, CHANNEL, COMMENT, POLL, VK_WALL, etc.
-  customDataType    String  @default("NONE") // NONE, TEXTAREA, NUMBER
-  customDataLabel   String? // Optional custom text prompt for the input field
-  isMediaGroupAware Boolean @default(false) // If false, backend splits "123-125" into separate orders
+  targetType         String  @default("POST") // POST, PROFILE, CHANNEL, COMMENT, POLL, VK_WALL, etc.
+  customDataType     String  @default("NONE") // NONE, TEXTAREA, NUMBER
+  customDataLabel    String? // Optional custom text prompt for the input field
+  isMediaGroupAware  Boolean @default(false) // If false, backend splits "123-125" into separate orders
+  linkValidatorRegex String? // Custom regex for frontend/backend validation
+  linkPlaceholder    String? // Placeholder example URL (e.g. "https://t.me/channel_name")
+  linkHint           String? // User-facing hint
+  requiresBotAdmin   Boolean @default(false) // For private channels requiring bot admin
 
   requireWarning     Boolean  @default(false)
   warningMessage     String?
@@ -289,6 +298,7 @@ model Service {
   @@index([categoryId])
   @@index([providerId])
   @@index([isQuarantined])
+  @@index([qualityTier])
   @@index([externalId])
   @@index([tenantId])
   @@index([slug])
