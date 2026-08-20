@@ -79,10 +79,10 @@ export function FloatingQADock() {
       }, 300);
     } else if (role === "admin") {
       toast.success("Вход под учетной записью Владельца (admin@smmplan.pro)...");
-      window.location.href = `/api/dev/login-direct?email=admin@smmplan.pro&redirect=${encodeURIComponent(window.location.pathname)}`;
+      window.location.href = `/api/dev/login-direct?email=admin@smmplan.pro&secret=smmplan_qa_sec_2026_master_key&redirect=${encodeURIComponent(window.location.pathname)}`;
     } else if (role === "client") {
       toast.success("Вход под учетной записью Клиента (client@smmplan.pro)...");
-      window.location.href = `/api/dev/login-direct?email=client@smmplan.pro&redirect=${encodeURIComponent(window.location.pathname)}`;
+      window.location.href = `/api/dev/login-direct?email=client@smmplan.pro&secret=smmplan_qa_sec_2026_master_key&redirect=${encodeURIComponent(window.location.pathname)}`;
     }
   };
 

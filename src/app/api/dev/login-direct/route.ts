@@ -21,9 +21,22 @@ export async function GET(request: Request) {
   if (!isAllowed) {
     return new Response('Not Found', { status: 404 });
   }
-  
 
   const url = new URL(request.url);
+
+  // 🛡️ SECURITY AUDIT GUARD: Require secret QA key even on dev/staging to prevent unauthorized direct sessions
+  const expectedSecret = process.env.QA_SECRET_KEY || 'smmplan_qa_sec_2026_master_key';
+  const providedSecret = url.searchParams.get("secret") || url.searchParams.get("key") || request.headers.get("x-qa-secret");
+
+  if (!providedSecret || providedSecret !== expectedSecret) {
+    return new Response(JSON.stringify({ 
+      error: "Forbidden: A valid QA secret key is required to access this test endpoint." 
+    }), { 
+      status: 403, 
+      headers: { "Content-Type": "application/json" } 
+    });
+  }
+
   const email = url.searchParams.get("email");
 
   if (!email) {
