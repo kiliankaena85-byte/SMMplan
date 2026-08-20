@@ -20,16 +20,16 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
       allowedOrigins: isProd
-        ? ['smmplan.pro', 'www.smmplan.pro', 'smmflux.ru', 'www.smmflux.ru']
-        : ['smmplan.pro', 'www.smmplan.pro', 'localhost:3000', '127.0.0.1:3000', 'localhost:3001', '127.0.0.1:3001'],
+        ? ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'stage.smmplan.pro', 'smmflux.ru', 'www.smmflux.ru']
+        : ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'localhost:3000', '127.0.0.1:3000', 'localhost:3001', '127.0.0.1:3001', '192.168.10.244:3000', '192.168.10.244:3001', '*.pinggy.io', '*.pinggy-free.link'],
     },
   },
   allowedDevOrigins: isProd
     ? []
-    : ["127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost"],
+    : ["127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost", "192.168.10.244", "192.168.10.244:3000", "eukyx-185-67-125-116.run.pinggy-free.link", "*.pinggy.io", "*.pinggy-free.link"],
   
-  // OSAD-V2: Distributed Cache Sync for Redis
-  cacheHandler: (isProd && !process.env.DISABLE_REDIS_CACHE) ? process.cwd() + '/cache-handler.js' : undefined,
+  // OSAD-V2: Distributed Cache Sync for Redis (Disabled for standalone container portability)
+  cacheHandler: undefined,
 
   // User-uploaded files use raw buffer response via /api/media/ (never _next/image), keeping static image optimization intact.
   images: {
@@ -56,7 +56,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: https://api.telegram.org; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: https://api.telegram.org https://cloudflareinsights.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
           },
           {
             key: 'X-Frame-Options',

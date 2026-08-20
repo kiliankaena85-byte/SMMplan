@@ -66,7 +66,13 @@ model User {
   companyName  String?
   inn          String?
   kpp          String?
+  ogrn         String?
   legalAddress String?
+
+  // Telegram Notification Preferences
+  telegramNotifyOrders  Boolean @default(true)
+  telegramNotifyBalance Boolean @default(true)
+  telegramNotifyTickets Boolean @default(true)
 
   // Referrals
   referredBy  User?        @relation("ReferralTree", fields: [referredById], references: [id], onDelete: SetNull)
@@ -89,6 +95,8 @@ model User {
   employeeConsents           EmployeeResponsibilityConsent[]
   staffFinancialActions      SupportFinancialAction[]        @relation("staffFinancialActions")
   targetFinancialActions     SupportFinancialAction[]        @relation("targetFinancialActions")
+  staffShifts                StaffShift[]                    @relation("UserStaffShifts")
+  substituteStaffShifts      StaffShift[]                    @relation("ShiftSubstitute")
 
   tenantId String @default("smmplan")
 
@@ -1443,5 +1451,32 @@ model B2bRequestLog {
   @@index([apiKeyHash, createdAt])
   @@index([createdAt])
   @@map("b2b_request_log")
+}
+
+model StaffShift {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation("UserStaffShifts", fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime // Day of the shift at 00:00:00 UTC
+  shiftType        String   @default("DAY") // "DAY" (09:00-21:00), "NIGHT" (21:00-09:00), "CUSTOM"
+  status           String   @default("PLANNED") // "PLANNED", "COMPLETED", "SWAPPED", "VACATION", "SICK", "DAY_OFF"
+  
+  // Shift Swap Tracking
+  substituteUserId String?
+  substituteUser   User?    @relation("ShiftSubstitute", fields: [substituteUserId], references: [id], onDelete: SetNull)
+  substituteHours  Float    @default(0) // 0 = полная смена (12ч), > 0 = часы частичной подмены
+  
+  // Payroll calculation
+  rateRubles       Float    @default(2500)
+  bonusRubles      Float    @default(0)
+  penaltyRubles    Float    @default(0)
+  notes            String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, date, shiftType])
+  @@index([date, status])
+  @@index([userId, date])
 }
 

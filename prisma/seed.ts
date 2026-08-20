@@ -123,7 +123,7 @@ async function main() {
   await ensureSeedLedger(testClientUser.id, 500000_00);
   console.log(`Upserted Test Client: ${testClientEmail}`);
 
-  // 4. Default Networks, Categories & Services (Multi-tenant 'all')
+  // 4. Default Networks, Categories & Services (Strict 3-Tier Hierarchy: Network -> Category -> Services)
   const defaultCatalogData = [
     {
       network: { name: 'Telegram', slug: 'telegram', icon: 'telegram', sort: 1 },
@@ -132,23 +132,23 @@ async function main() {
           name: 'Подписчики',
           slug: 'telegram-subscribers',
           services: [
-            { name: 'Telegram Подписчики (Быстрые, Микс)', rate: 0.15, markup: 3.0, minQty: 100, maxQty: 50000, externalId: 'tg_sub_fast' },
-            { name: 'Telegram Подписчики (Живые СНГ / Без отписок)', rate: 0.35, markup: 3.0, minQty: 50, maxQty: 20000, externalId: 'tg_sub_real' },
+            { name: 'Telegram Подписчики (Быстрые, Микс)', rate: 0.15, markup: 3.0, minQty: 100, maxQty: 50000, externalId: 'tg_sub_fast', targetType: 'CHANNEL' },
+            { name: 'Telegram Подписчики (Живые СНГ / Без отписок)', rate: 0.35, markup: 3.0, minQty: 50, maxQty: 20000, externalId: 'tg_sub_real', targetType: 'CHANNEL' },
           ]
         },
         {
           name: 'Просмотры',
           slug: 'telegram-views',
           services: [
-            { name: 'Telegram Просмотры на пост (Моментальные)', rate: 0.005, markup: 3.0, minQty: 100, maxQty: 100000, externalId: 'tg_views_fast' },
-            { name: 'Telegram Автопросмотры на 10 постов', rate: 0.05, markup: 3.0, minQty: 100, maxQty: 50000, externalId: 'tg_views_auto' },
+            { name: 'Telegram Просмотры на пост (Моментальные)', rate: 0.005, markup: 3.0, minQty: 100, maxQty: 100000, externalId: 'tg_views_fast', targetType: 'POST' },
+            { name: 'Telegram Автопросмотры на 10 постов', rate: 0.05, markup: 3.0, minQty: 100, maxQty: 50000, externalId: 'tg_views_auto', targetType: 'POST' },
           ]
         },
         {
           name: 'Реакции',
           slug: 'telegram-reactions',
           services: [
-            { name: 'Telegram Реакции (Позитивные 🔥👍❤️)', rate: 0.02, markup: 3.0, minQty: 50, maxQty: 50000, externalId: 'tg_react_pos' },
+            { name: 'Telegram Реакции (Позитивные 🔥👍❤️)', rate: 0.02, markup: 3.0, minQty: 50, maxQty: 50000, externalId: 'tg_react_pos', targetType: 'POST' },
           ]
         }
       ]
@@ -157,18 +157,24 @@ async function main() {
       network: { name: 'ВКонтакте', slug: 'vk', icon: 'vk', sort: 2 },
       categories: [
         {
-          name: 'Подписчики в группу',
+          name: 'Подписчики',
           slug: 'vk-subscribers',
           services: [
-            { name: 'VK Подписчики в сообщество (СНГ, Безопасные)', rate: 0.25, markup: 3.0, minQty: 100, maxQty: 25000, externalId: 'vk_sub_group' },
+            { name: 'VK Подписчики в сообщество (СНГ, Безопасные)', rate: 0.25, markup: 3.0, minQty: 100, maxQty: 25000, externalId: 'vk_sub_group', targetType: 'GROUP' },
           ]
         },
         {
-          name: 'Лайки и Просмотры',
-          slug: 'vk-likes-views',
+          name: 'Лайки',
+          slug: 'vk-likes',
           services: [
-            { name: 'VK Лайки на пост', rate: 0.05, markup: 3.0, minQty: 50, maxQty: 10000, externalId: 'vk_likes' },
-            { name: 'VK Просмотры записей / клипов', rate: 0.01, markup: 3.0, minQty: 100, maxQty: 100000, externalId: 'vk_views' },
+            { name: 'VK Лайки на пост', rate: 0.05, markup: 3.0, minQty: 50, maxQty: 10000, externalId: 'vk_likes', targetType: 'POST' },
+          ]
+        },
+        {
+          name: 'Просмотры',
+          slug: 'vk-views',
+          services: [
+            { name: 'VK Просмотры записей / клипов', rate: 0.01, markup: 3.0, minQty: 100, maxQty: 100000, externalId: 'vk_views', targetType: 'POST' },
           ]
         }
       ]
@@ -177,17 +183,24 @@ async function main() {
       network: { name: 'YouTube', slug: 'youtube', icon: 'youtube', sort: 3 },
       categories: [
         {
-          name: 'Просмотры',
-          slug: 'youtube-views',
-          services: [
-            { name: 'YouTube Просмотры с удержанием (High Retention)', rate: 0.40, markup: 3.0, minQty: 500, maxQty: 500000, externalId: 'yt_views_hr' },
-          ]
-        },
-        {
           name: 'Подписчики',
           slug: 'youtube-subscribers',
           services: [
-            { name: 'YouTube Подписчики на канал (Гарантия 30 дней)', rate: 1.50, markup: 3.0, minQty: 50, maxQty: 10000, externalId: 'yt_subs_guar' },
+            { name: 'YouTube Подписчики на канал (Гарантия 30 дней)', rate: 1.50, markup: 3.0, minQty: 50, maxQty: 10000, externalId: 'yt_subs_guar', targetType: 'PROFILE' },
+          ]
+        },
+        {
+          name: 'Просмотры',
+          slug: 'youtube-views',
+          services: [
+            { name: 'YouTube Просмотры с удержанием (High Retention)', rate: 0.40, markup: 3.0, minQty: 500, maxQty: 500000, externalId: 'yt_views_hr', targetType: 'VIDEO' },
+          ]
+        },
+        {
+          name: 'Лайки',
+          slug: 'youtube-likes',
+          services: [
+            { name: 'YouTube Лайки на видео / Shorts', rate: 0.10, markup: 3.0, minQty: 50, maxQty: 25000, externalId: 'yt_likes', targetType: 'VIDEO' },
           ]
         }
       ]
@@ -199,14 +212,21 @@ async function main() {
           name: 'Подписчики',
           slug: 'instagram-followers',
           services: [
-            { name: 'Instagram Подписчики (Быстрый старт)', rate: 0.18, markup: 3.0, minQty: 100, maxQty: 50000, externalId: 'ig_fol_fast' },
+            { name: 'Instagram Подписчики (Быстрый старт)', rate: 0.18, markup: 3.0, minQty: 100, maxQty: 50000, externalId: 'ig_fol_fast', targetType: 'PROFILE' },
           ]
         },
         {
-          name: 'Лайки и Охваты',
+          name: 'Лайки',
           slug: 'instagram-likes',
           services: [
-            { name: 'Instagram Лайки на фото / Reels', rate: 0.03, markup: 3.0, minQty: 50, maxQty: 25000, externalId: 'ig_likes_fast' },
+            { name: 'Instagram Лайки на фото / Reels', rate: 0.03, markup: 3.0, minQty: 50, maxQty: 25000, externalId: 'ig_likes_fast', targetType: 'POST' },
+          ]
+        },
+        {
+          name: 'Просмотры',
+          slug: 'instagram-views',
+          services: [
+            { name: 'Instagram Просмотры Reels / Видео', rate: 0.008, markup: 3.0, minQty: 100, maxQty: 100000, externalId: 'ig_views_reels', targetType: 'POST' },
           ]
         }
       ]
@@ -215,11 +235,24 @@ async function main() {
       network: { name: 'TikTok', slug: 'tiktok', icon: 'tiktok', sort: 5 },
       categories: [
         {
-          name: 'Просмотры и Лайки',
-          slug: 'tiktok-views-likes',
+          name: 'Подписчики',
+          slug: 'tiktok-followers',
           services: [
-            { name: 'TikTok Просмотры видео (Молниеносные)', rate: 0.008, markup: 3.0, minQty: 200, maxQty: 1000000, externalId: 'tt_views_fast' },
-            { name: 'TikTok Лайки (Высокое качество)', rate: 0.12, markup: 3.0, minQty: 50, maxQty: 20000, externalId: 'tt_likes' },
+            { name: 'TikTok Подписчики (Быстрый старт)', rate: 0.30, markup: 3.0, minQty: 50, maxQty: 20000, externalId: 'tt_sub_fast', targetType: 'PROFILE' },
+          ]
+        },
+        {
+          name: 'Просмотры',
+          slug: 'tiktok-views',
+          services: [
+            { name: 'TikTok Просмотры видео (Молниеносные)', rate: 0.008, markup: 3.0, minQty: 200, maxQty: 1000000, externalId: 'tt_views_fast', targetType: 'VIDEO' },
+          ]
+        },
+        {
+          name: 'Лайки',
+          slug: 'tiktok-likes',
+          services: [
+            { name: 'TikTok Лайки (Высокое качество)', rate: 0.12, markup: 3.0, minQty: 50, maxQty: 20000, externalId: 'tt_likes', targetType: 'VIDEO' },
           ]
         }
       ]
@@ -262,7 +295,7 @@ async function main() {
       } else {
         category = await prisma.category.update({
           where: { id: category.id },
-          data: { network: { connect: { id: nw.id } }, tenantId: 'all' }
+          data: { name: cat.name, network: { connect: { id: nw.id } }, tenantId: 'all' }
         });
       }
 
@@ -282,6 +315,7 @@ async function main() {
               minQty: srv.minQty,
               maxQty: srv.maxQty,
               externalId: srv.externalId,
+              targetType: srv.targetType,
               tenantId: 'all',
               isActive: true,
               isQuarantined: false
@@ -292,7 +326,9 @@ async function main() {
           await prisma.service.update({
             where: { id: service.id },
             data: {
+              name: srv.name,
               category: { connect: { id: category.id } },
+              targetType: srv.targetType,
               tenantId: 'all',
               isActive: true,
               isQuarantined: false,

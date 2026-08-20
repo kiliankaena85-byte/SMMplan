@@ -1,5 +1,9 @@
-node_modules
-.next
+node_modules/*
+!node_modules/.prisma
+!node_modules/@prisma
+.next/*
+!.next/standalone
+!.next/static
 .git
 .env
 .env.*

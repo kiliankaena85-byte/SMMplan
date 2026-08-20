@@ -1,6 +1,31 @@
-# AGENTS.md — Smmplan AI Developer Contract (v4.0)
+# AGENTS.md — Smmplan AI Developer Contract (v4.1)
 # Этот файл — единый источник правды для ЛЮБОГО AI-ассистента (Cursor, Claude Code, Gemini, Antigravity).
 # Все генерируемые изменения ОБЯЗАНЫ строго соблюдать эти правила.
+
+## 0. ⛔ SESSION INIT — ОБЯЗАТЕЛЬНЫЙ ПЕРВЫЙ ШАГ (BLOCKING)
+
+> ❌ **ЗАПРЕЩЕНО** начинать любую работу без выполнения этого раздела.
+> Это не рекомендация — это блокирующее требование контракта.
+
+### При каждом старте сессии в этом проекте:
+
+1. **Прочитай файл-якорь** → `d:\SMM_plan_2\CURRENT_STATE.md`
+   - Убедись, что знаешь текущую активную вкладку и список завершённых экранов
+   - Выведи 1-строчное резюме: "Активная задача: X. Завершено: A, B, C."
+
+2. **Запроси RAG-память** (для нетривиальных задач) → `http://localhost:8100/api/search`
+   ```bash
+   npx tsx scripts/memory-client.ts searchContext "<тема задачи>"
+   ```
+   Или через curl: `POST http://localhost:8100/api/search` с `{"query": "...", "collections": ["architecture_decisions","business_rules"], "top_k": 5}`
+
+3. **После завершения задачи — немедленно обнови:**
+   - `d:\SMM_plan_2\CURRENT_STATE.md` — статус текущего экрана
+   - `d:\SMM_plan_2\MEMORY.md` — раздел 2, если задача существенная
+   - GraphRAG: `POST http://localhost:8100/api/decision` — если принято архитектурное решение
+
+---
+
 
 ## 1. Стек и окружение
 - **Framework**: Next.js 16.x (App Router, Turbopack)
