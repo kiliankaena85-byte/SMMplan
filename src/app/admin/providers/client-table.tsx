@@ -226,29 +226,30 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
 
       {/* ── Table Card ── */}
       <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 overflow-hidden p-0">
-        <Table className="table-fixed w-full" aria-label="Список SMM-провайдеров">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[30%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Название / API
-              </TableHead>
-              <TableHead className="w-[10%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Услуги
-              </TableHead>
-              <TableHead className="w-[18%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Баланс (Sync)
-              </TableHead>
-              <TableHead className="w-[14%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                SLA & Связь
-              </TableHead>
-              <TableHead className="w-[12%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Статус
-              </TableHead>
-              <TableHead className="w-[16%] bg-muted/50 py-4 px-6 text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">
-                Действия
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+        <div className="overflow-x-auto">
+          <Table className="w-full min-w-[980px] text-left" aria-label="Список SMM-провайдеров">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[26%] min-w-[220px] bg-muted/50 py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Название / API
+                </TableHead>
+                <TableHead className="w-[9%] min-w-[80px] bg-muted/50 py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Услуги
+                </TableHead>
+                <TableHead className="w-[18%] min-w-[150px] bg-muted/50 py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Баланс (Sync)
+                </TableHead>
+                <TableHead className="w-[15%] min-w-[130px] bg-muted/50 py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  SLA & Связь
+                </TableHead>
+                <TableHead className="w-[14%] min-w-[120px] bg-muted/50 py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Статус
+                </TableHead>
+                <TableHead className="w-[18%] min-w-[180px] bg-muted/50 py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">
+                  Действия
+                </TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
@@ -314,7 +315,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                     className="hover:bg-muted/50 transition-all duration-200 group"
                   >
                     {/* 1. Name & URL + Copy */}
-                    <TableCell className="py-4 px-6">
+                    <TableCell className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
                         <div className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 text-sm">
                           {provider.name}
@@ -353,7 +354,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                     </TableCell>
 
                     {/* 2. Service count */}
-                    <TableCell className="py-4 px-6">
+                    <TableCell className="py-3.5 px-4">
                       <div className="font-bold text-foreground tabular-nums text-sm">
                         {provider.serviceCount.toLocaleString('ru-RU')}
                       </div>
@@ -363,7 +364,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                     </TableCell>
 
                     {/* 3. Balance & Health */}
-                    <TableCell className="py-4 px-6">
+                    <TableCell className="py-3.5 px-4">
                       {provider.isActive ? (
                         <ProviderBalanceCell providerId={provider.id} />
                       ) : (
@@ -374,7 +375,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                     </TableCell>
 
                     {/* 4. SLA & Ping */}
-                    <TableCell className="py-4 px-6">
+                    <TableCell className="py-3.5 px-4">
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] font-bold text-muted-foreground/70">
@@ -416,8 +417,8 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                     </TableCell>
 
                     {/* 5. Status & Quick Toggle */}
-                    <TableCell className="py-4 px-6">
-                      <div className="flex items-center gap-2">
+                    <TableCell className="py-3.5 px-4">
+                      <div className="flex items-center gap-2 whitespace-nowrap">
                         {/* Quick Toggle Switch */}
                         <button
                           onClick={() => handleToggleActive(provider)}
@@ -442,7 +443,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                               ? 'destructive'
                               : 'primary'
                           }
-                          className={`font-bold text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${
+                          className={`font-bold text-[9px] uppercase tracking-wider px-2 py-0.5 whitespace-nowrap ${
                             !provider.isActive
                               ? 'bg-muted text-muted-foreground border-border'
                               : provider.errorCount5m > 0
@@ -460,12 +461,12 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                     </TableCell>
 
                     {/* 6. Actions */}
-                    <TableCell className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <TableCell className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                         <SyncProviderButton providerId={provider.id} />
                         <Link
                           href={`/admin/providers/${provider.id}`}
-                          className="px-3 py-1.5 text-xs font-bold rounded-xl border border-border/60 bg-background/50 backdrop-blur-sm text-foreground hover:bg-muted/80 transition-all duration-200 shadow-sm inline-block active:scale-95"
+                          className="px-3 py-1.5 text-xs font-bold rounded-xl border border-border/60 bg-background/50 backdrop-blur-sm text-foreground hover:bg-muted/80 transition-all duration-200 shadow-sm inline-block active:scale-95 whitespace-nowrap"
                         >
                           Настроить
                         </Link>
@@ -477,6 +478,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-﻿import { TrendingDown, Wallet, Clock, AlertTriangle, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import { TrendingDown, Wallet, Clock, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import type { GlobalLiquiditySummary } from '@/services/admin/provider-balance.service';
 
 interface LiquidityDashboardProps {
@@ -8,12 +8,12 @@ interface LiquidityDashboardProps {
 export function LiquidityDashboard({ data }: LiquidityDashboardProps) {
   const runwayText =
     data.runwayDays === null
-      ? '\u221e'
+      ? '∞'
       : data.runwayDays > 30
-      ? `${data.runwayDays} \u0434\u043d.`
+      ? `${data.runwayDays} дн.`
       : data.runwayDays > 7
-      ? `${data.runwayDays} \u0434\u043d.`
-      : `\u26a0\ufe0f ${data.runwayDays} \u0434\u043d.`;
+      ? `${data.runwayDays} дн.`
+      : `⚠️ ${data.runwayDays} дн.`;
 
   const runwayColor =
     data.runwayDays === null
@@ -26,25 +26,25 @@ export function LiquidityDashboard({ data }: LiquidityDashboardProps) {
 
   const stats = [
     {
-      label: '\u041e\u0431\u0449\u0438\u0439 \u0431\u0430\u043b\u0430\u043d\u0441',
+      label: 'Общий баланс',
       value: `$${data.totalUsd.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`,
-      sub: `${data.totalRub.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} \u20bd`,
+      sub: `${data.totalRub.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽`,
       icon: <Wallet className="w-4 h-4" />,
       color: 'text-primary',
       bg: 'bg-primary/5 border-primary/20',
     },
     {
-      label: '\u0420\u0430\u0441\u0445\u043e\u0434 \u0437\u0430 24\u0447',
-      value: `${data.burnRate24hRub.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} \u20bd`,
-      sub: '\u043f\u043e \u0437\u0430\u043a\u0440\u044b\u0442\u044b\u043c \u0437\u0430\u043a\u0430\u0437\u0430\u043c',
+      label: 'Расход за 24ч',
+      value: `${data.burnRate24hRub.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽`,
+      sub: 'по закрытым заказам',
       icon: <TrendingDown className="w-4 h-4" />,
       color: 'text-foreground',
       bg: 'bg-muted/50 border-border/50',
     },
     {
-      label: '\u0417\u0430\u043f\u0430\u0441 \u0445\u043e\u0434\u0430',
+      label: 'Запас хода',
       value: runwayText,
-      sub: '\u043f\u0440\u0438 \u0442\u0435\u043a\u0443\u0449\u0435\u043c \u0440\u0430\u0441\u0445\u043e\u0434\u0435',
+      sub: 'при текущем расходе',
       icon: <Clock className="w-4 h-4" />,
       color: runwayColor,
       bg: 'bg-muted/50 border-border/50',
@@ -52,10 +52,10 @@ export function LiquidityDashboard({ data }: LiquidityDashboardProps) {
   ];
 
   const statusCounts = [
-    { label: '\u041d\u043e\u0440\u043c\u0430', count: data.healthyCount, icon: <CheckCircle2 className="w-3.5 h-3.5" />, color: 'text-success bg-success/10 border-success/20' },
-    { label: '\u0412\u043d\u0438\u043c\u0430\u043d\u0438\u0435', count: data.warningCount, icon: <AlertTriangle className="w-3.5 h-3.5" />, color: 'text-warning bg-warning/10 border-warning/20' },
-    { label: '\u041a\u0440\u0438\u0442\u0438\u0447\u043d\u043e', count: data.criticalCount, icon: <AlertTriangle className="w-3.5 h-3.5" />, color: 'text-destructive bg-destructive/10 border-destructive/20' },
-    { label: '\u041d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d', count: data.errorCount, icon: <XCircle className="w-3.5 h-3.5" />, color: 'text-muted-foreground bg-muted border-border' },
+    { label: 'Норма', count: data.healthyCount, icon: <CheckCircle2 className="w-3.5 h-3.5" />, color: 'text-success bg-success/10 border-success/20' },
+    { label: 'Внимание', count: data.warningCount, icon: <AlertTriangle className="w-3.5 h-3.5" />, color: 'text-warning bg-warning/10 border-warning/20' },
+    { label: 'Критично', count: data.criticalCount, icon: <AlertTriangle className="w-3.5 h-3.5" />, color: 'text-destructive bg-destructive/10 border-destructive/20' },
+    { label: 'Недоступен', count: data.errorCount, icon: <XCircle className="w-3.5 h-3.5" />, color: 'text-muted-foreground bg-muted border-border' },
   ];
 
   const ageSeconds = Math.max(0, Math.floor((Date.now() - data.cachedAt) / 1000));
@@ -64,9 +64,9 @@ export function LiquidityDashboard({ data }: LiquidityDashboardProps) {
     <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-foreground tracking-tight">\u0413\u043b\u043e\u0431\u0430\u043b\u044c\u043d\u0430\u044f \u041b\u0438\u043a\u0432\u0438\u0434\u043d\u043e\u0441\u0442\u044c</h2>
+          <h2 className="text-sm font-bold text-foreground tracking-tight">Глобальная Ликвидность</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            {data.activeCount} \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445 \u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u043e\u0432 \u00b7 \u043a\u044d\u0448 {ageSeconds}\u0441 \u043d\u0430\u0437\u0430\u0434
+            {data.activeCount} активных провайдеров · кэш {ageSeconds}с назад
           </p>
         </div>
       </div>
