@@ -142,15 +142,18 @@ export default async function FinanceDashboard({ searchParams }: Props) {
       {/* ── KPI Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {KPI.map(k => (
-          <div key={k.label} className="rounded-[24px] border border-border/50 shadow-sm bg-card/60 backdrop-blur-md overflow-hidden ring-1 ring-border/5">
+          <div 
+            key={k.label} 
+            className="rounded-[24px] border border-border/60 shadow-xs bg-card/60 backdrop-blur-md overflow-hidden ring-1 ring-border/5 transition-all duration-200 hover:shadow-md hover:scale-[1.01] hover:border-border"
+          >
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <div className={`p-2.5 rounded-xl ${k.color} text-primary-foreground shadow-lg`}>
+                <div className={`p-2.5 rounded-xl ${k.color} text-primary-foreground shadow-md`}>
                   <k.icon className="w-5 h-5" />
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{k.label}</p>
-                  <p className={`text-xl font-black tabular-nums mt-1 ${k.textColor}`}>{k.value}</p>
+                  <p className={`text-xl font-black font-mono tabular-nums mt-1 ${k.textColor}`}>{k.value}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 mt-2">

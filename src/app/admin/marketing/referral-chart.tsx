@@ -1,6 +1,7 @@
 'use client';
 
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { formatRubles } from '@/utils/format-price';
 
 interface ChartDataPoint {
   name: string;
@@ -38,10 +39,10 @@ export function ReferralEconomicsChart({ data }: ReferralEconomicsChartProps) {
             fontSize={11}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value) => `${value} ₽`}
+            tickFormatter={(value) => formatRubles(Number(value) || 0)}
           />
           <Tooltip 
-            cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
+            cursor={{ fill: 'var(--color-muted)', opacity: 0.2 }}
             contentStyle={{ 
               borderRadius: '12px', 
               border: '1px solid var(--color-border)', 
@@ -49,8 +50,7 @@ export function ReferralEconomicsChart({ data }: ReferralEconomicsChartProps) {
               color: 'var(--color-foreground)',
               boxShadow: '0 10px 40px rgba(0,0,0,0.08)'
             }}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts value type is union number|string|array which is complex to assert in formatter
-            formatter={(value: any) => [`${value} ₽`, 'Выплачено']}
+            formatter={(value: unknown) => [formatRubles(Number(value) || 0), 'Выплачено']}
             labelStyle={{ color: 'var(--color-foreground)', fontWeight: 'bold', marginBottom: '4px' }}
           />
           <Legend 

@@ -13,6 +13,7 @@ export type ProviderListDTO = {
   avgResponseMs: number;
   errorCount5m: number;
   lastSuccessAt: string | null;
+  ticketUrl?: string | null;
   createdAt: string;
 };
 
@@ -79,6 +80,7 @@ class AdminProviderService {
         avgResponseMs: true,
         errorCount5m: true,
         lastSuccessAt: true,
+        ticketUrl: true,
         createdAt: true,
         _count: { select: { services: true } },
       },
@@ -94,6 +96,7 @@ class AdminProviderService {
       avgResponseMs: p.avgResponseMs,
       errorCount5m: p.errorCount5m,
       lastSuccessAt: p.lastSuccessAt ? p.lastSuccessAt.toISOString() : null,
+      ticketUrl: p.ticketUrl,
       createdAt: p.createdAt.toISOString(),
     }));
   }

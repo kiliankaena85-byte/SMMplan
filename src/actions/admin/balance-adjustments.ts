@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdminAwaitable } from "@/lib/admin-audit";
 import { getEffectiveBalancePolicy, parsePolicyReasonCodes } from "@/services/admin/balance-policy.service";
@@ -506,8 +507,7 @@ export async function getBalanceAdjustmentsAction(formData: FormData) {
     const { status, direction, userId, requestedBy, reasonCode, ticketId, page, pageSize } = parsed.data;
 
     // Filter construction
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const where: Prisma.ManualBalanceAdjustmentWhereInput = {};
 
     if (!canViewAll) {
       where.requestedBy = staffUser.id;
@@ -567,9 +567,7 @@ export async function getBalanceAdjustmentStatsAction(formData: FormData) {
     }
 
     const { requestedBy, direction, reasonCode, status } = parsed.data;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const where: Prisma.ManualBalanceAdjustmentWhereInput = {};
     if (!canViewAll) {
       where.requestedBy = staffUser.id;
     } else if (requestedBy) {

@@ -1,7 +1,7 @@
 import { adminOrderService } from '@/services/admin/order.service';
 import { Package, Download } from 'lucide-react';
 import Link from 'next/link';
-import { AdminPageHeader } from '@/components/admin/page-header';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { OrderClient } from './components/order-client';
 import { OrdersFilterForm } from './components/orders-filter-form';
 import { verifySession } from '@/lib/session';
@@ -25,6 +25,8 @@ type Props = {
   searchParams: Promise<{
     q?: string;
     status?: string;
+    activityType?: string;
+    datePreset?: string;
     cursor?: string;
     userId?: string;
     edit_order_id?: string;
@@ -41,9 +43,9 @@ type Props = {
     isDripFeed?: string;
     noProvider?: string;
     stale?: string;
-    datePreset?: string;
     sort?: string;
     order?: string;
+    tenant?: string;
   }>;
 };
 
@@ -67,25 +69,30 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const userId = params.userId || '';
   const editOrderId = params.edit_order_id || '';
   const networkSlug = params.networkSlug || '';
+  const tenantFilter = params.tenant && params.tenant !== 'all' ? params.tenant : undefined;
 
   const networks = await db.network.findMany({
-    select: { id: true, name: true, slug: true },
-    orderBy: { slug: 'asc' }
+    select: { 
+      id: true, 
+      name: true, 
+      slug: true,
+      categories: {
+        select: { id: true, name: true, slug: true },
+        orderBy: { sort: 'asc' }
+      }
+    },
+    orderBy: { sort: 'asc' }
   });
 
   const isDripFeed = params.isDripFeed === 'true';
   const noProvider = params.noProvider === 'true';
   const staleMinutes = params.stale ? parseInt(params.stale, 10) : undefined;
 
-  let dateFrom: Date | undefined = undefined;
-  if (params.datePreset === 'today') {
-    const now = new Date();
-    dateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-  }
-
   const { items: orders, nextCursor, hasMore } = await adminOrderService.searchOrders({
     query: query || undefined,
     status: statusFilter,
+    activityType: params.activityType || undefined,
+    datePreset: params.datePreset || undefined,
     cursor,
     pageSize: 50,
     userId: userId || undefined,
@@ -99,10 +106,10 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     maxPrice: params.maxPrice ? parseFloat(params.maxPrice) : undefined,
     minQuantity: params.minQuantity ? parseInt(params.minQuantity, 10) : undefined,
     maxQuantity: params.maxQuantity ? parseInt(params.maxQuantity, 10) : undefined,
+    tenantId: tenantFilter,
     isDripFeed: params.isDripFeed ? isDripFeed : undefined,
     noProvider: params.noProvider ? noProvider : undefined,
     staleMinutes: !isNaN(staleMinutes || NaN) ? staleMinutes : undefined,
-    dateFrom,
     sortField: params.sort || undefined,
     sortOrder: (params.order === 'asc' || params.order === 'desc') ? params.order : undefined,
   });
@@ -138,7 +145,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     }
   }
 
-  const stats = await adminOrderService.getOrderStats();
+  const stats = await adminOrderService.getOrderStats(undefined, undefined, tenantFilter);
 
   // Helper to build the query string for pagination preserving all filters
   const buildQueryString = (extraParams: Record<string, string> = {}) => {
@@ -166,32 +173,35 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
-      <AdminPageHeader
+      <AdminTabbedHeader
         icon={Package}
         title="Заказы"
         description={`Всего: ${stats.total} • В очереди: ${stats.pending} • В работе: ${stats.inProgress} • Ошибки: ${stats.error}`}
+        currentTenant={tenantFilter}
         action={(
           <a
             href={`/api/admin/export${buildQueryString({ type: 'orders' })}`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-foreground bg-background border border-border shadow-sm rounded-lg hover:bg-muted/50 hover:text-primary transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border/70 shadow-sm rounded-md hover:bg-muted hover:text-primary transition-colors h-8"
           >
-            <Download className="w-4 h-4" /> Экспорт CSV
+            <Download className="w-3.5 h-3.5" /> Экспорт CSV
           </a>
         )}
       />
 
       {/* Search + Filters & Orders Table Container */}
-      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 overflow-hidden flex flex-col">
-        {/* Top Filters Section */}
-        <div className="p-6 border-b border-border/40 bg-muted/10">
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl shadow-sm ring-1 ring-border/5 overflow-hidden flex flex-col">
+        {/* Top Ultra-Compact Filters Section */}
+        <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/10">
           <OrdersFilterForm networks={networks} />
         </div>
 
         {/* Table Section */}
-        <div className="flex-1 p-6 pt-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-foreground">
-              Результаты{query ? ` по запросу "${query}"` : ''} <span className="text-muted-foreground ml-1 font-medium text-sm">({orders.length}{hasMore ? '+' : ''})</span>
+        <div className="flex-1 p-4 sm:p-5 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <span>Заказы</span>
+              {query && <span className="font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md">«{query}»</span>}
+              <span className="text-muted-foreground font-medium text-xs">({orders.length}{hasMore ? '+' : ''})</span>
             </h3>
           </div>
           <OrderClient 
@@ -215,6 +225,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               interval: o.interval ?? null,
               currentRun: o.currentRun,
               error: o.error ?? null,
+              tenantId: o.tenantId,
               user: { email: o.user.email },
               providerName: o.provider?.name ?? null,
               providerTicketUrl: o.provider?.ticketUrl ?? null,
@@ -233,27 +244,30 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             }))} 
           />
 
-          {/* Pagination */}
-          {(cursor || hasMore) && (
-            <div className="flex justify-between items-center mt-6 pt-4 border-t border-border">
+          {/* Pagination Bar */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-5 pt-4 border-t border-border/60 text-xs text-muted-foreground">
+            <div>
+              Показано <strong className="text-foreground">{orders.length}</strong> заказов {hasMore ? '(есть следующие страницы)' : '(конец списка)'}
+            </div>
+            <div className="flex items-center gap-2">
               {cursor ? (
                 <Link
                   href={`/admin/orders${buildQueryString({ cursor: '' })}`}
-                  className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-md hover:bg-muted/50 transition-colors"
+                  className="px-3 py-1.5 font-semibold text-foreground bg-background border border-border/80 rounded-lg hover:bg-muted transition-all active:scale-95 cursor-pointer shadow-xs"
                 >
                   ← В начало
                 </Link>
-              ) : <div />}
+              ) : null}
               {hasMore && nextCursor && (
                 <Link
                   href={`/admin/orders${buildQueryString({ cursor: nextCursor })}`}
-                  className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary transition-colors"
+                  className="px-3.5 py-1.5 font-bold text-primary-foreground bg-primary rounded-lg hover:opacity-90 transition-all active:scale-95 cursor-pointer shadow-xs"
                 >
-                  Следующая →
+                  Следующая страница →
                 </Link>
               )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

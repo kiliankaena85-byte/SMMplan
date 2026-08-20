@@ -588,3 +588,46 @@
     transform: translateY(0);
   }
 }
+
+/* ── GPU-Accelerated Hero Background Animations ── */
+@keyframes float-blob-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(40px, -25px, 0) scale(1.08); }
+}
+@keyframes float-blob-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-50px, 35px, 0) scale(0.95); }
+}
+@keyframes float-blob-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(25px, 40px, 0) scale(1.04); }
+}
+
+.animate-blob-1 {
+  animation: float-blob-1 25s ease-in-out infinite;
+  will-change: transform;
+}
+.animate-blob-2 {
+  animation: float-blob-2 20s ease-in-out infinite;
+  will-change: transform;
+}
+.animate-blob-3 {
+  animation: float-blob-3 22s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ── Global Performance & Animation Optimization ── */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img {
+  content-visibility: auto;
+}
+
+.gpu-accelerated {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+

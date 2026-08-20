@@ -7,15 +7,15 @@ import { MarketingTabs } from './client-tabs';
 import { ReferralEconomicsChart } from './referral-chart';
 import { PromoCodeTable } from './promocode-table';
 import { CreatePromoModal } from './create-promo-form';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { PayoutButton } from './payout-button';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import Link from 'next/link';
+import { formatRubles } from '@/utils/format-price';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 import { ReferrersTable } from './client-referrers-table';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MarketingPage() {
+  await enforceSectionAccess('marketing');
+
   const [promos, stats, rawTopReferrers, chartData] = await Promise.all([
     adminMarketingService.listPromoCodes(),
     adminMarketingService.getReferralStats(),
@@ -44,10 +44,10 @@ export default async function MarketingPage() {
       <MarketingTabs
         promocodesContent={
           <div className="w-full">
-            <Card className="rounded-2xl border-warm-border bg-warm-card shadow-[0_12px_40px_rgba(39,39,42,0.02)]">
-              <CardHeader className="border-b border-warm-border bg-warm-zinc/20 rounded-t-2xl pb-4 pt-5 flex flex-row items-center justify-between gap-4">
+            <Card className="rounded-2xl border-border bg-card shadow-xs">
+              <CardHeader className="border-b border-border bg-muted/20 rounded-t-2xl pb-4 pt-5 flex flex-row items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="text-warm-text text-sm font-extrabold uppercase tracking-wider">Список промокодов</CardTitle>
+                  <CardTitle className="text-foreground text-sm font-extrabold uppercase tracking-wider">Список промокодов</CardTitle>
                 </div>
                 <CreatePromoModal />
               </CardHeader>
@@ -68,7 +68,7 @@ export default async function MarketingPage() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Выплачено всего</p>
-                    <p className="text-2xl font-black text-foreground tabular-nums">{(Number(stats.totalPaidOut) / 100).toLocaleString('ru-RU')} ₽</p>
+                    <p className="text-2xl font-black text-foreground tabular-nums">{formatRubles(Number(stats.totalPaidOut) / 100)}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -80,14 +80,14 @@ export default async function MarketingPage() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">В ожидании</p>
-                    <p className="text-2xl font-black text-foreground tabular-nums">{(Number(stats.totalPending) / 100).toLocaleString('ru-RU')} ₽</p>
+                    <p className="text-2xl font-black text-foreground tabular-nums">{formatRubles(Number(stats.totalPending) / 100)}</p>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="rounded-2xl border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
                 <CardContent className="p-6 flex items-center gap-4">
-                  <div className="p-3 bg-sky-100 text-sky-600 rounded-xl">
+                  <div className="p-3 bg-primary/10 text-primary rounded-xl">
                     <Users className="w-6 h-6" />
                   </div>
                   <div>
@@ -114,7 +114,7 @@ export default async function MarketingPage() {
                <Card className="rounded-2xl border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
                   <CardHeader className="border-b border-border/50 bg-muted/50 rounded-t-2xl pb-4">
                     <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                      <Users className="w-4 h-4 text-sky-500" />
+                      <Users className="w-4 h-4 text-primary" />
                       Аудит рефоводов
                     </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground mt-1">Клиенты с балансом на партнерском счету</CardDescription>

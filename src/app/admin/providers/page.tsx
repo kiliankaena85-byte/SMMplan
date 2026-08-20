@@ -1,14 +1,19 @@
 import { adminProviderService } from '@/services/admin/provider.service';
+import { providerBalanceService } from '@/services/admin/provider-balance.service';
 import Link from 'next/link';
 import { Plug } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { ProvidersTable } from './client-table';
+import { LiquidityDashboard } from './components/liquidity-dashboard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProvidersAdminPage() {
-  const providers = await adminProviderService.listProviders();
+  const [providers, liquidity] = await Promise.all([
+    adminProviderService.listProviders(),
+    providerBalanceService.getGlobalLiquiditySummary(),
+  ]);
 
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
@@ -30,6 +35,11 @@ export default async function ProvidersAdminPage() {
         onboardingKey="providers"
         onboarding={ONBOARDING_CONFIGS.providers}
       />
+
+      {/* Глобальная ликвидность поверх таблицы */}
+      {liquidity.activeCount > 0 && (
+        <LiquidityDashboard data={liquidity} />
+      )}
 
       <ProvidersTable providers={providers} />
     </div>

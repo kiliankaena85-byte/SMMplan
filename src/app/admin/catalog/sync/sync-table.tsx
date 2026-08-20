@@ -8,6 +8,7 @@ import {
   copyServicesToTenantAction,
   alignPricesAction,
 } from '@/actions/admin/catalog/sync';
+import { formatPricePerUnit } from '@/utils/format-price';
 
 interface SyncTableProps {
   rows: GapRow[];
@@ -168,11 +169,11 @@ export function SyncTable({ rows, stats }: SyncTableProps) {
         </div>
         <div className="p-4 rounded-xl border border-border bg-card">
           <div className="text-sm font-medium text-muted-foreground">На SMMflux</div>
-          <div className="text-2xl font-bold text-emerald-500 mt-1">{stats.flux}</div>
+          <div className="text-2xl font-bold text-success mt-1">{stats.flux}</div>
         </div>
         <div className="p-4 rounded-xl border border-border bg-card">
           <div className="text-sm font-medium text-muted-foreground">Расхождения (Gap)</div>
-          <div className="text-2xl font-bold text-amber-500 mt-1">{stats.gap}</div>
+          <div className="text-2xl font-bold text-warning mt-1">{stats.gap}</div>
         </div>
       </div>
 
@@ -191,7 +192,7 @@ export function SyncTable({ rows, stats }: SyncTableProps) {
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap cursor-pointer ${
                 filter === tab.id
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -238,7 +239,7 @@ export function SyncTable({ rows, stats }: SyncTableProps) {
             <button
               disabled={isPending}
               onClick={() => handleCopy('smmplan', 'flux')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-all active:scale-95 cursor-pointer shadow-xs"
             >
               {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
               Скопировать SMMplan → SMMflux
@@ -247,7 +248,7 @@ export function SyncTable({ rows, stats }: SyncTableProps) {
             <button
               disabled={isPending}
               onClick={() => handleCopy('flux', 'smmplan')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 transition-all active:scale-95 cursor-pointer shadow-xs"
             >
               {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
               Скопировать SMMflux → SMMplan
@@ -256,7 +257,7 @@ export function SyncTable({ rows, stats }: SyncTableProps) {
             <button
               disabled={isPending}
               onClick={() => handleAlign('smmplan', 'flux')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-accent text-foreground disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-background hover:bg-accent text-foreground disabled:opacity-50 transition-all active:scale-95 cursor-pointer shadow-xs"
             >
               {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scale className="w-3.5 h-3.5" />}
               Выровнять цены (SMMplan → Flux)
@@ -313,7 +314,7 @@ export function SyncTable({ rows, stats }: SyncTableProps) {
                       diffPercentStr = '0%';
                     } else {
                       diffPercentStr = `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`;
-                      diffColor = diff > 0 ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold';
+                      diffColor = diff > 0 ? 'text-success font-semibold' : 'text-warning font-semibold';
                     }
                   }
 
@@ -342,7 +343,7 @@ export function SyncTable({ rows, stats }: SyncTableProps) {
                       <td className="p-3 text-right">
                         {r.smmplan.exists ? (
                           <span className="font-semibold text-foreground">
-                            {pricePlan !== null ? `${pricePlan.toFixed(2)} ₽` : '—'}
+                            {pricePlan !== null ? `${formatPricePerUnit(pricePlan)} ₽` : '—'}
                           </span>
                         ) : (
                           <span className="inline-block px-2 py-0.5 text-xs rounded bg-destructive/10 text-destructive font-medium">
@@ -353,7 +354,7 @@ export function SyncTable({ rows, stats }: SyncTableProps) {
                       <td className="p-3 text-right">
                         {r.flux.exists ? (
                           <span className="font-semibold text-foreground">
-                            {priceFlux !== null ? `${priceFlux.toFixed(2)} ₽` : '—'}
+                            {priceFlux !== null ? `${formatPricePerUnit(priceFlux)} ₽` : '—'}
                           </span>
                         ) : (
                           <span className="inline-block px-2 py-0.5 text-xs rounded bg-destructive/10 text-destructive font-medium">

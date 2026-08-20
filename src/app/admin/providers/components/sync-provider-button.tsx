@@ -1,7 +1,6 @@
 'use client';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -43,12 +42,12 @@ export function SyncProviderButton({ providerId }: Props) {
       {isPending ? (
         <div className="flex items-center gap-1.5">
           <RefreshCw className="h-3 w-3 animate-spin" />
-          <span>Syncing...</span>
+          <span>Синхронизация...</span>
         </div>
       ) : (
         <div className="flex items-center gap-1.5">
           <RefreshCw className="h-3 w-3" />
-          <span>Sync</span>
+          <span>Обновить</span>
         </div>
       )}
     </Button>

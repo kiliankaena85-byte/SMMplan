@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
+import { RefreshCw, CheckCircle2, Loader2, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,8 @@ interface RefillRequestButtonProps {
   orderId: string;
   isRefillEnabled?: boolean;
   orderStatus: string;
+  createdAt?: Date | string;
+  guaranteeDays?: number;
   refills?: Array<{
     id: string;
     status: string;
@@ -22,6 +24,8 @@ export function RefillRequestButton({
   orderId,
   isRefillEnabled = false,
   orderStatus,
+  createdAt,
+  guaranteeDays = 30,
   refills,
   className,
 }: RefillRequestButtonProps) {
@@ -40,17 +44,25 @@ export function RefillRequestButton({
     return null;
   }
 
+  // Calculate remaining guarantee period
+  const orderDate = createdAt ? new Date(createdAt) : null;
+  const elapsedDays = orderDate
+    ? Math.floor((Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+  const remainingDays = Math.max(0, guaranteeDays - elapsedDays);
+  const isGuaranteeExpired = orderDate ? elapsedDays > guaranteeDays : false;
+
   if (refillStatus === 'PENDING' || refillStatus === 'IN_PROGRESS') {
     return (
       <span
         className={cn(
-          'inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg whitespace-nowrap',
+          'inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg whitespace-nowrap shadow-xs',
           className
         )}
-        title="Заявка на докрутку принята и находится в обработке"
+        title="Заявка на гарантийный докрут принята провайдером и находится в обработке"
       >
         <RefreshCw className="w-3 h-3 animate-spin text-amber-600 dark:text-amber-400 shrink-0" />
-        🔄 Докрутка: В процессе
+        Докрутка: В процессе
       </span>
     );
   }
@@ -59,12 +71,28 @@ export function RefillRequestButton({
     return (
       <span
         className={cn(
-          'inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg whitespace-nowrap',
+          'inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg whitespace-nowrap shadow-xs',
           className
         )}
+        title="Гарантийная докрутка успешно выполнена"
       >
         <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
         Докрутка выполнена
+      </span>
+    );
+  }
+
+  if (isGuaranteeExpired) {
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground bg-muted/60 border border-border/40 rounded-lg whitespace-nowrap opacity-75 cursor-not-allowed',
+          className
+        )}
+        title={`Гарантийный период (${guaranteeDays} дн.) для этого заказа истёк`}
+      >
+        <ShieldAlert className="w-3 h-3 text-muted-foreground/70 shrink-0" />
+        Гарантия истекла
       </span>
     );
   }
@@ -73,7 +101,7 @@ export function RefillRequestButton({
     e.preventDefault();
     e.stopPropagation();
 
-    if (isPending) return;
+    if (isPending || isGuaranteeExpired) return;
 
     try {
       setIsPending(true);
@@ -81,7 +109,7 @@ export function RefillRequestButton({
       const res = await requestClientRefillAction(orderId);
 
       if (res.success) {
-        toast.success(res.message || 'Заявка на докрутку принята!');
+        toast.success(res.message || 'Заявка на гарантийный докрут принята!');
         setRefillStatus('PENDING');
         router.refresh();
       } else {
@@ -103,17 +131,20 @@ export function RefillRequestButton({
       disabled={isPending}
       onClick={handleRequestRefill}
       className={cn(
-        'h-7 px-2.5 text-[10px] font-bold rounded-lg transition-all inline-flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 active:scale-95 disabled:opacity-50 whitespace-nowrap cursor-pointer',
+        'h-7 px-2.5 text-[10px] font-bold rounded-lg transition-all inline-flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 active:scale-95 disabled:opacity-50 whitespace-nowrap cursor-pointer hover:shadow-xs',
         className
       )}
-      title="Запросить бесплатную повторную докрутку (Refill)"
+      title={`Запросить бесплатный гарантийный докрут (Refill). Осталось ${remainingDays} дн. гарантии.`}
     >
       {isPending ? (
         <Loader2 className="w-3 h-3 animate-spin shrink-0" />
       ) : (
-        <RefreshCw className="w-3 h-3 shrink-0" />
+        <RefreshCw className="w-3 h-3 shrink-0 text-primary" />
       )}
-      🔄 Запросить докрутку
+      <span>Докрутка</span>
+      <span className="px-1 py-0.2 bg-primary/20 text-primary text-[9px] rounded font-mono font-black" title={`Осталось ${remainingDays} дней гарантии`}>
+        {remainingDays}д
+      </span>
     </button>
   );
 }

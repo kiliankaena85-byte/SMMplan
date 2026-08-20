@@ -38,21 +38,41 @@ global.fetch = mockFetch;
 
 describe('UnifiedPaymentService', () => {
   let originalNodeEnv: string | undefined;
+  let originalAppUrl: string | undefined;
+  let originalWebappUrl: string | undefined;
+  let originalNextPublicAppUrl: string | undefined;
+  let originalBaseUrl: string | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_APP_URL = 'https://app.dynamicbrand.com';
-    global.fetch = vi.fn();
     originalNodeEnv = process.env.NODE_ENV;
+    originalAppUrl = process.env.APP_URL;
+    originalWebappUrl = process.env.WEBAPP_URL;
+    originalNextPublicAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+    originalBaseUrl = process.env.BASE_URL;
+
+    process.env.NEXT_PUBLIC_APP_URL = 'https://app.dynamicbrand.com';
+    delete process.env.APP_URL;
+    delete process.env.WEBAPP_URL;
+    delete process.env.BASE_URL;
+
+    global.fetch = vi.fn();
     (process.env as any).NODE_ENV = 'production';
   });
 
   afterEach(() => {
     (process.env as any).NODE_ENV = originalNodeEnv;
+    if (originalAppUrl !== undefined) process.env.APP_URL = originalAppUrl; else delete process.env.APP_URL;
+    if (originalWebappUrl !== undefined) process.env.WEBAPP_URL = originalWebappUrl; else delete process.env.WEBAPP_URL;
+    if (originalNextPublicAppUrl !== undefined) process.env.NEXT_PUBLIC_APP_URL = originalNextPublicAppUrl; else delete process.env.NEXT_PUBLIC_APP_URL;
+    if (originalBaseUrl !== undefined) process.env.BASE_URL = originalBaseUrl; else delete process.env.BASE_URL;
   });
 
   it('YooKassa gateway uses dynamic brand domain for success return_url', async () => {
     delete process.env.NEXT_PUBLIC_APP_URL; // Force fallback to supportDomain
+    delete process.env.APP_URL;
+    delete process.env.WEBAPP_URL;
+    delete process.env.BASE_URL;
 
     (global.fetch as any).mockResolvedValueOnce({
       ok: true,

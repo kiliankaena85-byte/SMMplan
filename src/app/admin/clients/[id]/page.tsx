@@ -22,12 +22,12 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const ROLE_BADGE: Record<string, string> = {
-  OWNER:   'bg-primary/10 text-indigo-800 border border-indigo-200 shadow-sm tracking-tight',
-  ADMIN:   'bg-sky-50 text-sky-800 border border-sky-200 shadow-sm tracking-tight',
-  MANAGER: 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-sm tracking-tight',
-  SUPPORT: 'bg-muted/50 text-muted-foreground border border-border/60 shadow-sm tracking-tight',
-  USER:    'bg-muted/50 text-foreground border border-border/60 shadow-sm tracking-tight',
-  BANNED:  'bg-rose-50 text-rose-800 border border-rose-200 shadow-sm tracking-tight',
+  OWNER:   'bg-primary/10 text-primary border border-primary/20 shadow-xs tracking-tight',
+  ADMIN:   'bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 shadow-xs tracking-tight',
+  MANAGER: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-xs tracking-tight',
+  SUPPORT: 'bg-muted text-muted-foreground border border-border shadow-xs tracking-tight',
+  USER:    'bg-muted text-foreground border border-border shadow-xs tracking-tight',
+  BANNED:  'bg-destructive/10 text-destructive border border-destructive/20 shadow-xs tracking-tight',
 };
 
 type Props = { params: Promise<{ id: string }> };
@@ -66,14 +66,24 @@ export default async function ClientDetailPage({ params }: Props) {
       apiKeyHash: true,
       referralCode: true,
       referralBalance: true,
+      companyName: true,
+      inn: true,
+      kpp: true,
+      legalAddress: true,
+      b2bConfig: {
+        select: {
+          isB2b: true,
+          prioritySupport: true,
+          webhookUrl: true,
+        },
+      },
       createdAt: true,
     },
-    // Relations loaded separately for type-safety
   });
 
   if (!user) notFound();
 
-  const [orders, countResult, loginLogs] = await Promise.all([
+  const [orders, payments, countResult, loginLogs] = await Promise.all([
     db.order.findMany({
       where: { userId: id },
       orderBy: { createdAt: 'desc' },
@@ -88,10 +98,26 @@ export default async function ClientDetailPage({ params }: Props) {
         service: { select: { name: true } },
       },
     }),
+    db.payment.findMany({
+      where: { userId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 15,
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        status: true,
+        gateway: true,
+        gatewayId: true,
+        receiptId: true,
+        refundReceiptId: true,
+        createdAt: true,
+      },
+    }),
     db.user.findUnique({
       where: { id },
       select: {
-        _count: { select: { orders: true, tickets: true } },
+        _count: { select: { orders: true, tickets: true, payments: true } },
       },
     }),
     db.loginLog.findMany({
@@ -111,6 +137,7 @@ export default async function ClientDetailPage({ params }: Props) {
 
   const ordersCount = countResult?._count.orders ?? 0;
   const ticketsCount = countResult?._count.tickets ?? 0;
+  const paymentsCount = countResult?._count.payments ?? 0;
 
   // Safe DTO — only send what the UI needs (no raw DB object)
   const dto = {
@@ -124,9 +151,19 @@ export default async function ClientDetailPage({ params }: Props) {
     adminNoteUpdatedBy: user.adminNoteUpdatedBy ?? null,
     telegramId: user.telegramId ?? null,
     referralCode: user.referralCode ?? null,
+    companyName: user.companyName ?? '',
+    inn: user.inn ?? '',
+    kpp: user.kpp ?? '',
+    legalAddress: user.legalAddress ?? '',
+    b2bConfig: user.b2bConfig ? {
+      isB2b: user.b2bConfig.isB2b,
+      prioritySupport: user.b2bConfig.prioritySupport,
+      webhookUrl: user.b2bConfig.webhookUrl ?? '',
+    } : null,
     createdAt: user.createdAt.toISOString(),
     ordersCount,
     ticketsCount,
+    paymentsCount,
     ...(canSeeFinances ? {
       balance: Number(user.balance),
       quarantineBalance: Number(user.quarantineBalance),
@@ -134,6 +171,29 @@ export default async function ClientDetailPage({ params }: Props) {
       referralBalance: user.referralBalance,
     } : {}),
   };
+
+  const ordersDto = orders.map(o => ({
+    id: o.id,
+    numericId: o.numericId,
+    status: o.status,
+    quantity: o.quantity,
+    chargeRub: Number(o.charge) / 100,
+    serviceName: o.service?.name || 'Услуга',
+    createdAt: o.createdAt.toISOString(),
+  }));
+
+  const paymentsDto = payments.map(p => ({
+    id: p.id,
+    amountRub: (Number(p.amount) / 100),
+    amountCents: Number(p.amount),
+    currency: p.currency,
+    status: p.status,
+    gateway: p.gateway,
+    gatewayId: p.gatewayId ?? null,
+    receiptId: p.receiptId ?? null,
+    refundReceiptId: p.refundReceiptId ?? null,
+    createdAt: p.createdAt.toISOString(),
+  }));
 
   const logsDto = loginLogs.map(log => ({
     id: log.id,
@@ -246,7 +306,7 @@ export default async function ClientDetailPage({ params }: Props) {
       </div>
 
       {/* Interactive client panel */}
-      <ClientDetailClient user={dto} loginLogs={logsDto} canSeeFinances={canSeeFinances} />
+      <ClientDetailClient user={dto} loginLogs={logsDto} payments={paymentsDto} orders={ordersDto} canSeeFinances={canSeeFinances} />
 
       {/* Recent orders */}
       <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden ring-1 ring-border/5 flex flex-col">

@@ -8,7 +8,6 @@ import React from "react";
 import { ROUTES } from "@/lib/routes";
 import { TrustBar } from "./TrustBar";
 import { LinkModal } from "./order-engine/LinkModal";
-import { useABTest } from "@/hooks/useABTest";
 import dynamic from "next/dynamic";
 
 const WhyUs = dynamic(() => import("./WhyUs").then((mod) => mod.WhyUs));
@@ -41,20 +40,33 @@ const MassConfirmEmailModal = dynamic(
   { ssr: false }
 );
 
-const InlineCheckoutForm = dynamic(
-  () => import("./order-engine/InlineCheckoutForm").then((mod) => mod.InlineCheckoutForm),
+// 6 Checkout Variants
+const CenteredDialogCheckout = dynamic(
+  () => import("./order-engine/variants/CenteredDialogCheckout").then((mod) => mod.CenteredDialogCheckout),
   { ssr: false }
 );
 
-const FullscreenCheckoutVariantC = dynamic(
-  () => import("./order-engine/FullscreenCheckoutVariantC").then((mod) => mod.FullscreenCheckoutVariantC),
+const StepWizardCheckout = dynamic(
+  () => import("./order-engine/variants/StepWizardCheckout").then((mod) => mod.StepWizardCheckout),
   { ssr: false }
 );
 
-const StickyCheckoutTriggerBar = dynamic(
-  () => import("./order-engine/StickyCheckoutTriggerBar").then((mod) => mod.StickyCheckoutTriggerBar),
+const FloatingHudCheckout = dynamic(
+  () => import("./order-engine/variants/FloatingHudCheckout").then((mod) => mod.FloatingHudCheckout),
   { ssr: false }
 );
+
+const BottomSheetCheckout = dynamic(
+  () => import("./order-engine/variants/BottomSheetCheckout").then((mod) => mod.BottomSheetCheckout),
+  { ssr: false }
+);
+
+const QuickTableRowCheckout = dynamic(
+  () => import("./order-engine/variants/QuickTableRowCheckout").then((mod) => mod.QuickTableRowCheckout),
+  { ssr: false }
+);
+
+import { CheckoutMode } from "./order-engine/variants/types";
 import { NetworkSelector } from "./order-engine/NetworkSelector";
 import { CategorySidebar } from "./order-engine/CategorySidebar";
 import { ServiceGrid } from "./order-engine/ServiceGrid";
@@ -83,7 +95,8 @@ export function SmartLinkLanding({
   tenantId,
   customHeroTitle,
   customHeroSubtitle,
-  seoHubContent
+  seoHubContent,
+  initialServices = []
 }: {
   initialCatalog: PublicNetwork[];
   initialEmail?: string;
@@ -104,9 +117,10 @@ export function SmartLinkLanding({
   customHeroTitle?: React.ReactNode;
   customHeroSubtitle?: string;
   seoHubContent?: React.ReactNode;
+  initialServices?: PublicService[];
 }) {
   const companyName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "SMMplan";
-  const engine = useOrderEngine(initialCatalog, initialEmail, initialServiceId, initialCategoryId, initialNetworkId);
+  const engine = useOrderEngine(initialCatalog, initialEmail, initialServiceId, initialCategoryId, initialNetworkId, initialServices);
   const {
     url, setUrl,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -148,15 +162,6 @@ export function SmartLinkLanding({
     setShowCatalogModal(false);
   };
 
-  const abVariant = useABTest();
-  const [isFullscreenCheckoutOpen, setIsFullscreenCheckoutOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!selectedService) {
-      setIsFullscreenCheckoutOpen(false);
-    }
-  }, [selectedService]);
-
   const {
     isSubmitting,
     showLinkModal, setShowLinkModal,
@@ -171,9 +176,55 @@ export function SmartLinkLanding({
   } = useCheckoutOrchestrator({ 
     engine, 
     desktopEmailInputRef, 
-    mobileEmailInputRef,
-    abVariant
+    mobileEmailInputRef
   });
+
+  const [checkoutMode, setCheckoutMode] = React.useState<CheckoutMode>("wizard");
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem("smm_checkout_mode") as CheckoutMode | null;
+    if (saved) {
+      setCheckoutMode(saved);
+    }
+
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        setCheckoutMode(customEvent.detail as CheckoutMode);
+      }
+    };
+
+    window.addEventListener("smm_checkout_mode_changed", handler);
+    return () => window.removeEventListener("smm_checkout_mode_changed", handler);
+  }, []);
+
+  const checkoutVariantProps = React.useMemo(() => ({
+    selectedService,
+    url,
+    setShowLinkModal,
+    quantity,
+    setQuantity,
+    pricing,
+    email,
+    setEmail,
+    promoCode: engine.promoCode,
+    setPromoCode: engine.setPromoCode,
+    isCalculating: engine.isCalculating,
+    isSubmitting,
+    handleCheckout,
+    onClose: () => setSelectedService(null),
+    emailInputRef: desktopEmailInputRef,
+    emailHasError,
+    termsHasError,
+    engine,
+    onOpenDocument: setActiveLegalSlug,
+    userBalanceCents
+  }), [
+    selectedService, url, setShowLinkModal, quantity, setQuantity, pricing,
+    email, setEmail, engine, isSubmitting, handleCheckout,
+    setSelectedService, desktopEmailInputRef, emailHasError, termsHasError,
+    setActiveLegalSlug, userBalanceCents
+  ]);
 
   const availablePlatforms = unfilteredCatalog.map(net => {
     let platformEnum = IntelligencePlatform.OTHER;
@@ -207,56 +258,13 @@ export function SmartLinkLanding({
         <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden bg-gradient-to-b from-transparent via-background/50 to-background" />
 
         <div className="absolute top-0 inset-x-0 h-[600px] z-[-2] pointer-events-none overflow-hidden select-none">
-          <motion.div
-            animate={{
-              x: [0, 50, -30, 0],
-              y: [0, -30, 40, 0],
-              scale: [1, 1.1, 0.95, 1],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="absolute top-[10%] left-[12%] w-72 h-72 rounded-full bg-pink-500/10 dark:bg-pink-500/5 blur-3xl pointer-events-none"
-          />
-          <motion.div
-            animate={{
-              x: [0, -60, 40, 0],
-              y: [0, 40, -30, 0],
-              scale: [1, 0.95, 1.05, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="absolute top-[15%] right-[15%] w-80 h-80 rounded-full bg-primary/10 dark:bg-primary/5 blur-3xl pointer-events-none"
-          />
-          <motion.div
-            animate={{
-              x: [0, 30, -40, 0],
-              y: [0, 50, 30, 0],
-              scale: [1, 1.05, 0.98, 1],
-            }}
-            transition={{
-              duration: 22,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="absolute top-[30%] left-[30%] w-64 h-64 rounded-full bg-emerald-500/10 dark:emerald-500/5 blur-3xl pointer-events-none"
-          />
+          <div className="absolute top-[10%] left-[12%] w-72 h-72 rounded-full bg-pink-500/10 dark:bg-pink-500/5 blur-3xl pointer-events-none animate-blob-1" />
+          <div className="absolute top-[15%] right-[15%] w-80 h-80 rounded-full bg-primary/10 dark:bg-primary/5 blur-3xl pointer-events-none animate-blob-2" />
+          <div className="absolute top-[30%] left-[30%] w-64 h-64 rounded-full bg-emerald-500/10 dark:emerald-500/5 blur-3xl pointer-events-none animate-blob-3" />
         </div>
 
-        <motion.div 
-          initial={{ opacity: 0.0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            delay: 0.1,
-            duration: 0.8,
-            ease: "easeOut",
-          }}
-          className="text-center space-y-4 mb-8 max-w-4xl relative z-20 w-full mt-2 px-2"
+        <div 
+          className="text-center space-y-4 mb-8 max-w-4xl relative z-20 w-full mt-2 px-2 animate-in fade-in slide-in-from-bottom-4 duration-500"
         >
           <div className="mb-2">
             <ThemeSwitcher />
@@ -298,7 +306,7 @@ export function SmartLinkLanding({
               onOpenGuide={() => setIsGuideOpen(true)}
             />
           </div>
-        </motion.div>
+        </div>
  
         <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-2xl ring-1 ring-border/20 rounded-2xl md:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-6 relative">
           
@@ -390,36 +398,16 @@ export function SmartLinkLanding({
                               </div>
                                                         ) : (
                               <>
-                                <div className={`pb-8 pt-4 transition-opacity duration-300 hidden md:block ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                                  <ServiceGrid engine={engine} />
+                                <div className={`pb-8 pt-4 transition-opacity duration-300 hidden md:block ${isLoading && services.length === 0 ? 'opacity-50' : 'opacity-100'}`}>
+                                  {checkoutMode === "table" && selectedService && (
+                                    <QuickTableRowCheckout {...checkoutVariantProps} />
+                                  )}
+                                  <ServiceGrid 
+                                    engine={engine} 
+                                    checkoutMode={checkoutMode}
+                                    checkoutProps={checkoutVariantProps}
+                                  />
                                 </div>
-
-                                {abVariant === "B" && selectedService && !engine.isMassMode && !showSmartCart && (
-                                  <div className="hidden md:block">
-                                    <InlineCheckoutForm
-                                      selectedService={selectedService}
-                                      url={url}
-                                      setShowLinkModal={setShowLinkModal}
-                                      quantity={quantity}
-                                      setQuantity={setQuantity}
-                                      pricing={pricing}
-                                      email={email}
-                                      setEmail={setEmail}
-                                      promoCode={engine.promoCode}
-                                      setPromoCode={engine.setPromoCode}
-                                      isCalculating={engine.isCalculating}
-                                      isSubmitting={isSubmitting}
-                                      handleCheckout={handleCheckout}
-                                      onClearSelection={() => setSelectedService(null)}
-                                      emailInputRef={desktopEmailInputRef}
-                                      emailHasError={emailHasError}
-                                      termsHasError={termsHasError}
-                                      engine={engine}
-                                      onOpenDocument={setActiveLegalSlug}
-                                      userBalanceCents={userBalanceCents}
-                                    />
-                                  </div>
-                                )}
                               </>
                             )}
                           </>
@@ -451,69 +439,23 @@ export function SmartLinkLanding({
       
       <MegaFooter contactSettings={contactSettings} tenantId={tenantId} />
 
-      {/* ══════════ CHECKOUT DRAWER (Яндекс-шторка) - Variant A ══════════ */}
-      {(!abVariant || abVariant === "A") && !engine.isMassMode && !showSmartCart && (
-        <CheckoutDrawer
-          selectedService={selectedService}
-          url={url}
-          setShowLinkModal={setShowLinkModal}
-          quantity={quantity}
-          setQuantity={setQuantity}
-          pricing={pricing}
-          email={email}
-          setEmail={setEmail}
-          promoCode={engine.promoCode}
-          setPromoCode={engine.setPromoCode}
-          isCalculating={engine.isCalculating}
-          isSubmitting={isSubmitting}
-          handleCheckout={handleCheckout}
-          onClearSelection={() => setSelectedService(null)}
-          emailInputRef={desktopEmailInputRef}
-          emailHasError={emailHasError}
-          termsHasError={termsHasError}
-          engine={engine}
-          onOpenDocument={setActiveLegalSlug}
-          userBalanceCents={userBalanceCents}
-        />
-      )}
-
-      {/* ══════════ STICKY TRIGGER BAR & FULLSCREEN OVERLAY - Variant C ══════════ */}
-      {abVariant === "C" && !engine.isMassMode && !showSmartCart && selectedService && (
+      {/* ══════════ ACTIVE CHECKOUT VARIANT OVERLAYS ══════════ */}
+      {!engine.isMassMode && !showSmartCart && (
         <>
-          <div className="hidden md:block">
-            <StickyCheckoutTriggerBar
-              selectedService={selectedService}
-              url={url}
-              pricing={pricing}
-              engine={engine}
-              onOpenCheckout={() => setIsFullscreenCheckoutOpen(true)}
-              onClearSelection={() => setSelectedService(null)}
-            />
-          </div>
+          {checkoutMode === "modal" && (
+            <CenteredDialogCheckout {...checkoutVariantProps} />
+          )}
 
-          {isFullscreenCheckoutOpen && (
-            <FullscreenCheckoutVariantC
-              selectedService={selectedService}
-              url={url}
-              setShowLinkModal={setShowLinkModal}
-              quantity={quantity}
-              setQuantity={setQuantity}
-              pricing={pricing}
-              email={email}
-              setEmail={setEmail}
-              promoCode={engine.promoCode}
-              setPromoCode={engine.setPromoCode}
-              isCalculating={engine.isCalculating}
-              isSubmitting={isSubmitting}
-              handleCheckout={handleCheckout}
-              onClose={() => setIsFullscreenCheckoutOpen(false)}
-              emailInputRef={desktopEmailInputRef}
-              emailHasError={emailHasError}
-              termsHasError={termsHasError}
-              engine={engine}
-              onOpenDocument={setActiveLegalSlug}
-              userBalanceCents={userBalanceCents}
-            />
+          {checkoutMode === "wizard" && (
+            <StepWizardCheckout {...checkoutVariantProps} />
+          )}
+
+          {checkoutMode === "hud" && (
+            <FloatingHudCheckout {...checkoutVariantProps} />
+          )}
+
+          {checkoutMode === "bottom" && (
+            <BottomSheetCheckout {...checkoutVariantProps} />
           )}
         </>
       )}

@@ -16,8 +16,11 @@ import {
   Menu,
   X,
   Copy,
-  Award
+  Award,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
+import { createDemoPaymentAction } from '@/actions/order/demo-payment.action';
 
 /* ==========================================================================
    SHARED DATA DICTIONARY (Per prompt spec §4)
@@ -206,11 +209,34 @@ export function SmmPlanDashboard({ isPreviewMode = false }: { isPreviewMode?: bo
   const [targetLink, setTargetLink] = useState('');
   const [isCopied, setIsCopied] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const handleCopyRef = () => {
     navigator.clipboard?.writeText(`https://smmplan.ru/ref/${DASHBOARD_DATA.refCode}`);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const handleExecutePayment = async (amountRub: number, desc: string) => {
+    if (isPaying) return;
+    setIsPaying(true);
+    setPaymentError(null);
+    try {
+      const res = await createDemoPaymentAction({
+        amountRub: Math.max(10, amountRub),
+        description: desc,
+        gateway: 'yookassa',
+        targetLink: targetLink || 'https://t.me/smmplan',
+        serviceName: `SMMplan: ${desc}`
+      });
+      if (res.success && res.paymentUrl) {
+        window.location.href = res.paymentUrl;
+      }
+    } catch (err: unknown) {
+      setPaymentError(err instanceof Error ? err.message : 'Ошибка создания платежа в ЮKassa');
+      setIsPaying(false);
+    }
   };
 
   return (
@@ -551,9 +577,33 @@ export function SmmPlanDashboard({ isPreviewMode = false }: { isPreviewMode?: bo
               </div>
 
               <div className="md:col-span-3 min-w-0">
-                <button className="w-full bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
-                  <span>Оплатить заказ (30.00 ₽)</span>
-                  <ArrowUpRight className="w-4 h-4" />
+                {paymentError && (
+                  <div className="mb-2 p-2 rounded-lg bg-red-50 text-red-600 text-[11px] font-bold flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{paymentError}</span>
+                  </div>
+                )}
+                <button 
+                  type="button"
+                  disabled={isPaying}
+                  onClick={() => {
+                    const tariffRate = selectedTariff === 'econ' ? 0.01 : selectedTariff === 'prem' ? 0.05 : 0.03;
+                    const calculated = Math.round((parseInt(quantity || '1000') || 1000) * tariffRate);
+                    handleExecutePayment(Math.max(10, calculated), `Быстрый заказ: ${selectedNetwork.toUpperCase()} ${selectedCategory}`);
+                  }}
+                  className="w-full bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+                >
+                  {isPaying ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Переход в ЮKassa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Оплатить заказ (30.00 ₽)</span>
+                      <ArrowUpRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -1010,7 +1060,7 @@ export function SmmFluxDashboard({ isPreviewMode = false }: { isPreviewMode?: bo
 
           <div className="bg-[#f6f5fb] p-6 rounded-3xl border border-[#ece9f5] space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-heading text-lg font-bold text-[#100d18]">Поддержка 24/7</h3>
+              <h3 className="font-heading text-lg font-bold text-[#100d18]">Поддержка (09:00–21:00 МСК)</h3>
               <span className="text-xs font-bold text-[#06b6a4]">Ответ за 3 мин</span>
             </div>
             <p className="text-xs text-[#79748c]">

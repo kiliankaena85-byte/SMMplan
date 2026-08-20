@@ -1,4 +1,4 @@
-import { getPublicCatalogAction } from "@/actions/order/catalog";
+import { getPublicCatalogAction, getServicesByCategoryAction } from "@/actions/order/catalog";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { headers } from "next/headers";
@@ -86,6 +86,8 @@ export default async function NetworkServicesPage({
   if (!currentNetwork) notFound();
 
   const settings = await SettingsProvider.getContactAndLegalSettings();
+  const firstCatId = currentNetwork.categories[0]?.id;
+  const initialServices = firstCatId ? await getServicesByCategoryAction(firstCatId, tenantId) : [];
 
   // Resolve user session and email
   const session = await verifySession();
@@ -224,6 +226,8 @@ export default async function NetworkServicesPage({
             contactSettings={settings} 
             initialServiceId={initialServiceId} 
             initialNetworkId={currentNetwork.id}
+            initialCategoryId={firstCatId}
+            initialServices={initialServices}
             userBalanceCents={0}
             tenantId={tenantId}
             customHeroTitle={

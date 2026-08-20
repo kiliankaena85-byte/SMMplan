@@ -20,8 +20,7 @@ export interface PaymentGatewayParams {
   email: string | null;
   successUrl: string;
   description: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   isTestMode?: boolean;
 }
 
@@ -56,8 +55,24 @@ class YooKassaGateway extends BasePaymentGateway {
     const { SettingsProvider } = await import('@/lib/settings');
     const supportDomain = await SettingsProvider.getSupportEmailDomain();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payload: any = {
+    const payload: {
+      amount: { value: string; currency: string };
+      capture: boolean;
+      confirmation: { type: string; return_url: string };
+      description: string;
+      metadata: Record<string, unknown>;
+      receipt?: {
+        customer: { email: string };
+        items: Array<{
+          description: string;
+          quantity: string;
+          amount: { value: string; currency: string };
+          vat_code: number;
+          payment_mode: string;
+          payment_subject: string;
+        }>;
+      };
+    } = {
       amount: { value: params.amountRub.toFixed(2), currency: 'RUB' },
       capture: true,
       confirmation: { type: 'redirect', return_url: params.successUrl },
@@ -430,17 +445,26 @@ export class PaymentGatewayFactory {
   static getGateway(gatewayName: string): BasePaymentGateway {
     switch (gatewayName.toLowerCase()) {
       case 'yookassa':
+      case 'sbp':
+      case 'card':
+      case 'mir':
+      case 'yoomoney':
         return new YooKassaGateway();
       case 'robokassa':
+      case 'robo':
         return new RobokassaGateway();
       case 'cryptobot':
+      case 'crypto':
+      case 'usdt':
+      case 'ton':
         return new CryptoBotGateway();
       case 'balance':
         return new BalanceGateway();
       case 'mock':
         return new MockGateway();
       default:
-        throw new Error(`Unsupported gateway: ${gatewayName}`);
+        // Fallback to YooKassa if unknown card/payment method passed
+        return new YooKassaGateway();
     }
   }
 }

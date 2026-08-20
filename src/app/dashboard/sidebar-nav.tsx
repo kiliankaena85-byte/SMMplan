@@ -22,19 +22,22 @@ import { UserCommandMenu } from '@/components/dashboard/UserCommandMenu';
 
 export const NAV = [
   { href: '/dashboard',              icon: LayoutDashboard, label: 'Главная'     },
-  { href: '/dashboard/new-order',    icon: ShoppingCart,    label: 'Новый заказ' },
+  { href: '/dashboard/new-order',    icon: ShoppingCart,    label: 'Создать заказ' },
   { href: '/dashboard/orders',       icon: ListOrdered,     label: 'Мои заказы'  },
-  { href: '/dashboard/smart-drip',   icon: Cpu,             label: 'Умный Dripfeed' },
-  { href: '/dashboard/transactions', icon: Receipt,         label: 'Транзакции'  },
-  { href: '/dashboard/add-funds',    icon: Wallet,          label: 'Пополнить'   },
+  { href: '/dashboard/finance',      icon: Wallet,          label: 'Финансы'     },
   { href: '/dashboard/tickets',      icon: MessageSquare,   label: 'Поддержка'   },
-  { href: '/dashboard/referrals',    icon: Users,           label: 'Рефералы'    },
-  { href: '/dashboard/settings',     icon: UserCircle,      label: 'Профиль'     },
-  { href: '/dashboard/settings/api', icon: Settings,        label: 'API'         },
+  { href: '/dashboard/referrals',    icon: Users,           label: 'Партнёрам'   },
+  { href: '/dashboard/settings',     icon: Settings,        label: 'Настройки'   },
 ];
 
-// First 5 for mobile bottom nav — most important: home/new-order/orders/add-funds/tickets
-export const MOBILE_NAV = NAV.slice(0, 5);
+// First 5 for mobile bottom nav — home / new-order / orders / finance / tickets
+export const MOBILE_NAV = [
+  { href: '/dashboard',              icon: LayoutDashboard, label: 'Главная'  },
+  { href: '/dashboard/new-order',    icon: ShoppingCart,    label: 'Заказ'    },
+  { href: '/dashboard/orders',       icon: ListOrdered,     label: 'Заказы'   },
+  { href: '/dashboard/finance',      icon: Wallet,          label: 'Финансы'  },
+  { href: '/dashboard/tickets',      icon: MessageSquare,   label: 'Помощь'   },
+];
 
 export function SidebarNav({
   email,

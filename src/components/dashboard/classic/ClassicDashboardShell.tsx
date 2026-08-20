@@ -36,10 +36,17 @@ export function ClassicDashboardShell({
         <div className="flex items-center gap-2 shrink-0">
           <BalanceDisplay initialBalance={formatBalance(user.balanceCents)} variant="mobile-header" />
           <Link
-            href="/dashboard/add-funds"
-            className="px-3 py-1.5 min-h-[34px] flex items-center text-xs font-bold bg-primary text-primary-foreground rounded-xl shadow-sm shadow-primary/20 hover:scale-105 active:scale-95 transition-all shrink-0"
+            href="/dashboard/finance"
+            className="px-2.5 sm:px-3 py-1.5 min-h-[34px] flex items-center text-xs font-bold bg-primary text-primary-foreground rounded-xl shadow-sm shadow-primary/20 hover:scale-105 active:scale-95 transition-all shrink-0"
           >
             + Пополнить
+          </Link>
+          <Link
+            href="/dashboard/settings"
+            className="w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs uppercase shrink-0"
+            title="Профиль и настройки"
+          >
+            {user.email.substring(0, 2)}
           </Link>
         </div>
       </div>

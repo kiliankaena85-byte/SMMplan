@@ -2,6 +2,7 @@ import {
   LayoutDashboard, 
   PlusCircle, 
   ListOrdered, 
+  Receipt,
   Wallet, 
   HelpCircle, 
   Settings,
@@ -27,8 +28,8 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     exact: true,
   },
   {
-    name: 'Новый заказ',
-    label: 'Новый заказ',
+    name: 'Создать заказ',
+    label: 'Создать заказ',
     href: '/dashboard/new-order',
     icon: PlusCircle,
   },
@@ -39,9 +40,55 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     icon: ListOrdered,
   },
   {
-    name: 'Пополнение баланса',
-    label: 'Баланс',
-    href: '/dashboard/add-funds',
+    name: 'Финансы',
+    label: 'Финансы',
+    href: '/dashboard/finance',
+    icon: Wallet,
+  },
+  {
+    name: 'Партнёрам',
+    label: 'Партнёрам',
+    href: '/dashboard/referrals',
+    icon: Users,
+  },
+  {
+    name: 'Поддержка',
+    label: 'Поддержка',
+    href: '/dashboard/tickets',
+    icon: HelpCircle,
+  },
+  {
+    name: 'Настройки',
+    label: 'Настройки',
+    href: '/dashboard/settings',
+    icon: Settings,
+  },
+];
+
+export const MOBILE_BOTTOM_NAV_ITEMS: NavItem[] = [
+  {
+    name: 'Главная',
+    label: 'Главная',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    exact: true,
+  },
+  {
+    name: 'Создать заказ',
+    label: 'Заказ',
+    href: '/dashboard/new-order',
+    icon: PlusCircle,
+  },
+  {
+    name: 'Мои заказы',
+    label: 'Заказы',
+    href: '/dashboard/orders',
+    icon: ListOrdered,
+  },
+  {
+    name: 'Финансы',
+    label: 'Финансы',
+    href: '/dashboard/finance',
     icon: Wallet,
   },
   {

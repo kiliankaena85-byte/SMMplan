@@ -37,23 +37,23 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
   };
 
   return (
-    <div className="w-full bg-background border border-border rounded-2xl p-3 shadow-sm mb-3">
-      <div className="flex items-center justify-between">
+    <div className="w-full bg-card border border-border/80 rounded-2xl p-5 shadow-sm mb-4">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex flex-col">
-          <p className="text-[11px] font-black text-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-primary" /> Плавная продвижение (Drip-Feed)
+          <p className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider flex items-center gap-2">
+            <Activity className="w-4 h-4 text-primary" /> Плавное продвижение (Drip-Feed)
           </p>
-          <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+          <p className="text-xs text-muted-foreground mt-1 leading-snug font-medium">
             Распределите выполнение заказа на части, чтобы имитировать естественный рост
           </p>
         </div>
         <button
           type="button"
           onClick={toggleDripFeed}
-          className={`h-11 px-4 rounded-xl text-xs font-bold transition-all shrink-0 ml-2 ${
+          className={`h-11 min-h-[44px] px-5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer active:scale-95 shadow-2xs ${
             isAnyDripEnabled
-              ? "bg-danger/10 text-danger hover:bg-danger/20"
-              : "bg-primary/10 text-primary hover:bg-primary/20"
+              ? "bg-danger/15 text-danger border border-danger/30 hover:bg-danger/25"
+              : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
           }`}
         >
           {isAnyDripEnabled ? "Выключить" : "Настроить"}

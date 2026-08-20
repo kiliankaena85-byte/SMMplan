@@ -13,7 +13,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { sseBroadcaster } from '@/lib/sse-broadcaster';
 import { jwtVerify } from 'jose';
@@ -29,25 +29,25 @@ export async function GET(req: NextRequest) {
   try {
     const token = req.cookies.get('session_token')?.value;
     if (!token) {
-      return new Response('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     userId = payload.userId as string;
   } catch (err) {
     console.warn('[SSE] Unauthorized access attempt:', err);
-    return new Response('Unauthorized', { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   // 2. Extract and validate ticketId
   const ticketId = req.nextUrl.searchParams.get('ticketId');
   if (!ticketId) {
-    return new Response('ticketId required', { status: 400 });
+    return NextResponse.json({ error: 'ticketId required' }, { status: 400 });
   }
 
   // 3. Authorization: user must own the ticket OR be staff
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user) {
-    return new Response('Unauthorized', { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   if (isStaff) {
     const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) {
-      return new Response('Not found', { status: 404 });
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
   } else {
     const ticket = await db.ticket.findFirst({

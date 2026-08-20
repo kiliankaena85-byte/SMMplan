@@ -20,8 +20,10 @@ const contentSchema = z.object({
   metaDescription: z.string().nullable().optional(),
 });
 
+const invalidateTag = revalidateTag as (tag: string) => void;
+
 export async function createContent(formData: FormData) {
-  return requireStaffPermission('settings', 'edit', async () => {
+  return requireStaffPermission('content', 'edit', async () => {
     const data = {
       title: formData.get("title") as string,
       slug: formData.get("slug") as string,
@@ -42,8 +44,7 @@ export async function createContent(formData: FormData) {
         },
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)("cms-list");
+      invalidateTag("cms-list");
       return { success: true as const, item };
     } catch (error: unknown) {
       const err = error as { code?: string };
@@ -71,7 +72,7 @@ const contentUpdateSchema = z.object({
 }).strict(); 
 
 export async function updateContent(id: string, updateData: Partial<z.infer<typeof contentSchema>>) {
-  return requireStaffPermission('settings', 'edit', async () => {
+  return requireStaffPermission('content', 'edit', async () => {
     const parsed = contentUpdateSchema.safeParse(updateData);
     if (!parsed.success) {
       return { success: false as const, error: "Невалидные данные для обновления", errors: parsed.error.flatten().fieldErrors };
@@ -83,10 +84,8 @@ export async function updateContent(id: string, updateData: Partial<z.infer<type
         data: parsed.data,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)(`article-${item.slug}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)("cms-list");
+      invalidateTag(`article-${item.slug}`);
+      invalidateTag("cms-list");
 
       return { success: true as const, item };
     } catch {
@@ -96,7 +95,7 @@ export async function updateContent(id: string, updateData: Partial<z.infer<type
 }
 
 export async function publishContent(id: string) {
-  return requireStaffPermission('settings', 'edit', async () => {
+  return requireStaffPermission('content', 'edit', async () => {
     try {
       const item = await prisma.contentItem.findUnique({ where: { id } });
       if (!item || !item.contentJson) {
@@ -118,10 +117,8 @@ export async function publishContent(id: string) {
         },
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)(`article-${item.slug}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)("cms-list");
+      invalidateTag(`article-${item.slug}`);
+      invalidateTag("cms-list");
 
       return { success: true as const, item: updated };
     } catch (error) {
@@ -132,7 +129,7 @@ export async function publishContent(id: string) {
 }
 
 export async function unpublishContent(id: string) {
-  return requireStaffPermission('settings', 'edit', async () => {
+  return requireStaffPermission('content', 'edit', async () => {
     try {
       const updated = await prisma.contentItem.update({
         where: { id },
@@ -141,10 +138,8 @@ export async function unpublishContent(id: string) {
         },
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)(`article-${updated.slug}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)("cms-list");
+      invalidateTag(`article-${updated.slug}`);
+      invalidateTag("cms-list");
 
       return { success: true as const, item: updated };
     } catch {

@@ -11,9 +11,11 @@ import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
 import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
 import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
+import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { CopyText } from '@/components/ui/CopyText';
 import { SocialIcon } from '@/components/ui/SocialIcon';
 import { getTenantDashboardViews } from '@/tenants/factory';
+import { formatRubles } from '@/utils/format-price';
 import { Metadata } from 'next';
 import {
   Table,
@@ -204,10 +206,17 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
   const { OrdersView } = await getTenantDashboardViews(tenantId);
 
+  const serializedOrders = orders.map((o) => ({
+    ...o,
+    charge: Number(o.charge ?? 0),
+    chargeCents: Number(o.charge ?? 0),
+    discountCents: Number(o.discountCents ?? 0),
+  }));
+
   if (OrdersView) {
     return (
       <OrdersView
-        orders={orders}
+        orders={serializedOrders}
         totalCount={totalCount}
         userBalanceCents={Number(user.balance)}
         search={search}
@@ -266,8 +275,22 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             </TableHeader>
             <TableBody>
               {orders.map((order) => {
-                const color = STATUS_COLOR[order.status] || STATUS_COLOR.CANCELED;
-                const label = STATUS_LABEL[order.status] || order.status;
+                const total = order.quantity || 1;
+                let completed = 0;
+                let progressPercent = 0;
+
+                if (order.status === 'COMPLETED') {
+                  completed = total;
+                  progressPercent = 100;
+                } else if (order.status === 'PENDING' || order.status === 'PROVISIONING' || order.status === 'AWAITING_PAYMENT') {
+                  completed = 0;
+                  progressPercent = 0;
+                } else {
+                  const remains = order.remains ?? order.quantity;
+                  completed = Math.max(0, Math.min(total, total - remains));
+                  progressPercent = Math.min(100, Math.max(0, Math.round((completed / total) * 100)));
+                }
+
                 return (
                   <TableRow
                     key={order.id}
@@ -334,12 +357,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     </TableCell>
                     <TableCell className="text-right font-black text-foreground tabular-nums whitespace-nowrap px-3">
                       <div className="flex items-center justify-end gap-1">
-                        <span>
-                          {(Number(order.charge) / 100).toLocaleString('ru-RU', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}{' '}
-                          ₽
+                        <span className="font-mono">
+                          {formatRubles(Number(order.charge) / 100)}
                         </span>
                         <ChargeBreakdownModal
                           numericId={order.numericId}
@@ -351,30 +370,30 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     </TableCell>
                     <TableCell className="px-3">
                       <div className="flex flex-col gap-1.5">
-                        <span
-                          className={`inline-flex items-center self-start px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-md border ${color}`}
-                        >
-                          {label}
-                        </span>
+                        <OrderStatusBadge status={order.status} size="sm" />
                         {order.error && (
                           <div
-                            className="text-[10px] text-destructive max-w-[150px] truncate"
+                            className="text-[10px] text-destructive max-w-[150px] truncate font-semibold"
                             title={order.error}
                           >
                             {order.error}
                           </div>
                         )}
-                        {order.status === 'IN_PROGRESS' && order.remains != null && (
-                          <div className="space-y-0.5 max-w-[120px]">
-                            <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                        {['IN_PROGRESS', 'PARTIAL', 'COMPLETED'].includes(order.status) && (
+                          <div className="space-y-0.5 max-w-[130px]">
+                            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-primary rounded-full animate-pulse"
-                                style={{ width: `${Math.min(100, Math.max(0, Math.round(((order.quantity - order.remains) / order.quantity) * 100)))}%` }}
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  order.status === 'COMPLETED' ? 'bg-emerald-500' :
+                                  order.status === 'IN_PROGRESS' ? 'bg-primary animate-pulse' :
+                                  'bg-purple-500'
+                                }`}
+                                style={{ width: `${progressPercent}%` }}
                               />
                             </div>
-                            <div className="text-[9px] text-muted-foreground tabular-nums flex justify-between">
-                              <span>Выполнено:</span>
-                              <span>{Math.min(100, Math.max(0, Math.round(((order.quantity - order.remains) / order.quantity) * 100)))}%</span>
+                            <div className="text-[9px] text-muted-foreground tabular-nums flex justify-between font-mono">
+                              <span>Доставлено:</span>
+                              <span>{completed.toLocaleString('ru-RU')} / {total.toLocaleString('ru-RU')}</span>
                             </div>
                           </div>
                         )}
@@ -386,6 +405,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                           orderId={order.id}
                           isRefillEnabled={order.service.isRefillEnabled}
                           orderStatus={order.status}
+                          createdAt={order.createdAt}
                           refills={order.refills}
                         />
                         {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) ? (

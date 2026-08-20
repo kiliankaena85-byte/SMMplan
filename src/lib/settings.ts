@@ -26,6 +26,24 @@ export interface DecryptedEmailSettings {
   supportEmailDomain: string | null;
 }
 
+export type ContactAndLegalSettings = {
+  SITE_NAME: string;
+  SITE_DESCRIPTION: string;
+  SUPPORT_EMAIL: string;
+  PRIVACY_EMAIL: string;
+  TELEGRAM_SUPPORT_BOT: string;
+  TELEGRAM_SUPPORT_CHANNEL: string;
+  WHATSAPP: string;
+  VK: string;
+  COMPANY_NAME: string;
+  COMPANY_INN: string;
+  COMPANY_OGRNIP: string;
+  COMPANY_ADDRESS: string;
+  LEGAL_INN: string;
+  LEGAL_OGRNIP: string;
+  LEGAL_ADDRESS: string;
+};
+
 /**
  * SettingsProvider: Optimized, cached, and Zod-validated source for system settings.
  * Part of Wave 2 Refactoring: Eliminated redundant fetching and added caching.
@@ -326,23 +344,40 @@ export class SettingsProvider {
     const settings = await this.get(activeTenantId);
     return settings.supportEmailDomain || process.env.SUPPORT_EMAIL_DOMAIN || "smmplan.pro";
   }
-
   /**
    * Returns all dynamic contact and legal information, completely replacing the old KV store.
    */
-  static async getContactAndLegalSettings(tenantId?: string) {
+  static async getContactAndLegalSettings(tenantId?: string): Promise<ContactAndLegalSettings> {
     const activeTenantId = tenantId || await this.getTenantId();
     const settings = await this.get(activeTenantId);
+    
+    let defaultSiteName = 'SMMplan';
+    let defaultDomain = 'smmplan.pro';
+    let defaultTgBot = 'smmplan_support_bot';
+    let defaultTgChannel = 'smmplan_support';
+
+    if (activeTenantId === 'flux' || activeTenantId === 'lovable') {
+      defaultSiteName = 'SMMflux';
+      defaultDomain = 'smmflux.ru';
+      defaultTgBot = 'smmflux_support_bot';
+      defaultTgChannel = 'smmflux_support';
+    } else if (activeTenantId === 'boost') {
+      defaultSiteName = 'SMMboost';
+      defaultDomain = 'smmboost.ru';
+      defaultTgBot = 'smmboost_support_bot';
+      defaultTgChannel = 'smmboost_support';
+    }
+
     return {
-      SITE_NAME: settings.siteName || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'SMMflux' : 'SMMplan'),
+      SITE_NAME: settings.siteName || defaultSiteName,
       SITE_DESCRIPTION: settings.siteDescription || "",
-      SUPPORT_EMAIL: settings.contactSupportEmail || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro'),
-      PRIVACY_EMAIL: settings.contactPrivacyEmail || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro'),
-      TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'smmflux_support_bot' : 'smmplan_support_bot'),
-      TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'smmflux_support' : 'smmplan_support'),
+      SUPPORT_EMAIL: settings.contactSupportEmail || `support@${defaultDomain}`,
+      PRIVACY_EMAIL: settings.contactPrivacyEmail || `privacy@${defaultDomain}`,
+      TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || defaultTgBot,
+      TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || defaultTgChannel,
       WHATSAPP: settings.contactWhatsApp || "",
       VK: settings.contactVk || "",
-      COMPANY_NAME: settings.legalCompanyName || ((activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'SMMflux' : 'SMMplan'),
+      COMPANY_NAME: settings.legalCompanyName || defaultSiteName,
       COMPANY_INN: settings.legalCompanyInn || "Укажите ИНН",
       COMPANY_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
       COMPANY_ADDRESS: settings.legalCompanyAddress || "г. Москва",
@@ -434,6 +469,32 @@ export class SettingsProvider {
     });
     const { redis } = await import('./redis');
     await redis.set(`settings:${activeTenantId}:maintenanceMode`, String(enable));
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)('settings');
+    } catch (cacheErr) {
+      console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
+    }
+  }
+
+  static async isRefillModuleEnabled(tenantId?: string): Promise<boolean> {
+    const activeTenantId = tenantId || await this.getTenantId();
+    try {
+      const { redis } = await import('./redis');
+      const cachedVal = await redis.get(`settings:${activeTenantId}:isRefillModuleEnabled`);
+      if (cachedVal !== null) {
+        return cachedVal === 'true';
+      }
+    } catch (err) {
+      console.warn('[SettingsProvider] Redis is unavailable in isRefillModuleEnabled:', err instanceof Error ? err.message : String(err));
+    }
+    return true; // Default to enabled
+  }
+
+  static async setRefillModuleEnabled(enable: boolean, tenantId?: string) {
+    const activeTenantId = tenantId || await this.getTenantId();
+    const { redis } = await import('./redis');
+    await redis.set(`settings:${activeTenantId}:isRefillModuleEnabled`, String(enable));
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (revalidateTag as any)('settings');

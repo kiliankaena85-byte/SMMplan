@@ -1,15 +1,21 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { setPasswordAction, changePasswordAction } from '@/actions/auth/password-settings';
 import { Lock, Eye, EyeOff, KeyRound, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function PasswordCard({ hasPassword, canResetPassword = false }: { hasPassword: boolean, canResetPassword?: boolean }) {
+export default function PasswordCard({
+  hasPassword,
+  canResetPassword = false,
+}: {
+  hasPassword: boolean;
+  canResetPassword?: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // Form fields
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -35,11 +41,11 @@ export default function PasswordCard({ hasPassword, canResetPassword = false }: 
         const formData = new FormData();
         formData.append('password', newPassword);
         formData.append('confirmPassword', confirmPassword);
-        
+
         if (hasPassword) {
           formData.append('currentPassword', currentPassword);
           formData.append('newPassword', newPassword);
-          
+
           const res = await changePasswordAction(formData);
           if (!res.success) {
             toast.error(res.error || 'Ошибка при изменении пароля');
@@ -59,9 +65,9 @@ export default function PasswordCard({ hasPassword, canResetPassword = false }: 
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-        toast.error('Не удалось обновить пароль. Пожалуйста, попробуйте еще раз.');
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Неизвестная ошибка';
+        toast.error(`Не удалось обновить пароль: ${msg}`);
       }
     });
   };
@@ -77,14 +83,18 @@ export default function PasswordCard({ hasPassword, canResetPassword = false }: 
             {canResetPassword ? 'Сброс пароля' : hasPassword ? 'Смена пароля' : 'Защита аккаунта'}
           </h2>
           <p className="text-[10px] text-muted-foreground">
-            {canResetPassword ? 'Установите новый пароль' : hasPassword ? 'Регулярно обновляйте пароль для безопасности' : 'Установите пароль для быстрого входа без почты'}
+            {canResetPassword
+              ? 'Установите новый пароль'
+              : hasPassword
+              ? 'Регулярно обновляйте пароль для максимальной безопасности'
+              : 'Установите постоянный пароль для быстрого входа'}
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
         {!hasPassword && (
-          <div className="bg-primary/5 border border-primary/10 rounded-xl p-3.5 flex gap-3 text-xs text-primary/90">
+          <div className="bg-primary/5 border border-primary/10 rounded-xl p-3.5 flex gap-3 text-xs text-primary">
             <Lock className="w-4 h-4 shrink-0 mt-0.5" />
             <div>
               Для вашего аккаунта еще не задан постоянный пароль. 
@@ -112,7 +122,8 @@ export default function PasswordCard({ hasPassword, canResetPassword = false }: 
                 <button
                   type="button"
                   onClick={toggleShowPassword}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -139,7 +150,8 @@ export default function PasswordCard({ hasPassword, canResetPassword = false }: 
                   <button
                     type="button"
                     onClick={toggleShowPassword}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -164,10 +176,10 @@ export default function PasswordCard({ hasPassword, canResetPassword = false }: 
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-border/40">
-          <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-2 border-t border-border/40 gap-3">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <Check className="w-3.5 h-3.5 text-success shrink-0" />
-            Минимум 8 символов, цифры и буквы
+            <span>Минимум 8 символов, цифры и буквы</span>
           </div>
           <Button
             type="submit"
@@ -175,7 +187,7 @@ export default function PasswordCard({ hasPassword, canResetPassword = false }: 
             size="sm"
             isAnimated={true}
             disabled={isPending || !newPassword || !confirmPassword || (hasPassword && !canResetPassword && !currentPassword)}
-            className="rounded-xl shrink-0 w-full sm:w-auto font-semibold px-6 shadow-sm"
+            className="rounded-xl shrink-0 font-semibold px-6 shadow-sm"
           >
             {isPending ? 'Сохранение...' : canResetPassword ? 'Сохранить новый пароль' : hasPassword ? 'Обновить пароль' : 'Установить пароль'}
           </Button>

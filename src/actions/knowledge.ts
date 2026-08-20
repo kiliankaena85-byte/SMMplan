@@ -7,6 +7,7 @@ import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
 
 // Zod Schema for Article validation at runtime
@@ -53,7 +54,10 @@ async function isAdmin() {
     if (!user) return false;
     if (user.role === 'OWNER' || user.role === 'ADMIN') return true;
     if (!user.staffRole) return false;
-    const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === 'SETTINGS');
+    const permission = user.staffRole.permissions.find(p => {
+      const sec = p.section.toUpperCase();
+      return sec === 'CONTENT' || sec === 'SETTINGS';
+    });
     return !!(permission && (permission.canView || permission.canEdit));
   } catch {
     return false;
@@ -65,8 +69,7 @@ async function isAdmin() {
  */
 export async function getArticles(categoryFilter?: string, searchQuery?: string) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereClause: any = {
+    const whereClause: Prisma.ArticleWhereInput = {
       status: "PUBLISHED"
     };
 
@@ -374,7 +377,7 @@ export async function createArticle(data: {
   authorRole?: string;
   priority?: number;
 }) {
-  return requireStaffPermission('settings', 'edit', async () => {
+  return requireStaffPermission('content', 'edit', async () => {
     const parsed = articleSchema.safeParse(data);
     if (!parsed.success) {
       return { 
@@ -394,10 +397,10 @@ export async function createArticle(data: {
       revalidatePath("/admin/knowledge");
 
       return { success: true, article };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to create article:", error);
-      if (error.code === "P2002") {
+      const err = error as { code?: string };
+      if (err?.code === "P2002") {
         return { success: false, error: "Статья с таким адресом (slug) уже существует" };
       }
       return { success: false, error: "Не удалось сохранить статью в базе данных" };
@@ -419,7 +422,7 @@ export async function updateArticle(id: string, data: {
   authorRole?: string;
   priority?: number;
 }) {
-  return requireStaffPermission('settings', 'edit', async () => {
+  return requireStaffPermission('content', 'edit', async () => {
     const parsed = articleSchema.safeParse(data);
     if (!parsed.success) {
       return { 
@@ -447,10 +450,10 @@ export async function updateArticle(id: string, data: {
       revalidatePath("/admin/knowledge");
 
       return { success: true, article };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to update article:", error);
-      if (error.code === "P2002") {
+      const err = error as { code?: string };
+      if (err?.code === "P2002") {
         return { success: false, error: "Статья с таким адресом (slug) уже существует" };
       }
       return { success: false, error: "Не удалось сохранить изменения в базе данных" };
@@ -462,7 +465,7 @@ export async function updateArticle(id: string, data: {
  * ADMIN: Delete article by ID.
  */
 export async function deleteArticle(id: string) {
-  return requireStaffPermission('settings', 'edit', async () => {
+  return requireStaffPermission('content', 'edit', async () => {
     try {
       const article = await prisma.article.delete({
         where: { id }

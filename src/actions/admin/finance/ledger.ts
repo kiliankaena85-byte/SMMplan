@@ -14,7 +14,7 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 
 const ledgerParamsSchema = z.object({
-  status:   z.enum(['ALL', 'APPROVED', 'QUARANTINE', 'REJECT']).default('ALL'),
+  status:   z.enum(['ALL', 'APPROVED', 'QUARANTINE', 'REJECT', 'REJECTED']).default('ALL'),
   period:   z.enum(['today', 'week', 'month', 'all']).default('month'),
   search:   z.string().max(255).optional(),
   cursor:   z.string().optional(),

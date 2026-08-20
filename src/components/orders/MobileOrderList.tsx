@@ -12,31 +12,10 @@ import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
 import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
 import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
+import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { CopyText } from '@/components/ui/CopyText';
-import { formatRub } from '@/lib/money';
+import { formatRubles } from '@/utils/format-price';
 import { SocialIcon } from '@/components/ui/SocialIcon';
-
-const STATUS_LABEL: Record<string, string> = {
-  COMPLETED:       'Выполнен',
-  IN_PROGRESS:     'В работе',
-  PENDING:         'Ожидание',
-  AWAITING_PAYMENT:'Ожидает оплаты',
-  ERROR:           'Ошибка',
-  CANCELED:        'Отменён',
-  PARTIAL:         'Частично',
-  PROVISIONING:    'Запуск',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  COMPLETED:       'text-success bg-success/10 border-success/20',
-  IN_PROGRESS:     'text-primary bg-primary/10 border-primary/20',
-  PENDING:         'text-warning-text bg-warning/10 border-warning/20',
-  AWAITING_PAYMENT:'text-warning-text bg-warning/10 border-warning/20',
-  PROVISIONING:    'text-secondary bg-secondary/10 border-secondary/20',
-  ERROR:           'text-destructive bg-destructive/10 border-destructive/20',
-  PARTIAL:         'text-warning-text bg-warning/10 border-warning/20',
-  CANCELED:        'text-muted-foreground bg-muted border-border',
-};
 
 const STATUS_ACCENT_BORDER: Record<string, string> = {
   COMPLETED:       'border-l-success',
@@ -83,8 +62,6 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualizer.getVirtualItems()[0]?.start ?? 0}px)` }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
             const order = orders[virtualRow.index];
-            const color = STATUS_COLOR[order.status] || STATUS_COLOR.CANCELED;
-            const label = STATUS_LABEL[order.status] || order.status;
             
             return (
               <div 
@@ -96,7 +73,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                 {/* 4.1 Карточки вместо таблиц + 4.3 Touch Targets */}
                 <div 
                   onClick={() => handleOrderClick(order)}
-                  className={`bg-card border border-border border-l-4 ${STATUS_ACCENT_BORDER[order.status] || 'border-l-muted-foreground/30'} rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-all cursor-pointer`}
+                  className={`bg-card border border-border border-l-4 ${STATUS_ACCENT_BORDER[order.status] || 'border-l-muted-foreground/30'} rounded-2xl p-4 shadow-xs active:scale-[0.98] transition-all cursor-pointer`}
                   style={{ minHeight: '120px' }} // Ensures large enough touch target
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -125,7 +102,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                     <div className="text-right shrink-0">
                       <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         <div className="text-sm font-bold text-foreground tabular-nums">
-                          {formatRub(Number(order.charge))} ₽
+                          {formatRubles(Number(order.charge) / 100)}
                         </div>
                         <ChargeBreakdownModal
                           numericId={order.numericId}
@@ -134,13 +111,13 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                           usdToRubRate={order.usdToRubRate}
                         />
                       </div>
-                      <span className={`mt-1 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${color}`}>
-                        {label}
-                      </span>
+                      <div className="mt-1.5 flex justify-end">
+                        <OrderStatusBadge status={order.status} size="sm" />
+                      </div>
                     </div>
                   </div>
 
-                  {/* 4.3 Progress bar for Partial / In Progress */}
+                  {/* 4.3 Progress bar for Partial / In Progress / Completed */}
                   {order.status === 'IN_PROGRESS' && order.remains != null && (
                     <div className="mt-3 space-y-1">
                       <div className="flex justify-between text-[10px] text-muted-foreground">
@@ -151,7 +128,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                               ? 'Начинаем работу...' 
                               : 'В работе'}
                         </span>
-                        <span className="tabular-nums">{Math.min(order.quantity, Math.max(0, order.quantity - order.remains))} / {order.quantity}</span>
+                        <span className="tabular-nums font-mono">{Math.min(order.quantity, Math.max(0, order.quantity - order.remains))} / {order.quantity}</span>
                       </div>
                       <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                         <div
@@ -182,6 +159,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                         orderId={order.id}
                         isRefillEnabled={order.service?.isRefillEnabled}
                         orderStatus={order.status}
+                        createdAt={order.createdAt}
                         refills={order.refills}
                       />
                       {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) ? (
@@ -242,22 +220,20 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                     {/* Status & Price */}
                     <div className="flex items-center justify-between bg-muted/30 p-4 rounded-2xl border border-border/50">
                       <div>
-                        <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Статус</div>
-                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${STATUS_COLOR[selectedOrder.status] || STATUS_COLOR.CANCELED}`}>
-                          {STATUS_LABEL[selectedOrder.status] || selectedOrder.status}
-                        </span>
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Статус</div>
+                        <OrderStatusBadge status={selectedOrder.status} />
                       </div>
                       <div className="text-right">
-                        <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Сумма</div>
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Сумма</div>
                         <div className="text-lg font-black tabular-nums">
-                          {formatRub(Number(selectedOrder.charge))} ₽
+                          {formatRubles(Number(selectedOrder.charge) / 100)}
                         </div>
                       </div>
                     </div>
 
                     {/* Service */}
                     <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase mb-1.5 block">Услуга</label>
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1.5 block">Услуга</label>
                       <div className="text-sm font-semibold">{selectedOrder.service.name}</div>
                       <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
                         <LayoutDashboard className="w-3 h-3" />
@@ -267,7 +243,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
 
                     {/* Link */}
                     <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase mb-1.5 block">Ссылка</label>
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1.5 block">Ссылка</label>
                       <div className="flex items-center gap-2">
                         <a 
                           href={selectedOrder.link} 
@@ -285,13 +261,13 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
                         <div className="text-[10px] font-bold text-muted-foreground uppercase">Кол-во</div>
-                        <div className="text-base font-black tabular-nums mt-1">{selectedOrder.quantity.toLocaleString('ru-RU')}</div>
+                        <div className="text-base font-black tabular-nums mt-1">{selectedOrder.quantity.toLocaleString('ru-RU')} шт.</div>
                       </div>
                       
                       {selectedOrder.remains > 0 && selectedOrder.status === 'IN_PROGRESS' && (
                         <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
                           <div className="text-[10px] font-bold text-muted-foreground uppercase">Осталось</div>
-                          <div className="text-base font-black tabular-nums mt-1 text-primary">{selectedOrder.remains.toLocaleString('ru-RU')}</div>
+                          <div className="text-base font-black tabular-nums mt-1 text-primary">{selectedOrder.remains.toLocaleString('ru-RU')} шт.</div>
                         </div>
                       )}
                     </div>
@@ -329,12 +305,12 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <span className="text-muted-foreground block text-[10px]">Оплачено:</span>
-                          <span className="font-mono font-bold">{formatRub(Number(selectedOrder.charge))} ₽</span>
+                          <span className="font-mono font-bold">{formatRubles(Number(selectedOrder.charge) / 100)}</span>
                         </div>
                         {Number(selectedOrder.discountCents || 0) > 0 && (
                           <div>
                             <span className="text-emerald-600 block text-[10px]">Скидка:</span>
-                            <span className="font-mono font-bold text-emerald-600">- {formatRub(Number(selectedOrder.discountCents))} ₽</span>
+                            <span className="font-mono font-bold text-emerald-600">- {formatRubles(Number(selectedOrder.discountCents) / 100)}</span>
                           </div>
                         )}
                         <div className="col-span-2 pt-1 border-t border-border/30 flex justify-between items-center text-[10px]">
@@ -350,6 +326,7 @@ export function MobileOrderList({ orders, user }: { orders: any[], user: any }) 
                         orderId={selectedOrder.id}
                         isRefillEnabled={selectedOrder.service?.isRefillEnabled}
                         orderStatus={selectedOrder.status}
+                        createdAt={selectedOrder.createdAt}
                         refills={selectedOrder.refills}
                         className="w-full h-11 text-sm font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                       />

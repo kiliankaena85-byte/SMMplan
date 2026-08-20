@@ -180,8 +180,14 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     }
 
     // Cross-Tenant Security Check (SEC-01)
-    const reqHeaders = await headers();
-    const rawTenantId = reqHeaders.get("x-tenant-id");
+    let rawTenantId: string | null = null;
+    let reqHeaders: Awaited<ReturnType<typeof headers>> | null = null;
+    try {
+      reqHeaders = await headers();
+      rawTenantId = reqHeaders.get("x-tenant-id");
+    } catch {
+      // CLI / fallback
+    }
     const currentTenantId = normalizeTenantId(rawTenantId) || "smmplan";
     if (service.tenantId && service.tenantId !== currentTenantId && service.tenantId !== "all") {
       throw new Error("Услуга недоступна для текущей площадки");
@@ -419,7 +425,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
 
     // Balance check is now performed atomically inside db.$transaction using WalletOps.charge
 
-    const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
+    const consentUserAgent = reqHeaders?.get("user-agent") || "Unknown";
 
     const termsDoc = await db.contentItem.findUnique({
       where: { slug: 'terms' },
@@ -619,8 +625,8 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     // 6. Generate payment URL (gateway-specific API calls)
     let paymentUrl: string | undefined;
 
-    const host = reqHeaders.get("host") || "localhost:3000";
-    const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const host = reqHeaders?.get("host") || "localhost:3000";
+    const protocol = reqHeaders?.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?orderId=${result.orderId}`;
 
@@ -778,7 +784,11 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       }
     }
 
-    revalidatePath('/dashboard', 'layout');
+    try {
+      revalidatePath('/dashboard', 'layout');
+    } catch {
+      // Ignore when running outside HTTP request scope (e.g. tests / CLI)
+    }
 
     return { 
       orderId: result.orderId, 

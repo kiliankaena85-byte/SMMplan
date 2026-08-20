@@ -153,11 +153,13 @@ class AdminTicketService {
   /**
    * Ticket statistics for the header, including support SLA metrics.
    */
-  async getTicketStats(startDate?: Date, endDate?: Date) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+  async getTicketStats(startDate?: Date, endDate?: Date, tenantId?: string) {
+    const where: Record<string, unknown> = {};
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
+    }
+    if (tenantId) {
+      where.tenantId = tenantId;
     }
     const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
     const [total, open, pending, closed, criticalOpen] = await Promise.all([
@@ -222,9 +224,13 @@ class AdminTicketService {
   /**
    * Get full ticket detail with messages and user profile (DTO-safe).
    */
-  async getTicketDetails(ticketId: string, tenantId: string = 'smmplan') {
+  async getTicketDetails(ticketId: string, tenantId?: string) {
+    const whereClause: { id: string; tenantId?: string } = { id: ticketId };
+    if (tenantId) {
+      whereClause.tenantId = tenantId;
+    }
     const ticket = await db.ticket.findFirst({
-      where: { id: ticketId, tenantId },
+      where: whereClause,
       include: {
         order: {
           select: {

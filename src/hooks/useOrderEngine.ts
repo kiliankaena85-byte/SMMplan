@@ -69,7 +69,8 @@ export function useOrderEngine(
   initialEmail: string = "", 
   initialServiceId: string = "",
   initialCategoryId: string = "",
-  initialNetworkId: string = ""
+  initialNetworkId: string = "",
+  initialServices: PublicService[] = []
 ) {
   const sortedInitialCatalog: PublicNetwork[] = useMemo(() => {
     return initialCatalog.map(net => ({
@@ -152,9 +153,10 @@ export function useOrderEngine(
   const [isSmartDrip, setIsSmartDrip] = useState(false);
   const [smartDripDays, setSmartDripDays] = useState(7);
 
-  // Data states
+  // Data states - initialized with SSR pre-fetched services to prevent client waterfall
   const [catalog, setCatalog] = useState<PublicNetwork[]>(sortedInitialCatalog);
-  const [services, setServices] = useState<PublicService[]>([]);
+  const [services, setServices] = useState<PublicService[]>(initialServices);
+  const isInitialServicesMount = useRef(initialServices.length > 0);
   const [platform, setPlatform] = useState<IntelligencePlatform | null>(null);
   const [manualPlatform, setManualPlatform] = useState<IntelligencePlatform | null>(null);
   const [promoPricing, setPromoPricing] = useState<PricingResult | null>(null);
@@ -267,52 +269,60 @@ export function useOrderEngine(
       return;
     }
 
-    setIsLoading(true);
+    // BUG-FIX: Do NOT set isLoading here — if the timer is cleaned up before firing,
+    // isLoading would stay `true` forever (the finally block never runs).
+    // Instead, set it inside the timer callback.
+    let stale = false;
 
     const handler = setTimeout(async () => {
+      if (stale) return;
+      setIsLoading(true);
       setError(null);
-      const res = await analyzeUrl(url.trim());
-      if (res.success && res.data) {
-        const analysisData = res.data;
-        setPlatform(analysisData.platform !== IntelligencePlatform.OTHER ? analysisData.platform : null);
-        setManualPlatform(null); // Reset manual platform on new analysis
-        setSuggestedCategories(analysisData.suggestedCategories || []);
-        setDetectedType(analysisData.type || null);
-        
-        const activePlatformStr = analysisData.platform !== IntelligencePlatform.OTHER ? analysisData.platform.toLowerCase() : null;
-        
-        // Auto-select network
-        if (activePlatformStr) {
-          const matchedNet = catalog.find(n => n.slug.toLowerCase().includes(activePlatformStr) || activePlatformStr.includes(n.slug.toLowerCase()));
-          if (matchedNet) {
-             // Only auto-select or override if the network has actually changed OR the user has not selected a service yet.
-             // This protects manual selections from background URL debounced refetches/resets.
-             if (matchedNet.id !== networkIdRef.current || !selectedServiceRef.current) {
-                setNetworkId(matchedNet.id);
-                // Auto-select first category in that network if exist and match suggested filter
-                const catsForNet = matchedNet.categories;
-                let filteredCats = catsForNet;
-                if (analysisData.suggestedCategories && analysisData.suggestedCategories.length > 0) {
-                    const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, analysisData.suggestedCategories, c.analyzerTags, analysisData.type));
-                    if (f.length > 0) filteredCats = f;
-                }
-                if (filteredCats.length > 0) {
-                   if (url.trim().length >= 5) {
-                      if (!selectedServiceRef.current) {
-                         setCategoryId("");
-                      }
-                   } else {
-                      setCategoryId(filteredCats[0].id);
-                   }
-                }
-             }
+      try {
+        const res = await analyzeUrl(url.trim());
+        if (stale) return; // effect was cleaned up during fetch
+        if (res.success && res.data) {
+          const analysisData = res.data;
+          setPlatform(analysisData.platform !== IntelligencePlatform.OTHER ? analysisData.platform : null);
+          setManualPlatform(null); // Reset manual platform on new analysis
+          setSuggestedCategories(analysisData.suggestedCategories || []);
+          setDetectedType(analysisData.type || null);
+          
+          const activePlatformStr = analysisData.platform !== IntelligencePlatform.OTHER ? analysisData.platform.toLowerCase() : null;
+          
+          // Auto-select network
+          if (activePlatformStr) {
+            const matchedNet = catalog.find(n => n.slug.toLowerCase().includes(activePlatformStr) || activePlatformStr.includes(n.slug.toLowerCase()));
+            if (matchedNet) {
+               if (matchedNet.id !== networkIdRef.current || !selectedServiceRef.current) {
+                  setNetworkId(matchedNet.id);
+                  const catsForNet = matchedNet.categories;
+                  let filteredCats = catsForNet;
+                  if (analysisData.suggestedCategories && analysisData.suggestedCategories.length > 0) {
+                      const f = catsForNet.filter(c => matchesSuggestedCategory(c.name, analysisData.suggestedCategories, c.analyzerTags, analysisData.type));
+                      if (f.length > 0) filteredCats = f;
+                  }
+                  if (filteredCats.length > 0) {
+                     if (url.trim().length >= 5) {
+                        if (!selectedServiceRef.current) {
+                           setCategoryId("");
+                        }
+                     } else {
+                        setCategoryId(filteredCats[0].id);
+                     }
+                  }
+               }
+            }
           }
         }
+      } catch (err) {
+        console.error("URL analysis failed:", err);
+      } finally {
+        if (!stale) setIsLoading(false);
       }
-      setIsLoading(false);
     }, 350);
 
-    return () => clearTimeout(handler);
+    return () => { stale = true; clearTimeout(handler); };
      
     // selectedService and networkId intentionally omitted — tracked via refs
     // to prevent URL re-analysis on manual service/network selection
@@ -368,20 +378,26 @@ export function useOrderEngine(
               : [];
            const availableCats = matchedCats.length > 0 ? matchedCats : catsForNet;
            if (availableCats.length > 0 && !availableCats.some(c => c.id === categoryId)) {
-              if (!selectedService) {
-                 if (url.trim().length >= 5) {
-                    setCategoryId("");
-                 } else {
-                    setCategoryId(availableCats[0].id);
-                 }
-              }
+              setCategoryId(availableCats[0].id);
+              setSelectedService(null);
            }
         }
      }
-  }, [networkId, catalog, categoryId, suggestedCategories, selectedService, url]);
+  }, [networkId, catalog, categoryId, suggestedCategories]);
 
   // 3. Load Services when Category changes
   useEffect(() => {
+    // If we already pre-fetched services during SSR for the initial default category, reuse them instantly
+    if (isInitialServicesMount.current && categoryId === defaultCat?.id && initialServices.length > 0) {
+      isInitialServicesMount.current = false;
+      if (initialServiceId && !selectedServiceRef.current) {
+        const found = initialServices.find(s => s.id === initialServiceId);
+        if (found) setSelectedService(found);
+      }
+      return;
+    }
+    isInitialServicesMount.current = false;
+
     // Clear instantly to prevent loading latency & mismatched state
     setServices([]);
     setSelectedService(null);
@@ -393,38 +409,51 @@ export function useOrderEngine(
       return;
     }
 
+    // BUG-FIX: Use stale flag to prevent race condition when category changes rapidly.
+    // Without this, if user clicks Cat-A then immediately Cat-B, the Cat-A response
+    // could arrive after Cat-B and overwrite services + set isLoading=false prematurely.
+    let stale = false;
+
     const loadServices = async () => {
       setIsLoading(true);
-      const svcs = await getServicesByCategoryAction(categoryId);
-      
-      // WAVE 4.1: Marketing UX Sorting
-      // Push quarantined services to the bottom of the list
-      const sortedSvcs = [...svcs].sort((a, b) => {
-          const aQuarantined = a.cooldownUntil && new Date(a.cooldownUntil) > new Date();
-          const bQuarantined = b.cooldownUntil && new Date(b.cooldownUntil) > new Date();
-          if (aQuarantined && !bQuarantined) return 1;
-          if (!aQuarantined && bQuarantined) return -1;
-          return 0; // maintain default rate-based sorting otherwise
-      });
+      try {
+        const svcs = await getServicesByCategoryAction(categoryId);
+        if (stale) return; // Category changed while we were fetching — discard result
+        
+        // WAVE 4.1: Marketing UX Sorting
+        const sortedSvcs = [...svcs].sort((a, b) => {
+            const aQuarantined = a.cooldownUntil && new Date(a.cooldownUntil) > new Date();
+            const bQuarantined = b.cooldownUntil && new Date(b.cooldownUntil) > new Date();
+            if (aQuarantined && !bQuarantined) return 1;
+            if (!aQuarantined && bQuarantined) return -1;
+            return 0;
+        });
 
-      setServices(sortedSvcs);
-      
-      // WAVE 5 UX: Completely disable automatic service pre-selection on category change.
-      // The user must explicitly read and click to choose a service card.
-      if (initialServiceId && !selectedServiceRef.current) {
-         const found = sortedSvcs.find(s => s.id === initialServiceId);
-         if (found) {
-            setSelectedService(found);
-         } else {
-            setSelectedService(null);
-         }
-      } else {
-         setSelectedService(null);
+        setServices(sortedSvcs);
+        
+        if (initialServiceId && !selectedServiceRef.current) {
+           const found = sortedSvcs.find(s => s.id === initialServiceId);
+           if (found) {
+              setSelectedService(found);
+           } else {
+              setSelectedService(null);
+           }
+        } else {
+           setSelectedService(null);
+        }
+      } catch (err) {
+        if (stale) return;
+        console.error("Failed to load services:", err);
+        setServices([]);
+        setSelectedService(null);
+        toast.error("Не удалось загрузить услуги. Проверьте подключение к сети.");
+      } finally {
+        if (!stale) setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     loadServices();
+    return () => { stale = true; };
   }, [categoryId, initialServiceId]);
 
   // 4. Update quantity limits when Service changes or initializes
@@ -478,28 +507,43 @@ export function useOrderEngine(
       return;
     }
 
-    setIsCalculating(true);
+    // BUG-FIX: Same race condition pattern as URL analysis.
+    // Move setIsCalculating(true) inside the timer to prevent stuck state.
+    let stale = false;
+
     const handler = setTimeout(async () => {
-      const res = await calculatePriceAction(
-        selectedService.id, 
-        quantity, 
-        promoCode, 
-        dripFeedEnabled ? runs : undefined
-      );
-      if (res.success && res.data) {
-        setPromoPricing(res.data);
-        setPricingError(null);
-      } else if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
-        setPromoPricing(null);
-        setPricingError('voucher');
-      } else {
-        setPromoPricing(null);
-        setPricingError(null);
+      if (stale) return;
+      setIsCalculating(true);
+      try {
+        const res = await calculatePriceAction(
+          selectedService.id, 
+          quantity, 
+          promoCode, 
+          dripFeedEnabled ? runs : undefined
+        );
+        if (stale) return;
+        if (res.success && res.data) {
+          setPromoPricing(res.data);
+          setPricingError(null);
+        } else if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
+          setPromoPricing(null);
+          setPricingError('voucher');
+        } else {
+          setPromoPricing(null);
+          setPricingError(null);
+        }
+      } catch (err) {
+        if (!stale) {
+          console.error("Price calculation failed:", err);
+          setPromoPricing(null);
+          setPricingError(null);
+        }
+      } finally {
+        if (!stale) setIsCalculating(false);
       }
-      setIsCalculating(false);
     }, 150);
 
-    return () => clearTimeout(handler);
+    return () => { stale = true; clearTimeout(handler); };
   }, [selectedService, quantity, promoCode, dripFeedEnabled, runs]);
 
   // 5.5 Calculate Mass Order Price (Debounced)

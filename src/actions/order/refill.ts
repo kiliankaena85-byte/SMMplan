@@ -3,8 +3,17 @@
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { SettingsProvider } from '@/lib/settings';
 
 export async function requestClientRefillAction(input: string | { orderId: string }) {
+  const isModuleEnabled = await SettingsProvider.isRefillModuleEnabled();
+  if (!isModuleEnabled) {
+    return {
+      success: false as const,
+      error: 'Сервис автоматических гарантийных докруток временно приостановлен. Пожалуйста, обратитесь в службу поддержки.',
+    };
+  }
+
   const session = await verifySession();
   if (!session || !session.userId) {
     return { success: false as const, error: 'Пользователь не авторизован' };

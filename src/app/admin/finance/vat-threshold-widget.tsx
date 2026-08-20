@@ -38,9 +38,9 @@ export function VatThresholdWidget({
   }
 
   return (
-    <Card className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl p-6 space-y-5">
+    <Card className="rounded-2xl border border-border/60 shadow-xs bg-card/60 backdrop-blur-xl p-6 space-y-5 transition-all hover:border-border">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-primary/20 text-primary rounded-lg">
+        <div className="p-2 bg-primary/20 text-primary rounded-xl border border-primary/30">
           <Landmark className="w-5 h-5" />
         </div>
         <div className="space-y-0.5">

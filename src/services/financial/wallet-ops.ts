@@ -143,9 +143,16 @@ export const WalletOps = {
       });
 
       return { success: true, balance: updatedUser.balance, cached: false, entry };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      if (idempotencyKey && error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
+    } catch (error: unknown) {
+      if (
+        idempotencyKey && 
+        typeof error === 'object' && 
+        error !== null && 
+        'code' in error && 
+        (error as { code: string }).code === 'P2002' && 
+        'meta' in error && 
+        typeof (error as { meta?: { target?: string[] } }).meta?.target === 'object'
+      ) {
         // In a Serializable transaction, the transaction is already aborted here.
         // We throw the error so the caller can handle it gracefully.
         throw error;
@@ -159,8 +166,7 @@ export const WalletOps = {
    * Does NOT affect totalSpent.
    */
   async adminAdjust(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tx: any,
+    tx: PrismaTx,
     userId: string,
     amountCents: number,
     reason: string,
@@ -170,39 +176,36 @@ export const WalletOps = {
       throw new WalletInvalidAmountError('Adjustment');
     }
 
-
-
     const { idempotencyKey, adminId } = opts || {};
 
-    // Removed Redis Mutex to prevent DB connection pool exhaustion.
-      if (idempotencyKey) {
-        const existing = await tx.ledgerEntry.findFirst({
-          where: { idempotencyKey },
-        });
-        if (existing) {
-            return { success: true, balance: null, cached: true, entry: existing };
-        }
+    if (idempotencyKey) {
+      const existing = await tx.ledgerEntry.findFirst({
+        where: { idempotencyKey },
+      });
+      if (existing) {
+        return { success: true, balance: null, cached: true, entry: existing };
       }
+    }
 
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: { balance: { increment: amountCents } },
-        select: { balance: true }
-      });
+    const rawCents = BigInt(amountCents);
+    const updatedUser = await tx.user.update({
+      where: { id: userId },
+      data: { balance: { increment: rawCents } },
+      select: { balance: true }
+    });
 
-      const entry = await tx.ledgerEntry.create({
-        data: {
-          userId,
-          adminId,
-          amount: amountCents, 
-          reason,
-          status: 'APPROVED',
-          idempotencyKey,
-        }
-      });
+    const entry = await tx.ledgerEntry.create({
+      data: {
+        userId,
+        adminId,
+        amount: rawCents, 
+        reason,
+        status: 'APPROVED',
+        idempotencyKey,
+      }
+    });
 
-      return { success: true, balance: updatedUser.balance, cached: false, entry };
-    // Removed Mutex wrapper closing bracket
+    return { success: true, balance: updatedUser.balance, cached: false, entry };
   },
 
   /**
@@ -227,50 +230,48 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId } = opts || {};
 
-    // Removed Redis Mutex to prevent DB connection pool exhaustion.
-      if (idempotencyKey) {
-        const existing = await tx.ledgerEntry.findFirst({
-          where: { idempotencyKey },
-        });
-        if (existing) {
-          return { success: true, balance: null, cached: true, entry: existing };
-        }
+    if (idempotencyKey) {
+      const existing = await tx.ledgerEntry.findFirst({
+        where: { idempotencyKey },
+      });
+      if (existing) {
+        return { success: true, balance: null, cached: true, entry: existing };
       }
+    }
 
-      // Execute atomic balance increment and totalSpent decrement in single Prisma update step
-      const rawCents = BigInt(amountCents);
-      const updatedUser = await tx.user.update({
+    // Execute atomic balance increment and totalSpent decrement in single Prisma update step
+    const rawCents = BigInt(amountCents);
+    const updatedUser = await tx.user.update({
+      where: { id: userId },
+      data: {
+        balance: { increment: rawCents },
+        // Atomic totalSpent decrement: ensure totalSpent does not go negative
+        totalSpent: { decrement: rawCents }
+      },
+      select: { balance: true, totalSpent: true }
+    });
+
+    // Safety guard: if totalSpent became negative due to race or edge cases, auto-clamp to 0
+    if (updatedUser.totalSpent < BigInt(0)) {
+      await tx.user.update({
         where: { id: userId },
-        data: {
-          balance: { increment: rawCents },
-          // Atomic totalSpent decrement: ensure totalSpent does not go negative
-          totalSpent: { decrement: rawCents }
-        },
-        select: { balance: true, totalSpent: true }
+        data: { totalSpent: BigInt(0) }
       });
+    }
 
-      // Safety guard: if totalSpent became negative due to race or edge cases, auto-clamp to 0
-      if (updatedUser.totalSpent < BigInt(0)) {
-        await tx.user.update({
-          where: { id: userId },
-          data: { totalSpent: BigInt(0) }
-        });
+    const entry = await tx.ledgerEntry.create({
+      data: {
+        userId,
+        adminId,
+        amount: rawCents,
+        reason,
+        status: 'APPROVED',
+        idempotencyKey,
+        transactionType: 'REFUND',
       }
+    });
 
-      const entry = await tx.ledgerEntry.create({
-        data: {
-          userId,
-          adminId,
-          amount: amountCents,
-          reason,
-          status: 'APPROVED',
-          idempotencyKey,
-          transactionType: 'REFUND',
-        }
-      });
-
-      return { success: true, balance: updatedUser.balance, cached: false, entry };
-    // Removed Mutex wrapper closing bracket
+    return { success: true, balance: updatedUser.balance, cached: false, entry };
   },
 
   /**
@@ -284,7 +285,8 @@ export const WalletOps = {
     opts?: { idempotencyKey?: string; adminId?: string }
   ) {
     const { idempotencyKey, adminId } = opts || {};
-    const absAmount = Math.abs(amountCents);
+    const absAmount = BigInt(Math.abs(amountCents));
+    const rawCents = BigInt(amountCents);
 
     await tx.user.update({
       where: { id: userId },
@@ -295,7 +297,7 @@ export const WalletOps = {
       data: {
         userId,
         adminId,
-        amount: amountCents,
+        amount: rawCents,
         reason,
         status: 'QUARANTINE',
         idempotencyKey
@@ -311,7 +313,7 @@ export const WalletOps = {
     userId: string,
     amountCents: number
   ) {
-    const absAmount = Math.abs(amountCents);
+    const absAmount = BigInt(Math.abs(amountCents));
     const updated = await tx.user.updateMany({
       where: { id: userId, quarantineBalance: { gte: absAmount } },
       data: { quarantineBalance: { decrement: absAmount } }
@@ -320,7 +322,7 @@ export const WalletOps = {
     if (updated.count === 0) {
       await tx.user.update({
         where: { id: userId },
-        data: { quarantineBalance: 0 }
+        data: { quarantineBalance: BigInt(0) }
       });
     }
   }

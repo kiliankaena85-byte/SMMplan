@@ -28,6 +28,7 @@ import {
   ChevronRight,
   Filter,
   ExternalLink,
+  Download,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -228,6 +229,29 @@ export function ReconciliationTab({ tenantId, initialSummary }: ReconciliationTa
         </form>
 
         <div className="flex items-center gap-2 flex-wrap justify-end">
+          <Button
+            intent="outline"
+            size="sm"
+            onClick={() => {
+              const query = new URLSearchParams({
+                type: 'reconciliation',
+                onlyAnomalies: String(onlyAnomalies),
+              });
+              if (tenantId && tenantId !== 'all') query.set('tenant', tenantId);
+              toast.info('Формирование отчёта сверки в CSV...');
+              const link = document.createElement('a');
+              link.href = `/api/admin/export?${query.toString()}`;
+              link.setAttribute('download', '');
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            className="h-10 min-h-[40px] px-3.5 text-xs font-bold bg-background hover:bg-muted shadow-xs transition-all flex items-center gap-1.5 border-border/80"
+          >
+            <Download className="w-3.5 h-3.5 text-primary" />
+            <span>Экспорт в CSV</span>
+          </Button>
+
           <Button
             intent={onlyAnomalies ? 'destructive' : 'outline'}
             size="sm"

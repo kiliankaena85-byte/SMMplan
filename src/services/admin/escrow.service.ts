@@ -1,7 +1,8 @@
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { runSerializableTransaction } from '@/lib/transactions';
 import { WalletOps } from '../financial/wallet-ops';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { sendAdminAlert } from '@/lib/notifications';
 import { getClientIp } from '@/utils/ip';
 
@@ -40,7 +41,8 @@ export class EscrowService {
     targetUserId: string,
     amountCents: number,
     reason: string,
-    admin: AdminContext
+    admin: AdminContext,
+    idempotencyKey?: string
   ) {
     const isOwnerOrAdmin = admin.role === 'OWNER' || admin.role === 'ADMIN';
 
@@ -64,7 +66,7 @@ export class EscrowService {
         return { status: 'QUARANTINE' as const };
       }
 
-      await this.executeApprovedAdjustment(targetUserId, amountCents, reason, admin);
+      await this.executeApprovedAdjustment(targetUserId, amountCents, reason, admin, idempotencyKey);
       return { status: 'APPROVED' as const };
     }
 
@@ -98,7 +100,7 @@ export class EscrowService {
       }
 
       // Небольшие списания (до 10,000 руб) одобряются автоматически
-      await this.executeApprovedAdjustment(targetUserId, amountCents, reason, admin);
+      await this.executeApprovedAdjustment(targetUserId, amountCents, reason, admin, idempotencyKey);
       return { status: 'APPROVED' as const };
     }
 
@@ -122,7 +124,7 @@ export class EscrowService {
         return { status: 'QUARANTINE' as const };
       }
 
-      await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+      await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin, idempotencyKey);
       return { status: 'APPROVED' as const };
     });
   }
@@ -131,20 +133,21 @@ export class EscrowService {
     targetUserId: string,
     amountCents: number,
     reason: string,
-    admin: AdminContext
+    admin: AdminContext,
+    idempotencyKey?: string
   ) {
     return runSerializableTransaction(async (tx) => {
-      return await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin);
+      return await this.executeApprovedAdjustmentTx(tx, targetUserId, amountCents, reason, admin, idempotencyKey);
     });
   }
 
   private async executeApprovedAdjustmentTx(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tx: any,
+    tx: Prisma.TransactionClient,
     targetUserId: string,
     amountCents: number,
     reason: string,
-    admin: AdminContext
+    admin: AdminContext,
+    idempotencyKey?: string
   ) {
     const user = await tx.user.findUniqueOrThrow({ where: { id: targetUserId } });
     const oldBalance = Number(user.balance);
@@ -155,9 +158,9 @@ export class EscrowService {
       sendAdminAlert(`⚠️ Внимание: Баланс клиента ${user.email} уйдёт в минус (${(newBalance / 100).toFixed(2)} ₽) после операции на ${(amountCents / 100).toFixed(2)} ₽.`, 'WARNING');
     }
 
-    await WalletOps.adminAdjust(tx, targetUserId, amountCents, reason, { adminId: admin.id });
+    await WalletOps.adminAdjust(tx, targetUserId, amountCents, reason, { adminId: admin.id, idempotencyKey });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'USER_BALANCE_CHANGE',
@@ -169,8 +172,7 @@ export class EscrowService {
   }
 
   private async executeQuarantineAdjustmentTx(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tx: any,
+    tx: Prisma.TransactionClient,
     targetUserId: string,
     amountCents: number,
     reason: string,
@@ -181,15 +183,15 @@ export class EscrowService {
     // Add absolute funds to the quarantine bubble using WalletOps primitive
     await WalletOps.quarantineAdd(tx, targetUserId, amountCents, reason, { adminId: admin.id });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'USER_BALANCE_QUARANTINED',
       target: targetUserId,
       targetType: 'USER',
-      oldValue: { quarantineBalance: user.quarantineBalance },
+      oldValue: { quarantineBalance: user.quarantineBalance.toString() },
       newValue: { 
-        quarantineBalance: Number(user.quarantineBalance) + Math.abs(amountCents), 
+        quarantineBalance: (user.quarantineBalance + BigInt(Math.abs(amountCents))).toString(), 
         delta: amountCents, 
         reason, 
         status: 'QUARANTINE' 

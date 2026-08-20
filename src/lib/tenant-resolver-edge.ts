@@ -6,6 +6,8 @@
 export const FLUX_DOMAINS = new Set([
   'lovable.local',
   'lovable.smmplan.ru',
+  'lovable.pro',
+  'www.lovable.pro',
   'smmflux.ru',
   'www.smmflux.ru',
   'flux.local',
@@ -13,22 +15,39 @@ export const FLUX_DOMAINS = new Set([
   'flux.smmplan.ru',
 ]);
 
+export const BOOST_DOMAINS = new Set([
+  'smmboost.ru',
+  'www.smmboost.ru',
+  'boost.local',
+  'smmboost.local',
+  'boost.smmplan.ru',
+]);
+
+export const VALID_TENANTS = new Set(['smmplan', 'flux', 'boost']);
+
 /**
  * Edge-compatible host resolver (without Prisma DB dependency) for Next.js Middleware.
  */
 export function resolveTenantFromHostEdge(host: string): string {
-  const cleanHost = host.split(':')[0].toLowerCase();
+  if (!host || typeof host !== 'string') return 'smmplan';
+  const cleanHost = host.split(':')[0].toLowerCase().trim();
+  if (BOOST_DOMAINS.has(cleanHost)) return 'boost';
   return FLUX_DOMAINS.has(cleanHost) ? 'flux' : 'smmplan';
 }
 
 /**
- * Pure tenant ID normalizer.
- * Maps legacy 'lovable' to canonical 'flux'. Returns null/undefined or other IDs as-is.
+ * Pure tenant ID normalizer and sanitizer.
+ * Maps legacy 'lovable' to canonical 'flux'.
+ * Rejects unknown or malicious strings and falls back to 'smmplan'.
  */
-export function normalizeTenantId<T extends string | null | undefined>(tenantId: T): T {
+export function normalizeTenantId<T extends string | null | undefined>(tenantId: T): string | T {
   if (!tenantId) return tenantId;
   const clean = tenantId.trim().toLowerCase();
-  return (clean === 'lovable' ? 'flux' : clean) as T;
+  const normalized = clean === 'lovable' || clean === 'smmflux' ? 'flux' : clean;
+  if (!VALID_TENANTS.has(normalized)) {
+    return 'smmplan' as T;
+  }
+  return normalized as T;
 }
 
 /**
@@ -36,5 +55,6 @@ export function normalizeTenantId<T extends string | null | undefined>(tenantId:
  * Strategy MUST be resolved ONLY from the 'x-tenant-id' header set by Middleware.
  */
 export function resolveTenantFromRequest(headersList: Headers): string {
-  return normalizeTenantId(headersList.get('x-tenant-id')) || 'smmplan';
+  const headerVal = headersList.get('x-tenant-id');
+  return (normalizeTenantId(headerVal) as string) || 'smmplan';
 }

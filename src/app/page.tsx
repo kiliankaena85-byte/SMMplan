@@ -1,4 +1,4 @@
-import { getPublicCatalogAction } from "@/actions/order/catalog";
+import { getPublicCatalogAction, getServicesByCategoryAction } from "@/actions/order/catalog";
 import { getBaseUrlAsync } from "@/utils/get-base-url";
 import { SmartLinkLanding } from "@/components/landing/SmartLinkLanding";
 import dynamicImport from "next/dynamic";
@@ -10,6 +10,7 @@ const FluxWhyUs = dynamicImport(() => import("@/components/ab-test/FluxWhyUs").t
 const FluxReviews = dynamicImport(() => import("@/components/ab-test/FluxReviews").then(m => m.FluxReviews));
 const FluxFAQ = dynamicImport(() => import("@/components/ab-test/FluxFAQ").then(m => m.FluxFAQ));
 const MegaFooter = dynamicImport(() => import("@/components/landing/MegaFooter").then(m => m.MegaFooter));
+import { BoostLanding } from "@/components/tenant/boost/BoostLanding";
 
 import { ROUTES } from "@/lib/routes";
 import { SettingsProvider } from "@/lib/settings";
@@ -61,6 +62,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const catalogResult = await getPublicCatalogAction(tenantId);
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
+  // SSR Pre-fetch default category services to eliminate client waterfall latency
+  let targetCategoryId = initialCategoryId;
+  if (!targetCategoryId && catalog.length > 0) {
+    const defaultNet = catalog.find(n => n.slug === 'telegram') || catalog[0];
+    const defaultCat = defaultNet?.categories.find(c => c.name.toLowerCase().includes('подписчики')) || defaultNet?.categories[0];
+    targetCategoryId = defaultCat?.id;
+  }
+  const initialServices = targetCategoryId ? await getServicesByCategoryAction(targetCategoryId, tenantId) : [];
+
   const settings = await SettingsProvider.getContactAndLegalSettings();
   const tenantConfig = TENANTS.find(t => t.id === tenantId);
   const siteName = tenantConfig?.name || settings.SITE_NAME || "SMMplan";
@@ -117,25 +127,25 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
       <main id="main-content" tabIndex={-1} className="outline-none">
         {tenantId === "flux" ? (
           <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
-            {/* ── LOVABLE VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
-            <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
+            {/* ── SMMFLUX VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
+            <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-zinc-950 transform-gpu contain-paint">
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
-                    'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.65), transparent 70%), ' +
-                    'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.55), transparent 70%), ' +
-                    'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.55), transparent 70%), ' +
-                    'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.50), transparent 70%), ' +
-                    'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.60), transparent 75%)',
+                    'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.70), transparent 70%), ' +
+                    'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.60), transparent 70%), ' +
+                    'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.60), transparent 70%), ' +
+                    'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.55), transparent 70%), ' +
+                    'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.65), transparent 75%)',
                 }}
               />
-              {/* Saturated Mesh Color Orbs for extra visual punch */}
-              <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-blue-500/40 blur-[120px] pointer-events-none" />
-              <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/50 blur-[110px] pointer-events-none" />
-              <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/45 blur-[120px] pointer-events-none" />
-              <div className="absolute top-20 right-[1%] w-[500px] h-[500px] rounded-full bg-orange-400/35 blur-[90px] pointer-events-none" />
-              
+              {/* Saturated Mesh Color Orbs for signature punch & depth */}
+              <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-blue-500/45 blur-[120px] pointer-events-none" />
+              <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/55 blur-[110px] pointer-events-none" />
+              <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/50 blur-[120px] pointer-events-none" />
+              <div className="absolute top-20 right-[1%] w-[500px] h-[500px] rounded-full bg-orange-400/40 blur-[90px] pointer-events-none" />
+
               <div className="absolute bottom-0 inset-x-0 h-[400px] bg-gradient-to-t from-background via-background/80 to-transparent" />
             </div>
 
@@ -160,6 +170,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
 
             <MegaFooter contactSettings={settings} tenantId={tenantId} />
           </div>
+        ) : tenantId === "boost" ? (
+          <BoostLanding
+            catalog={catalog}
+            initialServices={initialServices}
+            siteName={siteName}
+            tenantId={tenantId}
+            userEmail={userEmail}
+            contactSettings={settings}
+          />
         ) : (
           <SmartLinkLanding 
             initialCatalog={catalog} 
@@ -170,6 +189,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
             initialNetworkId={initialNetworkId}
             userBalanceCents={userBalanceCents}
             tenantId={tenantId}
+            initialServices={initialServices}
           />
         )}
       </main>

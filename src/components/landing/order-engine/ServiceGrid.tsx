@@ -1,12 +1,20 @@
 import React, { useMemo, useState } from "react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { Card } from "@/components/ui/card";
-import { Check, CheckCircle2, ChevronDown } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { checkServiceRefill } from "@/utils/service-refill";
+import { CheckoutMode, CheckoutVariantProps } from "./variants/types";
+import { InCardAccordionCheckout } from "./variants/InCardAccordionCheckout";
 
-export function ServiceGrid({ engine }: { engine: OrderEngine }) {
+interface ServiceGridProps {
+  engine: OrderEngine;
+  checkoutMode?: CheckoutMode;
+  checkoutProps?: CheckoutVariantProps;
+}
+
+export function ServiceGrid({ engine, checkoutMode, checkoutProps }: ServiceGridProps) {
   const { services, selectedService, setSelectedService, networkId, catalog, isLoading } = engine;
   const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
 
@@ -28,17 +36,15 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
             : "Стандартные условия сервиса. Скорость зависит от текущей нагрузки провайдера.";
 
       return (
-        <motion.div
+        <div
           key={srv.id}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: i * 0.05, ease: [0.25, 0.1, 0.25, 1] }}
-          className="h-full"
+          className="h-full animate-in fade-in duration-300"
         >
           <Card 
+            data-testid="service-card"
             onClick={() => {
               if (isQuarantined) return;
-              setSelectedService(isSelected ? null : srv);
+              setSelectedService(srv);
             }}
             className={`group w-full flex flex-col p-4 sm:p-5 border-2 rounded-[2rem] relative overflow-visible transition-all duration-300 ease-out h-full ${
               isQuarantined ? 'cursor-not-allowed opacity-75 grayscale-[0.5] bg-content2 border-transparent' 
@@ -124,164 +130,70 @@ export function ServiceGrid({ engine }: { engine: OrderEngine }) {
              </p>
           </div>
           
-          <div className={`mt-6 pt-5 flex justify-between items-end px-1 relative z-10 transition-colors duration-300 ${isSelected ? 'border-t border-primary-foreground/20' : 'border-t border-border/40'}`}>
+          <div className={`mt-6 pt-5 flex justify-between items-center px-1 relative z-10 transition-colors duration-300 ${isSelected ? 'border-t border-primary-foreground/20' : 'border-t border-border/40'}`}>
             <div>
               <p className={`text-[10px] uppercase font-black tracking-wider mb-1.5 transition-colors duration-300 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>Цена за 1 шт.</p>
-              <p className={`text-3xl font-black tabular-nums leading-none transition-colors duration-300 ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>
-                  {srv.pricePerUnitRub} ₽
+              <p className={`text-2xl sm:text-3xl font-black tabular-nums leading-none transition-colors duration-300 ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}>
+                  {srv.pricePerUnitRub} <span className="text-xl font-bold">₽</span>
               </p>
             </div>
-            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-              isSelected ? 'border-primary-foreground bg-primary-foreground text-primary shadow-sm scale-110' : 'border-border/60 bg-transparent text-transparent group-hover:border-border'
-            }`}>
-              <Check className="w-4 h-4" strokeWidth={isSelected ? 4 : 3} />
+            <div
+              data-testid="select-service-checkbox"
+              className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                isSelected
+                  ? 'bg-primary-foreground text-primary border-primary-foreground shadow-md scale-105'
+                  : 'border-border/80 bg-background/50 text-transparent group-hover:border-primary/60'
+              }`}
+            >
+              <Check className={`w-5 h-5 stroke-[3] transition-all duration-150 ${isSelected ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} />
             </div>
           </div>
+
+          {checkoutMode === "card" && isSelected && checkoutProps && (
+            <InCardAccordionCheckout {...checkoutProps} />
+          )}
           </Card>
-        </motion.div>
+        </div>
       );
     });
-  }, [services, selectedService, selectedNetworkObj, setSelectedService]);
-
-  const mobileDropdownContent = useMemo(() => {
-    return services.map((srv) => (
-      <div
-        key={`dd-${srv.id}`}
-        role="button"
-        tabIndex={0}
-        onClick={() => {
-           setSelectedService(selectedService?.id === srv.id ? null : srv);
-           setIsServiceDropdownOpen(false);
-        }}
-        className={`cursor-pointer w-full text-left p-4 rounded-2xl transition-all flex items-start justify-between gap-4 relative overflow-hidden border-2 ${
-           selectedService?.id === srv.id 
-           ? 'bg-primary/5 border-primary/30 shadow-md' 
-           : 'hover:bg-content2 border-transparent hover:border-border/50'
-        }`}
-      >
-        <div className="flex-1 flex flex-col">
-          <div className="font-bold text-[13px] sm:text-sm leading-tight text-foreground line-clamp-3">
-            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded mr-2 align-middle inline-block -mt-0.5 shrink-0 ${selectedService?.id === srv.id ? 'bg-primary text-primary-foreground' : 'bg-default-100 text-muted-foreground'}`}>
-               ID {srv.numericId}
-            </span>
-            {srv.name}
-          </div>
-          <div className="mt-2 text-xs font-semibold text-muted-foreground flex items-center gap-3">
-            <span className={selectedService?.id === srv.id ? 'text-primary' : ''}>
-              {srv.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽/шт
-            </span>
-            <span className="opacity-70">Мин: {srv.minQty}</span>
-          </div>
-        </div>
-        <div className="flex flex-col items-end justify-start shrink-0 pt-0.5">
-           {selectedService?.id === srv.id && (
-              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-sm">
-                 <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" strokeWidth={3} />
-              </div>
-           )}
-        </div>
-      </div>
-    ));
-  }, [services, selectedService, setSelectedService]);
+  }, [services, selectedService, selectedNetworkObj, setSelectedService, checkoutMode, checkoutProps]);
 
   if (isLoading) {
     return (
-      <>
-        {/* Mobile Dropdown Skeleton */}
-        <div className="sm:hidden mb-4 animate-pulse">
-          <div className="w-full h-[88px] bg-content1 border-2 border-border/30 rounded-2xl flex items-center justify-between p-4">
-            <div className="flex flex-col gap-2 pr-4 flex-1">
-              <div className="h-3 w-20 bg-content2 rounded animate-pulse" />
-              <div className="h-5 w-3/4 bg-content2 rounded animate-pulse" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div 
+            key={i} 
+            className="w-full flex flex-col p-6 border-2 border-border/30 rounded-3xl bg-content1 h-[320px] justify-between animate-pulse"
+          >
+            <div className="flex-1 flex flex-col pt-2 gap-4">
+              <div className="space-y-2">
+                <div className="h-5 w-5/6 bg-content2 rounded-xl" />
+                <div className="h-5 w-1/2 bg-content2 rounded-xl" />
+              </div>
+              <div className="h-28 w-full bg-content2/50 border border-border/30 rounded-2xl" />
+              <div className="flex justify-between items-center px-1">
+                <div className="h-3.5 w-1/3 bg-content2 rounded" />
+                <div className="h-3.5 w-1/4 bg-content2 rounded" />
+              </div>
             </div>
-            <div className="w-8 h-8 rounded-full bg-content2 shrink-0 animate-pulse" />
+            
+            <div className="mt-6 pt-5 border-t border-border/30 flex justify-between items-end px-1">
+              <div className="space-y-2">
+                <div className="h-3 w-16 bg-content2 rounded" />
+                <div className="h-8 w-24 bg-content2 rounded-xl" />
+              </div>
+              <div className="w-8 h-8 rounded-full bg-content2 shrink-0 animate-pulse" />
+            </div>
           </div>
-        </div>
-
-        {/* Desktop Grid Skeleton */}
-        <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div 
-              key={i} 
-              className="w-full flex flex-col p-6 border-2 border-border/30 rounded-3xl bg-content1 h-[320px] justify-between animate-pulse"
-            >
-              <div className="flex-1 flex flex-col pt-2 gap-4">
-                {/* Title skeleton */}
-                <div className="space-y-2">
-                  <div className="h-5 w-5/6 bg-content2 rounded-xl" />
-                  <div className="h-5 w-1/2 bg-content2 rounded-xl" />
-                </div>
-                {/* Description card skeleton */}
-                <div className="h-28 w-full bg-content2/50 border border-border/30 rounded-2xl" />
-                {/* Meta line skeleton */}
-                <div className="flex justify-between items-center px-1">
-                  <div className="h-3.5 w-1/3 bg-content2 rounded" />
-                  <div className="h-3.5 w-1/4 bg-content2 rounded" />
-                </div>
-              </div>
-              
-              {/* Footer price skeleton */}
-              <div className="mt-6 pt-5 border-t border-border/30 flex justify-between items-end px-1">
-                <div className="space-y-2">
-                  <div className="h-3 w-16 bg-content2 rounded" />
-                  <div className="h-8 w-24 bg-content2 rounded-xl" />
-                </div>
-                <div className="w-8 h-8 rounded-full bg-content2 shrink-0 animate-pulse" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </>
+        ))}
+      </div>
     );
   }
 
   return (
-    <>
-      {/* Mobile Dropdown */}
-      <div className="relative z-[60] sm:hidden mb-4">
-        <button
-          onClick={() => setIsServiceDropdownOpen(!isServiceDropdownOpen)}
-          className="w-full flex items-center justify-between p-4 bg-content1 border-2 border-border/50 rounded-2xl shadow-sm hover:border-primary/50 transition-all text-left group min-h-[88px]"
-        >
-          <div className="flex flex-col gap-1.5 pr-4 flex-1">
-             <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Тарифный план</span>
-             {selectedService ? (
-                 <h4 className="font-extrabold text-foreground text-[15px] sm:text-lg leading-tight transition-colors line-clamp-2">
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded mr-1.5 bg-default-100 text-muted-foreground align-middle inline-block -mt-0.5 shrink-0">
-                       ID {selectedService.numericId}
-                    </span>
-                    {selectedService.name}
-                 </h4>
-             ) : (
-                 <h4 className="font-extrabold text-muted-foreground text-[15px] sm:text-lg">Выберите услугу из списка...</h4>
-             )}
-          </div>
-          <div className={`w-8 h-8 rounded-full bg-content2 flex items-center justify-center shrink-0 transition-transform duration-300 ${isServiceDropdownOpen ? 'rotate-180 bg-primary/10' : ''}`}>
-             <ChevronDown className={`w-5 h-5 transition-colors ${isServiceDropdownOpen ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
-          </div>
-        </button>
-
-        <AnimatePresence>
-          {isServiceDropdownOpen && (
-            <>
-              <div className="fixed inset-0 z-[40]" onClick={() => setIsServiceDropdownOpen(false)} />
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.98, transition: { duration: 0.15 } }}
-                className="absolute top-[calc(100%+8px)] left-0 w-full bg-content1 border border-border rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] max-h-[400px] overflow-y-auto z-[50] p-2 flex flex-col gap-1 scrollbar-thin overflow-x-hidden"
-              >
-                {mobileDropdownContent}
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Desktop Grid */}
-      <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {desktopGridContent}
-      </div>
-    </>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+      {desktopGridContent}
+    </div>
   );
 }

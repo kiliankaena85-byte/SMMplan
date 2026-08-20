@@ -9,6 +9,7 @@ import { addCustomCompetitorAction } from '@/actions/admin/market-intelligence';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { ShieldCheck, TrendingUp, Search, Plus, ExternalLink, RefreshCw } from 'lucide-react';
+import { formatPricePerUnit } from '@/utils/format-price';
 
 interface IntelDashboardProps {
   initialComparisons: ServiceCompetitorComparison[];
@@ -93,7 +94,7 @@ export function IntelDashboard({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-foreground">AI Executive Summary: Радар рынка</h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-semibold border border-emerald-500/20">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/10 text-success font-semibold border border-success/20">
                   Прямой фокус: PrimeLike
                 </span>
               </div>
@@ -152,7 +153,7 @@ export function IntelDashboard({
 
               <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-xs">
                 <span className="text-muted-foreground text-[11px]">Статус мониторинга:</span>
-                <span className="text-emerald-500 font-semibold flex items-center gap-1 text-[11px]">
+                <span className="text-success font-semibold flex items-center gap-1 text-[11px]">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Активен
                 </span>
@@ -189,7 +190,7 @@ export function IntelDashboard({
             <button
               key={tab.key}
               onClick={() => setFilterPlatform(tab.key)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 filterPlatform === tab.key
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -223,18 +224,18 @@ export function IntelDashboard({
                     {item.serviceName}
                   </td>
                   <td className="py-3 px-3 font-bold text-primary whitespace-nowrap">
-                    {item.ourPriceRub.toFixed(2)} ₽
+                    {formatPricePerUnit(item.ourPriceRub)} ₽
                   </td>
                   <td className="py-3 px-3 font-semibold text-foreground whitespace-nowrap">
-                    {item.primeLikePriceRub !== null ? `${item.primeLikePriceRub.toFixed(2)} ₽` : '—'}
+                    {item.primeLikePriceRub !== null ? `${formatPricePerUnit(item.primeLikePriceRub)} ₽` : '—'}
                   </td>
                   <td className="py-3 px-3 whitespace-nowrap">
                     {item.primeLikeDeltaPercent !== null ? (
                       <span
                         className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${
                           item.primeLikeDeltaPercent < 0
-                            ? 'bg-emerald-500/10 text-emerald-500'
-                            : 'bg-rose-500/10 text-rose-500'
+                            ? 'bg-success/10 text-success'
+                            : 'bg-destructive/10 text-destructive'
                         }`}
                       >
                         {item.primeLikeDeltaPercent < 0
@@ -246,10 +247,10 @@ export function IntelDashboard({
                     )}
                   </td>
                   <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">
-                    {item.marketAverageRub.toFixed(2)} ₽
+                    {formatPricePerUnit(item.marketAverageRub)} ₽
                   </td>
                   <td className="py-3 px-3 whitespace-nowrap">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20">
                       Лидер по цене
                     </span>
                   </td>

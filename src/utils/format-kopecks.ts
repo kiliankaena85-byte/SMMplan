@@ -1,16 +1,18 @@
 /**
  * Formats integer kopecks (cents) into human-readable Ruble string with currency symbol.
- * Example: 123456 -> "1 234,56 ₽"
+ * Adheres to Russian Consumer Psychology:
+ * - Whole rubles: "1 234 ₽" (no trailing ",00")
+ * - With kopecks: "1 234,50 ₽"
  * Handles BigInt, number, and string inputs safely.
  */
 export function formatKopecks(kopecks: bigint | number | string | null | undefined): string {
-  if (kopecks === null || kopecks === undefined) return '0,00 ₽';
+  if (kopecks === null || kopecks === undefined) return '0 ₽';
   
   let totalKopecks: bigint;
   try {
     totalKopecks = typeof kopecks === 'bigint' ? kopecks : BigInt(Math.round(Number(kopecks)));
   } catch {
-    return '0,00 ₽';
+    return '0 ₽';
   }
 
   const isNegative = totalKopecks < BigInt(0);
@@ -20,7 +22,11 @@ export function formatKopecks(kopecks: bigint | number | string | null | undefin
   const cents = absKopecks % BigInt(100);
 
   const rublesFormatted = rubles.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  const centsFormatted = cents.toString().padStart(2, '0');
 
+  if (cents === BigInt(0)) {
+    return `${isNegative ? '-' : ''}${rublesFormatted} ₽`;
+  }
+
+  const centsFormatted = cents.toString().padStart(2, '0');
   return `${isNegative ? '-' : ''}${rublesFormatted},${centsFormatted} ₽`;
 }

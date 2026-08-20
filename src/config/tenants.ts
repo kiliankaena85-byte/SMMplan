@@ -1,6 +1,7 @@
 export const TENANTS = [
   { id: 'smmplan', name: 'SMMplan', domain: 'smmplan.pro' },
   { id: 'flux', name: 'SMMflux', domain: 'smmflux.ru' },
+  { id: 'boost', name: 'SMMboost', domain: 'smmboost.ru' },
 ] as const;
 
 export type TenantId = typeof TENANTS[number]['id'];

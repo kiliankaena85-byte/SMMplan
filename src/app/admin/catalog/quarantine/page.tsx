@@ -100,7 +100,7 @@ export default async function QuarantinePage() {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground font-medium text-xs">
             <span>Карантин цен, зомби-услуги и сбои API провайдеров.</span>
             {totalAnomalies > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-amber-500/20 animate-pulse">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20 animate-pulse">
                 Аномалий: {totalAnomalies}
               </span>
             )}

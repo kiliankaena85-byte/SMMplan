@@ -63,7 +63,11 @@ export function CategorySidebar({ engine }: { engine: OrderEngine }) {
       {sortedCategories.map(cat => (
         <button
           key={cat.id}
-          onClick={(e) => { e.preventDefault(); setCategoryId(cat.id); }}
+          onClick={(e) => {
+            e.preventDefault();
+            engine.setSelectedService(null);
+            setCategoryId(cat.id);
+          }}
           className={`text-left px-5 py-3 lg:py-4 rounded-full lg:rounded-[1.5rem] text-[15px] font-bold transition-all duration-200 whitespace-nowrap lg:whitespace-normal shrink-0 lg:shrink group flex items-center justify-between active:scale-95 ${
             categoryId === cat.id 
               ? 'bg-content1 text-primary shadow-[0_8px_30px_-6px_rgba(0,0,0,0.08)] ring-1 ring-slate-100 scale-[1.02]'

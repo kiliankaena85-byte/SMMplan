@@ -83,54 +83,54 @@ export default function BalanceAdjustmentStatsPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 bg-card border border-border rounded-xl shadow-xs">
-          <span className="text-xs text-muted-foreground">Всего заявок</span>
-          <div className="text-2xl font-bold text-foreground mt-1">{stats.summary.totalCount}</div>
-          <div className="text-xs text-amber-500 mt-1 font-medium">{stats.summary.pendingCount} на утверждении</div>
+        <div className="p-4 bg-card/70 border border-border/80 rounded-2xl shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Всего заявок</span>
+          <div className="text-2xl font-black font-mono text-foreground">{stats.summary.totalCount}</div>
+          <div className="text-xs text-warning font-medium">{stats.summary.pendingCount} на утверждении</div>
         </div>
 
-        <div className="p-4 bg-card border border-border rounded-xl shadow-xs">
-          <span className="text-xs text-muted-foreground">Начислено (CREDIT)</span>
-          <div className="text-2xl font-bold text-emerald-500 mt-1">+{creditRub} ₽</div>
-          <div className="text-xs text-muted-foreground mt-1">{stats.summary.executedCount} исполнено</div>
+        <div className="p-4 bg-card/70 border border-border/80 rounded-2xl shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Начислено (CREDIT)</span>
+          <div className="text-2xl font-black font-mono text-success">+{creditRub} ₽</div>
+          <div className="text-xs text-muted-foreground font-medium">{stats.summary.executedCount} исполнено</div>
         </div>
 
-        <div className="p-4 bg-card border border-border rounded-xl shadow-xs">
-          <span className="text-xs text-muted-foreground">Списано (DEBIT)</span>
-          <div className="text-2xl font-bold text-red-500 mt-1">-{debitRub} ₽</div>
-          <div className="text-xs text-muted-foreground mt-1">{stats.summary.rejectedCount} отклонено</div>
+        <div className="p-4 bg-card/70 border border-border/80 rounded-2xl shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Списано (DEBIT)</span>
+          <div className="text-2xl font-black font-mono text-destructive">-{debitRub} ₽</div>
+          <div className="text-xs text-muted-foreground font-medium">{stats.summary.rejectedCount} отклонено</div>
         </div>
 
-        <div className="p-4 bg-card border border-border rounded-xl shadow-xs">
-          <span className="text-xs text-muted-foreground">Чистый баланс (NET)</span>
-          <div className={`text-2xl font-bold mt-1 ${Number(stats.summary.netSum) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+        <div className="p-4 bg-card/70 border border-border/80 rounded-2xl shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Чистый баланс (NET)</span>
+          <div className={`text-2xl font-black font-mono ${Number(stats.summary.netSum) >= 0 ? 'text-success' : 'text-destructive'}`}>
             {Number(stats.summary.netSum) >= 0 ? `+${netRub}` : `${netRub}`} ₽
           </div>
-          <div className="text-xs text-muted-foreground mt-1">Итоговое сальдо</div>
+          <div className="text-xs text-muted-foreground font-medium">Итоговое сальдо</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* By Staff Table */}
-        <div className="bg-card border border-border rounded-xl p-5 shadow-xs space-y-3">
-          <h3 className="font-semibold text-foreground text-sm">Статистика по операторам (Staff)</h3>
+        <div className="bg-card/70 border border-border/80 rounded-2xl p-5 shadow-xs space-y-3">
+          <h3 className="font-bold text-foreground text-xs uppercase tracking-wider">Статистика по операторам (Staff)</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border">
+              <thead className="bg-muted/40 text-muted-foreground font-medium border-b border-border/60">
                 <tr>
-                  <th className="p-2">Оператор</th>
-                  <th className="p-2">Заявок</th>
-                  <th className="p-2">Начислено</th>
-                  <th className="p-2">Списано</th>
+                  <th className="p-2.5">Оператор</th>
+                  <th className="p-2.5">Заявок</th>
+                  <th className="p-2.5 text-right">Начислено</th>
+                  <th className="p-2.5 text-right">Списано</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border/40">
                 {stats.byStaff.map((staff) => (
-                  <tr key={staff.id}>
-                    <td className="p-2 font-medium">{staff.email}</td>
-                    <td className="p-2">{staff.count}</td>
-                    <td className="p-2 text-emerald-500 font-medium">+{(Number(staff.creditSum) / 100).toFixed(2)} ₽</td>
-                    <td className="p-2 text-red-500 font-medium">-{(Number(staff.debitSum) / 100).toFixed(2)} ₽</td>
+                  <tr key={staff.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="p-2.5 font-medium font-mono text-xs text-foreground">{staff.email}</td>
+                    <td className="p-2.5 font-mono">{staff.count}</td>
+                    <td className="p-2.5 text-right text-success font-mono font-bold">+{(Number(staff.creditSum) / 100).toFixed(2)} ₽</td>
+                    <td className="p-2.5 text-right text-destructive font-mono font-bold">-{(Number(staff.debitSum) / 100).toFixed(2)} ₽</td>
                   </tr>
                 ))}
               </tbody>
@@ -139,25 +139,25 @@ export default function BalanceAdjustmentStatsPage() {
         </div>
 
         {/* By Reason Table */}
-        <div className="bg-card border border-border rounded-xl p-5 shadow-xs space-y-3">
-          <h3 className="font-semibold text-foreground text-sm">Статистика по причинам (Reason Code)</h3>
+        <div className="bg-card/70 border border-border/80 rounded-2xl p-5 shadow-xs space-y-3">
+          <h3 className="font-bold text-foreground text-xs uppercase tracking-wider">Статистика по причинам (Reason Code)</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border">
+              <thead className="bg-muted/40 text-muted-foreground font-medium border-b border-border/60">
                 <tr>
-                  <th className="p-2">Код причины</th>
-                  <th className="p-2">Заявок</th>
-                  <th className="p-2">Сумма начислений</th>
-                  <th className="p-2">Сумма списаний</th>
+                  <th className="p-2.5">Код причины</th>
+                  <th className="p-2.5">Заявок</th>
+                  <th className="p-2.5 text-right">Сумма начислений</th>
+                  <th className="p-2.5 text-right">Сумма списаний</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border/40">
                 {stats.byReason.map((reason) => (
-                  <tr key={reason.code}>
-                    <td className="p-2 font-mono font-medium">{reason.code}</td>
-                    <td className="p-2">{reason.count}</td>
-                    <td className="p-2 text-emerald-500 font-medium">+{(Number(reason.creditSum) / 100).toFixed(2)} ₽</td>
-                    <td className="p-2 text-red-500 font-medium">-{(Number(reason.debitSum) / 100).toFixed(2)} ₽</td>
+                  <tr key={reason.code} className="hover:bg-muted/20 transition-colors">
+                    <td className="p-2.5 font-mono font-medium text-foreground">{reason.code}</td>
+                    <td className="p-2.5 font-mono">{reason.count}</td>
+                    <td className="p-2.5 text-right text-success font-mono font-bold">+{(Number(reason.creditSum) / 100).toFixed(2)} ₽</td>
+                    <td className="p-2.5 text-right text-destructive font-mono font-bold">-{(Number(reason.debitSum) / 100).toFixed(2)} ₽</td>
                   </tr>
                 ))}
               </tbody>

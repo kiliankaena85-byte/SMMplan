@@ -38,17 +38,22 @@ export default async function ClientSettingsPage() {
       referralCode: true,
       referralBalance: true,
       telegramId: true,
+      telegramNotifyOrders: true,
+      telegramNotifyBalance: true,
+      telegramNotifyTickets: true,
       apiKeyHash: true,
       tosAcceptedAt: true,
       tosAcceptedIp: true,
       companyName: true,
       inn: true,
       kpp: true,
+      ogrn: true,
       legalAddress: true,
       b2bConfig: {
         select: {
           webhookUrl: true,
           webhookSecret: true,
+          isWebhookActive: true,
         },
       },
       _count: {
@@ -86,7 +91,7 @@ export default async function ClientSettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Профиль и настройки</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Управление безопасностью, реквизитами организации, B2B API и профилем
+          Управление безопасностью, интеграцией с Telegram, реквизитами организации и B2B API
         </p>
       </div>
 
@@ -157,6 +162,14 @@ export default async function ClientSettingsPage() {
         </div>
       </div>
 
+      {/* Smart Bind Telegram Integration */}
+      <TelegramCard
+        telegramId={user.telegramId}
+        notifyOrders={user.telegramNotifyOrders}
+        notifyBalance={user.telegramNotifyBalance}
+        notifyTickets={user.telegramNotifyTickets}
+      />
+
       {/* 152-FZ Consent Status */}
       <Consent152FzCard
         tosAcceptedAt={user.tosAcceptedAt}
@@ -169,6 +182,7 @@ export default async function ClientSettingsPage() {
           companyName: user.companyName,
           inn: user.inn,
           kpp: user.kpp,
+          ogrn: user.ogrn,
           legalAddress: user.legalAddress,
         }}
       />
@@ -178,6 +192,7 @@ export default async function ClientSettingsPage() {
         initialData={{
           webhookUrl: user.b2bConfig?.webhookUrl,
           webhookSecret: user.b2bConfig?.webhookSecret,
+          isWebhookActive: user.b2bConfig?.isWebhookActive,
         }}
       />
 
@@ -201,9 +216,6 @@ export default async function ClientSettingsPage() {
         </div>
       </div>
 
-      {/* Telegram Management */}
-      <TelegramCard telegramId={user.telegramId} />
-
       {/* Password Management */}
       <PasswordCard hasPassword={!!user.passwordHash} canResetPassword={canResetPassword} />
 
@@ -212,20 +224,20 @@ export default async function ClientSettingsPage() {
 
       {/* Referral balance usage info */}
       {(user.referralBalance ?? 0) > 0 && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-3">
-          <Star className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 flex items-start gap-3">
+          <Star className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-emerald-800 mb-0.5">
+            <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 mb-0.5">
               У вас {refBalanceFormatted} реферального баланса
             </p>
-            <p className="text-xs text-emerald-700 mb-3">
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-3">
               Реферальный баланс начисляется автоматически — 15% с каждого заказа приглашённых вами пользователей.
               Средства зачисляются на ваш основной баланс при выводе.
             </p>
             <Link
               href="/dashboard/referrals"
               aria-label="Перейти к реферальной программе"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline hover:no-underline transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 underline hover:no-underline transition-colors"
             >
               Управление реферальной программой →
             </Link>
@@ -295,7 +307,7 @@ export default async function ClientSettingsPage() {
           className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4 hover:bg-muted/30 transition-all duration-200 group"
           aria-label="Реферальная программа"
         >
-          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-warning/10 text-warning flex items-center justify-center shrink-0">
             <Star className="w-4 h-4" />
           </div>
           <div>
@@ -311,7 +323,7 @@ export default async function ClientSettingsPage() {
           className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4 hover:bg-muted/30 transition-all duration-200 group"
           aria-label="API доступ"
         >
-          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <User className="w-4 h-4" />
           </div>
           <div>

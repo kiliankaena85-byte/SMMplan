@@ -45,9 +45,11 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ExternalLink,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 import { DASHBOARD_DATA } from './dashboards';
+import { createDemoPaymentAction } from '@/actions/order/demo-payment.action';
 
 export type FluxTab = 'dashboard' | 'orders' | 'new-order' | 'transactions' | 'deposit' | 'referrals' | 'support' | 'settings';
 
@@ -136,6 +138,30 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
     return (qty * rate).toFixed(2);
   };
 
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  const handleExecutePayment = async (amountRub: number, desc: string) => {
+    if (isPaying) return;
+    setIsPaying(true);
+    setPaymentError(null);
+    try {
+      const res = await createDemoPaymentAction({
+        amountRub: Math.max(10, amountRub),
+        description: desc,
+        gateway: (paymentGateway as 'yookassa' | 'cryptobot' | 'robokassa') || 'yookassa',
+        targetLink: targetLink || 'https://t.me/smmflux',
+        serviceName: `SMMflux: ${desc}`
+      });
+      if (res.success && res.paymentUrl) {
+        window.location.href = res.paymentUrl;
+      }
+    } catch (err: unknown) {
+      setPaymentError(err instanceof Error ? err.message : 'Ошибка создания платежа в ЮKassa');
+      setIsPaying(false);
+    }
+  };
+
   return (
     <div className="smmflux-scope w-full min-h-screen bg-white text-[#100d18] flex flex-col md:flex-row pb-20 md:pb-0">
       
@@ -157,15 +183,14 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
             </div>
           </div>
 
-          {/* Navigation Links */}
+          {/* Navigation Links (Desktop 6+1 items) */}
           <nav className="space-y-2">
             {[
-              { id: 'dashboard', label: 'Дашборд', icon: '⚡' },
+              { id: 'dashboard', label: 'Главная', icon: '⚡' },
               { id: 'new-order', label: 'Создать заказ', icon: '🚀' },
               { id: 'orders', label: 'Мои заказы', icon: '📦' },
-              { id: 'transactions', label: 'Транзакции', icon: '🔄' },
-              { id: 'deposit', label: 'Пополнение', icon: '💎' },
-              { id: 'referrals', label: 'Рефералы', icon: '🎁' },
+              { id: 'deposit', label: 'Финансы', icon: '💎' },
+              { id: 'referrals', label: 'Бонусы', icon: '🎁' },
               { id: 'support', label: 'Поддержка', icon: '💬' },
               { id: 'settings', label: 'Настройки', icon: '⚙️' },
             ].map((nav) => {
@@ -174,7 +199,7 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
                 <button
                   key={nav.id}
                   onClick={() => setActiveTab(nav.id as FluxTab)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all cursor-pointer ${
                     isActive
                       ? 'bg-[#14121d] text-white shadow-md shadow-black/10'
                       : 'text-[#423f54] hover:bg-[#f6f5fb]'
@@ -192,31 +217,36 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
           </nav>
         </div>
 
-        {/* User Info Footer */}
-        <div className="bg-[#f6f5fb] p-4 rounded-2xl border border-[#ece9f5] space-y-2">
+        {/* User Info Footer (Desktop) */}
+        <div 
+          onClick={() => setActiveTab('settings')}
+          className="bg-[#f6f5fb] p-4 rounded-2xl border border-[#ece9f5] space-y-2 cursor-pointer hover:border-[#e0218a]/40 transition-colors"
+          title="Настройки профиля"
+        >
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-[#423f54]">Клиент:</span>
             <span className="font-mono text-[#79748c]">ART-7F2K</span>
           </div>
-          <div className="text-xs font-bold text-[#100d18] truncate">
-            client@smmflux.ru
+          <div className="text-xs font-bold text-[#100d18] truncate flex items-center justify-between">
+            <span>client@smmflux.ru</span>
+            <span className="text-[10px] text-[#e0218a] font-extrabold">⚙️ Профиль</span>
           </div>
         </div>
       </aside>
 
-      {/* MOBILE BOTTOM NAVIGATION BAR */}
+      {/* MOBILE BOTTOM NAVIGATION BAR (5 Action Items) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#14121d]/95 backdrop-blur-lg border-t border-white/10 px-2 py-2 flex items-center justify-around text-white">
         {[
           { id: 'dashboard', label: 'Главная', icon: '⚡' },
           { id: 'new-order', label: 'Заказ', icon: '🚀' },
           { id: 'orders', label: 'Заказы', icon: '📦' },
-          { id: 'transactions', label: 'Баланс', icon: '🔄' },
-          { id: 'deposit', label: 'Пополнить', icon: '💎' },
+          { id: 'deposit', label: 'Финансы', icon: '💎' },
+          { id: 'support', label: 'Помощь', icon: '💬' },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as FluxTab)}
-            className={`flex flex-col items-center gap-1 ${
+            className={`flex flex-col items-center gap-1 cursor-pointer ${
               activeTab === tab.id ? 'text-[#e0218a]' : 'text-white/70'
             }`}
           >
@@ -229,20 +259,29 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
       {/* ── 2. MAIN APP CONTENT AREA ── */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8 overflow-x-hidden min-w-0">
         
-        {/* MOBILE TOP BAR */}
+        {/* MOBILE TOP BAR (With Avatar button to Settings - Variant A) */}
         <div className="md:hidden flex items-center justify-between border-b border-[#ece9f5] pb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#3b82f6] to-[#e0218a] flex items-center justify-center text-white font-bold text-sm">
               F
             </div>
             <span className="font-heading text-lg font-extrabold">SMMflux</span>
           </div>
-          <button 
-            onClick={() => setActiveTab('deposit')}
-            className="bg-[#14121d] text-white px-3 py-1.5 rounded-full text-xs font-bold"
-          >
-            {DASHBOARD_DATA.balance}
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setActiveTab('deposit')}
+              className="bg-[#14121d] text-white px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer"
+            >
+              {DASHBOARD_DATA.balance}
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className="w-8 h-8 rounded-full bg-[#f6f5fb] border border-[#ece9f5] text-[#100d18] flex items-center justify-center text-xs font-black uppercase cursor-pointer"
+              title="Настройки профиля и удаление аккаунта"
+            >
+              ⚙️
+            </button>
+          </div>
         </div>
 
         {/* ── PAGE 1: DASHBOARD OVERVIEW ── */}
@@ -441,10 +480,31 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
                 <div className="font-heading text-2xl font-black text-[#100d18]">{calculateTotalCost()} ₽</div>
               </div>
 
-              <button className="w-full sm:w-auto bg-[#14121d] hover:bg-[#e0218a] text-white px-8 py-4 rounded-full font-extrabold text-xs transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">
-                <span>Оплатить и запустить</span>
-                <ArrowUpRight className="w-4 h-4 text-[#e0218a]" />
-              </button>
+              <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+                {paymentError && (
+                  <div className="p-2 rounded-lg bg-red-50 text-red-600 text-[11px] font-bold">
+                    {paymentError}
+                  </div>
+                )}
+                <button 
+                  type="button"
+                  disabled={isPaying}
+                  onClick={() => handleExecutePayment(parseFloat(calculateTotalCost()), `Заказ: ${selectedNetwork.toUpperCase()} ${selectedCategory}`)}
+                  className="w-full sm:w-auto bg-[#14121d] hover:bg-[#e0218a] text-white px-8 py-4 rounded-full font-extrabold text-xs transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+                >
+                  {isPaying ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-[#e0218a]" />
+                      <span>Переход в ЮKassa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Оплатить и запустить</span>
+                      <ArrowUpRight className="w-4 h-4 text-[#e0218a]" />
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </section>
         )}
@@ -635,8 +695,23 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
                   ))}
                 </div>
 
-                <button className="w-full bg-[#e0218a] hover:bg-pink-600 text-white py-4 rounded-2xl font-extrabold text-sm transition-all shadow-lg shadow-[#e0218a]/20">
-                  Оплатить {appliedPromo ? (parseInt(depositAmount || '0') * 1.1).toFixed(0) : depositAmount} ₽
+                <button 
+                  type="button"
+                  disabled={isPaying}
+                  onClick={() => handleExecutePayment(
+                    appliedPromo ? Math.round(parseInt(depositAmount || '0') * 1.1) : (parseInt(depositAmount || '0') || 100),
+                    'Пополнение баланса'
+                  )}
+                  className="w-full bg-[#e0218a] hover:bg-pink-600 text-white py-4 rounded-2xl font-extrabold text-sm transition-all shadow-lg shadow-[#e0218a]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+                >
+                  {isPaying ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Переход в ЮKassa...</span>
+                    </>
+                  ) : (
+                    <span>Оплатить {appliedPromo ? (parseInt(depositAmount || '0') * 1.1).toFixed(0) : depositAmount} ₽</span>
+                  )}
                 </button>
 
                 {/* PromoCode Input (R4) */}

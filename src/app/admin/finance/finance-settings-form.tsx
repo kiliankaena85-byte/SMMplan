@@ -27,7 +27,7 @@ export function FinanceSettingsForm({ initialTaxRate, initialOpex }: FinanceSett
   }
 
   return (
-    <Card className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl h-full">
+    <Card className="rounded-2xl border border-border/60 shadow-xs bg-card/60 backdrop-blur-xl h-full transition-all hover:border-border">
       <div className="p-6 space-y-4">
         <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Параметры учёта</h3>
         <form action={action} className="space-y-4">

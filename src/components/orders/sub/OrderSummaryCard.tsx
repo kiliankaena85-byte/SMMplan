@@ -24,11 +24,7 @@ const inputCls =
   'text-sm outline-none placeholder:text-muted-foreground ' +
   'focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function formatPricePerUnit(price: number): string {
-  if (price === 0) return '0.00';
-  return price.toFixed(2);
-}
+import { formatPricePerUnit } from '@/utils/format-price';
 
 export function OrderSummaryCard({
   userBalanceCents = 0,

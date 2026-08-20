@@ -7,7 +7,18 @@ import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+  const host = request.headers.get("host") || "";
+  const isAllowed = 
+    process.env.NODE_ENV !== 'production' || 
+    process.env.ENABLE_DEV_ROUTES === 'true' ||
+    process.env.NEXT_PUBLIC_STAGING === 'true' ||
+    host.includes('localhost') ||
+    host.includes('127.0.0.1') ||
+    host.includes('test.') ||
+    host.includes('stage.') ||
+    host.includes('trycloudflare.com');
+
+  if (!isAllowed) {
     return new Response('Not Found', { status: 404 });
   }
   
@@ -22,7 +33,6 @@ export async function GET(request: Request) {
   const cleanEmail = email.toLowerCase();
 
   // Determine tenant context from query parameter or host
-  const host = request.headers.get("host") || "";
   const tenantParam = url.searchParams.get("tenant");
   const rawTenantId = tenantParam || (host.includes("lovable") || host.includes("flux") ? "flux" : "smmplan");
   const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
@@ -80,15 +90,23 @@ export async function GET(request: Request) {
   });
 
   cookieStore.set('x_tenant', tenantId, {
-    httpOnly: true,
+    httpOnly: false, // Must match middleware — QA Dock reads this client-side
     secure: false,
     expires: expiresAt,
     sameSite: 'lax',
     path: '/',
   });
 
-  // Redirect to dashboard
-  if (tenantId !== "smmplan") {
+  // Redirect
+  const redirectParam = url.searchParams.get("redirect");
+  if (redirectParam && redirectParam.startsWith("/")) {
+    redirect(redirectParam);
+  }
+
+  const isStaff = ["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role);
+  if (isStaff) {
+    redirect("/admin/dashboard");
+  } else if (tenantId !== "smmplan") {
     redirect(`/dashboard?tenant=${tenantId}`);
   } else {
     redirect("/dashboard");

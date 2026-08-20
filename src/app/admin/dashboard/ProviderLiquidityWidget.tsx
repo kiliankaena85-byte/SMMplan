@@ -15,7 +15,7 @@ export function ProviderLiquidityWidget() {
   const fetchLiquidity = useCallback(async (forceRefresh = false) => {
     if (forceRefresh) {
       setIsRefreshing(true);
-    } else if (!data) {
+    } else {
       setIsLoading(true);
     }
 
@@ -34,7 +34,7 @@ export function ProviderLiquidityWidget() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [data]);
+  }, []);
 
   useEffect(() => {
     fetchLiquidity(false);
@@ -87,30 +87,30 @@ export function ProviderLiquidityWidget() {
   const runwayDays = data.runwayDays;
 
   return (
-    <div className="bg-card text-card-foreground rounded-2xl p-6 lg:p-7 shadow-sm border border-border/60 transition-all hover:shadow-md flex flex-col justify-between h-full min-h-[280px]">
+    <div className="bg-card text-card-foreground rounded-lg p-5 shadow-sm border border-border/70 flex flex-col justify-between h-full min-h-[260px] space-y-4">
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-sm font-semibold tracking-wide">Внешняя ликвидность</span>
+            <span className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Ликвидность у поставщиков</span>
             <button
               type="button"
               onClick={() => fetchLiquidity(true)}
               disabled={isRefreshing}
               aria-label="Обновить показатели ликвидности"
               title="Обновить данные"
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all duration-200 active:scale-95 disabled:opacity-50"
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-          <div className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-full border border-border/50 text-[11px] font-bold text-foreground">
-            <span className="w-2 h-2 rounded-full bg-primary" />
+          <div className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-md border border-border/50 text-[10px] font-bold text-foreground">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             <span>Провайдеры ({data.activeCount})</span>
           </div>
         </div>
 
         <div className="flex items-baseline gap-2.5">
-          <div className="text-3xl lg:text-4xl font-extrabold text-foreground tabular-nums tracking-tight font-mono">
+          <div className="text-2xl lg:text-3xl font-extrabold text-foreground tabular-nums tracking-tight font-mono">
             {totalStr} ₽
           </div>
           <span className="text-xs font-semibold text-muted-foreground tabular-nums font-mono">
@@ -118,22 +118,22 @@ export function ProviderLiquidityWidget() {
           </span>
           <div className="ml-auto">
             {isDanger ? (
-              <div className="flex items-center gap-1 text-xs font-bold text-destructive bg-destructive/10 border border-destructive/30 px-2 py-0.5 rounded-md">
-                <TrendingDown className="w-3 h-3" /> Внимание
-              </div>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-md">
+                <TrendingDown className="w-3 h-3" /> Требует пополнения
+              </span>
             ) : (
-              <div className="flex items-center gap-1 text-xs font-bold text-success bg-success/10 border border-success/30 px-2 py-0.5 rounded-md">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
                 <TrendingUp className="w-3 h-3" /> В норме
-              </div>
+              </span>
             )}
           </div>
         </div>
 
         {/* 3-Tier Status Pills */}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs font-medium">
           <span
-            title="Провайдеры с достаточным балансом (> $50)"
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-success/10 text-success border border-success/30 select-none"
+            title="Провайдеры с достаточным балансом"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 select-none text-[11px]"
           >
             <CheckCircle2 className="w-3 h-3" />
             <span className="tabular-nums font-mono font-bold">{data.healthyCount}</span> в норме
@@ -141,68 +141,58 @@ export function ProviderLiquidityWidget() {
 
           {data.warningCount > 0 && (
             <span
-              title="Провайдеры с низким балансом ($10 — $50)"
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-warning/10 text-warning border border-warning/30 select-none"
+              title="Провайдеры с низким балансом"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 select-none text-[11px]"
             >
               <AlertTriangle className="w-3 h-3" />
-              <span className="tabular-nums font-mono font-bold">{data.warningCount}</span> внимание
+              <span className="tabular-nums font-mono font-bold">{data.warningCount}</span> мало
             </span>
           )}
 
           {data.criticalCount > 0 && (
             <span
-              title="Критический остаток (< $10). Срочно требуется пополнение!"
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-destructive/10 text-destructive border border-destructive/30 animate-pulse select-none"
+              title="Критический остаток. Срочно требуется пополнение!"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 animate-pulse select-none text-[11px]"
             >
               <AlertCircle className="w-3 h-3" />
               <span className="tabular-nums font-mono font-bold">{data.criticalCount}</span> критично
             </span>
           )}
-
-          {data.errorCount > 0 && (
-            <span
-              title="Сбои связи или неверные ключи API"
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-destructive/10 text-destructive border border-destructive/30 select-none"
-            >
-              <AlertCircle className="w-3 h-3" />
-              <span className="tabular-nums font-mono font-bold">{data.errorCount}</span> сбоев
-            </span>
-          )}
         </div>
 
-        <div className="mt-3 flex items-center justify-between text-xs font-medium bg-muted/30 p-2.5 rounded-lg border border-border/40 mb-4">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Activity className="w-3.5 h-3.5 text-warning" />
-            <span>Расход за 24ч (Burn Rate):</span>
+        <div className="mt-3 flex items-center justify-between text-xs font-medium bg-muted/20 p-2.5 rounded-md border border-border/40 mb-2">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+            <Activity className="w-3.5 h-3.5 text-amber-500" />
+            <span>Расход за 24ч:</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-foreground tabular-nums font-mono">{burnStr} ₽</span>
+            <span className="font-bold text-foreground tabular-nums font-mono text-[11px]">{burnStr} ₽</span>
             {runwayDays !== null && (
               <span
-                className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                   runwayDays < 3
-                    ? 'bg-destructive/10 text-destructive border border-destructive/30'
+                    ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
                     : runwayDays < 7
-                    ? 'bg-warning/10 text-warning border border-warning/30'
-                    : 'bg-success/10 text-success border border-success/30'
+                    ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                    : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                 }`}
               >
-                ~{runwayDays} дн.
+                Запас: ~{runwayDays} дн.
               </span>
             )}
           </div>
         </div>
       </div>
 
-      <div className="mt-auto w-full">
+      <div className="mt-auto w-full pt-2">
         <Link href="/admin/providers" className="w-full block">
           <button
             type="button"
-            className="w-full bg-primary text-primary-foreground font-semibold rounded-xl text-sm min-h-[44px] h-11 shadow-sm hover:bg-primary/90 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-md text-xs h-9 shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Управление провайдерами ({data.activeCount})</span>
             {data.criticalCount + data.errorCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-md text-xs font-extrabold bg-destructive text-destructive-foreground">
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-rose-600 text-white">
                 {data.criticalCount + data.errorCount}
               </span>
             )}

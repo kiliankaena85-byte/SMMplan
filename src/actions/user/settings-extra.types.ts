@@ -2,6 +2,7 @@ export interface CompanyRequisitesInput {
   companyName?: string | null;
   inn?: string | null;
   kpp?: string | null;
+  ogrn?: string | null;
   legalAddress?: string | null;
 }
 
@@ -34,5 +35,33 @@ export interface Confirm152FzConsentResult {
 export interface ApiKeyActionResult {
   success: boolean;
   apiKey?: string;
+  error?: string;
+}
+
+export interface TelegramBindDetailsResult {
+  success: boolean;
+  error?: string;
+  botUsername?: string;
+  bindToken?: string;
+  deepLink?: string;
+  expiresAt?: string;
+}
+
+export interface TelegramNotificationSettingsInput {
+  notifyOrders?: boolean;
+  notifyBalance?: boolean;
+  notifyTickets?: boolean;
+}
+
+export interface TelegramNotificationSettingsResult {
+  success: boolean;
+  error?: string;
+  telegramNotifyOrders?: boolean;
+  telegramNotifyBalance?: boolean;
+  telegramNotifyTickets?: boolean;
+}
+
+export interface UnbindTelegramResult {
+  success: boolean;
   error?: string;
 }

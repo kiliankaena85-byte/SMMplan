@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { adminMarketingService } from '@/services/admin/marketing.service';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
@@ -31,19 +31,17 @@ const promoCodeSchema = z.object({
 });
 
 export async function createPromoCode(formData: FormData) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('marketing', 'edit', async (admin) => {
     const payload = Object.fromEntries(formData.entries());
     
     // Convert isSuspicious checkbox/select value safely if passed
-    if (payload.isSuspicious === 'true') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      payload.isSuspicious = true as any;
-    } else if (payload.isSuspicious === 'false') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      payload.isSuspicious = false as any;
-    }
+    const rawSuspicious = payload.isSuspicious;
+    const isSuspiciousBool = rawSuspicious === 'true' || rawSuspicious === 'on';
 
-    const parsed = promoCodeSchema.safeParse(payload);
+    const parsed = promoCodeSchema.safeParse({
+      ...payload,
+      isSuspicious: isSuspiciousBool,
+    });
     
     if (!parsed.success) {
       return { 
@@ -112,7 +110,7 @@ export async function createPromoCode(formData: FormData) {
 }
 
 export async function togglePromoCode(id: string, isActive: boolean) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('marketing', 'edit', async (admin) => {
     const promo = await db.promoCode.findUnique({ where: { id } });
     if (!promo) return { success: false as const, error: 'Промокод не найден' };
 
@@ -132,7 +130,7 @@ export async function togglePromoCode(id: string, isActive: boolean) {
 }
 
 export async function deletePromoCode(id: string) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('marketing', 'edit', async (admin) => {
     const promo = await db.promoCode.findUnique({ where: { id } });
     if (!promo) return { success: false as const, error: 'Промокод не найден' };
 
@@ -169,7 +167,7 @@ export async function processReferralPayout(userId: string, amount: number) {
 
     await adminMarketingService.processPayout(parsedUserId, admin.id, parsedAmount);
     
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'REFERRAL_PAYOUT',

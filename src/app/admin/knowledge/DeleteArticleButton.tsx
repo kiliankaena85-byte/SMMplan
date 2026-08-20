@@ -27,9 +27,9 @@ export function DeleteArticleButton({ id }: DeleteArticleButtonProps) {
       } else {
         toast.error(res.error || "Не удалось удалить статью");
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err.message || "Произошла ошибка при удалении статьи");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Произошла ошибка при удалении статьи";
+      toast.error(msg);
     } finally {
       setIsDeleting(false);
     }

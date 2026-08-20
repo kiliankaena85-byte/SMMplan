@@ -6,6 +6,8 @@ import { requireStaffPermission, requireOwnerPermission } from "@/lib/server/rba
 import { auditAdminAwaitable } from "@/lib/admin-audit";
 import { BALANCE_ADJUSTMENT_REASONS } from "@/constants/balance-adjustments";
 
+const numericString = z.string().regex(/^\d+$/, "Сумма должна быть неотрицательным целым числом");
+
 const upsertPolicySchema = z.object({
   id: z.string().optional(),
   scopeType: z.enum(['GLOBAL', 'ROLE', 'USER']),
@@ -19,12 +21,12 @@ const upsertPolicySchema = z.object({
   canReject: z.boolean().default(false),
   canViewAll: z.boolean().default(false),
   canViewStats: z.boolean().default(false),
-  maxCreditPerRequest: z.string().default("0"),
-  maxDebitPerRequest: z.string().default("0"),
-  maxCreditPerDay: z.string().default("0"),
-  maxDebitPerDay: z.string().default("0"),
-  maxTotalPerDay: z.string().default("0"),
-  maxApprovalPerRequest: z.string().default("0"),
+  maxCreditPerRequest: numericString.default("0"),
+  maxDebitPerRequest: numericString.default("0"),
+  maxCreditPerDay: numericString.default("0"),
+  maxDebitPerDay: numericString.default("0"),
+  maxTotalPerDay: numericString.default("0"),
+  maxApprovalPerRequest: numericString.default("0"),
   allowedCreditReasonCodes: z.array(z.string()).default([...BALANCE_ADJUSTMENT_REASONS.CREDIT]),
   allowedDebitReasonCodes: z.array(z.string()).default([...BALANCE_ADJUSTMENT_REASONS.DEBIT]),
   allowedTargetRoles: z.array(z.string()).default(['USER', 'SUPPORT']),
@@ -32,7 +34,7 @@ const upsertPolicySchema = z.object({
   requireOrderForDebit: z.boolean().default(false),
   blockBannedTargets: z.boolean().default(true),
   blockDeletedTargets: z.boolean().default(true),
-  autoExecuteBelow: z.string().default("0")
+  autoExecuteBelow: numericString.default("0")
 });
 
 export async function getBalancePoliciesAction() {
@@ -93,7 +95,7 @@ export async function upsertBalancePolicyAction(formData: FormData) {
 
     const parsed = upsertPolicySchema.safeParse(rawData);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0]?.message || " Ошибка валидации политики" };
+      return { success: false, error: parsed.error.issues[0]?.message || "Ошибка валидации политики" };
     }
 
     const data = parsed.data;

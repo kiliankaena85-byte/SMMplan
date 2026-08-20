@@ -2,6 +2,8 @@
 
 import React from "react";
 import { Package, Sparkles, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface SummaryDashboardProps {
   totalInCache: number;
@@ -85,14 +87,16 @@ export function SummaryDashboard({
             </p>
           </div>
         </div>
-        <button
+        <Button
+          intent="outline"
+          size="sm"
           onClick={onResync}
           disabled={syncing}
-          className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-2 rounded-[8px] border border-border hover:bg-muted transition-all duration-200 cursor-pointer disabled:opacity-50"
+          className="flex items-center gap-1.5 text-xs font-semibold"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
           {syncing ? "Синхронизация..." : "Обновить каталог"}
-        </button>
+        </Button>
       </div>
 
       {/* Stats Grid */}
@@ -121,20 +125,21 @@ export function SummaryDashboard({
           <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-0.5">
             Наценка (%)
           </label>
-          <input
+          <Input
             type="number"
             step="1"
             min="0"
             value={markup}
             onChange={(e) => onMarkupChange(e.target.value)}
-            className="w-28 h-10 text-sm border-border border rounded-[8px] px-3 bg-background focus:ring-1 focus:ring-primary outline-none transition-all duration-200 tabular-nums"
+            className="w-28 h-10 text-sm tabular-nums"
           />
         </div>
 
-        <button
+        <Button
+          intent="primary"
           onClick={onImport}
           disabled={importDisabled}
-          className="bg-primary hover:bg-primary/95 text-primary-foreground px-6 h-10 rounded-[8px] font-semibold text-sm transition-all duration-200 active:scale-[0.98] disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-sm"
+          className="h-10 px-6 font-semibold text-sm"
         >
           {importProgress !== null ? (
             <>
@@ -144,7 +149,7 @@ export function SummaryDashboard({
           ) : (
             <>📥 Импортировать выбранные ({selectedCount})</>
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

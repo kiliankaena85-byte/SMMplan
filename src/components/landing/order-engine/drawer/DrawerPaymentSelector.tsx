@@ -43,12 +43,12 @@ export function DrawerPaymentSelector({
   ];
 
   return (
-    <div className="bg-content2/60 border border-border/20 rounded-3xl p-4 space-y-3">
-      <label className="text-[11px] font-black text-muted-foreground uppercase tracking-wider block">
+    <div className="bg-card border border-border/80 rounded-2xl p-5 space-y-3.5 shadow-sm">
+      <label className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider block">
         Способ оплаты
       </label>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2.5">
         {paymentMethods.map((method) => {
           const isSelected = gateway === method.id;
           const Icon = method.icon;
@@ -58,26 +58,26 @@ export function DrawerPaymentSelector({
               key={method.id}
               type="button"
               onClick={() => setGateway(method.id)}
-              className={`w-full p-3 rounded-2xl border text-left flex items-start gap-3 transition-all duration-200 active:scale-[0.99] cursor-pointer ${
+              className={`w-full min-h-[56px] p-3.5 rounded-xl border text-left flex items-center gap-3.5 transition-all duration-200 active:scale-[0.99] cursor-pointer ${
                 isSelected
-                  ? "border-primary bg-primary/5 shadow-sm"
-                  : "border-border/50 bg-background hover:border-border hover:bg-content3"
+                  ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-xs"
+                  : "border-border/80 bg-background hover:border-border hover:bg-content2"
               }`}
             >
-              <div className={`p-2 rounded-xl shrink-0 ${isSelected ? method.color : "bg-content2 text-muted-foreground border border-border/40"}`}>
-                <Icon className="w-4 h-4" />
+              <div className={`p-2.5 rounded-xl shrink-0 ${isSelected ? method.color : "bg-content2 text-foreground/70 border border-border/80"}`}>
+                <Icon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0 pr-2">
-                <p className="text-xs font-extrabold text-foreground leading-tight">
+                <p className="text-sm font-black text-foreground leading-tight">
                   {method.name}
                 </p>
-                <p className="text-[10px] text-muted-foreground font-semibold mt-0.5 truncate leading-tight">
+                <p className="text-xs text-muted-foreground font-semibold mt-0.5 truncate leading-tight">
                   {method.description}
                 </p>
               </div>
               {isSelected && (
-                <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-sm self-center">
-                  <Check className="w-3 h-3" strokeWidth={3} />
+                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-xs self-center">
+                  <Check className="w-3.5 h-3.5" strokeWidth={3} />
                 </div>
               )}
             </button>

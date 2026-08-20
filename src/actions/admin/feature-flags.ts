@@ -14,7 +14,7 @@
 
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { featureFlagService, type FlagKey, type FlagState } from '@/services/system/feature-flag.service';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 
 /** List all feature flags with current state */
@@ -36,8 +36,8 @@ export async function setFeatureFlagState(key: FlagKey, state: FlagState) {
     const previous = await featureFlagService.getState(key);
     const updated = await featureFlagService.setState(key, state, admin.email);
 
-    // Audit log: record all flag changes (fire-and-forget, non-blocking)
-    auditAdmin({
+    // Audit log: record all flag changes
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'FEATURE_FLAG_CHANGE',

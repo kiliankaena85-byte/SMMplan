@@ -3,6 +3,7 @@
 import { db } from '@/lib/db';
 import { adminUserService } from '@/services/admin/user.service';
 import { escrowService } from '@/services/admin/escrow.service';
+import { WalletOps } from '@/services/financial/wallet-ops';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
@@ -18,11 +19,6 @@ import { SupportBalancePolicyService } from '@/services/financial/support-balanc
 
 export async function updateBalanceAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
-    // 1. Role Guard: SUPPORT cannot perform direct balance updates under any circumstances
-    if (admin.role === 'SUPPORT') {
-      return { success: false as const, error: 'Службе поддержки запрещено прямое изменение балансов. Используйте компенсацию в тикете или создайте заявку на согласование.' };
-    }
-
     const payload = Object.fromEntries(formData.entries());
     const parsed = updateBalanceSchema.safeParse(payload);
     
@@ -32,14 +28,14 @@ export async function updateBalanceAction(formData: FormData) {
 
     const { userId, amount, reason } = parsed.data;
 
-    // 2. SECURITY GUARD: Block self-balance modification (only OWNER permitted with audit warning)
+    // 1. SECURITY GUARD: Block self-balance modification (only OWNER permitted with audit warning)
     if (userId === admin.id && admin.role !== 'OWNER') {
       console.warn(`[SECURITY] Blocked self-balance modification attempt by ${admin.id} (${admin.role})`);
       return { success: false as const, error: 'Запрещено изменять собственный баланс' };
     }
 
-    // 3. Staff-Targeting Guard: Non-OWNER staff cannot adjust balance of other staff members
-    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
+    // 2. Staff-Targeting Guard: Non-OWNER staff cannot adjust balance of other staff members
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, balance: true } });
     if (!targetUser) {
       return { success: false as const, error: 'Пользователь не найден' };
     }
@@ -49,12 +45,44 @@ export async function updateBalanceAction(formData: FormData) {
       return { success: false as const, error: 'Только OWNER может изменять баланс других сотрудников' };
     }
 
+    // Overdraft Protection: prevent debiting more than available balance
+    if (amount < 0 && targetUser.balance < BigInt(Math.abs(amount))) {
+      return { 
+        success: false as const, 
+        error: `Недостаточно средств на балансе клиента. Доступно: ${(Number(targetUser.balance) / 100).toFixed(2)} ₽` 
+      };
+    }
+
     const ipAddress = await getClientIp('unknown');
     const reqHeaders = await headers();
     const userAgent = reqHeaders.get('user-agent') || 'Unknown';
-    const idempotencyKey = `direct-adjust-${userId}-${amount}-${Date.now()}`;
+    
+    const clientKey = (formData.get('idempotencyKey') as string)?.trim();
+    const idempotencyKey = clientKey || `direct-adjust-${userId}-${amount}-${Date.now()}`;
 
-    // 4. For non-OWNER staff, run through Policy Engine first
+    // Anti-Double-Click & Idempotency Lock
+    if (clientKey) {
+      const existingAdj = await db.manualBalanceAdjustment.findFirst({
+        where: { idempotencyKey: clientKey }
+      });
+      if (existingAdj) {
+        return { success: true as const, message: 'Операция уже зарегистрирована (защита от двойного клика)' };
+      }
+      const existingAction = await db.supportFinancialAction.findFirst({
+        where: { idempotencyKey: clientKey }
+      });
+      if (existingAction) {
+        return { success: true as const, message: 'Операция уже выполнена (защита от двойного клика)' };
+      }
+      const existingLedger = await db.ledgerEntry.findFirst({
+        where: { idempotencyKey: clientKey }
+      });
+      if (existingLedger) {
+        return { success: true as const, message: 'Операция уже выполнена (защита от двойного клика)' };
+      }
+    }
+
+    // 3. Policy Engine for SUPPORT & Non-OWNER staff (Green corridor / limit check)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let policyCheck: any = null;
     if (admin.role !== 'OWNER') {
@@ -64,7 +92,7 @@ export async function updateBalanceAction(formData: FormData) {
           targetUserId: userId,
           direction: amount >= 0 ? 'CREDIT' : 'DEBIT',
           amountCents: BigInt(Math.abs(amount)),
-          reasonCode: amount >= 0 ? 'DIRECT_CREDIT' : 'DIRECT_DEBIT',
+          reasonCode: amount >= 0 ? 'GOODWILL_LOYALTY' : 'DIRECT_DEBIT',
           reasonNote: reason.trim(),
           source: 'DIRECT_ADJUSTMENT',
           idempotencyKey,
@@ -74,7 +102,37 @@ export async function updateBalanceAction(formData: FormData) {
       });
 
       if (!policyCheck.allowed) {
-        return { success: false as const, error: policyCheck.error };
+        // If exceeding limit, auto-create a ManualBalanceAdjustment pending approval
+        const adj = await db.manualBalanceAdjustment.create({
+          data: {
+            userId,
+            requestedBy: admin.id,
+            direction: amount >= 0 ? 'CREDIT' : 'DEBIT',
+            amount: BigInt(Math.abs(amount)),
+            reasonCode: amount >= 0 ? 'GOODWILL_LOYALTY' : 'DIRECT_DEBIT',
+            reasonNote: reason.trim(),
+            status: 'PENDING_APPROVAL',
+            idempotencyKey,
+          }
+        });
+
+        await auditAdminAwaitable({
+          adminId: admin.id,
+          adminEmail: admin.email,
+          action: 'BALANCE_ADJUSTMENT_REQUESTED',
+          target: adj.id,
+          targetType: 'ManualBalanceAdjustment',
+          newValue: { amountCents: amount, reason: reason.trim(), status: 'PENDING_APPROVAL' },
+          ipAddress
+        });
+
+        revalidatePath(`/admin/clients/${userId}`);
+        revalidatePath('/admin/clients');
+        return { 
+          success: true as const, 
+          status: 'PENDING_APPROVAL', 
+          message: `Сумма превышает суточный лимит. Создана заявка #${adj.id.slice(-6)} на согласование администратору.` 
+        };
       }
     }
 
@@ -82,7 +140,8 @@ export async function updateBalanceAction(formData: FormData) {
       userId,
       amount,
       reason.trim(),
-      admin
+      admin,
+      idempotencyKey
     );
 
     // If policyCheck was executed, create a SupportFinancialAction record
@@ -102,7 +161,7 @@ export async function updateBalanceAction(formData: FormData) {
           direction: amount >= 0 ? 'CREDIT' : 'DEBIT',
           source: 'DIRECT_ADJUSTMENT',
           amountCents: BigInt(Math.abs(amount)),
-          reasonCode: amount >= 0 ? 'DIRECT_CREDIT' : 'DIRECT_DEBIT',
+          reasonCode: amount >= 0 ? 'GOODWILL_LOYALTY' : 'DIRECT_DEBIT',
           reasonNote: reason.trim(),
           policyId: policyCheck.policy.id,
           policySnapshot: JSON.parse(JSON.stringify(policyCheck.policy, (_, v) => typeof v === 'bigint' ? v.toString() : v)),
@@ -131,6 +190,191 @@ export async function updateBalanceAction(formData: FormData) {
     revalidatePath(`/admin/clients/${userId}`);
     revalidatePath('/admin/clients');
     return { success: true as const, status: escrowResult.status };
+  });
+}
+
+/**
+ * Two-Step Refund Gateway:
+ * Instantly debits user balance in the dashboard (to prevent double-spend),
+ * and creates a pending payout request for the financier to execute in YooKassa.
+ */
+export async function requestCardRefundAction(formData: FormData) {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
+    const userId = formData.get('userId') as string;
+    const paymentId = formData.get('paymentId') as string;
+    const amountKopecksRaw = formData.get('amountKopecks') as string;
+    const reason = (formData.get('reason') as string) || 'Возврат на карту по запросу клиента';
+
+    if (!userId || !paymentId || !amountKopecksRaw) {
+      return { success: false as const, error: 'Все поля обязательны' };
+    }
+
+    const amountKopecks = BigInt(amountKopecksRaw);
+    if (amountKopecks <= BigInt(0)) {
+      return { success: false as const, error: 'Сумма возврата должна быть больше 0' };
+    }
+
+    // 1. Verify target payment
+    const payment = await db.payment.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment || payment.userId !== userId) {
+      return { success: false as const, error: 'Платеж не найден или не принадлежит пользователю' };
+    }
+
+    if (payment.status !== 'SUCCEEDED') {
+      return { success: false as const, error: 'Возврат возможен только для успешно оплаченных платежей' };
+    }
+
+    if (amountKopecks > payment.amount) {
+      return { success: false as const, error: 'Сумма возврата не может превышать сумму исходного платежа' };
+    }
+
+    // 2. Verify target user balance
+    const user = await db.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { id: true, balance: true, email: true },
+    });
+
+    if (user.balance < amountKopecks) {
+      return { 
+        success: false as const, 
+        error: `Недостаточно средств на балансе клиента. Доступно: ${(Number(user.balance) / 100).toFixed(2)} ₽` 
+      };
+    }
+
+    const ipAddress = await getClientIp('unknown');
+    const clientKey = (formData.get('idempotencyKey') as string)?.trim();
+    const idempotencyKey = clientKey || `card-refund-${userId}-${paymentId}-${Date.now()}`;
+
+    if (clientKey) {
+      const existingAdj = await db.manualBalanceAdjustment.findFirst({
+        where: { idempotencyKey: clientKey }
+      });
+      if (existingAdj) {
+        return { success: true as const, message: 'Заявка на возврат уже создана (защита от двойного клика)' };
+      }
+    }
+
+    // 3. Atomically debit user balance and create financier payout request
+    const adjustment = await db.$transaction(async (tx) => {
+      // Step A: Debit balance immediately so client cannot spend it
+      const chargeResult = await WalletOps.charge(
+        tx,
+        userId,
+        amountKopecks,
+        `REFUND_TO_CARD: Запрос на возврат через ЮKassa (${payment.gatewayId || payment.id})`,
+        { idempotencyKey, adminId: admin.id }
+      );
+
+      // Step B: Create adjustment / refund ticket for financier
+      const adj = await tx.manualBalanceAdjustment.create({
+        data: {
+          userId,
+          requestedBy: admin.id,
+          direction: 'DEBIT',
+          amount: amountKopecks,
+          reasonCode: 'REFUND_TO_CARD',
+          reasonNote: reason.trim(),
+          paymentId: payment.id,
+          status: 'PENDING_APPROVAL',
+          idempotencyKey,
+        },
+      });
+
+      return { adj, newBalance: chargeResult.balance };
+    });
+
+    // Step C: Audit log
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'CARD_REFUND_REQUESTED',
+      target: adjustment.adj.id,
+      targetType: 'ManualBalanceAdjustment',
+      newValue: {
+        userId,
+        paymentId,
+        gatewayId: payment.gatewayId,
+        amountKopecks: amountKopecks.toString(),
+        reason: reason.trim(),
+      },
+      ipAddress,
+    });
+
+    revalidatePath(`/admin/clients/${userId}`);
+    revalidatePath('/admin/clients');
+    revalidatePath('/admin/finance/balance-requests');
+
+    return { 
+      success: true as const, 
+      message: `Баланс клиента списан на ${(Number(amountKopecks) / 100).toFixed(2)} ₽. Заявка на возврат через ЮKassa передана финансисту.` 
+    };
+  });
+}
+
+/**
+ * Update client B2B configuration and company accounting fields.
+ */
+export async function updateUserB2bAction(formData: FormData) {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
+    const userId = formData.get('userId') as string;
+    const isB2b = formData.get('isB2b') === 'true';
+    const prioritySupport = formData.get('prioritySupport') === 'true';
+    const companyName = (formData.get('companyName') as string)?.trim() || null;
+    const inn = (formData.get('inn') as string)?.trim() || null;
+    const kpp = (formData.get('kpp') as string)?.trim() || null;
+    const legalAddress = (formData.get('legalAddress') as string)?.trim() || null;
+    const webhookUrl = (formData.get('webhookUrl') as string)?.trim() || null;
+
+    if (!userId) {
+      return { success: false as const, error: 'ID пользователя обязателен' };
+    }
+
+    await db.$transaction(async (tx) => {
+      // 1. Update user fields
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          companyName,
+          inn,
+          kpp,
+          legalAddress,
+        },
+      });
+
+      // 2. Upsert B2B config
+      await tx.b2bConfig.upsert({
+        where: { userId },
+        create: {
+          userId,
+          isB2b,
+          prioritySupport,
+          webhookUrl,
+        },
+        update: {
+          isB2b,
+          prioritySupport,
+          webhookUrl,
+        },
+      });
+    });
+
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'UPDATE_CLIENT_B2B',
+      target: userId,
+      targetType: 'USER',
+      newValue: { isB2b, prioritySupport, companyName, inn, kpp, webhookUrl },
+      ipAddress,
+    });
+
+    revalidatePath(`/admin/clients/${userId}`);
+    revalidatePath('/admin/clients');
+    return { success: true as const, message: 'B2B реквизиты успешно сохранены' };
   });
 }
 
@@ -400,5 +644,170 @@ export async function adminDeleteUserAction(formData: FormData) {
 
     revalidatePath('/admin/clients');
     return { success: true as const };
+  });
+}
+
+const changeEmailSchema = z.object({
+  userId: z.string().min(1, 'Missing userId'),
+  newEmail: z.string().email('Некорректный формат email'),
+  reason: z.string().min(3, 'Укажите причину смены (мин. 3 символа)')
+});
+
+/**
+ * Изменение email пользователя (исправление опечаток или перенос)
+ */
+export async function adminChangeUserEmailAction(userId: string, newEmail: string, reason: string) {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
+    const parsed = changeEmailSchema.safeParse({ userId, newEmail, reason });
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.errors[0]?.message || 'Ошибка валидации' };
+    }
+
+    const cleanNewEmail = parsed.data.newEmail.toLowerCase().trim();
+
+    const targetUser = await db.user.findUnique({
+      where: { id: parsed.data.userId },
+      select: { id: true, email: true, balance: true, tenantId: true }
+    });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (targetUser.email.toLowerCase() === cleanNewEmail) {
+      return { success: false as const, error: 'Новый email совпадает с текущим' };
+    }
+
+    // Проверка коллизии: если email уже занят другим аккаунтом в рамках тенанта
+    const existingUser = await db.user.findUnique({
+      where: {
+        email_tenantId: {
+          email: cleanNewEmail,
+          tenantId: targetUser.tenantId
+        }
+      },
+      select: {
+        id: true,
+        balance: true,
+        _count: { select: { orders: true, payments: true } }
+      }
+    });
+
+    if (existingUser) {
+      // Если это аккаунт-пустышка без баланса и заказов — удаляем пустышку ради переноса
+      if (existingUser._count.orders === 0 && existingUser._count.payments === 0 && existingUser.balance === BigInt(0)) {
+        await db.user.delete({ where: { id: existingUser.id } });
+      } else {
+        return {
+          success: false as const,
+          error: `Пользователь с email ${cleanNewEmail} уже зарегистрирован и имеет историю заказов. Требуется слияние аккаунтов.`
+        };
+      }
+    }
+
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: parsed.data.userId },
+        data: { email: cleanNewEmail }
+      });
+      // Сброс старых сессий ради безопасности
+      await tx.session.deleteMany({ where: { userId: parsed.data.userId } });
+      await tx.authToken.deleteMany({ where: { userId: parsed.data.userId } });
+    });
+
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'ADMIN_CHANGE_USER_EMAIL',
+      target: parsed.data.userId,
+      targetType: 'USER',
+      oldValue: { email: targetUser.email },
+      newValue: { email: cleanNewEmail, reason: parsed.data.reason.trim() },
+      ipAddress
+    });
+
+    revalidatePath(`/admin/clients/${parsed.data.userId}`);
+    revalidatePath('/admin/clients');
+    return { success: true as const, message: `Email успешно изменен на ${cleanNewEmail}` };
+  });
+}
+
+/**
+ * Генерация одноразовой защищенной ссылки прямого входа (Magic Link) на 15 минут
+ */
+export async function adminGenerateMagicLinkAction(userId: string) {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
+    if (!userId) return { success: false as const, error: 'Missing userId' };
+
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, isActive: true, isDeleted: true }
+    });
+
+    if (!targetUser || targetUser.isDeleted || !targetUser.isActive) {
+      return { success: false as const, error: 'Пользователь не найден или заблокирован' };
+    }
+
+    const crypto = await import('crypto');
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 минут
+
+    await db.authToken.create({
+      data: {
+        token: hashedToken,
+        userId: targetUser.id,
+        expiresAt,
+        used: false
+      }
+    });
+
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'ADMIN_GENERATE_MAGIC_LINK',
+      target: targetUser.id,
+      targetType: 'USER',
+      newValue: { targetEmail: targetUser.email, expiresAt },
+      ipAddress
+    });
+
+    const magicUrl = `/api/auth/verify?token=${rawToken}`;
+    return { 
+      success: true as const, 
+      magicUrl,
+      expiresMinutes: 15,
+      message: 'Одноразовая ссылка прямого входа сгенерирована (действует 15 минут)' 
+    };
+  });
+}
+
+/**
+ * Принудительный сброс всех активных сессий пользователя (Force Logout everywhere)
+ */
+export async function adminRevokeUserSessionsAction(userId: string) {
+  return requireStaffPermission('finance', 'edit', async (admin) => {
+    if (!userId) return { success: false as const, error: 'Missing userId' };
+
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    await db.$transaction(async (tx) => {
+      await tx.session.deleteMany({ where: { userId } });
+      await tx.authToken.deleteMany({ where: { userId } });
+    });
+
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'ADMIN_REVOKE_USER_SESSIONS',
+      target: userId,
+      targetType: 'USER',
+      newValue: { targetEmail: targetUser.email },
+      ipAddress
+    });
+
+    revalidatePath(`/admin/clients/${userId}`);
+    return { success: true as const, message: 'Все активные сессии пользователя успешно завершены' };
   });
 }

@@ -15,7 +15,7 @@ export const metadata = {
 
 export default async function AdminKnowledgePage() {
   // 1. Strict access guard
-  await enforceSectionAccess('settings');
+  await enforceSectionAccess('content');
 
   // 2. Fetch all articles
   const articles = await db.article.findMany({
@@ -71,10 +71,10 @@ export default async function AdminKnowledgePage() {
 
         {/* Metric 3 */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+          <div className="absolute top-0 left-0 w-1 h-full bg-warning" />
           <div className="flex justify-between items-start mb-2">
             <span className="text-muted-foreground text-[10px] font-black uppercase tracking-wider">Всего просмотров</span>
-            <span className="text-amber-600 text-xs font-bold bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+            <span className="text-warning text-xs font-bold bg-warning/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
               <Eye className="w-3 h-3" /> Views
             </span>
           </div>

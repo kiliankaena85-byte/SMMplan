@@ -13,10 +13,16 @@ const inputCls =
   'text-sm font-semibold outline-none placeholder:text-muted-foreground ' +
   'focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 shadow-sm';
 
-export function LoginForm() {
+export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
   const [activeTab, setActiveTab] = useState<'magic' | 'password' | 'register'>('password'); // Password by default
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const submitBtnCls = isFlux
+    ? 'w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-full text-sm font-black bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]'
+    : 'w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-2xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]';
+
+  const linkHoverCls = isFlux ? 'hover:text-pink-500' : 'hover:text-primary';
 
   // 1. Magic Link Action
   const [magicState, magicFormAction, magicPending] = useActionState(requestMagicLink, {
@@ -108,7 +114,7 @@ export function LoginForm() {
             // Reset success state to try again
             window.location.reload();
           }}
-          className="text-xs font-bold text-blue-500 underline mt-2 hover:opacity-80 transition-opacity"
+          className="text-xs font-bold text-primary underline mt-2 hover:opacity-80 transition-opacity"
         >
           Вернуться на страницу входа
         </button>
@@ -119,13 +125,15 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       {/* High Contrast Tabs control */}
-      <div className="flex p-1 bg-muted/60 border border-border/80 rounded-full">
+      <div className={`flex p-1 bg-muted/60 border border-border/80 ${isFlux ? 'rounded-full' : 'rounded-2xl'}`}>
         <button
           type="button"
           onClick={() => setActiveTab('password')}
-          className={`flex-1 py-2 px-2 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${
+          className={`flex-1 py-2 px-2 text-xs font-bold transition-all duration-200 cursor-pointer ${
+            isFlux ? 'rounded-full' : 'rounded-xl'
+          } ${
             activeTab === 'password'
-              ? 'bg-card text-foreground shadow-sm'
+              ? isFlux ? 'bg-card text-foreground shadow-sm' : 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground font-semibold'
           }`}
         >
@@ -134,9 +142,11 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setActiveTab('magic')}
-          className={`flex-1 py-2 px-2 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${
+          className={`flex-1 py-2 px-2 text-xs font-bold transition-all duration-200 cursor-pointer ${
+            isFlux ? 'rounded-full' : 'rounded-xl'
+          } ${
             activeTab === 'magic'
-              ? 'bg-card text-foreground shadow-sm'
+              ? isFlux ? 'bg-card text-foreground shadow-sm' : 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground font-semibold'
           }`}
         >
@@ -145,9 +155,11 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => setActiveTab('register')}
-          className={`flex-1 py-2 px-2 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${
+          className={`flex-1 py-2 px-2 text-xs font-bold transition-all duration-200 cursor-pointer ${
+            isFlux ? 'rounded-full' : 'rounded-xl'
+          } ${
             activeTab === 'register'
-              ? 'bg-card text-foreground shadow-sm'
+              ? isFlux ? 'bg-card text-foreground shadow-sm' : 'bg-primary text-primary-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground font-semibold'
           }`}
         >
@@ -209,7 +221,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={isPending || !email || !password}
-            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-full text-sm font-black bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]"
+            className={submitBtnCls}
           >
             {isPending ? (
               <>
@@ -226,11 +238,11 @@ export function LoginForm() {
 
           <p className="text-center text-[11px] font-medium text-muted-foreground leading-relaxed px-2 mt-3">
             Нажимая кнопку, вы соглашаетесь с{' '}
-            <Link href="/legal/terms" className="underline font-bold text-foreground hover:text-purple-600 transition-colors">
+            <Link href="/legal/terms" className={`underline font-bold text-foreground ${linkHoverCls} transition-colors`}>
               Условиями сервиса
             </Link>{' '}
             и{' '}
-            <Link href="/legal/privacy" className="underline font-bold text-foreground hover:text-purple-600 transition-colors">
+            <Link href="/legal/privacy" className={`underline font-bold text-foreground ${linkHoverCls} transition-colors`}>
               Политикой конфиденциальности
             </Link>
           </p>
@@ -271,7 +283,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={magicPending}
-            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-full text-sm font-black bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]"
+            className={submitBtnCls}
           >
             {magicPending ? (
               <>
@@ -288,11 +300,11 @@ export function LoginForm() {
 
           <p className="text-center text-[11px] leading-tight text-muted-foreground px-2">
             Нажимая кнопку, вы принимаете условия{' '}
-            <Link href="/legal/terms" className="underline hover:text-purple-600 transition-colors">
+            <Link href="/legal/terms" className={`underline ${linkHoverCls} transition-colors`}>
               Публичной оферты
             </Link>{' '}
             и даете согласие на обработку данных согласно{' '}
-            <Link href="/legal/privacy" className="underline hover:text-purple-600 transition-colors">
+            <Link href="/legal/privacy" className={`underline ${linkHoverCls} transition-colors`}>
               Политике конфиденциальности
             </Link>
           </p>
@@ -351,7 +363,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={registerPending || !registerEmail || registerPassword.length < 8}
-            className="w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-full text-sm font-black bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]"
+            className={submitBtnCls}
           >
             {registerPending ? (
               <>
@@ -365,15 +377,14 @@ export function LoginForm() {
               </>
             )}
           </button>
-
-          <p className="text-center text-[11px] leading-tight text-muted-foreground px-2">
-            Нажимая кнопку, вы принимаете условия{' '}
-            <Link href="/legal/terms" className="underline hover:text-purple-600 transition-colors">
-              Публичной оферты
+          <p className="text-center text-[11px] font-medium text-muted-foreground leading-relaxed px-2 mt-3">
+            Создавая аккаунт, вы принимаете{' '}
+            <Link href="/legal/terms" className={`underline font-bold text-foreground ${linkHoverCls} transition-colors`}>
+              Условия сервиса
             </Link>{' '}
-            и даете согласие на обработку данных согласно{' '}
-            <Link href="/legal/privacy" className="underline hover:text-purple-600 transition-colors">
-              Политике конфиденциальности
+            и{' '}
+            <Link href="/legal/privacy" className={`underline font-bold text-foreground ${linkHoverCls} transition-colors`}>
+              Политику конфиденциальности
             </Link>
           </p>
         </form>

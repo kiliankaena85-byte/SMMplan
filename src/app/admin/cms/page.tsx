@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function AdminCmsPage() {
-  await enforceSectionAccess('settings');
+  await enforceSectionAccess('content');
 
   const items = await prisma.contentItem.findMany({
     orderBy: { createdAt: "desc" },

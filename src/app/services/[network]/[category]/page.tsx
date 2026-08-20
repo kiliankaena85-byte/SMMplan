@@ -290,6 +290,7 @@ export default async function CategoryServicesPage({
             initialNetworkId={currentNetwork.id}
             userBalanceCents={0}
             tenantId={tenantId}
+            initialServices={services}
             customHeroTitle={
               <>
                 Купить {cleanCatName} <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">{currentNetwork.name}</span>

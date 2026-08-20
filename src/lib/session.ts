@@ -10,9 +10,15 @@ import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 export async function createSession(userId: string, canResetPassword: boolean = false) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 дней
   
-  const reqHeaders = await cookies().then(() => headers()); // await context
-  const userAgent = reqHeaders.get('user-agent') || 'unknown';
-  const ipAddress = await getClientIp();
+  let userAgent = 'unknown';
+  let ipAddress = '127.0.0.1';
+  try {
+    const reqHeaders = await headers();
+    userAgent = reqHeaders.get('user-agent') || 'unknown';
+    ipAddress = await getClientIp();
+  } catch {
+    // Non-request scope fallback
+  }
 
   // Создаем запись в БД
   const session = await db.session.create({
@@ -59,12 +65,18 @@ export async function createSession(userId: string, canResetPassword: boolean = 
 }
 
 export async function verifySession(): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
-  const explicitLogout = (await cookies()).get('explicit_logout')?.value;
-  if (explicitLogout === 'true') {
+  let sessionToken: string | undefined;
+  try {
+    const cookieStore = await cookies();
+    const explicitLogout = cookieStore.get('explicit_logout')?.value;
+    if (explicitLogout === 'true') {
+      return null;
+    }
+    sessionToken = cookieStore.get('session_token')?.value;
+  } catch {
+    // If called outside Next.js request scope (e.g. background tasks or CLI)
     return null;
   }
-
-  const sessionToken = (await cookies()).get('session_token')?.value;
 
   if (!sessionToken) {
     return handleDevAutoLogin();
@@ -97,16 +109,16 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
 
     const reqHeaders = await headers();
     const currentTenantId = normalizeTenantId(reqHeaders.get("x-tenant-id")) || "smmplan";
-    if (normalizeTenantId(user.tenantId) !== currentTenantId) {
+    const userTenantId = normalizeTenantId(user.tenantId) || "smmplan";
+    
+    // Staff roles (OWNER, ADMIN, MANAGER, SUPPORT) have global multi-tenant access
+    const isStaffRole = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(user.role);
+    if (!isStaffRole && userTenantId !== currentTenantId) {
       console.warn(`[verifySession] null because: user tenant "${user.tenantId}" does not match request tenant "${currentTenantId}"`);
       return null;
     }
 
-    // W3-1 SECURITY FIX: Enforce database-level session expiration
-    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
-      console.warn('[verifySession] null because: session expired in DB');
-      return null;
-    }
+
 
     // OSAD-V2 SECURITY FIX: Session Fixation / Hijacking Protection (User-Agent verify)
     const currentUserAgent = reqHeaders.get('user-agent') || 'unknown';

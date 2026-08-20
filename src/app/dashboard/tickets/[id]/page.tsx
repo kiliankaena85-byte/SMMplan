@@ -3,8 +3,9 @@ import { verifySession } from '@/lib/session';
 import { notFound, redirect } from 'next/navigation';
 import { addTicketMessage } from '@/actions/support/ticket';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Clock } from 'lucide-react';
 import ChatWindow from '@/components/support/ChatWindow';
+import { getSupportSlaInfo } from '@/utils/support-sla';
 
 export const dynamic = 'force-dynamic';
 
@@ -219,30 +220,36 @@ export default async function ClientTicketChatPage({
 
   const isClosed = ticket.status === 'CLOSED';
 
-  return (
-    <div className="space-y-4 animate-in fade-in duration-500 flex flex-col h-[calc(100dvh-13rem)] md:h-[calc(100dvh-7rem)] min-h-[350px] md:min-h-[500px]">
-      {/* Header / breadcrumb */}
-      <div className="flex items-center gap-3 shrink-0">
-        <Link
-          href="/dashboard/tickets"
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200 min-h-[44px]"
-          aria-label="Назад к списку тикетов"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Поддержка
-        </Link>
-      </div>
+      const sla = getSupportSlaInfo();
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold text-foreground leading-tight truncate">
-            {ticket.subject}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Вы можете общаться здесь или переписываться в Telegram (работаем с 09:00 до 21:00 МСК)
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+      return (
+        <div className="space-y-4 animate-in fade-in duration-500 flex flex-col h-[calc(100dvh-13rem)] md:h-[calc(100dvh-7rem)] min-h-[350px] md:min-h-[500px]">
+          {/* Header / breadcrumb */}
+          <div className="flex items-center gap-3 shrink-0">
+            <Link
+              href="/dashboard/tickets"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200 min-h-[44px]"
+              aria-label="Назад к списку тикетов"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Поддержка
+            </Link>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-foreground leading-tight truncate">
+                {ticket.subject}
+              </h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md border ${sla.bgClass} ${sla.borderClass} ${sla.colorClass}`}>
+                  <Clock className="w-3 h-3" />
+                  {sla.badgeLabel}
+                </span>
+                <span className="text-[11px] text-muted-foreground hidden sm:inline">• Работаем 24/7</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
           <a
             href="/api/support/telegram"
             className="inline-flex items-center gap-2 text-xs font-semibold bg-brand-telegram hover:opacity-90 text-primary-foreground px-4 h-11 rounded-xl shadow-sm transition-all duration-200 active:scale-95 touch-manipulation min-h-[44px]"

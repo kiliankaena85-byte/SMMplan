@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function AdminEditArticlePage({ params }: PageProps) {
   // 1. Strict access guard
-  await enforceSectionAccess('settings');
+  await enforceSectionAccess('content');
 
   // 2. Resolve parameters & fetch article
   const { id } = await params;

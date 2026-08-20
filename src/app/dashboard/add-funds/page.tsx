@@ -1,20 +1,18 @@
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-import { Suspense } from "react";
-import ClientPage from "./client-page";
-import { Metadata } from "next";
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: "Пополнение баланса | SMMplan",
-  description: "Пополните баланс личного кабинета SMMplan для быстрой оплаты заказов и услуг продвижения.",
-};
+export default async function AddFundsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const queryString = new URLSearchParams(
+    Object.entries(params).flatMap(([k, v]) =>
+      Array.isArray(v) ? v.map((item) => [k, item]) : v !== undefined ? [[k, v]] : []
+    )
+  ).toString();
 
-export default function Page() {
-  return (
-    <Suspense fallback={
-      <div className="max-w-lg animate-pulse text-muted-foreground">Загрузка...</div>
-    }>
-      <ClientPage />
-    </Suspense>
-  );
+  redirect(`/dashboard/finance?tab=deposit${queryString ? `&${queryString}` : ''}`);
 }

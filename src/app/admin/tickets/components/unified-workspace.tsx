@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import figmaStyles from '@/utils/figma-styles.json';
 import { useTheme } from 'next-themes';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
-import { OrderDrawer } from '@/components/admin/OrderDrawer';
+import { OrderDetailsModal } from '@/components/admin/OrderDetailsModal';
 
 
 
@@ -328,8 +328,8 @@ export function UnifiedTicketsWorkspace({
               {/* Main Chat Panel Container */}
               <div className="flex-1 flex flex-col h-full overflow-hidden">
                 {/* Header block */}
-                <div className="p-4 border-b border-border/50 flex justify-between items-center shrink-0 bg-card/60 backdrop-blur-md text-card-foreground">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div className="p-3.5 border-b border-border/50 flex justify-between items-center gap-3 shrink-0 bg-card/60 backdrop-blur-md text-card-foreground">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {isMobile && (
                       <Button
                         intent="ghost"
@@ -414,7 +414,7 @@ export function UnifiedTicketsWorkspace({
                   )}
 
                   {/* Header Actions */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <TicketActionsDropdown
                       ticketId={activeTicket.id}
                       currentStatus={activeTicket.status}
@@ -424,10 +424,10 @@ export function UnifiedTicketsWorkspace({
                     <Button
                       intent="ghost"
                       onClick={() => setShowProfile(!showProfile)}
-                      className="min-h-[44px] min-w-[44px] touch-target-expand rounded-xl p-0 flex items-center justify-center cursor-pointer text-primary-foreground hover:bg-primary-foreground/10"
+                      className="min-h-[44px] min-w-[44px] touch-target-expand rounded-xl p-0 flex items-center justify-center cursor-pointer text-foreground hover:bg-muted border border-border"
                       title="Профиль клиента"
                     >
-                      <Info className="w-5 h-5 text-primary-foreground" />
+                      <Info className="w-5 h-5 text-foreground" />
                     </Button>
                   </div>
                 </div>
@@ -599,8 +599,8 @@ export function UnifiedTicketsWorkspace({
                 </Drawer>
               )}
 
-              {/* ── ORDER DETAILS & ACTIONS DRAWER (Mobile and Desktop) ── */}
-              <OrderDrawer
+              {/* ── ORDER DETAILS & ACTIONS MODAL (Wide Bento Window) ── */}
+              <OrderDetailsModal
                 order={isOrderDrawerOpen ? selectedOrder : null}
                 onClose={() => {
                   setIsOrderDrawerOpen(false);

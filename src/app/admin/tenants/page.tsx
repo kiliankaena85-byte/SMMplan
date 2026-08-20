@@ -8,6 +8,10 @@ const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
 
 export const dynamic = 'force-dynamic';
 
+import { Globe } from 'lucide-react';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { SYSTEM_TABS } from '@/components/admin/navigation-data';
+
 export default async function AdminTenantsPage() {
   const session = await verifySession();
   if (!session?.role || !ADMIN_ROLES.includes(session.role)) {
@@ -31,7 +35,14 @@ export default async function AdminTenantsPage() {
   });
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-4">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out min-h-full pb-10">
+      <AdminTabbedHeader
+        icon={Globe}
+        title="Бренды и Мульти-арендаторы"
+        description="Управление изолированными витринами (SMMplan, SMMflux), доменами и отдельными настройками."
+        tabs={SYSTEM_TABS}
+      />
+
       <TenantsManager initialTenants={tenants} />
     </div>
   );

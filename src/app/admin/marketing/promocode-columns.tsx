@@ -12,6 +12,7 @@ import { useTransition, useState } from 'react';
 import { toast } from 'sonner';
 import { Switch, Modal as HeroUIModal, ModalHeader, ModalBody, ModalFooter } from '@heroui/react';
 import { cn } from '@/lib/utils';
+import { formatRubles } from '@/utils/format-price';
 
 // Cast Modal with standard dot notation sub-components for HeroUI compliance
 const Modal = Object.assign(HeroUIModal, {
@@ -175,7 +176,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
       const p = row.original;
       return (
         <span className="tabular-nums font-extrabold text-foreground text-xs">
-          {p.type === 'DISCOUNT' ? `${p.discountPercent}%` : `${p.amount} ₽`}
+          {p.type === 'DISCOUNT' ? `${p.discountPercent}%` : formatRubles(p.amount)}
         </span>
       );
     },
@@ -210,7 +211,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
       const budgetRub = Number(row.original.budgetCents) / 100;
       return (
         <span className="tabular-nums font-mono font-bold text-foreground text-xs">
-          {budgetRub.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 })}
+          {formatRubles(budgetRub)}
         </span>
       );
     },
@@ -223,7 +224,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
       const ltvRub = usages.reduce((sum, u) => sum + (u.revenueCents || 0), 0) / 100;
       return (
         <span className="tabular-nums font-mono font-bold text-foreground text-xs">
-          {ltvRub.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 })}
+          {formatRubles(ltvRub)}
         </span>
       );
     },
@@ -242,7 +243,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
             ? 'bg-success/10 text-success border border-success/20' 
             : 'bg-destructive/10 text-destructive border border-destructive/20'
         )}>
-          {isPositive ? '+' : ''}{profitRub.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 })}
+          {isPositive ? '+' : ''}{formatRubles(profitRub)}
         </span>
       );
     },
@@ -261,7 +262,7 @@ export const columns: ColumnDef<PromoCodeWithUsages>[] = [
       const cacRub = budgetRub / count;
       return (
         <span className="tabular-nums font-mono font-bold text-foreground text-xs">
-          {cacRub.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 })}
+          {formatRubles(cacRub)}
         </span>
       );
     },

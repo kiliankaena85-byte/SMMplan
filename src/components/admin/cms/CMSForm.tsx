@@ -11,14 +11,15 @@ import { Label } from "@/components/ui/label";
 import { createContent, updateContent, publishContent, unpublishContent } from "@/actions/admin/content";
 import DynamicEditor from "./DynamicEditor";
 
+type ContentType = "PAGE" | "ACADEMY_LESSON" | "GLOSSARY_TERM" | "NEWS_POST";
+
 // Встроенный тип для обхода ошибки кэширования TS Server (Prisma)
 type ContentItemData = {
   id: string;
   title: string;
   slug: string;
   type: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  contentJson: any;
+  contentJson: string | null;
   excerpt: string | null;
   isPublished: boolean;
 };
@@ -35,7 +36,7 @@ export default function CMSForm({ initialData }: CMSFormProps) {
   // Локальный стейт формы
   const [title, setTitle] = useState(initialData?.title || "");
   const [slug, setSlug] = useState(initialData?.slug || "");
-  const [type, setType] = useState(initialData?.type || "PAGE");
+  const [type, setType] = useState<ContentType>((initialData?.type as ContentType) || "PAGE");
   const [excerpt, setExcerpt] = useState<string>(initialData?.excerpt || "");
   const [contentJson, setContentJson] = useState(initialData?.contentJson || "");
 
@@ -47,8 +48,7 @@ export default function CMSForm({ initialData }: CMSFormProps) {
       if (isEditing) {
         // Просто сохраняем JSON в базу без тяжелой HTML-генерации
         const res = await updateContent(initialData.id, {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          title, slug, type: type as any, excerpt, contentJson
+          title, slug, type, excerpt, contentJson
         });
         if (!res.success) setError(res.error || "Ошибка сохранения черновика");
       } else {
@@ -77,8 +77,7 @@ export default function CMSForm({ initialData }: CMSFormProps) {
 
       // Сначала сохраняем последние изменения черновика
       await updateContent(initialData.id, {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        title, slug, type: type as any, excerpt, contentJson
+        title, slug, type, excerpt, contentJson
       });
 
       // Запускаем тяжелую конвертацию HTML (blocksToHTMLLossy)

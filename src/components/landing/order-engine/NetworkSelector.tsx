@@ -41,6 +41,10 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleNetworkSelect = (net: any) => {
     setNetworkId(net.id);
+    engine.setSelectedService(null);
+    if (net.categories && net.categories.length > 0) {
+      engine.setCategoryId(net.categories[0].id);
+    }
     setShowAllNetworks(false);
 
     try {

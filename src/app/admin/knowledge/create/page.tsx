@@ -9,7 +9,7 @@ export const metadata = {
 
 export default async function AdminCreateArticlePage() {
   // Strict page role guard
-  await enforceSectionAccess('settings');
+  await enforceSectionAccess('content');
 
   return (
     <div className="min-h-full pb-10">

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useTransition, useState } from 'react';
 import { toast } from 'sonner';
 import { cancelOrderAction } from '@/actions/admin/orders';
-import { X, Edit2, Zap, Timer, Snail, Turtle, ArrowUpDown } from 'lucide-react';
+import { X, Edit2, Zap, Timer, Snail, Turtle, ArrowUpDown, Copy, Check } from 'lucide-react';
 import { formatEta } from '@/utils/format-eta';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 
@@ -32,6 +32,7 @@ export type OrderColumn = {
   user: { email: string };
   providerName: string | null;
   providerTicketUrl?: string | null;
+  tenantId?: string;
   service: { 
     name: string;
     etaP50Seconds: number | null;
@@ -45,6 +46,21 @@ export type OrderColumn = {
     };
   };
 };
+
+export function TenantBrandBadge({ tenantId }: { tenantId?: string | null }) {
+  if (tenantId === 'flux') {
+    return (
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 whitespace-nowrap shadow-2xs">
+        🌌 SMMflux
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 whitespace-nowrap shadow-2xs">
+      🏛️ SMMplan
+    </span>
+  );
+}
 
 // ── Speed Class Visual Config ──
 
@@ -189,6 +205,160 @@ function EtaTooltipContent({ service }: { service: OrderColumn['service'] }) {
 
 // ── Column Definitions ──
 
+function InfoColumnCell({ order, canSeeRates }: { order: OrderColumn; canSeeRates: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const s = order.service;
+  const netName = s.category.network?.name || 'Платформа';
+  const catName = s.category.name;
+  const srvName = s.name;
+  const dateFormatted = new Date(order.createdAt).toISOString().replace('T', ' ').slice(0, 19);
+
+  const handleCopyLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(order.link);
+      setCopied(true);
+      toast.success('Ссылка скопирована в буфер');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Не удалось скопировать ссылку');
+    }
+  };
+
+  return (
+    <div className="flex flex-col text-xs leading-relaxed text-foreground py-1 max-w-[400px] whitespace-normal break-words space-y-1">
+      {/* 1. Соцсеть · Категория · Название */}
+      <div className="flex items-center gap-1.5 flex-wrap font-medium">
+        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px] uppercase select-none tracking-wide">
+          {netName}
+        </span>
+        <span className="font-bold text-foreground text-xs">
+          {catName}
+        </span>
+        <span className="text-muted-foreground font-normal">·</span>
+        <span className="text-muted-foreground font-medium truncate max-w-[200px]" title={srvName}>
+          «{srvName}»
+        </span>
+      </div>
+
+      {/* 2. Ссылка с кнопкой копирования */}
+      <div className="flex items-center gap-1.5 text-[11px] font-mono">
+        <span className="text-muted-foreground shrink-0 select-none">Ссылка:</span>
+        <a
+          href={order.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sky-600 dark:text-sky-400 hover:underline break-all font-medium truncate max-w-[280px]"
+          title={order.link}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {order.link}
+        </a>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all cursor-pointer shrink-0 active:scale-90"
+          title="Скопировать ссылку"
+        >
+          {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+
+      {/* 3. Количество, остаток и точная дата создания */}
+      <div className="flex items-center gap-2 text-[11px] tabular-nums text-muted-foreground flex-wrap pt-0.5">
+        <span>
+          Кол-во: <strong className="text-foreground">{order.quantity.toLocaleString('ru-RU')} шт.</strong>
+        </span>
+        {order.remains > 0 ? (
+          <span className="text-amber-600 dark:text-amber-400 font-semibold">
+            (остаток: {order.remains.toLocaleString('ru-RU')})
+          </span>
+        ) : (
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+            (остаток: 0)
+          </span>
+        )}
+        <span>·</span>
+        <span className="text-zinc-500 dark:text-zinc-400 font-mono text-[10px]" title="Дата создания">
+          🕒 {dateFormatted}
+        </span>
+      </div>
+
+      {/* 4. Раскрывающийся спойлер деталей провайдера */}
+      <details className="mt-1 group/details" onClick={(e) => e.stopPropagation()}>
+        <summary className="text-sky-600 dark:text-sky-400 hover:text-sky-700 cursor-pointer text-[10px] select-none list-none inline-flex items-center gap-1 font-semibold transition-colors">
+          <span className="group-open/details:hidden">▸ Показать детали</span>
+          <span className="hidden group-open/details:inline">▾ Скрыть детали</span>
+        </summary>
+
+        <div className="mt-1.5 p-2 rounded-lg bg-muted/50 border border-border/60 text-[11px] space-y-1 font-mono">
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-muted-foreground font-sans">Провайдер:</span>
+            <span className="font-semibold text-foreground flex items-center gap-1.5">
+              {order.providerName || '—'}
+              {order.providerTicketUrl && (
+                <a
+                  href={order.providerTicketUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95 font-sans"
+                  title="Открыть поддержку провайдера"
+                >
+                  Поддержка ↗
+                </a>
+              )}
+            </span>
+          </div>
+
+          {order.externalId && (
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-muted-foreground font-sans">ID у провайдера:</span>
+              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                #{order.externalId}
+                {order.providerTicketUrl && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (typeof window !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(order.externalId!);
+                        toast.success(`Внешний ID (${order.externalId}) скопирован`);
+                      }
+                      window.open(order.providerTicketUrl!, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer font-sans"
+                    title="Скопировать ID и открыть тикет"
+                  >
+                    Тикет ↗
+                  </button>
+                )}
+              </span>
+            </div>
+          )}
+
+          {order.error && (
+            <div className="mt-1 p-1.5 bg-destructive/10 border border-destructive/20 rounded text-destructive text-[10px] leading-tight break-words">
+              <strong>Ошибка провайдера:</strong> {order.error}
+            </div>
+          )}
+
+          {order.isDripFeed && order.dripExternalIds && order.dripExternalIds.length > 0 && (
+            <div className="flex items-center gap-1 text-[10px] flex-wrap pt-0.5">
+              <span className="text-muted-foreground font-sans">Drip запуски:</span>
+              {order.dripExternalIds.map((id, idx) => (
+                <span key={idx} className="bg-purple-500/10 text-purple-600 border border-purple-500/20 px-1 py-0.5 rounded text-[9px]">
+                  #{id}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+// ── Column Definitions ──
+
 export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] => [
   {
     id: 'select',
@@ -225,7 +395,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     header: ({ column }) => (
       <button
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs"
+        className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs cursor-pointer"
       >
         ЗАКАЗ
         <ArrowUpDown className="w-3 h-3 ml-1" />
@@ -234,15 +404,14 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     cell: ({ row }) => {
       const order = row.original;
       const email = order.user.email;
-      const dateStr = new Date(order.createdAt).toLocaleString('ru-RU', { 
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit'
-      });
       return (
-        <div className="flex flex-col text-xs leading-normal py-1 space-y-0.5 min-w-[125px]">
-          <span className="font-bold text-foreground tabular-nums text-xs">
-            #{order.numericId}
-          </span>
+        <div className="flex flex-col text-xs leading-normal py-1 space-y-0.5 min-w-[130px]">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-bold text-foreground tabular-nums text-xs">
+              #{order.numericId}
+            </span>
+            <TenantBrandBadge tenantId={order.tenantId} />
+          </div>
           <Link
             href={`/admin/clients?q=${encodeURIComponent(email)}`}
             className="text-sky-600 hover:text-sky-800 hover:underline text-xs font-semibold truncate max-w-[150px]"
@@ -251,180 +420,14 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
           >
             {email}
           </Link>
-          <span className="text-[10px] text-muted-foreground tabular-nums select-none">
-            {dateStr}
-          </span>
         </div>
       );
     },
   },
   {
     id: 'info',
-    header: 'УСЛУГА И ССЫЛКА',
-    cell: ({ row }) => {
-      const order = row.original;
-      return (
-        <div className="flex flex-col text-xs leading-relaxed text-foreground py-1 max-w-[320px] sm:max-w-[360px] md:max-w-[400px] whitespace-normal break-words space-y-0.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="px-1.5 py-0.5 rounded bg-muted font-bold text-foreground text-[10px] uppercase select-none tracking-wide">
-              {order.service.category.network?.name || '—'}
-            </span>
-            <span className="font-semibold text-muted-foreground text-[11px]">
-              {order.service.category.name}
-            </span>
-          </div>
-          <div className="font-bold text-foreground leading-snug">
-            {order.service.name}
-          </div>
-          <div className="flex items-start gap-1">
-            <span className="text-muted-foreground shrink-0 select-none">Ссылка:</span>{' '}
-            <a
-              href={order.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky-600 hover:underline break-all font-mono text-[11px]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {order.link}
-            </a>
-          </div>
-          <details className="mt-1.5 group">
-            <summary className="text-sky-600 hover:text-sky-800 cursor-pointer text-[10px] select-none list-none inline-flex items-center transition-colors font-semibold">
-              <span className="group-open:hidden">Показать детали</span>
-              <span className="hidden group-open:inline">Скрыть детали</span>
-            </summary>
-            <div className="mt-1 pt-1 border-t border-border/80 text-xs text-foreground space-y-1">
-              <div className="flex justify-between gap-2 items-center">
-                <span className="text-muted-foreground select-none">Провайдер:</span>
-                <span className="font-semibold text-foreground flex items-center gap-1.5">
-                  {order.providerName || '—'}
-                  {order.providerTicketUrl && (
-                    <a
-                      href={order.providerTicketUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95"
-                      onClick={(e) => e.stopPropagation()}
-                      title="Открыть поддержку провайдера"
-                    >
-                      Поддержка ↗
-                    </a>
-                  )}
-                </span>
-              </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground select-none">Цена за 1 шт:</span>
-                <span className="font-mono text-foreground tabular-nums">
-                  {(order.quantity > 0 ? (Number(BigInt(order.charge)) / 100) / order.quantity : 0).toFixed(4)} ₽
-                </span>
-              </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground select-none">Цена за 1к:</span>
-                <span className="font-mono text-foreground tabular-nums">
-                  {(order.quantity > 0 ? ((Number(BigInt(order.charge)) / 100) / order.quantity) * 1000 : 0).toFixed(2)} ₽
-                </span>
-              </div>
-              {canSeeRates && (
-                <>
-                  <div className="flex justify-between gap-2 items-center">
-                    <span className="text-muted-foreground select-none">ID у провайдера:</span>
-                    <span className="font-mono text-foreground flex items-center gap-1.5">
-                      {order.externalId || '—'}
-                      {order.externalId && order.providerTicketUrl && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (typeof window !== 'undefined' && navigator.clipboard) {
-                              navigator.clipboard.writeText(order.externalId!);
-                              toast.success(`Внешний ID (${order.externalId}) скопирован в буфер обмена!`);
-                            }
-                            window.open(order.providerTicketUrl!, '_blank', 'noopener,noreferrer');
-                          }}
-                          className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer"
-                          title="Скопировать ID и открыть тикет у провайдера"
-                        >
-                          Тикет ↗
-                        </button>
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground select-none">Себестоимость:</span>
-                    <span className="tabular-nums tracking-tight font-semibold text-foreground font-mono">
-                      {(Number(BigInt(order.providerCost)) / 100).toFixed(2)} ₽
-                    </span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground select-none">Себестоимость за 1 шт:</span>
-                    <span className="font-mono text-foreground tabular-nums">
-                      {(order.quantity > 0 ? (Number(BigInt(order.providerCost)) / 100) / order.quantity : 0).toFixed(4)} ₽
-                    </span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-muted-foreground select-none">Себестоимость за 1к:</span>
-                    <span className="font-mono text-foreground tabular-nums">
-                      {(order.quantity > 0 ? ((Number(BigInt(order.providerCost)) / 100) / order.quantity) * 1000 : 0).toFixed(2)} ₽
-                    </span>
-                  </div>
-                </>
-              )}
-              {order.error && (
-                <div className="flex flex-col mt-1 bg-destructive/5 border border-destructive/20 rounded p-1.5">
-                  <span className="text-[9px] uppercase font-bold text-destructive select-none">Ошибка провайдера:</span>
-                  <span className="text-destructive break-words font-mono mt-0.5 leading-tight text-[10px]">{order.error}</span>
-                </div>
-              )}
-              {order.isDripFeed && order.dripExternalIds && order.dripExternalIds.length > 0 && (
-                <div className="flex flex-col mt-1">
-                  <span className="text-muted-foreground font-semibold text-[10px] select-none">Drip запуски:</span>
-                  <div className="flex flex-wrap gap-1 mt-0.5">
-                    {order.dripExternalIds.map((id, idx) => (
-                      <span key={idx} className="bg-purple-100/60 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20 px-1 py-0.5 rounded text-[9px] font-mono">
-                        #{id}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </details>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: 'quantity',
-    id: 'quantity',
-    header: () => (
-      <div className="text-right font-bold text-foreground text-xs">
-        КОЛ-ВО
-      </div>
-    ),
-    cell: ({ row }) => {
-      const quantity = row.original.quantity;
-      return (
-        <div className="text-right font-mono tabular-nums text-xs font-semibold py-1">
-          {quantity.toLocaleString('ru-RU')}
-        </div>
-      );
-    }
-  },
-  {
-    accessorKey: 'remains',
-    id: 'remains',
-    header: () => (
-      <div className="text-right font-bold text-foreground text-xs">
-        ОСТАТОК
-      </div>
-    ),
-    cell: ({ row }) => {
-      const remains = row.original.remains;
-      return (
-        <div className={`text-right font-mono tabular-nums text-xs font-semibold py-1 ${remains > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
-          {remains.toLocaleString('ru-RU')}
-        </div>
-      );
-    }
+    header: 'ИНФОРМАЦИЯ О ЗАКАЗЕ',
+    cell: ({ row }) => <InfoColumnCell order={row.original} canSeeRates={canSeeRates} />,
   },
   {
     accessorKey: 'charge',
@@ -432,9 +435,9 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
       <div className="flex justify-end">
         <button
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs"
+          className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs cursor-pointer"
         >
-          СТОИМОСТЬ
+          СУММА
           <ArrowUpDown className="w-3 h-3 ml-1" />
         </button>
       </div>

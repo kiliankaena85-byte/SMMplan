@@ -401,7 +401,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-foreground">Google Gemini AI & Прокси для РФ</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                  gemini-3.7-flash
+                  gemini-3-flash
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">

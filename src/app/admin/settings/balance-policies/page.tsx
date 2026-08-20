@@ -38,11 +38,11 @@ import { AdminBreadcrumbs } from "@/components/admin/AdminBreadcrumbs";
 
 export default function BalancePoliciesPage() {
   const [policies, setPolicies] = useState<PolicyItem[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [shakeKey, setShakeKey] = useState(0);
 
   // Form State for Global Policy
   const [globalEnabled, setGlobalEnabled] = useState(true);
@@ -76,8 +76,9 @@ export default function BalancePoliciesPage() {
           setRequireTicket(globalPol.requireTicket);
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to load policies:", err);
+      setError(err instanceof Error ? err.message : "Не удалось загрузить политики");
     } finally {
       setLoading(false);
     }
@@ -86,6 +87,12 @@ export default function BalancePoliciesPage() {
   useEffect(() => {
     fetchPolicies();
   }, []);
+
+  const parseRubToCents = (rubStr: string): string => {
+    const val = parseFloat(rubStr.trim());
+    if (isNaN(val) || val < 0) return "0";
+    return BigInt(Math.round(val * 100)).toString();
+  };
 
   const handleSaveGlobal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,11 +113,11 @@ export default function BalancePoliciesPage() {
     formData.append("canReject", "true");
     formData.append("canViewAll", "true");
     formData.append("canViewStats", "true");
-    formData.append("maxCreditPerRequest", (BigInt(Math.round(parseFloat(maxCreditPerReqRub || "0") * 100))).toString());
-    formData.append("maxDebitPerRequest", (BigInt(Math.round(parseFloat(maxDebitPerReqRub || "0") * 100))).toString());
-    formData.append("maxCreditPerDay", (BigInt(Math.round(parseFloat(maxCreditPerDayRub || "0") * 100))).toString());
-    formData.append("maxDebitPerDay", (BigInt(Math.round(parseFloat(maxDebitPerDayRub || "0") * 100))).toString());
-    formData.append("maxApprovalPerRequest", (BigInt(Math.round(parseFloat(maxApprovalRub || "0") * 100))).toString());
+    formData.append("maxCreditPerRequest", parseRubToCents(maxCreditPerReqRub));
+    formData.append("maxDebitPerRequest", parseRubToCents(maxDebitPerReqRub));
+    formData.append("maxCreditPerDay", parseRubToCents(maxCreditPerDayRub));
+    formData.append("maxDebitPerDay", parseRubToCents(maxDebitPerDayRub));
+    formData.append("maxApprovalPerRequest", parseRubToCents(maxApprovalRub));
     formData.append("requireTicket", requireTicket ? "true" : "false");
     formData.append("blockBannedTargets", "true");
     formData.append("blockDeletedTargets", "true");
@@ -126,10 +133,11 @@ export default function BalancePoliciesPage() {
         fetchPolicies();
       } else {
         setError(res.error || "Не удалось сохранить политику");
+        setShakeKey(Date.now());
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err.message || "Ошибка системы");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Ошибка системы");
+      setShakeKey(Date.now());
     } finally {
       setSaving(false);
     }
@@ -160,142 +168,177 @@ export default function BalancePoliciesPage() {
       </div>
 
       {msg && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-sm">{msg}</div>}
-      {error && <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-sm">{error}</div>}
-
-      {/* Global Policy Card */}
-      <div className="bg-card border border-border rounded-xl p-6 shadow-xs space-y-6">
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Глобальная политика (GLOBAL)</h2>
-            <p className="text-xs text-muted-foreground">Применяется ко всем сотрудникам, если не задана персональная политика</p>
-          </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={globalEnabled}
-              onChange={(e) => setGlobalEnabled(e.target.checked)}
-              className="w-4 h-4 text-primary rounded"
-            />
-            <span className="text-sm font-medium text-foreground">Включена</span>
-          </label>
+      {error && (
+        <div
+          key={shakeKey}
+          className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-sm animate-shake"
+        >
+          {error}
         </div>
+      )}
 
-        <form onSubmit={handleSaveGlobal} className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <label className="flex items-center gap-2 p-3 bg-muted/40 rounded-lg border border-border">
+      {loading ? (
+        <div className="bg-card border border-border rounded-xl p-6 shadow-xs space-y-4 animate-pulse">
+          <div className="h-6 w-1/3 bg-muted rounded-md" />
+          <div className="h-4 w-1/2 bg-muted/60 rounded-md" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+            <div className="h-12 bg-muted/40 rounded-lg" />
+            <div className="h-12 bg-muted/40 rounded-lg" />
+            <div className="h-12 bg-muted/40 rounded-lg" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="h-14 bg-muted/40 rounded-lg" />
+            <div className="h-14 bg-muted/40 rounded-lg" />
+            <div className="h-14 bg-muted/40 rounded-lg" />
+            <div className="h-14 bg-muted/40 rounded-lg" />
+          </div>
+        </div>
+      ) : (
+        /* Global Policy Card */
+        <div className="bg-card border border-border rounded-xl p-6 shadow-xs space-y-6">
+          <div className="flex items-center justify-between border-b border-border pb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Глобальная политика (GLOBAL)</h2>
+              <p className="text-xs text-muted-foreground">Применяется ко всем сотрудникам, если не задана персональная политика</p>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={canCredit}
-                onChange={(e) => setCanCredit(e.target.checked)}
+                checked={globalEnabled}
+                onChange={(e) => setGlobalEnabled(e.target.checked)}
                 className="w-4 h-4 text-primary rounded"
               />
-              <span className="text-xs font-medium text-foreground">Разрешить запрашивать CREDIT (+)</span>
-            </label>
-
-            <label className="flex items-center gap-2 p-3 bg-muted/40 rounded-lg border border-border">
-              <input
-                type="checkbox"
-                checked={canDebit}
-                onChange={(e) => setCanDebit(e.target.checked)}
-                className="w-4 h-4 text-primary rounded"
-              />
-              <span className="text-xs font-medium text-foreground">Разрешить запрашивать DEBIT (-)</span>
-            </label>
-
-            <label className="flex items-center gap-2 p-3 bg-muted/40 rounded-lg border border-border">
-              <input
-                type="checkbox"
-                checked={canApprove}
-                onChange={(e) => setCanApprove(e.target.checked)}
-                className="w-4 h-4 text-primary rounded"
-              />
-              <span className="text-xs font-medium text-foreground">Разрешить утверждать заявки</span>
+              <span className="text-sm font-medium text-foreground">Включена</span>
             </label>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Макс. разовое начисление (₽)
-              </label>
-              <input
-                type="number"
-                value={maxCreditPerReqRub}
-                onChange={(e) => setMaxCreditPerReqRub(e.target.value)}
-                className="w-full p-2 bg-background border border-border rounded-lg text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Макс. разовое списание (₽)
-              </label>
-              <input
-                type="number"
-                value={maxDebitPerReqRub}
-                onChange={(e) => setMaxDebitPerReqRub(e.target.value)}
-                className="w-full p-2 bg-background border border-border rounded-lg text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Дневной лимит начислений (₽)
-              </label>
-              <input
-                type="number"
-                value={maxCreditPerDayRub}
-                onChange={(e) => setMaxCreditPerDayRub(e.target.value)}
-                className="w-full p-2 bg-background border border-border rounded-lg text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Дневной лимит списаний (₽)
-              </label>
-              <input
-                type="number"
-                value={maxDebitPerDayRub}
-                onChange={(e) => setMaxDebitPerDayRub(e.target.value)}
-                className="w-full p-2 bg-background border border-border rounded-lg text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Лимит утверждения за раз (0 = безлимит для OWNER)
-              </label>
-              <input
-                type="number"
-                value={maxApprovalRub}
-                onChange={(e) => setMaxApprovalRub(e.target.value)}
-                className="w-full p-2 bg-background border border-border rounded-lg text-sm"
-              />
-            </div>
-
-            <div className="flex items-center">
-              <label className="flex items-center gap-2">
+          <form onSubmit={handleSaveGlobal} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <label className="flex items-center gap-2 p-3 bg-muted/40 rounded-lg border border-border">
                 <input
                   type="checkbox"
-                  checked={requireTicket}
-                  onChange={(e) => setRequireTicket(e.target.checked)}
+                  checked={canCredit}
+                  onChange={(e) => setCanCredit(e.target.checked)}
                   className="w-4 h-4 text-primary rounded"
                 />
-                <span className="text-xs font-medium text-foreground">Обязательно требовать Ticket ID</span>
+                <span className="text-xs font-medium text-foreground">Разрешить запрашивать CREDIT (+)</span>
+              </label>
+
+              <label className="flex items-center gap-2 p-3 bg-muted/40 rounded-lg border border-border">
+                <input
+                  type="checkbox"
+                  checked={canDebit}
+                  onChange={(e) => setCanDebit(e.target.checked)}
+                  className="w-4 h-4 text-primary rounded"
+                />
+                <span className="text-xs font-medium text-foreground">Разрешить запрашивать DEBIT (-)</span>
+              </label>
+
+              <label className="flex items-center gap-2 p-3 bg-muted/40 rounded-lg border border-border">
+                <input
+                  type="checkbox"
+                  checked={canApprove}
+                  onChange={(e) => setCanApprove(e.target.checked)}
+                  className="w-4 h-4 text-primary rounded"
+                />
+                <span className="text-xs font-medium text-foreground">Разрешить утверждать заявки</span>
               </label>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="py-2.5 px-6 bg-primary text-primary-foreground font-semibold rounded-lg text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {saving ? "Сохранение..." : "Сохранить глобальные политики"}
-          </button>
-        </form>
-      </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Макс. разовое начисление (₽)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={maxCreditPerReqRub}
+                  onChange={(e) => setMaxCreditPerReqRub(e.target.value)}
+                  className="w-full p-2 bg-background border border-border rounded-lg text-sm text-foreground"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Макс. разовое списание (₽)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={maxDebitPerReqRub}
+                  onChange={(e) => setMaxDebitPerReqRub(e.target.value)}
+                  className="w-full p-2 bg-background border border-border rounded-lg text-sm text-foreground"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Дневной лимит начислений (₽)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={maxCreditPerDayRub}
+                  onChange={(e) => setMaxCreditPerDayRub(e.target.value)}
+                  className="w-full p-2 bg-background border border-border rounded-lg text-sm text-foreground"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Дневной лимит списаний (₽)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={maxDebitPerDayRub}
+                  onChange={(e) => setMaxDebitPerDayRub(e.target.value)}
+                  className="w-full p-2 bg-background border border-border rounded-lg text-sm text-foreground"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Лимит утверждения за раз (0 = безлимит для OWNER)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={maxApprovalRub}
+                  onChange={(e) => setMaxApprovalRub(e.target.value)}
+                  className="w-full p-2 bg-background border border-border rounded-lg text-sm text-foreground"
+                />
+              </div>
+
+              <div className="flex items-center">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={requireTicket}
+                    onChange={(e) => setRequireTicket(e.target.checked)}
+                    className="w-4 h-4 text-primary rounded"
+                  />
+                  <span className="text-xs font-medium text-foreground">Обязательно требовать Ticket ID</span>
+                </label>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="py-2.5 px-6 bg-primary text-primary-foreground font-semibold rounded-lg text-sm hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
+            >
+              {saving ? "Сохранение..." : "Сохранить глобальные политики"}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

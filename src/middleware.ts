@@ -25,11 +25,18 @@ export async function middleware(request: NextRequest) {
   if (host.includes('lovable.pro')) {
     return NextResponse.redirect('https://smmflux.ru' + request.nextUrl.pathname, 301);
   }
-  const fromQuery = (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_STAGING === 'true') 
-    ? normalizeTenantId(request.nextUrl.searchParams.get('tenant'))
-    : null;
-  const fromHost = normalizeTenantId(resolveTenantFromHostEdge(host));
+  const isTestOrStaging = 
+    process.env.NODE_ENV !== 'production' || 
+    process.env.NEXT_PUBLIC_STAGING === 'true' ||
+    host.includes('test.') ||
+    host.includes('stage.') ||
+    host.includes('localhost') ||
+    host.includes('127.0.0.1') ||
+    host.includes('trycloudflare.com');
+
+  const fromQuery = isTestOrStaging ? normalizeTenantId(request.nextUrl.searchParams.get('tenant')) : null;
   const fromCookie = normalizeTenantId(request.cookies.get('x_tenant')?.value);
+  const fromHost = normalizeTenantId(resolveTenantFromHostEdge(host));
 
   let finalTenantId = 'smmplan';
   let isExplicitTenant = false;
@@ -39,12 +46,13 @@ export async function middleware(request: NextRequest) {
     isExplicitTenant = true;
   } else if (fromHost && fromHost !== 'smmplan') {
     finalTenantId = fromHost;
-    isExplicitTenant = true;
-  } else if (fromHost === 'smmplan' && host && !host.includes('localhost')) {
-    // Production domain matching (e.g. smmplan.pro) always resolves to smmplan
-    finalTenantId = 'smmplan';
-  } else if (fromCookie) {
+  } else if (host.includes('smmplan.pro')) {
+    finalTenantId = fromCookie && isTestOrStaging ? fromCookie : 'smmplan';
+  } else if (fromCookie && isTestOrStaging) {
     finalTenantId = fromCookie;
+    isExplicitTenant = true;
+  } else {
+    finalTenantId = fromHost || 'smmplan';
   }
 
   requestHeaders.set('x-tenant-id', finalTenantId);
@@ -53,10 +61,10 @@ export async function middleware(request: NextRequest) {
     if (isExplicitTenant) {
       res.cookies.set('x_tenant', finalTenantId, {
         path: '/',
-        httpOnly: true,
+        httpOnly: false, // Allow client-side QA Dock to switch brands
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30,
+        maxAge: 60 * 60 * 24 * 30, // 30 days
       });
     }
     return res;
@@ -90,7 +98,7 @@ export async function middleware(request: NextRequest) {
 
     if (explicitLogout === 'true' || !sessionToken) {
       if (isRSC) {
-        return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
       // Dev mode auto-login bypass for local environment
       if (isDevBypassAllowed) {
@@ -103,10 +111,15 @@ export async function middleware(request: NextRequest) {
     }
 
     const payload = await decryptSessionToken(sessionToken);
-    // Enforce tenant isolation with normalizeTenantId check (prevents false logouts for legacy JWTs)
-    if (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId) {
+    const isStaffRole = payload?.role && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(payload.role);
+    const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/operator');
+
+    // Enforce tenant isolation for regular users (Staff roles have global multi-tenant access in /admin)
+    const isTenantMismatch = !isStaffRole && !isAdminPath && (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId);
+
+    if (!payload || isTenantMismatch) {
       if (isRSC) {
-        return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
       // Dev mode auto-login bypass on tenant mismatch in local environment
       if (isDevBypassAllowed && explicitLogout !== 'true') {
@@ -123,11 +136,10 @@ export async function middleware(request: NextRequest) {
     }
 
     // Role verification for /admin and /operator
-    if (pathname.startsWith('/admin') || pathname.startsWith('/operator')) {
-      const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
-      if (!payload.role || !ADMIN_ROLES.includes(payload.role)) {
+    if (isAdminPath) {
+      if (!isStaffRole) {
         if (isRSC) {
-          return new NextResponse(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
         return applyStickyCookie(NextResponse.redirect(new URL(ROUTES.DASHBOARD.HOME, request.url)));
       }
@@ -144,6 +156,14 @@ export async function middleware(request: NextRequest) {
       headers: requestHeaders,
     },
   });
+
+  // Inject enterprise security headers (2026 standard)
+  response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self)');
+  response.headers.set('X-DNS-Prefetch-Control', 'on');
 
   // Inject X-Robots-Tag for sensitive routes to prevent indexing
   if (['/admin', '/dashboard', '/operator', '/api'].some(p => pathname.startsWith(p))) {

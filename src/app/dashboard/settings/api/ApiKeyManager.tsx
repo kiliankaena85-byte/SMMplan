@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { generateApiKeyAction, resetApiKeyAction, revokeApiKeyAction } from '@/actions/user/settings-extra';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Copy, RefreshCw, Trash2, CheckCheck, ShieldAlert } from 'lucide-react';
+import { RefreshCw, Trash2, CheckCheck, ShieldAlert, Key } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function ApiKeyManager({ 
   hasKey, 
@@ -25,9 +26,12 @@ export default function ApiKeyManager({
     startTransition(async () => {
       const res = await (newKey ? resetApiKeyAction() : generateApiKeyAction());
       if (!res.success) {
-        setError(res.error || 'Ошибка при генерации ключа');
+        const errMsg = res.error || 'Ошибка при генерации ключа';
+        setError(errMsg);
+        toast.error(errMsg);
       } else {
         setNewKey(res.apiKey || null);
+        toast.success('API-ключ успешно сгенерирован!');
         if (onKeyGenerated && res.apiKey) {
           onKeyGenerated(res.apiKey);
         }
@@ -47,9 +51,12 @@ export default function ApiKeyManager({
     startTransition(async () => {
       const res = await revokeApiKeyAction();
       if (!res.success) {
-        setError(res.error || 'Ошибка при отзыве ключа');
+        const errMsg = res.error || 'Ошибка при отзыве ключа';
+        setError(errMsg);
+        toast.error(errMsg);
       } else {
         setNewKey(null);
+        toast.success('API-ключ успешно отозван');
       }
     });
   };
@@ -59,9 +66,10 @@ export default function ApiKeyManager({
     try {
       await navigator.clipboard.writeText(newKey);
       setCopied(true);
+      toast.success('API-ключ скопирован в буфер обмена');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard unavailable
+      toast.error('Не удалось скопировать ключ');
     }
   };
 
@@ -71,26 +79,26 @@ export default function ApiKeyManager({
         <div className="space-y-4">
           {/* Key display */}
           {newKey ? (
-            <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-xl space-y-3 animate-in fade-in zoom-in-95 duration-300">
-              <div className="flex items-center gap-2 text-emerald-800">
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-3 animate-in fade-in zoom-in-95 duration-300">
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
                 <CheckCheck className="w-5 h-5" />
                 <span className="font-semibold text-sm">Новый API-ключ сгенерирован</span>
               </div>
-              <p className="text-xs text-emerald-700/80">
-                Скопируйте ключ прямо сейчас. В целях безопасности он больше никогда не будет показан.
+              <p className="text-xs text-muted-foreground">
+                Скопируйте ключ прямо сейчас. В целях безопасности он больше никогда не будет показан в открытом виде.
               </p>
               <div className="flex gap-2">
-                <div className="flex-1 min-w-0 bg-card border border-emerald-200 rounded-lg px-4 py-2.5 font-mono text-sm text-foreground truncate select-all">
+                <div className="flex-1 min-w-0 bg-background border border-emerald-500/30 rounded-xl px-4 py-2.5 font-mono text-sm text-foreground truncate select-all">
                   {newKey}
                 </div>
                 <button
                   type="button"
                   onClick={copyKey}
                   aria-label="Скопировать API-ключ"
-                  className={`shrink-0 px-4 py-2.5 rounded-lg border font-medium text-sm transition-all duration-200 ${
+                  className={`shrink-0 px-4 py-2.5 rounded-xl border font-semibold text-xs transition-all duration-200 ${
                     copied
-                      ? 'bg-emerald-600 border-emerald-600 text-primary-foreground shadow-sm'
-                      : 'bg-card border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                      : 'bg-card border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20'
                   }`}
                 >
                   {copied ? 'Скопировано!' : 'Скопировать'}
@@ -99,11 +107,11 @@ export default function ApiKeyManager({
             </div>
           ) : (
             <div className="bg-muted/30 border border-border rounded-xl p-4 flex items-start gap-3">
-              <ShieldAlert className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
+              <ShieldAlert className="w-5 h-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-foreground">API-ключ активен</p>
+                <p className="text-sm font-semibold text-foreground">API-ключ активен (SHA-256)</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  В целях безопасности ключ скрыт и не может быть восстановлен. Если вы его забыли, сгенерируйте новый.
+                  В целях безопасности ключ захеширован и скрыт. Если вы его потеряли, сгенерируйте новый токен.
                 </p>
               </div>
             </div>
@@ -111,68 +119,72 @@ export default function ApiKeyManager({
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2 pt-2">
-            <button
+            <Button
               type="button"
               onClick={handleGenerate}
               disabled={isPending}
-              aria-label="Перегенерировать API-ключ"
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 disabled:opacity-50 transition-all duration-200"
+              intent="secondary"
+              size="sm"
+              className="rounded-xl text-xs font-semibold gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
-              Сгенерировать новый
-            </button>
+              <RefreshCw className={`w-3.5 h-3.5 ${isPending ? 'animate-spin' : ''}`} />
+              <span>Сгенерировать новый</span>
+            </Button>
 
             {confirmRevoke ? (
-              <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 animate-in fade-in">
-                <span className="text-xs text-rose-700 font-semibold">Отозвать ключ навсегда?</span>
+              <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-xl px-3 py-1.5 animate-in fade-in">
+                <span className="text-xs text-destructive font-semibold">Отозвать ключ навсегда?</span>
                 <button
                   type="button"
                   onClick={handleRevoke}
                   disabled={isPending}
-                  className="text-xs font-bold text-rose-700 underline hover:no-underline"
+                  className="text-xs font-bold text-destructive underline hover:no-underline"
                 >
                   Да, удалить
                 </button>
               </div>
             ) : (
-              <button
+              <Button
                 type="button"
                 onClick={handleRevoke}
                 disabled={isPending}
-                aria-label="Отозвать API-ключ"
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-rose-600 bg-rose-50/50 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-lg disabled:opacity-50 transition-all duration-200"
+                intent="destructive"
+                size="sm"
+                className="rounded-xl text-xs font-semibold gap-2"
               >
-                <Trash2 className="w-4 h-4" />
-                Отозвать
-              </button>
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Отозвать</span>
+              </Button>
             )}
           </div>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-muted/30 border border-border rounded-xl p-4 text-sm text-muted-foreground">
-            У вас ещё нет API-ключа. Сгенерируйте его чтобы начать использовать B2B API.
+          <div className="bg-muted/30 border border-border rounded-xl p-4 text-xs text-muted-foreground">
+            У вас ещё не создан API-ключ. Сгенерируйте его для доступа к REST API SMMplan (создание заказов, проверка баланса).
           </div>
-          <button
+          <Button
             type="button"
             onClick={handleGenerate}
             disabled={isPending}
-            aria-label="Сгенерировать API-ключ"
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-all duration-200 shadow-sm"
+            intent="primary"
+            size="sm"
+            isAnimated={true}
+            className="rounded-xl text-xs font-semibold gap-2 shadow-sm"
           >
-            <RefreshCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
-            Сгенерировать ключ
-          </button>
+            <Key className="w-3.5 h-3.5" />
+            <span>{isPending ? 'Генерация...' : 'Сгенерировать API-ключ'}</span>
+          </Button>
         </div>
       )}
 
       {error && (
-        <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-4 py-3 animate-in slide-in-from-top-1">
+        <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 animate-in slide-in-from-top-1">
           {error}
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground pt-2">
+      <p className="text-[11px] text-muted-foreground pt-1">
         Никогда не передавайте API-ключ третьим лицам. При компрометации немедленно отзовите его.
       </p>
     </div>

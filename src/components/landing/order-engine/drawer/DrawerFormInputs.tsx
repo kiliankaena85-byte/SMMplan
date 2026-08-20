@@ -46,11 +46,11 @@ export function DrawerFormInputs({
   };
 
   return (
-    <div className="bg-content2/60 border border-border/20 rounded-3xl p-4 pb-5 space-y-3.5">
+    <div className="bg-card border border-border/80 rounded-2xl p-5 space-y-4 shadow-sm">
       {/* Custom Fields (Comments / Answer Option, etc.) */}
       {customFieldLabel && (
-        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
-          <label className="text-[11px] font-black text-muted-foreground uppercase tracking-wider block">
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <label className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider block">
             {customFieldLabel}
           </label>
           <div className="relative">
@@ -59,7 +59,7 @@ export function DrawerFormInputs({
                 value={customData}
                 onChange={(e) => handleCustomDataChange(e.target.value)}
                 placeholder="Каждая строка — новый комментарий..."
-                className="w-full min-h-[100px] p-3 rounded-2xl border border-border/50 bg-background text-xs font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm resize-y"
+                className="w-full min-h-[110px] p-3.5 rounded-xl border border-border/80 bg-background text-sm font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs resize-y"
               />
             ) : (
               <input
@@ -67,21 +67,21 @@ export function DrawerFormInputs({
                 value={customData}
                 onChange={(e) => handleCustomDataChange(e.target.value)}
                 placeholder={isPoll ? "Например: 2" : "Слова через запятую..."}
-                className="w-full h-11 px-3 rounded-2xl border border-border/50 bg-background text-xs font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
+                className="w-full h-12 px-3.5 rounded-xl border border-border/80 bg-background text-sm font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs"
               />
             )}
           </div>
           {isCustomComments && (
-            <div className="space-y-1 mt-1 ml-1">
-              <p className="text-[10px] text-muted-foreground">
+            <div className="space-y-1 mt-1.5 ml-1">
+              <p className="text-xs text-muted-foreground font-medium">
                 Количество заказа автоматически установится равным числу комментариев.
               </p>
               {engine.quantity < (selectedService?.minQty || 10) ? (
-                <p className="text-[10px] font-bold text-destructive animate-pulse">
+                <p className="text-xs font-bold text-destructive animate-pulse">
                   ⚠️ Вы ввели {engine.quantity} {engine.quantity === 1 ? "комментарий" : engine.quantity < 5 && engine.quantity > 0 ? "комментария" : "комментариев"}. Для заказа требуется минимум {selectedService?.minQty || 10}.
                 </p>
               ) : (
-                <p className="text-[10px] font-bold text-success">
+                <p className="text-xs font-bold text-success">
                   ✓ Введено {engine.quantity} комментариев (минимум {selectedService?.minQty || 10}).
                 </p>
               )}
@@ -91,8 +91,8 @@ export function DrawerFormInputs({
       )}
 
       {/* Email Input Block */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] font-black text-muted-foreground uppercase tracking-wider block">
+      <div className="space-y-2">
+        <label className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider block">
           Электронная почта
         </label>
         <motion.div
@@ -100,8 +100,8 @@ export function DrawerFormInputs({
           transition={{ duration: 0.4 }}
           className="relative"
         >
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-            <Mail className="w-4 h-4" />
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary">
+            <Mail className="w-5 h-5" />
           </div>
           <input
             type="email"
@@ -109,31 +109,31 @@ export function DrawerFormInputs({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className={`w-full h-11 pl-9 pr-3 rounded-2xl border bg-background text-xs font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm ${
+            className={`w-full h-13 pl-11 pr-4 rounded-xl border bg-background text-sm sm:text-base font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs ${
               emailHasError
                 ? "border-destructive focus:border-destructive ring-2 ring-destructive/20 text-destructive"
-                : "border-border/50"
+                : "border-border/80"
             }`}
           />
         </motion.div>
-        <p className="text-[10px] text-muted-foreground ml-1">
+        <p className="text-xs text-muted-foreground font-medium ml-1">
           {emailHasError ? (
-            <span className="text-destructive font-bold">Введите корректный email адрес</span>
+            <span className="text-destructive font-bold">Введите корректный email адрес для чека</span>
           ) : (
-            "Для отправки электронного чека и отслеживания статуса"
+            "Для отправки электронного чека 54-ФЗ и отслеживания заказа"
           )}
         </p>
       </div>
 
       {/* Promo Code Input Block */}
-      <div className="space-y-1.5 pt-1">
+      <div className="space-y-2 pt-1">
         {!showPromo ? (
           <button
             type="button"
             onClick={() => setShowPromo(true)}
-            className="w-full h-11 border border-dashed border-border/60 hover:border-primary/50 bg-background hover:bg-primary/5 text-[10px] font-black uppercase text-muted-foreground hover:text-primary rounded-2xl flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-[0.99] shadow-sm cursor-pointer"
+            className="w-full h-12 border border-dashed border-border/90 hover:border-primary/70 bg-background hover:bg-primary/5 text-xs font-black uppercase tracking-wider text-foreground hover:text-primary rounded-xl flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.99] shadow-2xs cursor-pointer"
           >
-            <Ticket className="w-3.5 h-3.5" />
+            <Ticket className="w-4 h-4 text-primary" />
             <span>У меня есть промокод</span>
           </button>
         ) : (
@@ -144,9 +144,9 @@ export function DrawerFormInputs({
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                 placeholder="ПРОМОКОД"
-                className="w-full h-11 px-3 pr-8 rounded-2xl border border-border/50 bg-background text-xs font-mono font-black tracking-widest uppercase text-foreground focus:border-primary outline-none transition-all shadow-sm"
+                className="w-full h-12 px-4 pr-10 rounded-xl border border-border/80 bg-background text-sm font-mono font-black tracking-widest uppercase text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs"
               />
-              <span className="absolute -top-2 left-3 text-[9px] font-black text-muted-foreground bg-background px-1.5 rounded-md uppercase tracking-wider border border-border/40">
+              <span className="absolute -top-2.5 left-3 text-[10px] font-black text-primary bg-background px-2 py-0.5 rounded-md uppercase tracking-wider border border-border/80">
                 Промокод
               </span>
               <button
@@ -155,9 +155,9 @@ export function DrawerFormInputs({
                   setPromoCode("");
                   setShowPromo(false);
                 }}
-                className="absolute top-1/2 -translate-y-1/2 right-3 w-5 h-5 rounded-full bg-muted hover:bg-muted-foreground/20 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-all"
+                className="absolute top-1/2 -translate-y-1/2 right-3 w-6 h-6 rounded-full bg-content2 hover:bg-content3 flex items-center justify-center text-foreground cursor-pointer transition-all active:scale-90"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

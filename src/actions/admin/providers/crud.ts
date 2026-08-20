@@ -3,8 +3,9 @@
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { VaultService } from "@/lib/vault";
-import { auditAdmin } from "@/lib/admin-audit";
+import { auditAdminAwaitable } from "@/lib/admin-audit";
 import { providerService } from "@/services/providers/provider.service";
+import { getBaseUrlAsync } from "@/utils/get-base-url";
 import { z } from "zod";
 
 const apiMappingSchema = z.object({
@@ -108,7 +109,7 @@ export async function createProvider(rawData: {
         }
       });
 
-      auditAdmin({
+      await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: "PROVIDER_CREATE",
@@ -179,7 +180,7 @@ export async function updateProvider(rawId: string, rawData: {
         data: updateData
       });
 
-      auditAdmin({
+      await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: "PROVIDER_UPDATE",
@@ -450,4 +451,113 @@ export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMe
             return { success: false, error: e.message || "Failed to infer schema" };
         }
     });
+}
+
+/**
+ * ⚡ Quick Action: Toggle provider active status directly from table.
+ */
+export async function toggleProviderActiveAction(providerId: string, isActive: boolean) {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
+    try {
+      const id = idSchema.parse(providerId);
+      const provider = await db.provider.update({
+        where: { id },
+        data: { isActive },
+      });
+
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "PROVIDER_TOGGLE_ACTIVE",
+        target: provider.id,
+        targetType: "PROVIDER",
+        newValue: { isActive: provider.isActive, name: provider.name },
+      });
+
+      return { success: true as const, isActive: provider.isActive };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return { success: false as const, error: errMsg };
+    }
+  });
+}
+
+/**
+ * 🧹 Quick Action: Reset provider 5-minute error counter back to 0.
+ */
+export async function resetProviderErrorsAction(providerId: string) {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
+    try {
+      const id = idSchema.parse(providerId);
+      const provider = await db.provider.update({
+        where: { id },
+        data: { errorCount5m: 0 },
+      });
+
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "PROVIDER_RESET_ERRORS",
+        target: provider.id,
+        targetType: "PROVIDER",
+        newValue: { errorCount5m: 0, name: provider.name },
+      });
+
+      return { success: true as const };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return { success: false as const, error: errMsg };
+    }
+  });
+}
+
+/**
+ * 🧪 Quick Action: Connect local Mock Provider in 1 click for instant safe testing.
+ */
+export async function createMockProviderPresetAction() {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
+    try {
+      const existing = await db.provider.findFirst({
+        where: { apiUrl: { contains: 'mock-provider' } },
+      });
+
+      if (existing) {
+        // Just make sure it is active
+        await db.provider.update({
+          where: { id: existing.id },
+          data: { isActive: true, errorCount5m: 0 },
+        });
+        return { success: true as const, message: "Mock Sandbox уже подключён и активирован!", providerId: existing.id };
+      }
+
+      const baseUrl = await getBaseUrlAsync();
+      const mockUrl = `${baseUrl}/api/dev/mock-provider`;
+      const mockKey = process.env.MOCK_PROVIDER_KEY || 'mock-dev-sandbox-key-2026';
+      const encryptedKey = VaultService.encrypt(mockKey);
+
+      const provider = await db.provider.create({
+        data: {
+          name: "Mock Provider (Песочница API)",
+          apiUrl: mockUrl,
+          apiKey: encryptedKey,
+          isActive: true,
+          balanceCurrency: "RUB",
+        },
+      });
+
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "PROVIDER_CREATE_MOCK_PRESET",
+        target: provider.id,
+        targetType: "PROVIDER",
+        newValue: { name: provider.name, apiUrl: provider.apiUrl },
+      });
+
+      return { success: true as const, message: "Mock Sandbox успешно создан и активирован!", providerId: provider.id };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return { success: false as const, error: errMsg };
+    }
+  });
 }

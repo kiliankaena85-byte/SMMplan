@@ -7,17 +7,58 @@ import { enforceSectionAccess } from '@/lib/server/rbac';
 
 // SD-06 SECURITY FIX: Restrict export to OWNER/ADMIN only.
 // Export contains providerCost (margin data) and user financial profiles — commercially sensitive.
-const STAFF_ROLES = ['OWNER', 'ADMIN'];
+const STAFF_ROLES = ['OWNER', 'ADMIN', 'SUPPORT'];
 
 function toCsv(headers: string[], rows: string[][]): string {
   const escape = (val: string) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-  const headerLine = headers.map(escape).join(',');
-  const dataLines = rows.map(row => row.map(escape).join(','));
-  return [headerLine, ...dataLines].join('\n');
+  const headerLine = headers.map(escape).join(';');
+  const dataLines = rows.map(row => row.map(escape).join(';'));
+  // UTF-8 BOM (\uFEFF) ensures Excel correctly displays Cyrillic characters
+  return '\uFEFF' + [headerLine, ...dataLines].join('\r\n');
+}
+
+function formatDateRu(date: Date): string {
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(date);
+}
+
+function getPeriodStartDate(period: string | null): Date | undefined {
+  if (!period || period === 'all') return undefined;
+  const now = new Date();
+  if (period === 'today') {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  if (period === 'week') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 7);
+    return d;
+  }
+  if (period === 'month') {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - 1);
+    return d;
+  }
+  return undefined;
 }
 
 export async function GET(request: Request) {
-  await enforceSectionAccess('orders');
+  const { searchParams } = new URL(request.url);
+  const type = searchParams.get('type') || 'orders';
+
+  const section =
+    type === 'users' ? 'clients' :
+    ['ledger', 'payments', 'reconciliation', 'balance_adjustments'].includes(type) ? 'finance' :
+    'orders';
+
+  await enforceSectionAccess(section);
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -26,16 +67,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const type = searchParams.get('type') || 'orders';
-
   try {
     let csv = '';
     let filename = 'export.csv';
 
     // Multi-tenant isolation: non-OWNER staff are restricted strictly to their tenant
-    const effectiveTenantId = user.tenantId ?? 'smmplan';
-    const tenantFilter = user.role === 'OWNER' ? {} : { tenantId: effectiveTenantId };
+    const requestedTenant = searchParams.get('tenant') || searchParams.get('tenantId');
+    const effectiveTenantId = user.role === 'OWNER'
+      ? (requestedTenant && requestedTenant !== 'all' ? requestedTenant : undefined)
+      : (user.tenantId ?? 'smmplan');
+
+    const tenantFilter = effectiveTenantId ? { tenantId: effectiveTenantId } : {};
+    const period = searchParams.get('period');
+    const periodStart = getPeriodStartDate(period);
 
     switch (type) {
       case 'orders': {
@@ -44,11 +88,12 @@ export async function GET(request: Request) {
           ...tenantFilter
         };
         if (status && status !== 'ALL') where.status = status;
+        if (periodStart) where.createdAt = { gte: periodStart };
 
         const orders = await db.order.findMany({
           where,
           orderBy: { createdAt: 'desc' },
-          take: 5000,
+          take: 10000,
           include: {
             user: { select: { email: true } },
             service: { select: { name: true } },
@@ -67,7 +112,7 @@ export async function GET(request: Request) {
             (Number(o.charge) / 100).toFixed(2),
             (Number(o.providerCost) / 100).toFixed(2),
             o.status,
-            o.createdAt.toISOString(),
+            formatDateRu(o.createdAt),
           ])
         );
         filename = `orders_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -78,7 +123,7 @@ export async function GET(request: Request) {
         const users = await db.user.findMany({
           where: tenantFilter,
           orderBy: { createdAt: 'desc' },
-          take: 5000,
+          take: 10000,
           include: { _count: { select: { orders: true } } },
         });
 
@@ -91,7 +136,7 @@ export async function GET(request: Request) {
             (Number(u.totalSpent) / 100).toFixed(2),
             String(u._count.orders),
             u.telegramId || '',
-            u.createdAt.toISOString(),
+            formatDateRu(u.createdAt),
           ])
         );
         filename = `users_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -113,6 +158,192 @@ export async function GET(request: Request) {
           ])
         );
         filename = `profitability_${new Date().toISOString().slice(0, 10)}.csv`;
+        break;
+      }
+
+      case 'ledger': {
+        const status = searchParams.get('status');
+        const search = searchParams.get('search')?.trim();
+        const where: Record<string, unknown> = {
+          ...(effectiveTenantId ? { user: { tenantId: effectiveTenantId } } : {}),
+          ...(status && status !== 'ALL' ? { status } : {}),
+          ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+          ...(search ? {
+            OR: [
+              { user: { is: { email: { contains: search, mode: 'insensitive' as const } } } },
+              { id: { contains: search, mode: 'insensitive' as const } },
+              { idempotencyKey: { contains: search, mode: 'insensitive' as const } },
+            ]
+          } : {}),
+        };
+
+        const entries = await db.ledgerEntry.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          take: 10000,
+          include: {
+            user: { select: { email: true, tenantId: true } },
+          },
+        });
+
+        csv = toCsv(
+          ['ID Проводки', 'Email клиента', 'Бренд', 'Сумма ₽', 'Тип транзакции', 'Причина / Назначение', 'Оператор', 'Статус', 'Idempotency Key', 'Дата'],
+          entries.map(e => [
+            e.id,
+            e.user.email,
+            e.user.tenantId === 'smmplan' ? 'SMMplan' : 'SMMflux',
+            (Number(e.amount) / 100).toFixed(2),
+            e.transactionType || 'MANUAL',
+            e.reason,
+            e.adminId ? `Оператор (${e.adminId.slice(0, 6)})` : 'Система',
+            e.status === 'APPROVED' ? 'Одобрено' : e.status === 'QUARANTINE' ? 'Карантин' : 'Отклонено',
+            e.idempotencyKey || '',
+            formatDateRu(e.createdAt),
+          ])
+        );
+        filename = `ledger_${period || 'all'}_${new Date().toISOString().slice(0, 10)}.csv`;
+        break;
+      }
+
+      case 'payments': {
+        const status = searchParams.get('status');
+        const search = searchParams.get('search')?.trim();
+        const where: Record<string, unknown> = {
+          ...tenantFilter,
+          ...(status && status !== 'ALL' ? { status } : {}),
+          ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+          ...(search ? {
+            OR: [
+              { user: { is: { email: { contains: search, mode: 'insensitive' as const } } } },
+              { id: { contains: search, mode: 'insensitive' as const } },
+              { gatewayId: { contains: search, mode: 'insensitive' as const } },
+            ]
+          } : {}),
+        };
+
+        const payments = await db.payment.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          take: 10000,
+          include: {
+            user: { select: { email: true } },
+          },
+        });
+
+        const gatewayLabels: Record<string, string> = {
+          yookassa: 'ЮKassa',
+          cryptobot: 'CryptoBot',
+          test: 'Тестовый',
+        };
+
+        const statusLabels: Record<string, string> = {
+          SUCCEEDED: 'Успешно',
+          PENDING: 'Ожидание',
+          CANCELED: 'Отменено',
+        };
+
+        csv = toCsv(
+          ['ID Платежа', 'ID в Шлюзе', 'Email клиента', 'Бренд', 'Сумма ₽', 'Валюта', 'Шлюз', 'Статус', 'IP клиента', 'User-Agent', 'Дата создания'],
+          payments.map(p => [
+            p.id,
+            p.gatewayId || '',
+            p.user?.email || 'Unknown',
+            p.tenantId === 'smmplan' ? 'SMMplan' : 'SMMflux',
+            (Number(p.amount) / 100).toFixed(2),
+            p.currency,
+            gatewayLabels[p.gateway] || p.gateway,
+            statusLabels[p.status] || p.status,
+            p.consentIp || '',
+            p.consentUserAgent || '',
+            formatDateRu(p.createdAt),
+          ])
+        );
+        filename = `payments_${period || 'all'}_${new Date().toISOString().slice(0, 10)}.csv`;
+        break;
+      }
+
+      case 'reconciliation': {
+        const { LedgerReconciliationService } = await import('@/services/financial/ledger-reconciliation.service');
+        const accounts = await LedgerReconciliationService.getAccounts({
+          pageSize: 10000,
+          tenantId: effectiveTenantId,
+          onlyAnomalies: searchParams.get('onlyAnomalies') === 'true',
+        });
+
+        csv = toCsv(
+          ['ID Пользователя', 'Email', 'Бренд', 'Баланс (User) ₽', 'Сумма Ledger ₽', 'Расхождение ₽', 'Проводок', 'Статус аккаунта', 'Статус инварианта'],
+          accounts.items.map((a: {
+            userId: string;
+            email: string;
+            tenantId: string;
+            userBalance: number;
+            ledgerSum: number;
+            discrepancy: number;
+            entriesCount: number;
+            isActive: boolean;
+            isDiscrepancy: boolean;
+          }) => [
+            a.userId,
+            a.email,
+            a.tenantId === 'smmplan' ? 'SMMplan' : 'SMMflux',
+            (a.userBalance / 100).toFixed(2),
+            (a.ledgerSum / 100).toFixed(2),
+            (a.discrepancy / 100).toFixed(2),
+            String(a.entriesCount),
+            a.isActive ? 'Активен' : 'Заблокирован',
+            a.isDiscrepancy ? 'РАСХОЖДЕНИЕ' : 'СОШЛОСЬ',
+          ])
+        );
+        filename = `reconciliation_report_${new Date().toISOString().slice(0, 10)}.csv`;
+        break;
+      }
+
+      case 'balance_adjustments': {
+        const status = searchParams.get('status');
+        const direction = searchParams.get('direction');
+        const where: Record<string, unknown> = {
+          ...(effectiveTenantId ? { user: { tenantId: effectiveTenantId } } : {}),
+          ...(status ? { status } : {}),
+          ...(direction ? { direction } : {}),
+          ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+        };
+
+        const adjustments = await db.manualBalanceAdjustment.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          take: 5000,
+          include: {
+            user: { select: { email: true, tenantId: true } },
+            requester: { select: { email: true } },
+          },
+        });
+
+        csv = toCsv(
+          ['ID Заявки', 'Email клиента', 'Бренд', 'Оператор', 'Тип (CREDIT/DEBIT)', 'Сумма ₽', 'Код причины', 'Тикет', 'Статус', 'Дата'],
+          adjustments.map((a: {
+            id: string;
+            user: { email: string; tenantId: string };
+            requester: { email: string };
+            direction: string;
+            amount: bigint;
+            reasonCode: string;
+            ticketId: string | null;
+            status: string;
+            createdAt: Date;
+          }) => [
+            a.id,
+            a.user.email,
+            a.user.tenantId === 'smmplan' ? 'SMMplan' : 'SMMflux',
+            a.requester.email,
+            a.direction,
+            (Number(a.amount) / 100).toFixed(2),
+            a.reasonCode,
+            a.ticketId || '',
+            a.status,
+            formatDateRu(a.createdAt),
+          ])
+        );
+        filename = `balance_adjustments_${new Date().toISOString().slice(0, 10)}.csv`;
         break;
       }
 

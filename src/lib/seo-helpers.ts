@@ -9,6 +9,8 @@ export function getTenantHost(tenantId: string): string {
   switch (normalizeTenantId(tenantId)) {
     case 'flux':
     case 'smmflux': return 'smmflux.ru';
+    case 'boost':
+    case 'smmboost': return 'smmboost.ru';
     default: return 'smmplan.pro';
   }
 }
@@ -17,6 +19,8 @@ export function getTenantSiteName(tenantId: string): string {
   switch (normalizeTenantId(tenantId)) {
     case 'flux':
     case 'smmflux': return 'SMMflux';
+    case 'boost':
+    case 'smmboost': return 'SMMboost';
     default: return 'SMMplan';
   }
 }

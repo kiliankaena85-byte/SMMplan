@@ -35,13 +35,61 @@ export default function TicketActionsDropdown({
   };
 
   return (
-    <>
+    <div className="flex items-center gap-1.5">
+      {/* 1-Click Direct Status Pills for Desktop */}
+      <div className="hidden lg:flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border">
+        <button
+          type="button"
+          onClick={() => handleStatusChange('OPEN')}
+          disabled={isPending || currentStatus === 'OPEN'}
+          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+            currentStatus === 'OPEN'
+              ? 'bg-destructive/15 text-destructive-text border border-destructive/25 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background'
+          }`}
+          title="Взять в работу"
+        >
+          <RefreshCw className={`w-3 h-3 ${isPending && currentStatus === 'OPEN' ? 'animate-spin' : ''}`} />
+          <span>В работу</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleStatusChange('PENDING')}
+          disabled={isPending || currentStatus === 'PENDING'}
+          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+            currentStatus === 'PENDING'
+              ? 'bg-warning/15 text-warning-text border border-warning/25 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background'
+          }`}
+          title="Ожидает ответа клиента"
+        >
+          <Clock className={`w-3 h-3 ${isPending && currentStatus === 'PENDING' ? 'animate-spin' : ''}`} />
+          <span>Ожидание</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleStatusChange('CLOSED')}
+          disabled={isPending || currentStatus === 'CLOSED'}
+          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+            currentStatus === 'CLOSED'
+              ? 'bg-success/15 text-success-text border border-success/25 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-background'
+          }`}
+          title="Закрыть тикет"
+        >
+          <CheckCircle className={`w-3 h-3 ${isPending && currentStatus === 'CLOSED' ? 'animate-spin' : ''}`} />
+          <span>Закрыт</span>
+        </button>
+      </div>
+
       <DropdownMenu>
         <DropdownMenuTrigger 
           disabled={isPending}
-          className="min-h-[44px] min-w-[44px] lg:min-w-[120px] px-3 inline-flex items-center justify-center gap-2 shadow-sm rounded-xl border border-border bg-card hover:bg-muted text-sm font-medium transition-colors outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-foreground"
+          className="min-h-[44px] min-w-[44px] lg:min-w-[100px] px-3 inline-flex items-center justify-center gap-2 shadow-sm rounded-xl border border-border bg-card hover:bg-muted text-sm font-medium transition-colors outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-foreground"
         >
-          <span className="hidden lg:inline font-medium text-foreground">Действия</span>
+          <span className="hidden lg:inline font-medium text-foreground">Меню</span>
           <MoreVertical className="w-4 h-4 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl border-border shadow-xl p-1 bg-card text-card-foreground">
@@ -108,6 +156,6 @@ export default function TicketActionsDropdown({
         ticketId={ticketId}
         supportLimitCents={supportLimitCents}
       />
-    </>
+    </div>
   );
 }

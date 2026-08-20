@@ -1,6 +1,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { AdminTenantSelector } from '@/components/admin/AdminTenantSelector';
 
 interface BreadcrumbItem {
   label: string;
@@ -33,6 +34,8 @@ interface AdminTabbedHeaderProps {
   tabs?: TabItem[];
   onboardingKey?: string;
   onboarding?: OnboardingData;
+  showTenantSelector?: boolean;
+  currentTenant?: string;
 }
 
 export function AdminTabbedHeader({
@@ -41,6 +44,8 @@ export function AdminTabbedHeader({
   description,
   action,
   breadcrumbs,
+  showTenantSelector = true,
+  currentTenant,
 }: AdminTabbedHeaderProps) {
   return (
     <div className="w-full flex flex-col gap-3 mb-5 border-b border-border/50 pb-4">
@@ -80,12 +85,11 @@ export function AdminTabbedHeader({
           )}
         </div>
 
-        {/* Action Slot */}
-        {action && (
-          <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
-            {action}
-          </div>
-        )}
+        {/* Global Tenant Selector & Action Slot */}
+        <div className="flex items-center gap-2 shrink-0 self-start md:self-center flex-wrap">
+          {showTenantSelector && <AdminTenantSelector currentTenant={currentTenant} />}
+          {action}
+        </div>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { processReferralPayout } from '@/actions/admin/marketing';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { formatRubles } from '@/utils/format-price';
 
 interface PayoutButtonProps {
   userId: string;
@@ -58,7 +59,7 @@ export function PayoutButton({ userId, amount }: PayoutButtonProps) {
         title="Подтверждение выплаты"
         confirmText="Выплатить"
       >
-        Вы действительно хотите выплатить {(amount / 100).toFixed(2)} ₽ на баланс клиента?
+        Вы действительно хотите выплатить {formatRubles(amount / 100)} на баланс клиента?
       </ConfirmModal>
     </>
   );

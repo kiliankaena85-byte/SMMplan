@@ -14,49 +14,24 @@ import {
   ArrowUpRight,
   Menu,
   X,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Copy,
   Award,
   Search,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Filter,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  RefreshCw,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  PlusCircle,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  MessageSquare,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  User,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Key,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Bell,
   CheckCircle2,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Clock,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  AlertCircle,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  HelpCircle,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ExternalLink,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Wallet,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Gift,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ChevronRight,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Check
+  Check,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { DASHBOARD_DATA } from './dashboards';
+import { createDemoPaymentAction } from '@/actions/order/demo-payment.action';
 
 export type PlanTab = 'dashboard' | 'orders' | 'new-order' | 'transactions' | 'deposit' | 'referrals' | 'support' | 'settings';
 
 export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: PlanTab }) {
   const [activeTab, setActiveTab] = useState<PlanTab>(initialTab);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Form states
   const [selectedNetwork, setSelectedNetwork] = useState('tg');
@@ -138,6 +113,27 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
     return (qty * rate).toFixed(2);
   };
 
+  const handleExecutePayment = async (amountRub: number, desc: string) => {
+    if (isPaying) return;
+    setIsPaying(true);
+    setPaymentError(null);
+    try {
+      const res = await createDemoPaymentAction({
+        amountRub: Math.max(10, amountRub),
+        description: desc,
+        gateway: (paymentGateway as 'yookassa' | 'cryptobot' | 'robokassa') || 'yookassa',
+        targetLink: targetLink || 'https://t.me/smmplan',
+        serviceName: `SMMplan: ${desc}`
+      });
+      if (res.success && res.paymentUrl) {
+        window.location.href = res.paymentUrl;
+      }
+    } catch (err: unknown) {
+      setPaymentError(err instanceof Error ? err.message : 'Ошибка создания платежа в ЮKassa');
+      setIsPaying(false);
+    }
+  };
+
   return (
     <div className="smmplan-scope w-full min-h-screen pb-16 bg-[#e9edf2]">
       
@@ -159,15 +155,14 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
               </span>
             </div>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation (6+1 streamlined items) */}
             <nav className="hidden md:flex items-center gap-0.5 lg:gap-1 overflow-x-auto custom-scrollbar">
               {[
                 { id: 'dashboard', label: 'Главная' },
-                { id: 'new-order', label: 'Быстрый заказ' },
+                { id: 'new-order', label: 'Создать заказ' },
                 { id: 'orders', label: 'Мои заказы' },
-                { id: 'transactions', label: 'Транзакции' },
-                { id: 'deposit', label: 'Пополнение' },
-                { id: 'referrals', label: 'Рефералы' },
+                { id: 'deposit', label: 'Финансы' },
+                { id: 'referrals', label: 'Партнёрам' },
                 { id: 'support', label: 'Поддержка' },
                 { id: 'settings', label: 'Настройки' },
               ].map((tab) => {
@@ -176,7 +171,7 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as PlanTab)}
-                    className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                    className={`px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                       isActive 
                         ? 'text-[#1f9bf0] bg-[#e7f2fe] font-bold' 
                         : 'text-[#414a59] hover:bg-[#e9edf2]'
@@ -188,26 +183,35 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
               })}
             </nav>
 
-            {/* Right Quick Balance */}
+            {/* Right Quick Balance & Avatar */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <div 
                 onClick={() => setActiveTab('deposit')}
-                className="bg-[#e9edf2] hover:bg-[#d3dce8] px-3.5 py-1.5 rounded-full border border-[#d3dce8] flex items-center gap-2 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                className="bg-[#e9edf2] hover:bg-[#d3dce8] px-3 sm:px-3.5 py-1.5 rounded-full border border-[#d3dce8] flex items-center gap-2 cursor-pointer transition-colors whitespace-nowrap shrink-0"
               >
                 <span className="text-xs font-semibold text-[#8b94a3] uppercase hidden sm:inline whitespace-nowrap">Баланс:</span>
                 <span className="font-mono-data font-bold text-[#0e131a] text-xs sm:text-sm lg:text-base whitespace-nowrap">{DASHBOARD_DATA.balance}</span>
               </div>
               <button 
                 onClick={() => setActiveTab('deposit')}
-                className="hidden sm:flex items-center gap-1.5 bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap shrink-0"
+                className="hidden sm:flex items-center gap-1.5 bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>Пополнить</span>
               </button>
 
+              {/* Mobile Profile Avatar Link (Variant A) */}
+              <button 
+                onClick={() => setActiveTab('settings')}
+                className="md:hidden w-8 h-8 rounded-xl bg-[#e7f2fe] text-[#1f9bf0] border border-[#1f9bf0]/20 flex items-center justify-center font-bold text-xs uppercase cursor-pointer"
+                title="Настройки профиля и удаление аккаунта"
+              >
+                👤
+              </button>
+
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2 text-[#414a59] hover:bg-[#e9edf2] rounded-lg"
+                className="md:hidden p-2 text-[#414a59] hover:bg-[#e9edf2] rounded-lg cursor-pointer"
               >
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -537,9 +541,29 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
                 </div>
 
                 <div className="md:col-span-3 min-w-0">
-                  <button className="w-full bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
-                    <span>Подтвердить и оплатить ({calculateTotalCost()} ₽)</span>
-                    <ArrowUpRight className="w-4 h-4" />
+                  {paymentError && (
+                    <div className="mb-2 p-2 rounded-lg bg-red-50 text-red-600 text-[11px] font-bold flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{paymentError}</span>
+                    </div>
+                  )}
+                  <button 
+                    type="button"
+                    disabled={isPaying}
+                    onClick={() => handleExecutePayment(parseFloat(calculateTotalCost()), `Заказ: ${selectedNetwork.toUpperCase()} ${selectedCategory}`)}
+                    className="w-full bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+                  >
+                    {isPaying ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Переход в ЮKassa...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Подтвердить и оплатить ({calculateTotalCost()} ₽)</span>
+                        <ArrowUpRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -792,8 +816,23 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
                       onChange={(e) => setDepositAmount(e.target.value)}
                       className="flex-1 bg-white border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm font-bold text-[#0e131a] font-mono-data"
                     />
-                    <button className="bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm">
-                      Оплатить {appliedPromo ? (parseInt(depositAmount || '0') * 1.1).toFixed(0) : depositAmount} ₽
+                    <button 
+                      type="button"
+                      disabled={isPaying}
+                      onClick={() => handleExecutePayment(
+                        appliedPromo ? Math.round(parseInt(depositAmount || '0') * 1.1) : (parseInt(depositAmount || '0') || 100),
+                        'Пополнение баланса'
+                      )}
+                      className="bg-[#1f9bf0] hover:bg-[#0b7fd4] text-white px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+                    >
+                      {isPaying ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Переход в ЮKassa...</span>
+                        </>
+                      ) : (
+                        <span>Оплатить {appliedPromo ? (parseInt(depositAmount || '0') * 1.1).toFixed(0) : depositAmount} ₽</span>
+                      )}
                     </button>
                   </div>
                 </div>

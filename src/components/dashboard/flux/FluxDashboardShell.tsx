@@ -7,10 +7,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Wallet, 
-  LogOut 
+  LogOut,
+  Users,
+  Settings
 } from 'lucide-react';
 
-import { MAIN_NAV_ITEMS } from '@/lib/navigation';
+import { MAIN_NAV_ITEMS, MOBILE_BOTTOM_NAV_ITEMS } from '@/lib/navigation';
 
 export function FluxDashboardShell({
   user,
@@ -24,17 +26,20 @@ export function FluxDashboardShell({
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
-      {/* ── FLUX VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
-      <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
+      {/* ── FLUX VIBRANT HERO BACKGROUND (Full Bleed - GPU Isolated Layer) ── */}
+      <div 
+        className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50"
+        style={{ transform: 'translate3d(0,0,0)', contain: 'paint' }}
+      >
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(60% 50% at 10% 0%, rgba(59, 130, 246, 0.25), transparent 60%), ' +
-              'radial-gradient(50% 50% at 90% 10%, rgba(56, 189, 248, 0.20), transparent 60%), ' +
-              'radial-gradient(60% 50% at 15% 50%, rgba(244, 63, 94, 0.18), transparent 60%), ' +
-              'radial-gradient(50% 50% at 85% 60%, rgba(249, 115, 22, 0.18), transparent 60%), ' +
-              'radial-gradient(60% 60% at 50% 30%, rgba(217, 70, 239, 0.18), transparent 60%)',
+              'radial-gradient(60% 50% at 10% 0%, rgba(59, 130, 246, 0.22), transparent 60%), ' +
+              'radial-gradient(50% 50% at 90% 10%, rgba(56, 189, 248, 0.18), transparent 60%), ' +
+              'radial-gradient(60% 50% at 15% 50%, rgba(244, 63, 94, 0.15), transparent 60%), ' +
+              'radial-gradient(50% 50% at 85% 60%, rgba(249, 115, 22, 0.15), transparent 60%), ' +
+              'radial-gradient(60% 60% at 50% 30%, rgba(217, 70, 239, 0.15), transparent 60%)',
           }}
         />
         <div className="absolute bottom-0 inset-x-0 h-[400px] bg-gradient-to-t from-background via-background/80 to-transparent" />
@@ -73,26 +78,53 @@ export function FluxDashboardShell({
           </nav>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-4">
           <BalanceDisplay initialBalance={balanceRub} variant="mobile-header" />
           <Link
-            href="/dashboard/add-funds"
-            className="px-4 py-2 text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center gap-1.5"
+            href="/dashboard/finance"
+            className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center gap-1.5"
           >
             <Wallet className="w-4 h-4" />
-            <span>+ Пополнить</span>
+            <span className="hidden xs:inline">+ Пополнить</span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-border/40">
-            <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold uppercase">
-              {user.email.substring(0, 2)}
-            </div>
-            <span className="text-xs font-medium text-muted-foreground max-w-[120px] truncate">{user.email}</span>
+          {/* Mobile Profile Avatar Link (Variant A) */}
+          <Link
+            href="/dashboard/settings"
+            className="md:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold text-xs uppercase"
+            title="Профиль и настройки"
+          >
+            {user.email.substring(0, 2)}
+          </Link>
+
+          {/* Desktop User Menu (Variant B) */}
+          <div className="hidden md:flex items-center gap-2 pl-3 border-l border-border/40">
+            <Link
+              href="/dashboard/settings"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-muted/50 text-foreground transition-colors group"
+              title="Настройки профиля и безопасность"
+            >
+              <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold uppercase group-hover:scale-105 transition-transform">
+                {user.email.substring(0, 2)}
+              </div>
+              <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground max-w-[120px] truncate transition-colors">
+                {user.email.split('@')[0]}
+              </span>
+            </Link>
+
+            <Link
+              href="/dashboard/settings"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-xl transition-colors"
+              title="Настройки профиля"
+            >
+              <Settings className="w-4 h-4" />
+            </Link>
+
             <form method="POST" action="/api/auth/logout">
               <button
                 type="submit"
-                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-lg transition-colors ml-1 cursor-pointer"
-                title="Выйти"
+                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors ml-0.5 cursor-pointer"
+                title="Выйти из аккаунта"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -101,9 +133,9 @@ export function FluxDashboardShell({
         </div>
       </header>
 
-      {/* ── Mobile Navigation Bar (Bottom Sticky) ── */}
+      {/* ── Mobile Navigation Bar (Bottom Sticky - 5 items) ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-2xl border-t border-border/40 px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg">
-        {MAIN_NAV_ITEMS.map((item) => {
+        {MOBILE_BOTTOM_NAV_ITEMS.map((item) => {
           const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (

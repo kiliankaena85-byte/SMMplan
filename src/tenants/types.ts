@@ -80,4 +80,9 @@ export interface ITenantDashboardStrategy<TUser extends BaseUserProps = BaseUser
     totalPages: number;
     countsMap: Record<string, number>;
   }>;
+  TransactionsView?: React.ComponentType<{
+    initialEntries: any[];
+    userEmail: string;
+    currentBalanceRub?: number;
+  }>;
 }

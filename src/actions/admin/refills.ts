@@ -2,7 +2,8 @@
 
 import { db } from '@/lib/db';
 import { requireStaffPermission } from '@/lib/server/rbac';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
+import { SettingsProvider } from '@/lib/settings';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -15,15 +16,38 @@ const updateRefillStatusSchema = z.object({
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'REJECTED', 'ERROR']),
 });
 
-export async function restartRefillAction(formData: FormData) {
+/**
+ * ⚡ Toggle Global Refill Module (Kill-Switch)
+ */
+export async function toggleRefillModuleAction(enable: boolean) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
-    const parsed = restartRefillSchema.safeParse(Object.fromEntries(formData.entries()));
-    if (!parsed.success) {
-      return { success: false as const, error: 'Некорректный ID докрутки' };
+    try {
+      await SettingsProvider.setRefillModuleEnabled(enable);
+
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: 'REFILL_MODULE_TOGGLE',
+        target: 'GLOBAL_SETTINGS',
+        targetType: 'SYSTEM_SETTINGS',
+        newValue: { isRefillModuleEnabled: enable },
+      });
+
+      revalidatePath('/admin/refills');
+      revalidatePath('/dashboard/orders');
+      return { success: true as const, isEnabled: enable };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return { success: false as const, error: errorMsg || 'Ошибка при переключении статуса модуля' };
     }
+  });
+}
 
-    const { refillId } = parsed.data;
-
+/**
+ * 🔄 Restart a failed or stuck refill
+ */
+export async function directRestartRefillAction(refillId: string) {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
     try {
       const refill = await db.refill.findUnique({
         where: { id: refillId },
@@ -48,7 +72,7 @@ export async function restartRefillAction(formData: FormData) {
       const { refillQueue } = await import('@/lib/queue-manager');
       await refillQueue.add('process-refill', { refillId });
 
-      auditAdmin({
+      await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: 'REFILL_RESTART',
@@ -67,18 +91,14 @@ export async function restartRefillAction(formData: FormData) {
   });
 }
 
-export async function updateRefillStatusAction(formData: FormData) {
-  if (!formData || typeof formData.entries !== 'function') {
-    return { success: false, error: "Некорректные данные" };
-  }
+/**
+ * 🛠️ Direct status override by support agent / admin
+ */
+export async function directUpdateRefillStatusAction(
+  refillId: string,
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'ERROR'
+) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
-    const parsed = updateRefillStatusSchema.safeParse(Object.fromEntries(formData.entries()));
-    if (!parsed.success) {
-      return { success: false as const, error: 'Некорректные данные' };
-    }
-
-    const { refillId, status } = parsed.data;
-
     try {
       const refill = await db.refill.findUnique({
         where: { id: refillId },
@@ -93,7 +113,7 @@ export async function updateRefillStatusAction(formData: FormData) {
         data: { status },
       });
 
-      auditAdmin({
+      await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: 'REFILL_STATUS_OVERRIDE',
@@ -110,4 +130,26 @@ export async function updateRefillStatusAction(formData: FormData) {
       return { success: false as const, error: errorMsg || 'Ошибка при изменении статуса докрутки' };
     }
   });
+}
+
+/**
+ * Legacy Form-Action support
+ */
+export async function restartRefillAction(formData: FormData) {
+  const parsed = restartRefillSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return { success: false as const, error: 'Некорректный ID докрутки' };
+  }
+  return directRestartRefillAction(parsed.data.refillId);
+}
+
+export async function updateRefillStatusAction(formData: FormData) {
+  if (!formData || typeof formData.entries !== 'function') {
+    return { success: false as const, error: 'Некорректные данные' };
+  }
+  const parsed = updateRefillStatusSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return { success: false as const, error: 'Некорректные данные' };
+  }
+  return directUpdateRefillStatusAction(parsed.data.refillId, parsed.data.status);
 }

@@ -177,7 +177,7 @@ describe('Challenger 2 — UI Render Resilience & Malformed Data', () => {
       await waitFor(() => {
         expect(screen.getByText('Провайдеры (4)')).toBeDefined();
       });
-      expect(screen.getByText('~16 дн.')).toBeDefined();
+      expect(screen.getByText(/16\s*дн/)).toBeDefined();
       expect(screen.getAllByText(/₽/).length).toBeGreaterThan(0);
     });
 
@@ -207,7 +207,7 @@ describe('Challenger 2 — UI Render Resilience & Malformed Data', () => {
       await waitFor(() => {
         expect(screen.getByText('Провайдеры (0)')).toBeDefined();
       });
-      expect(screen.getByText('Внимание')).toBeDefined(); // totalRub < 5000 isDanger
+      expect(screen.getByText('Требует пополнения')).toBeDefined(); // totalRub < 5000 isDanger
       expect(screen.getAllByText(/₽/).length).toBeGreaterThan(0);
     });
 
@@ -235,7 +235,7 @@ describe('Challenger 2 — UI Render Resilience & Malformed Data', () => {
       render(<ProviderLiquidityWidget />);
 
       await waitFor(() => {
-        expect(screen.getByText('~2 дн.')).toBeDefined();
+        expect(screen.getByText(/2\s*дн/)).toBeDefined();
       });
       expect(screen.getAllByText('2').length).toBeGreaterThanOrEqual(1); // matches criticalCount badge and provider count
     });

@@ -203,8 +203,7 @@ export function ArticleForm({ initialData }: ArticleFormProps) {
     };
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const res: any = isEdit 
+      const res = isEdit 
         ? await updateArticle(initialData!.id, payload)
         : await createArticle(payload);
 
@@ -214,13 +213,13 @@ export function ArticleForm({ initialData }: ArticleFormProps) {
         router.refresh();
       } else {
         toast.error(res.error || "Не удалось сохранить статью");
-        if (res.errors) {
-          setErrors(res.errors);
+        if ('errors' in res && res.errors) {
+          setErrors(res.errors as Record<string, string[]>);
         }
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err.message || "Произошла ошибка при отправке формы");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Произошла ошибка при отправке формы";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

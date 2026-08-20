@@ -11,9 +11,9 @@ import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
 import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
 import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
+import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { ExternalLink, AlertCircle } from 'lucide-react';
-import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
-import { formatRub } from '@/lib/money';
+import { formatRubles } from '@/utils/format-price';
 
 export interface FluxOrder {
   id: string;
@@ -65,7 +65,7 @@ export function FluxOrdersList({
         </p>
         <Link
           href="/dashboard/new-order"
-          className="inline-flex h-11 px-6 items-center text-xs font-bold bg-primary text-primary-foreground rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-sm"
+          className="inline-flex h-11 px-6 items-center text-xs font-bold bg-primary text-primary-foreground rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xs"
         >
           Запустить рекламу
         </Link>
@@ -76,12 +76,21 @@ export function FluxOrdersList({
   return (
     <div className="space-y-4">
       {orders.map((order) => {
-        const color = getStatusBadgeClass(order.status);
-        const label = getStatusLabel(order.status);
-        const remains = order.remains ?? order.quantity;
         const total = order.quantity || 1;
-        const completed = Math.max(0, total - remains);
-        const percent = Math.min(100, Math.max(0, Math.round((completed / total) * 100)));
+        let completed = 0;
+        let percent = 0;
+
+        if (order.status === 'COMPLETED') {
+          completed = total;
+          percent = 100;
+        } else if (order.status === 'PENDING' || order.status === 'PROVISIONING' || order.status === 'AWAITING_PAYMENT') {
+          completed = 0;
+          percent = 0;
+        } else {
+          const remains = order.remains ?? order.quantity;
+          completed = Math.max(0, Math.min(total, total - remains));
+          percent = Math.min(100, Math.max(0, Math.round((completed / total) * 100)));
+        }
 
         return (
           <div
@@ -95,14 +104,23 @@ export function FluxOrdersList({
               </div>
               <div className="space-y-1.5 min-w-0">
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
-                  <span className="font-bold text-primary">#{order.numericId}</span>
+                  <Link 
+                    href={`/dashboard/orders/${order.id}`}
+                    className="font-bold text-primary hover:underline transition-colors"
+                  >
+                    #{order.numericId}
+                  </Link>
                   <CopyText text={order.numericId.toString()} iconOnly={true} tooltipText="Копировать ID" />
                   <span>•</span>
                   <ClientDate date={order.createdAt} format="datetime" />
                 </div>
-                <h4 className="font-extrabold text-sm text-foreground leading-tight hover:text-primary transition-colors truncate" title={order.service.name}>
+                <Link
+                  href={`/dashboard/orders/${order.id}`}
+                  className="font-extrabold text-sm text-foreground leading-tight hover:text-primary transition-colors block truncate" 
+                  title={order.service.name}
+                >
                   {order.service.name}
-                </h4>
+                </Link>
               </div>
             </div>
 
@@ -117,12 +135,16 @@ export function FluxOrdersList({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-primary font-bold hover:underline truncate max-w-[220px]"
+                      title={order.link}
                     >
                       {order.link}
                     </a>
-                    <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary">
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary p-0.5" title="Открыть ссылку">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <CopyText text={order.link} iconOnly={true} tooltipText="Копировать ссылку" />
+                    </div>
                   </>
                 ) : (
                   <span className="text-xs text-muted-foreground font-medium">—</span>
@@ -145,14 +167,24 @@ export function FluxOrdersList({
             {/* Column 3: Live progress metrics */}
             <div className="w-full md:w-44 shrink-0 space-y-2">
               <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground">
-                <span>Выполнено: {percent}%</span>
-                <span className="font-mono">{completed} / {order.quantity}</span>
+                <span>
+                  {order.status === 'COMPLETED' ? 'Выполнено 100%' :
+                   order.status === 'IN_PROGRESS' ? `Выполнено: ${percent}%` :
+                   order.status === 'PARTIAL' ? `Частично: ${percent}%` :
+                   'Прогресс:'}
+                </span>
+                <span className="font-mono tabular-nums text-foreground">{completed.toLocaleString('ru-RU')} / {order.quantity.toLocaleString('ru-RU')}</span>
               </div>
               
               <div className="h-2 w-full bg-muted/60 border border-border/10 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${order.status === 'IN_PROGRESS' ? 'bg-primary animate-pulse' : 'bg-success'}`}
-                  style={{ width: `${percent}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    order.status === 'COMPLETED' ? 'bg-emerald-500' :
+                    order.status === 'IN_PROGRESS' ? 'bg-primary animate-pulse' :
+                    order.status === 'PARTIAL' ? 'bg-purple-500' :
+                    order.status === 'ERROR' ? 'bg-destructive' : 'bg-muted-foreground/40'
+                  }`}
+                  style={{ width: `${order.status === 'COMPLETED' ? 100 : percent}%` }}
                 />
               </div>
 
@@ -169,7 +201,7 @@ export function FluxOrdersList({
                 <span className="block text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Стоимость</span>
                 <div className="flex items-center justify-end gap-1">
                   <span className="font-mono font-black text-sm text-foreground tabular-nums">
-                    {formatRub(order.chargeCents)} ₽
+                    {formatRubles(order.chargeCents / 100)}
                   </span>
                   <ChargeBreakdownModal
                     numericId={order.numericId}
@@ -181,9 +213,7 @@ export function FluxOrdersList({
               </div>
 
               <div className="flex flex-col items-end gap-2">
-                <span className={`inline-flex items-center px-3 py-1 text-[9px] uppercase tracking-wider font-extrabold rounded-xl border ${color}`}>
-                  {label}
-                </span>
+                <OrderStatusBadge status={order.status} />
 
                 {/* Actions Panel */}
                 <div className="flex items-center gap-1.5">
@@ -191,6 +221,7 @@ export function FluxOrdersList({
                     orderId={order.id}
                     isRefillEnabled={order.service.isRefillEnabled}
                     orderStatus={order.status}
+                    createdAt={order.createdAt}
                     refills={order.refills}
                   />
                   {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) ? (
@@ -199,7 +230,7 @@ export function FluxOrdersList({
                         <RetryPaymentModal 
                           orderId={order.id} 
                           charge={order.chargeCents}
-                          balance={userBalanceCents} // expects cents
+                          balance={userBalanceCents}
                           trigger={
                             <button className="h-7 px-2.5 bg-primary/15 text-primary text-[10px] font-bold rounded-lg border border-primary/20 hover:bg-primary/20 transition-all flex items-center gap-1">
                               Оплатить

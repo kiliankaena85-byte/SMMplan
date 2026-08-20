@@ -183,7 +183,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
               </div>
             )}
 
-            <LoginForm />
+            <LoginForm isFlux={true} />
           </div>
         </div>
       </div>
@@ -268,7 +268,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
             </div>
           )}
 
-          <LoginForm />
+          <LoginForm isFlux={false} />
         </div>
       </div>
     </div>

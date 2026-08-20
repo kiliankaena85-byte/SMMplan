@@ -34,7 +34,7 @@ export function NumberTicker({
   }, [motionValue, value, delay, direction]);
 
   useEffect(() => {
-    return springValue.on("change", (latest) => {
+    return springValue.on("change", (latest: number) => {
       if (ref.current) {
         ref.current.textContent = Number(latest).toFixed(decimalPlaces);
       }

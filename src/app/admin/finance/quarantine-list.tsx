@@ -55,44 +55,44 @@ export function QuarantineList({ entries }: QuarantineListProps) {
   if (entries.length === 0) return null;
 
   return (
-    <div className="border-2 border-amber-200 bg-warning/10/50 rounded-2xl overflow-hidden shadow-sm animate-in slide-in-from-top duration-500">
-      <div className="px-6 py-4 flex items-center gap-4 border-b border-amber-200 bg-warning/20/50">
-        <div className="p-2 bg-amber-200 text-amber-700 rounded-lg">
+    <div className="border border-warning/30 bg-warning/10 rounded-2xl overflow-hidden shadow-xs animate-in slide-in-from-top duration-300">
+      <div className="px-6 py-4 flex items-center gap-4 border-b border-warning/20 bg-warning/15">
+        <div className="p-2 bg-warning/20 text-warning rounded-xl border border-warning/30">
           <AlertTriangle className="w-5 h-5" />
         </div>
         <div>
-          <span className="font-bold text-amber-900 text-sm uppercase tracking-wider">
+          <span className="font-bold text-foreground text-sm uppercase tracking-wider">
             {entries.length} транзакций в карантине Escrow
           </span>
-          <p className="text-[11px] text-amber-700 font-medium opacity-80 mt-0.5">
-            Превышен лимит доверия. Требуется подтверждение Владельца.
+          <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
+            Превышен лимит доверия. Требуется подтверждение Владельца платформы.
           </p>
         </div>
       </div>
-      <div className="divide-y divide-amber-100">
+      <div className="divide-y divide-border/40">
         {entries.map(entry => (
-          <div key={entry.id} className="px-6 py-4 flex items-center justify-between gap-6 hover:bg-warning/20/30 transition-colors">
+          <div key={entry.id} className="px-6 py-4 flex items-center justify-between gap-6 hover:bg-warning/10 transition-colors">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
-                <span className="font-black text-amber-900 text-base tabular-nums">
+                <span className="font-black font-mono text-foreground text-base tabular-nums">
                   {(entry.amount / 100).toLocaleString('ru-RU')} ₽
                 </span>
-                <Badge intent="secondary" className="font-mono font-bold text-[10px] bg-warning/20 text-amber-700 border-amber-200">
+                <Badge intent="outline" className="font-mono font-bold text-[10px] bg-card text-foreground border-border/80">
                   {entry.userEmail}
                 </Badge>
               </div>
-              <p className="text-xs text-amber-800 font-medium opacity-90">{entry.reason}</p>
-              <div className="flex items-center gap-2 text-[10px] text-warning font-bold uppercase tracking-tighter">
-                <span>Agent: {entry.adminId || 'System'}</span>
+              <p className="text-xs text-foreground/90 font-medium">{entry.reason}</p>
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono font-bold uppercase tracking-tight">
+                <span>Оператор: {entry.adminId || 'System'}</span>
                 <span>•</span>
                 <span>{entry.createdAt.toLocaleString('ru-RU')}</span>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Button
                 size="sm"
                 intent="destructive"
-                className="font-bold text-[10px] uppercase tracking-wider h-8"
+                className="font-bold text-[10px] uppercase tracking-wider h-8 min-h-[32px]"
                 disabled={isPending}
                 onClick={() => handleAction(entry.id, 'reject')}
               >
@@ -100,7 +100,7 @@ export function QuarantineList({ entries }: QuarantineListProps) {
               </Button>
               <Button
                 size="sm"
-                className="font-bold text-[10px] uppercase tracking-wider h-8 shadow-md text-primary-foreground bg-success hover:bg-success/90"
+                className="font-bold text-[10px] uppercase tracking-wider h-8 min-h-[32px] shadow-xs text-primary-foreground bg-success hover:bg-success/90"
                 disabled={isPending}
                 onClick={() => handleAction(entry.id, 'approve')}
               >

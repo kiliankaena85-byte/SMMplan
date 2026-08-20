@@ -3,6 +3,7 @@
 import { Table } from '@/components/admin/hero-ui';
 import Link from 'next/link';
 import { PayoutButton } from './payout-button';
+import { formatRubles } from '@/utils/format-price';
 
 type ReferrerType = {
   id: string;
@@ -35,7 +36,7 @@ export function ReferrersTable({ referrers }: { referrers: ReferrerType[] }) {
                     </Link>
                   </Table.Cell>
                   <Table.Cell className="text-right">
-                    <span className="font-black text-success tabular-nums">{(u.referralBalance / 100).toFixed(2)} ₽</span>
+                    <span className="font-black text-success tabular-nums">{formatRubles(u.referralBalance / 100)}</span>
                   </Table.Cell>
                   <Table.Cell className="text-right text-muted-foreground tabular-nums">
                     <span className="px-2 py-1 rounded-md bg-muted text-[10px] font-bold">{u._count.referrals} чел.</span>

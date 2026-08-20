@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { UsnScheme } from '@prisma/client';
+import { Prisma, UsnScheme } from '@prisma/client';
 
 interface FinancialMetrics {
   revenueGross: number; // Изначально принесенные деньги
@@ -22,18 +22,14 @@ class AccountingService {
   async getMetrics(startDate?: Date, endDate?: Date, tenantId?: string): Promise<FinancialMetrics> {
     const isSingleTenant = tenantId && tenantId !== 'all';
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereClause: any = {};
-    if (startDate && endDate) {
-      whereClause.createdAt = { gte: startDate, lte: endDate };
-    }
+    const dateFilter = startDate && endDate ? { createdAt: { gte: startDate, lte: endDate } } : {};
 
     // 1. Calculate Revenue and Gateway Fees (All payments SUCCEEDED)
     const paymentGroups = await db.payment.groupBy({
       by: ['gateway'],
       _sum: { amount: true },
       where: {
-        ...whereClause,
+        ...dateFilter,
         status: 'SUCCEEDED',
         ...(isSingleTenant ? { tenantId } : {})
       }
@@ -58,7 +54,7 @@ class AccountingService {
     // 2. Calculate Refunds (For canceled/partial orders)
     const refundedOrders = await db.order.findMany({
       where: {
-        ...whereClause,
+        ...dateFilter,
         status: { in: ['PARTIAL', 'CANCELED'] },
         ...(isSingleTenant ? { tenantId } : {})
       }
@@ -204,6 +200,91 @@ class AccountingService {
       update: { taxRate, opexMonthly, ...(usnScheme ? { usnScheme } : {}) },
       create: { id: activeSettingsId, taxRate, opexMonthly, usnScheme: usnScheme || 'INCOME_EXPENSES' }
     });
+  }
+
+  async getGatewayBreakdown(startDate?: Date, endDate?: Date, tenantId?: string) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    const where: Prisma.PaymentWhereInput = {};
+    if (startDate && endDate) {
+      where.createdAt = { gte: startDate, lte: endDate };
+    }
+    if (isSingleTenant) {
+      where.tenantId = tenantId;
+    }
+
+    const [allPayments, succeededPayments] = await Promise.all([
+      db.payment.groupBy({
+        by: ['gateway'],
+        _count: true,
+        where,
+      }),
+      db.payment.groupBy({
+        by: ['gateway'],
+        _sum: { amount: true },
+        _count: true,
+        where: {
+          ...where,
+          status: 'SUCCEEDED',
+        },
+      }),
+    ]);
+
+    const totalRevenueKopecks = succeededPayments.reduce((acc, p) => acc + BigInt(p._sum.amount || 0), BigInt(0));
+
+    const totalMap = new Map<string, number>();
+    for (const ap of allPayments) {
+      totalMap.set(ap.gateway, ap._count);
+    }
+
+    return succeededPayments.map(sp => {
+      const g = sp.gateway;
+      const amountKopecks = BigInt(sp._sum.amount || 0);
+      const totalCount = totalMap.get(g) || sp._count;
+      const successCount = sp._count;
+      const successRate = totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 100;
+      
+      let feePct = 3.5;
+      let label: string;
+      let icon: string;
+      if (g.toLowerCase().includes('sbp') || g.toLowerCase().includes('qr')) {
+        feePct = 0.7;
+        label = 'СБП (QR / Пэй)';
+        icon = '⚡';
+      } else if (g.toLowerCase().includes('crypto')) {
+        feePct = 1.0;
+        label = 'CryptoCloud';
+        icon = '₿';
+      } else if (g.toLowerCase().includes('robo')) {
+        feePct = 3.9;
+        label = 'Robokassa';
+        icon = '🛡️';
+      } else if (g.toLowerCase().includes('yoo')) {
+        feePct = 3.5;
+        label = 'ЮKassa (Карты/Банки)';
+        icon = '💳';
+      } else {
+        label = g.toUpperCase();
+        icon = '🌐';
+      }
+
+      const feeKopecks = (amountKopecks * BigInt(Math.round(feePct * 10))) / BigInt(1000);
+      const sharePct = totalRevenueKopecks > BigInt(0)
+        ? Math.round(Number((amountKopecks * BigInt(100)) / totalRevenueKopecks))
+        : 0;
+
+      return {
+        gateway: g,
+        label,
+        icon,
+        amountKopecks,
+        feeKopecks,
+        feePct,
+        successCount,
+        totalCount,
+        successRate,
+        sharePct,
+      };
+    }).sort((a, b) => Number(b.amountKopecks - a.amountKopecks));
   }
 }
 

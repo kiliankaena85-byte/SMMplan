@@ -126,7 +126,7 @@ function CategoryMergeCard({ categories, onSuccess }: { categories: any[]; onSuc
           </Select>
         </div>
 
-        <div className="bg-warning/10 border border-amber-500/20 rounded-lg p-2.5 text-[11px] text-amber-700 leading-normal flex items-start gap-1.5">
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-2.5 text-[11px] text-warning leading-normal flex items-start gap-1.5">
           <span className="shrink-0 text-xs">⚠️</span>
           <span>
             <b>Внимание!</b> Действие необратимо. Услуги перенесутся автоматически, старая категория будет удалена.
@@ -527,14 +527,14 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
 
           <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div className="md:col-span-2 space-y-1">
-              <label className="block text-xs font-semibold text-muted-foreground">Название (с префиксом платформы)</label>
+              <label className="block text-xs font-semibold text-muted-foreground">Название категории</label>
               <input 
                 type="text" 
                 required
                 value={name} 
                 onChange={e => setName(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                placeholder="Например: INSTAGRAM | Лайки"
+                placeholder="Например: Подписчики"
               />
             </div>
             
@@ -651,48 +651,66 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
           </form>
         </div>
 
-        {/* List display */}
-        <div className="bg-card shadow-sm border border-border rounded-xl overflow-hidden w-full">
-          <div className="p-4 border-b border-border/60 bg-muted/10">
-            <h3 className="text-xs font-bold text-foreground">Список категорий ({categories.length})</h3>
-          </div>
-          <Table aria-label="Менеджер категорий">
-            <Table.ScrollContainer>
-              <Table.Content>
-                <Table.Header>
-                  <Table.Column isRowHeader className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-4">НАЗВАНИЕ</Table.Column>
-                  <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">ПЛАТФОРМА</Table.Column>
-                  <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">СОРТИРОВКА</Table.Column>
-                  <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">УСЛУГ</Table.Column>
-                  <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right px-4">ДЕЙСТВИЯ</Table.Column>
-                </Table.Header>
-                <Table.Body>
-                  {categories.map((c) => (
-                    <Table.Row key={c.id} className="hover:bg-muted/30 transition-colors duration-150">
-                      <Table.Cell className="px-4">
-                        <span className="font-semibold text-foreground text-xs">{c.name}</span>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <span className="text-muted-foreground text-xs font-mono bg-muted/60 px-2 py-0.5 rounded border border-border/30">{c.network?.slug?.toUpperCase() || '-'}</span>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <span className="text-muted-foreground text-xs font-mono">{c.sort}</span>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <span className="text-muted-foreground text-xs font-mono bg-primary/5 text-primary border border-primary/20 px-2 py-0.5 rounded">{c._count.services}</span>
-                      </Table.Cell>
-                      <Table.Cell className="text-right px-4">
-                        <div className="flex justify-end gap-3 font-semibold text-xs">
-                          <button onClick={() => handleEdit(c)} className="text-primary hover:underline cursor-pointer">Изменить</button>
-                          <button onClick={() => handleDelete(c.id)} className="text-destructive hover:underline cursor-pointer">Удалить</button>
-                        </div>
-                      </Table.Cell>
-                    </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table.Content>
-            </Table.ScrollContainer>
-          </Table>
+        {/* Grouped List display by Network */}
+        <div className="space-y-4">
+          {networks.map(net => {
+            const netCategories = categories.filter(c => c.networkId === net.id);
+            if (netCategories.length === 0) return null;
+            return (
+              <div key={net.id} className="bg-card shadow-sm border border-border rounded-xl overflow-hidden w-full">
+                <div className="p-3.5 px-4 border-b border-border/60 bg-muted/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      🌐 {net.name}
+                    </span>
+                    <span className="text-[11px] font-mono text-muted-foreground bg-background px-2 py-0.5 rounded border border-border/50">
+                      {netCategories.length} {netCategories.length === 1 ? 'категория' : netCategories.length < 5 ? 'категории' : 'категорий'}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    Всего услуг: {netCategories.reduce((acc, cat) => acc + (cat._count?.services || 0), 0)}
+                  </span>
+                </div>
+                <Table aria-label={`Категории ${net.name}`}>
+                  <Table.ScrollContainer>
+                    <Table.Content>
+                      <Table.Header>
+                        <Table.Column isRowHeader className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-4">НАЗВАНИЕ КАТЕГОРИИ</Table.Column>
+                        <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">SLUG</Table.Column>
+                        <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">СОРТИРОВКА</Table.Column>
+                        <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">АКТИВНЫХ УСЛУГ</Table.Column>
+                        <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right px-4">ДЕЙСТВИЯ</Table.Column>
+                      </Table.Header>
+                      <Table.Body>
+                        {netCategories.map((c) => (
+                          <Table.Row key={c.id} className="hover:bg-muted/30 transition-colors duration-150">
+                            <Table.Cell className="px-4">
+                              <span className="font-semibold text-foreground text-xs">{c.name}</span>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <span className="text-muted-foreground text-xs font-mono bg-muted/60 px-2 py-0.5 rounded border border-border/30">{c.slug}</span>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <span className="text-muted-foreground text-xs font-mono">{c.sort}</span>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <span className="text-muted-foreground text-xs font-mono bg-primary/5 text-primary border border-primary/20 px-2 py-0.5 rounded">{c._count.services}</span>
+                            </Table.Cell>
+                            <Table.Cell className="text-right px-4">
+                              <div className="flex justify-end gap-3 font-semibold text-xs">
+                                <button onClick={() => handleEdit(c)} className="text-primary hover:underline cursor-pointer">Изменить</button>
+                                <button onClick={() => handleDelete(c.id)} className="text-destructive hover:underline cursor-pointer">Удалить</button>
+                              </div>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Content>
+                  </Table.ScrollContainer>
+                </Table>
+              </div>
+            );
+          })}
         </div>
       </div>
 

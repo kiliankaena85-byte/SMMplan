@@ -370,7 +370,8 @@ beforeEach(async () => {
         'smtp.test.ts',
         'smart-analyzer',
         'abtest',
-        'ab-test'
+        'ab-test',
+        'client-crm-balance'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;

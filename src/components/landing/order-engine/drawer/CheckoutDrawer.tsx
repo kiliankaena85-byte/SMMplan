@@ -93,23 +93,23 @@ export function CheckoutDrawer({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 bottom-0 right-0 w-full sm:w-[440px] bg-background dark:bg-content1 border-l border-border/40 shadow-[0_0_50px_rgba(0,0,0,0.15)] dark:shadow-[0_0_60px_rgba(0,0,0,0.4)] z-[200] flex flex-col overflow-hidden"
+            className="fixed top-0 bottom-0 right-0 w-full sm:w-[480px] lg:w-[520px] bg-background border-l border-border shadow-2xl z-[200] flex flex-col overflow-hidden"
           >
-            {/* Mobile Drag Indicator Handle (Yandex Go style) */}
-            <div className="sm:hidden w-12 h-1 bg-border/60 rounded-full mx-auto my-3 shrink-0" />
+            {/* Mobile Drag Indicator Handle */}
+            <div className="sm:hidden w-12 h-1 bg-border rounded-full mx-auto my-3 shrink-0" />
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 shrink-0">
               <h3 className="text-base font-black text-foreground uppercase tracking-wider">
                 Оформление заказа
               </h3>
               <button
                 type="button"
                 onClick={onClearSelection}
-                className="w-8 h-8 rounded-full bg-content2 hover:bg-content3 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all cursor-pointer"
-                title="Закрыть"
+                className="w-9 h-9 rounded-full bg-content2 hover:bg-content3 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                title="Закрыть (Esc)"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4.5 h-4.5" />
               </button>
             </div>
 

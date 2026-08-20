@@ -3,7 +3,7 @@ import { calculatePartialRefund } from '@/utils/refund';
 import { WalletOps } from '../financial/wallet-ops';
 import { runSerializableTransaction } from '@/lib/transactions';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import type { Order, User, Service, Category, Network } from '@prisma/client';
 import { CompensationService } from '@/services/financial/compensation.service';
 
@@ -27,6 +27,8 @@ type AdminOrderRow = Order & {
 type OrderSearchParams = {
   query?: string;
   status?: string;
+  activityType?: string;
+  datePreset?: string;
   cursor?: string;
   pageSize?: number;
   userId?: string;
@@ -50,6 +52,16 @@ type OrderSearchParams = {
   providerId?: string;
   sortField?: string;
   sortOrder?: 'asc' | 'desc';
+};
+
+const ACTIVITY_TYPE_KEYWORDS: Record<string, string[]> = {
+  subscribers: ['подписчик', 'участник', 'фолловер', 'subscriber', 'follower', 'member', 'sub'],
+  likes: ['лайк', 'реакци', 'like', 'reaction', 'heart'],
+  views: ['просмотр', 'охват', 'view', 'impression', 'reach'],
+  comments: ['комментар', 'отзыв', 'comment', 'review'],
+  reposts: ['репост', 'поделиться', 'share', 'retweet'],
+  polls: ['опрос', 'голосов', 'vote', 'poll'],
+  watchtime: ['час', 'удержан', 'длительн', 'watch time', 'hour', 'duration'],
 };
 
 // ── Service ──
@@ -150,6 +162,28 @@ class AdminOrderService {
       });
     }
 
+    if (params.activityType && params.activityType !== 'ALL') {
+      where.AND = where.AND || [];
+      if (ACTIVITY_TYPE_KEYWORDS[params.activityType]) {
+        const kws = ACTIVITY_TYPE_KEYWORDS[params.activityType];
+        where.AND.push({
+          OR: [
+            ...kws.map(kw => ({ service: { name: { contains: kw, mode: 'insensitive' } } })),
+            ...kws.map(kw => ({ service: { category: { name: { contains: kw, mode: 'insensitive' } } } })),
+          ]
+        });
+      } else {
+        // Direct category slug match
+        where.AND.push({
+          service: {
+            category: {
+              slug: params.activityType
+            }
+          }
+        });
+      }
+    }
+
     if (link && link.trim()) {
       where.link = { contains: link.trim(), mode: 'insensitive' };
     }
@@ -196,47 +230,69 @@ class AdminOrderService {
       where.status = { in: ['PENDING', 'IN_PROGRESS'] };
     }
 
-    if (params.dateFrom || params.dateTo) {
+    // ── Date Filtering & Presets ──
+    let computedDateFrom = params.dateFrom;
+    let computedDateTo = params.dateTo;
+
+    if (params.datePreset) {
+      const now = new Date();
+      if (params.datePreset === 'today') {
+        computedDateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      } else if (params.datePreset === 'yesterday') {
+        computedDateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+        computedDateTo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+      } else if (params.datePreset === '7d') {
+        computedDateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (params.datePreset === '30d') {
+        computedDateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else if (params.datePreset === 'this_month') {
+        computedDateFrom = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      } else if (params.datePreset === 'last_month') {
+        computedDateFrom = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        computedDateTo = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      }
+    }
+
+    if (computedDateFrom || computedDateTo) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dateFilter: any = {};
-      if (params.dateFrom) dateFilter.gte = params.dateFrom;
-      if (params.dateTo) dateFilter.lte = params.dateTo;
+      if (computedDateFrom) dateFilter.gte = computedDateFrom;
+      if (computedDateTo) dateFilter.lte = computedDateTo;
       where.createdAt = { ...where.createdAt, ...dateFilter };
     }
 
+    // ── Omni-Search Parser (Strict Intent Hierarchy) ──
     if (query && query.trim()) {
       const q = query.trim();
-      const numericId = parseInt(q, 10);
-      const cleanSubstring = q.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      const numMatch = q.match(/^#?(\d+)$/);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const textConditions: any[] = [
-        { externalId: { contains: q, mode: 'insensitive' } },
-        { link: { contains: cleanSubstring, mode: 'insensitive' } },
-        { user: { email: { contains: q, mode: 'insensitive' } } },
-        { paymentId: { contains: q, mode: 'insensitive' } },
-        { payment: { gatewayId: { contains: q, mode: 'insensitive' } } },
-        { payment: { receiptId: { contains: q, mode: 'insensitive' } } },
-        { service: { name: { contains: q, mode: 'insensitive' } } },
-        { service: { description: { contains: q, mode: 'insensitive' } } },
-        { service: { category: { name: { contains: q, mode: 'insensitive' } } } },
-        { service: { category: { network: { name: { contains: q, mode: 'insensitive' } } } } },
-      ];
-
-      const parsedPrice = parseFloat(q.replace(',', '.'));
-      if (!isNaN(parsedPrice)) {
-        const priceCents = Math.round(parsedPrice * 100);
-        textConditions.push({ charge: priceCents });
-      }
-
-      if (!isNaN(numericId) && q === String(numericId)) {
-        // Pure number → search by numericId OR receipt/payment/price IDs
+      if (numMatch) {
+        // Pure number (e.g. 54 or #54) -> Strict match on numericId or externalId
+        const num = parseInt(numMatch[1], 10);
         where.OR = [
-          { numericId: numericId },
-          ...textConditions
+          { numericId: num },
+          { externalId: { equals: String(num) } },
+        ];
+      } else if (q.includes('@') && !q.includes('/') && !q.startsWith('@')) {
+        // Direct Client Email
+        where.user = { email: { contains: q, mode: 'insensitive' } };
+      } else if (q.startsWith('cly') || q.startsWith('usr_') || q.length >= 24) {
+        // CUID / User ID
+        where.OR = [
+          { id: q },
+          { userId: q },
+          { externalId: q },
+          { paymentId: q },
         ];
       } else {
-        where.OR = textConditions;
+        const cleanSubstring = q.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/^@/, '');
+        where.OR = [
+          { externalId: { contains: q, mode: 'insensitive' } },
+          { link: { contains: cleanSubstring, mode: 'insensitive' } },
+          { user: { email: { contains: q, mode: 'insensitive' } } },
+          { paymentId: { contains: q, mode: 'insensitive' } },
+          { service: { name: { contains: q, mode: 'insensitive' } } },
+        ];
       }
     }
 
@@ -338,7 +394,7 @@ class AdminOrderService {
       return { refundCents, orderNumericId: order.numericId, statusBefore: order.status, remainsBefore: order.remains };
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_CANCEL',
@@ -389,7 +445,7 @@ class AdminOrderService {
       return { orderNumericId: order.numericId, oldStatus: order.status, oldError: order.error, charge: order.charge };
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'ORDER_RESTART',
@@ -405,11 +461,13 @@ class AdminOrderService {
   /**
    * Get order statistics for dashboard widgets.
    */
-  async getOrderStats(startDate?: Date, endDate?: Date) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+  async getOrderStats(startDate?: Date, endDate?: Date, tenantId?: string) {
+    const where: Record<string, unknown> = {};
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
+    }
+    if (tenantId) {
+      where.tenantId = tenantId;
     }
     const [total, pending, inProgress, completed, error] = await Promise.all([
       db.order.count({ where }),
@@ -425,69 +483,74 @@ class AdminOrderService {
   /**
    * Retrieves order counts grouped by hour/day/week/month to build the Orders Dynamics Chart.
    */
-  async getOrdersTimeseries(startDate: Date, endDate: Date, step: 'hour' | 'day' | 'week' | 'month') {
-    let rawData: { date: Date; status: string; count: number }[];
-    
-    if (step === 'hour') {
-      rawData = await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
+  async getOrdersTimeseries(startDate: Date, endDate: Date, step: 'hour' | 'day' | 'week' | 'month', tenantId?: string) {
+    const rawData = step === 'hour'
+      ? await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
         SELECT 
           DATE_TRUNC('hour', "createdAt") as date, 
           status, 
           COUNT(*)::int as count 
         FROM "Order"
         WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
-          AND status IN ('COMPLETED', 'CANCELED', 'AWAITING_PAYMENT')
+          AND (${tenantId || null}::text IS NULL OR "tenantId" = ${tenantId || ''})
         GROUP BY DATE_TRUNC('hour', "createdAt"), status
         ORDER BY date ASC
-      `;
-    } else if (step === 'week') {
-      rawData = await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
+      `
+      : step === 'week'
+      ? await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
         SELECT 
           DATE_TRUNC('week', "createdAt") as date, 
           status, 
           COUNT(*)::int as count 
         FROM "Order"
         WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
-          AND status IN ('COMPLETED', 'CANCELED', 'AWAITING_PAYMENT')
+          AND (${tenantId || null}::text IS NULL OR "tenantId" = ${tenantId || ''})
         GROUP BY DATE_TRUNC('week', "createdAt"), status
         ORDER BY date ASC
-      `;
-    } else if (step === 'month') {
-      rawData = await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
+      `
+      : step === 'month'
+      ? await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
         SELECT 
           DATE_TRUNC('month', "createdAt") as date, 
           status, 
           COUNT(*)::int as count 
         FROM "Order"
         WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
-          AND status IN ('COMPLETED', 'CANCELED', 'AWAITING_PAYMENT')
+          AND (${tenantId || null}::text IS NULL OR "tenantId" = ${tenantId || ''})
         GROUP BY DATE_TRUNC('month', "createdAt"), status
         ORDER BY date ASC
-      `;
-    } else {
-      rawData = await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
+      `
+      : await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
         SELECT 
           DATE_TRUNC('day', "createdAt") as date, 
           status, 
           COUNT(*)::int as count 
         FROM "Order"
         WHERE "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
-          AND status IN ('COMPLETED', 'CANCELED', 'AWAITING_PAYMENT')
+          AND (${tenantId || null}::text IS NULL OR "tenantId" = ${tenantId || ''})
         GROUP BY DATE_TRUNC('day', "createdAt"), status
         ORDER BY date ASC
       `;
-    }
 
     // Scaffold empty intervals array to prevent chart visual gaps
-    type ChartRow = { dateStr: string; completed: number; canceled: number; unpaid: number };
-    const result: ChartRow[] = [];
+    type WaveChartRow = { 
+      dateStr: string; 
+      completed: number; 
+      inProgress: number; 
+      pending: number; 
+      unpaid: number; 
+      canceled: number; 
+      partial: number; 
+      total: number;
+    };
+    const result: WaveChartRow[] = [];
     
     if (step === 'hour') {
       const current = new Date(startDate);
       current.setMinutes(0, 0, 0);
       while (current <= endDate) {
         const dateStr = current.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        result.push({ dateStr, completed: 0, canceled: 0, unpaid: 0 });
+        result.push({ dateStr, completed: 0, inProgress: 0, pending: 0, unpaid: 0, canceled: 0, partial: 0, total: 0 });
         current.setHours(current.getHours() + 1);
       }
     } else if (step === 'day') {
@@ -495,7 +558,7 @@ class AdminOrderService {
       current.setHours(0, 0, 0, 0);
       while (current <= endDate) {
         const dateStr = current.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
-        result.push({ dateStr, completed: 0, canceled: 0, unpaid: 0 });
+        result.push({ dateStr, completed: 0, inProgress: 0, pending: 0, unpaid: 0, canceled: 0, partial: 0, total: 0 });
         current.setDate(current.getDate() + 1);
       }
     } else if (step === 'week') {
@@ -506,7 +569,7 @@ class AdminOrderService {
       current.setHours(0, 0, 0, 0);
       while (current <= endDate) {
         const dateStr = current.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
-        result.push({ dateStr, completed: 0, canceled: 0, unpaid: 0 });
+        result.push({ dateStr, completed: 0, inProgress: 0, pending: 0, unpaid: 0, canceled: 0, partial: 0, total: 0 });
         current.setDate(current.getDate() + 7);
       }
     } else if (step === 'month') {
@@ -515,7 +578,7 @@ class AdminOrderService {
       current.setHours(0, 0, 0, 0);
       while (current <= endDate) {
         const dateStr = current.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' });
-        result.push({ dateStr, completed: 0, canceled: 0, unpaid: 0 });
+        result.push({ dateStr, completed: 0, inProgress: 0, pending: 0, unpaid: 0, canceled: 0, partial: 0, total: 0 });
         current.setMonth(current.getMonth() + 1);
       }
     }
@@ -533,13 +596,193 @@ class AdminOrderService {
       }
       const match = result.find(r => r.dateStr === dStr);
       if (match) {
-        if (row.status === 'COMPLETED') match.completed = Number(row.count);
-        if (row.status === 'CANCELED') match.canceled = Number(row.count);
-        if (row.status === 'AWAITING_PAYMENT') match.unpaid = Number(row.count);
+        const count = Number(row.count);
+        match.total += count;
+        if (row.status === 'COMPLETED') match.completed += count;
+        else if (row.status === 'IN_PROGRESS') match.inProgress += count;
+        else if (row.status === 'PENDING') match.pending += count;
+        else if (row.status === 'AWAITING_PAYMENT') match.unpaid += count;
+        else if (row.status === 'CANCELED' || row.status === 'ERROR') match.canceled += count;
+        else if (row.status === 'PARTIAL' || row.status === 'REFUNDING') match.partial += count;
       }
     }
 
     return result;
+  }
+
+  /**
+   * Get recent live orders for dashboard feed
+   */
+  async getRecentOrders(limit = 6, tenantId?: string) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    return db.order.findMany({
+      where: isSingleTenant ? { tenantId } : {},
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: {
+        user: { select: { email: true } },
+        service: {
+          select: {
+            name: true,
+            category: { select: { name: true, network: { select: { name: true, slug: true } } } }
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Get top services by order volume / revenue
+   */
+  async getTopServices(limit = 6, startDate?: Date, endDate?: Date, tenantId?: string) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {
+      status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] }
+    };
+    if (startDate && endDate) {
+      where.createdAt = { gte: startDate, lte: endDate };
+    }
+    if (isSingleTenant) {
+      where.tenantId = tenantId;
+    }
+
+    const orders = await db.order.findMany({
+      where,
+      select: {
+        serviceId: true,
+        charge: true,
+        providerCost: true,
+        service: {
+          select: {
+            id: true,
+            name: true,
+            category: {
+              select: {
+                name: true,
+                network: { select: { name: true, slug: true } }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const map = new Map<string, {
+      id: string;
+      name: string;
+      networkName: string;
+      categoryName: string;
+      ordersCount: number;
+      revenueKopecks: bigint;
+      costKopecks: bigint;
+      profitKopecks: bigint;
+      marginPct: number;
+    }>();
+
+    for (const o of orders) {
+      const s = o.service;
+      if (!s) continue;
+      const existing = map.get(s.id) || {
+        id: s.id,
+        name: s.name,
+        networkName: s.category?.network?.name || '—',
+        categoryName: s.category?.name || '—',
+        ordersCount: 0,
+        revenueKopecks: BigInt(0),
+        costKopecks: BigInt(0),
+        profitKopecks: BigInt(0),
+        marginPct: 0,
+      };
+
+      existing.ordersCount += 1;
+      existing.revenueKopecks += BigInt(o.charge);
+      existing.costKopecks += BigInt(o.providerCost || 0);
+      existing.profitKopecks = existing.revenueKopecks - existing.costKopecks;
+      
+      map.set(s.id, existing);
+    }
+
+    const list = Array.from(map.values()).map(item => {
+      const rev = Number(item.revenueKopecks);
+      const profit = Number(item.profitKopecks);
+      const marginPct = rev > 0 ? Math.round((profit / rev) * 100) : 0;
+      return { ...item, marginPct };
+    });
+
+    list.sort((a, b) => Number(b.revenueKopecks - a.revenueKopecks));
+    return list.slice(0, limit);
+  }
+
+  /**
+   * Get refund and failure monitoring stats
+   */
+  async getRefundAndFailureStats(startDate?: Date, endDate?: Date, tenantId?: string) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+    if (startDate && endDate) {
+      where.createdAt = { gte: startDate, lte: endDate };
+    }
+    if (isSingleTenant) {
+      where.tenantId = tenantId;
+    }
+
+    const [totalOrders, canceledOrders, partialOrders, errorOrders] = await Promise.all([
+      db.order.count({ where }),
+      db.order.count({ where: { ...where, status: 'CANCELED' } }),
+      db.order.count({ where: { ...where, status: 'PARTIAL' } }),
+      db.order.count({ where: { ...where, status: 'ERROR' } }),
+    ]);
+
+    const problematicCount = canceledOrders + partialOrders + errorOrders;
+    const failureRate = totalOrders > 0 ? ((problematicCount / totalOrders) * 100).toFixed(1) : '0';
+
+    // Top problematic services
+    const problematicOrders = await db.order.findMany({
+      where: {
+        ...where,
+        status: { in: ['CANCELED', 'PARTIAL', 'ERROR'] }
+      },
+      select: {
+        charge: true,
+        status: true,
+        service: {
+          select: {
+            name: true,
+            category: { select: { network: { select: { name: true } } } }
+          }
+        }
+      },
+      take: 50
+    });
+
+    let totalRefundsKopecks = BigInt(0);
+    const serviceFailMap = new Map<string, { name: string; network: string; count: number }>();
+
+    for (const po of problematicOrders) {
+      totalRefundsKopecks += BigInt(po.charge);
+      const sName = po.service?.name || 'Неизвестная услуга';
+      const netName = po.service?.category?.network?.name || '—';
+      const cur = serviceFailMap.get(sName) || { name: sName, network: netName, count: 0 };
+      cur.count += 1;
+      serviceFailMap.set(sName, cur);
+    }
+
+    const topFailingServices = Array.from(serviceFailMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4);
+
+    return {
+      totalOrders,
+      canceledOrders,
+      partialOrders,
+      errorOrders,
+      problematicCount,
+      failureRate,
+      totalRefundsKopecks,
+      topFailingServices,
+    };
   }
 }
 

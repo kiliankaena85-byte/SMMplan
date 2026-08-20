@@ -100,38 +100,38 @@ export function FullscreenCheckoutVariantC({
         className="fixed inset-0 bg-background dark:bg-background z-[300] overflow-y-auto flex flex-col scrollbar-thin"
       >
         {/* Navigation / Header */}
-        <header className="sticky top-0 z-[310] bg-background/80 dark:bg-background/80 backdrop-blur-md border-b border-border/40 px-4 py-4 flex items-center justify-between">
+        <header className="sticky top-0 z-[310] bg-background/95 backdrop-blur-xl border-b border-border/80 px-6 py-4 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="min-w-[44px] min-h-[44px] rounded-full hover:bg-content2 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all cursor-pointer active:scale-95 shadow-sm"
+              className="min-w-[44px] min-h-[44px] rounded-xl hover:bg-content2 border border-border/80 flex items-center justify-center text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs group"
               title="Назад"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
             </button>
-            <span className="text-sm font-black text-foreground hidden sm:inline-block">
+            <span className="text-sm font-bold text-foreground hidden sm:inline-block">
               Вернуться к тарифам
             </span>
           </div>
 
-          <h3 className="text-base font-black text-foreground uppercase tracking-widest text-center">
+          <h3 className="text-sm md:text-base font-black text-foreground uppercase tracking-wider text-center">
             Оформление заказа
           </h3>
 
           <button
             type="button"
             onClick={onClose}
-            className="min-w-[44px] min-h-[44px] rounded-full hover:bg-content2 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all cursor-pointer active:scale-95 shadow-sm"
+            className="min-w-[44px] min-h-[44px] rounded-xl hover:bg-content2 border border-border/80 flex items-center justify-center text-foreground transition-all cursor-pointer active:scale-95 shadow-2xs group"
             title="Закрыть"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
           </button>
         </header>
 
         {/* Content Body */}
-        <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 md:py-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 md:py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             
             {/* Left Column (5/12) - Summary & Link Inputs */}
             <div className="lg:col-span-5 space-y-5">
@@ -174,20 +174,20 @@ export function FullscreenCheckoutVariantC({
               />
 
               {/* Final Actions Block */}
-              <div className="bg-content2/60 border border-border/20 rounded-[2rem] p-6 space-y-4 shadow-[0_4px_25px_rgba(0,0,0,0.02)]">
+              <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
-                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-0.5">
+                    <span className="text-xs font-black text-muted-foreground uppercase tracking-wider block mb-1">
                       Итого к оплате
                     </span>
                     {isCalculating ? (
-                      <div className="h-8 flex items-center w-16">
-                        <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                      <div className="h-9 flex items-center w-20">
+                        <Loader2 className="w-5 h-5 text-primary animate-spin" />
                       </div>
                     ) : (
-                      <p className="text-3xl font-black text-foreground tabular-nums tracking-tight leading-none">
+                      <p className="text-3xl sm:text-4xl font-black text-foreground tabular-nums font-mono tracking-tight leading-none">
                         {formattedTotal}
-                        <span className="text-primary ml-1 text-2xl">₽</span>
+                        <span className="text-primary ml-1.5 text-2xl sm:text-3xl font-black">₽</span>
                       </p>
                     )}
                   </div>
@@ -196,14 +196,14 @@ export function FullscreenCheckoutVariantC({
                     type="button"
                     onClick={() => handleCheckout(gateway)}
                     disabled={isSubmitting || isCalculating}
-                    className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-sm shadow-md shadow-primary/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                    className="min-h-[48px] h-13 px-8 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-base shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                   >
                     {isSubmitting ? (
-                      <Loader2 className="w-4.5 h-4.5 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <>
                         <span>{getButtonText()}</span>
-                        <ChevronRight className="w-4.5 h-4.5" />
+                        <ChevronRight className="w-5 h-5" />
                       </>
                     )}
                   </Button>
@@ -213,7 +213,7 @@ export function FullscreenCheckoutVariantC({
                 <motion.div
                   animate={termsHasError ? { x: [0, -6, 6, -6, 6, 0] } : {}}
                   transition={{ duration: 0.4 }}
-                  className={`w-full rounded-2xl transition-all ${
+                  className={`w-full rounded-xl transition-all pt-2 border-t border-border/40 ${
                     termsHasError
                       ? "ring-2 ring-destructive/40 bg-destructive/5 border border-destructive/20 p-2.5"
                       : ""
@@ -223,7 +223,7 @@ export function FullscreenCheckoutVariantC({
                     id="fullscreen-legal-checkbox"
                     checked={engine.agreedToTerms}
                     onChange={(val) => engine.setAgreedToTerms(val)}
-                    className="w-full text-[10px] font-bold text-muted-foreground justify-start"
+                    className="w-full text-xs font-semibold text-foreground/80 justify-start"
                     onOpenDocument={onOpenDocument}
                   />
                 </motion.div>

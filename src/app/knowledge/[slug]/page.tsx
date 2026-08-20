@@ -625,7 +625,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 <div className="text-3xl">🚀</div>
                 <h3 className="text-md font-extrabold text-foreground">Нужна консультация?</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Наша служба поддержки работает круглосуточно. Напишите нам в Telegram и мы поможем подобрать оптимальные услуги продвижения.
+                  Наша служба поддержки работает ежедневно с 09:00 до 21:00 МСК. Напишите нам в Telegram и мы поможем подобрать оптимальные услуги продвижения.
                 </p>
                 <Link 
                   href="/support" 

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useState, useTransition, useOptimistic } from 'react';
 import { toast } from 'sonner';
-import { OrderColumn } from './columns';
+import { OrderColumn, TenantBrandBadge } from './columns';
 import Link from 'next/link';
 import { 
   Clock, 
@@ -17,10 +17,12 @@ import {
   Info, 
   RefreshCw, 
   CheckSquare, 
-  Square 
+  Square,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { OrderDrawer } from '@/components/admin/OrderDrawer';
+import { OrderDetailsModal } from '@/components/admin/OrderDetailsModal';
 import { BulkActionsPanel } from '@/components/admin/bulk-actions/BulkActionsPanel';
 import { formatKopecks } from '@/utils/format-kopecks';
 import { cancelOrderAction, restartOrderAction } from '@/actions/admin/orders';
@@ -55,80 +57,152 @@ function StatusBadge({ status }: { status: string }) {
 
 function InfoStack({ order, canSeeRates }: { order: OrderColumn; canSeeRates: boolean }) {
   const s = order.service;
-  const progressPercent = order.quantity > 0 
-    ? Math.min(100, Math.max(0, Math.round(((order.quantity - order.remains) / order.quantity) * 100))) 
-    : 100;
-  
-  const chargeBig = BigInt(order.charge || '0');
-  const costBig = BigInt(order.providerCost || '0');
-  const marginKopecks = chargeBig - costBig;
-  const marginPercent = chargeBig > BigInt(0) ? Math.round((Number(marginKopecks) / Number(chargeBig)) * 100) : 0;
+  const [copied, setCopied] = useState(false);
+  const netName = s.category.network?.name || 'Платформа';
+  const catName = s.category.name;
+  const srvName = s.name;
+  const dateFormatted = new Date(order.createdAt).toISOString().replace('T', ' ').slice(0, 19);
+
+  const handleCopyLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(order.link);
+      setCopied(true);
+      toast.success('Ссылка скопирована в буфер');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Не удалось скопировать ссылку');
+    }
+  };
 
   return (
-    <div className="flex flex-col space-y-0.5 text-xs min-w-0">
-      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
-        <span className="font-bold text-foreground truncate">
-          {s.category.network?.name ? `${s.category.network.name} · ` : ''}{s.category.name}
+    <div className="flex flex-col space-y-1 text-xs min-w-0 py-0.5">
+      {/* 1. Платформа · Категория · Сервис */}
+      <div className="flex items-center gap-1.5 text-xs text-foreground flex-wrap font-medium">
+        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold text-[11px] uppercase tracking-wide">
+          {netName}
+        </span>
+        <span className="font-bold text-foreground">
+          {catName}
+        </span>
+        <span className="text-muted-foreground font-normal">·</span>
+        <span className="text-muted-foreground font-medium truncate max-w-[240px]" title={srvName}>
+          «{srvName}»
         </span>
       </div>
 
-      <div className="font-semibold text-foreground truncate text-xs" title={s.name}>
-        Сервис: {s.name}
-      </div>
-
-      <div className="flex items-center gap-1 text-[11px] truncate font-mono">
-        <span className="text-muted-foreground shrink-0">🔗</span>
+      {/* 2. Ссылка с кнопкой копирования */}
+      <div className="flex items-center gap-1.5 text-[11px] font-mono">
+        <span className="text-muted-foreground shrink-0 select-none">Ссылка:</span>
         <a 
           href={order.link} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-sky-600 dark:text-sky-400 hover:underline truncate"
+          className="text-sky-600 dark:text-sky-400 hover:underline truncate max-w-[340px] font-medium"
           title={order.link}
           onClick={(e) => e.stopPropagation()}
         >
           {order.link}
         </a>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all cursor-pointer shrink-0 active:scale-90"
+          title="Скопировать ссылку в буфер"
+        >
+          {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+        </button>
       </div>
 
-      <div className="flex items-center gap-2 text-[11px] tabular-nums text-foreground pt-0.5">
-        <span>Кол-во: <strong>{order.quantity.toLocaleString('ru-RU')}</strong></span>
-        <span>·</span>
-        <span>Остаток: <strong>{order.remains.toLocaleString('ru-RU')}</strong></span>
-        <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden shrink-0 border border-border/40" title={`${progressPercent}% выполнено`}>
-          <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
-        </div>
-      </div>
-
-      {canSeeRates ? (
-        <div className="text-[10px] text-muted-foreground tabular-nums pt-0.5 flex items-center gap-2">
-          <span>Закупка: <strong>{formatKopecks(order.providerCost)}</strong></span>
-          <span>·</span>
-          <span>
-            Маржа: <strong className={marginKopecks >= BigInt(0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-              {formatKopecks(marginKopecks)} ({marginPercent}%)
-            </strong>
+      {/* 3. Количество, остаток и точная дата создания */}
+      <div className="flex items-center gap-2 text-[11px] tabular-nums text-muted-foreground flex-wrap pt-0.5">
+        <span>
+          Кол-во: <strong className="text-foreground">{order.quantity.toLocaleString('ru-RU')} шт.</strong>
+        </span>
+        {order.remains > 0 ? (
+          <span className="text-amber-600 dark:text-amber-400 font-semibold">
+            (остаток: {order.remains.toLocaleString('ru-RU')})
           </span>
-        </div>
-      ) : (
-        <div className="text-[10px] text-muted-foreground pt-0.5">
-          🔒 Себестоимость скрыта
-        </div>
-      )}
+        ) : (
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+            (остаток: 0)
+          </span>
+        )}
+        <span>·</span>
+        <span className="text-zinc-500 dark:text-zinc-400 font-mono text-[10px]" title="Дата создания">
+          🕒 {dateFormatted}
+        </span>
+      </div>
 
-      {(order.isDripFeed || order.error) && (
-        <div className="flex items-center gap-2 text-[10px] pt-0.5 flex-wrap">
-          {order.isDripFeed && (
-            <span className="text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded-md font-bold">
-              🔁 Drip ({order.currentRun}/{order.runs || '—'})
+      {/* 4. Раскрывающийся спойлер деталей провайдера */}
+      <details className="mt-1 group/details" onClick={(e) => e.stopPropagation()}>
+        <summary className="text-sky-600 dark:text-sky-400 hover:text-sky-700 cursor-pointer text-[10px] select-none list-none inline-flex items-center gap-1 font-semibold transition-colors">
+          <span className="group-open/details:hidden">▸ Показать детали</span>
+          <span className="hidden group-open/details:inline">▾ Скрыть детали</span>
+        </summary>
+
+        <div className="mt-1.5 p-2 rounded-lg bg-muted/50 border border-border/60 text-[11px] space-y-1 font-mono">
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-muted-foreground font-sans">Провайдер:</span>
+            <span className="font-semibold text-foreground flex items-center gap-1.5">
+              {order.providerName || '—'}
+              {order.providerTicketUrl && (
+                <a
+                  href={order.providerTicketUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95 font-sans"
+                  title="Открыть поддержку провайдера"
+                >
+                  Поддержка ↗
+                </a>
+              )}
             </span>
+          </div>
+
+          {order.externalId && (
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-muted-foreground font-sans">ID у провайдера:</span>
+              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                #{order.externalId}
+                {order.providerTicketUrl && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (typeof window !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(order.externalId!);
+                        toast.success(`Внешний ID (${order.externalId}) скопирован`);
+                      }
+                      window.open(order.providerTicketUrl!, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer font-sans"
+                    title="Скопировать ID и открыть тикет"
+                  >
+                    Тикет ↗
+                  </button>
+                )}
+              </span>
+            </div>
           )}
+
           {order.error && (
-            <span className="text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded-md font-bold truncate max-w-[200px]" title={order.error}>
-              ⚠️ {order.error}
-            </span>
+            <div className="mt-1 p-1.5 bg-red-500/10 border border-red-500/20 rounded text-red-600 dark:text-red-400 text-[10px] leading-tight break-words">
+              <strong>Ошибка провайдера:</strong> {order.error}
+            </div>
+          )}
+
+          {order.isDripFeed && order.dripExternalIds && order.dripExternalIds.length > 0 && (
+            <div className="flex items-center gap-1 text-[10px] flex-wrap pt-0.5">
+              <span className="text-muted-foreground font-sans">Drip запуски:</span>
+              {order.dripExternalIds.map((id, idx) => (
+                <span key={idx} className="bg-purple-500/10 text-purple-600 border border-purple-500/20 px-1 py-0.5 rounded text-[9px]">
+                  #{id}
+                </span>
+              ))}
+            </div>
           )}
         </div>
-      )}
+      </details>
     </div>
   );
 }
@@ -296,13 +370,12 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
       {/* Desktop View: Grid (lg+) — Zero horizontal scroll */}
       <div className="hidden lg:block w-full bg-card border border-border/80 rounded-2xl shadow-sm overflow-hidden">
         {/* Grid Header */}
-        <div role="row" className="grid grid-cols-[96px_168px_minmax(0,1fr)_88px_120px_120px_116px] gap-3 items-center px-4 py-3 bg-muted/40 border-b border-border/60 font-bold text-[10px] uppercase tracking-wider text-muted-foreground select-none">
-          <div>ID</div>
-          <div>Пользователь</div>
-          <div>Информация</div>
-          <div className="text-right">Цена</div>
+        <div role="row" className="grid grid-cols-[100px_160px_minmax(0,1fr)_130px_110px_100px] gap-3 items-center px-4 py-3 bg-muted/40 border-b border-border/60 font-bold text-[10px] uppercase tracking-wider text-muted-foreground select-none">
+          <div>Заказ</div>
+          <div>Клиент</div>
+          <div>Информация о заказе</div>
+          <div className="text-right">Сумма</div>
           <div>Статус</div>
-          <div>Создана</div>
           <div className="text-right">Действия</div>
         </div>
 
@@ -310,6 +383,10 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
         <div className="divide-y divide-border/40">
           {optimisticData.map((order) => {
             const isSelected = selectedIds.has(order.id);
+            const chargeBig = BigInt(order.charge || '0');
+            const costBig = BigInt(order.providerCost || '0');
+            const marginKopecks = chargeBig - costBig;
+            const marginPercent = chargeBig > BigInt(0) ? Math.round((Number(marginKopecks) / Number(chargeBig)) * 100) : 0;
 
             return (
               <div
@@ -322,26 +399,29 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     openDrawer(order.id);
                   }
                 }}
-                className={`grid grid-cols-[96px_168px_minmax(0,1fr)_88px_120px_120px_116px] gap-3 items-start px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer group ${
+                className={`grid grid-cols-[100px_160px_minmax(0,1fr)_130px_110px_100px] gap-3 items-start px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer group ${
                   isSelected ? 'bg-primary/5' : ''
                 }`}
               >
-                {/* ID */}
-                <div className="font-mono text-xs font-bold text-primary flex items-center gap-2">
-                  {selectionMode && (
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelectRow(order.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                    />
-                  )}
-                  <span>#{order.numericId}</span>
+                {/* ID & Brand */}
+                <div className="font-mono text-xs font-bold text-primary flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    {selectionMode && (
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectRow(order.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                      />
+                    )}
+                    <span>#{order.numericId}</span>
+                  </div>
+                  <TenantBrandBadge tenantId={order.tenantId} />
                 </div>
 
                 {/* User Email */}
-                <div className="min-w-0">
+                <div className="min-w-0 pt-0.5">
                   <Link
                     href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
                     title={order.user.email}
@@ -355,9 +435,21 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                 {/* Information Stack */}
                 <InfoStack order={order} canSeeRates={canSeeRates} />
 
-                {/* Price */}
-                <div className="text-xs font-bold tabular-nums text-right text-foreground whitespace-nowrap pt-0.5">
-                  {formatKopecks(order.charge)}
+                {/* Price & Margin */}
+                <div className="flex flex-col items-end text-xs leading-normal py-0.5 font-semibold text-right min-w-0 font-mono">
+                  <div className="font-bold text-foreground tabular-nums tracking-tight text-sm">
+                    {formatKopecks(order.charge)}
+                  </div>
+                  {canSeeRates && (
+                    <div className="text-muted-foreground text-[10px] mt-0.5 font-normal select-none tabular-nums tracking-tight">
+                      Закупка: {formatKopecks(order.providerCost)}
+                    </div>
+                  )}
+                  {canSeeRates && (
+                    <div className={`text-[10px] font-bold mt-0.5 select-none tabular-nums tracking-tight ${marginKopecks >= BigInt(0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      Маржа: {marginPercent}%
+                    </div>
+                  )}
                 </div>
 
                 {/* Status Badge */}
@@ -365,17 +457,12 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                   <StatusBadge status={order.status} />
                 </div>
 
-                {/* Created At (Relative time + full tooltip) */}
-                <div className="text-xs text-muted-foreground whitespace-nowrap pt-0.5" title={new Date(order.createdAt).toLocaleString('ru-RU')}>
-                  {timeRelative(order.createdAt)}
-                </div>
-
                 {/* Row Actions */}
                 <div className="flex items-center justify-end gap-1 pt-0.5" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => openDrawer(order.id)}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                     title="Подробнее"
                   >
                     <Info className="w-4 h-4" />
@@ -384,7 +471,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                   <button
                     type="button"
                     onClick={() => handleSingleRestart(order)}
-                    className="p-1.5 rounded-lg text-sky-600 hover:bg-sky-500/10 transition-colors"
+                    className="p-1.5 rounded-lg text-sky-600 hover:bg-sky-500/10 transition-colors cursor-pointer"
                     title="Перезапустить"
                   >
                     <RefreshCw className="w-4 h-4" />
@@ -394,7 +481,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     <button
                       type="button"
                       onClick={() => handleSingleCancel(order)}
-                      className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/10 transition-colors"
+                      className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                       title="Отменить и вернуть"
                     >
                       <XCircle className="w-4 h-4" />
@@ -428,7 +515,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
             >
               {/* Header */}
               <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2.5">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {selectionMode && (
                     <input
                       type="checkbox"
@@ -439,6 +526,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     />
                   )}
                   <span className="font-mono font-bold text-sm text-primary">#{order.numericId}</span>
+                  <TenantBrandBadge tenantId={order.tenantId} />
                   <span className="text-xs text-muted-foreground" title={new Date(order.createdAt).toLocaleString('ru-RU')}>
                     {timeRelative(order.createdAt)}
                   </span>
@@ -503,11 +591,12 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
         />
       )}
 
-      {/* Order Drawer Component */}
-      <OrderDrawer
+      {/* Order Details Modal (Wide Bento Window) */}
+      <OrderDetailsModal
         order={selectedOrder}
         onClose={closeDrawer}
         canSeeRates={canSeeRates}
+        onSuccess={() => router.refresh()}
       />
 
       {/* Single Cancel Confirm Modal */}

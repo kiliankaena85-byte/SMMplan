@@ -54,14 +54,29 @@ export interface FluxOrder {
   status: FluxOrderStatus | string;
   charge: number;
   chargeCents?: number;
+  discountCents?: number;
+  usdToRubRate?: number | null;
   quantity: number;
   remains: number | null;
   startCount?: number | null;
   link: string;
   error?: string | null;
   createdAt: string;
+  isDripFeed?: boolean;
+  runs?: number | null;
+  interval?: number | null;
+  currentRun?: number;
+  nextRunAt?: string | null;
+  refills?: Array<{
+    id: string;
+    status: string;
+    createdAt: string;
+  }>;
   service: {
+    id?: string;
     name: string;
+    categoryId?: string;
+    isRefillEnabled?: boolean;
     network: {
       slug: string;
       name?: string;

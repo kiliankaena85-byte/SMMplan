@@ -163,6 +163,28 @@ export class ProviderBalanceService {
         console.warn(`[ProviderBalanceService] Redis write error for ${cacheKey}:`, cacheErr);
       }
 
+      // ── Balance Alert (deduped per 1h via Redis flag) ──────────────────────
+      if (status === 'critical' || status === 'warning') {
+        const alertKey = `provider:${provider.id}:balance_alert:${status}`;
+        try {
+          const alreadyAlerted = await redis.get(alertKey);
+          if (!alreadyAlerted) {
+            const { sendAdminAlert } = await import('@/lib/notifications');
+            const emoji = status === 'critical' ? '🚨' : '⚠️';
+            const level = status === 'critical' ? 'CRITICAL' : 'WARNING';
+            const threshold = status === 'critical' ? '$10' : '$50';
+            await sendAdminAlert(
+              `${emoji} Баланс провайдера "${provider.name}" = $${balanceUsd.toFixed(2)} (${currency}) — ниже ${threshold}. Пополните депозит!`,
+              level
+            );
+            // Deduplicate: suppress repeat alerts for 1 hour
+            await redis.set(alertKey, '1', 'EX', 3600);
+          }
+        } catch (alertErr) {
+          console.warn(`[ProviderBalanceService] Balance alert failed for ${provider.name}:`, alertErr);
+        }
+      }
+
       // Update provider SLA metrics in DB
       try {
         const prevAvg = provider.avgResponseMs || 0;
@@ -207,15 +229,53 @@ export class ProviderBalanceService {
         console.warn(`[ProviderBalanceService] Redis write error for error record ${cacheKey}:`, cacheErr);
       }
 
-      // Record error in provider SLA metrics
+      // Record error in provider SLA metrics + optionally auto-deactivate on repeated failures
       try {
-        await db.provider.update({
+        const updated = await db.provider.update({
           where: { id: provider.id },
           data: {
             lastErrorAt: new Date(),
             errorCount5m: { increment: 1 },
           },
+          select: { errorCount5m: true, name: true, isActive: true },
         });
+
+        // ── Optional Auto-Deactivation ──────────────────────────────────────────
+        // ⚠️  ОТКЛЮЧЕНО ПО УМОЛЧАНИЮ — требует ручного тестирования перед включением.
+        // Что делает: при >= 5 ошибках провайдер ставится isActive=false (NEW ORDERS STOP).
+        // Что НЕ делает: не переключает уже размещённые заказы на другого провайдера.
+        // Включить: поменяй false → true ниже.
+        const ENABLE_AUTO_DEACTIVATION = false;
+        const AUTO_DEACTIVATION_THRESHOLD = 5;
+
+        if (
+          ENABLE_AUTO_DEACTIVATION &&
+          updated.isActive &&
+          updated.errorCount5m >= AUTO_DEACTIVATION_THRESHOLD
+        ) {
+          await db.provider.update({
+            where: { id: provider.id },
+            data: { isActive: false },
+          });
+          const { sendAdminAlert } = await import('@/lib/notifications');
+          await sendAdminAlert(
+            `🔴 Провайдер "${provider.name}" АВТОМАТИЧЕСКИ ОТКЛЮЧЁН: ${updated.errorCount5m} ошибок подряд. Включите вручную в /admin/providers после устранения.`,
+            'CRITICAL'
+          );
+          console.warn(`[ProviderBalanceService] Auto-deactivation triggered for provider ${provider.id} (${provider.name}): ${updated.errorCount5m} errors`);
+        } else if (updated.errorCount5m >= AUTO_DEACTIVATION_THRESHOLD) {
+          // ── Режим мониторинга (без авто-отключения): только предупреждение ───
+          const alertKey = `provider:${provider.id}:error_alert`;
+          const alreadyAlerted = await redis.get(alertKey).catch(() => null);
+          if (!alreadyAlerted) {
+            const { sendAdminAlert } = await import('@/lib/notifications');
+            await sendAdminAlert(
+              `⚠️ Провайдер "${provider.name}" накопил ${updated.errorCount5m} ошибок за 5 мин. Требует проверки. Авто-отключение ВЫКЛЮЧЕНО — действуй вручную в /admin/providers.`,
+              'WARNING'
+            );
+            await redis.set(alertKey, '1', 'EX', 3600).catch(() => null);
+          }
+        }
       } catch (dbErr) {
         console.warn(`[ProviderBalanceService] SLA error update failed for provider ${provider.id}:`, dbErr);
       }

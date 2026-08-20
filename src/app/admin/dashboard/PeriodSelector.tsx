@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from 'lucide-react';
 
-const periods = [
+const PERIODS = [
   { id: 'today', name: 'Сегодня' },
   { id: 'yesterday', name: 'Вчера' },
   { id: '7d', name: '7 дней' },
@@ -42,16 +42,16 @@ export function PeriodSelector({ period }: PeriodSelectorProps) {
     <div className="flex items-center gap-2">
       <Calendar className="w-4 h-4 text-muted-foreground" />
       <Select value={period} onValueChange={handlePeriodChange}>
-        <SelectTrigger className="w-40 h-9 border border-border bg-card text-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer text-xs font-semibold rounded-xl">
+        <SelectTrigger size="sm" className="w-36 h-8 border border-border/70 bg-card text-foreground transition-all cursor-pointer text-xs font-semibold rounded-md">
           <SelectValue placeholder="Все время">
             {(value: string | null) => {
               if (!value) return 'Все время';
-              return periods.find(p => p.id === value)?.name ?? value;
+              return PERIODS.find(p => p.id === value)?.name ?? value;
             }}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className="bg-popover border border-border rounded-xl shadow-lg text-foreground">
-          {periods.map(p => (
+        <SelectContent className="bg-popover border border-border/80 rounded-md shadow-md text-foreground">
+          {PERIODS.map(p => (
             <SelectItem key={p.id} value={p.id} className="cursor-pointer text-xs">
               {p.name}
             </SelectItem>

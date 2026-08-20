@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from "react";
 import { motion } from "framer-motion";
@@ -16,8 +16,7 @@ export function FluxTrustBar() {
   const marqueeItems = [...stats, ...stats, ...stats, ...stats];
 
   return (
-    <section aria-label="Статистика платформы" className="w-full py-6 md:py-10 bg-transparent overflow-hidden relative">
-      {/* GPU Accelerated Seamless Continuous Marquee with Pure Alpha Fade (No Solid Color Blocks) */}
+    <section aria-label="Статистика платформы" className="w-full py-6 md:py-8 bg-transparent overflow-hidden relative">
       <div 
         className="flex w-full overflow-hidden"
         style={{
@@ -31,14 +30,14 @@ export function FluxTrustBar() {
             repeat: Infinity,
             repeatType: "loop",
             ease: "linear",
-            duration: 25,
+            duration: 30,
           }}
           className="flex gap-4 sm:gap-6 px-4 shrink-0 items-center whitespace-nowrap will-change-transform"
         >
           {marqueeItems.map((s, idx) => (
             <div
               key={`${s.label}-${idx}`}
-              className="flex items-center gap-3.5 bg-white/95 dark:bg-[#121726]/95 border border-purple-500/20 backdrop-blur-xl rounded-full px-6 sm:px-8 py-3 sm:py-3.5 shrink-0 shadow-[0_4px_25px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_30px_rgba(168,85,247,0.15)] hover:border-purple-500/40 transition-all duration-300 group"
+              className="flex items-center gap-3.5 bg-card/95 border border-purple-500/20 rounded-full px-6 sm:px-8 py-3 sm:py-3.5 shrink-0 shadow-sm hover:shadow-md hover:border-purple-500/40 transition-colors duration-150 group"
             >
               <div className={`p-2 rounded-full bg-neutral-100 dark:bg-neutral-800/80 shrink-0 ${s.color} group-hover:scale-110 transition-transform`}>
                 <s.icon className="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-sm" />

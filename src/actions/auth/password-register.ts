@@ -89,7 +89,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           role,
           referredById,
           isActive: true,
-          isEmailVerified: process.env.APP_ENV === 'test',
+          isEmailVerified: false,
           tenantId,
           tosAcceptedAt: new Date(),
           tosAcceptedIp: clientIp,

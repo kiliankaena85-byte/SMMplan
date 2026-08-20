@@ -45,17 +45,17 @@ export function DrawerFooter({
       {/* Pricing Summary */}
       <div className="flex items-end justify-between">
         <div>
-          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-0.5">
-            Итоговая стоимость
+          <span className="text-xs font-black text-muted-foreground uppercase tracking-wider block mb-1">
+            Итого к оплате
           </span>
           {isCalculating ? (
             <div className="h-8 flex items-center w-16">
               <Loader2 className="w-4 h-4 text-primary animate-spin" />
             </div>
           ) : (
-            <p className="text-3xl font-black text-foreground tabular-nums tracking-tight leading-none">
+            <p className="text-3xl font-black text-foreground tabular-nums font-mono tracking-tight leading-none">
               {formattedTotal}
-              <span className="text-primary ml-1 text-xl">₽</span>
+              <span className="text-primary ml-1 text-2xl font-black">₽</span>
             </p>
           )}
         </div>
@@ -65,7 +65,7 @@ export function DrawerFooter({
           type="button"
           onClick={handleCheckout}
           disabled={isSubmitting || isCalculating}
-          className={`h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-sm shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 disabled:pointer-events-none`}
+          className="min-h-[48px] h-12 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
         >
           {isSubmitting ? (
             <Loader2 className="w-4 h-4 animate-spin" />

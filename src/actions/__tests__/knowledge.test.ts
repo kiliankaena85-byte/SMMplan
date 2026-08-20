@@ -40,7 +40,7 @@ vi.mock('@/lib/session', async (importOriginal: any) => {
   };
 });
 
-describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
+describe.sequential('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
   let adminUser: any;
   let regularUser: any;
   let network: any;
@@ -48,13 +48,13 @@ describe('SMMplan Knowledge Base & SEO Blog Server Actions', () => {
   let service: any;
 
   beforeEach(async () => {
-    // 1. Clean database
+    // 1. Clean database safely
     await db.article.deleteMany();
+    await db.order.deleteMany();
     await db.service.deleteMany();
     await db.category.deleteMany();
     await db.network.deleteMany();
-    await db.ledgerEntry.deleteMany();
-    await db.user.deleteMany();
+    await db.user.deleteMany({ where: { email: { contains: 'kb_' } } });
 
     // 2. Set settings
     await db.systemSettings.upsert({

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { AdminTenantSelector } from '@/components/admin/AdminTenantSelector';
 
 interface BreadcrumbItem {
   label: string;
@@ -14,9 +15,19 @@ interface AdminPageHeaderProps {
   description?: React.ReactNode;
   action?: React.ReactNode;
   breadcrumbs?: BreadcrumbItem[];
+  showTenantSelector?: boolean;
+  currentTenant?: string;
 }
 
-export function AdminPageHeader({ icon: Icon, title, description, action, breadcrumbs }: AdminPageHeaderProps) {
+export function AdminPageHeader({ 
+  icon: Icon, 
+  title, 
+  description, 
+  action, 
+  breadcrumbs,
+  showTenantSelector = true,
+  currentTenant,
+}: AdminPageHeaderProps) {
   return (
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-border/50 mb-6">
       <div className="flex flex-col gap-3">
@@ -51,11 +62,10 @@ export function AdminPageHeader({ icon: Icon, title, description, action, breadc
           </div>
         )}
       </div>
-      {action && (
-        <div className="flex items-center gap-2">
-          {action}
-        </div>
-      )}
+      <div className="flex items-center gap-2 flex-wrap">
+        {showTenantSelector && <AdminTenantSelector currentTenant={currentTenant} />}
+        {action}
+      </div>
     </div>
   );
 }

@@ -7,7 +7,10 @@ import { getBaseUrlAsync } from "@/utils/get-base-url";
 import { getClientIp } from "@/utils/ip";
 import { RateLimitService } from "@/services/core/rate-limit.service";
 
-export async function createTopUpPaymentAction(amountRub: number, gateway: 'yookassa' | 'cryptobot' | 'robokassa' = 'yookassa') {
+export async function createTopUpPaymentAction(
+  amountRub: number,
+  gateway: 'yookassa' | 'cryptobot' | 'robokassa' | 'sbp' = 'yookassa'
+) {
   const session = await verifySession();
   if (!session) throw new Error("Unauthorized");
   
@@ -22,9 +25,9 @@ export async function createTopUpPaymentAction(amountRub: number, gateway: 'yook
   if (!dbUser) throw new Error("Пользователь не найден.");
   if (dbUser.isDeleted === true || dbUser.isActive === false) throw new Error("Ваш аккаунт заблокирован или удален");
 
-  if (gateway === 'yookassa' && amountCents > 180000) {
+  if ((gateway === 'yookassa' || gateway === 'sbp') && amountCents > 180000) {
     if (!dbUser.telegramId) {
-      throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
+      throw new Error("Для совершения платежей свыше $20 картой или СБП, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
     }
   }
 

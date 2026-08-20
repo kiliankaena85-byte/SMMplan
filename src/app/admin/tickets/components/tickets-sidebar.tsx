@@ -1,8 +1,9 @@
 import React from 'react';
-import { Headphones, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Headphones, Search, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { formatEta } from '@/utils/format-eta';
+import { getSupportSlaInfo } from '@/utils/support-sla';
 
 const formatTicketDate = (dateStr: string) => {
   try {
@@ -97,22 +98,33 @@ export function TicketsSidebar({
     return null;
   }
 
+  const slaInfo = getSupportSlaInfo();
+
   return (
     <div 
-      className="w-full lg:w-[380px] xl:w-[420px] shrink-0 border-r border-border flex flex-col h-full select-none bg-background/50"
+      className="w-full lg:w-[380px] xl:w-[420px] shrink-0 border-r border-border flex flex-col h-full select-none bg-background"
     >
       {/* List Header */}
-      <div className="p-4 border-b border-border/50 space-y-3 bg-card/60 backdrop-blur-md text-card-foreground">
+      <div className="p-4 border-b border-border space-y-3 bg-card text-card-foreground">
         <div className="flex items-center justify-between">
           <h1 className="font-black text-base flex items-center gap-2">
             <Headphones className="w-5 h-5 text-primary" />
             <span>Список диалогов</span>
           </h1>
           {stats.criticalOpen > 0 && (
-            <div className="text-xs font-bold text-destructive-text bg-destructive/10 px-2.5 py-0.5 rounded-full border border-destructive/20 animate-pulse">
+            <div className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20 animate-pulse">
               {stats.criticalOpen} ожидает
             </div>
           )}
+        </div>
+
+        {/* ── LIVE SLA & SHIFT STATUS PILL ── */}
+        <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-[11px] font-bold ${slaInfo.bgClass} ${slaInfo.borderClass}`}>
+          <div className="flex items-center gap-1.5">
+            <Clock className={`w-3.5 h-3.5 ${slaInfo.colorClass}`} />
+            <span className={slaInfo.colorClass}>{slaInfo.badgeShort}</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground font-mono">{slaInfo.timeStringMsk}</span>
         </div>
 
         {/* Status Filter Row */}
@@ -131,15 +143,15 @@ export function TicketsSidebar({
                 onClick={() => handleStatusFilter(pill.value)}
                 className={`px-3 text-[11px] font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer min-h-[36px] h-[36px] flex items-center justify-center gap-1.5 ${
                   isActive 
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                    : 'bg-muted text-foreground hover:bg-muted-foreground/10'
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs' 
+                    : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
                 }`}
               >
                 <span>{pill.label}</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                   isActive
                     ? 'bg-primary-foreground/20 text-primary-foreground font-black'
-                    : 'bg-background/80 text-muted-foreground font-bold'
+                    : 'bg-background text-foreground font-bold border border-border/40'
                 }`}>
                   {pill.count || 0}
                 </span>
@@ -156,20 +168,20 @@ export function TicketsSidebar({
               type="text"
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
-              placeholder="Поиск..."
-              className="w-full pl-9 pr-3 h-11 text-xs border border-border rounded-xl text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-transparent transition-all bg-muted placeholder:text-muted-foreground/60"
+              placeholder="Поиск по диалогам..."
+              className="w-full pl-9 pr-3 h-10 text-xs border border-border rounded-lg text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-transparent transition-all bg-background placeholder:text-muted-foreground"
             />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           </form>
 
           {/* B2B Filter Toggle */}
           <button
             type="button"
             onClick={() => handleB2bToggle(!currentIsB2b)}
-            className={`px-3 h-11 text-xs font-black rounded-xl transition-all border border-border whitespace-nowrap cursor-pointer select-none uppercase shrink-0 flex items-center justify-center ${
+            className={`px-3 h-10 text-xs font-black rounded-lg transition-all border whitespace-nowrap cursor-pointer select-none uppercase shrink-0 flex items-center justify-center ${
               currentIsB2b
-                ? 'bg-warning/15 text-warning-text border-warning/25 shadow-xs'
-                : 'bg-muted text-foreground hover:bg-muted-foreground/10'
+                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 shadow-xs'
+                : 'bg-muted text-muted-foreground hover:text-foreground border-border'
             }`}
           >
             B2B
@@ -179,7 +191,7 @@ export function TicketsSidebar({
           <select
             value={currentSource}
             onChange={(e) => handleSourceFilter(e.target.value)}
-            className="h-11 bg-muted border border-border rounded-xl px-2 text-xs font-bold text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-transparent cursor-pointer select-none min-w-[90px] shrink-0"
+            className="h-10 bg-background border border-border rounded-lg px-2 text-xs font-bold text-foreground outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer select-none min-w-[90px] shrink-0"
             aria-label="Фильтр по источнику"
           >
             <option value="ALL">Все сети</option>
@@ -191,7 +203,7 @@ export function TicketsSidebar({
 
         {/* SLA stats */}
         {stats?.avgFRTMin !== undefined && (stats.avgFRTMin > 0 || stats.avgTTRMin > 0) && (
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-bold px-1 py-0.5 border-t border-border/20 pt-1">
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-bold px-1 py-0.5 border-t border-border/40 pt-1.5">
             {stats.avgFRTMin > 0 && (
               <span className="flex items-center gap-1">⚡ Ответ: <span className="text-foreground">{formatEta(stats.avgFRTMin * 60)}</span></span>
             )}
@@ -203,7 +215,7 @@ export function TicketsSidebar({
       </div>
 
       {/* Cards List container */}
-      <div className="flex-grow overflow-y-auto flex flex-col gap-1 p-2 custom-scrollbar bg-background/50">
+      <div className="flex-grow overflow-y-auto flex flex-col gap-1.5 p-2 custom-scrollbar bg-background">
         {tickets.map((ticket) => {
           const isActive = activeTicket?.id === ticket.id;
           const lastMsg = ticket.messages?.[0]?.text || "Нет сообщений";
@@ -213,10 +225,10 @@ export function TicketsSidebar({
             <div 
               key={ticket.id}
               onClick={() => handleSelectTicket(ticket.id)}
-              className={`mx-1 my-0.5 p-3 rounded-xl cursor-pointer transition-all duration-200 flex flex-col select-none border-l-4 ${
+              className={`mx-1 my-0.5 p-3 rounded-xl cursor-pointer transition-all duration-200 flex flex-col select-none border ${
                 isActive 
-                  ? 'bg-secondary/40 text-secondary-foreground border-l-primary' 
-                  : 'bg-card/60 backdrop-blur-md text-foreground border-l-transparent hover:bg-muted/40'
+                  ? 'bg-primary/10 text-foreground border-primary/40 shadow-xs ring-1 ring-primary/20' 
+                  : 'bg-card text-foreground border-border/70 hover:border-border hover:bg-muted/40'
               }`}
             >
               <div className="flex items-start gap-3">

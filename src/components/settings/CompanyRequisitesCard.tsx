@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { updateTaxRequisitesAction } from '@/actions/user/settings-extra';
-import { Building2, Save, Check } from 'lucide-react';
+import { Building2, Save, Check, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 export interface CompanyRequisitesCardProps {
@@ -11,6 +11,7 @@ export interface CompanyRequisitesCardProps {
     companyName?: string | null;
     inn?: string | null;
     kpp?: string | null;
+    ogrn?: string | null;
     legalAddress?: string | null;
   };
 }
@@ -21,6 +22,7 @@ export default function CompanyRequisitesCard({ initialData }: CompanyRequisites
   const [companyName, setCompanyName] = useState(initialData?.companyName || '');
   const [inn, setInn] = useState(initialData?.inn || '');
   const [kpp, setKpp] = useState(initialData?.kpp || '');
+  const [ogrn, setOgrn] = useState(initialData?.ogrn || '');
   const [legalAddress, setLegalAddress] = useState(initialData?.legalAddress || '');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -38,12 +40,19 @@ export default function CompanyRequisitesCard({ initialData }: CompanyRequisites
       return;
     }
 
+    const trimmedOgrn = ogrn.trim();
+    if (trimmedOgrn && !/^\d{13}$|^\d{15}$/.test(trimmedOgrn)) {
+      toast.error('ОГРН должен состоять из 13 цифр (для организаций) или 15 цифр ОГРНИП (для ИП)');
+      return;
+    }
+
     startTransition(async () => {
       try {
         const res = await updateTaxRequisitesAction({
           companyName,
           inn,
           kpp,
+          ogrn,
           legalAddress,
         });
 
@@ -52,7 +61,7 @@ export default function CompanyRequisitesCard({ initialData }: CompanyRequisites
           return;
         }
 
-        toast.success('Реквизиты компании успешно обновлены!');
+        toast.success('Реквизиты компании успешно сохранены!');
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Неизвестная ошибка';
         toast.error(`Ошибка при сохранении: ${msg}`);
@@ -68,19 +77,19 @@ export default function CompanyRequisitesCard({ initialData }: CompanyRequisites
         </div>
         <div>
           <h2 className="font-semibold text-foreground text-sm">
-            Налоговые реквизиты и данные организации
+            Реквизиты организации и налоговые данные
           </h2>
           <p className="text-[10px] text-muted-foreground">
-            Данные юрлица для актов, чеков и закрывающих документов (152-ФЗ / 54-ФЗ B2B)
+            Данные юрлица / ИП для автоматического формирования счетов, актов и УПД (152-ФЗ / 54-ФЗ B2B)
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2 space-y-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="sm:col-span-2 lg:col-span-3 space-y-1">
             <label htmlFor="companyName" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Название компании (companyName)
+              Название компании / ФИО ИП (companyName)
             </label>
             <input
               id="companyName"
@@ -122,7 +131,22 @@ export default function CompanyRequisitesCard({ initialData }: CompanyRequisites
             />
           </div>
 
-          <div className="sm:col-span-2 space-y-1">
+          <div className="space-y-1">
+            <label htmlFor="ogrn" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              ОГРН / ОГРНИП — 13 или 15 цифр
+            </label>
+            <input
+              id="ogrn"
+              type="text"
+              maxLength={15}
+              placeholder="1027700132195"
+              value={ogrn}
+              onChange={(e) => setOgrn(e.target.value.replace(/\D/g, ''))}
+              className="w-full text-sm border border-border/80 rounded-xl px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 bg-background/50 hover:bg-background/80 transition-all duration-200 font-mono"
+            />
+          </div>
+
+          <div className="sm:col-span-2 lg:col-span-3 space-y-1">
             <label htmlFor="legalAddress" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Юридический адрес (legalAddress)
             </label>
@@ -137,10 +161,10 @@ export default function CompanyRequisitesCard({ initialData }: CompanyRequisites
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-3 border-t border-border/40">
-          <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-3 border-t border-border/40 gap-3">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <Check className="w-3.5 h-3.5 text-success shrink-0" />
-            Используется для формирования УПД и счетов B2B
+            <span>Автоматически используется при генерации безналичных счетов и закрывающих документов</span>
           </div>
           <Button
             type="submit"
@@ -148,7 +172,7 @@ export default function CompanyRequisitesCard({ initialData }: CompanyRequisites
             size="sm"
             isAnimated={true}
             disabled={isPending}
-            className="rounded-xl shrink-0 w-full sm:w-auto font-semibold px-6 shadow-sm gap-2"
+            className="rounded-xl shrink-0 font-semibold px-6 shadow-sm gap-2"
           >
             <Save className="w-4 h-4" />
             {isPending ? 'Сохранение...' : 'Сохранить реквизиты'}

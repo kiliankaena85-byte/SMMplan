@@ -11,30 +11,11 @@ import { RepeatOrderButton } from '@/components/orders/RepeatOrderButton';
 import { RefillRequestButton } from '@/components/orders/RefillRequestButton';
 import { DripFeedProgress } from '@/components/orders/DripFeedProgress';
 import { ChargeBreakdownModal } from '@/components/orders/ChargeBreakdownModal';
+import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
+import { CopyText } from '@/components/ui/CopyText';
+import { formatRubles } from '@/utils/format-price';
 
 export const dynamic = 'force-dynamic';
-
-const STATUS_LABEL: Record<string, string> = {
-  COMPLETED:       'Выполнен',
-  IN_PROGRESS:     'В работе',
-  PENDING:         'Ожидание',
-  AWAITING_PAYMENT:'Ожидает оплаты',
-  ERROR:           'Ошибка',
-  CANCELED:        'Отменён',
-  PARTIAL:         'Частично',
-  PROVISIONING:    'Запуск',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  COMPLETED:       'text-emerald-800 dark:text-success bg-success/10 border-emerald-500/20',
-  IN_PROGRESS:     'text-blue-800 dark:text-blue-500    bg-blue-500/10    border-blue-500/20',
-  PENDING:         'text-orange-800 dark:text-orange-500  bg-orange-500/10  border-orange-500/20',
-  AWAITING_PAYMENT:'text-orange-800 dark:text-orange-500  bg-orange-500/10  border-orange-500/20',
-  PROVISIONING:    'text-indigo-800 dark:text-indigo-500  bg-indigo-500/10  border-indigo-500/20',
-  ERROR:           'text-red-800 dark:text-destructive     bg-destructive/10     border-red-500/20',
-  PARTIAL:         'text-amber-800 dark:text-warning         bg-warning/10         border-amber-500/20',
-  CANCELED:        'text-muted-foreground bg-muted border-border',
-};
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await verifySession();
@@ -65,9 +46,6 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     redirect('/dashboard/orders');
   }
 
-  const color = STATUS_COLOR[order.status] || STATUS_COLOR.CANCELED;
-  const label = STATUS_LABEL[order.status] || order.status;
-
   const needsSync = order.status === 'AWAITING_PAYMENT' && order.payment?.gateway === 'yookassa' && order.payment?.status === 'PENDING';
 
   return (
@@ -82,8 +60,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         >
           <ArrowLeft className="w-5 h-5 text-muted-foreground" />
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Заказ #{order.numericId}</h1>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black text-foreground">Заказ #{order.numericId}</h1>
+            <CopyText text={order.numericId.toString()} iconOnly={true} tooltipText="Копировать ID заказа" />
+          </div>
           <p className="text-muted-foreground text-sm flex items-center gap-1.5 mt-0.5">
             <Clock className="w-3.5 h-3.5" /> 
             {new Date(order.createdAt).toLocaleString('ru-RU', { 
@@ -94,22 +75,21 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Main Details Card */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-xs">
         {/* Top Status Bar */}
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border ${color}`}>
-              {label}
-            </span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <OrderStatusBadge status={order.status} />
             <RefillRequestButton
               orderId={order.id}
               isRefillEnabled={order.service.isRefillEnabled}
               orderStatus={order.status}
+              createdAt={order.createdAt}
               refills={order.refills}
             />
             {order.remains > 0 && order.status === 'IN_PROGRESS' && (
-              <span className="text-sm font-semibold text-muted-foreground">
-                Осталось: {order.remains.toLocaleString('ru-RU')}
+              <span className="text-xs font-bold text-muted-foreground font-mono">
+                Осталось: {order.remains.toLocaleString('ru-RU')} шт
               </span>
             )}
             {['PENDING', 'AWAITING_PAYMENT'].includes(order.status) && (
@@ -131,11 +111,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                />
             )}
           </div>
-          <div className="text-right">
-            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Сумма</div>
+          <div className="text-right shrink-0">
+            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Сумма</div>
             <div className="flex items-center justify-end gap-1">
               <span className="text-xl font-black text-foreground font-mono tabular-nums">
-                {(Number(order.charge) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                {formatRubles(Number(order.charge) / 100)}
               </span>
               <ChargeBreakdownModal
                 numericId={order.numericId}
@@ -157,43 +137,46 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         {/* Info Grid */}
         <div className="p-5 space-y-5">
           <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
               Услуга
             </label>
             <div className="text-base font-semibold text-foreground">
               {order.service.name}
             </div>
-            <div className="text-sm font-medium text-muted-foreground/80 mt-1 flex items-center gap-1">
+            <div className="text-xs font-medium text-muted-foreground/80 mt-1 flex items-center gap-1">
                <LayoutDashboard className="w-3.5 h-3.5" /> {order.service.category?.name || 'Без категории'}
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
               Целевая ссылка
             </label>
-            <a 
-              href={order.link} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline break-all"
-            >
-              {order.link}
-              <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-            </a>
+            <div className="flex items-center gap-2">
+              <a 
+                href={order.link} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline break-all"
+              >
+                {order.link}
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+              </a>
+              <CopyText text={order.link} iconOnly={true} tooltipText="Копировать целевую ссылку" />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-muted/50 rounded-xl p-4 border border-border/50">
+            <div className="bg-muted/40 rounded-xl p-4 border border-border/40">
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
                 Заказано
               </label>
               <div className="text-lg font-black text-foreground font-mono tabular-nums">
-                {order.quantity.toLocaleString('ru-RU')}
+                {order.quantity.toLocaleString('ru-RU')} шт.
               </div>
             </div>
             {order.customData && (
-              <div className="bg-muted/50 rounded-xl p-4 border border-border/50 col-span-2">
+              <div className="bg-muted/40 rounded-xl p-4 border border-border/40 col-span-2">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
                   Дополнительные данные (Комментарии/Формат)
                 </label>
@@ -235,14 +218,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <div className="bg-background rounded-xl p-3 border border-border/40">
                 <div className="text-[10px] font-bold text-muted-foreground uppercase">Оплачено</div>
                 <div className="text-base font-black text-foreground font-mono tabular-nums mt-0.5">
-                  {(Number(order.charge) / 100).toFixed(2)} ₽
+                  {formatRubles(Number(order.charge) / 100)}
                 </div>
               </div>
               {Number(order.discountCents || 0) > 0 && (
                 <div className="bg-emerald-500/5 rounded-xl p-3 border border-emerald-500/20">
                   <div className="text-[10px] font-bold text-emerald-800 dark:text-emerald-400 uppercase">Скидка</div>
                   <div className="text-base font-black text-emerald-800 dark:text-emerald-400 font-mono tabular-nums mt-0.5">
-                    - {(Number(order.discountCents) / 100).toFixed(2)} ₽
+                    - {formatRubles(Number(order.discountCents) / 100)}
                   </div>
                 </div>
               )}

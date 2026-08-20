@@ -15,6 +15,7 @@ import { columns as auditColumns } from './audit-columns';
 import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { SettingsProvider } from '@/lib/settings';
+import { SystemHealthOverview } from '@/components/admin/settings/system-health-overview';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +72,9 @@ export default async function AdminSettingsPage({
         onboardingKey="settings"
         onboarding={ONBOARDING_CONFIGS.settings}
       />
+
+      {/* ── Dynamic System Health Pulse & Quick Actions ── */}
+      <SystemHealthOverview settings={sanitizedSettings} />
 
       {/* ── Custom URL-based Tabs ── */}
       <div className="flex gap-1 border-b border-border">

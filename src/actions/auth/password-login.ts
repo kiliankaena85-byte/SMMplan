@@ -50,7 +50,7 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
     const rawTenantId = reqHeaders.get("x-tenant-id");
     const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
     
-    const user = await db.user.findFirst({
+    let user = await db.user.findFirst({
       where: { 
         email: cleanEmail,
         tenantId
@@ -58,9 +58,21 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
       select: { id: true, tenantId: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
     });
 
+    // Fallback: Global Admin/Owner login across any tenant
+    if (!user) {
+      user = await db.user.findFirst({
+        where: {
+          email: cleanEmail,
+          role: { in: ["OWNER", "ADMIN"] },
+          isDeleted: false
+        },
+        select: { id: true, tenantId: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
+      });
+    }
+
     if (!user) {
       // Anti-Enumeration: return standard error so attackers don't know if email exists
-      log.warn('Password login: User not found', { email: cleanEmail });
+      log.warn('Password login: User not found', { email: cleanEmail, tenantId });
       return { error: "Неверный email или пароль", success: false };
     }
 

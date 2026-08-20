@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function NewCmsPage() {
-  await enforceSectionAccess('settings');
+  await enforceSectionAccess('content');
 
   return (
     <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6">

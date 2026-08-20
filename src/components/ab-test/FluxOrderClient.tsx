@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
 import React, { useState, useRef, useActionState, useEffect, Suspense } from "react";
 import { Button } from "@heroui/react";
 import { LinkIcon, SparklesIcon, ArrowRightIcon, Box, ArrowLeftIcon, ArrowDownIcon, AlertCircle, HelpCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { getServicesByCategoryAction } from "@/actions/order/catalog";
 import { checkoutAction } from "@/actions/order/checkout";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
@@ -14,37 +14,52 @@ import { LinkGuideService } from "@/services/catalog/link-guide.service";
 
 type Step = 'link' | 'network' | 'category' | 'service' | 'checkout';
 
-const slideVariants = {
+const slideVariants: Variants = {
   enter: (direction: number) => ({
-    y: direction > 0 ? 80 : -80,
+    y: direction > 0 ? 15 : -15,
     opacity: 0,
-    scale: 0.96,
-    position: "absolute" as const,
   }),
   center: {
     zIndex: 1,
     y: 0,
     opacity: 1,
-    scale: 1,
-    position: "relative" as const,
+    transition: {
+      duration: 0.2,
+      ease: "easeOut"
+    }
   },
   exit: (direction: number) => ({
     zIndex: 0,
-    y: direction < 0 ? 80 : -80,
+    y: direction < 0 ? 15 : -15,
     opacity: 0,
-    scale: 0.96,
-    position: "absolute" as const,
+    transition: {
+      duration: 0.15,
+      ease: "easeIn"
+    }
   })
 };
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+  show: { 
+    opacity: 1, 
+    transition: { 
+      staggerChildren: 0.025,
+      delayChildren: 0.01
+    } 
+  }
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0 }
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.18,
+      ease: "easeOut"
+    }
+  }
 };
 
 interface FluxOrderClientProps {
@@ -238,9 +253,8 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
   return (
     <div className={`w-full max-w-5xl mx-auto flex flex-col items-center justify-center font-sans px-4 relative overflow-visible ${step === 'link' ? 'pt-4 md:pt-8 pb-2' : 'min-h-[50vh] pt-4 pb-8'}`}>
       {step !== 'link' && (
-        <motion.div 
-          layoutId="hero-input"
-          className="w-full max-w-3xl mb-6 flex items-center bg-background/80 backdrop-blur-3xl border border-border/20 shadow-sm h-14 rounded-2xl px-2 z-10"
+        <div 
+          className="w-full max-w-3xl mb-6 flex items-center bg-card border border-border/80 shadow-sm h-14 rounded-2xl px-2 z-10 transform-gpu"
         >
           <button
             onClick={() => {
@@ -249,7 +263,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
               else if (step === 'category') navigateTo('network');
               else if (step === 'network') navigateTo('link');
             }}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground transition-colors mr-2 flex-shrink-0"
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground transition-colors mr-2 flex-shrink-0 cursor-pointer"
           >
             <ArrowLeftIcon className="w-5 h-5" />
           </button>
@@ -259,13 +273,13 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
           </div>
           <button 
             onClick={() => { setLink(''); setStep('link'); }}
-            className="w-8 h-8 mr-1 flex-shrink-0 flex items-center justify-center rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors font-bold"
+            className="w-8 h-8 mr-1 flex-shrink-0 flex items-center justify-center rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors font-bold cursor-pointer"
           >
             &times;
           </button>
-        </motion.div>
+        </div>
       )}
-      <AnimatePresence initial={false} custom={direction} mode="popLayout">
+      <AnimatePresence initial={false} custom={direction} mode="wait">
         
         {/* STEP 1: LINK INPUT */}
         {step === 'link' && (
@@ -276,33 +290,31 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="w-full max-w-3xl flex flex-col items-center"
+            className="w-full max-w-3xl flex flex-col items-center transform-gpu"
           >
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tighter text-foreground mb-6 md:mb-8 text-center leading-tight px-2">
               Что хотите <span className="inline-block px-2 sm:px-3 py-1 bg-foreground text-background rounded-[1rem] sm:rounded-2xl rotate-[-2deg] mx-1 shadow-md">продвигать</span> сегодня?
             </h1>
             <div className="relative group w-full max-w-2xl px-2 sm:px-0">
-              <motion.div 
-                layoutId="hero-input"
-                className={`relative w-full group rounded-[2rem] transition-all duration-500 select-text ${isAnalyzing ? 'p-1 scale-[1.01]' : 'p-0.5 scale-100'}`}
+              <div 
+                className={`relative w-full group rounded-[2rem] transition-all duration-300 select-text ${isAnalyzing ? 'p-1 scale-[1.01]' : 'p-0.5 scale-100'}`}
               >
                 {/* Shimmer Border */}
                 <div
-                  className="absolute inset-0 rounded-[2rem] transition-opacity duration-500 pointer-events-none google-border-shimmer opacity-100 blur-[1px]"
+                  className="absolute inset-0 rounded-[2rem] transition-opacity duration-300 pointer-events-none google-border-shimmer opacity-100 blur-[1px]"
                 />
                 
                 {/* Soft backdrop blur glow */}
                 <div
-                  className={`absolute inset-0 rounded-[2rem] transition-all duration-500 pointer-events-none blur-xl ${
+                  className={`absolute inset-0 rounded-[2rem] transition-all duration-300 pointer-events-none blur-md ${
                     isAnalyzing
-                      ? "google-border-shimmer opacity-60 scale-[1.03]"
+                      ? "google-border-shimmer opacity-60 scale-[1.02]"
                       : "google-border-shimmer opacity-30 group-hover:opacity-50 scale-[1.01]"
                   }`}
                 />
                 
                 <div
-                  className="relative flex items-center w-full bg-content1 rounded-[calc(2rem-1.5px)] p-1.5 sm:p-2 h-14 sm:h-16 md:h-[68px] z-10 shadow-inner"
+                  className="relative flex items-center w-full bg-card rounded-[calc(2rem-1.5px)] p-1.5 sm:p-2 h-14 sm:h-16 md:h-[68px] z-10 shadow-inner border border-border/40"
                 >
                   <LinkIcon className="text-muted-foreground w-5 h-5 sm:w-6 sm:h-6 ml-2 sm:ml-3 flex-shrink-0 group-focus-within:text-foreground transition-colors" />
                   <input
@@ -327,11 +339,19 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                     <ArrowRightIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </Button>
                 </div>
-              </motion.div>
+              </div>
             </div>
-            
-            <div className="mt-8 text-center text-xs text-muted-foreground">
-              <span>Или выберите платформу вручную ниже</span>
+
+            <div className="mt-8 flex justify-center w-full">
+              <button
+                type="button"
+                data-testid="flux-open-catalog-btn"
+                onClick={() => navigateTo('network')}
+                className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-card text-foreground border border-border/80 hover:border-purple-500/50 shadow-md text-xs sm:text-sm font-black transition-all hover:scale-105 active:scale-95 cursor-pointer transform-gpu"
+              >
+                <span>Или выберите платформу из каталога</span>
+                <ArrowRightIcon className="w-4 h-4 text-purple-500 group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
           </motion.div>
         )}
@@ -345,8 +365,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="w-full"
+            className="w-full transform-gpu"
           >
             <div className="mb-6 w-full">
               <h2 className="text-2xl font-bold text-foreground mb-6 tracking-tight">Выберите соцсеть</h2>
@@ -360,17 +379,21 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                 {initialCatalog.map((network: FluxNetwork) => (
                   <motion.button
                     variants={itemVariants}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
                     key={network.id}
                     onClick={() => {
                       setActiveNetwork(network);
                       navigateTo('category');
                     }}
-                    className="flex flex-col items-center justify-center gap-2 sm:gap-3 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-border/40 bg-card/80 backdrop-blur-2xl hover:bg-card hover:border-primary/50 hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 outline-none"
+                    className="flex flex-col items-center justify-center gap-2 sm:gap-3 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-white/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-150 outline-none cursor-pointer transform-gpu hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    <img src={network.icon || undefined} alt={network.name} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-                    <span className="font-bold text-foreground text-xs sm:text-sm">{network.name}</span>
+                    <img 
+                      src={network.icon || undefined} 
+                      alt={network.name} 
+                      className="w-8 h-8 sm:w-10 sm:h-10 object-contain pointer-events-none" 
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm">{network.name}</span>
                   </motion.button>
                 ))}
               </motion.div>
@@ -387,12 +410,17 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="w-full"
+            className="w-full transform-gpu"
           >
             <div className="mb-6 w-full">
               <div className="flex items-center gap-3 mb-6">
-                <img src={activeNetwork.icon || undefined} alt={activeNetwork.name} className="w-8 h-8 object-contain" />
+                <img 
+                  src={activeNetwork.icon || undefined} 
+                  alt={activeNetwork.name} 
+                  className="w-8 h-8 object-contain" 
+                  loading="lazy"
+                  decoding="async"
+                />
                 <h2 className="text-2xl font-bold text-foreground tracking-tight">Выберите категорию</h2>
               </div>
             </div>
@@ -409,13 +437,11 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                   role="button"
                   tabIndex={0}
                   variants={itemVariants}
-                  whileHover={{ scale: 1.03, y: -4 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={() => selectCategory(cat)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCategory(cat); } }}
-                  className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-border/40 bg-card/80 backdrop-blur-2xl hover:bg-card hover:border-primary/50 hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex items-center justify-between group"
+                  onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCategory(cat); } }}
+                  className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-white/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-150 flex items-center justify-between group transform-gpu hover:scale-[1.02] active:scale-[0.98]"
                 >
-                   <h4 className="font-bold text-foreground text-base sm:text-lg">{cat.name}</h4>
+                   <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-base sm:text-lg">{cat.name}</h4>
                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors">
                      <ArrowRightIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:text-primary-foreground" />
                    </div>
@@ -434,8 +460,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="w-full"
+            className="w-full transform-gpu"
           >
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-foreground tracking-tight">{activeCategory.name}</h2>
@@ -457,15 +482,14 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                     key={service.id}
                     role="button"
                     tabIndex={0}
-                    layoutId={`service-card-${service.id}`}
                     variants={itemVariants}
-                    className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-[1.5rem] sm:rounded-[2rem] border border-border/40 bg-card/80 backdrop-blur-2xl hover:bg-card hover:border-primary/50 hover:shadow-[0_16px_50px_rgb(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 flex flex-col justify-between group relative min-h-[140px] sm:min-h-[160px]"
+                    className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-[1.5rem] sm:rounded-[2rem] border border-white/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-150 flex flex-col justify-between group relative min-h-[140px] sm:min-h-[160px] transform-gpu hover:scale-[1.01] active:scale-[0.99]"
                     onClick={() => selectService(service)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectService(service); } }}
+                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectService(service); } }}
                   >
                     <div className="p-5 pb-14 sm:p-6 sm:pb-16">
                       <div className="flex justify-between items-start gap-2 mb-2">
-                        <motion.h4 layoutId={`title-${service.id}`} className="font-bold text-foreground text-lg sm:text-xl leading-snug">{service.name}</motion.h4>
+                        <h4 className="font-bold text-foreground text-lg sm:text-xl leading-snug">{service.name}</h4>
                       </div>
                       
                       <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
@@ -480,7 +504,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                       </div>
                     </div>
                     
-                    <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 bg-foreground text-background px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-[13px] sm:text-[14px] shadow-[0_4px_20px_rgb(0,0,0,0.1)] pointer-events-none tabular-nums font-mono">
+                    <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 bg-foreground text-background px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-[13px] sm:text-[14px] shadow-sm pointer-events-none tabular-nums font-mono">
                       {service.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽ <span className="font-normal opacity-80 font-sans">/ шт</span>
                     </div>
                   </motion.div>
@@ -499,16 +523,14 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="w-full max-w-2xl"
+            className="w-full max-w-2xl transform-gpu"
           >
-            <motion.div 
-              layoutId={`service-card-${selectedService.id}`}
-              className="bg-card/80 backdrop-blur-3xl border border-border/30 shadow-[0_24px_80px_rgb(0,0,0,0.08)] rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-5 md:p-6 w-full mx-auto overflow-hidden relative"
+            <div 
+              className="bg-card border border-border/80 shadow-xl rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-5 md:p-6 w-full mx-auto overflow-hidden relative transform-gpu"
             >
               <div className="mb-4 sm:mb-5 flex justify-between items-start gap-3 sm:gap-4">
                 <div>
-                  <motion.h2 layoutId={`title-${selectedService.id}`} className="text-xl sm:text-2xl font-bold text-foreground leading-tight tracking-tight">{selectedService.name}</motion.h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground leading-tight tracking-tight">{selectedService.name}</h2>
                 </div>
                 <div className="flex-shrink-0 text-right">
                   <span className="text-primary font-black text-lg sm:text-xl tabular-nums font-mono">{selectedService.pricePerUnitRub.toFixed(2)} ₽</span>
@@ -517,31 +539,27 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
               </div>
 
               {/* Плавное появление деталей услуги */}
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                transition={{ delay: 0.2, duration: 0.5 }}
-              >
+              <div className="animate-in fade-in duration-200">
                 {selectedService.description && (
                   <div className="mb-4 sm:mb-5 p-3 sm:p-4 rounded-[1.25rem] sm:rounded-2xl bg-muted/70 border border-border/50 text-[13px] sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap shadow-inner max-h-[30vh] overflow-y-auto">
                     {selectedService.description}
                   </div>
                 )}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-5">
-                  <div className="p-2.5 sm:p-3 rounded-[1.25rem] sm:rounded-2xl bg-background/90 shadow-sm border border-border/40 backdrop-blur-sm">
+                  <div className="p-2.5 sm:p-3 rounded-[1.25rem] sm:rounded-2xl bg-muted/40 shadow-sm border border-border/40">
                     <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Мин. заказ</p>
                     <p className="font-bold text-base sm:text-lg">{selectedService.minQty}</p>
                   </div>
-                  <div className="p-2.5 sm:p-3 rounded-[1.25rem] sm:rounded-2xl bg-background/90 shadow-sm border border-border/40 backdrop-blur-sm">
+                  <div className="p-2.5 sm:p-3 rounded-[1.25rem] sm:rounded-2xl bg-muted/40 shadow-sm border border-border/40">
                     <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Макс. заказ</p>
                     <p className="font-bold text-base sm:text-lg">{selectedService.maxQty}</p>
                   </div>
-                  <div className="p-2.5 sm:p-3 rounded-[1.25rem] sm:rounded-2xl bg-background/90 shadow-sm border border-border/40 col-span-2 sm:col-span-1 backdrop-blur-sm flex flex-col justify-center">
+                  <div className="p-2.5 sm:p-3 rounded-[1.25rem] sm:rounded-2xl bg-muted/40 shadow-sm border border-border/40 col-span-2 sm:col-span-1 flex flex-col justify-center">
                     <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 uppercase tracking-wide font-semibold">Скорость / ETA</p>
                     <p className="font-bold text-primary text-xs sm:text-sm">{formatEtaSpeedBadge(selectedService)}</p>
                   </div>
                 </div>
-              </motion.div>
+              </div>
 
               <hr className="border-border/10 mb-4 sm:mb-5" />
 
@@ -859,7 +877,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
                 </div>
               </form>
               </motion.div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
 

@@ -14,7 +14,7 @@ interface EditPageProps {
 }
 
 export default async function EditCmsPage({ params }: EditPageProps) {
-  await enforceSectionAccess('settings');
+  await enforceSectionAccess('content');
   const resolvedParams = await params;
 
   const item = await prisma.contentItem.findUnique({

@@ -77,10 +77,21 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
     tenantId: user.tenantId,
   };
 
+  const serializedOrders = orders.map(order => ({
+    id: order.id,
+    numericId: order.numericId,
+    status: order.status,
+    charge: Number(order.charge ?? 0),
+    chargeCents: Number(order.charge ?? 0),
+    quantity: order.quantity,
+    createdAt: order.createdAt,
+    service: order.service,
+  }));
+
   return (
     <HomeView
       user={userForClient}
-      orders={orders}
+      orders={serializedOrders}
       referralCount={referralCount}
       activeOrders={activeOrders}
       hasPendingPayments={hasPendingPayments}

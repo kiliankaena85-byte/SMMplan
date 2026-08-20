@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { CategoryManager } from "./components/category-manager";
-import Link from "next/link";
+import { Layers } from "lucide-react";
+import { AdminTabbedHeader } from "@/components/admin/tabbed-header";
+import { CATALOG_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
 
 export const dynamic = "force-dynamic";
 
@@ -19,18 +21,18 @@ export default async function CategoriesAdminPage() {
   const networks = await db.network.findMany({ orderBy: { sort: 'asc' } });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Управление Категориями</h1>
-          <p className="text-muted-foreground text-sm">Группировка и сортировка услуг в каталоге.</p>
-        </div>
-        <Link href="/admin/catalog" className="text-sm font-medium text-primary hover:text-primary/80 border border-border py-2 px-4 rounded-xl transition-colors">
-          ← Вернуться в Каталог
-        </Link>
-      </div>
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
+      <AdminTabbedHeader
+        icon={Layers}
+        title="Управление Категориями"
+        description="Группировка, сортировка и объединение услуг по социальным сетям."
+        tabs={CATALOG_TABS}
+        onboardingKey="catalog"
+        onboarding={ONBOARDING_CONFIGS.catalog}
+      />
 
       <CategoryManager categories={categories} networks={networks} />
     </div>
   );
 }
+

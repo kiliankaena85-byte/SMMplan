@@ -1,9 +1,9 @@
 // audit-disable STR-002
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Sparkles, Send } from 'lucide-react';
+import { Loader2, Sparkles, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateSmartReplyAction } from '@/actions/support/ticket';
+import { generateSmartReplyAction, changeTicketStatus } from '@/actions/support/ticket';
 
 import { Message } from './useChatMessages';
 import { ChatTemplateManager } from './ChatTemplateManager';
@@ -49,7 +49,8 @@ export function ChatInput({
   const [isAiPending, startAiTransition] = useTransition();
 
   const [suggestedArticle, setSuggestedArticle] = useState<{ title: string; slug: string } | null>(null);
-
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
 
   const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false);
   const [activeTemplateIndex, setActiveTemplateIndex] = useState(0);
@@ -60,11 +61,63 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [kbOffset, setKbOffset] = useState(0);
 
-  // Expose file setter to parent drag logic via an effect or pass a ref if needed,
-  // but to keep it simple we can just handle drag&drop at ChatWindow level and pass the file prop,
-  // or handle drop directly. For now, since ChatWindow handles drag, we need a way to set file.
-  // Actually, wait, let's keep it simple: drag&drop sets file inside ChatWindow, so `file` and `setFile`
-  // should probably be in ChatWindow, but we can just add a global window event listener here instead!
+  // 1. Initial draft restore for this specific ticket
+  useEffect(() => {
+    if (typeof window === 'undefined' || !ticketId) return;
+    try {
+      const saved = localStorage.getItem(`smmplan_draft_ticket_${ticketId}`);
+      if (saved && saved.trim()) {
+        setText(saved);
+        setDraftSavedAt('восстановлен');
+      }
+    } catch {}
+  }, [ticketId]);
+
+  // 2. Draft auto-save on text change (isolated per ticketId)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !ticketId) return;
+    const timer = setTimeout(() => {
+      try {
+        if (text.trim().length > 0) {
+          localStorage.setItem(`smmplan_draft_ticket_${ticketId}`, text);
+          const timeStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+          setDraftSavedAt(timeStr);
+        } else {
+          localStorage.removeItem(`smmplan_draft_ticket_${ticketId}`);
+          setDraftSavedAt(null);
+        }
+      } catch {}
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [text, ticketId]);
+
+  // 3. Online/Offline network connection tracking
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // 4. Protection against accidental tab closure when drafting response
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (text.trim().length > 15 && !sending) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [text, sending]);
+
   useEffect(() => {
     const handleDrop = (e: DragEvent) => {
       e.preventDefault();
@@ -152,25 +205,38 @@ export function ChatInput({
     let result = templateText;
     const userNameVal = clientEmail ? clientEmail.split('@')[0] : 'Клиент';
     const domainVal = typeof window !== 'undefined' ? window.location.host : 'smmplan.pro';
+    
+    // Support aliases: {name}, {user_name}, {email}, {user_email}
     result = result.replace(/{user_name}/g, userNameVal);
+    result = result.replace(/{name}/g, userNameVal);
     result = result.replace(/{user_email}/g, clientEmail || 'Клиент');
+    result = result.replace(/{email}/g, clientEmail || 'Клиент');
     result = result.replace(/{domain}/g, domainVal);
     result = result.replace(/{ticket_id}/g, ticketId);
     
-    if (selectedOrder) {
-      result = result.replace(/{order_id}/g, selectedOrder.numericId.toString());
-      result = result.replace(/{service_name}/g, selectedOrder.serviceName);
+    const activeOrFallbackOrder = selectedOrder || (initialOrders && initialOrders.length > 0 ? initialOrders[0] : null);
+
+    if (activeOrFallbackOrder) {
+      const orderNumStr = activeOrFallbackOrder.numericId.toString();
+      result = result.replace(/{order_id}/g, orderNumStr);
+      result = result.replace(/{orderId}/g, orderNumStr);
+      result = result.replace(/{service_name}/g, activeOrFallbackOrder.serviceName);
       
-      let statusRu = selectedOrder.status;
-      if (selectedOrder.status === 'COMPLETED') statusRu = 'Выполнен';
-      else if (selectedOrder.status === 'PROCESSING') statusRu = 'В работе';
-      else if (selectedOrder.status === 'IN_PROGRESS') statusRu = 'Выполняется';
-      else if (selectedOrder.status === 'PENDING') statusRu = 'В очереди';
+      let statusRu = activeOrFallbackOrder.status;
+      if (activeOrFallbackOrder.status === 'COMPLETED') statusRu = 'Выполнен';
+      else if (activeOrFallbackOrder.status === 'PROCESSING') statusRu = 'В работе';
+      else if (activeOrFallbackOrder.status === 'IN_PROGRESS') statusRu = 'Выполняется';
+      else if (activeOrFallbackOrder.status === 'PENDING') statusRu = 'В очереди';
+      else if (activeOrFallbackOrder.status === 'CANCELED') statusRu = 'Отменен';
+      else if (activeOrFallbackOrder.status === 'ERROR') statusRu = 'Ошибка';
       result = result.replace(/{order_status}/g, statusRu);
+      result = result.replace(/{status}/g, statusRu);
     } else {
       result = result.replace(/{order_id}/g, 'указанному заказу');
+      result = result.replace(/{orderId}/g, 'указанному заказу');
       result = result.replace(/{service_name}/g, 'выбранной услуге');
       result = result.replace(/{order_status}/g, 'обрабатывается');
+      result = result.replace(/{status}/g, 'обрабатывается');
     }
     result = result.replace(/{current_date}/g, new Date().toLocaleDateString('ru-RU'));
     return result;
@@ -252,9 +318,16 @@ export function ChatInput({
         e.preventDefault();
         setShowTemplatesDropdown(false);
       }
+    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (e.shiftKey && isStaff) {
+        handleSubmit(e as unknown as React.FormEvent, true);
+      } else {
+        handleSubmit(e as unknown as React.FormEvent, false);
+      }
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e as unknown as React.FormEvent);
+      handleSubmit(e as unknown as React.FormEvent, false);
     }
   };
 
@@ -270,8 +343,12 @@ export function ChatInput({
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, shouldCloseAfterSubmit: boolean = false) => {
     e.preventDefault();
+    if (!isOnline) {
+      toast.error('Отсутствует интернет-соединение. Черновик сохранен в браузере.');
+      return;
+    }
     if ((!text.trim() && !file) || sending) return;
     setSending(true);
 
@@ -280,10 +357,12 @@ export function ChatInput({
       id: tempId,
       sender: isStaff ? (isInternal ? 'INTERNAL' : 'STAFF') : 'USER',
       text: text.trim(),
-      mediaUrl: file ? 'uploading...' : undefined,
-      mediaType: file ? (file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'document') : undefined,
       createdAt: new Date().toISOString(),
-      replyTo: replyingTo ? { id: replyingTo.id, text: replyingTo.text, sender: replyingTo.sender } : null,
+      replyTo: replyingTo ? {
+        id: replyingTo.id,
+        text: replyingTo.text,
+        sender: replyingTo.sender
+      } : null,
       orderId: selectedOrder?.id || null,
       order: selectedOrder ? {
         id: selectedOrder.id,
@@ -343,6 +422,12 @@ export function ChatInput({
     if (replyingTo) formData.set('replyToId', replyingTo.id);
     if (selectedOrder) formData.set('orderId', selectedOrder.id);
 
+    // Clear draft on successful initiation
+    try {
+      localStorage.removeItem(`smmplan_draft_ticket_${ticketId}`);
+      setDraftSavedAt(null);
+    } catch {}
+
     setText('');
     setFile(null);
     setReplyingTo(null);
@@ -353,6 +438,13 @@ export function ChatInput({
 
     try {
       await onSendMessage(formData);
+      if (shouldCloseAfterSubmit) {
+        const statusFd = new FormData();
+        statusFd.set('ticketId', ticketId);
+        statusFd.set('status', 'CLOSED');
+        await changeTicketStatus(statusFd);
+        toast.success('Ответ отправлен, тикет решен и закрыт');
+      }
       setTimeout(() => {
         setMessages(prev => prev.filter(m => m.id !== tempId));
       }, 10000);
@@ -542,7 +634,25 @@ export function ChatInput({
           )}
         </AnimatePresence>
 
-
+        {/* ── LIVE DRAFT & NETWORK STATUS BAR ── */}
+        <div className="flex items-center justify-between px-1 text-[11px]">
+          <div className="flex items-center gap-2">
+            {!isOnline ? (
+              <span className="flex items-center gap-1 text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                ⚠️ Оффлайн (нет сети) • Текст сохранен локально
+              </span>
+            ) : draftSavedAt ? (
+              <span className="flex items-center gap-1 text-muted-foreground font-medium bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
+                💾 Черновик сохранен {draftSavedAt !== 'восстановлен' ? `в ${draftSavedAt}` : '(восстановлен)'}
+              </span>
+            ) : null}
+          </div>
+          {isStaff && (
+            <span className="text-muted-foreground/60 text-[10px] hidden sm:inline">
+              Ctrl+Enter — отправить • Ctrl+Shift+Enter — закрыть
+            </span>
+          )}
+        </div>
 
         <div className="flex gap-1.5 w-full items-end">
           <input
@@ -659,10 +769,24 @@ export function ChatInput({
               rows={1}
             />
             
+            {isStaff && (
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, true)}
+                disabled={(!text.trim() && !file) || sending}
+                className="h-10 px-3 shrink-0 bg-success/15 hover:bg-success/25 text-success-text border border-success/30 rounded-xl flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm mb-0.5 ml-1 font-bold text-xs cursor-pointer"
+                title="Отправить ответ и сразу закрыть тикет (Ctrl+Shift+Enter)"
+              >
+                <CheckCircle className="w-4 h-4 text-success" />
+                <span className="hidden sm:inline">Ответить и закрыть</span>
+              </button>
+            )}
+
             <button
               type="submit"
               disabled={(!text.trim() && !file) || sending}
-              className="w-10 h-10 shrink-0 bg-primary text-primary-foreground rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors shadow-sm mb-0.5 ml-1"
+              className="w-10 h-10 shrink-0 bg-primary text-primary-foreground rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors shadow-sm mb-0.5 ml-1 cursor-pointer"
+              title="Отправить сообщение (Ctrl+Enter)"
               aria-label="Отправить сообщение"
             >
               {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-1" />}

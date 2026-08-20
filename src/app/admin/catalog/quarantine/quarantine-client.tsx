@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner';
 import { Table } from '@/components/admin/hero-ui';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatPricePerUnit } from '@/utils/format-price';
 
 interface QuarantineItem {
   id: string;
@@ -214,10 +215,10 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                               </div>
                             </Table.Cell>
                             <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-warning border border-warning/20">{item.quarantineReason}</span></Table.Cell>
-                            <Table.Cell className="text-right"><span className="text-sm font-mono text-muted-foreground">${item.currentRate.toFixed(4)}</span></Table.Cell>
+                            <Table.Cell className="text-right"><span className="text-sm font-mono text-muted-foreground">${formatPricePerUnit(item.currentRate)}</span></Table.Cell>
                             <Table.Cell className="text-right">
                               <div className="flex flex-col items-end gap-0.5">
-                                <span className={`text-sm font-mono font-semibold ${isRise ? 'text-destructive' : 'text-success'}`}>${item.pendingRate?.toFixed(4) ?? '—'}</span>
+                                <span className={`text-sm font-mono font-semibold ${isRise ? 'text-destructive' : 'text-success'}`}>${item.pendingRate !== null ? formatPricePerUnit(item.pendingRate) : '—'}</span>
                                 <span className={`text-xs ${isRise ? 'text-destructive' : 'text-success'}`}>{isRise ? '▲' : '▼'} {priceDiff}%</span>
                               </div>
                             </Table.Cell>
@@ -380,8 +381,8 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                           changesList.push(
                             <div key="markup" className="text-xs mt-1">
                               <span className="font-semibold text-muted-foreground">Наценка:</span>{" "}
-                              <span className="text-destructive/80 font-mono mr-1">{mOld.toFixed(2)}x</span>
-                              <span className="text-success font-mono font-medium">→ {mNew.toFixed(2)}x</span>
+                              <span className="text-destructive/80 font-mono mr-1">{formatPricePerUnit(mOld)}x</span>
+                              <span className="text-success font-mono font-medium">→ {formatPricePerUnit(mNew)}x</span>
                             </div>
                           );
                         }
@@ -391,8 +392,8 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                           changesList.push(
                             <div key="price" className="text-xs mt-1">
                               <span className="font-semibold text-muted-foreground">Цена/1k:</span>{" "}
-                              <span className="text-destructive/80 font-mono mr-1">{(pOld / 100).toFixed(2)} ₽</span>
-                              <span className="text-success font-mono font-medium">→ {(pNew / 100).toFixed(2)} ₽</span>
+                              <span className="text-destructive/80 font-mono mr-1">{formatPricePerUnit(pOld / 100)} ₽</span>
+                              <span className="text-success font-mono font-medium">→ {formatPricePerUnit(pNew / 100)} ₽</span>
                             </div>
                           );
                         }

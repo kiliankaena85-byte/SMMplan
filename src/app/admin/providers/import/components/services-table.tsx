@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatPricePerUnit } from "@/utils/format-price";
 
 interface ServicesTableProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -198,7 +199,7 @@ export function ServicesTable({
                     onClick={handleRowClick}
                     className={`transition-colors duration-200 cursor-pointer p-4 lg:p-0 border-b border-border/40 last:border-0 ${
                       s.alreadyImported
-                        ? "bg-slate-50/60 dark:bg-slate-900/40 opacity-75 cursor-not-allowed"
+                        ? "bg-muted/40 opacity-75 cursor-not-allowed"
                         : isFreeProcurement
                         ? "bg-destructive/5 hover:bg-destructive/10"
                         : isSelected
@@ -261,11 +262,11 @@ export function ServicesTable({
 
                       <div className="flex flex-col gap-0.5 py-3 pr-2 font-mono min-w-0">
                         <span className="text-foreground font-bold text-xs truncate block w-full tabular-nums tracking-tight">
-                          {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitRetail)} ₽
+                          {formatPricePerUnit(pricePerUnitRetail)} ₽
                           <span className="text-[10px] text-muted-foreground font-sans ml-1 font-medium select-none tracking-normal">розн.</span>
                         </span>
                         <span className="text-muted-foreground font-medium text-[10px] truncate block w-full tabular-nums tracking-tight">
-                          {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitProcurement)} ₽
+                          {formatPricePerUnit(pricePerUnitProcurement)} ₽
                           <span className="font-sans ml-0.5 select-none tracking-normal">закуп.</span>
                         </span>
                         {isFreeProcurement && (
@@ -389,11 +390,11 @@ export function ServicesTable({
                       <div className="flex justify-between items-end ml-7 pt-2 border-t border-border/40 mt-2">
                         <div className="flex flex-col font-mono">
                           <span className="text-foreground font-bold text-sm tabular-nums tracking-tight">
-                            {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitRetail)} ₽
+                            {formatPricePerUnit(pricePerUnitRetail)} ₽
                             <span className="text-[10px] text-muted-foreground font-sans ml-1 font-medium tracking-normal">розница</span>
                           </span>
                           <span className="text-muted-foreground font-medium text-[11px] tabular-nums tracking-tight">
-                            {new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(pricePerUnitProcurement)} ₽
+                            {formatPricePerUnit(pricePerUnitProcurement)} ₽
                             <span className="font-sans ml-0.5 tracking-normal">закупка</span>
                           </span>
                         </div>

@@ -3,6 +3,7 @@ import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
 import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvider';
+import { FloatingQADock } from '@/components/dev/FloatingQADock';
 import { getTenantHost, normalizeTenantId } from '@/lib/seo-helpers';
 
 import { headers } from 'next/headers';
@@ -185,6 +186,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                {children}
              </MaintenanceGuardian>
           </NetworkAwareProvider>
+          <FloatingQADock />
         </Providers>
         <Toaster
           richColors

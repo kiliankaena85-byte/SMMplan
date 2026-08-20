@@ -13,11 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SocialIcon } from '@/components/ui/SocialIcon';
-
-function formatPricePerUnit(price: number): string {
-  if (price === 0) return '0.00';
-  return price.toFixed(2);
-}
+import { formatPricePerUnit } from '@/utils/format-price';
 
 export function UnifiedOrderWizard({ 
   userBalanceCents = 0, 

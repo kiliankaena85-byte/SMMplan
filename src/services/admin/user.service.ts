@@ -15,17 +15,31 @@ type AdminUserRow = {
   personalDiscount: number;
   referralCode: string | null;
   telegramId: string | null;
+  companyName: string | null;
+  inn: string | null;
   createdAt: Date;
   tenantId: string;
+  b2bConfig?: {
+    isB2b: boolean;
+    prioritySupport: boolean;
+    webhookUrl: string | null;
+  } | null;
   _count: { orders: number; tickets: number };
 };
 
 type UserCard = AdminUserRow & {
+  kpp: string | null;
+  legalAddress: string | null;
+  discountEndsAt: Date | null;
+  adminNote: string | null;
+  adminNoteUpdatedAt: Date | null;
+  adminNoteUpdatedBy: string | null;
   orders: {
     id: string;
     numericId: number;
     status: string;
     charge: number;
+    quantity: number;
     createdAt: Date;
     service: { name: string };
   }[];
@@ -33,6 +47,17 @@ type UserCard = AdminUserRow & {
     id: string;
     subject: string;
     status: string;
+    createdAt: Date;
+  }[];
+  payments: {
+    id: string;
+    amount: bigint;
+    currency: string;
+    status: string;
+    gateway: string;
+    gatewayId: string | null;
+    receiptId: string | null;
+    refundReceiptId: string | null;
     createdAt: Date;
   }[];
 };
@@ -54,22 +79,44 @@ export { getVolumeTier };
 class AdminUserService {
 
   /**
-   * Paginated user list with optional search (by email).
+   * Paginated user list with multi-field search and filter presets.
    */
   async listUsers(params: {
     cursor?: string;
     search?: string;
+    filter?: 'all' | 'b2b' | 'balance' | 'banned' | 'vip';
     pageSize?: number;
     tenantId?: string;
   }): Promise<PaginatedResult<AdminUserRow>> {
     const where: Record<string, unknown> = {};
 
     if (params.search?.trim()) {
-      where.email = { contains: params.search.trim(), mode: 'insensitive' };
+      const q = params.search.trim();
+      where.OR = [
+        { email: { contains: q, mode: 'insensitive' } },
+        { id: { equals: q } },
+        { telegramId: { contains: q, mode: 'insensitive' } },
+        { companyName: { contains: q, mode: 'insensitive' } },
+        { inn: { contains: q } },
+      ];
     }
 
     if (params.tenantId && params.tenantId !== 'all') {
       where.tenantId = params.tenantId;
+    }
+
+    if (params.filter === 'b2b') {
+      where.OR = [
+        { b2bConfig: { isB2b: true } },
+        { inn: { not: null } },
+        { companyName: { not: null } }
+      ];
+    } else if (params.filter === 'balance') {
+      where.balance = { gt: BigInt(0) };
+    } else if (params.filter === 'banned') {
+      where.role = 'BANNED';
+    } else if (params.filter === 'vip') {
+      where.totalSpent = { gte: BigInt(25_000_00) }; // Gold or Platinum
     }
 
     return paginatedQuery<AdminUserRow>(db.user, {
@@ -78,18 +125,26 @@ class AdminUserService {
       where,
       orderBy: { createdAt: 'desc' },
       include: {
+        b2bConfig: {
+          select: {
+            isB2b: true,
+            prioritySupport: true,
+            webhookUrl: true,
+          }
+        },
         _count: { select: { orders: true, tickets: true } },
       },
     });
   }
 
   /**
-   * Full user card with recent orders and tickets.
+   * Full user card with recent orders, tickets, payments and B2B config.
    */
   async getUserCard(userId: string): Promise<UserCard> {
     const user = await db.user.findUniqueOrThrow({
       where: { id: userId },
       include: {
+        b2bConfig: true,
         _count: { select: { orders: true, tickets: true } },
         orders: {
           take: 20,
@@ -99,6 +154,7 @@ class AdminUserService {
             numericId: true,
             status: true,
             charge: true,
+            quantity: true,
             createdAt: true,
             service: { select: { name: true } },
           },
@@ -110,6 +166,21 @@ class AdminUserService {
             id: true,
             subject: true,
             status: true,
+            createdAt: true,
+          },
+        },
+        payments: {
+          take: 20,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            amount: true,
+            currency: true,
+            status: true,
+            gateway: true,
+            gatewayId: true,
+            receiptId: true,
+            refundReceiptId: true,
             createdAt: true,
           },
         },
@@ -225,6 +296,33 @@ class AdminUserService {
       banned,
       totalLiability: totalBalance._sum.balance || 0,
     };
+  }
+
+  /**
+   * Get Top VIP Spenders
+   */
+  async getTopSpenders(limit = 6, tenantId?: string) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = { role: { not: 'BANNED' } };
+    if (isSingleTenant) {
+      where.tenantId = tenantId;
+    }
+    return db.user.findMany({
+      where,
+      orderBy: { totalSpent: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        balance: true,
+        totalSpent: true,
+        tenantId: true,
+        createdAt: true,
+        _count: { select: { orders: true } },
+      }
+    });
   }
 }
 

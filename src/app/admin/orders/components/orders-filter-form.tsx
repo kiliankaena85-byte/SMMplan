@@ -1,256 +1,276 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { SlidersHorizontal, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { SmartSearch } from '@/components/admin/filters/SmartSearch';
-import { QuickFilterChips } from '@/components/admin/filters/QuickFilterChips';
+import { Search, X, RotateCcw, Filter, Sparkles, SlidersHorizontal } from 'lucide-react';
 
-interface NetworkOption {
+interface CategoryOption {
   id: string;
   name: string;
   slug: string;
 }
 
+interface NetworkOption {
+  id: string;
+  name: string;
+  slug: string;
+  categories?: CategoryOption[];
+}
+
+const GLOBAL_ACTIVITY_TYPES = [
+  { id: 'ALL', label: '👥 Все категории' },
+  { id: 'subscribers', label: '👥 Подписчики' },
+  { id: 'likes', label: '❤️ Лайки' },
+  { id: 'views', label: '👁️ Просмотры' },
+  { id: 'comments', label: '💬 Комментарии' },
+  { id: 'reposts', label: '🔄 Репосты' },
+  { id: 'polls', label: '🗳️ Опросы' },
+  { id: 'watchtime', label: '⏳ Удержание' },
+];
+
+const DATE_PRESETS = [
+  { id: 'ALL', label: '📅 За все время' },
+  { id: 'today', label: '📅 Сегодня' },
+  { id: 'yesterday', label: '📅 Вчера' },
+  { id: '7d', label: '📅 Последние 7 дней' },
+  { id: '30d', label: '📅 Последние 30 дней' },
+  { id: 'this_month', label: '📅 Текущий месяц' },
+  { id: 'last_month', label: '📅 Прошлый месяц' },
+];
+
+const STATUS_OPTIONS = [
+  { id: 'ALL', label: '⚙️ Все статусы' },
+  { id: 'IN_PROGRESS', label: '⚡ В работе' },
+  { id: 'PENDING', label: '⏳ В очереди' },
+  { id: 'ERROR', label: '🔴 Сбои / Ошибки' },
+  { id: 'COMPLETED', label: '🟢 Выполнен' },
+  { id: 'PARTIAL', label: '🟠 Частичный' },
+  { id: 'CANCELED', label: '❌ Отменён' },
+  { id: 'AWAITING_PAYMENT', label: '⚪ Ожидает оплаты' },
+];
+
 export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const currentQ = searchParams.get('q') || '';
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const currentStatus = searchParams.get('status') || 'ALL';
-  const currentClientEmail = searchParams.get('clientEmail') || '';
-  const currentOrderId = searchParams.get('orderId') || '';
-  const currentExternalId = searchParams.get('externalId') || '';
-  const currentServiceName = searchParams.get('serviceName') || '';
   const currentNetworkSlug = searchParams.get('networkSlug') || 'ALL';
-  const currentLink = searchParams.get('link') || '';
-  const currentMinPrice = searchParams.get('minPrice') || '';
-  const currentMaxPrice = searchParams.get('maxPrice') || '';
-  const currentMinQty = searchParams.get('minQuantity') || '';
-  const currentMaxQty = searchParams.get('maxQuantity') || '';
+  const currentActivityType = searchParams.get('activityType') || 'ALL';
+  const currentDatePreset = searchParams.get('datePreset') || 'ALL';
+  const currentStatus = searchParams.get('status') || 'ALL';
 
-  const hasActiveAdvancedFilters = !!(
-    currentClientEmail ||
-    currentOrderId ||
-    currentExternalId ||
-    currentServiceName ||
-    currentLink ||
-    currentMinPrice ||
-    currentMaxPrice ||
-    currentMinQty ||
-    currentMaxQty
+  const [searchVal, setSearchVal] = useState(currentQ);
+
+  const selectedNetwork = networks.find(n => n.slug === currentNetworkSlug);
+  const networkCategories = selectedNetwork?.categories || [];
+
+  const hasActiveFilters = Boolean(
+    currentQ ||
+    (currentNetworkSlug && currentNetworkSlug !== 'ALL') ||
+    (currentActivityType && currentActivityType !== 'ALL') ||
+    (currentDatePreset && currentDatePreset !== 'ALL') ||
+    (currentStatus && currentStatus !== 'ALL')
   );
 
-  const [showAdvanced, setShowAdvanced] = useState(hasActiveAdvancedFilters);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+  const applyFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-
-    fd.forEach((value, key) => {
-      const valStr = String(value).trim();
-      if (valStr && valStr !== 'ALL') {
-        params.set(key, valStr);
-      } else {
-        params.delete(key);
-      }
-    });
-
+    if (value && value !== 'ALL') {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    // If network changes, reset activityType
+    if (key === 'networkSlug') {
+      params.delete('activityType');
+    }
     params.delete('cursor');
-    const queryString = params.toString();
-    router.push(queryString ? `${pathname}?${queryString}` : pathname);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
   };
 
-  const handleReset = () => {
-    router.push(pathname);
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    applyFilter('q', searchVal.trim());
+  };
+
+  const handleResetAll = () => {
+    setSearchVal('');
+    startTransition(() => {
+      router.push(pathname);
+    });
+  };
+
+  const removeFilter = (key: string) => {
+    if (key === 'q') setSearchVal('');
+    applyFilter(key, 'ALL');
   };
 
   return (
-    <div className="space-y-4">
-      {/* Quick Filter Chips Bar */}
-      <QuickFilterChips />
+    <div className="space-y-2">
+      {/* ── ULTRA-COMPACT SINGLE-ROW TOOLBAR (Height 42px) ── */}
+      <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap bg-card/90 backdrop-blur-sm border border-border/80 rounded-xl p-1.5 shadow-xs">
+        {/* 1. Omni-Search Input */}
+        <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[260px] relative">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchVal}
+            onChange={(e) => setSearchVal(e.target.value)}
+            placeholder="Поиск: № заказа, ссылка @channel, email клиента, ID..."
+            className="w-full h-9 pl-9 pr-8 text-xs font-medium bg-background border border-border/60 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          />
+          {searchVal && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchVal('');
+                removeFilter('q');
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded-sm"
+              title="Очистить поиск"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </form>
 
-      {/* Top Search & Filter Bar */}
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-          <SmartSearch />
+        {/* 2. Social Network Selector */}
+        <select
+          value={currentNetworkSlug}
+          onChange={(e) => applyFilter('networkSlug', e.target.value)}
+          aria-label="Фильтр по соцсети"
+          className="h-9 px-2.5 text-xs font-semibold bg-background border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer shrink-0"
+        >
+          <option value="ALL">🌐 Все соцсети</option>
+          {networks.map(n => (
+            <option key={n.id} value={n.slug}>
+              {n.name}
+            </option>
+          ))}
+        </select>
 
-          {/* Social Network Selector */}
-          <select
-            name="networkSlug"
-            defaultValue={currentNetworkSlug}
-            onChange={(e) => {
-              const params = new URLSearchParams(searchParams.toString());
-              if (e.target.value && e.target.value !== 'ALL') {
-                params.set('networkSlug', e.target.value);
-              } else {
-                params.delete('networkSlug');
-              }
-              params.delete('cursor');
-              router.push(`${pathname}?${params.toString()}`);
-            }}
-            aria-label="Фильтр по соцсети"
-            className="px-3.5 h-11 text-sm border border-border/60 shadow-sm rounded-xl bg-background/80 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all cursor-pointer"
-          >
-            <option value="ALL">🌐 Все соцсети</option>
-            {networks.map(n => (
-              <option key={n.id} value={n.slug}>
-                {n.name}
+        {/* 3. Category / Activity Type Selector */}
+        <select
+          value={currentActivityType}
+          onChange={(e) => applyFilter('activityType', e.target.value)}
+          aria-label="Тип услуги / Категория"
+          className="h-9 px-2.5 text-xs font-semibold bg-background border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer shrink-0"
+        >
+          {networkCategories.length > 0 ? (
+            <>
+              <option value="ALL">📂 Все категории {selectedNetwork?.name}</option>
+              {networkCategories.map(c => (
+                <option key={c.id} value={c.slug}>
+                  {c.name}
+                </option>
+              ))}
+            </>
+          ) : (
+            GLOBAL_ACTIVITY_TYPES.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.label}
               </option>
-            ))}
-          </select>
+            ))
+          )}
+        </select>
 
-          {/* Toggle Advanced Filters */}
+        {/* 4. Date Preset Range Selector */}
+        <select
+          value={currentDatePreset}
+          onChange={(e) => applyFilter('datePreset', e.target.value)}
+          aria-label="Период дат"
+          className="h-9 px-2.5 text-xs font-semibold bg-background border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer shrink-0"
+        >
+          {DATE_PRESETS.map(d => (
+            <option key={d.id} value={d.id}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+
+        {/* 5. Status Selector */}
+        <select
+          value={currentStatus}
+          onChange={(e) => applyFilter('status', e.target.value)}
+          aria-label="Статус заказа"
+          className="h-9 px-2.5 text-xs font-semibold bg-background border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer shrink-0"
+        >
+          {STATUS_OPTIONS.map(s => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+
+        {/* 6. Reset Button */}
+        {hasActiveFilters && (
           <button
             type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`flex items-center justify-center gap-2 px-4 h-11 text-xs font-semibold border rounded-xl transition-all duration-200 cursor-pointer shrink-0
-              ${showAdvanced 
-                ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/15' 
-                : 'bg-background text-foreground border-border/60 shadow-sm hover:bg-muted/50'
-              } active:scale-95`}
+            onClick={handleResetAll}
+            className="h-9 px-3 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+            title="Сбросить все фильтры"
           >
-            <SlidersHorizontal className="w-4 h-4" />
-            Фильтры
-            {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Сброс</span>
           </button>
-        </div>
+        )}
+      </div>
 
-        {/* Collapsible Advanced Filters Drawer */}
-        <AnimatePresence initial={false}>
-          {showAdvanced && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-              className="overflow-hidden"
-            >
-              <div className="pt-4 pb-2 border-t border-border/50 mt-2 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-xs">
-                  {/* Email клиента */}
-                  <div className="space-y-1">
-                    <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Email клиента</label>
-                    <input
-                      type="text"
-                      name="clientEmail"
-                      defaultValue={currentClientEmail}
-                      placeholder="client@example.com"
-                      className="w-full px-3 h-10 bg-background/80 border border-border/60 rounded-xl focus:border-primary outline-none text-foreground transition-all"
-                    />
-                  </div>
+      {/* ── ACTIVE FILTER CHIPS (Visible only when filters applied) ── */}
+      {hasActiveFilters && (
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5 text-xs">
+          <span className="text-[11px] font-semibold text-muted-foreground mr-1">Активные фильтры:</span>
 
-                  {/* Ключевое слово в услуге */}
-                  <div className="space-y-1">
-                    <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Услуга (Ключевые слова)</label>
-                    <input
-                      type="text"
-                      name="serviceName"
-                      defaultValue={currentServiceName}
-                      placeholder="подписчики -bot"
-                      className="w-full px-3 h-10 bg-background/80 border border-border/60 rounded-xl focus:border-primary outline-none text-foreground transition-all"
-                    />
-                  </div>
-
-                  {/* ID у провайдера */}
-                  <div className="space-y-1">
-                    <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">ID у провайдера</label>
-                    <input
-                      type="text"
-                      name="externalId"
-                      defaultValue={currentExternalId}
-                      placeholder="1422"
-                      className="w-full px-3 h-10 bg-background/80 border border-border/60 rounded-xl focus:border-primary outline-none text-foreground transition-all font-mono"
-                    />
-                  </div>
-
-                  {/* Ссылка */}
-                  <div className="space-y-1">
-                    <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Ссылка заказа</label>
-                    <input
-                      type="text"
-                      name="link"
-                      defaultValue={currentLink}
-                      placeholder="https://t.me/..."
-                      className="w-full px-3 h-10 bg-background/80 border border-border/60 rounded-xl focus:border-primary outline-none text-foreground transition-all font-mono"
-                    />
-                  </div>
-
-                  {/* Min / Max Price */}
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Сумма заказа (RUB)</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="minPrice"
-                        defaultValue={currentMinPrice}
-                        placeholder="От ₽"
-                        className="flex-1 px-3 h-10 bg-background/80 border border-border/60 rounded-xl focus:border-primary outline-none text-foreground font-mono"
-                      />
-                      <span className="text-muted-foreground">—</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="maxPrice"
-                        defaultValue={currentMaxPrice}
-                        placeholder="До ₽"
-                        className="flex-1 px-3 h-10 bg-background/80 border border-border/60 rounded-xl focus:border-primary outline-none text-foreground font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Min / Max Quantity */}
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="block font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Количество</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        name="minQuantity"
-                        defaultValue={currentMinQty}
-                        placeholder="От"
-                        className="flex-1 px-3 h-10 bg-background/80 border border-border/60 rounded-xl focus:border-primary outline-none text-foreground font-mono"
-                      />
-                      <span className="text-muted-foreground">—</span>
-                      <input
-                        type="number"
-                        name="maxQuantity"
-                        defaultValue={currentMaxQty}
-                        placeholder="До"
-                        className="flex-1 px-3 h-10 bg-background/80 border border-border/60 rounded-xl focus:border-primary outline-none text-foreground font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center pt-3 border-t border-border/40">
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 rounded-xl transition-all cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Сбросить всё
-                  </button>
-
-                  <button
-                    type="submit"
-                    className="px-6 py-2 text-xs font-bold text-primary-foreground bg-primary hover:opacity-90 active:scale-95 shadow-sm rounded-xl transition-all cursor-pointer"
-                  >
-                    Применить фильтры
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+          {currentQ && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 font-mono text-[11px]">
+              🔍 {currentQ}
+              <button onClick={() => removeFilter('q')} className="hover:opacity-75 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
           )}
-        </AnimatePresence>
-      </form>
+
+          {currentNetworkSlug && currentNetworkSlug !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20 text-[11px] font-medium">
+              🌐 {networks.find(n => n.slug === currentNetworkSlug)?.name || currentNetworkSlug}
+              <button onClick={() => removeFilter('networkSlug')} className="hover:opacity-75 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {currentActivityType && currentActivityType !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20 text-[11px] font-medium">
+              📁 {networkCategories.find(c => c.slug === currentActivityType)?.name || GLOBAL_ACTIVITY_TYPES.find(a => a.id === currentActivityType)?.label || currentActivityType}
+              <button onClick={() => removeFilter('activityType')} className="hover:opacity-75 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {currentDatePreset && currentDatePreset !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-medium">
+              {DATE_PRESETS.find(d => d.id === currentDatePreset)?.label || currentDatePreset}
+              <button onClick={() => removeFilter('datePreset')} className="hover:opacity-75 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {currentStatus && currentStatus !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[11px] font-medium">
+              {STATUS_OPTIONS.find(s => s.id === currentStatus)?.label || currentStatus}
+              <button onClick={() => removeFilter('status')} className="hover:opacity-75 cursor-pointer">
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -13,11 +13,7 @@ import { NetworkSelector } from './sub/NetworkSelector';
 import { CategorySelector } from './sub/CategorySelector';
 import { LinkInputField } from './sub/LinkInputField';
 import { OrderSummaryCard } from './sub/OrderSummaryCard';
-
-function formatPricePerUnit(price: number): string {
-  if (price === 0) return '0.00';
-  return price.toFixed(2);
-}
+import { formatPricePerUnit } from '@/utils/format-price';
 
 export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userBalanceCents?: number; userEmail?: string }) {
   const engine = useOrderEngine([], userEmail);

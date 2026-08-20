@@ -227,7 +227,7 @@ describe('Adversarial Challenger Suite: Ledger Reconciliation Guard', () => {
 
       for (let i = 1; i <= TOTAL_ENTRIES; i++) {
         // Interleave credits (+1000..+5000), debits (-500..-2000), and occasional quarantine/rejected
-        let amount = BigInt(0);
+        let amount: bigint;
         let status = 'APPROVED';
 
         if (i % 25 === 0) {

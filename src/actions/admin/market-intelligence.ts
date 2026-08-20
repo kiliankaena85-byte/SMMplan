@@ -23,7 +23,7 @@ export async function getServiceMarketComparison(serviceId: string): Promise<Ser
       throw new Error(`Услуга с ID ${serviceId} не найдена`);
     }
 
-    const ourPriceRub = Number(((service.pricePer1000Cents / 100) / 1000).toFixed(2));
+    const ourPriceRub = service.pricePer1000Cents / 100000;
     return MarketIntelligenceService.compareServiceWithMarket(service.name, ourPriceRub, service.id);
   });
 
@@ -52,7 +52,7 @@ export async function getFullMarketOverview(): Promise<{
     const comparisons: ServiceCompetitorComparison[] = [];
 
     for (const s of services) {
-      const ourPriceRub = Number(((s.pricePer1000Cents / 100) / 1000).toFixed(2));
+      const ourPriceRub = s.pricePer1000Cents / 100000;
       const comp = await MarketIntelligenceService.compareServiceWithMarket(s.name, ourPriceRub, s.id);
       comparisons.push(comp);
     }

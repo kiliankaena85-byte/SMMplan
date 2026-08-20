@@ -13,10 +13,9 @@
  * - Grouped by category for better readability
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { useOptimistic, useTransition, useState } from 'react';
+import { useOptimistic, useTransition } from 'react';
 import { setFeatureFlagState } from '@/actions/admin/feature-flags';
-import type { FeatureFlagDTO, FlagState } from '@/services/system/feature-flag.service';
+import type { FeatureFlagDTO, FlagKey, FlagState } from '@/services/system/feature-flag.service';
 import { toast } from 'sonner';
 import { Table } from '@/components/admin/hero-ui';
 
@@ -30,7 +29,7 @@ const STATE_CONFIG: Record<FlagState, { label: string; badge: string; next: Flag
   OFF:  { label: 'Выключен', badge: 'bg-muted/60 text-muted-foreground border border-border font-medium', next: 'TEST' },
 };
 
-const GROUPS = [
+const PREDEFINED_GROUPS = [
   { label: '📦 Заказы',       keys: ['drip_feed'] },
   { label: '📢 Маркетинг',    keys: ['promo_codes'] },
 ] as const;
@@ -45,11 +44,23 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
 
   const flagMap = new Map(optimisticFlags.map(f => [f.key, f]));
 
+  // Build groups including any uncategorized flags dynamically
+  const groupedKeys = new Set(PREDEFINED_GROUPS.flatMap(g => g.keys));
+  const ungroupedFlags = optimisticFlags.filter(f => !groupedKeys.has(f.key as any));
+
+  const allGroups = [
+    ...PREDEFINED_GROUPS.map(g => ({
+      label: g.label,
+      flags: g.keys.map(k => flagMap.get(k)).filter(Boolean) as FeatureFlagDTO[],
+    })),
+    ...(ungroupedFlags.length > 0 ? [{ label: '⚙️ Системные и прочие', flags: ungroupedFlags }] : []),
+  ];
+
   function handleToggle(flag: FeatureFlagDTO) {
     const nextState = STATE_CONFIG[flag.state].next;
     startTransition(async () => {
       setOptimisticFlags({ key: flag.key, newState: nextState });
-      const result = await setFeatureFlagState(flag.key as Parameters<typeof setFeatureFlagState>[0], nextState);
+      const result = await setFeatureFlagState(flag.key as FlagKey, nextState);
       if (!result.success) {
         toast.error('Ошибка при изменении флага');
       } else {
@@ -72,8 +83,8 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
       </div>
 
       {/* Groups */}
-      {GROUPS.map(group => {
-        const groupFlags = group.keys.map(k => flagMap.get(k)).filter(Boolean) as FeatureFlagDTO[];
+      {allGroups.map(group => {
+        const groupFlags = group.flags;
         if (!groupFlags.length) return null;
 
         return (
