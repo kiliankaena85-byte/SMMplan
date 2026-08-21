@@ -46,13 +46,38 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
   const formState = state as { success?: boolean; error?: string; errors?: Record<string, string[]> } | null;
 
   // Live Preview States
+  const [maintenance, setMaintenance] = useState<boolean>(Boolean(settings.maintenanceMode));
   const [siteName, setSiteName] = useState<string>(settings.siteName || 'SMMplan');
   const [siteDescription, setSiteDescription] = useState<string>(settings.siteDescription || '');
   const [supportEmail, setSupportEmail] = useState<string>(settings.contactSupportEmail || 'support@smmplan.pro');
-  const [telegramBot, setTelegramBot] = useState<string>(settings.contactTelegramBot || 'smmplan_support_bot');
+  const [telegramBot, setTelegramBot] = useState<string>(settings.contactTelegramBot || 'SMMplansapport_bot');
   const [companyName, setCompanyName] = useState<string>(settings.legalCompanyName || 'ИП Иванов И. И.');
   const [companyInn, setCompanyInn] = useState<string>(settings.legalCompanyInn || '770000000000');
   const [companyOgrnip, setCompanyOgrnip] = useState<string>(settings.legalCompanyOgrnip || '300000000000000');
+
+  // Bot test states
+  const [isTestingBot, setIsTestingBot] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [botTestResult, setBotTestResult] = useState<any>(null);
+
+  const handleTestBot = async () => {
+    setIsTestingBot(true);
+    setBotTestResult(null);
+    try {
+      const res = await fetch('/api/admin/test-telegram-bot', { cache: 'no-store' });
+      const data = await res.json();
+      setBotTestResult(data);
+      if (data.success) {
+        toast.success(`Бот @${data.username} успешно отвечает (Ping: ${data.pingMs}ms)`);
+      } else {
+        toast.error(`Ошибка связи: ${data.error}`);
+      }
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setIsTestingBot(false);
+    }
+  };
 
   // Tax and USN Scheme reactivity
   const [taxRate, setTaxRate] = useState<number>(settings.taxRate ?? 6);
@@ -163,12 +188,22 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
               Клиенты увидят красивую страницу техработ с контактами поддержки. Вход в панель администрирования останется доступен.
             </p>
           </div>
-          <Checkbox
-            id="maintenanceMode"
-            name="maintenanceMode"
-            defaultChecked={settings.maintenanceMode}
-            className="w-5 h-5 border-2 rounded-md"
-          />
+          <div className="flex items-center gap-3 shrink-0">
+            <span className={`text-xs font-bold ${maintenance ? 'text-rose-500 font-extrabold' : 'text-muted-foreground'}`}>
+              {maintenance ? '🔴 Включен' : '⚪ Выключен'}
+            </span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                id="maintenanceMode"
+                name="maintenanceMode"
+                checked={maintenance}
+                onChange={(e) => setMaintenance(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6.5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+            </label>
+          </div>
         </div>
       </Card>
 
@@ -290,7 +325,94 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
         </div>
       </Card>
 
-      {/* 3. Contacts, Legal & Live Preview */}
+      {/* 3. Telegram Support Bot Configuration & Live Diagnostics */}
+      <Card className="rounded-3xl border border-border/60 shadow-lg bg-card/70 backdrop-blur-xl p-6 sm:p-8 space-y-6">
+        <div className="flex items-center justify-between border-b border-border/50 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl border border-blue-500/20">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-foreground">Telegram Бот Поддержки</h3>
+              <p className="text-xs text-muted-foreground">
+                Прием сообщений от клиентов из Telegram и отправка ответов операторов из единой админки.
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            onClick={handleTestBot}
+            disabled={isTestingBot}
+            className="text-xs font-bold gap-2 cursor-pointer shrink-0 h-9 px-3.5 border border-border bg-muted/40 hover:bg-muted text-foreground"
+          >
+            {isTestingBot ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />}
+            <span>Проверить статус API</span>
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Юзернейм бота (без @)
+            </Label>
+            <Input
+              name="contactTelegramBot"
+              value={telegramBot}
+              onChange={(e) => setTelegramBot(e.target.value)}
+              placeholder="SMMplansapport_bot"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Клиенты на сайте видят ссылку <span className="font-mono text-primary font-bold">t.me/{telegramBot}</span>
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Статус подключения бота
+            </Label>
+            <div className="p-3 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-bold text-foreground">@{telegramBot}</span>
+              </div>
+              <a
+                href={`https://t.me/${telegramBot}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1"
+              >
+                Открыть в Telegram ↗
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Diagnostics Card */}
+        {botTestResult && (
+          <div className={`p-4 rounded-2xl border text-xs space-y-2 ${
+            botTestResult.success 
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
+              : 'bg-destructive/10 border-destructive/30 text-destructive'
+          }`}>
+            <div className="flex items-center justify-between font-bold">
+              <span>{botTestResult.success ? '✅ Telegram Bot API: Связь установлена успешно!' : '❌ Ошибка проверки Telegram Bot:'}</span>
+              {botTestResult.pingMs && <span className="font-mono text-[11px]">Ping: {botTestResult.pingMs}ms</span>}
+            </div>
+            {botTestResult.success && botTestResult.bot && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 font-mono text-[11px] text-foreground">
+                <div>Имя: <span className="font-bold">{botTestResult.name}</span></div>
+                <div>Username: <span className="font-bold">@{botTestResult.username}</span></div>
+                <div>Bot ID: <span className="font-bold">{botTestResult.botId}</span></div>
+              </div>
+            )}
+            {!botTestResult.success && (
+              <p className="text-[11px] font-mono">{botTestResult.error}</p>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {/* 4. Contacts & Legal Requisites */}
       <Card className="rounded-3xl border border-border/60 shadow-lg bg-card/70 backdrop-blur-xl p-6 sm:p-8 space-y-6">
         <div className="flex items-center gap-3 border-b border-border/50 pb-5">
           <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
@@ -316,12 +438,11 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Telegram Бот (@юзернейм)</Label>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Telegram Канал новостей (@канал)</Label>
             <Input
-              name="contactTelegramBot"
-              value={telegramBot}
-              onChange={(e) => setTelegramBot(e.target.value)}
-              placeholder="smmplan_support_bot"
+              name="contactTelegramChannel"
+              defaultValue={settings.contactTelegramChannel || 'smmplan_news'}
+              placeholder="smmplan_news"
             />
           </div>
 

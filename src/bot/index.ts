@@ -498,10 +498,21 @@ bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 
     return ctx.reply('⚠️ К сожалению, мы не можем просматривать стикеры, кружочки или геолокации. Пожалуйста, отправьте текст, скриншот (фото) или голосовое сообщение.');
   }
 
-  // 2. Resolve User
+  // 2. Resolve or Auto-Create User for Telegram Support
   const tgId = String(ctx.from.id);
-  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
-  if (!user) return next();
+  let user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
+  if (!user) {
+    const emailStub = `tg_${tgId}@${botTenantId}.bot`;
+    user = await db.user.upsert({
+      where: { email_tenantId: { email: emailStub, tenantId: botTenantId } },
+      update: { telegramId: tgId },
+      create: {
+        email: emailStub,
+        telegramId: tgId,
+        tenantId: botTenantId,
+      }
+    });
+  }
 
   try {
     const { supportBotService } = await import('@/services/support/support-bot.service');
