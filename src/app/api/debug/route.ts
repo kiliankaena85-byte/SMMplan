@@ -45,6 +45,24 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // DEV ONLY: Test Telegram support reply delivery
+  const testTelegram = searchParams.get('testTelegram');
+  if (testTelegram) {
+    const { supportBotService } = await import('@/services/support/support-bot.service');
+    const tokenSet = !!process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== 'dummy_token';
+    let tgResult: string | null = null;
+    let tgError: string | null = null;
+    try {
+      tgResult = await supportBotService.sendSupportReply(
+        testTelegram,
+        '🔧 Debug test from Next.js process: ' + new Date().toISOString()
+      );
+    } catch (e: unknown) {
+      tgError = e instanceof Error ? e.message : String(e);
+    }
+    return NextResponse.json({ tokenSet, tgResult, tgError });
+  }
+
   const cookieStore = await cookies();
   
   return NextResponse.json({

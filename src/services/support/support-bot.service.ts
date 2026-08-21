@@ -1,6 +1,5 @@
 import { db } from '@/lib/db';
 import { ticketService } from '@/services/support/ticket.service';
-import { bot } from '@/bot';
 import fs from 'fs';
 import path from 'path';
 
@@ -113,73 +112,86 @@ class SupportBotService {
   }
 
   /**
+   * Low-level Telegram Bot API call via native fetch.
+   * Works reliably in both Next.js Server Actions and standalone bot process contexts.
+   */
+  private async tgCall(method: string, body: Record<string, unknown>): Promise<{ ok: boolean; result?: { message_id: number } }> {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token || token === 'dummy_token') {
+      throw new Error('TELEGRAM_BOT_TOKEN not set');
+    }
+    const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json() as { ok: boolean; result?: { message_id: number }; description?: string };
+    if (!json.ok) {
+      throw new Error(`Telegram API [${method}]: ${json.description ?? 'unknown error'}`);
+    }
+    return json;
+  }
+
+  /**
    * OUTBOUND: Send reply from Admin panel to Telegram
+   * Uses native fetch → works reliably in Next.js Server Action context.
    */
   async sendSupportReply(telegramId: string, text: string, replyToTgMsgId?: string, mediaUrl?: string, mediaType?: string): Promise<string | null> {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token || token === 'dummy_token') {
+      console.warn('[SupportBot] sendSupportReply skipped: TELEGRAM_BOT_TOKEN not set');
+      return null;
+    }
+    console.log(`[SupportBot] sendSupportReply → chat=${telegramId}, text="${text.slice(0, 40)}"`);
     try {
-      // Safe HTML escaping helper
-      const escapeHtml = (unsafe: string) => {
-        return unsafe
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-      };
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const extra: any = { parse_mode: 'HTML' };
-      if (replyToTgMsgId) {
-        extra.reply_to_message_id = Number(replyToTgMsgId);
-      }
-      
+      const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const safeText = escapeHtml(text);
       const caption = `👨‍💻 <b>Саппорт:</b>\n\n${safeText}`;
       const plainCaption = `👨‍💻 Саппорт:\n\n${text}`;
-      let msg;
+
+      const baseParams: Record<string, unknown> = { chat_id: telegramId, parse_mode: 'HTML' };
+      if (replyToTgMsgId) baseParams.reply_to_message_id = Number(replyToTgMsgId);
+
+      let messageId: number | null = null;
 
       if (mediaUrl) {
-        // Construct the absolute path from the relative stored path
-        const absolutePath = path.join(process.cwd(), 'private', 'uploads', mediaUrl);
-        const source = fs.existsSync(absolutePath) ? { source: absolutePath } : mediaUrl;
-
+        // For file uploads still use bot.telegram (needs multipart form-data)
         try {
-          if (mediaType === 'image') {
-            extra.caption = caption;
-            msg = await bot.telegram.sendPhoto(telegramId, source, extra);
-          } else if (mediaType === 'audio') {
-            extra.caption = caption;
-            msg = await bot.telegram.sendAudio(telegramId, source, extra);
-          } else {
-            // Document fallback
-            extra.caption = caption;
-            msg = await bot.telegram.sendDocument(telegramId, source, extra);
-          }
-        } catch (mediaErr: any) {
-          console.warn('[SupportBot] Failed HTML media send, trying plain text:', mediaErr.message);
-          extra.parse_mode = undefined;
-          extra.caption = plainCaption;
-          if (mediaType === 'image') {
-            msg = await bot.telegram.sendPhoto(telegramId, source, extra);
-          } else {
-            msg = await bot.telegram.sendDocument(telegramId, source, extra);
-          }
+          const absolutePath = path.join(process.cwd(), 'private', 'uploads', mediaUrl);
+          const source = fs.existsSync(absolutePath) ? { source: absolutePath } : mediaUrl;
+          const { bot } = await import('@/bot');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const extra: any = { ...baseParams, caption };
+          let msg;
+          if (mediaType === 'image') msg = await bot.telegram.sendPhoto(telegramId, source, extra);
+          else if (mediaType === 'audio') msg = await bot.telegram.sendAudio(telegramId, source, extra);
+          else msg = await bot.telegram.sendDocument(telegramId, source, extra);
+          messageId = msg?.message_id ?? null;
+        } catch (mediaErr: unknown) {
+          const errMsg = mediaErr instanceof Error ? mediaErr.message : String(mediaErr);
+          console.warn('[SupportBot] Media send failed, fallback text:', errMsg);
+          const res = await this.tgCall('sendMessage', { chat_id: telegramId, text: plainCaption });
+          messageId = res.result?.message_id ?? null;
         }
       } else {
-        // Text only with fallback to plain text if HTML parsing ever fails
+        // Text-only via fetch — guaranteed Next.js Server Action compatibility
         try {
-          msg = await bot.telegram.sendMessage(telegramId, caption, extra);
-        } catch (textErr: any) {
-          console.warn('[SupportBot] Failed HTML text send, retrying plain text:', textErr.message);
-          const plainExtra: any = { ...extra, parse_mode: undefined };
-          msg = await bot.telegram.sendMessage(telegramId, plainCaption, plainExtra);
+          const res = await this.tgCall('sendMessage', { ...baseParams, text: caption });
+          messageId = res.result?.message_id ?? null;
+        } catch (htmlErr: unknown) {
+          const errMsg = htmlErr instanceof Error ? htmlErr.message : String(htmlErr);
+          console.warn('[SupportBot] HTML send failed, retrying plain:', errMsg);
+          const res = await this.tgCall('sendMessage', { chat_id: telegramId, text: plainCaption });
+          messageId = res.result?.message_id ?? null;
         }
       }
 
-      return msg ? String(msg.message_id) : null;
+      console.log(`[SupportBot] sendSupportReply OK, messageId=${messageId}`);
+      return messageId ? String(messageId) : null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.error('[SupportBot] Failed to send to telegram:', e.message);
-      // If reply_to_message_id failed (message deleted), retry without reply
-      if (e.message.includes('message to reply not found') && replyToTgMsgId) {
+      if (e.message?.includes('message to reply not found') && replyToTgMsgId) {
         return this.sendSupportReply(telegramId, text, undefined, mediaUrl, mediaType);
       }
       return null;
@@ -191,13 +203,13 @@ class SupportBotService {
    */
   async editSupportReply(telegramId: string, telegramMsgId: string, newText: string): Promise<boolean> {
     try {
-      await bot.telegram.editMessageText(
-        telegramId,
-        Number(telegramMsgId),
-        undefined,
-        `👨‍💻 <b>Саппорт:</b>\n\n${newText}\n\n<i>(изменено)</i>`,
-        { parse_mode: 'HTML' }
-      );
+      const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      await this.tgCall('editMessageText', {
+        chat_id: telegramId,
+        message_id: Number(telegramMsgId),
+        text: `👨‍💻 <b>Саппорт:</b>\n\n${escapeHtml(newText)}\n\n<i>(изменено)</i>`,
+        parse_mode: 'HTML',
+      });
       return true;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
@@ -212,7 +224,10 @@ class SupportBotService {
    */
   async deleteSupportReply(telegramId: string, telegramMsgId: string): Promise<boolean> {
     try {
-      await bot.telegram.deleteMessage(telegramId, Number(telegramMsgId));
+      await this.tgCall('deleteMessage', {
+        chat_id: telegramId,
+        message_id: Number(telegramMsgId),
+      });
       return true;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
