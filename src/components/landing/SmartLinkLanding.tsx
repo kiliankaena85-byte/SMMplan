@@ -40,33 +40,10 @@ const MassConfirmEmailModal = dynamic(
   { ssr: false }
 );
 
-// 6 Checkout Variants
-const CenteredDialogCheckout = dynamic(
-  () => import("./order-engine/variants/CenteredDialogCheckout").then((mod) => mod.CenteredDialogCheckout),
-  { ssr: false }
-);
-
 const StepWizardCheckout = dynamic(
   () => import("./order-engine/variants/StepWizardCheckout").then((mod) => mod.StepWizardCheckout),
   { ssr: false }
 );
-
-const FloatingHudCheckout = dynamic(
-  () => import("./order-engine/variants/FloatingHudCheckout").then((mod) => mod.FloatingHudCheckout),
-  { ssr: false }
-);
-
-const BottomSheetCheckout = dynamic(
-  () => import("./order-engine/variants/BottomSheetCheckout").then((mod) => mod.BottomSheetCheckout),
-  { ssr: false }
-);
-
-const QuickTableRowCheckout = dynamic(
-  () => import("./order-engine/variants/QuickTableRowCheckout").then((mod) => mod.QuickTableRowCheckout),
-  { ssr: false }
-);
-
-import { CheckoutMode } from "./order-engine/variants/types";
 import { NetworkSelector } from "./order-engine/NetworkSelector";
 import { CategorySidebar } from "./order-engine/CategorySidebar";
 import { ServiceGrid } from "./order-engine/ServiceGrid";
@@ -179,24 +156,7 @@ export function SmartLinkLanding({
     mobileEmailInputRef
   });
 
-  const [checkoutMode, setCheckoutMode] = React.useState<CheckoutMode>("wizard");
 
-  React.useEffect(() => {
-    const saved = localStorage.getItem("smm_checkout_mode") as CheckoutMode | null;
-    if (saved) {
-      setCheckoutMode(saved);
-    }
-
-    const handler = (e: Event) => {
-      const customEvent = e as CustomEvent<string>;
-      if (customEvent.detail) {
-        setCheckoutMode(customEvent.detail as CheckoutMode);
-      }
-    };
-
-    window.addEventListener("smm_checkout_mode_changed", handler);
-    return () => window.removeEventListener("smm_checkout_mode_changed", handler);
-  }, []);
 
   const checkoutVariantProps = React.useMemo(() => ({
     selectedService,
@@ -399,12 +359,8 @@ export function SmartLinkLanding({
                                                         ) : (
                               <>
                                 <div className={`pb-8 pt-4 transition-opacity duration-300 hidden md:block ${isLoading && services.length === 0 ? 'opacity-50' : 'opacity-100'}`}>
-                                  {checkoutMode === "table" && selectedService && (
-                                    <QuickTableRowCheckout {...checkoutVariantProps} />
-                                  )}
                                   <ServiceGrid 
                                     engine={engine} 
-                                    checkoutMode={checkoutMode}
                                     checkoutProps={checkoutVariantProps}
                                   />
                                 </div>

@@ -10,14 +10,10 @@ import {
   User, 
   ShieldCheck, 
   LogOut, 
-  Layers, 
   RotateCcw, 
-  Smartphone, 
-  CheckCircle2, 
-  ExternalLink,
-  Zap,
   QrCode,
-  Bug
+  Bug,
+  Zap
 } from "lucide-react";
 import { toast } from "sonner";
 import { BugReportModal } from "./BugReportModal";
@@ -26,7 +22,6 @@ export function FloatingQADock() {
   const [isOpen, setIsOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [currentTenant, setCurrentTenant] = useState<"smmplan" | "flux">("smmplan");
-  const [activeCheckoutMode, setActiveCheckoutMode] = useState<string>("wizard");
   const [showQR, setShowQR] = useState(false);
   const [showBugReportModal, setShowBugReportModal] = useState(false);
 
@@ -43,10 +38,6 @@ export function FloatingQADock() {
     } else {
       setCurrentTenant("smmplan");
     }
-
-    // Определение сохраненного режима чекаута
-    const savedMode = localStorage.getItem("smm_checkout_mode") || "wizard";
-    setActiveCheckoutMode(savedMode);
 
     // Слушатель горячих клавиш Ctrl+Shift+B для быстрого баг-репорта
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -84,13 +75,6 @@ export function FloatingQADock() {
       toast.success("Вход под учетной записью Клиента (client@smmplan.pro)...");
       window.location.href = `/api/dev/login-direct?email=client@smmplan.pro&secret=smmplan_qa_sec_2026_master_key&redirect=${encodeURIComponent(window.location.pathname)}`;
     }
-  };
-
-  const handleSetCheckoutMode = (mode: string) => {
-    setActiveCheckoutMode(mode);
-    localStorage.setItem("smm_checkout_mode", mode);
-    window.dispatchEvent(new CustomEvent("smm_checkout_mode_changed", { detail: mode }));
-    toast.success(`Режим чекаута изменен на: ${mode}`);
   };
 
   const handleClearCache = () => {
@@ -138,7 +122,7 @@ export function FloatingQADock() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="w-[360px] sm:w-[400px] max-h-[85vh] overflow-y-auto bg-zinc-950/95 text-zinc-100 border border-zinc-800/90 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl flex flex-col gap-4 text-xs select-none custom-scrollbar"
+            className="w-[340px] sm:w-[380px] max-h-[85vh] overflow-y-auto bg-zinc-950/95 text-zinc-100 border border-zinc-800/90 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl flex flex-col gap-4 text-xs select-none custom-scrollbar"
           >
             {/* Хедер панели */}
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
@@ -224,39 +208,7 @@ export function FloatingQADock() {
               </div>
             </div>
 
-            {/* Блок 3: Режим Чекаута */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                <span>3. Механика Чекаута</span>
-                <span className="text-[10px] text-zinc-500">{activeCheckoutMode}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: "wizard", label: "4. Визард" },
-                  { id: "card", label: "2. В карточке" },
-                  { id: "dialog", label: "3. Окно" },
-                  { id: "island", label: "5. Остров" },
-                  { id: "sheet", label: "6. Снизу" },
-                  { id: "table", label: "7. Таблица" },
-                ].map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => handleSetCheckoutMode(mode.id)}
-                    className={`min-h-[36px] px-2 py-1 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                      activeCheckoutMode === mode.id
-                        ? "bg-zinc-100 text-zinc-900 border-white font-bold"
-                        : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    {activeCheckoutMode === mode.id && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                    <span>{mode.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Блок 4: Быстрый Баг-Репорт */}
+            {/* Блок 3: Быстрый Баг-Репорт */}
             <div className="pt-2 border-t border-zinc-800/80">
               <button
                 type="button"
@@ -276,7 +228,7 @@ export function FloatingQADock() {
               </button>
             </div>
 
-            {/* Блок 5: Мобильный QR-код и Сброс */}
+            {/* Блок 4: Мобильный QR-код и Сброс */}
             <div className="flex items-center justify-between pt-1 border-t border-zinc-800/80 gap-2">
               <button
                 type="button"
@@ -334,7 +286,7 @@ export function FloatingQADock() {
         isOpen={showBugReportModal}
         onClose={() => setShowBugReportModal(false)}
         currentTenant={currentTenant}
-        checkoutMode={activeCheckoutMode}
+        checkoutMode="wizard"
       />
     </div>
   );
