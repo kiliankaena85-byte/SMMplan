@@ -437,7 +437,12 @@ export function ChatInput({
     }
 
     try {
-      await onSendMessage(formData);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res: any = await onSendMessage(formData);
+      if (res && typeof res === 'object' && res.success === false) {
+        throw new Error(res.error || 'Ошибка отправки сообщения');
+      }
+
       if (shouldCloseAfterSubmit) {
         const statusFd = new FormData();
         statusFd.set('ticketId', ticketId);

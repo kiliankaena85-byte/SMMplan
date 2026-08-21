@@ -57,14 +57,22 @@ export function useChatMessages({
 
   // Sync initialMessages prop to state (preserving temp optimistic messages, but avoiding duplicates and mapping keys)
   useEffect(() => {
+    const normalizeText = (s?: string | null) => (s || '').trim().replace(/\r\n/g, '\n');
+    const now = Date.now();
+
     setMessages((prev) => {
-      const temps = prev.filter((m) => m.id.startsWith('temp-'));
+      // Filter out stale temp messages (> 12 seconds old) to prevent ghost duplicates
+      const temps = prev.filter((m) => {
+        if (!m.id.startsWith('temp-')) return false;
+        const createdAtTime = new Date(m.createdAt).getTime();
+        return !isNaN(createdAtTime) && (now - createdAtTime < 12000);
+      });
 
       // Register stable keys for any temp messages being replaced by initialMessages
       initialMessages.forEach((realMsg) => {
         if (!messageKeysRef.current[realMsg.id]) {
           const matchingTemp = temps.find(
-            (temp) => temp.text === realMsg.text && temp.sender === realMsg.sender
+            (temp) => normalizeText(temp.text) === normalizeText(realMsg.text)
           );
           if (matchingTemp) {
             messageKeysRef.current[realMsg.id] = matchingTemp.id;
@@ -72,10 +80,10 @@ export function useChatMessages({
         }
       });
 
-      // Filter out any temp message that matches an existing message in initialMessages (by text + sender)
+      // Filter out any temp message that matches an existing message in initialMessages
       const uniqueTemps = temps.filter(
         (temp) =>
-          !initialMessages.some((m) => m.text === temp.text && m.sender === temp.sender)
+          !initialMessages.some((m) => normalizeText(m.text) === normalizeText(temp.text))
       );
 
       return [...initialMessages, ...uniqueTemps];
@@ -107,6 +115,8 @@ export function useChatMessages({
   };
 
   const addNewMessages = useCallback((newMsgs: Message[]) => {
+    const normalizeText = (s?: string | null) => (s || '').trim().replace(/\r\n/g, '\n');
+
     setMessages((prev) => {
       const updated = [...prev];
       newMsgs.forEach((newMsg) => {
@@ -114,8 +124,7 @@ export function useChatMessages({
         const optIdx = updated.findIndex(
           (m) =>
             m.id.startsWith('temp-') &&
-            m.text === newMsg.text &&
-            m.sender === newMsg.sender
+            normalizeText(m.text) === normalizeText(newMsg.text)
         );
         if (optIdx !== -1) {
           // Register stable key mapping

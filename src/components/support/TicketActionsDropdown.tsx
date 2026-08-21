@@ -35,9 +35,9 @@ export default function TicketActionsDropdown({
   };
 
   return (
-    <div className="flex items-center gap-1.5">
-      {/* 1-Click Direct Status Pills for Desktop */}
-      <div className="hidden lg:flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border">
+    <div className="flex items-center gap-1.5 shrink-0">
+      {/* 1-Click Direct Status Pills for Ultra-wide screens */}
+      <div className="hidden 2xl:flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border shrink-0">
         <button
           type="button"
           onClick={() => handleStatusChange('OPEN')}

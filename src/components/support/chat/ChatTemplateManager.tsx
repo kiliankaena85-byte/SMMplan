@@ -162,7 +162,7 @@ export function ChatTemplateManager({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-full left-0 mb-2 w-88 sm:w-96 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col ring-1 ring-border/10"
+            className="absolute bottom-full left-0 mb-2 w-96 sm:w-[420px] max-w-[calc(100vw-2rem)] bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col ring-1 ring-border/10"
           >
             {/* Header with Search */}
             <div className="p-3 border-b border-border/60 bg-muted/20 space-y-2">
@@ -188,22 +188,30 @@ export function ChatTemplateManager({
               </div>
             </div>
 
-            {/* Category Pills Filter */}
-            <div className="flex items-center gap-1 px-3 py-2 border-b border-border/40 overflow-x-auto scrollbar-hide bg-muted/10">
+            {/* Category Pills Filter with wrap (Zero Clipping) */}
+            <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border-b border-border/40 bg-muted/10">
               {Object.entries(CATEGORIES).map(([catKey, catLabel]) => {
                 const isSelected = selectedCategory === catKey;
+                const count = catKey === 'ALL' 
+                  ? templatesList.length 
+                  : templatesList.filter(t => t.category === catKey).length;
                 return (
                   <button
                     key={catKey}
                     type="button"
                     onClick={() => setSelectedCategory(catKey)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 ${
                       isSelected
                         ? 'bg-primary text-primary-foreground shadow-xs'
                         : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
                     }`}
                   >
-                    {catLabel}
+                    <span>{catLabel}</span>
+                    {count > 0 && (
+                      <span className={`text-[9px] px-1 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}>
+                        {count}
+                      </span>
+                    )}
                   </button>
                 );
               })}

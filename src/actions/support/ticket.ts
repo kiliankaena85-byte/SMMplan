@@ -160,7 +160,7 @@ export async function addTicketMessage(formData: FormData) {
 }
 
 export async function adminReplyTicket(formData: FormData) {
-  return requireStaffPermission('orders', 'edit', async (admin) => {
+  return requireStaffPermission('support', 'edit', async (admin) => {
     const parsed = adminReplySchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Ошибка валидации сообщения');
     const { ticketId, message, isInternal, mediaUrl, mediaType, replyToId, orderId } = parsed.data;
@@ -241,7 +241,7 @@ const changeStatusSchema = z.object({
 });
 
 export async function changeTicketStatus(formData: FormData) {
-  return requireStaffPermission('orders', 'edit', async (admin) => {
+  return requireStaffPermission('support', 'edit', async (admin) => {
     const parsed = changeStatusSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Неверный статус');
     const { ticketId, status } = parsed.data;
