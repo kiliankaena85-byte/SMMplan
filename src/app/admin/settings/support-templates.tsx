@@ -12,9 +12,7 @@ import { useState, useTransition } from 'react';
 import { Loader2, Plus, Edit2, Trash2, Tag, Zap, Activity } from 'lucide-react';
 import { SupportTemplate } from '@prisma/client';
 
-interface TemplateWithUseCount extends SupportTemplate {
-  useCount?: number;
-}
+export type TemplateWithUseCount = SupportTemplate;
 
 interface SupportTemplatesSettingsProps {
   initialTemplates: TemplateWithUseCount[];
@@ -108,7 +106,9 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
             category,
             isActive,
             sort,
-            useCount: 0
+            useCount: 0,
+            createdAt: new Date(),
+            updatedAt: new Date()
           });
         }
         

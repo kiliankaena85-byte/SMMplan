@@ -16,7 +16,7 @@ import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { SettingsProvider } from '@/lib/settings';
 import { SystemHealthOverview } from '@/components/admin/settings/system-health-overview';
-import { AdminAuditLog, User, StaffRole, SupportTemplate, SystemSettings } from '@prisma/client';
+import { AdminAuditLog, StaffRole, StaffPermission, SupportTemplate, SystemSettings } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +25,7 @@ interface SettingsPageData {
   users: Awaited<ReturnType<typeof settingsService.listUsers>>;
   settings: SystemSettings;
   recentLogs: AdminAuditLog[];
-  staffRoles: (StaffRole & { permissions: { id: string; name: string }[] })[];
+  staffRoles: (StaffRole & { permissions: StaffPermission[] })[];
   templates: SupportTemplate[];
 }
 

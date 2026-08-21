@@ -60,6 +60,9 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
   interface BotTestResult {
     success: boolean;
     username?: string;
+    name?: string;
+    botId?: string | number;
+    bot?: unknown;
     pingMs?: number;
     error?: string;
   }
@@ -403,11 +406,11 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
               <span>{botTestResult.success ? '✅ Telegram Bot API: Связь установлена успешно!' : '❌ Ошибка проверки Telegram Bot:'}</span>
               {botTestResult.pingMs && <span className="font-mono text-[11px]">Ping: {botTestResult.pingMs}ms</span>}
             </div>
-            {botTestResult.success && botTestResult.bot && (
+            {botTestResult.success && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 font-mono text-[11px] text-foreground">
-                <div>Имя: <span className="font-bold">{botTestResult.name}</span></div>
-                <div>Username: <span className="font-bold">@{botTestResult.username}</span></div>
-                <div>Bot ID: <span className="font-bold">{botTestResult.botId}</span></div>
+                <div>Имя: <span className="font-bold">{botTestResult.name || '—'}</span></div>
+                <div>Username: <span className="font-bold">{botTestResult.username ? `@${botTestResult.username}` : '—'}</span></div>
+                <div>Bot ID: <span className="font-bold">{String(botTestResult.botId || '—')}</span></div>
               </div>
             )}
             {!botTestResult.success && (

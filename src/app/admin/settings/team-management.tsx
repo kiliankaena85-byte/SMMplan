@@ -30,23 +30,66 @@ import {
 } from "@/components/ui/table";
 import { Search, ShieldAlert, UserPlus, Loader2, Trash2, Plus, Check, Lock, ShieldCheck } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
-import { User, StaffRole } from '@prisma/client';
+import { StaffRole, StaffPermission } from '@prisma/client';
 
-interface StaffUser extends User {
+export interface StaffUser {
+  id: string;
+  email: string;
+  role: string;
+  balance: bigint;
+  supportLimitCents: number;
+  geminiApiKey: string | null;
+  createdAt: Date;
+  staffRoleId: string | null;
   staffRole?: { id: string; name: string } | null;
   _count: { orders: number; tickets: number };
 }
 
-interface RegularUser extends User {
+export interface RegularUser {
+  id: string;
+  email: string;
+  role: string;
+  balance: bigint;
+  supportLimitCents: number;
+  createdAt: Date;
+  staffRoleId?: string | null;
   _count: { orders: number; tickets: number };
 }
+
+function SubmitButton({ label, className }: { label: string, className?: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button disabled={pending} type="submit" size="default" intent="outline" className={`h-11 font-bold uppercase tracking-widest text-[10px] min-w-[100px] flex items-center justify-center transition-all duration-200 cursor-pointer ${className || ''}`}>
+      {pending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+      {label}
+    </Button>
+  );
+}
+
+function SearchButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button disabled={pending} type="submit" className="font-bold uppercase tracking-widest text-xs h-11 px-8 shadow-md transition-all duration-200 cursor-pointer">
+      {pending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+      Найти
+    </Button>
+  );
+}
+
+const getAllowedRoles = (adminRole?: string) => {
+  const base = ['USER', 'SUPPORT', 'MANAGER', 'BANNED'];
+  if (adminRole === 'OWNER') {
+    return [...base, 'ADMIN', 'OWNER'];
+  }
+  return base;
+};
 
 interface TeamManagementProps {
   staffUsers: StaffUser[];
   regularUsers: RegularUser[];
   searchQuery: string;
   currentAdminRole?: string;
-  staffRoles?: (StaffRole & { permissions: { id: string; name: string }[] })[];
+  staffRoles?: (StaffRole & { permissions: StaffPermission[] })[];
 }
 
 export function TeamManagement({ 
