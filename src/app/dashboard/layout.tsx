@@ -18,10 +18,18 @@ export default async function DashboardLayout({
   const reqHeaders = await headers();
   const tenantId = resolveTenantFromRequest(reqHeaders);
 
-  const user = await db.user.findUnique({
-    where: { id: session.userId },
-    select: { email: true, balance: true, tenantId: true },
-  });
+  const [user, unreadTicketsCount] = await Promise.all([
+    db.user.findUnique({
+      where: { id: session.userId },
+      select: { email: true, balance: true, tenantId: true },
+    }),
+    db.ticket.count({
+      where: {
+        userId: session.userId,
+        status: 'PENDING',
+      },
+    }),
+  ]);
 
   if (!user) redirect('/login');
 
@@ -29,6 +37,7 @@ export default async function DashboardLayout({
     email: user.email,
     tenantId: user.tenantId,
     balanceCents: Number(user.balance),
+    unreadTicketsCount,
   };
 
   const { ShellLayout } = await getTenantDashboardViews(tenantId);

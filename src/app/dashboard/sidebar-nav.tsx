@@ -39,14 +39,19 @@ export const MOBILE_NAV = [
   { href: '/dashboard/tickets',      icon: MessageSquare,   label: 'Помощь'   },
 ];
 
+import { useUnreadSupport } from '@/hooks/useUnreadSupport';
+
 export function SidebarNav({
   email,
   balanceRub,
+  initialUnreadCount = 0,
 }: {
   email: string;
   balanceRub: string;
+  initialUnreadCount?: number;
 }) {
   const pathname = usePathname();
+  const unreadCount = useUnreadSupport(initialUnreadCount);
 
   const isActive = (href: string) =>
     href === '/dashboard'
@@ -78,22 +83,35 @@ export function SidebarNav({
       <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto" aria-label="Меню личного кабинета">
         {NAV.map(({ href, icon: Icon, label }) => {
           const active = isActive(href);
+          const isSupport = href === '/dashboard/tickets';
+          const hasUnread = isSupport && unreadCount > 0;
+
           return (
             <Link
               key={href}
               href={href}
               aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 group ${
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 group relative ${
                 active
                   ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
               }`}
             >
-              <Icon className={`w-4 h-4 shrink-0 transition-transform ${active ? 'text-primary-foreground' : 'group-hover:scale-110'}`} />
+              <div className="relative shrink-0">
+                <Icon className={`w-4 h-4 transition-transform ${active ? 'text-primary-foreground' : 'group-hover:scale-110'}`} />
+                {hasUnread && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-card animate-ping" />
+                )}
+              </div>
               <span>{label}</span>
-              {!active && (
+
+              {hasUnread ? (
+                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-rose-500 text-white font-black text-[10px] shadow-sm shadow-rose-500/40 animate-pulse">
+                  {unreadCount}
+                </span>
+              ) : !active ? (
                 <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 -translate-x-1 group-hover:opacity-60 group-hover:translate-x-0 transition-all duration-200" />
-              )}
+              ) : null}
             </Link>
           );
         })}
@@ -124,8 +142,13 @@ export function SidebarNav({
   );
 }
 
-export function MobileBottomNav() {
+export function MobileBottomNav({
+  initialUnreadCount = 0,
+}: {
+  initialUnreadCount?: number;
+}) {
   const pathname = usePathname();
+  const unreadCount = useUnreadSupport(initialUnreadCount);
 
   const isActive = (href: string) =>
     href === '/dashboard'
@@ -139,6 +162,9 @@ export function MobileBottomNav() {
     >
       {MOBILE_NAV.map(({ href, icon: Icon, label }) => {
         const active = isActive(href);
+        const isSupport = href === '/dashboard/tickets';
+        const hasUnread = isSupport && unreadCount > 0;
+
         return (
           <Link
             key={href}
@@ -149,7 +175,14 @@ export function MobileBottomNav() {
               active ? 'text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Icon className="w-5 h-5 shrink-0" />
+            <div className="relative">
+              <Icon className="w-5 h-5 shrink-0" />
+              {hasUnread && (
+                <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white font-black text-[9px] flex items-center justify-center animate-pulse shadow-sm shadow-rose-500/50">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
             <span className={`text-[10px] tracking-tight ${active ? 'font-black' : 'font-semibold'}`}>
               {label}
             </span>

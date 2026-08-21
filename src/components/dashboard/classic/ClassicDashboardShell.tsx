@@ -7,7 +7,7 @@ export function ClassicDashboardShell({
   user,
   children,
 }: {
-  user: { email: string; balanceCents: number };
+  user: { email: string; balanceCents: number; unreadTicketsCount?: number };
   children: React.ReactNode;
 }) {
   const balanceRub = formatBalance(user.balanceCents);
@@ -22,7 +22,7 @@ export function ClassicDashboardShell({
 
       {/* ── Sidebar (desktop, client — for active highlight) ── */}
       <div className="relative z-20">
-        <SidebarNav email={user.email} balanceRub={balanceRub} />
+        <SidebarNav email={user.email} balanceRub={balanceRub} initialUnreadCount={user.unreadTicketsCount} />
       </div>
 
       {/* ── Mobile top bar ── */}
@@ -52,7 +52,7 @@ export function ClassicDashboardShell({
       </div>
 
       {/* ── Mobile bottom nav (client — for active highlight) ── */}
-      <MobileBottomNav />
+      <MobileBottomNav initialUnreadCount={user.unreadTicketsCount} />
 
       {/* ── Main content ── */}
       <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 pt-[72px] sm:pt-20 md:pt-0 pb-24 md:pb-0 overflow-y-auto outline-none relative z-10">

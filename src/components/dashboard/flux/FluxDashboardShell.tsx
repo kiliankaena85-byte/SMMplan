@@ -13,16 +13,18 @@ import {
 } from 'lucide-react';
 
 import { MAIN_NAV_ITEMS, MOBILE_BOTTOM_NAV_ITEMS } from '@/lib/navigation';
+import { useUnreadSupport } from '@/hooks/useUnreadSupport';
 
 export function FluxDashboardShell({
   user,
   children,
 }: {
-  user: { email: string; balanceCents: number; tenantId: string };
+  user: { email: string; balanceCents: number; tenantId: string; unreadTicketsCount?: number };
   children: React.ReactNode;
 }) {
   const balanceRub = formatBalance(user.balanceCents);
   const pathname = usePathname();
+  const unreadCount = useUnreadSupport(user.unreadTicketsCount ?? 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
@@ -59,19 +61,31 @@ export function FluxDashboardShell({
           <nav className="hidden md:flex items-center gap-1">
             {MAIN_NAV_ITEMS.map((item) => {
               const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
+              const isSupport = item.href === '/dashboard/tickets';
+              const hasUnread = isSupport && unreadCount > 0;
               const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all relative ${
                     active
                       ? 'bg-foreground text-background shadow-sm font-bold'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <div className="relative">
+                    <Icon className="w-4 h-4" />
+                    {hasUnread && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                    )}
+                  </div>
                   <span>{item.label}</span>
+                  {hasUnread && (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-4.5 px-1 rounded-full bg-rose-500 text-white font-extrabold text-[10px] animate-pulse ml-1">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -108,7 +122,7 @@ export function FluxDashboardShell({
                 {user.email.substring(0, 2)}
               </div>
               <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground max-w-[120px] truncate transition-colors">
-                {user.email.split('@')[0]}
+                {user.email}
               </span>
             </Link>
 
@@ -137,6 +151,8 @@ export function FluxDashboardShell({
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-2xl border-t border-border/40 px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg">
         {MOBILE_BOTTOM_NAV_ITEMS.map((item) => {
           const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
+          const isSupport = item.href === '/dashboard/tickets';
+          const hasUnread = isSupport && unreadCount > 0;
           const Icon = item.icon;
           return (
             <Link
@@ -146,7 +162,14 @@ export function FluxDashboardShell({
                 active ? 'text-primary font-bold bg-primary/10' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Icon className="w-5 h-5" />
+              <div className="relative">
+                <Icon className="w-5 h-5" />
+                {hasUnread && (
+                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white font-black text-[9px] flex items-center justify-center animate-pulse shadow-sm shadow-rose-500/50">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
               <span>{item.label}</span>
             </Link>
           );

@@ -62,14 +62,16 @@ export function useChatSSE({
     const handleIncomingNewMessages = (msgs: Message[]) => {
       addNewMessages(msgs);
       
-      const hasUserMsg = msgs.some(m => m.sender === 'USER');
-      if (hasUserMsg) {
+      if (msgs.length > 0) {
         playChimeSound();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('support_unread_changed'));
+        }
         if (typeof document !== 'undefined' && document.hidden) {
           if (!titleTimer) {
             let isFlashing = false;
             titleTimer = setInterval(() => {
-              document.title = isFlashing ? originalTitle : `🔔 (1) Новое сообщение! | ${originalTitle}`;
+              document.title = isFlashing ? originalTitle : `🔔 (1) Ответ в поддержке! | ${originalTitle}`;
               isFlashing = !isFlashing;
             }, 1000);
           }
