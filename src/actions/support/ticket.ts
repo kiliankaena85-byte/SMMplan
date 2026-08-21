@@ -148,7 +148,9 @@ export async function addTicketMessage(formData: FormData) {
     }
   }
 
-  const sender = isStaff ? 'STAFF' : 'USER';
+  // If the user is writing in their own ticket (even if they have Admin/Owner role), they are acting as the client (USER).
+  const isOwner = ticket.userId === session.userId;
+  const sender = isOwner ? 'USER' : (isStaff ? 'STAFF' : 'USER');
   const savedMsg = await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType, replyToId, undefined, undefined, verifiedOrderId);
   if (savedMsg?.id) {
     await publishMessageSSE(ticketId, savedMsg.id);
