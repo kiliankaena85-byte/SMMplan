@@ -35,7 +35,7 @@ export default function TicketActionsDropdown({
 
   return (
     <div className="flex items-center gap-1.5 shrink-0">
-      {/* 1-Click Direct Status Pills — Ultra-wide screens only */}
+      {/* 1-Click Direct Status Pills - Ultra-wide screens only */}
       <div className="hidden 2xl:flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border shrink-0">
         <button
           type="button"
@@ -46,10 +46,10 @@ export default function TicketActionsDropdown({
               ? 'bg-destructive/15 text-destructive-text border border-destructive/25 shadow-xs'
               : 'text-muted-foreground hover:text-foreground hover:bg-background'
           }`}
-          title="Взять в работу"
+          title="Р’Р·СЏС‚СЊ РІ СЂР°Р±РѕС‚Сѓ"
         >
           <RefreshCw className={`w-3 h-3 ${isPending && currentStatus === 'OPEN' ? 'animate-spin' : ''}`} />
-          <span>В работу</span>
+          <span>Р’ СЂР°Р±РѕС‚Рµ</span>
         </button>
 
         <button
@@ -61,10 +61,10 @@ export default function TicketActionsDropdown({
               ? 'bg-warning/15 text-warning-text border border-warning/25 shadow-xs'
               : 'text-muted-foreground hover:text-foreground hover:bg-background'
           }`}
-          title="Ожидает ответа клиента"
+          title="РћР¶РёРґР°РµС‚ РѕС‚РІРµС‚Р° РєР»РёРµРЅС‚Р°"
         >
           <Clock className={`w-3 h-3 ${isPending && currentStatus === 'PENDING' ? 'animate-spin' : ''}`} />
-          <span>Ожидание</span>
+          <span>РћР¶РёРґР°РЅРёРµ</span>
         </button>
 
         <button
@@ -76,10 +76,10 @@ export default function TicketActionsDropdown({
               ? 'bg-success/15 text-success-text border border-success/25 shadow-xs'
               : 'text-muted-foreground hover:text-foreground hover:bg-background'
           }`}
-          title="Закрыть тикет"
+          title="Р—Р°РєСЂС‹С‚СЊ С‚РёРєРµС‚"
         >
           <CheckCircle className={`w-3 h-3 ${isPending && currentStatus === 'CLOSED' ? 'animate-spin' : ''}`} />
-          <span>Закрыт</span>
+          <span>Р—Р°РєСЂС‹С‚</span>
         </button>
       </div>
 
@@ -88,13 +88,13 @@ export default function TicketActionsDropdown({
           disabled={isPending}
           className="min-h-[44px] min-w-[44px] lg:min-w-max px-3 inline-flex items-center justify-center gap-2 shadow-sm rounded-xl border border-border bg-card hover:bg-muted text-sm font-medium transition-colors outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-foreground"
         >
-          <span className="hidden lg:inline font-medium text-foreground">Меню</span>
+          <span className="hidden lg:inline font-medium text-foreground">РњРµРЅСЋ</span>
           <MoreVertical className="w-4 h-4 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl border-border shadow-xl p-1 bg-card text-card-foreground">
           <DropdownMenuGroup>
             <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground font-bold px-2 py-1.5 flex items-center gap-2">
-              Сменить статус
+              РЎС‚Р°С‚СѓСЃ С‚РёРєРµС‚Р°
               {isPending && <RefreshCw className="w-3 h-3 animate-spin"/>}
             </DropdownMenuLabel>
             
@@ -103,7 +103,7 @@ export default function TicketActionsDropdown({
               onClick={() => handleStatusChange('OPEN')}
             >
               <RefreshCw className="w-4 h-4 text-destructive" />
-              В работу (Открыт)
+              Р’ СЂР°Р±РѕС‚Рµ (РєР»РёРµРЅС‚ Р¶РґС‘С‚)
             </DropdownMenuItem>
 
             <DropdownMenuItem 
@@ -111,7 +111,7 @@ export default function TicketActionsDropdown({
               onClick={() => handleStatusChange('PENDING')}
             >
               <Clock className="w-4 h-4 text-warning" />
-              В ожидании (Ответ дан)
+              Р’ РѕР¶РёРґР°РЅРёРё (РѕС‚РІРµС‚ РґР°РЅ)
             </DropdownMenuItem>
 
             <DropdownMenuItem 
@@ -119,7 +119,7 @@ export default function TicketActionsDropdown({
               onClick={() => handleStatusChange('CLOSED')}
             >
               <CheckCircle className="w-4 h-4 text-muted-foreground" />
-              Закрыть тикет
+              Р—Р°РєСЂС‹С‚СЊ С‚РёРєРµС‚
             </DropdownMenuItem>
           </DropdownMenuGroup>
 
@@ -130,7 +130,7 @@ export default function TicketActionsDropdown({
             onClick={() => onOpenRefill?.()}
           >
             <RefreshCw className="w-4 h-4 text-destructive" />
-            Ручное пополнение баланса
+            Р—Р°РїСЂРѕСЃ РґРѕРєСЂСѓС‚РєРё Р·Р°РєР°Р·Р°
           </DropdownMenuItem>
 
           <DropdownMenuItem 
@@ -138,7 +138,7 @@ export default function TicketActionsDropdown({
             onClick={() => onOpenTemplates?.()}
           >
             <FileText className="w-4 h-4" />
-            Управление шаблонами
+            РЈРїСЂР°РІР»РµРЅРёРµ С€Р°Р±Р»РѕРЅР°РјРё
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -77,7 +77,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
   const handleCopyUrl = (id: string, url: string) => {
     navigator.clipboard.writeText(url);
     setCopiedId(id);
-    toast.success('API URL скопирован в буфер обмена');
+    toast.success('API URL СЃРєРѕРїРёСЂРѕРІР°РЅ РІ Р±СѓС„РµСЂ РѕР±РјРµРЅР°');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -91,15 +91,15 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
       if (res.success) {
         toast.success(
           nextState
-            ? `Шлюз "${provider.name}" активирован`
-            : `Шлюз "${provider.name}" отключён`
+            ? `РЁР»СЋР· "${provider.name}" Р°РєС‚РёРІРёСЂРѕРІР°РЅ`
+            : `РЁР»СЋР· "${provider.name}" РІС‹РєР»СЋС‡РµРЅ`
         );
         router.refresh();
       } else {
-        toast.error('Не удалось изменить статус провайдера', { description: res.error });
+        toast.error('РќРµ СѓРґР°Р»РѕСЃСЊ РёР·РјРµРЅРёС‚СЊ СЃС‚Р°С‚СѓСЃ РїСЂРѕРІР°Р№РґРµСЂР°', { description: res.error });
       }
     } catch {
-      toast.error('Ошибка сервера при переключении статуса');
+      toast.error('РЎРµС‚РµРІР°СЏ РѕС€РёР±РєР° РїСЂРё РїРµСЂРµРєР»СЋС‡РµРЅРёРё СЃС‚Р°С‚СѓСЃР°');
     } finally {
       setPendingIds((prev) => {
         const next = new Set(prev);
@@ -115,13 +115,13 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
     try {
       const res = await resetProviderErrorsAction(provider.id);
       if (res.success) {
-        toast.success(`Счётчик ошибок для "${provider.name}" сброшен`);
+        toast.success(`РЎС‡С‘С‚С‡РёРє РѕС€РёР±РѕРє РґР»СЏ "${provider.name}" СЃР±СЂРѕС€РµРЅ`);
         router.refresh();
       } else {
-        toast.error('Не удалось сбросить ошибки', { description: res.error });
+        toast.error('РќРµ СѓРґР°Р»РѕСЃСЊ СЃР±СЂРѕСЃРёС‚СЊ РѕС€РёР±РєРё', { description: res.error });
       }
     } catch {
-      toast.error('Ошибка сервера при сбросе ошибок');
+      toast.error('РЎРµС‚РµРІР°СЏ РѕС€РёР±РєР° РїСЂРё СЃР±СЂРѕСЃРµ РѕС€РёР±РѕРє');
     } finally {
       setPendingIds((prev) => {
         const next = new Set(prev);
@@ -139,7 +139,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
         toast.success(res.message);
         router.refresh();
       } else {
-        toast.error('Не удалось подключить Mock Sandbox', { description: res.error });
+        toast.error('РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°Р·РІРµСЂРЅСѓС‚СЊ Mock Sandbox', { description: res.error });
       }
     });
   };
@@ -159,7 +159,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
             }`}
           >
-            Все
+            Р’СЃРµ
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-background/20 tabular-nums">
               {counts.all}
             </span>
@@ -174,7 +174,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            Активные
+            РђРєС‚РёРІРЅС‹Рµ
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-background/20 tabular-nums">
               {counts.active}
             </span>
@@ -188,7 +188,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
             }`}
           >
-            Сбои API
+            РЎР±РѕРё API
             {counts.error > 0 && (
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-destructive-foreground/20 text-destructive-foreground font-bold tabular-nums">
                 {counts.error}
@@ -204,7 +204,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
             }`}
           >
-            Отключенные
+            РћС‚РєР»СЋС‡С‘РЅРЅС‹Рµ
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-background/20 tabular-nums">
               {counts.disabled}
             </span>
@@ -217,7 +217,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск по названию / URL..."
+            placeholder="РџРѕРёСЃРє РїРѕ РЅР°Р·РІР°РЅРёСЋ / URL..."
             className="pl-8 pr-8 h-8.5 text-xs bg-background/80"
           />
           {search && (
@@ -226,7 +226,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
               onClick={() => setSearch('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
             >
-              ?
+              вњ•
             </button>
           )}
         </div>
@@ -242,13 +242,13 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
             <div>
               <h3 className="font-bold text-foreground text-sm">
                 {providers.length === 0
-                  ? 'Нет добавленных провайдеров'
-                  : 'Провайдеры по запросу не найдены'}
+                  ? 'РќРµС‚ РїРѕРґРєР»СЋС‡С‘РЅРЅС‹С… РїСЂРѕРІР°Р№РґРµСЂРѕРІ'
+                  : 'РџСЂРѕРІР°Р№РґРµСЂС‹ РЅРµ РЅР°Р№РґРµРЅС‹ РїРѕ С„РёР»СЊС‚СЂСѓ'}
               </h3>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                 {providers.length === 0
-                  ? 'Подключите вашу первую SMM-панель или используйте песочницу для безопасных тестов.'
-                  : 'Попробуйте сбросить фильтры или строку поиска.'}
+                  ? 'РџРѕРґРєР»СЋС‡РёС‚Рµ СЃРІРѕР№ РїРµСЂРІС‹Р№ SMM-С€Р»СЋР· РёР»Рё РёСЃРїРѕР»СЊР·СѓР№С‚Рµ РїСЂРµСЃРµС‚ РґР»СЏ РјРіРЅРѕРІРµРЅРЅРѕРіРѕ СЃС‚Р°СЂС‚Р°.'
+                  : 'РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃР±СЂРѕСЃРёС‚СЊ С„РёР»СЊС‚СЂС‹ РёР»Рё СЃС‚СЂРѕРєСѓ РїРѕРёСЃРєР°.'}
               </p>
             </div>
 
@@ -262,13 +262,13 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                   className="text-xs font-bold"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-primary mr-1.5" />
-                  {isPresetPending ? 'Подключение...' : 'Подключить Mock Sandbox'}
+                  {isPresetPending ? 'Р Р°Р·РІС‘СЂС‚С‹РІР°РЅРёРµ...' : 'Р Р°Р·РІРµСЂРЅСѓС‚СЊ Mock Sandbox'}
                 </Button>
                 <Link
                   href="/admin/providers/new"
                   className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-primary-foreground bg-primary rounded-xl hover:opacity-90 transition-all duration-200 shadow-xs active:scale-95"
                 >
-                  + Добавить панель
+                  + Р”РѕР±Р°РІРёС‚СЊ С€Р»СЋР·
                 </Link>
               </div>
             ) : (
@@ -281,7 +281,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                 size="sm"
                 className="text-xs font-bold"
               >
-                Сбросить фильтры
+                РЎР±СЂРѕСЃРёС‚СЊ С„РёР»СЊС‚СЂС‹
               </Button>
             )}
           </div>
@@ -289,26 +289,26 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
           <>
             {/* -- 1. Desktop Table View (100% Width Fit, No Horizontal Scroll) -- */}
             <div className="hidden lg:block w-full">
-              <Table className="w-full text-left" aria-label="Список SMM-провайдеров">
+              <Table className="w-full text-left" aria-label="РЎРїРёСЃРѕРє SMM-РїСЂРѕРІР°Р№РґРµСЂРѕРІ">
                 <TableHeader>
                   <TableRow className="border-b border-border/60 hover:bg-transparent">
                     <TableHead className="w-[30%] bg-muted/40 py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                      Название / API
+                      РџСЂРѕРІР°Р№РґРµСЂ / API
                     </TableHead>
                     <TableHead className="w-[10%] bg-muted/40 py-3 px-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                      Услуги
+                      РЈСЃР»СѓРіРё
                     </TableHead>
                     <TableHead className="w-[18%] bg-muted/40 py-3 px-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                      Баланс (Sync)
+                      Р‘Р°Р»Р°РЅСЃ (Sync)
                     </TableHead>
                     <TableHead className="w-[16%] bg-muted/40 py-3 px-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                      SLA & Связь
+                      SLA & РџРёРЅРі
                     </TableHead>
                     <TableHead className="w-[10%] bg-muted/40 py-3 px-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                      Статус
+                      РЎС‚Р°С‚СѓСЃ
                     </TableHead>
                     <TableHead className="w-[16%] bg-muted/40 py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">
-                      Действия
+                      Р”РµР№СЃС‚РІРёСЏ
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -331,7 +331,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                                 href={provider.ticketUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title="Открыть тикеты поддержки у провайдера"
+                                title="РћС‚РєСЂС‹С‚СЊ РїР°РЅРµР»СЊ РїРѕРґРґРµСЂР¶РєРё Сѓ РїСЂРѕРІР°Р№РґРµСЂР°"
                                 className="text-muted-foreground hover:text-primary transition-colors p-0.5 shrink-0"
                               >
                                 <LifeBuoy className="w-3 h-3 text-primary" />
@@ -348,7 +348,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                             <button
                               type="button"
                               onClick={() => handleCopyUrl(provider.id, provider.apiUrl)}
-                              title="Скопировать URL шлюза"
+                              title="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ URL С€Р»СЋР·Р°"
                               className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5 cursor-pointer shrink-0"
                             >
                               {copiedId === provider.id ? (
@@ -366,7 +366,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                             {provider.serviceCount.toLocaleString('ru-RU')}
                           </div>
                           <div className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">
-                            услуг
+                            СѓСЃР»СѓРі
                           </div>
                         </TableCell>
 
@@ -376,7 +376,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                             <ProviderBalanceCell providerId={provider.id} />
                           ) : (
                             <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/50 select-none">
-                              ОТКЛЮЧЁН
+                              РћС‚РєР»СЋС‡С‘РЅ
                             </span>
                           )}
                         </TableCell>
@@ -404,16 +404,16 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                             {provider.errorCount5m > 0 ? (
                               <div className="flex items-center gap-1">
                                 <span className="text-[10px] font-bold text-destructive">
-                                  ?? {provider.errorCount5m} errs
+                                  вљ пёЏ {provider.errorCount5m} errs
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleResetErrors(provider)}
                                   disabled={isPending}
-                                  title="Сбросить счётчик ошибок"
+                                  title="РЎР±СЂРѕСЃРёС‚СЊ СЃС‡С‘С‚С‡РёРє РѕС€РёР±РѕРє"
                                   className="text-[9px] text-muted-foreground hover:text-foreground underline transition-colors cursor-pointer disabled:opacity-50"
                                 >
-                                  сброс
+                                  СЃР±СЂРѕСЃ
                                 </button>
                               </div>
                             ) : provider.lastSuccessAt ? (
@@ -431,7 +431,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                               type="button"
                               onClick={() => handleToggleActive(provider)}
                               disabled={isPending}
-                              title={provider.isActive ? 'Отключить шлюз' : 'Включить шлюз'}
+                              title={provider.isActive ? 'РћС‚РєР»СЋС‡РёС‚СЊ С€Р»СЋР·' : 'Р’РєР»СЋС‡РёС‚СЊ С€Р»СЋР·'}
                               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
                                 provider.isActive ? 'bg-success' : 'bg-muted-foreground/30'
                               }`}
@@ -460,10 +460,10 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                               }`}
                             >
                               {!provider.isActive
-                                ? 'ВЫКЛ'
+                                ? 'Р’Р«РљР›'
                                 : provider.errorCount5m > 0
-                                ? 'СБОЙ'
-                                : 'ВКЛ'}
+                                ? 'РЎР‘РћР™'
+                                : 'РђРљРўРР’'}
                             </Badge>
                           </div>
                         </TableCell>
@@ -476,7 +476,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                               href={`/admin/providers/${provider.id}`}
                               className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-border/60 bg-background/50 hover:bg-muted text-foreground transition-all duration-200 shadow-xs inline-block active:scale-95 whitespace-nowrap"
                             >
-                              Настроить
+                              РќР°СЃС‚СЂРѕРёС‚СЊ
                             </Link>
                           </div>
                         </TableCell>
@@ -508,7 +508,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                               href={provider.ticketUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              title="Открыть тикеты поддержки у провайдера"
+                              title="РћС‚РєСЂС‹С‚СЊ РїР°РЅРµР»СЊ РїРѕРґРґРµСЂР¶РєРё Сѓ РїСЂРѕРІР°Р№РґРµСЂР°"
                               className="text-muted-foreground hover:text-primary transition-colors p-0.5 shrink-0"
                             >
                               <LifeBuoy className="w-3.5 h-3.5 text-primary" />
@@ -544,7 +544,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                           }
                           className="font-bold text-[9px] uppercase px-1.5 py-0.2"
                         >
-                          {!provider.isActive ? 'ВЫКЛ' : provider.errorCount5m > 0 ? 'СБОЙ' : 'ВКЛ'}
+                          {!provider.isActive ? 'Р’Р«РљР›' : provider.errorCount5m > 0 ? 'РЎР‘РћР™' : 'РђРљРўРР’'}
                         </Badge>
                         <button
                           type="button"
@@ -567,7 +567,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                     <div className="grid grid-cols-3 gap-2 py-1 text-xs">
                       {/* Services */}
                       <div className="bg-muted/40 p-2 rounded-xl border border-border/30">
-                        <div className="text-[9px] font-bold uppercase text-muted-foreground">Услуги</div>
+                        <div className="text-[9px] font-bold uppercase text-muted-foreground">РЈСЃР»СѓРіРё</div>
                         <div className="font-bold text-foreground mt-0.5 tabular-nums">
                           {provider.serviceCount.toLocaleString('ru-RU')}
                         </div>
@@ -575,12 +575,12 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
 
                       {/* Balance */}
                       <div className="bg-muted/40 p-2 rounded-xl border border-border/30 col-span-2">
-                        <div className="text-[9px] font-bold uppercase text-muted-foreground">Баланс</div>
+                        <div className="text-[9px] font-bold uppercase text-muted-foreground">Р‘Р°Р»Р°РЅСЃ</div>
                         <div className="mt-0.5">
                           {provider.isActive ? (
                             <ProviderBalanceCell providerId={provider.id} />
                           ) : (
-                            <span className="text-[10px] font-mono text-muted-foreground">Отключён</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">РћС‚РєР»СЋС‡С‘РЅ</span>
                           )}
                         </div>
                       </div>
@@ -605,14 +605,14 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
 
                       {provider.errorCount5m > 0 ? (
                         <div className="flex items-center gap-1 text-destructive font-bold">
-                          <span>?? {provider.errorCount5m} сбоев</span>
+                          <span>вљ пёЏ {provider.errorCount5m} СЃР±РѕРµРІ</span>
                           <button
                             type="button"
                             onClick={() => handleResetErrors(provider)}
                             disabled={isPending}
                             className="underline text-[9px] cursor-pointer"
                           >
-                            сбросить
+                            РЎР±СЂРѕСЃРёС‚СЊ
                           </button>
                         </div>
                       ) : provider.lastSuccessAt ? (
@@ -631,7 +631,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                         href={`/admin/providers/${provider.id}`}
                         className="flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-xl border border-border/60 bg-background/50 hover:bg-muted text-foreground transition-all duration-200 shadow-xs active:scale-95"
                       >
-                        Настроить
+                        РќР°СЃС‚СЂРѕРёС‚СЊ
                       </Link>
                     </div>
                   </div>
