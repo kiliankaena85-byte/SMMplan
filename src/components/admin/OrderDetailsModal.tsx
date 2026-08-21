@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState, useEffect, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { 
@@ -148,6 +149,11 @@ export function OrderDetailsModal({
   const [isFailoverOpen, setIsFailoverOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [acknowledgeBlindReroute, setAcknowledgeBlindReroute] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [isPending, startTransition] = useTransition();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -398,8 +404,10 @@ export function OrderDetailsModal({
 
   const selectedRoute = failoverPreview?.routes.find(r => r.routeId === selectedRouteId);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 overflow-hidden">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -456,6 +464,16 @@ export function OrderDetailsModal({
           </div>
 
           <div className="flex items-center gap-2">
+            <a
+              href={`/admin/orders/${currentOrder.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1.5 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-all text-xs font-bold border border-border/40 cursor-pointer"
+              title="Открыть заказ в новом окне / отдельной вкладке"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">В новом окне</span>
+            </a>
             <span className="hidden sm:inline-flex text-[11px] text-muted-foreground font-mono bg-muted/60 px-2 py-1 rounded-lg border border-border/40">
               ESC
             </span>
@@ -914,6 +932,7 @@ export function OrderDetailsModal({
             : `Статус заказа будет переведен в "Выполнен".`}
         </p>
       </ConfirmModal>
-    </div>
+    </div>,
+    document.body
   );
 }

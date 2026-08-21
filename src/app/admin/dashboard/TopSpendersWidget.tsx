@@ -72,7 +72,6 @@ export function TopSpendersWidget({ clients }: Props) {
                     >
                       {c.email}
                     </Link>
-                    <TenantBrandBadge tenantId={c.tenantId} />
                   </div>
                   <div className="text-[10px] text-muted-foreground flex items-center gap-2 mt-0.5">
                     <span>Заказов: <strong className="text-foreground">{c._count.orders}</strong></span>

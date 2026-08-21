@@ -92,7 +92,12 @@ export async function deleteCategory(rawId: string) {
     const id = idSchema.parse(rawId);
     const count = await db.service.count({ where: { categoryId: id } });
     if (count > 0) {
-      return { success: false, error: `Cannot delete category. It contains ${count} services. Delete or move them first.` };
+      return { 
+        success: false, 
+        hasServices: true,
+        serviceCount: count,
+        error: `Категория содержит ${count} услуг. Вы можете скрыть все услуги или объединить категорию с другой.` 
+      };
     }
 
     await db.category.delete({ where: { id } });
@@ -106,11 +111,57 @@ export async function deleteCategory(rawId: string) {
     });
 
     revalidatePath("/admin/catalog/categories");
+    revalidatePath("/admin/catalog/tree");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("catalog");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (revalidateTag as any)("services");
     return { success: true, error: undefined };
+  });
+}
+
+/**
+ * Hides all services in a category (isActive = false)
+ */
+export async function hideCategoryAndServicesAction(categoryId: string) {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
+    const id = idSchema.parse(categoryId);
+    const category = await db.category.findUnique({
+      where: { id },
+      select: { id: true, name: true, _count: { select: { services: true } } }
+    });
+
+    if (!category) {
+      return { success: false as const, error: 'Категория не найдена' };
+    }
+
+    await db.service.updateMany({
+      where: { categoryId: id },
+      data: { isActive: false }
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "CATEGORY_HIDE_ALL_SERVICES",
+      target: id,
+      targetType: "SETTINGS",
+      newValue: { categoryName: category.name, hiddenServicesCount: category._count.services }
+    });
+
+    revalidatePath("/admin/catalog/categories");
+    revalidatePath("/admin/catalog/tree");
+    revalidatePath("/admin/catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (revalidateTag as any)("catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (revalidateTag as any)("services");
+
+    return { 
+      success: true as const, 
+      count: category._count.services,
+      message: `Все услуги категории «${category.name}» (${category._count.services} шт.) скрыты с витрины.` 
+    };
   });
 }
 

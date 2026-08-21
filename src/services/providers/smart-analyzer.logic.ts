@@ -7,6 +7,19 @@ export type Platform = string;
 export type Category = string;
 import { DescriptionSanitizer } from '@/utils/description-sanitizer';
 
+export interface ProcurementMetrics {
+    quality: 'PREMIUM' | 'HIGH' | 'MEDIUM' | 'LOW' | 'BOTS' | 'UNKNOWN';
+    velocity: number | null; // Max items per day
+    geo: string;
+    dropRate: number | null; // e.g. 5 for 5%
+    hasRefill: boolean;
+    anomalyScore: number;
+    startTime?: string;
+    speedText?: string;
+    warrantyDays?: number;
+    qualityLabel?: string;
+}
+
 export interface AnalyzedService {
     platform: Platform;
     platformSlug: string;
@@ -18,12 +31,29 @@ export interface AnalyzedService {
     requirements?: string;
     geo?: string;
     warranty?: number;
+    startTime?: string;
+    speedText?: string;
+    qualityLabel?: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    metrics?: any; // Will be properly typed as ProcurementMetrics
+    metrics?: ProcurementMetrics;
     cleanName?: string;
     customDataType?: 'NONE' | 'TEXTAREA' | 'NUMBER';
     isMediaGroupAware?: boolean;
 }
+
+export const DEFAULT_CATEGORY_METRICS: Record<string, { startTime: string; speedText: string; warranty: number; qualityLabel: string }> = {
+    VIEWS: { startTime: '5–15 мин', speedText: 'до 50k / день', warranty: 0, qualityLabel: 'Высокое' },
+    AUTO_VIEWS: { startTime: 'Мгновенно', speedText: 'Высокая', warranty: 0, qualityLabel: 'Стандарт' },
+    LIKES: { startTime: '10–30 мин', speedText: 'до 10k / день', warranty: 0, qualityLabel: 'Стандарт' },
+    SUBSCRIBERS: { startTime: '0–2 часа', speedText: '1–5k / день', warranty: 30, qualityLabel: 'Реальные' },
+    GROUPS: { startTime: '0–2 часа', speedText: '1–5k / день', warranty: 30, qualityLabel: 'Реальные' },
+    COMMENTS: { startTime: '15–60 мин', speedText: 'Плавная', warranty: 0, qualityLabel: 'Живые' },
+    REACTIONS: { startTime: '5–15 мин', speedText: 'Быстрая', warranty: 0, qualityLabel: 'Стандарт' },
+    REPOSTS: { startTime: '10–30 мин', speedText: 'до 10k / день', warranty: 0, qualityLabel: 'Стандарт' },
+    STORIES: { startTime: 'Мгновенно', speedText: 'до 20k / день', warranty: 0, qualityLabel: 'Стандарт' },
+    BOOSTS: { startTime: '0–1 час', speedText: 'до 1k / день', warranty: 30, qualityLabel: 'Премиум' },
+    OTHER: { startTime: '15–60 мин', speedText: 'Стандартная', warranty: 0, qualityLabel: 'Стандарт' },
+};
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'WIBES', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
@@ -498,8 +528,89 @@ export const SmartAnalyzerLogic = class {
             finalDescription += `\n\n--- Оригинальное описание провайдера ---\n${desc}`;
         }
         
+        // 7. Structured Execution Metrics Extraction (Start Time, Speed, Warranty, Quality)
+        const catDefaults = DEFAULT_CATEGORY_METRICS[category] || DEFAULT_CATEGORY_METRICS.OTHER;
+
+        // Start Time detection & Russian localization
+        let detectedStartTime: string | undefined;
+        const startTimeMatch = name.match(/\[?(?:start(?:\s*time)?|старт)\s*:\s*([^\]\s]+(?:\s+[^\]]+)?)\]?/i);
+        if (startTimeMatch) {
+            const raw = startTimeMatch[1].trim().toLowerCase();
+            if (raw.includes('instant') || raw.includes('мгновенн') || raw.includes('моментальн') || raw.includes('автостарт')) detectedStartTime = 'Мгновенно';
+            else if (raw.includes('0-1') || raw.includes('0 - 1') || raw.includes('1 hour') || raw.includes('1 hr')) detectedStartTime = '0–1 час';
+            else if (raw.includes('0-2') || raw.includes('0 - 2') || raw.includes('2 hour') || raw.includes('2 hr')) detectedStartTime = '0–2 часа';
+            else if (raw.includes('0-3') || raw.includes('0 - 3') || raw.includes('3 hour') || raw.includes('3 hr')) detectedStartTime = '0–3 часа';
+            else if (raw.includes('0-8') || raw.includes('0 - 8') || raw.includes('8 hour') || raw.includes('8 hr')) detectedStartTime = '0–8 часов';
+            else if (raw.includes('0-24') || raw.includes('0 - 24') || raw.includes('24 hour') || raw.includes('24 hr')) detectedStartTime = '0–24 часа';
+            else if (raw.includes('48 hour') || raw.includes('48 hr')) detectedStartTime = 'до 48 часов';
+            else if (raw.includes('5-15') || raw.includes('5 - 15') || raw.includes('15 min') || raw.includes('15 мин')) detectedStartTime = '5–15 мин';
+            else if (raw.includes('30 min') || raw.includes('30 мин')) detectedStartTime = 'до 30 мин';
+            else detectedStartTime = startTimeMatch[1].trim();
+        } else if (fullContent.includes('instant') || fullContent.includes('мгновенн') || fullContent.includes('моментальн') || fullContent.includes('автостарт')) {
+            detectedStartTime = 'Мгновенно';
+        } else if (fullContent.includes('0-1') || fullContent.includes('0 - 1')) {
+            detectedStartTime = '0–1 час';
+        } else if (fullContent.includes('0-24') || fullContent.includes('0 - 24')) {
+            detectedStartTime = '0–24 часа';
+        } else {
+            detectedStartTime = catDefaults.startTime;
+        }
+
+        // Speed detection & Russian localization
+        let detectedSpeedText: string | undefined;
+        const speedMatch = name.match(/\[?(?:speed|скорость)\s*:\s*([^\]]+)\]?/i);
+        if (speedMatch) {
+            let s = speedMatch[1].trim();
+            s = s.replace(/up\s*to\s*/i, 'до ');
+            s = s.replace(/(\d+(?:\.\d+)?)\s*([kmкм])?\s*\/\s*(?:d|day|days|сут|сутки|день)/i, (_, num, mult) => {
+                const m = (mult || '').toLowerCase();
+                const mStr = m === 'k' || m === 'к' ? 'k' : m === 'm' || m === 'м' ? ' млн' : '';
+                return `до ${num}${mStr} / день`;
+            });
+            if (s.toLowerCase() === 'fast' || s.toLowerCase().includes('быстр')) s = 'Быстрая';
+            else if (s.toLowerCase() === 'gradual' || s.toLowerCase().includes('плавн')) s = 'Плавная';
+            else if (s.toLowerCase() === 'slow' || s.toLowerCase().includes('медленн')) s = 'Плавная';
+            detectedSpeedText = s;
+        } else if (tokenized.metrics?.velocity) {
+            const v = tokenized.metrics.velocity;
+            detectedSpeedText = v >= 1000 ? `до ${v / 1000}k / день` : `до ${v} / день`;
+        } else if (fullContent.includes('fast') || fullContent.includes('быстр') || fullContent.includes('⚡')) {
+            detectedSpeedText = 'Быстрая';
+        } else if (fullContent.includes('gradual') || fullContent.includes('плавн') || fullContent.includes('drip')) {
+            detectedSpeedText = 'Плавная';
+        } else {
+            detectedSpeedText = catDefaults.speedText;
+        }
+
+        // Warranty & Refill
+        const finalWarranty = metricsCompiler.warrantyDays || warranty || catDefaults.warranty;
+        const hasRefillBadge = metricsCompiler.isRefill || warranty > 0 || tokenized.metrics?.hasRefill || false;
+
+        // Quality Label
+        const qualityMap: Record<string, string> = {
+            PREMIUM: 'Премиум',
+            HIGH: 'Живые',
+            MEDIUM: 'Стандарт',
+            LOW: 'Эконом',
+            BOTS: 'Боты',
+            UNKNOWN: 'Стандарт'
+        };
+        const tokenQuality = tokenized.metrics?.quality ? qualityMap[tokenized.metrics.quality] : undefined;
+        const finalQuality = (metricsCompiler.tier && metricsCompiler.tier !== 'Эконом')
+            ? metricsCompiler.tier
+            : (tokenQuality || catDefaults.qualityLabel);
+
         const categoryLabel = CATEGORY_LABELS[category] || 'Продвижение';
-        const finalName = `${categoryLabel} (${metricsCompiler.tier})`;
+        const finalName = `${categoryLabel} (${finalQuality})`;
+
+        const enrichedMetrics: ProcurementMetrics = {
+            ...tokenized.metrics,
+            startTime: detectedStartTime,
+            speedText: detectedSpeedText,
+            warrantyDays: finalWarranty,
+            qualityLabel: finalQuality,
+            hasRefill: hasRefillBadge
+        };
 
         return {
             platform: platformEnum,
@@ -513,10 +624,13 @@ export const SmartAnalyzerLogic = class {
             cleanName: tokenized.cleanName,
             requirements: requirements.trim() || undefined,
             geo: compiledGeo,
-            warranty: metricsCompiler.warrantyDays || warranty,
+            warranty: finalWarranty,
+            startTime: detectedStartTime,
+            speedText: detectedSpeedText,
+            qualityLabel: finalQuality,
             customDataType,
             isMediaGroupAware,
-            metrics: tokenized.metrics
+            metrics: enrichedMetrics
         };
     }
 

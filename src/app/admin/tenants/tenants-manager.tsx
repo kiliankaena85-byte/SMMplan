@@ -334,7 +334,7 @@ export function TenantsManager({ initialTenants }: TenantsManagerProps) {
                 <input
                   type="text"
                   required
-                  placeholder="например, SMM Boost Pro"
+                  placeholder="например, SMM Partner Pro"
                   value={name}
                   onChange={e => {
                     setName(e.target.value);
@@ -352,7 +352,7 @@ export function TenantsManager({ initialTenants }: TenantsManagerProps) {
                   <input
                     type="text"
                     required
-                    placeholder="boost"
+                    placeholder="partner"
                     value={slug}
                     onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                     className="w-full px-4 py-3 rounded-2xl bg-background border border-border focus:border-primary focus:outline-none text-foreground font-mono text-xs"
@@ -364,7 +364,7 @@ export function TenantsManager({ initialTenants }: TenantsManagerProps) {
                   <input
                     type="text"
                     required
-                    placeholder="smmboost.ru"
+                    placeholder="smmpartner.ru"
                     value={domain}
                     onChange={e => setDomain(e.target.value.toLowerCase().trim())}
                     className="w-full px-4 py-3 rounded-2xl bg-background border border-border focus:border-primary focus:outline-none text-foreground font-mono text-xs"
@@ -376,7 +376,7 @@ export function TenantsManager({ initialTenants }: TenantsManagerProps) {
                 <label className="font-bold text-foreground">Дополнительный домен / Алиас (Опционально)</label>
                 <input
                   type="text"
-                  placeholder="www.smmboost.ru"
+                  placeholder="www.smmpartner.ru"
                   value={customDomain}
                   onChange={e => setCustomDomain(e.target.value.toLowerCase().trim())}
                   className="w-full px-4 py-3 rounded-2xl bg-background border border-border focus:border-primary focus:outline-none text-foreground font-mono text-xs"

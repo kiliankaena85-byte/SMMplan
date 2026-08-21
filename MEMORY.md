@@ -22,9 +22,14 @@
   - *Решение:* Бренда Lovable больше нет. Используются только `smmplan` (smmplan.pro) и `flux` (smmflux.ru). Алиас `lovable` мягко мапится на `flux`.
   - *Правило:* Canonical URLs всегда абсолютные через `absoluteCanonical(tenantId, path)`. Хардкод хостов запрещен.
 
-- **Telegram Smart Bind & Privacy (Zero-Contact Routing):**
-  - *Решение:* Привязка Telegram осуществляется анонимно через одноразовые JWT-токены (`tg_bind_...`) со сроком жизни 15 минут, прямые Deep Links (`t.me/{bot}?start=tg_bind_{token}`) и векторный SVG QR-код без сбора телефонных номеров. Управление пуш-уведомлениями (статусы заказов, финансы, тикеты) вынесено в тумблеры с моментальной синхронизацией.
-  - *Причина:* Полная конфиденциальность клиентов, защита от перехвата сессий и моментальный омниканальный саппорт.
+- **Cloudflare Tunnel (cloudflared) Exclusivity:**
+  - *Решение:* Для проброса портов, удаленного доступа и веб-превью используется **СТРОГО И ИСКЛЮЧИТЕЛЬНО** официальный Cloudflare Tunnel (`cloudflared.exe tunnel --no-autoupdate run --token ...`). Скрипт быстрого запуска сохранен в `scripts/start-tunnel.ps1`. Домен стенда: `https://test.smmplan.pro`.
+  - *Табу:* Категорически запрещено использовать сторонние туннели (SSH reverse tunnels, ngrok, localtunnel и прочее). Всегда запускать и проверять `cloudflared.exe`.
+
+- **4-Level Taxonomy & Smart Provider Matcher:**
+  - *Решение:* Чёткая 4-уровневая структура: `Социальная Сеть (Network)` $\to$ `Тип Объекта / Ссылки (TargetType)` $\to$ `Активность (Category / ActivityType)` $\to$ `Тарифный уровень (QualityTier: ECONOMY, STANDARD, PREMIUM, VIP, AUTO)`.
+  - *Интеграция:* При создании услуги работает **Smart Provider Matcher** с живым поиском по базе кэшированных услуг провайдеров (`ShadowService`) и авто-заполнением себестоимости, лимитов, флагов гарантии и правил валидации ссылки в 1 клик.
+  - *Умный Анализатор Ссылок:* Каждая услуга содержит `targetType`, `linkPlaceholder`, `linkHint`, `requiresBotAdmin` и `isMediaGroupAware`, предотвращая некорректные заказы покупателей на этапе чекаута.
 
 ---
 

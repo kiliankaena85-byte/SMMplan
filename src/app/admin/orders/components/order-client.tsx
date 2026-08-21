@@ -34,175 +34,162 @@ interface Props {
   userRole?: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; cls: string; Icon: React.ReactNode }> = {
-  AWAITING_PAYMENT: { label: 'Ожидает',   cls: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-slate-500/20', Icon: <Clock className="w-3 h-3" /> },
-  PENDING:          { label: 'В очереди', cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-500/20', Icon: <Hourglass className="w-3 h-3" /> },
-  IN_PROGRESS:      { label: 'В работе',  cls: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 ring-sky-500/20',           Icon: <Loader className="w-3 h-3 animate-spin" /> },
-  COMPLETED:        { label: 'Выполнен',  cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20', Icon: <CheckCircle className="w-3 h-3" /> },
-  PARTIAL:          { label: 'Частично',  cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-orange-500/20', Icon: <PieChart className="w-3 h-3" /> },
-  CANCELED:         { label: 'Отменён',   cls: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-rose-500/20',        Icon: <XCircle className="w-3 h-3" /> },
-  ERROR:            { label: 'Ошибка',    cls: 'bg-red-500/10 text-red-600 dark:text-red-400 ring-red-500/20',           Icon: <AlertTriangle className="w-3 h-3" /> },
-  REFUNDING:        { label: 'Возврат',   cls: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 ring-violet-500/20', Icon: <Undo2 className="w-3 h-3" /> },
+const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string }> = {
+  AWAITING_PAYMENT: { label: 'Ожидает оплаты', dot: 'bg-zinc-400',                   bg: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20' },
+  PENDING:          { label: 'В очереди',      dot: 'bg-amber-500',                  bg: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20' },
+  IN_PROGRESS:      { label: 'В работе',       dot: 'bg-sky-500 animate-pulse',      bg: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20' },
+  COMPLETED:        { label: 'Выполнен',       dot: 'bg-emerald-500',                bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20' },
+  PARTIAL:          { label: 'Частично',       dot: 'bg-orange-500',                 bg: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20' },
+  CANCELED:         { label: 'Отменён',        dot: 'bg-rose-500',                   bg: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20' },
+  ERROR:            { label: 'Ошибка',         dot: 'bg-red-500',                    bg: 'bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/20' },
+  REFUNDING:        { label: 'Возврат',        dot: 'bg-purple-500',                 bg: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20' },
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status] || { label: status, cls: 'bg-muted text-muted-foreground ring-border', Icon: null };
+  const config = STATUS_CONFIG[status] || { label: status, dot: 'bg-muted-foreground', bg: 'bg-muted text-muted-foreground border-border' };
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ring-1 ring-inset whitespace-nowrap ${config.cls}`}>
-      {config.Icon}
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border whitespace-nowrap ${config.bg}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
       {config.label}
     </span>
   );
 }
 
-function InfoStack({ order, canSeeRates }: { order: OrderColumn; canSeeRates: boolean }) {
+function InfoStack({ order }: { order: OrderColumn }) {
   const s = order.service;
   const [copied, setCopied] = useState(false);
-  const netName = s.category.network?.name || 'Платформа';
-  const catName = s.category.name;
-  const srvName = s.name;
-  const dateFormatted = new Date(order.createdAt).toISOString().replace('T', ' ').slice(0, 19);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const netName = s?.category?.network?.name || 'Платформа';
+  const catName = s?.category?.name || '—';
+  const srvName = s?.name || 'Услуга';
+  
+  // Format Date: 2026-08-21 01:53:06
+  const dateObj = new Date(order.createdAt);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const dateFormatted = `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:${pad(dateObj.getSeconds())}`;
 
   const handleCopyLink = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       await navigator.clipboard.writeText(order.link);
       setCopied(true);
-      toast.success('Ссылка скопирована в буфер');
+      toast.success('Ссылка скопирована');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Не удалось скопировать ссылку');
+      toast.error('Не удалось скопировать');
     }
   };
 
   return (
-    <div className="flex flex-col space-y-1 text-xs min-w-0 py-0.5">
-      {/* 1. Платформа · Категория · Сервис */}
-      <div className="flex items-center gap-1.5 text-xs text-foreground flex-wrap font-medium">
-        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold text-[11px] uppercase tracking-wide">
+    <div className="flex flex-col space-y-1 text-xs min-w-0 py-0.5 leading-snug">
+      {/* Соцсеть */}
+      <div className="flex items-baseline gap-1.5 min-w-0">
+        <span className="text-foreground/70 shrink-0 font-normal">Соцсеть:</span>
+        <span className="text-sky-600 dark:text-sky-400 font-medium truncate" title={netName}>
           {netName}
         </span>
-        <span className="font-bold text-foreground">
+      </div>
+
+      {/* Категория */}
+      <div className="flex items-baseline gap-1.5 min-w-0">
+        <span className="text-foreground/70 shrink-0 font-normal">Категория:</span>
+        <span className="text-sky-600 dark:text-sky-400 font-medium truncate" title={catName}>
           {catName}
         </span>
-        <span className="text-muted-foreground font-normal">·</span>
-        <span className="text-muted-foreground font-medium truncate max-w-[240px]" title={srvName}>
-          «{srvName}»
+      </div>
+
+      {/* Услуга */}
+      <div className="flex items-baseline gap-1.5 min-w-0">
+        <span className="text-foreground/70 shrink-0 font-normal">Услуга:</span>
+        <span className="text-sky-600 dark:text-sky-400 font-medium break-words">
+          {srvName}
         </span>
       </div>
 
-      {/* 2. Ссылка с кнопкой копирования */}
-      <div className="flex items-center gap-1.5 text-[11px] font-mono">
-        <span className="text-muted-foreground shrink-0 select-none">Ссылка:</span>
-        <a 
-          href={order.link} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-sky-600 dark:text-sky-400 hover:underline truncate max-w-[340px] font-medium"
-          title={order.link}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {order.link}
-        </a>
+      {/* Ссылка */}
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="text-foreground/70 shrink-0 font-normal">Ссылка:</span>
+        <div className="flex items-center gap-1 min-w-0 max-w-[280px] sm:max-w-[400px]">
+          <a 
+            href={order.link} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sky-600 dark:text-sky-400 hover:underline truncate font-mono text-[11px]"
+            title={order.link}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {order.link}
+          </a>
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="p-0.5 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all cursor-pointer shrink-0"
+            title="Скопировать ссылку"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Кол-во */}
+      <div className="flex items-baseline gap-1.5 min-w-0">
+        <span className="text-foreground/70 shrink-0 font-normal">Кол-во:</span>
+        <span className="text-foreground font-semibold tabular-nums">
+          {order.quantity.toLocaleString('ru-RU')}
+          {order.remains > 0 && (
+            <span className="text-amber-600 dark:text-amber-400 ml-1 font-normal text-[11px]">
+              (остаток: {order.remains.toLocaleString('ru-RU')})
+            </span>
+          )}
+        </span>
+      </div>
+
+      {/* Дата создания */}
+      <div className="flex items-baseline gap-1.5 min-w-0">
+        <span className="text-foreground/70 shrink-0 font-normal">Дата создания:</span>
+        <span className="text-foreground font-mono text-[11px] tabular-nums">
+          {dateFormatted}
+        </span>
+      </div>
+
+      {/* Скрыть / Показать детали */}
+      <div className="pt-1">
         <button
           type="button"
-          onClick={handleCopyLink}
-          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all cursor-pointer shrink-0 active:scale-90"
-          title="Скопировать ссылку в буфер"
+          onClick={(e) => {
+            e.stopPropagation();
+            setDetailsOpen(!detailsOpen);
+          }}
+          className="text-sky-600 dark:text-sky-400 hover:underline text-xs font-medium inline-flex items-center gap-1 cursor-pointer"
         >
-          {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+          {detailsOpen ? 'Скрыть детали' : 'Показать детали'}
         </button>
-      </div>
 
-      {/* 3. Количество, остаток и точная дата создания */}
-      <div className="flex items-center gap-2 text-[11px] tabular-nums text-muted-foreground flex-wrap pt-0.5">
-        <span>
-          Кол-во: <strong className="text-foreground">{order.quantity.toLocaleString('ru-RU')} шт.</strong>
-        </span>
-        {order.remains > 0 ? (
-          <span className="text-amber-600 dark:text-amber-400 font-semibold">
-            (остаток: {order.remains.toLocaleString('ru-RU')})
-          </span>
-        ) : (
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-            (остаток: 0)
-          </span>
-        )}
-        <span>·</span>
-        <span className="text-zinc-500 dark:text-zinc-400 font-mono text-[10px]" title="Дата создания">
-          🕒 {dateFormatted}
-        </span>
-      </div>
-
-      {/* 4. Раскрывающийся спойлер деталей провайдера */}
-      <details className="mt-1 group/details" onClick={(e) => e.stopPropagation()}>
-        <summary className="text-sky-600 dark:text-sky-400 hover:text-sky-700 cursor-pointer text-[10px] select-none list-none inline-flex items-center gap-1 font-semibold transition-colors">
-          <span className="group-open/details:hidden">▸ Показать детали</span>
-          <span className="hidden group-open/details:inline">▾ Скрыть детали</span>
-        </summary>
-
-        <div className="mt-1.5 p-2 rounded-lg bg-muted/50 border border-border/60 text-[11px] space-y-1 font-mono">
-          <div className="flex justify-between items-center gap-2">
-            <span className="text-muted-foreground font-sans">Провайдер:</span>
-            <span className="font-semibold text-foreground flex items-center gap-1.5">
-              {order.providerName || '—'}
-              {order.providerTicketUrl && (
-                <a
-                  href={order.providerTicketUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95 font-sans"
-                  title="Открыть поддержку провайдера"
-                >
-                  Поддержка ↗
-                </a>
-              )}
-            </span>
-          </div>
-
-          {order.externalId && (
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-muted-foreground font-sans">ID у провайдера:</span>
-              <span className="font-semibold text-foreground flex items-center gap-1.5">
-                #{order.externalId}
-                {order.providerTicketUrl && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (typeof window !== 'undefined' && navigator.clipboard) {
-                        navigator.clipboard.writeText(order.externalId!);
-                        toast.success(`Внешний ID (${order.externalId}) скопирован`);
-                      }
-                      window.open(order.providerTicketUrl!, '_blank', 'noopener,noreferrer');
-                    }}
-                    className="inline-flex items-center gap-1 text-[10px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer font-sans"
-                    title="Скопировать ID и открыть тикет"
-                  >
-                    Тикет ↗
-                  </button>
-                )}
+        {detailsOpen && (
+          <div className="mt-1.5 space-y-1 text-xs pt-1 border-t border-border/40">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-foreground/70 shrink-0">Провайдер:</span>
+              <span className="text-sky-600 dark:text-sky-400 font-medium">
+                {order.providerName || '—'} {order.externalId ? `(${order.externalId})` : ''}
               </span>
             </div>
-          )}
 
-          {order.error && (
-            <div className="mt-1 p-1.5 bg-red-500/10 border border-red-500/20 rounded text-red-600 dark:text-red-400 text-[10px] leading-tight break-words">
-              <strong>Ошибка провайдера:</strong> {order.error}
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-foreground/70 shrink-0">ID заказа у провайдера:</span>
+              <span className="text-foreground font-mono">
+                {order.externalId || '-'}
+              </span>
             </div>
-          )}
 
-          {order.isDripFeed && order.dripExternalIds && order.dripExternalIds.length > 0 && (
-            <div className="flex items-center gap-1 text-[10px] flex-wrap pt-0.5">
-              <span className="text-muted-foreground font-sans">Drip запуски:</span>
-              {order.dripExternalIds.map((id, idx) => (
-                <span key={idx} className="bg-purple-500/10 text-purple-600 border border-purple-500/20 px-1 py-0.5 rounded text-[9px]">
-                  #{id}
-                </span>
-              ))}
+            <div className="flex items-start gap-1.5">
+              <span className="text-foreground/70 shrink-0">Комментарий провайдера:</span>
+              <span className="text-muted-foreground break-all">
+                {order.error || '-'}
+              </span>
             </div>
-          )}
-        </div>
-      </details>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -333,7 +320,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
   return (
     <div className="w-full space-y-4">
       {/* Top Toolbar: Selection Mode Toggle & Page Controls */}
-      <div className="flex items-center justify-between gap-3 bg-card border border-border/60 rounded-2xl p-3 shadow-sm">
+      <div className="flex items-center justify-between gap-3 bg-muted/20 border border-border/60 rounded-lg px-3 py-2">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -341,37 +328,37 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
               setSelectionMode(!selectionMode);
               if (selectionMode) setSelectedIds(new Set());
             }}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border transition-all cursor-pointer ${
               selectionMode
-                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                ? 'bg-primary text-primary-foreground border-primary shadow-2xs'
                 : 'bg-background hover:bg-muted text-foreground border-border/80'
             }`}
           >
-            {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-            {selectionMode ? 'Выйти из выбора' : 'Режим выбора'}
+            {selectionMode ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+            {selectionMode ? 'Выйти из выбора' : 'Выбрать заказы'}
           </button>
 
           {selectionMode && (
             <button
               type="button"
               onClick={toggleSelectAll}
-              className="px-3 py-1.5 text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground border border-border/60 rounded-xl transition-all cursor-pointer"
+              className="px-2.5 py-1 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/60 rounded-md transition-all cursor-pointer"
             >
-              {selectedIds.size === optimisticData.length ? 'Снять выделение' : `Выделить всё (${optimisticData.length})`}
+              {selectedIds.size === optimisticData.length ? 'Снять всё' : `Выбрать все (${optimisticData.length})`}
             </button>
           )}
         </div>
 
-        <div className="text-xs text-muted-foreground font-semibold">
-          Показано: <strong className="text-foreground font-mono">{optimisticData.length}</strong> заказов
+        <div className="text-xs text-muted-foreground">
+          Показано: <strong className="text-foreground font-mono">{optimisticData.length}</strong>
         </div>
       </div>
 
       {/* Desktop View: Grid (lg+) — Zero horizontal scroll */}
-      <div className="hidden lg:block w-full bg-card border border-border/80 rounded-2xl shadow-sm overflow-hidden">
+      <div className="hidden lg:block w-full bg-card border border-border/80 rounded-xl shadow-2xs overflow-hidden">
         {/* Grid Header */}
-        <div role="row" className="grid grid-cols-[100px_160px_minmax(0,1fr)_130px_110px_100px] gap-3 items-center px-4 py-3 bg-muted/40 border-b border-border/60 font-bold text-[10px] uppercase tracking-wider text-muted-foreground select-none">
-          <div>Заказ</div>
+        <div role="row" className="grid grid-cols-[60px_180px_minmax(0,1fr)_100px_110px_80px] gap-3 items-center px-4 py-2.5 bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
+          <div>ID</div>
           <div>Клиент</div>
           <div>Информация о заказе</div>
           <div className="text-right">Сумма</div>
@@ -399,92 +386,84 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     openDrawer(order.id);
                   }
                 }}
-                className={`grid grid-cols-[100px_160px_minmax(0,1fr)_130px_110px_100px] gap-3 items-start px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer group ${
+                className={`grid grid-cols-[60px_180px_minmax(0,1fr)_100px_110px_80px] gap-3 items-start px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer group ${
                   isSelected ? 'bg-primary/5' : ''
                 }`}
               >
-                {/* ID & Brand */}
-                <div className="font-mono text-xs font-bold text-primary flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    {selectionMode && (
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelectRow(order.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                      />
-                    )}
-                    <span>#{order.numericId}</span>
-                  </div>
-                  <TenantBrandBadge tenantId={order.tenantId} />
+                {/* ID */}
+                <div className="font-mono text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 min-w-0">
+                  {selectionMode && (
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectRow(order.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer shrink-0"
+                    />
+                  )}
+                  <span className="truncate">#{order.numericId}</span>
                 </div>
 
                 {/* User Email */}
-                <div className="min-w-0 pt-0.5">
+                <div className="min-w-0">
                   <Link
                     href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
                     title={order.user.email}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline truncate block"
+                    className="text-xs font-medium text-foreground/90 hover:text-primary hover:underline truncate block"
                   >
                     {order.user.email}
                   </Link>
                 </div>
 
                 {/* Information Stack */}
-                <InfoStack order={order} canSeeRates={canSeeRates} />
+                <InfoStack order={order} />
 
                 {/* Price & Margin */}
-                <div className="flex flex-col items-end text-xs leading-normal py-0.5 font-semibold text-right min-w-0 font-mono">
-                  <div className="font-bold text-foreground tabular-nums tracking-tight text-sm">
+                <div className="flex flex-col items-end text-xs leading-tight font-medium text-right min-w-0 font-mono">
+                  <div className="font-bold text-foreground tabular-nums text-xs">
                     {formatKopecks(order.charge)}
                   </div>
                   {canSeeRates && (
-                    <div className="text-muted-foreground text-[10px] mt-0.5 font-normal select-none tabular-nums tracking-tight">
-                      Закупка: {formatKopecks(order.providerCost)}
-                    </div>
-                  )}
-                  {canSeeRates && (
-                    <div className={`text-[10px] font-bold mt-0.5 select-none tabular-nums tracking-tight ${marginKopecks >= BigInt(0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                      Маржа: {marginPercent}%
+                    <div className="text-muted-foreground/70 text-[10px] select-none tabular-nums font-mono">
+                      закуп: {formatKopecks(order.providerCost)}
                     </div>
                   )}
                 </div>
 
                 {/* Status Badge */}
-                <div className="pt-0.5">
+                <div>
                   <StatusBadge status={order.status} />
                 </div>
 
                 {/* Row Actions */}
-                <div className="flex items-center justify-end gap-1 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => openDrawer(order.id)}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                    title="Подробнее"
+                    className="p-1 rounded text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                    title="Подробнее о заказе"
                   >
-                    <Info className="w-4 h-4" />
+                    <Info className="w-3.5 h-3.5" />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleSingleRestart(order)}
-                    className="p-1.5 rounded-lg text-sky-600 hover:bg-sky-500/10 transition-colors cursor-pointer"
+                    className="p-1 rounded text-muted-foreground/60 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
                     title="Перезапустить"
                   >
-                    <RefreshCw className="w-4 h-4" />
+                    <RefreshCw className="w-3.5 h-3.5" />
                   </button>
 
                   {canCancel && !['COMPLETED', 'CANCELED'].includes(order.status) && (
                     <button
                       type="button"
                       onClick={() => handleSingleCancel(order)}
-                      className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      className="p-1 rounded text-muted-foreground/60 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                       title="Отменить и вернуть"
                     >
-                      <XCircle className="w-4 h-4" />
+                      <XCircle className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -526,7 +505,6 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     />
                   )}
                   <span className="font-mono font-bold text-sm text-primary">#{order.numericId}</span>
-                  <TenantBrandBadge tenantId={order.tenantId} />
                   <span className="text-xs text-muted-foreground" title={new Date(order.createdAt).toLocaleString('ru-RU')}>
                     {timeRelative(order.createdAt)}
                   </span>
@@ -548,7 +526,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
               </div>
 
               {/* Info Stack */}
-              <InfoStack order={order} canSeeRates={canSeeRates} />
+              <InfoStack order={order} />
 
               {/* Footer */}
               <div className="flex items-center justify-between pt-2.5 border-t border-border/40 text-xs">

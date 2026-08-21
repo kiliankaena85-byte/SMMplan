@@ -35,4 +35,6 @@ export interface CatalogServiceDTO {
   cooldownReason?: string | null;
   clientRequirement?: string | null;
   clientConfirmation?: string | null;
+  qualityTier?: string | null;
+  createdAt?: Date | string | null;
 }

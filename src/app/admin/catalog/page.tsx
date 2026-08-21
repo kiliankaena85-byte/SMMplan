@@ -79,7 +79,8 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
     quarantineCount,
     stats,
     markupAnalytics,
-    providers
+    providers,
+    networks
   ] = await Promise.all([
     adminCatalogService.listServices({
       search: search || undefined,
@@ -101,6 +102,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
     adminCatalogService.getCatalogStats(selectedTenant),
     adminCatalogService.getMarkupAnalytics(selectedTenant),
     adminProviderService.listProviders(),
+    db.network.findMany({ orderBy: { sort: 'asc' } }),
   ]);
 
   // Map to strict DTO — no raw Prisma objects on client
@@ -136,140 +138,86 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       requireWarning: raw.requireWarning ?? false,
       warningMessage: raw.warningMessage ?? null,
       cooldownReason: raw.cooldownReason ?? null,
+      qualityTier: raw.qualityTier ?? null,
+      createdAt: raw.createdAt ?? null,
     };
   });
   return (
-    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
-      
-      <AdminTabbedHeader
-        icon={ShoppingCart}
-        title="Каталог розничных услуг"
-        description="Массовое управление ценами, категориями и статусом услуг."
-        action={(
-          <div className="flex flex-wrap items-center gap-2">
-            <TenantSwitcher currentTenant={selectedTenant} />
-            <Link href={`/admin/providers/import?tenant=${selectedTenant}`}>
-              <Button
-                intent="outline"
-                size="sm"
-                className="font-bold min-h-[44px] bg-background text-muted-foreground hover:text-primary"
-              >
-                ⏬ Импорт Услуг
-              </Button>
-            </Link>
+    <div className="flex flex-col gap-3 w-full animate-in fade-in duration-300">
+      {/* Clean Modern Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
+              <ShoppingCart className="w-4.5 h-4.5 text-primary" />
+              Каталог услуг
+            </h1>
+            <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full border border-border/50">
+              {stats.totalServices} услуг
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2 font-medium">
+            <span>Активных: <b className="text-emerald-500 font-bold">{stats.activeServices}</b></span>
+            <span>·</span>
+            <span>Ср. маржа: <b className="text-primary font-bold">x{markupAnalytics.averageMarkup.toFixed(2)}</b></span>
+            <span>·</span>
+            <span>Курс USD: <b className="font-bold text-foreground">{usdToRub.toFixed(2)} ₽</b></span>
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {quarantineCount > 0 && (
             <Link href={`/admin/catalog/quarantine?tenant=${selectedTenant}`}>
               <Button
                 intent="outline"
                 size="sm"
-                className={`font-bold min-h-[44px] ${quarantineCount > 0 ? "border-amber-200 bg-warning/10 text-amber-700 hover:bg-warning/20" : "bg-background"}`}
+                className="font-bold h-9 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
               >
-                {quarantineCount > 0 ? `⚠️ КАРАНТИН (${quarantineCount})` : "Карантин пуст"}
+                ⚠️ Карантин ({quarantineCount})
               </Button>
             </Link>
-          </div>
-        )}
-        tabs={CATALOG_TABS}
-        onboardingKey="catalog"
-        onboarding={ONBOARDING_CONFIGS.catalog}
+          )}
+          <Link href={`/admin/providers/import?tenant=${selectedTenant}`}>
+            <Button
+              intent="outline"
+              size="sm"
+              className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
+            >
+              Импорт услуг
+            </Button>
+          </Link>
+          <Link href="/admin/catalog/new">
+            <Button
+              intent="primary"
+              size="sm"
+              className="font-bold h-9"
+            >
+              + Создать услугу
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Direct Catalog Table with 2x4 Filters and Service Rows */}
+      <CatalogTable 
+        services={services} 
+        usdToRub={usdToRub} 
+        canEdit={canEdit} 
+        canEditFinance={canEditFinance} 
+        canSeeRates={canSeeRates} 
+        categories={categories}
+        providers={providers}
+        networks={networks}
       />
-
-      {/* Horizontal Stats Dashboard Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Всего услуг ({selectedTenant.toUpperCase()})</span>
-          <span className="text-2xl font-black text-foreground mt-1 tabular-nums tracking-tight">{stats.totalServices}</span>
-        </div>
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Активных услуг</span>
-          <span className="text-2xl font-black text-success mt-1 tabular-nums tracking-tight">{stats.activeServices}</span>
-        </div>
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">В карантине</span>
-          <span className="text-2xl font-black text-warning mt-1 tabular-nums tracking-tight">{quarantineCount}</span>
-        </div>
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Ср. Маржа</span>
-          <span className="text-2xl font-black text-primary mt-1 tabular-nums tracking-tight">x{markupAnalytics.averageMarkup.toFixed(2)}</span>
-        </div>
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between col-span-2 md:col-span-1">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Курс USD/RUB</span>
-          <span className="text-2xl font-black text-foreground mt-1 tabular-nums tracking-tight">{usdToRub.toFixed(2)} ₽</span>
-        </div>
-      </div>
-
-      {/* Catalog Management Pane */}
-      <div className="w-full space-y-6">
-        {/* Anomaly / Loss Warning Banner */}
-        {markupAnalytics.stats.loss > 0 && (
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 shadow-sm ring-1 ring-destructive/10 animate-pulse-slow">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 text-destructive" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-destructive flex items-center gap-2">
-                  Обнаружена потенциальная убыточность услуг!
-                </h4>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Найдено <span className="font-bold text-destructive tabular-nums">{markupAnalytics.stats.loss}</span> активных услуг с наценкой ниже безопасного порога (x{SAFETY_MULTIPLIER.toFixed(2)}).
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {markupAnalytics.worstServices.slice(0, 3).map(s => (
-                    <span key={s.id} className="text-[10px] px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 font-medium">
-                      {s.name} <span className="font-mono ml-1 font-bold">(x{s.markup.toFixed(2)})</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Bulk Tools Panel */}
-        {canEditFinance && (
-          <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl ring-1 ring-border/5 p-4 overflow-hidden">
-            <form action={bulkUpdateMarkupAction} className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <input type="hidden" name="tenantId" value={selectedTenant} />
-              {categoryId && <input type="hidden" name="categoryId" value={categoryId} />}
-              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Массовая наценка ({selectedTenant.toUpperCase()}):
-              </span>
-              <div className="flex items-center gap-3">
-                <input 
-                  type="number" step="0.1" name="markup" required 
-                  placeholder="Множитель" 
-                  className="w-28 px-3 py-2 text-xs font-mono tabular-nums border border-border/60 rounded-xl bg-background/50 text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                />
-                <SubmitButton size="sm" variant={categoryId ? "default" : "outline"} className="rounded-xl active:scale-95 transition-transform shadow-sm h-9" confirmMessage={categoryId ? `Применить маржу к категории для ${selectedTenant.toUpperCase()}?` : `ВНИМАНИЕ: Это изменит наценку ДЛЯ ВСЕХ УСЛУГ (${selectedTenant.toUpperCase()}). Продолжить?`}>
-                  Применить ({selectedTenant.toUpperCase()})
-                </SubmitButton>
-              </div>
-              <p className="text-[10px] text-muted-foreground ml-auto hidden md:block">
-                {categoryId ? `Изменит маржу категории для ${selectedTenant}` : `Изменит маржу для всех услуг на ${selectedTenant}`}
-              </p>
-            </form>
-          </div>
-        )}
-
-        <CatalogTable 
-          services={services} 
-          usdToRub={usdToRub} 
-          canEdit={canEdit} 
-          canEditFinance={canEditFinance} 
-          canSeeRates={canSeeRates} 
-          categories={categories}
-          providers={providers}
-        />
-        
-        {/* Pagination / Load More */}
-        {hasMore && (
-           <div className="flex justify-center pt-4">
-             <Link href={`/admin/catalog?tenant=${selectedTenant}&cursor=${nextCursor}${categoryId ? `&category=${categoryId}` : ''}${search ? `&q=${search}` : ''}${sortBy ? `&sortBy=${sortBy}` : ''}${sortOrder ? `&sortOrder=${sortOrder}` : ''}`}>
-               <Button intent="outline" size="sm" className="bg-background min-h-[44px]">Загрузить ещё...</Button>
-             </Link>
-           </div>
-        )}
-      </div>
+      
+      {/* Pagination / Load More */}
+      {hasMore && (
+         <div className="flex justify-center pt-4">
+           <Link href={`/admin/catalog?tenant=${selectedTenant}&cursor=${nextCursor}${categoryId ? `&category=${categoryId}` : ''}${search ? `&q=${search}` : ''}${sortBy ? `&sortBy=${sortBy}` : ''}${sortOrder ? `&sortOrder=${sortOrder}` : ''}`}>
+             <Button intent="outline" size="sm" className="bg-background min-h-[40px]">Загрузить ещё...</Button>
+           </Link>
+         </div>
+      )}
     </div>
   );
 }

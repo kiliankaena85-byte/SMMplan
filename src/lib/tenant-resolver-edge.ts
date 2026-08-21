@@ -15,15 +15,7 @@ export const FLUX_DOMAINS = new Set([
   'flux.smmplan.ru',
 ]);
 
-export const BOOST_DOMAINS = new Set([
-  'smmboost.ru',
-  'www.smmboost.ru',
-  'boost.local',
-  'smmboost.local',
-  'boost.smmplan.ru',
-]);
-
-export const VALID_TENANTS = new Set(['smmplan', 'flux', 'boost']);
+export const VALID_TENANTS = new Set(['smmplan', 'flux']);
 
 /**
  * Edge-compatible host resolver (without Prisma DB dependency) for Next.js Middleware.
@@ -31,7 +23,6 @@ export const VALID_TENANTS = new Set(['smmplan', 'flux', 'boost']);
 export function resolveTenantFromHostEdge(host: string): string {
   if (!host || typeof host !== 'string') return 'smmplan';
   const cleanHost = host.split(':')[0].toLowerCase().trim();
-  if (BOOST_DOMAINS.has(cleanHost)) return 'boost';
   return FLUX_DOMAINS.has(cleanHost) ? 'flux' : 'smmplan';
 }
 

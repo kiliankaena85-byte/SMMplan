@@ -167,10 +167,11 @@ export async function quickUpdateServiceAction(serviceId: string, data: {
 }
 
 /**
- * Delete service from catalog
+ * Safe Delete or Archive service from tree catalog
  */
 export async function deleteServiceTreeAction(serviceId: string) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
+    const { auditAdminAwaitable } = await import('@/lib/admin-audit');
     const service = await db.service.findUnique({
       where: { id: serviceId },
       include: { _count: { select: { orders: true } } }
@@ -181,19 +182,38 @@ export async function deleteServiceTreeAction(serviceId: string) {
     }
 
     if (service._count.orders > 0) {
-      // Soft-disable instead of hard delete to preserve foreign keys
+      const archivedName = service.name.startsWith('[АРХИВ] ')
+        ? service.name
+        : `[АРХИВ] ${service.name}`;
+
+      // Soft-archive to preserve foreign keys
       await db.service.update({
         where: { id: serviceId },
-        data: { isActive: false }
+        data: { isActive: false, name: archivedName }
       });
-      return { success: true as const, message: 'Услуга отключена (сохранена для истории заказов)' };
+
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: 'SERVICE_ARCHIVE',
+        target: serviceId,
+        targetType: 'SERVICE',
+        newValue: { isActive: false, name: archivedName }
+      });
+
+      revalidatePath('/admin/catalog/tree');
+      revalidatePath('/admin/catalog');
+      return { 
+        success: true as const, 
+        message: `Услуга перенесена в архив (${service._count.orders} заказов в истории)` 
+      };
     }
 
     await db.service.delete({
       where: { id: serviceId }
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SERVICE_DELETE',
@@ -203,6 +223,6 @@ export async function deleteServiceTreeAction(serviceId: string) {
 
     revalidatePath('/admin/catalog/tree');
     revalidatePath('/admin/catalog');
-    return { success: true as const };
+    return { success: true as const, message: 'Услуга полностью удалена из базы' };
   });
 }

@@ -80,32 +80,30 @@ class YooKassaGateway extends BasePaymentGateway {
       metadata: { paymentId: params.paymentId, userId: params.userId, orderId: params.orderId, ...params.metadata }
     };
 
-    if (!params.isTestMode) {
-      // Подсчитываем оборот за год для переключения НДС 22% (ФЗ № 425-ФЗ, ФЗ № 176-ФЗ, ст. 145, 164 НК РФ)
-      const currentYear = new Date().getFullYear();
-      const annualRevenue = await db.payment.aggregate({
-        _sum: { amount: true },
-        where: {
-          status: 'SUCCEEDED',
-          createdAt: { gte: new Date(currentYear, 0, 1) }
-        }
-      }).then(res => Number(res._sum.amount || 0));
+    // 54-ФЗ Fiscalization Receipt (Included in both live & test mode for universal YooKassa compatibility)
+    const currentYear = new Date().getFullYear();
+    const annualRevenue = await db.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'SUCCEEDED',
+        createdAt: { gte: new Date(currentYear, 0, 1) }
+      }
+    }).then(res => Number(res._sum.amount || 0));
 
-      const isVatThresholdExceeded = annualRevenue >= 2000000000; // 20 млн рублей (Порог освобождения от НДС на УСН ст. 145 НК РФ)
-      const vatCode = isVatThresholdExceeded ? 10 : 1; // 10 = НДС 22% (п. 3 ст. 164 НК РФ), 1 = Без НДС
+    const isVatThresholdExceeded = annualRevenue >= 2000000000; // 20 млн рублей (Порог освобождения от НДС на УСН ст. 145 НК РФ)
+    const vatCode = isVatThresholdExceeded ? 10 : 1; // 10 = НДС 22% (п. 3 ст. 164 НК РФ), 1 = Без НДС
 
-      payload.receipt = {
-        customer: { email: params.email || `no-reply@${supportDomain}` },
-        items: [{
-          description: "Информационные услуги",
-          quantity: "1.00",
-          amount: { value: params.amountRub.toFixed(2), currency: 'RUB' },
-          vat_code: vatCode,
-          payment_mode: "full_prepayment",
-          payment_subject: "service"
-        }]
-      };
-    }
+    payload.receipt = {
+      customer: { email: params.email || `no-reply@${supportDomain}` },
+      items: [{
+        description: (params.description || "Информационные услуги").slice(0, 128),
+        quantity: "1.00",
+        amount: { value: params.amountRub.toFixed(2), currency: 'RUB' },
+        vat_code: vatCode,
+        payment_mode: "full_prepayment",
+        payment_subject: "service"
+      }]
+    };
 
     const idempString = `yookassa_${params.userId}_${params.paymentId}_${Math.floor(Date.now() / 60000)}`;
     const idempKey = crypto.createHash('sha256').update(idempString).digest('hex').substring(0, 36);
@@ -122,8 +120,20 @@ class YooKassaGateway extends BasePaymentGateway {
     });
 
     if (!resp.ok) {
-      console.error('[YooKassaGateway] API Error:', await resp.text());
-      throw new Error('Ошибка шлюза YooKassa');
+      const errBody = await resp.text();
+      console.error('[YooKassaGateway] API Error:', resp.status, errBody);
+      let descriptiveError = 'Ошибка шлюза YooKassa';
+      try {
+        const parsed = JSON.parse(errBody);
+        if (parsed.description) {
+          descriptiveError = `YooKassa: ${parsed.description}`;
+        } else if (parsed.code) {
+          descriptiveError = `YooKassa (${parsed.code})`;
+        }
+      } catch {
+        descriptiveError = `YooKassa HTTP ${resp.status}`;
+      }
+      throw new Error(descriptiveError);
     }
 
     const data = await resp.json();

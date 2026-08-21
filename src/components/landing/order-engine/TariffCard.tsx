@@ -2,7 +2,7 @@
 
 import React from "react";
 import { PublicService } from "@/actions/order/catalog";
-import { CheckCircle2, Clock, Zap } from "lucide-react";
+import { CheckCircle2, Clock, Zap, ShieldCheck } from "lucide-react";
 import { BrandStyle } from "@/utils/brand-styles";
 
 interface TariffCardProps {
@@ -89,14 +89,32 @@ export function TariffCard({ service, isSelected, onSelect, compact, brandStyle 
             {service.name}
           </h4>
 
-          {/* Meta line */}
-          <div className={`flex items-center gap-3 text-[11px] font-medium ${mutedColorClass}`}>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {service.speed}
-            </span>
-            <span className="flex items-center gap-1">
-              <Zap className="w-3 h-3" />
+          {/* Meta line with structured execution badges (Zero Empty Blocks) */}
+          <div className={`flex items-center gap-2.5 text-[11px] font-medium flex-wrap mt-1 ${mutedColorClass}`}>
+            {service.startTime && (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-primary/70" />
+                {service.startTime}
+              </span>
+            )}
+            {(service.speedDisplay || service.speed) && (
+              <span className="flex items-center gap-1">
+                <Zap className="w-3 h-3 text-amber-500/80" />
+                {service.speedDisplay || service.speed}
+              </span>
+            )}
+            {(service.warrantyDays && service.warrantyDays > 0) ? (
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                {service.warrantyDays} дн. гарантия
+              </span>
+            ) : service.isRefillEnabled ? (
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Гарантия (Refill)
+              </span>
+            ) : null}
+            <span className="opacity-75">
               от {service.minQty} шт
             </span>
           </div>

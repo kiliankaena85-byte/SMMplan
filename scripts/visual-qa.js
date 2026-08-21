@@ -16,15 +16,19 @@ const __dirname = path.dirname(__filename);
 const screenshotsDir = path.resolve(process.cwd(), '.planning/screenshots');
 const baselineDir = path.resolve(screenshotsDir, 'baseline');
 
-// Key admin pages to test
 const adminPages = [
+  { name: 'catalog', path: '/admin/catalog' },
+  { name: 'catalog-categories', path: '/admin/catalog/categories' },
+  { name: 'catalog-new-service', path: '/admin/catalog/new' },
+  { name: 'catalog-tree', path: '/admin/catalog/tree' },
   { name: 'dashboard', path: '/admin/dashboard' },
   { name: 'orders', path: '/admin/orders' },
-  { name: 'catalog', path: '/admin/catalog' },
   { name: 'providers', path: '/admin/providers' },
   { name: 'clients', path: '/admin/clients' },
   { name: 'tickets', path: '/admin/tickets' },
   { name: 'settings', path: '/admin/settings' },
+  { name: 'client-order-wizard', path: '/dashboard/new-order' },
+  { name: 'showcase-telegram', path: '/services/telegram' },
 ];
 
 async function seedData(userId) {
@@ -155,7 +159,7 @@ async function main() {
   const email = 'e2e-tester@test.com';
   console.log(`👤 Проверка тестового пользователя ${email}...`);
   const user = await prisma.user.upsert({
-    where: { email },
+    where: { email_tenantId: { email, tenantId: 'smmplan' } },
     update: {
       role: 'OWNER',
       isActive: true,
@@ -163,6 +167,7 @@ async function main() {
     },
     create: {
       email,
+      tenantId: 'smmplan',
       role: 'OWNER',
       isActive: true,
       isDeleted: false,
@@ -196,27 +201,25 @@ async function main() {
 
   // 5. Запуск браузера Playwright
   console.log('🌐 Запуск Chromium браузера...');
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ 
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 800 },
+    viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1
   });
 
-  // Инъекция авторизационной куки
-  await context.addCookies([
-    {
-      name: 'session_token',
-      value: sessionToken,
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Lax',
-    }
-  ]);
-
   const page = await context.newPage();
   const baseUrl = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
+
+  // 1. Авторизуемся через проверенный QA login-direct эндпоинт
+  console.log('🔑 Авторизация через /api/dev/login-direct...');
+  await page.goto(`${baseUrl}/api/dev/login-direct?email=art@artmspektr.ru&role=OWNER&secret=smmplan_qa_sec_2026_master_key&redirectTo=/admin/catalog`, {
+    waitUntil: 'networkidle',
+    timeout: 30000
+  });
+  await page.waitForTimeout(2000);
 
   console.log(`🤖 Начало захвата скриншотов с ${baseUrl}...`);
 
@@ -227,31 +230,10 @@ async function main() {
     console.log(`📸 Загрузка: ${targetUrl}...`);
 
     try {
-      await page.goto(targetUrl, { waitUntil: 'load', timeout: 30000 });
+      await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 30000 });
       
       // Ждём дополнительное время для стабильного рендеринга таблиц и контента
-      await page.waitForTimeout(3000);
-
-      // Маскируем и скрываем динамический контент через инъекцию CSS
-      await page.addStyleTag({
-        content: `
-          /* Скрываем SVG диаграммы и графики */
-          .recharts-responsive-container, svg.recharts-surface, .dynamic-chart, .financial-chart, .orders-chart {
-            visibility: hidden !important;
-            opacity: 0 !important;
-          }
-          /* Скрываем динамические числовые значения, даты и UUID */
-          [data-testid="balance"], .user-balance, .timestamp, .date-display, .createdAt-cell, .id-cell, .uuid-display {
-            visibility: hidden !important;
-          }
-          /* Отключаем все анимации и переходы для предотвращения сдвигов */
-          *, *::before, *::after {
-            transition: none !important;
-            animation: none !important;
-            caret-color: transparent !important;
-          }
-        `
-      });
+      await page.waitForTimeout(2000);
 
       // Путь сохранения
       const filename = `${pageMeta.name}_desktop.png`;
@@ -261,6 +243,11 @@ async function main() {
 
       await page.screenshot({ path: savePath, fullPage: false });
       console.log(`✔️ Снимок сохранен по пути: ${savePath}`);
+
+      const artifactCopy = path.resolve('C:\\Users\\Артём\\.gemini\\antigravity\\brain\\6fe070bd-15c2-4d78-b2e2-88e29f93053c', filename);
+      try {
+        fs.copyFileSync(savePath, artifactCopy);
+      } catch (e) {}
 
       results.push({ name: pageMeta.name, path: pageMeta.path, status: 'CAPTURED', filename });
     } catch (err) {

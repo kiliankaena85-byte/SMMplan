@@ -102,16 +102,19 @@ export async function addTicketMessage(formData: FormData) {
   if (!parsed.success) throw new Error('Сообщение не может быть пустым');
   const { ticketId, message, mediaUrl, mediaType, replyToId, orderId } = parsed.data;
 
-  const ticket = await db.ticket.findFirst({
-    where: { id: ticketId, userId: session.userId }
-  });
+  const isStaff = session.role ? ['OWNER', 'ADMIN', 'SUPPORT'].includes(session.role) : false;
+  const ticket = isStaff
+    ? await db.ticket.findUnique({ where: { id: ticketId } })
+    : await db.ticket.findFirst({
+        where: { id: ticketId, userId: session.userId }
+      });
   if (!ticket) throw new Error('Ticket not found or access denied');
 
   let verifiedOrderId: string | undefined = undefined;
   if (orderId) {
     // Security check: verify user owns the SMM order
     const order = await db.order.findFirst({
-      where: { id: orderId, userId: session.userId }
+      where: { id: orderId, ...(isStaff ? {} : { userId: session.userId }) }
     });
     if (order) {
       verifiedOrderId = order.id;
@@ -126,7 +129,7 @@ export async function addTicketMessage(formData: FormData) {
     if (extractedIds.length > 0) {
       const order = await db.order.findFirst({
         where: {
-          userId: session.userId,
+          ...(isStaff ? {} : { userId: session.userId }),
           OR: [
             { id: { in: extractedIds } },
             { numericId: { in: extractedIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id)) } }
@@ -145,11 +148,13 @@ export async function addTicketMessage(formData: FormData) {
     }
   }
 
-  const savedMsg = await ticketService.addMessage(ticketId, 'USER', message || '', mediaUrl, mediaType, replyToId, undefined, undefined, verifiedOrderId);
+  const sender = isStaff ? 'STAFF' : 'USER';
+  const savedMsg = await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType, replyToId, undefined, undefined, verifiedOrderId);
   if (savedMsg?.id) {
     await publishMessageSSE(ticketId, savedMsg.id);
   }
   revalidatePath(`/dashboard/tickets/${ticketId}`);
+  revalidatePath(`/admin/tickets/${ticketId}`);
 }
 
 export async function adminReplyTicket(formData: FormData) {
@@ -158,8 +163,9 @@ export async function adminReplyTicket(formData: FormData) {
     if (!parsed.success) throw new Error('Ошибка валидации сообщения');
     const { ticketId, message, isInternal, mediaUrl, mediaType, replyToId, orderId } = parsed.data;
 
+    const isGlobalStaff = ['OWNER', 'ADMIN'].includes(admin.role);
     const ticket = await db.ticket.findFirst({
-      where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
+      where: isGlobalStaff ? { id: ticketId } : { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
       select: { id: true, userId: true, orderId: true }
     });
     if (!ticket) throw new Error('Ticket not found');
@@ -238,8 +244,9 @@ export async function changeTicketStatus(formData: FormData) {
     if (!parsed.success) throw new Error('Неверный статус');
     const { ticketId, status } = parsed.data;
 
+    const isGlobalStaff = ['OWNER', 'ADMIN'].includes(admin.role);
     const oldTicket = await db.ticket.findFirst({
-      where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
+      where: isGlobalStaff ? { id: ticketId } : { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
       select: { status: true }
     });
 
@@ -346,8 +353,9 @@ export async function requestTelegramBind(formData: FormData) {
       const { ticketId } = parsed.data;
       console.info('[requestTelegramBind] Processing ticketId:', ticketId);
 
+      const isGlobalStaff = ['OWNER', 'ADMIN'].includes(admin.role);
       const ticket = await db.ticket.findFirst({
-        where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
+        where: isGlobalStaff ? { id: ticketId } : { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
         include: { user: true }
       });
       if (!ticket) throw new Error('Ticket not found');

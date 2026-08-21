@@ -317,6 +317,241 @@ export async function updateServiceAction(id: string, rawData: unknown) {
 }
 
 /**
+ * Safe Delete or Archive Service
+ * If 0 orders exist -> Hard delete from PostgreSQL
+ * If orders exist -> Soft archive (isActive=false, [АРХИВ] prefix) to preserve historical transactions
+ */
+export async function deleteOrArchiveServiceAction(id: string) {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
+    if (!id || typeof id !== 'string') {
+      return { success: false as const, error: 'ID услуги обязателен' };
+    }
+
+    const service = await db.service.findUnique({
+      where: { id },
+      select: { id: true, name: true, isActive: true, _count: { select: { orders: true } } }
+    });
+
+    if (!service) {
+      return { success: false as const, error: 'Услуга не найдена' };
+    }
+
+    const orderCount = service._count.orders;
+
+    if (orderCount === 0) {
+      // Safe Hard Delete: No FK constraints broken
+      try {
+        await db.service.delete({ where: { id } });
+
+        await auditAdminAwaitable({
+          adminId: admin.id,
+          adminEmail: admin.email,
+          action: 'SERVICE_DELETE',
+          target: id,
+          targetType: 'SERVICE',
+          oldValue: { name: service.name, isActive: service.isActive },
+          newValue: { deleted: true }
+        });
+
+        revalidatePath("/admin/catalog");
+        revalidatePath("/admin/catalog/tree");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (revalidateTag as any)("catalog");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (revalidateTag as any)("services");
+
+        return { 
+          success: true as const, 
+          action: 'DELETED' as const, 
+          message: `Услуга «${service.name}» полностью удалена (0 заказов).` 
+        };
+      } catch (delErr) {
+        console.warn(`[Catalog] Hard delete failed for service ${id}, falling back to soft archive:`, delErr);
+        // Fallback to Soft Archive if secondary FK prevents delete
+        const archivedName = service.name.startsWith('[АРХИВ] ')
+          ? service.name
+          : `[АРХИВ] ${service.name}`;
+
+        await db.service.update({
+          where: { id },
+          data: {
+            isActive: false,
+            name: archivedName
+          }
+        });
+
+        await auditAdminAwaitable({
+          adminId: admin.id,
+          adminEmail: admin.email,
+          action: 'SERVICE_ARCHIVE',
+          target: id,
+          targetType: 'SERVICE',
+          oldValue: { name: service.name, isActive: service.isActive },
+          newValue: { name: archivedName, isActive: false, archived: true }
+        });
+
+        revalidatePath("/admin/catalog");
+        revalidatePath("/admin/catalog/tree");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (revalidateTag as any)("catalog");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (revalidateTag as any)("services");
+
+        return { 
+          success: true as const, 
+          action: 'ARCHIVED' as const, 
+          message: `Услуга «${service.name}» деактивирована и перенесена в архив.` 
+        };
+      }
+    } else {
+      // Safe Soft Archive: Keeps foreign key integrity
+      const archivedName = service.name.startsWith('[АРХИВ] ')
+        ? service.name
+        : `[АРХИВ] ${service.name}`;
+
+      await db.service.update({
+        where: { id },
+        data: {
+          isActive: false,
+          name: archivedName
+        }
+      });
+
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: 'SERVICE_ARCHIVE',
+        target: id,
+        targetType: 'SERVICE',
+        oldValue: { name: service.name, isActive: service.isActive },
+        newValue: { name: archivedName, isActive: false, archived: true }
+      });
+
+      revalidatePath("/admin/catalog");
+      revalidatePath("/admin/catalog/tree");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)("catalog");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (revalidateTag as any)("services");
+
+      return { 
+        success: true as const, 
+        action: 'ARCHIVED' as const, 
+        message: `Услуга «${service.name}» перенесена в архив (содержит ${orderCount} заказов).` 
+      };
+    }
+  });
+}
+
+/**
+ * Quick toggle active/inactive status
+ */
+export async function toggleServiceStatusAction(id: string, isActive: boolean) {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
+    if (!id || typeof id !== 'string') {
+      return { success: false as const, error: 'ID услуги обязателен' };
+    }
+
+    const service = await db.service.findUnique({
+      where: { id },
+      select: { id: true, name: true, isActive: true }
+    });
+
+    if (!service) {
+      return { success: false as const, error: 'Услуга не найдена' };
+    }
+
+    await db.service.update({
+      where: { id },
+      data: { isActive }
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: isActive ? 'SERVICE_ENABLE' : 'SERVICE_DISABLE',
+      target: id,
+      targetType: 'SERVICE',
+      oldValue: { isActive: service.isActive },
+      newValue: { isActive }
+    });
+
+    revalidatePath("/admin/catalog");
+    revalidatePath("/admin/catalog/tree");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (revalidateTag as any)("catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (revalidateTag as any)("services");
+
+    return { success: true as const, isActive };
+  });
+}
+
+/**
+ * Bulk Delete or Archive Services
+ */
+export async function bulkDeleteOrArchiveServicesAction(serviceIds: string[]) {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
+    if (!Array.isArray(serviceIds) || serviceIds.length === 0) {
+      return { success: false as const, error: 'Выберите хотя бы одну услугу' };
+    }
+
+    let deletedCount = 0;
+    let archivedCount = 0;
+
+    for (const id of serviceIds) {
+      const service = await db.service.findUnique({
+        where: { id },
+        select: { id: true, name: true, isActive: true, _count: { select: { orders: true } } }
+      });
+
+      if (!service) continue;
+
+      if (service._count.orders === 0) {
+        await db.service.delete({ where: { id } });
+        deletedCount++;
+      } else {
+        const archivedName = service.name.startsWith('[АРХИВ] ')
+          ? service.name
+          : `[АРХИВ] ${service.name}`;
+
+        await db.service.update({
+          where: { id },
+          data: {
+            isActive: false,
+            name: archivedName
+          }
+        });
+        archivedCount++;
+      }
+    }
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'SERVICE_BULK_DELETE_OR_ARCHIVE',
+      target: 'BULK',
+      targetType: 'SERVICE',
+      newValue: { deletedCount, archivedCount, total: serviceIds.length }
+    });
+
+    revalidatePath("/admin/catalog");
+    revalidatePath("/admin/catalog/tree");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (revalidateTag as any)("catalog");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (revalidateTag as any)("services");
+
+    return { 
+      success: true as const, 
+      deletedCount, 
+      archivedCount, 
+      message: `Обработано: ${deletedCount} удалено, ${archivedCount} перенесено в архив.` 
+    };
+  });
+}
+
+/**
  * Reset custom metadata flags to allow automatic provider synchronization
  */
 export async function resetCustomFlagsAction(id: string) {

@@ -9,6 +9,7 @@ import { AdminSidebar } from '@/components/admin/sidebar';
 import { CommandPalette } from '@/components/admin/command-palette';
 import { ShortcutsProvider } from '@/components/admin/shortcuts-provider';
 import { AdminProfileDropdown } from '@/components/admin/admin-profile-dropdown';
+import { GlobalSiteSwitcher } from '@/components/admin/tenant-switcher';
 import { SettingsManager } from '@/lib/settings';
 
 // RBAC: Allowed roles for admin panel access
@@ -17,49 +18,16 @@ const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
 // Navigation sections with role-based visibility
 const ADMIN_NAVIGATION = [
   {
-    group: 'Оперативка & Трафик',
+    group: 'Главное управление',
     items: [
-      { href: '/admin/dashboard', icon: 'Home',          label: 'Дашборд',     section: 'dashboard' },
-      { href: '/admin/orders',    icon: 'Package',       label: 'Заказы',       section: 'orders' },
-      { href: '/admin/providers', icon: 'Link',          label: 'Провайдеры',   section: 'providers' },
-      { href: '/admin/refills',   icon: 'RefreshCw',     label: 'Докрутки',     section: 'refills' },
-      { href: '/admin/tickets',   icon: 'MessageSquare', label: 'Тикеты',       section: 'tickets' },
-      { href: '/admin/clients',   icon: 'Users',         label: 'Клиенты',      section: 'clients' },
-      { href: '/admin/staff',     icon: 'Shield',        label: 'Сотрудники',   section: 'settings' },
-    ]
-  },
-  {
-    group: 'Каталог & Цены',
-    items: [
-      { href: '/admin/catalog',            icon: 'ShoppingCart',   label: 'Услуги & Тарифы', section: 'catalog' },
-      { href: '/admin/catalog/tree',       icon: 'FolderTree',     label: 'Дерево услуг',    section: 'catalog' },
-      { href: '/admin/catalog/categories', icon: 'Layers',         label: 'Категории',       section: 'catalog' },
-      { href: '/admin/catalog/quarantine', icon: 'AlertTriangle',  label: 'Карантин цен',    section: 'quarantine' },
-      { href: '/admin/catalog/sync',       icon: 'ArrowLeftRight', label: 'Синхронизация',   section: 'catalog' },
-      { href: '/admin/intel',              icon: 'Activity',       label: 'Разведка рынка',  section: 'catalog' },
-      { href: '/admin/smart',              icon: 'Cpu',            label: 'Умный Dripfeed',  section: 'catalog' },
-    ]
-  },
-  {
-    group: 'Финансы & Маркетинг',
-    items: [
-      { href: '/admin/finance',                        icon: 'CreditCard', label: 'Биллинг & 54-ФЗ',  section: 'finance' },
-      { href: '/admin/finance/balance-requests',       icon: 'Inbox',      label: 'Заявки баланса',   section: 'balance_requests' },
-      { href: '/admin/finance/balance-requests/stats', icon: 'BarChart3',  label: 'Статистика заявок',section: 'balance_stats' },
-      { href: '/admin/marketing',                      icon: 'Gift',       label: 'Маркетинг & Промо',section: 'marketing' },
-      { href: '/admin/analytics',                      icon: 'TrendingUp', label: 'Аналитика',        section: 'analytics' },
-    ]
-  },
-  {
-    group: 'Система & Контент',
-    items: [
-      { href: '/admin/settings',                  icon: 'Settings',   label: 'Настройки',        section: 'settings' },
-      { href: '/admin/tenants',                   icon: 'Globe',      label: 'Бренды & Домены',  section: 'settings' },
-      { href: '/admin/pages',                     icon: 'FileText',   label: 'Страницы & CMS',   section: 'pages' },
-      { href: '/admin/knowledge',                 icon: 'BookOpen',   label: 'Блог & Статьи',    section: 'pages' },
-      { href: '/admin/manual',                    icon: 'BookOpen',   label: 'Академия Саппорта',section: 'settings' },
-      { href: '/admin/settings/balance-policies', icon: 'Shield',     label: 'Политики баланса', section: 'balance_policy' },
-      { href: '/admin/system/features',           icon: 'ToggleLeft', label: 'Фичи',             section: 'features' },
+      { href: '/admin/dashboard',          icon: 'Home',          label: 'Дашборд',              section: 'dashboard' },
+      { href: '/admin/orders',             icon: 'Package',       label: 'Заказы',               section: 'orders' },
+      { href: '/admin/catalog',            icon: 'ShoppingCart',  label: 'Каталог услуг',        section: 'catalog' },
+      { href: '/admin/providers',          icon: 'Link',          label: 'Провайдеры',           section: 'providers' },
+      { href: '/admin/tickets',            icon: 'MessageSquare', label: 'Поддержка',            section: 'tickets' },
+      { href: '/admin/clients',            icon: 'Users',         label: 'Клиенты',              section: 'clients' },
+      { href: '/admin/finance',            icon: 'CreditCard',    label: 'Финансы & Касса',      section: 'finance' },
+      { href: '/admin/settings',           icon: 'Settings',      label: 'Настройки',            section: 'settings' },
     ]
   }
 ];
@@ -153,8 +121,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         {/* Mobile static nav fallback */}
         <aside className="md:hidden w-full bg-primary border-b border-slate-800 text-primary-foreground p-4 z-10 shadow-md">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-sky-400">
-              SMMplan
+            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-sky-400 flex items-center gap-1.5">
+              SMMpanel
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white">
+                1.0
+              </span>
             </h2>
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{roleInfo.label}</span>
           </div>
@@ -162,12 +133,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
         {/* Floating Main Content Area */}
         <div className="flex-1 max-h-screen overflow-hidden p-0 md:p-3.5 z-10 relative flex flex-col">
-          {/* Top Header Bar with Profile Dropdown */}
+          {/* Top Header Bar with Global Site Switcher & Profile Dropdown */}
           <header className="mb-2 px-3 md:px-1 flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-muted-foreground hidden sm:inline tracking-wide">
-                Панель управления
-              </span>
+            <div className="flex items-center gap-3">
+              <GlobalSiteSwitcher />
             </div>
             <div className="flex items-center gap-2">
               <AdminProfileDropdown
@@ -197,8 +166,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               </Link>
             </div>
           )}
-          <main id="main-content" tabIndex={-1} className="flex-1 w-full overflow-x-hidden overflow-y-auto scrollbar-hide relative transition-all duration-200 bg-card md:rounded-xl md:border md:border-border/60 md:shadow-sm outline-none">
-            <div className="min-h-full w-full p-4 md:p-6 lg:p-8">
+          <main id="main-content" tabIndex={-1} className="flex-1 w-full overflow-hidden flex flex-col relative transition-all duration-200 bg-card md:rounded-xl md:border md:border-border/60 md:shadow-sm outline-none">
+            <div className="flex-1 w-full p-3 md:p-4.5 flex flex-col overflow-y-auto">
               {children}
             </div>
           </main>

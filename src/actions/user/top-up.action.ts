@@ -25,9 +25,9 @@ export async function createTopUpPaymentAction(
   if (!dbUser) throw new Error("Пользователь не найден.");
   if (dbUser.isDeleted === true || dbUser.isActive === false) throw new Error("Ваш аккаунт заблокирован или удален");
 
-  if ((gateway === 'yookassa' || gateway === 'sbp') && amountCents > 180000) {
+  if ((gateway === 'yookassa' || gateway === 'sbp') && amountCents > 1_500_000) {
     if (!dbUser.telegramId) {
-      throw new Error("Для совершения платежей свыше $20 картой или СБП, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
+      throw new Error("Для пополнения баланса свыше 15 000 ₽ картой или СБП, пожалуйста, привяжите ваш Telegram-аккаунт в настройках профиля либо воспользуйтесь безналичным расчетом для юрлиц (B2B).");
     }
   }
 

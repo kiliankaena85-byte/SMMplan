@@ -66,16 +66,25 @@ function mdToHtml(md: string): string {
 export default async function AdminManualPage() {
   await enforceSectionAccess('settings');
 
-  const manualPath = path.join(process.cwd(), 'project-docs', 'support_training_manual.md');
-  let manualContent: string;
+  const adminManualPath = path.join(process.cwd(), 'project-docs', 'admin_master_manual_2026.md');
+  const supportManualPath = path.join(process.cwd(), 'project-docs', 'support_training_manual.md');
+
+  let adminManualContent = '';
   try {
-    manualContent = fs.readFileSync(manualPath, 'utf8');
+    adminManualContent = fs.readFileSync(adminManualPath, 'utf8');
   } catch {
-    manualContent = '# Ошибка\nНе удалось загрузить руководство. Файл не найден.';
+    adminManualContent = '# Руководство Администратора\nНе удалось загрузить мастер-руководство.';
   }
 
-  // Parse lines to build a table of contents / sidebar links
-  const lines = manualContent.split('\n');
+  let supportManualContent = '';
+  try {
+    supportManualContent = fs.readFileSync(supportManualPath, 'utf8');
+  } catch {
+    supportManualContent = '# Руководство Саппорта\nНе удалось загрузить руководство саппорта.';
+  }
+
+  // Parse lines to build a table of contents / sidebar links for Admin Master Manual
+  const lines = adminManualContent.split('\n');
   const sidebarItems: { id: string; title: string; level: number }[] = [];
   
   lines.forEach(line => {
@@ -90,11 +99,13 @@ export default async function AdminManualPage() {
     }
   });
 
-  const parsedHtml = mdToHtml(manualContent);
+  const parsedAdminHtml = mdToHtml(adminManualContent);
+  const parsedSupportHtml = mdToHtml(supportManualContent);
 
   return (
     <AcademyClient
-      manualHtml={parsedHtml}
+      manualHtml={parsedAdminHtml}
+      supportManualHtml={parsedSupportHtml}
       sidebarItems={sidebarItems}
     />
   );

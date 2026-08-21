@@ -100,7 +100,6 @@ export function RecentOrdersFeedWidget({ orders }: Props) {
                       >
                         #{o.numericId}
                       </Link>
-                      <TenantBrandBadge tenantId={o.tenantId} />
                     </div>
                     <span className="text-[10px] text-muted-foreground mt-0.5">
                       {timeAgo(o.createdAt)}

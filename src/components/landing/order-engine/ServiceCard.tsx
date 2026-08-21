@@ -51,9 +51,15 @@ export const ServiceCard = memo(function ServiceCard({
         </span>
       )}
       
-      {/* Constraints like min/max or slots can go here */}
-      <div className={`absolute bottom-4 right-4 text-[10px] ${isSelected ? "opacity-90" : "text-muted-foreground"}`}>
-        min {service.minQty}
+      {/* Constraints and execution indicators */}
+      <div className={`mt-3 flex items-center justify-between text-[11px] ${isSelected ? "opacity-90" : "text-muted-foreground"}`}>
+        <div className="flex items-center gap-1.5 truncate text-[10px]">
+          {service.startTime && <span>⏱ {service.startTime}</span>}
+          {service.speedDisplay && <span>• ⚡ {service.speedDisplay}</span>}
+        </div>
+        <div className="shrink-0 text-[10px] font-medium ml-auto">
+          min {service.minQty}
+        </div>
       </div>
     </button>
   );

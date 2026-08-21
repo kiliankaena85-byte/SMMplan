@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
   createCategory, 
   updateCategory, 
   deleteCategory,
+  hideCategoryAndServicesAction,
   mergeCategoriesAction,
   createNetworkAction,
   updateNetworkAction,
@@ -13,26 +14,16 @@ import {
 } from "@/actions/admin/catalog/categories";
 import { Table } from '@/components/admin/hero-ui';
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Globe, GitMerge, Pencil, Trash2, Search, EyeOff, Layers } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { SocialIcon } from '@/components/ui/SocialIcon';
 import {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Dialog,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   DialogContent,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   DialogHeader,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   DialogTitle,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   DialogDescription,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  DialogTrigger,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  DialogFooter,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  DialogClose
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -42,572 +33,633 @@ import {
   SelectValue
 } from '@/components/ui/select';
 
-// ─── Sub-component: Category Merge Card ────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CategoryMergeCard({ categories, onSuccess }: { categories: any[]; onSuccess: () => void }) {
-  const [sourceId, setSourceId] = useState("");
-  const [targetId, setTargetId] = useState("");
-  const [isPending, startTransition] = useTransition();
-  const [confirmOpen, setConfirmOpen] = useState(false);
+const PREDEFINED_TAGS = [
+  { id: 'post', label: 'Пост / Публикация' },
+  { id: 'channel', label: 'Канал / Группа' },
+  { id: 'profile', label: 'Профиль / Аккаунт' },
+  { id: 'video', label: 'Видео' },
+  { id: 'reel', label: 'Reels / Shorts / Клипы' },
+  { id: 'story', label: 'Истории (Stories)' },
+  { id: 'bot', label: 'Бот' },
+  { id: 'chat', label: 'Чат / Беседа' },
+  { id: 'comment', label: 'Комментарии' },
+  { id: 'poll', label: 'Опрос / Голосование' }
+];
 
-  const handleMerge = () => {
-    if (!sourceId || !targetId) {
-      toast.error("Выберите обе категории");
-      return;
-    }
-    if (sourceId === targetId) {
-      toast.error("Категории не могут совпадать");
-      return;
-    }
-    setConfirmOpen(true);
-  };
-
-  const executeMerge = () => {
-    setConfirmOpen(false);
-    startTransition(async () => {
-      const res = await mergeCategoriesAction(sourceId, targetId);
-      if (res.success) {
-        toast.success("Категории успешно объединены");
-        setSourceId("");
-        setTargetId("");
-        onSuccess();
-      } else {
-        toast.error(res.error || "Произошла ошибка при объединении");
-      }
-    });
-  };
-
-  const sourceName = categories.find(c => c.id === sourceId)?.name || "";
-  const targetName = categories.find(c => c.id === targetId)?.name || "";
-
-  return (
-    <div className="bg-card p-4 rounded-xl border border-border shadow-sm space-y-4">
-      <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-        <span>🔄 Объединение Категорий</span>
-      </h3>
-      <p className="text-xs text-muted-foreground">
-        Перемещение всех услуг из одной категории в другую с последующим удалением пустой категории.
-      </p>
-
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <label className="block text-xs font-semibold text-muted-foreground">Категория-источник (будет удалена)</label>
-          <Select value={sourceId} onValueChange={(val) => setSourceId(val || '')}>
-            <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground cursor-pointer focus:ring-2 focus:ring-primary/20">
-              <SelectValue placeholder="-- Выберите источник --">
-                {(value: string) => categories.find(c => c.id === value)?.name ?? value}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="w-full">
-              {categories.map(c => (
-                <SelectItem key={c.id} value={c.id} label={c.name} className="cursor-pointer">
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-xs font-semibold text-muted-foreground">Категория-получатель</label>
-          <Select value={targetId} onValueChange={(val) => setTargetId(val || '')}>
-            <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground cursor-pointer focus:ring-2 focus:ring-primary/20">
-              <SelectValue placeholder="-- Выберите получателя --">
-                {(value: string) => categories.find(c => c.id === value)?.name ?? value}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="w-full">
-              {categories.map(c => (
-                <SelectItem key={c.id} value={c.id} label={c.name} className="cursor-pointer">
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="bg-warning/10 border border-warning/20 rounded-lg p-2.5 text-[11px] text-warning leading-normal flex items-start gap-1.5">
-          <span className="shrink-0 text-xs">⚠️</span>
-          <span>
-            <b>Внимание!</b> Действие необратимо. Услуги перенесутся автоматически, старая категория будет удалена.
-          </span>
-        </div>
-
-        <Button
-          intent="primary"
-          size="sm"
-          onClick={handleMerge}
-          disabled={isPending || !sourceId || !targetId}
-          className="w-full cursor-pointer flex items-center justify-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200"
-        >
-          {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          Объединить категории
-        </Button>
-      </div>
-
-      <ConfirmModal
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={executeMerge}
-        title="Объединение категорий"
-        isDanger={true}
-        confirmText="Объединить"
-        cancelText="Отмена"
-      >
-        Вы действительно хотите перенести все услуги из «{sourceName}» в «{targetName}» и БЕЗВОЗВРАТНО удалить категорию «{sourceName}»?
-      </ConfirmModal>
-    </div>
-  );
+interface NetworkItem {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string | null;
+  sort: number;
+  isActive?: boolean;
 }
 
-// ─── Sub-component: Network Manager Card ───────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function NetworkManagerCard({ networks, onSuccess }: { networks: any[]; onSuccess: () => void }) {
-  const [isPending, startTransition] = useTransition();
-  const [editingNetworkId, setEditingNetworkId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [sort, setSort] = useState("0");
-  const [error, setError] = useState<string | null>(null);
+interface CategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+  networkId?: string | null;
+  sort: number;
+  requireWarning?: boolean;
+  warningMessage?: string | null;
+  analyzerTags?: string | null;
+  network?: NetworkItem | null;
+  _count: { services: number };
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────
+export function CategoryManager({ 
+  categories, 
+  networks 
+}: { 
+  categories: CategoryItem[]; 
+  networks: NetworkItem[]; 
+}) {
+  const router = useRouter();
+
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedNetworkFilter, setSelectedNetworkFilter] = useState("ALL");
+
+  // Modals state
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [networkModalOpen, setNetworkModalOpen] = useState(false);
+  const [mergeModalOpen, setMergeModalOpen] = useState(false);
+
+  // Category Edit State
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+  const [catName, setCatName] = useState("");
+  const [catNetworkId, setCatNetworkId] = useState(networks[0]?.id || "");
+  const [catSort, setCatSort] = useState("0");
+  const [catRequireWarning, setCatRequireWarning] = useState(false);
+  const [catWarningMessage, setCatWarningMessage] = useState("");
+  const [catAnalyzerTags, setCatAnalyzerTags] = useState("");
+  const [catLoading, setCatLoading] = useState(false);
+  const [catError, setCatError] = useState<string | null>(null);
+
+  // Delete Category State
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [netToDelete, setNetToDelete] = useState<any>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<CategoryItem | null>(null);
 
-  const resetForm = () => {
-    setEditingNetworkId(null);
-    setName("");
-    setSlug("");
-    setSort("0");
-    setError(null);
+  // Network CRUD in modal State
+  const [editingNetworkId, setEditingNetworkId] = useState<string | null>(null);
+  const [netName, setNetName] = useState("");
+  const [netSlug, setNetSlug] = useState("");
+  const [netSort, setNetSort] = useState("0");
+  const [netError, setNetError] = useState<string | null>(null);
+  const [isNetPending, startNetTransition] = useTransition();
+
+  // Merge State
+  const [sourceCatId, setSourceCatId] = useState("");
+  const [targetCatId, setTargetCatId] = useState("");
+  const [isMergePending, startMergeTransition] = useTransition();
+
+  // Filtered categories
+  const filteredCategories = useMemo(() => {
+    return categories.filter(c => {
+      const matchNetwork = selectedNetworkFilter === "ALL" || c.networkId === selectedNetworkFilter;
+      const matchQuery = !searchQuery.trim() || 
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        c.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.network?.name && c.network.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchNetwork && matchQuery;
+    });
+  }, [categories, selectedNetworkFilter, searchQuery]);
+
+  // Handlers for Category
+  const openNewCategoryModal = () => {
+    setEditingCategory(null);
+    setCatName("");
+    setCatNetworkId(selectedNetworkFilter !== "ALL" ? selectedNetworkFilter : (networks[0]?.id || ""));
+    setCatSort("0");
+    setCatRequireWarning(false);
+    setCatWarningMessage("");
+    setCatAnalyzerTags("");
+    setCatError(null);
+    setCategoryModalOpen(true);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleEdit = (net: any) => {
-    setEditingNetworkId(net.id);
-    setName(net.name);
-    setSlug(net.slug);
-    setSort(String(net.sort));
-    setError(null);
+  const openEditCategoryModal = (cat: CategoryItem) => {
+    setEditingCategory(cat);
+    setCatName(cat.name);
+    setCatNetworkId(cat.networkId || networks[0]?.id || "");
+    setCatSort(String(cat.sort));
+    setCatRequireWarning(cat.requireWarning ?? false);
+    setCatWarningMessage(cat.warningMessage || "");
+    setCatAnalyzerTags(cat.analyzerTags || "");
+    setCatError(null);
+    setCategoryModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError("Название сети обязательно");
+    if (!catName || !catNetworkId) {
+      setCatError("Заполните все обязательные поля");
       return;
     }
-    if (!slug.trim()) {
-      setError("Slug обязателен");
+    if (catRequireWarning && !catWarningMessage.trim()) {
+      setCatError("Текст предупреждения обязателен при включенной опции");
       return;
     }
 
-    startTransition(async () => {
+    try {
+      setCatLoading(true);
+      setCatError(null);
       const payload = {
-        name: name.trim(),
-        slug: slug.trim().toLowerCase(),
-        sort: parseInt(sort, 10) || 0
+        name: catName.trim(),
+        networkId: catNetworkId,
+        sort: parseInt(catSort, 10) || 0,
+        requireWarning: catRequireWarning,
+        warningMessage: catRequireWarning ? catWarningMessage.trim() : null,
+        analyzerTags: catAnalyzerTags.trim() || null
       };
 
-      const res = editingNetworkId
+      if (editingCategory) {
+        const res = await updateCategory(editingCategory.id, payload);
+        if (!res.success) throw new Error(res.error);
+        toast.success("Активность успешно обновлена");
+      } else {
+        const res = await createCategory(payload);
+        if (!res.success) throw new Error(res.error);
+        toast.success("Активность успешно создана");
+      }
+
+      setCategoryModalOpen(false);
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Произошла ошибка";
+      setCatError(msg);
+    } finally {
+      setCatLoading(false);
+    }
+  };
+
+  const confirmDeleteCategory = (cat: CategoryItem) => {
+    setCategoryToDelete(cat);
+    setDeleteConfirmOpen(true);
+  };
+
+  const executeDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    try {
+      setCatLoading(true);
+      const res = await deleteCategory(categoryToDelete.id);
+      if (!res.success) throw new Error(res.error);
+      toast.success("Категория успешно удалена");
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Ошибка удаления";
+      toast.error(msg);
+    } finally {
+      setCatLoading(false);
+      setDeleteConfirmOpen(false);
+      setCategoryToDelete(null);
+    }
+  };
+
+  // Handlers for Network
+  const handleSaveNetwork = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!netName.trim() || !netSlug.trim()) {
+      setNetError("Название и Slug обязательны");
+      return;
+    }
+
+    startNetTransition(async () => {
+      const payload = {
+        name: netName.trim(),
+        slug: netSlug.trim().toLowerCase(),
+        sort: parseInt(netSort, 10) || 0
+      };
+
+      const res = editingNetworkId 
         ? await updateNetworkAction(editingNetworkId, payload)
         : await createNetworkAction(payload);
 
       if (res.success) {
-        toast.success(editingNetworkId ? "Соцсеть успешно обновлена" : "Соцсеть успешно создана");
-        resetForm();
-        onSuccess();
+        toast.success(editingNetworkId ? "Соцсеть обновлена" : "Соцсеть создана");
+        setEditingNetworkId(null);
+        setNetName("");
+        setNetSlug("");
+        setNetSort("0");
+        setNetError(null);
+        router.refresh();
       } else {
-        setError(res.error || "Произошла ошибка при сохранении");
+        setNetError(res.error || "Ошибка сохранения");
       }
     });
   };
 
-  const handleDelete = (id: string) => {
-    const net = networks.find(n => n.id === id);
-    if (!net) return;
-    setNetToDelete(net);
-    setDeleteConfirmOpen(true);
-  };
-
-  const executeDelete = () => {
-    if (!netToDelete) return;
-    const netId = netToDelete.id;
-    setDeleteConfirmOpen(false);
-    setNetToDelete(null);
-    startTransition(async () => {
+  const handleDeleteNetwork = (netId: string) => {
+    startNetTransition(async () => {
       const res = await deleteNetworkAction(netId);
       if (res.success) {
-        toast.success("Соцсеть успешно удалена");
-        onSuccess();
+        toast.success("Соцсеть удалена");
+        router.refresh();
       } else {
-        toast.error(res.error || "Произошла ошибка при удалении");
+        toast.error(res.error || "Ошибка удаления");
       }
     });
+  };
+
+  // Handlers for Merge
+  const executeMerge = () => {
+    if (!sourceCatId || !targetCatId) {
+      toast.error("Выберите обе активности");
+      return;
+    }
+    if (sourceCatId === targetCatId) {
+      toast.error("Активности не могут совпадать");
+      return;
+    }
+
+    startMergeTransition(async () => {
+      const res = await mergeCategoriesAction(sourceCatId, targetCatId);
+      if (res.success) {
+        toast.success("Активности успешно объединены");
+        setMergeModalOpen(false);
+        setSourceCatId("");
+        setTargetCatId("");
+        router.refresh();
+      } else {
+        toast.error(res.error || "Ошибка при объединении");
+      }
+    });
+  };
+
+  const toggleTag = (tagId: string) => {
+    const currentTags = catAnalyzerTags.split(',').map(t => t.trim()).filter(Boolean);
+    if (currentTags.includes(tagId)) {
+      setCatAnalyzerTags(currentTags.filter(t => t !== tagId).join(', '));
+    } else {
+      setCatAnalyzerTags([...currentTags, tagId].join(', '));
+    }
   };
 
   return (
-    <div className="bg-card p-4 rounded-xl border border-border shadow-sm space-y-4">
-      <h3 className="text-sm font-bold text-foreground">
-        🌐 Управление Соцсетями (Networks)
-      </h3>
-
-      {/* Network Form */}
-      <form onSubmit={handleSave} className="space-y-3 p-3 bg-muted/40 rounded-lg border border-border/50">
-        <h4 className="text-[11px] font-extrabold text-foreground uppercase tracking-wider">
-          {editingNetworkId ? "Редактировать соцсеть" : "Добавить новую соцсеть"}
-        </h4>
-
-        {error && (
-          <div className="text-[11px] text-destructive bg-destructive/10 p-2 rounded-lg border border-destructive/20 leading-normal">
-            {error}
+    <div className="flex flex-col gap-5 w-full">
+      
+      {/* ─── Top Clean Header ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2">
+              <Layers className="w-5 h-5 text-primary" />
+              Соцсети & Активности
+            </h1>
+            <span className="text-xs font-mono font-bold text-muted-foreground bg-muted/60 px-2.5 py-0.5 rounded-full border border-border/50">
+              {networks.length} соцсетей · {categories.length} активностей
+            </span>
           </div>
-        )}
-
-        <div className="space-y-2">
-          <div className="space-y-0.5">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase">Название</label>
-            <input
-              type="text"
-              required
-              placeholder="Например: Telegram"
-              value={name}
-              onChange={e => {
-                setName(e.target.value);
-                // Auto slugify if creating
-                if (!editingNetworkId) {
-                  setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '-'));
-                }
-              }}
-              className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-0.5">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">Slug (строчные)</label>
-              <input
-                type="text"
-                required
-                placeholder="например: telegram"
-                value={slug}
-                onChange={e => setSlug(e.target.value.toLowerCase())}
-                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
-              />
-            </div>
-
-            <div className="space-y-0.5">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">Сортировка</label>
-              <input
-                type="number"
-                required
-                value={sort}
-                onChange={e => setSort(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
-              />
-            </div>
-          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Управление структурой каталога, привязками к соцсетям и правилами анализатора ссылок.
+          </p>
         </div>
 
-        <div className="flex gap-2 pt-1 justify-end">
-          {editingNetworkId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
-            >
-              Отмена
-            </button>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
           <Button
-            type="submit"
+            intent="outline"
+            size="sm"
+            onClick={() => setMergeModalOpen(true)}
+            className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground cursor-pointer"
+          >
+            <GitMerge className="w-3.5 h-3.5 mr-1.5" />
+            Объединить
+          </Button>
+
+          <Button
+            intent="outline"
+            size="sm"
+            onClick={() => {
+              setEditingNetworkId(null);
+              setNetName("");
+              setNetSlug("");
+              setNetSort("0");
+              setNetError(null);
+              setNetworkModalOpen(true);
+            }}
+            className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground cursor-pointer"
+          >
+            <Globe className="w-3.5 h-3.5 mr-1.5" />
+            Соцсети ({networks.length})
+          </Button>
+
+          <Button
             intent="primary"
             size="sm"
-            disabled={isPending}
-            className="cursor-pointer"
+            onClick={openNewCategoryModal}
+            className="font-bold h-9 cursor-pointer"
           >
-            {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-            {editingNetworkId ? "Сохранить" : "Добавить"}
+            <Plus className="w-4 h-4 mr-1.5" />
+            Добавить активность
           </Button>
         </div>
-      </form>
+      </div>
 
-      {/* Network List */}
-      <div className="space-y-1.5 max-h-[250px] overflow-y-auto pr-1">
-        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Список соцсетей ({networks.length})</h4>
-        {networks.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">Соцсети не созданы</p>
-        ) : (
-          networks.map(n => (
-            <div key={n.id} className="flex justify-between items-center p-2 rounded-lg border border-border/40 bg-muted/20 hover:bg-muted/40 transition-colors duration-150">
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-foreground">{n.name}</span>
-                <span className="text-[10px] text-muted-foreground font-mono">slug: {n.slug} (сорт: {n.sort})</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleEdit(n)}
-                  className="text-[11px] font-medium text-primary hover:underline cursor-pointer"
-                >
-                  Изменить
-                </button>
-                <button
-                  onClick={() => handleDelete(n.id)}
-                  className="text-[11px] font-medium text-destructive hover:underline cursor-pointer"
-                >
-                  Удалить
-                </button>
-              </div>
-            </div>
-          ))
+      {/* ─── Filter & Search Bar ─── */}
+      <div className="flex flex-col sm:flex-row items-center gap-3 bg-card p-3 rounded-2xl border border-border shadow-xs">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Поиск по активности или соцсети..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full h-9 pl-9 pr-3 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          />
+        </div>
+
+        <div className="w-full sm:w-60">
+          <Select value={selectedNetworkFilter} onValueChange={val => setSelectedNetworkFilter(val || 'ALL')}>
+            <SelectTrigger className="w-full h-9 border border-border bg-background text-foreground text-xs rounded-xl cursor-pointer px-3">
+              <SelectValue placeholder="Все соцсети">
+                {(value: string) => {
+                  if (value === 'ALL') return 'Все соцсети';
+                  return networks.find(n => n.id === value)?.name ?? value;
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL" label="Все соцсети" className="text-xs cursor-pointer">Все соцсети</SelectItem>
+              {networks.map(n => (
+                <SelectItem key={n.id} value={n.id} label={n.name} className="text-xs cursor-pointer">
+                  <span className="flex items-center gap-2">
+                    <SocialIcon slug={n.slug} size={14} />
+                    {n.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {(searchQuery || selectedNetworkFilter !== "ALL") && (
+          <button
+            onClick={() => { setSearchQuery(""); setSelectedNetworkFilter("ALL"); }}
+            className="text-xs text-muted-foreground hover:text-foreground font-semibold px-2 py-1 cursor-pointer transition-colors"
+          >
+            Сбросить фильтры
+          </button>
         )}
       </div>
 
-      <ConfirmModal
-        isOpen={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
-        onConfirm={executeDelete}
-        title="Удаление соцсети"
-        isDanger={true}
-        confirmText="Удалить"
-        cancelText="Отмена"
-      >
-        Вы действительно хотите удалить соцсеть «{netToDelete?.name}»?
-      </ConfirmModal>
-    </div>
-  );
-}
+      {/* ─── Full-Width Grouped Tables by Social Network ─── */}
+      <div className="space-y-4">
+        {networks
+          .filter(net => selectedNetworkFilter === "ALL" || net.id === selectedNetworkFilter)
+          .map(net => {
+            const netCategories = filteredCategories.filter(c => c.networkId === net.id);
+            if (netCategories.length === 0 && (searchQuery || selectedNetworkFilter !== "ALL")) return null;
 
-const PREDEFINED_TAGS = [
-  { id: 'post', label: 'Пост' },
-  { id: 'channel', label: 'Канал/Группа' },
-  { id: 'private_post', label: 'Закрытый пост' },
-  { id: 'bot', label: 'Бот' },
-  { id: 'video', label: 'Видео' },
-  { id: 'profile', label: 'Профиль' },
-  { id: 'story', label: 'Сторис' },
-  { id: 'poll', label: 'Голосование' },
-  { id: 'music', label: 'Музыка' },
-  { id: 'article', label: 'Статья' },
-  { id: 'short_link', label: 'Короткая ссылка' }
-];
+            return (
+              <div key={net.id} className="bg-card shadow-sm border border-border rounded-2xl overflow-hidden w-full transition-all">
+                {/* Network Section Header */}
+                <div className="p-3.5 px-4 border-b border-border/60 bg-muted/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <SocialIcon slug={net.slug} size={18} />
+                    <span className="text-xs font-black text-foreground uppercase tracking-wide">
+                      {net.name}
+                    </span>
+                    <span className="text-[11px] font-mono font-bold text-muted-foreground bg-background px-2 py-0.5 rounded-md border border-border/50">
+                      {netCategories.length} {netCategories.length === 1 ? 'активность' : netCategories.length < 5 ? 'активности' : 'активностей'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-muted-foreground font-mono font-bold">
+                      Всего услуг: {netCategories.reduce((acc, cat) => acc + (cat._count?.services || 0), 0)}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setEditingCategory(null);
+                        setCatName("");
+                        setCatNetworkId(net.id);
+                        setCatSort("0");
+                        setCatRequireWarning(false);
+                        setCatWarningMessage("");
+                        setCatAnalyzerTags("");
+                        setCatError(null);
+                        setCategoryModalOpen(true);
+                      }}
+                      className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Добавить
+                    </button>
+                  </div>
+                </div>
 
-// ─── Main Component ─────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function CategoryManager({ categories, networks }: { categories: any[], networks: any[] }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+                {netCategories.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-muted-foreground">
+                    В этой соцсети пока нет активностей. Нажмите «Добавить», чтобы создать первую.
+                  </div>
+                ) : (
+                  <Table aria-label={`Активности ${net.name}`} className="w-full text-left">
+                    <Table.ScrollContainer>
+                      <Table.Content>
+                        <Table.Header>
+                          <Table.Column isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-2.5">НАЗВАНИЕ АКТИВНОСТИ</Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5">SLUG</Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5 text-center">СОРТИРОВКА</Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5 text-center">АКТИВНЫХ УСЛУГ</Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5">ТЕГИ АНАЛИЗАТОРА</Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-right px-4 py-2.5">ДЕЙСТВИЯ</Table.Column>
+                        </Table.Header>
+                        <Table.Body>
+                          {netCategories.map((c) => (
+                            <Table.Row key={c.id} className="hover:bg-muted/30 transition-colors duration-150 border-b border-border/40">
+                              <Table.Cell className="px-4 py-3">
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-foreground text-xs">{c.name}</span>
+                                  {c.requireWarning && (
+                                    <span className="text-[10px] text-amber-500 font-medium truncate max-w-xs" title={c.warningMessage || ''}>
+                                      ⚠️ {c.warningMessage}
+                                    </span>
+                                  )}
+                                </div>
+                              </Table.Cell>
+                              <Table.Cell className="py-3">
+                                <span className="text-muted-foreground text-xs font-mono bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
+                                  {c.slug}
+                                </span>
+                              </Table.Cell>
+                              <Table.Cell className="py-3 text-center">
+                                <span className="text-muted-foreground text-xs font-mono font-bold">{c.sort}</span>
+                              </Table.Cell>
+                              <Table.Cell className="py-3 text-center">
+                                <span className="text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md">
+                                  {c._count.services}
+                                </span>
+                              </Table.Cell>
+                              <Table.Cell className="py-3">
+                                {c.analyzerTags ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {c.analyzerTags.split(',').map(tag => (
+                                      <span key={tag} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/60">
+                                        {tag.trim()}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-muted-foreground">—</span>
+                                )}
+                              </Table.Cell>
+                              <Table.Cell className="text-right px-4 py-3">
+                                <div className="flex justify-end items-center gap-1.5">
+                                  {c._count.services > 0 && (
+                                    <button 
+                                      onClick={async () => {
+                                        const res = await hideCategoryAndServicesAction(c.id);
+                                        if (res.success) {
+                                          toast.success(res.message);
+                                          router.refresh();
+                                        } else {
+                                          toast.error(res.error || 'Ошибка скрытия услуг');
+                                        }
+                                      }} 
+                                      className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 cursor-pointer transition-colors"
+                                      title="Скрыть все услуги этой активности с витрины"
+                                      aria-label={`Скрыть все услуги для ${c.name}`}
+                                    >
+                                      <EyeOff className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => openEditCategoryModal(c)} 
+                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer transition-colors"
+                                    title="Редактировать"
+                                    aria-label={`Редактировать ${c.name}`}
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button 
+                                    onClick={() => confirmDeleteCategory(c)} 
+                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
+                                    title="Удалить"
+                                    aria-label={`Удалить ${c.name}`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </Table.Cell>
+                            </Table.Row>
+                          ))}
+                        </Table.Body>
+                      </Table.Content>
+                    </Table.ScrollContainer>
+                  </Table>
+                )}
+              </div>
+            );
+          })}
+      </div>
 
-  // Category deletion states
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [categoryToDeleteId, setCategoryToDeleteId] = useState<string | null>(null);
+      {/* ─── Modal 1: Create / Edit Category (Activity) ─── */}
+      <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
+        <DialogContent className="max-w-lg p-6 rounded-2xl bg-card border border-border">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground">
+              {editingCategory ? "📝 Редактировать активность" : "➕ Новая активность"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Настройте название активности, привязку к соцсети и теги автоматического анализатора ссылок.
+            </DialogDescription>
+          </DialogHeader>
 
-  // Category Form states
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [networkId, setNetworkId] = useState(networks[0]?.id || "");
-  const [sort, setSort] = useState("0");
-  const [requireWarning, setRequireWarning] = useState(false);
-  const [warningMessage, setWarningMessage] = useState("");
-  const [analyzerTags, setAnalyzerTags] = useState("");
-
-  const toggleTag = (tagId: string) => {
-    const currentTags = analyzerTags.split(',').map(t => t.trim()).filter(Boolean);
-    if (currentTags.includes(tagId)) {
-      setAnalyzerTags(currentTags.filter(t => t !== tagId).join(', '));
-    } else {
-      setAnalyzerTags([...currentTags, tagId].join(', '));
-    }
-  };
-
-  const resetForm = () => {
-    setEditingId(null);
-    setName("");
-    setNetworkId(networks[0]?.id || "");
-    setSort("0");
-    setRequireWarning(false);
-    setWarningMessage("");
-    setAnalyzerTags("");
-    setError(null);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleEdit = (cat: any) => {
-    setEditingId(cat.id);
-    setName(cat.name);
-    setNetworkId(cat.networkId);
-    setSort(String(cat.sort));
-    setRequireWarning(cat.requireWarning ?? false);
-    setWarningMessage(cat.warningMessage || "");
-    setAnalyzerTags(cat.analyzerTags || "");
-    setError(null);
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !networkId) return setError("Заполните все поля");
-    if (requireWarning && !warningMessage.trim()) return setError("Текст предупреждения обязателен к заполнению при включенной опции");
-    
-    try {
-      setLoading(true);
-      setError(null);
-      const payload = { 
-        name, 
-        networkId, 
-        sort: parseInt(sort, 10) || 0,
-        requireWarning,
-        warningMessage: requireWarning ? warningMessage.trim() : null,
-        analyzerTags: analyzerTags.trim() || null
-      };
-      
-      if (editingId) {
-        const res = await updateCategory(editingId, payload);
-        if (!res.success) throw new Error(res.error);
-        toast.success("Категория успешно обновлена");
-      } else {
-        const res = await createCategory(payload);
-        if (!res.success) throw new Error(res.error);
-        toast.success("Категория успешно создана");
-      }
-      
-      resetForm();
-      router.refresh();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err.message || "Произошла ошибка");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = (id: string) => {
-    setCategoryToDeleteId(id);
-    setDeleteConfirmOpen(true);
-  };
-
-  const executeDelete = async () => {
-    if (!categoryToDeleteId) return;
-    try {
-      setLoading(true);
-      const res = await deleteCategory(categoryToDeleteId);
-      if (!res.success) throw new Error(res.error);
-      toast.success("Категория успешно удалена");
-      router.refresh();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err.message || "Ошибка удаления");
-    } finally {
-      setLoading(false);
-      setDeleteConfirmOpen(false);
-      setCategoryToDeleteId(null);
-    }
-  };
-
-  const handleRefresh = () => {
-    router.refresh();
-  };
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full animate-in fade-in duration-300">
-      
-      {/* LEFT & CENTER: Category CRUD (takes 2 cols) */}
-      <div className="lg:col-span-2 space-y-6">
-        
-        {/* Editor Form */}
-        <div className="bg-card p-5 rounded-xl border border-border shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-foreground">
-            {editingId ? "📝 Редактировать категорию" : "➕ Добавить новую категорию"}
-          </h2>
-          
-          {error && (
-            <div className="text-[11px] text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 leading-normal">
-              {error}
+          {catError && (
+            <div className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-xl border border-destructive/20">
+              {catError}
             </div>
           )}
 
-          <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div className="md:col-span-2 space-y-1">
-              <label className="block text-xs font-semibold text-muted-foreground">Название категории</label>
-              <input 
-                type="text" 
+          <form onSubmit={handleSaveCategory} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-muted-foreground">Название активности</label>
+              <input
+                type="text"
                 required
-                value={name} 
-                onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                value={catName}
+                onChange={e => setCatName(e.target.value)}
                 placeholder="Например: Подписчики"
-              />
-            </div>
-            
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-muted-foreground">Соцсеть (Network)</label>
-              <Select value={networkId} onValueChange={(val) => setNetworkId(val || '')}>
-                <SelectTrigger className="w-full h-10 border border-border bg-background text-foreground cursor-pointer focus:ring-2 focus:ring-primary/20">
-                  <SelectValue placeholder="-- Выберите сеть --">
-                    {(value: string) => networks.find(n => n.id === value)?.name?.toUpperCase() ?? value}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="w-full">
-                  {networks.map(n => (
-                    <SelectItem key={n.id} value={n.id} label={n.name} className="cursor-pointer">
-                      {n.name.toUpperCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-muted-foreground">Сортировка</label>
-              <input 
-                type="number" 
-                required
-                value={sort} 
-                onChange={e => setSort(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
-            <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-4 border-t border-border/30 pt-3">
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200 col-span-1">
-                <input 
-                  type="checkbox"
-                  checked={requireWarning} 
-                  onChange={(e) => setRequireWarning(e.target.checked)}
-                  className="w-4.5 h-4.5 rounded border-border text-primary focus:ring-primary"
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-muted-foreground">Соцсеть (Network)</label>
+                <Select value={catNetworkId} onValueChange={val => setCatNetworkId(val || '')}>
+                  <SelectTrigger className="w-full h-9 border border-border bg-background text-foreground text-xs rounded-xl cursor-pointer px-3">
+                    <SelectValue placeholder="-- Выберите сеть --">
+                      {(value: string) => networks.find(n => n.id === value)?.name ?? value}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {networks.map(n => (
+                      <SelectItem key={n.id} value={n.id} label={n.name} className="text-xs cursor-pointer">
+                        <span className="flex items-center gap-2">
+                          <SocialIcon slug={n.slug} size={14} />
+                          {n.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-muted-foreground">Сортировка</label>
+                <input
+                  type="number"
+                  required
+                  value={catSort}
+                  onChange={e => setCatSort(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 />
-                <span className="text-xs font-semibold text-foreground select-none">Показывать предупреждение</span>
+              </div>
+            </div>
+
+            {/* Warning toggle */}
+            <div className="space-y-2 border-t border-border/40 pt-3">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={catRequireWarning}
+                  onChange={e => setCatRequireWarning(e.target.checked)}
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="text-xs font-bold text-foreground">Показывать предупреждение клиенту</span>
               </label>
 
-              {requireWarning && (
-                <div className="md:col-span-3 space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label className="block text-xs font-semibold text-muted-foreground">Текст интерактивного предупреждения</label>
-                  <input 
-                    type="text" 
-                    required={requireWarning}
-                    value={warningMessage} 
-                    onChange={e => setWarningMessage(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                    placeholder="Например: Если в посте несколько фото, просмотры будут идти только на первое..."
-                  />
-                </div>
+              {catRequireWarning && (
+                <input
+                  type="text"
+                  required={catRequireWarning}
+                  value={catWarningMessage}
+                  onChange={e => setCatWarningMessage(e.target.value)}
+                  placeholder="Предупреждение: Просмотры идут только на 1-е фото..."
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                />
               )}
             </div>
 
-            <div className="md:col-span-4 space-y-3 pt-2">
-              <label className="block text-xs font-semibold text-muted-foreground">Теги анализатора ссылок (Определяют, при каких ссылках предлагать эту категорию)</label>
-              
-              <div className="flex flex-wrap gap-2">
+            {/* Analyzer Tags */}
+            <div className="space-y-2 border-t border-border/40 pt-3">
+              <label className="block text-xs font-bold text-muted-foreground">
+                Теги анализатора ссылок (Автовыбор при вводе ссылки)
+              </label>
+              <div className="flex flex-wrap gap-1.5">
                 {PREDEFINED_TAGS.map(tag => {
-                  const isActive = analyzerTags.split(',').map(t => t.trim()).filter(Boolean).includes(tag.id);
+                  const isActive = catAnalyzerTags.split(',').map(t => t.trim()).filter(Boolean).includes(tag.id);
                   return (
                     <button
                       key={tag.id}
                       type="button"
                       onClick={() => toggleTag(tag.id)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 border cursor-pointer ${
-                        isActive 
-                          ? 'bg-primary text-primary-foreground border-primary shadow-sm' 
-                          : 'bg-muted/30 text-muted-foreground border-border hover:bg-muted/50 hover:text-foreground'
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all border cursor-pointer ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                          : 'bg-muted/40 text-muted-foreground border-border hover:text-foreground'
                       }`}
                     >
                       {tag.label}
@@ -615,121 +667,224 @@ export function CategoryManager({ categories, networks }: { categories: any[], n
                   );
                 })}
               </div>
+            </div>
 
-              <div className="pt-2">
-                <input 
-                  type="text" 
-                  value={analyzerTags} 
-                  onChange={e => setAnalyzerTags(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                  placeholder="Или впишите/отредактируйте вручную (через запятую)..."
+            <div className="flex justify-end gap-2 pt-3 border-t border-border/50">
+              <Button
+                type="button"
+                intent="outline"
+                size="sm"
+                onClick={() => setCategoryModalOpen(false)}
+                className="cursor-pointer"
+              >
+                Отмена
+              </Button>
+              <Button
+                type="submit"
+                intent="primary"
+                size="sm"
+                disabled={catLoading}
+                className="cursor-pointer"
+              >
+                {catLoading && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                {editingCategory ? "Сохранить" : "Создать"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Modal 2: Manage Networks ─── */}
+      <Dialog open={networkModalOpen} onOpenChange={setNetworkModalOpen}>
+        <DialogContent className="max-w-md p-6 rounded-2xl bg-card border border-border">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <Globe className="w-4 h-4 text-primary" />
+              Управление Соцсетями (Networks)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Добавляйте и редактируйте поддерживаемые платформы каталога.
+            </DialogDescription>
+          </DialogHeader>
+
+          {netError && (
+            <div className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-xl border border-destructive/20">
+              {netError}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSaveNetwork} className="space-y-3 p-3 bg-muted/30 rounded-xl border border-border/50">
+            <div className="space-y-1">
+              <label className="text-[10px] font-extrabold text-muted-foreground uppercase">Название соцсети</label>
+              <input
+                type="text"
+                required
+                placeholder="Например: Rutube"
+                value={netName}
+                onChange={e => {
+                  setNetName(e.target.value);
+                  if (!editingNetworkId) {
+                    setNetSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '-'));
+                  }
+                }}
+                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-muted-foreground uppercase">Slug (строчные)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="rutube"
+                  value={netSlug}
+                  onChange={e => setNetSlug(e.target.value.toLowerCase())}
+                  className="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-muted-foreground uppercase">Сортировка</label>
+                <input
+                  type="number"
+                  required
+                  value={netSort}
+                  onChange={e => setNetSort(e.target.value)}
+                  className="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
 
-            <div className="md:col-span-4 flex justify-end gap-2 pt-2 border-t border-border/50">
-              {editingId && (
-                <button 
-                  type="button" 
-                  onClick={resetForm} 
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
+            <div className="flex justify-end gap-2 pt-1">
+              {editingNetworkId && (
+                <button
+                  type="button"
+                  onClick={() => { setEditingNetworkId(null); setNetName(""); setNetSlug(""); setNetSort("0"); }}
+                  className="px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Отмена
                 </button>
               )}
-              <Button 
-                type="submit" 
-                disabled={loading}
-                intent="primary"
-                size="sm"
-                className="cursor-pointer"
-              >
-                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {editingId ? "Сохранить изменения" : "Создать категорию"}
+              <Button type="submit" intent="primary" size="sm" disabled={isNetPending} className="cursor-pointer">
+                {isNetPending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                {editingNetworkId ? "Сохранить" : "Добавить"}
               </Button>
             </div>
           </form>
-        </div>
 
-        {/* Grouped List display by Network */}
-        <div className="space-y-4">
-          {networks.map(net => {
-            const netCategories = categories.filter(c => c.networkId === net.id);
-            if (netCategories.length === 0) return null;
-            return (
-              <div key={net.id} className="bg-card shadow-sm border border-border rounded-xl overflow-hidden w-full">
-                <div className="p-3.5 px-4 border-b border-border/60 bg-muted/20 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-                      🌐 {net.name}
-                    </span>
-                    <span className="text-[11px] font-mono text-muted-foreground bg-background px-2 py-0.5 rounded border border-border/50">
-                      {netCategories.length} {netCategories.length === 1 ? 'категория' : netCategories.length < 5 ? 'категории' : 'категорий'}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Всего услуг: {netCategories.reduce((acc, cat) => acc + (cat._count?.services || 0), 0)}
+          {/* List of current networks */}
+          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+            {networks.map(n => (
+              <div key={n.id} className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/60 hover:bg-muted/40 transition-colors">
+                <div className="flex items-center gap-2">
+                  <SocialIcon slug={n.slug} size={16} />
+                  <span className="text-xs font-bold text-foreground">{n.name}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                    {n.slug}
                   </span>
                 </div>
-                <Table aria-label={`Категории ${net.name}`}>
-                  <Table.ScrollContainer>
-                    <Table.Content>
-                      <Table.Header>
-                        <Table.Column isRowHeader className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-4">НАЗВАНИЕ КАТЕГОРИИ</Table.Column>
-                        <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">SLUG</Table.Column>
-                        <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">СОРТИРОВКА</Table.Column>
-                        <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">АКТИВНЫХ УСЛУГ</Table.Column>
-                        <Table.Column className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right px-4">ДЕЙСТВИЯ</Table.Column>
-                      </Table.Header>
-                      <Table.Body>
-                        {netCategories.map((c) => (
-                          <Table.Row key={c.id} className="hover:bg-muted/30 transition-colors duration-150">
-                            <Table.Cell className="px-4">
-                              <span className="font-semibold text-foreground text-xs">{c.name}</span>
-                            </Table.Cell>
-                            <Table.Cell>
-                              <span className="text-muted-foreground text-xs font-mono bg-muted/60 px-2 py-0.5 rounded border border-border/30">{c.slug}</span>
-                            </Table.Cell>
-                            <Table.Cell>
-                              <span className="text-muted-foreground text-xs font-mono">{c.sort}</span>
-                            </Table.Cell>
-                            <Table.Cell>
-                              <span className="text-muted-foreground text-xs font-mono bg-primary/5 text-primary border border-primary/20 px-2 py-0.5 rounded">{c._count.services}</span>
-                            </Table.Cell>
-                            <Table.Cell className="text-right px-4">
-                              <div className="flex justify-end gap-3 font-semibold text-xs">
-                                <button onClick={() => handleEdit(c)} className="text-primary hover:underline cursor-pointer">Изменить</button>
-                                <button onClick={() => handleDelete(c.id)} className="text-destructive hover:underline cursor-pointer">Удалить</button>
-                              </div>
-                            </Table.Cell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table.Content>
-                  </Table.ScrollContainer>
-                </Table>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      setEditingNetworkId(n.id);
+                      setNetName(n.name);
+                      setNetSlug(n.slug);
+                      setNetSort(String(n.sort));
+                    }}
+                    className="p-1 text-muted-foreground hover:text-primary cursor-pointer"
+                    aria-label={`Редактировать сеть ${n.name}`}
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteNetwork(n.id)}
+                    className="p-1 text-muted-foreground hover:text-destructive cursor-pointer"
+                    aria-label={`Удалить сеть ${n.name}`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* RIGHT: Merge Categories and Network CRUD */}
-      <div className="space-y-6">
-        <CategoryMergeCard categories={categories} onSuccess={handleRefresh} />
-        <NetworkManagerCard networks={networks} onSuccess={handleRefresh} />
-      </div>
+      {/* ─── Modal 3: Merge Categories ─── */}
+      <Dialog open={mergeModalOpen} onOpenChange={setMergeModalOpen}>
+        <DialogContent className="max-w-md p-6 rounded-2xl bg-card border border-border">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <GitMerge className="w-4 h-4 text-primary" />
+              Объединение Активностей
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Перемещение всех услуг из одной активности в другую с последующим удалением источника.
+            </DialogDescription>
+          </DialogHeader>
 
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-muted-foreground">Категория-источник (будет удалена)</label>
+              <Select value={sourceCatId} onValueChange={val => setSourceCatId(val || '')}>
+                <SelectTrigger className="w-full h-9 border border-border bg-background text-foreground text-xs rounded-xl cursor-pointer px-3">
+                  <SelectValue placeholder="-- Выберите источник --">
+                    {(value: string) => categories.find(c => c.id === value)?.name ?? value}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => (
+                    <SelectItem key={c.id} value={c.id} label={`${c.network?.name || ''}: ${c.name}`} className="text-xs cursor-pointer">
+                      {c.network?.name}: {c.name} ({c._count.services} услуг)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-muted-foreground">Категория-приёмник (куда перенести услуги)</label>
+              <Select value={targetCatId} onValueChange={val => setTargetCatId(val || '')}>
+                <SelectTrigger className="w-full h-9 border border-border bg-background text-foreground text-xs rounded-xl cursor-pointer px-3">
+                  <SelectValue placeholder="-- Выберите приёмник --">
+                    {(value: string) => categories.find(c => c.id === value)?.name ?? value}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.filter(c => c.id !== sourceCatId).map(c => (
+                    <SelectItem key={c.id} value={c.id} label={`${c.network?.name || ''}: ${c.name}`} className="text-xs cursor-pointer">
+                      {c.network?.name}: {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-border/50">
+              <Button type="button" intent="outline" size="sm" onClick={() => setMergeModalOpen(false)} className="cursor-pointer">
+                Отмена
+              </Button>
+              <Button type="button" intent="primary" size="sm" disabled={isMergePending || !sourceCatId || !targetCatId} onClick={executeMerge} className="cursor-pointer">
+                {isMergePending && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                Объединить услуги
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Category Confirm Modal */}
       <ConfirmModal
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
-        onConfirm={executeDelete}
-        title="Удаление категории"
+        onConfirm={executeDeleteCategory}
+        title="Удаление активности"
         isDanger={true}
         confirmText="Удалить"
         cancelText="Отмена"
       >
-        Вы действительно хотите удалить категорию «{categories.find(c => c.id === categoryToDeleteId)?.name}»? Данное действие необратимо.
+        Вы действительно хотите удалить активность «{categoryToDelete?.name}»? Все услуги этой активности должны быть предварительно удалены или перенесены.
       </ConfirmModal>
 
     </div>

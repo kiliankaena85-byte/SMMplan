@@ -361,11 +361,6 @@ export class SettingsProvider {
       defaultDomain = 'smmflux.ru';
       defaultTgBot = 'smmflux_support_bot';
       defaultTgChannel = 'smmflux_support';
-    } else if (activeTenantId === 'boost') {
-      defaultSiteName = 'SMMboost';
-      defaultDomain = 'smmboost.ru';
-      defaultTgBot = 'smmboost_support_bot';
-      defaultTgChannel = 'smmboost_support';
     }
 
     return {

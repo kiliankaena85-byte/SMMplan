@@ -9,6 +9,7 @@ import { unstable_cache } from "next/cache";
 
 import { sanitizeServiceDescription } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
+import { SmartAnalyzerLogic } from "@/services/providers/smart-analyzer.logic";
 
 const getCachedNetworks = (tenantId: string) => unstable_cache(
   async () => {
@@ -68,6 +69,10 @@ export type PublicService = {
   maxQty: number;
   description: string | null;
   speed: string;
+  speedDisplay?: string | null;
+  startTime?: string | null;
+  warrantyDays?: number | null;
+  qualityLabel?: string | null;
   badge: string;
   isDripFeedEnabled: boolean;
   isRefillEnabled?: boolean;
@@ -254,6 +259,18 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
        const pricePer1kRub = applyBeautifulRounding(s.rate * s.markup * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub));
        const pricePerUnitRub = pricePer1kRub / 1000;
 
+       // 4-Tier Hybrid Execution Metrics
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       const feat = (s.features || {}) as any;
+       const fallbackAnalysis = (!feat.speedText || !feat.startTime)
+         ? SmartAnalyzerLogic.detectSync(s.name, s.description || '')
+         : null;
+
+       const startTime = feat.startTime || fallbackAnalysis?.startTime || '5–15 мин';
+       const speedDisplay = feat.speedText || fallbackAnalysis?.speedText || (s.name.toLowerCase().includes('быстр') ? 'Быстрая' : 'Стандартная');
+       const warrantyDays = feat.warrantyDays ?? fallbackAnalysis?.warranty ?? (s.isRefillEnabled ? 30 : null);
+       const qualityLabel = feat.qualityLabel || fallbackAnalysis?.qualityLabel || (badge || 'Стандарт');
+
        return {
           id: s.id,
           numericId: s.numericId,
@@ -265,10 +282,14 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
           pricePerUnitRub,
           minQty: s.minQty,
           maxQty: s.maxQty,
-          speed: s.name.toLowerCase().includes('быстр') ? 'Сразу' : 'В течение часа',
+          speed: startTime, // Backwards-compatible speed field (e.g. 'Мгновенно', '0-1 час')
+          speedDisplay,
+          startTime,
+          warrantyDays,
+          qualityLabel,
           badge,
           isDripFeedEnabled: s.isDripFeedEnabled,
-          isRefillEnabled: Boolean(s.isRefillEnabled),
+          isRefillEnabled: Boolean(s.isRefillEnabled || (warrantyDays && warrantyDays > 0)),
           targetType: s.targetType,
           customDataType: s.customDataType,
           customDataLabel: s.customDataLabel,

@@ -411,16 +411,9 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
-    // 54-ФЗ: CryptoBot не пробивает чеки. Лимит для физлиц до решения по облачной ККТ.
-    // TODO: интегрировать облачную ККТ (АТОЛ/Эвотор) для снятия лимита.
-    if ((gateway === 'cryptobot' || gateway === 'crypto') && paymentAmount > 1_500_000) {
-      throw new Error('Криптовалюта доступна для пополнений до 15 000 ₽. Для больших сумм используйте карту.');
-    }
-
-    if (gateway === 'yookassa' && paymentAmount > 180000) {
-      if (!user.telegramId) {
-        throw new Error("Для совершения платежей свыше $20 картой, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете. Либо воспользуйтесь криптовалютой (без ограничений)");
-      }
+    // 54-ФЗ / 115-ФЗ: Лимит анонимных платежей без подтверждения личности — 15 000 ₽ (1 500 000 копеек)
+    if (paymentAmount > 1_500_000 && !user.telegramId) {
+      throw new Error("Для совершения единовременных платежей свыше 15 000 ₽, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете либо используйте безналичный расчет для юрлиц (B2B).");
     }
 
     // Balance check is now performed atomically inside db.$transaction using WalletOps.charge

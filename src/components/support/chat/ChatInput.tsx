@@ -445,10 +445,15 @@ export function ChatInput({
         await changeTicketStatus(statusFd);
         toast.success('Ответ отправлен, тикет решен и закрыт');
       }
-      setTimeout(() => {
-        setMessages(prev => prev.filter(m => m.id !== tempId));
-      }, 10000);
-    } catch {
+    } catch (err: unknown) {
+      console.error('[ChatInput] Send message failed:', err);
+      const errMsg = (err as Error)?.message || 'Ошибка отправки сообщения';
+      toast.error(errMsg);
+      // Restore message text to input on failure so user doesn't lose what they typed
+      const failedText = formData.get('message') as string;
+      if (failedText) {
+        setText(failedText);
+      }
       setMessages(prev => prev.filter(m => m.id !== tempId));
     }
     setSending(false);

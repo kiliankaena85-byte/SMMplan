@@ -297,6 +297,9 @@ model Service {
   @@unique([tenantId, slug])
   @@index([categoryId])
   @@index([providerId])
+  @@index([providerId, externalId])
+  @@index([tenantId, categoryId, isActive])
+  @@index([tenantId, isActive, qualityTier])
   @@index([isQuarantined])
   @@index([qualityTier])
   @@index([externalId])
@@ -365,6 +368,7 @@ model ShadowService {
 
   @@unique([providerId, externalId])
   @@index([providerId])
+  @@index([providerId, normalizedCategory, rateRub])
   @@index([platform])
   @@index([normalizedCategory])
   @@index([rateRub])
@@ -437,6 +441,8 @@ model Order {
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([serviceId]) // Fast lookup for orders by service
+  @@index([providerId, externalId])
+  @@index([externalId])
   @@index([status])
   @@index([createdAt]) // P2.2: temporal queries & analytics
   @@index([status, createdAt]) // P2.2: filtered + sorted admin queries
@@ -500,6 +506,9 @@ model Payment {
   @@index([gatewayId])
   @@index([tenantId])
   @@index([tenantId, userId])
+  @@index([tenantId, status, createdAt])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // ── B2B Accounting ──
@@ -1323,8 +1332,8 @@ model ManualBalanceAdjustment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User  @relation("targetBalanceAdjustments", fields: [userId], references: [id], onDelete: Cascade)
-  requester User  @relation("requestedBalanceAdjustments", fields: [requestedBy], references: [id], onDelete: Cascade)
+  user      User  @relation("targetBalanceAdjustments", fields: [userId], references: [id], onDelete: Restrict)
+  requester User  @relation("requestedBalanceAdjustments", fields: [requestedBy], references: [id], onDelete: Restrict)
   approver  User? @relation("approvedBalanceAdjustments", fields: [approvedBy], references: [id], onDelete: SetNull)
   rejecter  User? @relation("rejectedBalanceAdjustments", fields: [rejectedBy], references: [id], onDelete: SetNull)
 
@@ -1399,7 +1408,7 @@ model EmployeeResponsibilityConsent {
   status              String   @default("ACTIVE") // ACTIVE | SUPERSEDED | REVOKED
   createdAt           DateTime @default(now())
 
-  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
   documentVersion     LegalDocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
 
   @@index([userId, status])
@@ -1435,8 +1444,8 @@ model SupportFinancialAction {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  staff           User     @relation("staffFinancialActions", fields: [staffUserId], references: [id], onDelete: Cascade)
-  target          User     @relation("targetFinancialActions", fields: [targetUserId], references: [id], onDelete: Cascade)
+  staff           User     @relation("staffFinancialActions", fields: [staffUserId], references: [id], onDelete: Restrict)
+  target          User     @relation("targetFinancialActions", fields: [targetUserId], references: [id], onDelete: Restrict)
 
   @@index([staffUserId, createdAt])
   @@index([targetUserId, createdAt])

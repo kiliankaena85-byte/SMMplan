@@ -17,7 +17,7 @@ const CreateTenantSchema = z.object({
   domain: z.string()
     .min(3, 'Доменное имя должно быть указано')
     .max(100)
-    .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, 'Укажите корректный домен (например, smmboost.ru)'),
+    .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, 'Укажите корректный домен (например, smmflux.ru)'),
   customDomain: z.string().max(100).optional().nullable(),
   themeVariant: z.enum(['classic', 'vibrant', 'minimal']).default('classic'),
 });

@@ -127,9 +127,17 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
       <div className={cn("pt-8 pb-6 px-6 transition-all duration-300 relative", collapsed ? "opacity-0 invisible h-0 p-0" : "opacity-100")}>
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
         
-        <h2 className="text-xl font-extrabold tracking-tight mb-1 text-foreground">
-          SMMplan
-        </h2>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-xs shadow-sm">
+            ⚡
+          </div>
+          <h2 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-1.5">
+            SMMpanel
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+              1.0
+            </span>
+          </h2>
+        </div>
         <p className="text-[11px] text-muted-foreground font-medium truncate mb-3 tracking-wide">{userEmail}</p>
         <div className="flex items-center gap-2">
           <span className={cn(

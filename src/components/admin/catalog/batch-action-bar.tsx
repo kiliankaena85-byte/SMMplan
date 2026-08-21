@@ -13,6 +13,7 @@ import {
   SAFETY_FLOOR_MARKUP,
 } from '@/lib/financial-constants';
 import { Button } from '@/components/ui/button';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 import {
   Dialog,
   DialogContent,
@@ -153,6 +154,22 @@ export function BatchActionBar({
 
   const minPercent = ((SAFETY_MULTIPLIER - 1) * 100).toFixed(0);
 
+  const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
+
+  function handleBulkDelete() {
+    setConfirmBulkDeleteOpen(false);
+    startTransition(async () => {
+      const { bulkDeleteOrArchiveServicesAction } = await import('@/actions/admin/catalog/services');
+      const r = await bulkDeleteOrArchiveServicesAction(selectedIds);
+      if (r.success) {
+        toast.success(r.message);
+        onClear();
+      } else {
+        toast.error(r.error || 'Ошибка удаления');
+      }
+    });
+  }
+
   function handleEnable() {
     startTransition(async () => {
       const r = await batchToggleServicesAction(selectedIds, true);
@@ -201,8 +218,12 @@ export function BatchActionBar({
       >✅ Включить</button>
       <button
         onClick={handleDisable} disabled={isPending}
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border/40 hover:bg-muted/80 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+      >🚫 Скрыть (Выкл)</button>
+      <button
+        onClick={() => setConfirmBulkDeleteOpen(true)} disabled={isPending}
         className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/15 text-destructive border border-rose-500/30 hover:bg-destructive/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-      >🚫 Отключить</button>
+      >🗑️ Удалить / В архив</button>
       <button
         onClick={handleResetMarkup} disabled={isPending}
         className="px-3 py-1.5 rounded-lg text-xs font-medium bg-warning/15 text-warning border border-amber-500/30 hover:bg-warning/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
@@ -243,6 +264,20 @@ export function BatchActionBar({
         onClick={onClear}
         className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
       >✕ Сбросить</button>
+
+      {confirmBulkDeleteOpen && (
+        <ConfirmModal
+          isOpen={confirmBulkDeleteOpen}
+          onClose={() => setConfirmBulkDeleteOpen(false)}
+          onConfirm={handleBulkDelete}
+          title={`Удаление или архивация ${selectedIds.length} услуг`}
+          isDanger={true}
+          confirmText="Удалить / В архив"
+          cancelText="Отмена"
+        >
+          Вы уверены, что хотите удалить {selectedIds.length} выбранных услуг? Услуги без заказов будут удалены навсегда, а услуги с историей заказов будут перенесены в архив.
+        </ConfirmModal>
+      )}
     </div>
   );
 }

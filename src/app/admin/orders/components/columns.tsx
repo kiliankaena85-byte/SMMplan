@@ -410,7 +410,6 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
             <span className="font-bold text-foreground tabular-nums text-xs">
               #{order.numericId}
             </span>
-            <TenantBrandBadge tenantId={order.tenantId} />
           </div>
           <Link
             href={`/admin/clients?q=${encodeURIComponent(email)}`}

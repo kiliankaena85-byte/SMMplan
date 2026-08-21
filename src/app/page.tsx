@@ -10,7 +10,6 @@ const FluxWhyUs = dynamicImport(() => import("@/components/ab-test/FluxWhyUs").t
 const FluxReviews = dynamicImport(() => import("@/components/ab-test/FluxReviews").then(m => m.FluxReviews));
 const FluxFAQ = dynamicImport(() => import("@/components/ab-test/FluxFAQ").then(m => m.FluxFAQ));
 const MegaFooter = dynamicImport(() => import("@/components/landing/MegaFooter").then(m => m.MegaFooter));
-import { BoostLanding } from "@/components/tenant/boost/BoostLanding";
 
 import { ROUTES } from "@/lib/routes";
 import { SettingsProvider } from "@/lib/settings";
@@ -154,7 +153,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
             </div>
 
             <div className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-2 md:pt-6 pb-2 md:pb-4 flex flex-col items-center relative z-10">
-              <FluxOrderClient initialCatalog={catalog} initialEmail={userEmail} />
+              <FluxOrderClient initialCatalog={catalog} initialEmail={userEmail} tenantId={tenantId} />
             </div>
 
             <div className="relative z-10 w-full my-2 md:my-4">
@@ -170,15 +169,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
 
             <MegaFooter contactSettings={settings} tenantId={tenantId} />
           </div>
-        ) : tenantId === "boost" ? (
-          <BoostLanding
-            catalog={catalog}
-            initialServices={initialServices}
-            siteName={siteName}
-            tenantId={tenantId}
-            userEmail={userEmail}
-            contactSettings={settings}
-          />
         ) : (
           <SmartLinkLanding 
             initialCatalog={catalog} 

@@ -66,6 +66,7 @@ interface FluxOrderClientProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialCatalog?: any;
   initialEmail?: string;
+  tenantId?: string;
 }
 
 export function FluxOrderClient(props: FluxOrderClientProps) {
@@ -76,7 +77,7 @@ export function FluxOrderClient(props: FluxOrderClientProps) {
   );
 }
 
-function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientProps) {
+function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' }: FluxOrderClientProps) {
   const [step, setStep] = useState<Step>('link');
   const [direction, setDirection] = useState(1);
   
@@ -220,7 +221,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail }: FluxOrderClientP
     setServices([]);
     navigateTo('service');
     try {
-      const fetched = await getServicesByCategoryAction(cat.id);
+      const fetched = await getServicesByCategoryAction(cat.id, tenantId);
       setServices(fetched || []);
     } catch { 
       // error is intentionally ignored here since we just set services to empty

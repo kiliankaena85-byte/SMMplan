@@ -63,10 +63,10 @@ legalPages.forEach(p => {
 // 2. Check forms for personal data consent links
 console.log('\n=== Checking GDPR / 15-ФЗ Consent inside Forms ===');
 const formFiles = [
-    { name: 'Desktop Checkout Bar', relPath: 'src/components/landing/order-engine/StickyCheckoutBar.tsx' },
+    { name: 'Legal Checkbox', relPath: 'src/components/landing/order-engine/LegalCheckbox.tsx' },
     { name: 'Mobile Checkout Wizard', relPath: 'src/components/landing/order-engine/MobileWizard.tsx' },
     { name: 'Guest Support Form', relPath: 'src/components/support/GuestSupportOptions.tsx' },
-    { name: 'Login Page', relPath: 'src/app/(auth)/login/page.tsx' }
+    { name: 'Login Form', relPath: 'src/app/(auth)/login/login-form.tsx' }
 ];
 
 formFiles.forEach(f => {

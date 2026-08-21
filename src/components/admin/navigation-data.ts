@@ -15,6 +15,7 @@ export const CATALOG_TABS = [
   { label: 'Каталог услуг', href: '/admin/catalog' },
   { label: 'Дерево структуры', href: '/admin/catalog/tree' },
   { label: 'Категории', href: '/admin/catalog/categories' },
+  { label: 'Анализатор ссылок', href: '/admin/catalog/patterns' },
   { label: 'Разведка рынка', href: '/admin/intel' },
   { label: 'Синхронизация', href: '/admin/catalog/sync' },
   { label: 'Карантин цен', href: '/admin/catalog/quarantine' },
