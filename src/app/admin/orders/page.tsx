@@ -6,10 +6,10 @@ import { OrderClient } from './components/order-client';
 import { OrdersFilterForm } from './components/orders-filter-form';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import type { OrderColumn } from './components/columns';
 
 export const dynamic = 'force-dynamic';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STATUS_LABELS: Record<string, string> = {
   ALL: 'Все',
   AWAITING_PAYMENT: 'Ожидает оплату',
@@ -139,8 +139,43 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         }
       });
       if (extraOrder) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        orders.unshift(extraOrder as any);
+        // Преобразуем заказ к типу OrderColumn для добавления в список
+        const typedOrder: OrderColumn = {
+          id: extraOrder.id,
+          numericId: extraOrder.numericId,
+          externalId: extraOrder.externalId ?? null,
+          link: extraOrder.link,
+          quantity: extraOrder.quantity,
+          remains: extraOrder.remains,
+          status: extraOrder.status,
+          charge: extraOrder.charge.toString(),
+          providerCost: (extraOrder.providerCost ?? BigInt(0)).toString(),
+          createdAt: extraOrder.createdAt,
+          updatedAt: extraOrder.updatedAt,
+          isDripFeed: extraOrder.isDripFeed,
+          dripExternalIds: extraOrder.dripExternalIds,
+          runs: extraOrder.runs ?? null,
+          interval: extraOrder.interval ?? null,
+          currentRun: extraOrder.currentRun,
+          error: extraOrder.error ?? null,
+          tenantId: extraOrder.tenantId,
+          user: { email: extraOrder.user.email },
+          providerName: extraOrder.provider?.name ?? null,
+          providerTicketUrl: extraOrder.provider?.ticketUrl ?? null,
+          service: {
+            name: extraOrder.service.name,
+            etaP50Seconds: extraOrder.service.etaP50Seconds,
+            etaP90Seconds: extraOrder.service.etaP90Seconds,
+            etaSampleCount: extraOrder.service.etaSampleCount,
+            etaSpeedClass: extraOrder.service.etaSpeedClass,
+            etaUpdatedAt: extraOrder.service.etaUpdatedAt?.toISOString() ?? null,
+            category: {
+              name: extraOrder.service.category.name,
+              network: extraOrder.service.category.network ?? null,
+            },
+          },
+        };
+        orders.unshift(typedOrder);
       }
     }
   }

@@ -208,11 +208,10 @@ function timeRelative(date: Date): string {
 export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: Props) {
   const [optimisticData, addOptimisticUpdate] = useOptimistic(
     data,
-    (state, update: { id: string, status: string, remains?: number }) => {
+    (state, update: { id: string, status: keyof typeof STATUS_CONFIG | string, remains?: number }) => {
       return state.map(order => 
         order.id === update.id 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ? { ...order, status: update.status as any, remains: update.remains ?? order.remains } 
+          ? { ...order, status: update.status, remains: update.remains ?? order.remains } 
           : order
       );
     }
