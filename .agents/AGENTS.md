@@ -105,4 +105,10 @@
 - ✅ **ВСЕГДА** использовать официальный Cloudflare Tunnel (`scripts/start-tunnel.ps1`) для домена `test.smmplan.pro`.
 - ✅ Сервер Next.js обязан запускаться с `HOSTNAME="0.0.0.0"` и `PORT="3000"`, гарантируя доступ для Docker-коннектора с `host.docker.internal:3000` без ошибки 502 Bad Gateway.
 
+## 11. Modal Hoisting, Viewport Density & Realtime Daemons (CRITICAL)
+- ❌ **ЗАПРЕЩЕНО** рендерить модальные окна (`Modal`, `Dialog`) внутри `DropdownMenuContent`, `Popover` или `Tooltip`. Состояние модалов объявляется на уровне экрана (`unified-workspace.tsx`), кнопки дропдаунов передают колбэки (`onOpenModal`).
+- ❌ **ЗАПРЕЩЕНО** нанизывать более 3 фиксированных элементов `w-max` в flex-шапках без `min-w-0` и адаптивного сворачивания в меню на экранах `< 1536px`.
+- ✅ **Idempotent Telegram Polling:** Всегда сбрасывать вебхуки через `await bot.telegram.deleteWebhook({ drop_pending_updates: true })` перед `bot.launch({ dropPendingUpdates: true })` для предотвращения ошибки `409 Conflict`.
+- ✅ **Optimistic UI:** Любое оптимистичное сообщение/мутация с `temp-id` ОБЯЗАНА иметь 10-12s TTL таймер авто-очистки и немедленный откат стейта с возвратом текста при ошибке `{ success: false }`.
+
 

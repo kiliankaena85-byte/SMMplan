@@ -27,9 +27,21 @@
   - *Табу:* Категорически запрещено использовать сторонние туннели (SSH reverse tunnels, ngrok, localtunnel и прочее). Всегда запускать и проверять `cloudflared.exe`.
 
 - **4-Level Taxonomy & Smart Provider Matcher:**
-  - *Решение:* Чёткая 4-уровневая структура: `Социальная Сеть (Network)` $\to$ `Тип Объекта / Ссылки (TargetType)` $\to$ `Активность (Category / ActivityType)` $\to$ `Тарифный уровень (QualityTier: ECONOMY, STANDARD, PREMIUM, VIP, AUTO)`.
-  - *Интеграция:* При создании услуги работает **Smart Provider Matcher** с живым поиском по базе кэшированных услуг провайдеров (`ShadowService`) и авто-заполнением себестоимости, лимитов, флагов гарантии и правил валидации ссылки в 1 клик.
-  - *Умный Анализатор Ссылок:* Каждая услуга содержит `targetType`, `linkPlaceholder`, `linkHint`, `requiresBotAdmin` и `isMediaGroupAware`, предотвращая некорректные заказы покупателей на этапе чекаута.
+- **Modal Hoisting & Global Portal Boundary Rule:**
+  - *Решение:* Модальные окна (`Modal`, `Dialog`) категорически запрещено рендерить внутри контекстных дропдаунов (`DropdownMenuContent`, `Popover`, `Tooltip`). Состояние открытия модалов всегда поднимается на уровень экрана (`State Lifting` в `unified-workspace.tsx` или через глобальный store), а кнопки дропдауна вызывают колбэки `onOpenModal={() => ...}`.
+  - *Причина:* Закрытие `DropdownMenu` при клике немедленно анмаунтирует всё своё поддерево, приводя к крашу `Modal` или зажатию модалки в узких границах контейнера (`Context Clamping`).
+
+- **Idempotent Telegram Daemon Polling:**
+  - *Решение:* Запуск поллинга `bot.launch()` ВСЕГДА предваряется сбросом вебхуков: `await bot.telegram.deleteWebhook({ drop_pending_updates: true })` и запускается с `{ dropPendingUpdates: true }`.
+  - *Причина:* Предотвращение зависания зомби-сессий и фатальной ошибки `409 Conflict: terminated by other getUpdates request` при перезапусках процессов.
+
+- **Viewport Resiliency & Header Toolbar Density:**
+  - *Решение:* Запрещено нанизывать более 3 фиксированных элементов с `w-max` / `min-w` в одной flex-строке без `min-w-0` и `truncate`. Все второстепенные статусы и действия на экранах `< 1536px` группируются в выпадающее меню «Меню ⌵».
+  - *Причина:* Устранение перекрытий текста, кнопок и цен на экранах ноутбуков (1024–1440px) при открытых сайдбарах.
+
+- **Optimistic UI Rollback & TTL Hygiene:**
+  - *Решение:* Любое оптимистичное клиентское сообщение/элемент с `temp-id` обязано содержать автоматический таймер истечения (TTL 10–12 сек) и откат при ошибке сервера `{ success: false }` с возвратом исходного текста в поле ввода.
+  - *Причина:* Ликвидация «фантомных» полупрозрачных зависших дубликатов сообщений в чате.
 
 ---
 
@@ -60,6 +72,9 @@
 | **Ошибки форм (UX)** | Общие серверные ошибки в начале страницы не замечались | Общие ошибки сервера выводятся **непосредственно над кнопкой Submit** в зоне фокуса клика. |
 | **FAQSection & Типы** | Несовпадение структуры пропсов | `FAQSection` ожидает массив `{ question: string; answer: string }` (НЕ `{ q, a }`). `PublicService.cooldownUntil` — это `string \| null` (ISO string). |
 | **Парсинг в тестах** | `pg_terminate_backend` и `deleteMany` на таблицах с триггерами неизменяемости | Не использовать `pg_terminate_backend`. Для очистки таблиц типа `LedgerEntry` использовать `TRUNCATE CASCADE` в `setup.ts`. |
+| **DropdownMenu + Modal** | Встраивание `<Modal>` внутрь дропдауна приводит к крашу при закрытии или сжатию в узкую полосу | Модалы объявляются на уровне родительского экрана (`UnifiedTicketsWorkspace`), дропдаун лишь передает событие `onOpenModal={() => ...}`. |
+| **Telegram Polling Daemon** | Запуск `bot.launch()` падал с `409 Conflict: terminated by other getUpdates` | Всегда вызывать `deleteWebhook({ drop_pending_updates: true })` перед `bot.launch({ dropPendingUpdates: true })`. |
+| **Optimistic Chat Messages** | Полупрозрачное сообщение (`temp-id`) зависало в стейте навсегда при сбое бэкенда | Добавлен 12s TTL таймер авто-очистки и немедленный возврат текста в input при ответе сервера `{ success: false }`. |
 
 ---
 
