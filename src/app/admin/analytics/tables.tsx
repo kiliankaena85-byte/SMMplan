@@ -1,4 +1,3 @@
-
 import {
   Table,
   TableBody,
@@ -8,8 +7,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function TopServicesTable({ topServices }: { topServices: any[] }) {
+interface TopService {
+  name: string;
+  clicks: number;
+}
+
+interface ProfitabilityItem {
+  categoryName: string;
+  ordersCount: number;
+  revenue: number;
+  cogs: number;
+  profit: number;
+  marginPct: number;
+}
+
+interface ServiceProfitabilityItem extends ProfitabilityItem {
+  serviceName: string;
+}
+
+export function TopServicesTable({ topServices }: { topServices: TopService[] }) {
   return (
     <Table aria-label="Топ услуг по кликам" className="w-full text-xs table-fixed">
       <TableHeader>
@@ -36,8 +52,7 @@ export function TopServicesTable({ topServices }: { topServices: any[] }) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function ProfitCategoriesTable({ categories, fmt }: { categories: any[], fmt: (v: number) => string }) {
+export function ProfitCategoriesTable({ categories, fmt }: { categories: ProfitabilityItem[], fmt: (v: number) => string }) {
   return (
     <Table aria-label="Рентабельность по категориям" className="w-full text-xs table-fixed">
       <TableHeader>
@@ -76,8 +91,7 @@ export function ProfitCategoriesTable({ categories, fmt }: { categories: any[], 
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function ProfitServicesTable({ services, fmt }: { services: any[], fmt: (v: number) => string }) {
+export function ProfitServicesTable({ services, fmt }: { services: ServiceProfitabilityItem[], fmt: (v: number) => string }) {
   return (
     <Table aria-label="Рентабельность по услугам (Топ 15)" className="w-full text-xs table-fixed">
       <TableHeader>
