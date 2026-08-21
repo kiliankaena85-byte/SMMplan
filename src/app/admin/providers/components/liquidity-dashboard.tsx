@@ -1,11 +1,39 @@
-import { TrendingDown, Wallet, Clock, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+'use client';
+
+import React, { useState, useTransition } from 'react';
+import { TrendingDown, Wallet, Clock, AlertTriangle, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import type { GlobalLiquiditySummary } from '@/services/admin/provider-balance.service';
+import { getGlobalProviderLiquidityAction } from '@/actions/admin/providers/balance';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface LiquidityDashboardProps {
   data: GlobalLiquiditySummary;
 }
 
-export function LiquidityDashboard({ data }: LiquidityDashboardProps) {
+export function LiquidityDashboard({ data: initialData }: LiquidityDashboardProps) {
+  const [data, setData] = useState<GlobalLiquiditySummary>(initialData);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const handleRefresh = () => {
+    startTransition(async () => {
+      try {
+        const res = await getGlobalProviderLiquidityAction(true);
+        if (res.success && res.data) {
+          setData(res.data);
+          toast.success('Ликвидность обновлена');
+          router.refresh();
+        } else {
+          toast.error('Не удалось обновить ликвидность');
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Ошибка обновления';
+        toast.error(msg);
+      }
+    });
+  };
+
   const runwayText =
     data.runwayDays === null
       ? '∞'
@@ -61,18 +89,28 @@ export function LiquidityDashboard({ data }: LiquidityDashboardProps) {
   const ageSeconds = Math.max(0, Math.floor((Date.now() - data.cachedAt) / 1000));
 
   return (
-    <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 p-6 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm ring-1 ring-border/5 p-5 sm:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-bold text-foreground tracking-tight">Глобальная Ликвидность</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">
             {data.activeCount} активных провайдеров · кэш {ageSeconds}с назад
           </p>
         </div>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={isPending}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/60 bg-background/50 hover:bg-muted text-xs font-bold text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer disabled:opacity-50 w-fit active:scale-95"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isPending ? 'animate-spin' : ''}`} />
+          <span>{isPending ? 'Обновление...' : 'Обновить балансы'}</span>
+        </button>
       </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {stats.map((stat) => (
-          <div key={stat.label} className={`rounded-[12px] px-4 py-3 border ${stat.bg} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm`}>
+          <div key={stat.label} className={`rounded-[14px] px-4 py-3 border ${stat.bg} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs`}>
             <div className={`flex items-center gap-1.5 mb-1 ${stat.color}`}>
               {stat.icon}
               <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">{stat.label}</span>
@@ -82,6 +120,7 @@ export function LiquidityDashboard({ data }: LiquidityDashboardProps) {
           </div>
         ))}
       </div>
+
       <div className="flex flex-wrap gap-2 pt-1 border-t border-border/50">
         {statusCounts.map((s) => (
           <div key={s.label} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${s.color}`}>
