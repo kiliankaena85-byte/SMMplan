@@ -11,21 +11,50 @@ import {
 } from "@/components/ui/select";
 import { formatPricePerUnit } from "@/utils/format-price";
 
+interface ServiceItem {
+  service: string | number;
+  name: string;
+  cleanName?: string;
+  pricePerUnitProcurementRub?: number;
+  alreadyImported?: boolean;
+  min?: string;
+  refill?: boolean;
+  metrics?: {
+    platform?: string;
+    geo?: string;
+    warranty?: number;
+    anomalyScore?: number;
+  };
+  [key: string]: unknown;
+}
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  network: {
+    name: string;
+  };
+  [key: string]: unknown;
+}
+
+interface FiltersState {
+  sortBy: string;
+  page: number;
+  pageSize: number;
+  [key: string]: unknown;
+}
+
 interface ServicesTableProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  services: any[];
+  services: ServiceItem[];
   selectedIds: Set<string>;
   toggleSelection: (id: string) => void;
   toggleAll: () => void;
   loading: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filters: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setFilters: (f: any) => void;
+  filters: FiltersState;
+  setFilters: (f: FiltersState) => void;
   pagination: { page: number; totalPages: number; total: number; pageSize: number };
   markup?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories: any[];
+  categories: CategoryItem[];
   selectedCategories: Record<string, string>;
   onCategoryChange: (serviceId: string, categoryId: string) => void;
   autoMappedCategories: Record<string, string>;
@@ -67,7 +96,6 @@ export function ServicesTable({
   categories = [],
   selectedCategories = {},
   onCategoryChange,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   autoMappedCategories = {},
   aiConfidence = {},
   showCategoryColumn = false,

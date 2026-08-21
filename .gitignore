@@ -1,79 +1,89 @@
-node_modules
-.next
-.env
-.env.bak
-.env.local
-.env.production
-.env.development
-*.tsbuildinfo
+```
+# Dependencies
+node_modules/
 
-# ── Staging env (contains real secrets — treat as compromised) ──
-.env.staging
-.env.staging.local
+# Build artifacts
+dist/
+build/
+target/
 
-# ── Build & deploy artifacts (should never be in Git) ──
-*.tar
-*.tar.gz
-*.patch
-*.zip
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.python-version
 
-# ── Analysis & report outputs ──
+# Logs
 *.log
-eslint_report.json
-eslint_report.html
-tsc-*.txt
-tsc_output.txt
-ts_errors.txt
-test_output.txt
-results.json
-out.html
-pin.html
-*.html
-*.png
-*.txt
 
-# ── Harness artifacts & reports ──
-.antigravity/reports/
-.antigravity/evidence/
-.gemini/
-.agent/
-.agents/
-.planning/audits/
-teamwork_projects/
-lovable_ui_spec.md
-test8_*.js
-test9_*.js
-test-smtp.mjs
-knowledge-service/data/indexer_state.json
+# Environment variables
+.env
+.env.local
+.env.*
 
-# ── Data dumps (one-off, not source code) ──
-stream-promotion-services.json
-curl_out.txt
-*.dump.json
-
-# ── SQLite dev database ──
-prisma/dev.db
-prisma/*.db
-
-# ── Playwright test results & artifacts ──
-test-results/
-playwright-report/
-e2e/playwright/.auth/
-
-# ── Coverage ──
-coverage/
-.nyc_output/
-
-# ── OS-specific ──
-.DS_Store
-Thumbs.db
-
-# ── IDE ──
+# IDE files
+.vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# ── Local patch artifacts ──
-dist_patch/
-cloudflared.exe
-scratch/
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+
+# MyPy cache
+.mypy_cache/
+# Pytest cache
+.pytest_cache/
+
+# Gradle
+.gradle/
+
+# Compiled Binary files
+*.exe
+*.dll
+*.so
+*.a
+*.out
+```
