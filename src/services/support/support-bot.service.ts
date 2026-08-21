@@ -147,6 +147,10 @@ class SupportBotService {
   private async tgCall(method: string, body: Record<string, unknown>): Promise<{ ok: boolean; result?: { message_id: number } }> {
     const token = this.getBotToken();
     if (!token || token === 'dummy_token') {
+      try {
+        const fs = await import('fs');
+        fs.appendFileSync('d:/SMM_plan_2/telegram_dispatch.log', `[${new Date().toISOString()}] tgCall ERROR: token is empty/dummy\n`);
+      } catch { /* ignore */ }
       throw new Error('TELEGRAM_BOT_TOKEN not set');
     }
     const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
@@ -155,6 +159,10 @@ class SupportBotService {
       body: JSON.stringify(body),
     });
     const json = await res.json() as { ok: boolean; result?: { message_id: number }; description?: string };
+    try {
+      const fs = await import('fs');
+      fs.appendFileSync('d:/SMM_plan_2/telegram_dispatch.log', `[${new Date().toISOString()}] tgCall ${method} res: ok=${json.ok} msgId=${json.result?.message_id} err=${json.description}\n`);
+    } catch { /* ignore */ }
     if (!json.ok) {
       throw new Error(`Telegram API [${method}]: ${json.description ?? 'unknown error'}`);
     }
@@ -167,6 +175,10 @@ class SupportBotService {
    */
   async sendSupportReply(telegramId: string, text: string, replyToTgMsgId?: string, mediaUrl?: string, mediaType?: string): Promise<string | null> {
     const token = this.getBotToken();
+    try {
+      const fs = await import('fs');
+      fs.appendFileSync('d:/SMM_plan_2/telegram_dispatch.log', `[${new Date().toISOString()}] sendSupportReply START: chat=${telegramId} hasToken=${!!token} tokenLen=${token?.length}\n`);
+    } catch { /* ignore */ }
     if (!token || token === 'dummy_token') {
       console.warn('[SupportBot] sendSupportReply skipped: TELEGRAM_BOT_TOKEN not set');
       return null;
