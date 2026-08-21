@@ -107,8 +107,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
 
   // Map to strict DTO — no raw Prisma objects on client
   const services: CatalogServiceDTO[] = rawServices.map(s => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = s as any;
+    const raw = s as typeof rawServices[0];
     return {
       id: s.id,
       numericId: s.numericId,

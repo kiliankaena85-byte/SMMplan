@@ -4,6 +4,59 @@ import { AlertTriangle } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
+interface ServiceWithRelations {
+  id: string;
+  name: string;
+  rate: number;
+  pendingRate: number | null;
+  quarantineReason: string | null;
+  cooldownReason: string | null;
+  quarantinedAt: Date | null;
+  cooldownUntil: Date | null;
+  externalId: string | null;
+  updatedAt: Date;
+  category: {
+    name: string;
+    network: { slug: string } | null;
+  };
+  provider: { id: string; name: string } | null;
+}
+
+interface AutoFixLog {
+  id: string;
+  target: string;
+  action: string;
+  oldValue: string | null;
+  newValue: string | null;
+  createdAt: Date;
+}
+
+interface QuarantineItemDto {
+  id: string;
+  name: string;
+  categoryName: string;
+  networkSlug: string;
+  providerName: string;
+  currentRate: number;
+  pendingRate: number | null;
+  quarantineReason: string;
+  quarantinedAt: string;
+  externalId: string;
+  cooldownUntil: string | null;
+}
+
+interface AutoFixItemDto {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  categoryName: string;
+  networkSlug: string;
+  providerName: string;
+  oldValue: Record<string, string | number | null> | null;
+  newValue: Record<string, string | number | null> | null;
+  createdAt: string;
+}
+
 export const dynamic = 'force-dynamic';
 
 export default async function QuarantinePage() {
@@ -12,12 +65,12 @@ export default async function QuarantinePage() {
       where: { isQuarantined: true },
       include: { category: { include: { network: true } }, provider: { select: { id: true, name: true } } },
       orderBy: { quarantinedAt: 'desc' },
-    }),
+    }) as Promise<ServiceWithRelations[]>,
     db.service.findMany({
       where: { cooldownReason: 'ZOMBIE_AUTO_DISABLED', isActive: false },
       include: { category: { include: { network: true } }, provider: { select: { id: true, name: true } } },
       orderBy: { updatedAt: 'desc' },
-    }),
+    }) as Promise<ServiceWithRelations[]>,
     db.service.findMany({
       where: {
         cooldownUntil: { gt: new Date() },
@@ -25,16 +78,15 @@ export default async function QuarantinePage() {
       },
       include: { category: { include: { network: true } }, provider: { select: { id: true, name: true } } },
       orderBy: { cooldownUntil: 'desc' },
-    }),
+    }) as Promise<ServiceWithRelations[]>,
     db.adminAuditLog.findMany({
       where: { action: 'SERVICE_AUTO_FIX' },
       orderBy: { createdAt: 'desc' },
       take: 100,
-    }),
+    }) as Promise<AutoFixLog[]>,
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapToDto = (s: any) => ({
+  const mapToDto = (s: ServiceWithRelations): QuarantineItemDto => ({
     id: s.id,
     name: s.name,
     categoryName: s.category.name,
