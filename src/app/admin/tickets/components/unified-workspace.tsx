@@ -350,44 +350,46 @@ export function UnifiedTicketsWorkspace({
                     <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 font-black text-xs border border-border text-foreground bg-muted">
                       {activeTicket.user.email.substring(0, 2).toUpperCase()}
                     </div>
-                    <div className="min-w-0">
-                      <h2 className="font-black text-xs leading-tight mb-1 truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs text-foreground" title={activeTicket.subject}>
-                        {activeTicket.subject}
-                      </h2>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 text-[10px] font-bold">
-                        <span className="flex items-center gap-1 truncate max-w-[140px] sm:max-w-none text-muted-foreground" title={activeTicket.user.email}>
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h2 className="font-black text-xs leading-tight truncate max-w-[180px] sm:max-w-xs text-foreground" title={activeTicket.subject}>
+                          {activeTicket.subject}
+                        </h2>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider shrink-0 ${
+                          activeTicket.status === 'OPEN' ? 'bg-destructive/15 text-destructive-text border border-destructive/25' :
+                          activeTicket.status === 'PENDING' ? 'bg-warning/15 text-warning-text border border-warning/25' :
+                          'bg-success/15 text-success-text border border-success/25'
+                        }`}>
+                          {activeTicket.status === 'OPEN' ? 'В работе' : activeTicket.status === 'PENDING' ? 'Ожидание' : 'Закрыт'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold overflow-hidden flex-nowrap">
+                        <span className="flex items-center gap-1 truncate max-w-[120px] sm:max-w-[160px] text-muted-foreground shrink-0" title={activeTicket.user.email}>
                           <Mail className="w-3 h-3 shrink-0 text-muted-foreground" /> <span className="truncate text-muted-foreground">{activeTicket.user.email}</span>
                         </span>
                         <span className="hidden sm:inline w-1 h-1 rounded-full bg-border shrink-0" />
-                        <span className="text-foreground flex items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0 w-max">
+                        <span className="text-foreground flex items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0">
                           <Wallet className="w-3 h-3 shrink-0 text-muted-foreground" /> {canSeeFinances ? formatBalance(activeTicket.user.balance) : '🔒 *** ₽'}
                         </span>
                         {canSeeRates && activeTicket.user.totalSpent !== undefined && (
-                          <>
-                            <span className="hidden sm:inline w-1 h-1 rounded-full bg-border shrink-0" />
-                            <span className="text-foreground flex items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0 w-max" title="Общий объем покупок клиента (LTV)">
-                              LTV: {formatBalance(Number(activeTicket.user.totalSpent))}
-                            </span>
-                          </>
+                          <span className="hidden 3xl:inline-flex text-foreground items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0" title="Общий объем покупок клиента (LTV)">
+                            LTV: {formatBalance(Number(activeTicket.user.totalSpent))}
+                          </span>
                         )}
-                        <span className="hidden sm:inline w-1 h-1 rounded-full bg-border shrink-0" />
                         <a
                           href={`/admin/orders?userId=${activeTicket.user.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-foreground hover:bg-muted flex items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0 w-max transition-all duration-200"
+                          className="hidden 3xl:inline-flex text-foreground hover:bg-muted items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0 transition-all duration-200"
                           title="Открыть все заказы клиента"
                         >
                           <ExternalLink className="w-3 h-3 shrink-0" />
                           <span>Все заказы</span>
                         </a>
                         {activeTicket.user.b2bConfig?.isB2b && (
-                          <>
-                            <span className="hidden sm:inline w-1 h-1 rounded-full bg-border shrink-0" />
-                            <span className="px-1.5 py-0.5 bg-warning/10 text-warning-text border border-warning/20 rounded text-[9px] font-black uppercase shrink-0 animate-pulse select-none" title="Приоритетный B2B клиент">
-                              Priority B2B
-                            </span>
-                          </>
+                          <span className="px-1.5 py-0.5 bg-warning/10 text-warning-text border border-warning/20 rounded text-[9px] font-black uppercase shrink-0 animate-pulse select-none" title="Приоритетный B2B клиент">
+                            B2B
+                          </span>
                         )}
                       </div>
                     </div>

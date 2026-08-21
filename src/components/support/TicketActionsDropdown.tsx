@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition } from 'react';
-import { MoreVertical, CheckCircle, Clock, FileText, RefreshCw } from 'lucide-react';
+import { CheckCircle, Clock, FileText, RefreshCw, ChevronDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuGroup } from '@/components/ui/dropdown-menu';
 import { changeTicketStatus } from '@/actions/support/ticket';
 import { Template } from './TemplateManagerModal';
@@ -35,90 +35,52 @@ export default function TicketActionsDropdown({
 
   return (
     <div className="flex items-center gap-1.5 shrink-0">
-      {/* 1-Click Direct Status Pills - Ultra-wide screens only */}
-      <div className="hidden 2xl:flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border shrink-0">
-        <button
-          type="button"
-          onClick={() => handleStatusChange('OPEN')}
-          disabled={isPending || currentStatus === 'OPEN'}
-          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-            currentStatus === 'OPEN'
-              ? 'bg-destructive/15 text-destructive-text border border-destructive/25 shadow-xs'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background'
-          }`}
-          title="Взять в работу"
-        >
-          <RefreshCw className={`w-3 h-3 ${isPending && currentStatus === 'OPEN' ? 'animate-spin' : ''}`} />
-          <span>В работе</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleStatusChange('PENDING')}
-          disabled={isPending || currentStatus === 'PENDING'}
-          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-            currentStatus === 'PENDING'
-              ? 'bg-warning/15 text-warning-text border border-warning/25 shadow-xs'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background'
-          }`}
-          title="Ожидает ответа клиента"
-        >
-          <Clock className={`w-3 h-3 ${isPending && currentStatus === 'PENDING' ? 'animate-spin' : ''}`} />
-          <span>Ожидание</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleStatusChange('CLOSED')}
-          disabled={isPending || currentStatus === 'CLOSED'}
-          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-            currentStatus === 'CLOSED'
-              ? 'bg-success/15 text-success-text border border-success/25 shadow-xs'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background'
-          }`}
-          title="Закрыть тикет"
-        >
-          <CheckCircle className={`w-3 h-3 ${isPending && currentStatus === 'CLOSED' ? 'animate-spin' : ''}`} />
-          <span>Закрыт</span>
-        </button>
-      </div>
-
       <DropdownMenu>
         <DropdownMenuTrigger 
           disabled={isPending}
-          className="min-h-[44px] min-w-[44px] lg:min-w-max px-3 inline-flex items-center justify-center gap-2 shadow-sm rounded-xl border border-border bg-card hover:bg-muted text-sm font-medium transition-colors outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-foreground"
+          className="h-9 px-3.5 inline-flex items-center justify-center gap-1.5 shadow-xs rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-xs font-bold text-primary transition-all outline-none disabled:opacity-50 disabled:pointer-events-none cursor-pointer shrink-0 active:scale-95"
         >
-          <span className="hidden lg:inline font-medium text-foreground">Меню</span>
-          <MoreVertical className="w-4 h-4 text-muted-foreground" />
+          <span>Действия</span>
+          {isPending ? (
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+          )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl border-border shadow-xl p-1 bg-card text-card-foreground">
+        <DropdownMenuContent align="end" className="w-60 mt-2 rounded-xl border-border shadow-xl p-1 bg-card text-card-foreground">
           <DropdownMenuGroup>
-            <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground font-bold px-2 py-1.5 flex items-center gap-2">
-              Статус тикета
-              {isPending && <RefreshCw className="w-3 h-3 animate-spin"/>}
+            <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground font-bold px-2 py-1.5 flex items-center justify-between">
+              <span>Статус диалога</span>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase ${
+                currentStatus === 'OPEN' ? 'bg-destructive/15 text-destructive-text' :
+                currentStatus === 'PENDING' ? 'bg-warning/15 text-warning-text' :
+                'bg-success/15 text-success-text'
+              }`}>
+                {currentStatus === 'OPEN' ? 'В работе' : currentStatus === 'PENDING' ? 'Ожидание' : 'Закрыт'}
+              </span>
             </DropdownMenuLabel>
             
             <DropdownMenuItem 
-              className={`cursor-pointer rounded-lg mb-1 flex items-center gap-2 ${currentStatus === 'OPEN' ? 'bg-muted font-bold' : ''}`}
+              className={`cursor-pointer rounded-lg mb-1 flex items-center gap-2 text-xs font-medium ${currentStatus === 'OPEN' ? 'bg-muted font-bold text-destructive-text' : ''}`}
               onClick={() => handleStatusChange('OPEN')}
             >
               <RefreshCw className="w-4 h-4 text-destructive" />
-              В работе (клиент ждёт)
+              Взять в работу
             </DropdownMenuItem>
 
             <DropdownMenuItem 
-              className={`cursor-pointer rounded-lg mb-1 flex items-center gap-2 ${currentStatus === 'PENDING' ? 'bg-muted font-bold' : ''}`}
+              className={`cursor-pointer rounded-lg mb-1 flex items-center gap-2 text-xs font-medium ${currentStatus === 'PENDING' ? 'bg-muted font-bold text-warning-text' : ''}`}
               onClick={() => handleStatusChange('PENDING')}
             >
               <Clock className="w-4 h-4 text-warning" />
-              В ожидании (ответ дан)
+              Перевести в ожидание
             </DropdownMenuItem>
 
             <DropdownMenuItem 
-              className={`cursor-pointer rounded-lg mb-1 flex items-center gap-2 ${currentStatus === 'CLOSED' ? 'bg-muted font-bold' : ''}`}
+              className={`cursor-pointer rounded-lg mb-1 flex items-center gap-2 text-xs font-medium ${currentStatus === 'CLOSED' ? 'bg-muted font-bold text-success-text' : ''}`}
               onClick={() => handleStatusChange('CLOSED')}
             >
-              <CheckCircle className="w-4 h-4 text-muted-foreground" />
+              <CheckCircle className="w-4 h-4 text-success" />
               Закрыть тикет
             </DropdownMenuItem>
           </DropdownMenuGroup>
@@ -126,7 +88,7 @@ export default function TicketActionsDropdown({
           <DropdownMenuSeparator className="my-1 bg-border" />
           
           <DropdownMenuItem 
-            className="cursor-pointer rounded-lg flex items-center gap-2 hover:bg-destructive/10 hover:text-destructive-text font-medium mb-1"
+            className="cursor-pointer rounded-lg flex items-center gap-2 hover:bg-destructive/10 hover:text-destructive-text text-xs font-medium mb-1"
             onClick={() => onOpenRefill?.()}
           >
             <RefreshCw className="w-4 h-4 text-destructive" />
@@ -134,11 +96,11 @@ export default function TicketActionsDropdown({
           </DropdownMenuItem>
 
           <DropdownMenuItem 
-            className="cursor-pointer rounded-lg flex items-center gap-2 hover:bg-primary/10 hover:text-primary"
+            className="cursor-pointer rounded-lg flex items-center gap-2 hover:bg-primary/10 hover:text-primary text-xs font-medium"
             onClick={() => onOpenTemplates?.()}
           >
-            <FileText className="w-4 h-4" />
-            Управление шаблонами
+            <FileText className="w-4 h-4 text-primary" />
+            Шаблоны быстрых ответов
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
