@@ -16,12 +16,23 @@ export const dynamic = 'force-dynamic';
 export default async function MarketingPage() {
   await enforceSectionAccess('marketing');
 
-  const [promos, stats, rawTopReferrers, chartData] = await Promise.all([
-    adminMarketingService.listPromoCodes(),
-    adminMarketingService.getReferralStats(),
-    adminMarketingService.listTopReferrers(),
-    adminMarketingService.getReferralChartData(),
-  ]);
+  let promos, stats, rawTopReferrers, chartData;
+  
+  try {
+    [promos, stats, rawTopReferrers, chartData] = await Promise.all([
+      adminMarketingService.listPromoCodes(),
+      adminMarketingService.getReferralStats(),
+      adminMarketingService.listTopReferrers(),
+      adminMarketingService.getReferralChartData(),
+    ]);
+  } catch (error) {
+    console.error('Failed to load marketing data:', error);
+    throw new Error('Не удалось загрузить данные маркетинга');
+  }
+
+  if (!promos || !stats || !rawTopReferrers || !chartData) {
+    throw new Error('Некорректные данные маркетинга');
+  }
 
   const topReferrers = rawTopReferrers.map(r => ({
     id: r.id,
