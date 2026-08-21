@@ -112,11 +112,40 @@ class SupportBotService {
   }
 
   /**
+   * Resolve Telegram Bot Token with dynamic .env fallback if running process lacked it on start.
+   */
+  private getBotToken(): string {
+    if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== 'dummy_token') {
+      return process.env.TELEGRAM_BOT_TOKEN;
+    }
+    try {
+      const envPath = path.resolve(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf8');
+        for (const line of content.split('\n')) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('TELEGRAM_BOT_TOKEN=')) {
+            let val = trimmed.slice('TELEGRAM_BOT_TOKEN='.length).trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1);
+            }
+            if (val && val !== 'dummy_token') {
+              process.env.TELEGRAM_BOT_TOKEN = val;
+              return val;
+            }
+          }
+        }
+      }
+    } catch { /* ignore */ }
+    return '';
+  }
+
+  /**
    * Low-level Telegram Bot API call via native fetch.
    * Works reliably in both Next.js Server Actions and standalone bot process contexts.
    */
   private async tgCall(method: string, body: Record<string, unknown>): Promise<{ ok: boolean; result?: { message_id: number } }> {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const token = this.getBotToken();
     if (!token || token === 'dummy_token') {
       throw new Error('TELEGRAM_BOT_TOKEN not set');
     }
@@ -137,7 +166,7 @@ class SupportBotService {
    * Uses native fetch → works reliably in Next.js Server Action context.
    */
   async sendSupportReply(telegramId: string, text: string, replyToTgMsgId?: string, mediaUrl?: string, mediaType?: string): Promise<string | null> {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const token = this.getBotToken();
     if (!token || token === 'dummy_token') {
       console.warn('[SupportBot] sendSupportReply skipped: TELEGRAM_BOT_TOKEN not set');
       return null;
