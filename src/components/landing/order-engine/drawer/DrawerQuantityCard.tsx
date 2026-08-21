@@ -4,6 +4,7 @@ import React from "react";
 import { Plus, Minus, Lock } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { getServiceFlags } from "@/utils/url-analyzer";
+import { formatPricePerUnit } from "@/utils/format-price";
 
 interface DrawerQuantityCardProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,8 +15,6 @@ interface DrawerQuantityCardProps {
   pricing: any;
   engine: OrderEngine;
 }
-
-import { formatPricePerUnit } from '@/utils/format-price';
 
 export function DrawerQuantityCard({
   selectedService,
@@ -35,17 +34,14 @@ export function DrawerQuantityCard({
 
   const handleIncrement = () => {
     if (isCustomComments) return;
-    setQuantity(Math.min(max, quantity + 50));
+    const step = quantity >= 1000 ? 500 : (quantity >= 100 ? 50 : 10);
+    setQuantity(Math.min(max, quantity + step));
   };
 
   const handleDecrement = () => {
     if (isCustomComments) return;
-    setQuantity(Math.max(min, quantity - 50));
-  };
-
-  const handleQuickAdd = (amount: number) => {
-    if (isCustomComments) return;
-    setQuantity(Math.min(max, Math.max(min, quantity + amount)));
+    const step = quantity > 1000 ? 500 : (quantity > 100 ? 50 : 10);
+    setQuantity(Math.max(min, quantity - step));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,26 +60,26 @@ export function DrawerQuantityCard({
   };
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-5 space-y-4 shadow-sm">
+    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-4.5 space-y-3 shadow-sm">
       <div className="flex items-center justify-between">
         <label className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider">
           Количество заказа
         </label>
-        <span className="text-xs sm:text-sm font-bold text-primary font-mono tabular-nums bg-primary/10 px-2.5 py-1 rounded-lg">
+        <span className="text-xs sm:text-sm font-bold text-primary font-mono tabular-nums bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20">
           {formatPricePerUnit(pricePerUnit)} ₽ / шт
         </span>
       </div>
 
       {/* Stepper controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         <button
           type="button"
           onClick={handleDecrement}
           disabled={quantity <= min || isCustomComments}
-          className="w-13 h-13 min-w-[48px] min-h-[48px] bg-background hover:bg-content2 border border-border/80 text-foreground rounded-xl flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none active:scale-90 cursor-pointer shadow-2xs group"
+          className="w-11 h-11 sm:w-12 sm:h-12 bg-background hover:bg-content2 border border-border/80 text-foreground rounded-xl flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none active:scale-90 cursor-pointer shadow-2xs group shrink-0"
           title="Уменьшить"
         >
-          <Minus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <Minus className="w-4 h-4 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform" />
         </button>
 
         <div className="flex-1 relative">
@@ -101,7 +97,8 @@ export function DrawerQuantityCard({
               const target = e.target;
               setTimeout(() => target.select(), 0);
             }}
-            className={`w-full h-13 px-4 rounded-xl border border-border/80 bg-background text-xl font-black tabular-nums font-mono text-foreground text-center focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs ${
+            placeholder={String(min)}
+            className={`w-full h-11 sm:h-12 px-3 rounded-xl border border-border/80 bg-background text-lg sm:text-xl font-black tabular-nums font-mono text-foreground text-center focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs ${
               isCustomComments ? "opacity-75 cursor-not-allowed select-none bg-content2" : ""
             }`}
           />
@@ -116,50 +113,18 @@ export function DrawerQuantityCard({
           type="button"
           onClick={handleIncrement}
           disabled={quantity >= max || isCustomComments}
-          className="w-13 h-13 min-w-[48px] min-h-[48px] bg-background hover:bg-content2 border border-border/80 text-foreground rounded-xl flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none active:scale-90 cursor-pointer shadow-2xs group"
+          className="w-11 h-11 sm:w-12 sm:h-12 bg-background hover:bg-content2 border border-border/80 text-foreground rounded-xl flex items-center justify-center transition-all disabled:opacity-40 disabled:pointer-events-none active:scale-90 cursor-pointer shadow-2xs group shrink-0"
           title="Увеличить"
         >
-          <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <Plus className="w-4 h-4 sm:w-4.5 sm:h-4.5 group-hover:scale-110 transition-transform" />
         </button>
       </div>
 
-      {/* Range Slider */}
-      {!isCustomComments && (
-        <div className="px-1 pt-1">
-          <input
-            type="range"
-            min={min}
-            max={Math.min(max, min * 100)} // Caps the slider range so it stays interactive if max is too large
-            value={quantity}
-            onChange={handleInputChange}
-            className="w-full h-2 bg-border/80 rounded-lg appearance-none cursor-pointer accent-primary transition-all"
-            style={{
-              background: `linear-gradient(to right, var(--color-primary) ${((quantity - min) / (Math.min(max, min * 100) - min)) * 100}%, var(--color-border) ${((quantity - min) / (Math.min(max, min * 100) - min)) * 100}%)`
-            }}
-          />
-        </div>
-      )}
-
-      {/* Quick Add Chips (Yandex Go style) */}
-      {!isCustomComments ? (
-        <div className="grid grid-cols-4 gap-2 pt-1">
-          {[100, 500, 1000, 5000].map((amount) => (
-            <button
-              key={amount}
-              type="button"
-              onClick={() => handleQuickAdd(amount)}
-              className="min-h-[44px] bg-background hover:bg-primary/10 hover:text-primary hover:border-primary/50 border border-border/80 text-foreground font-black text-xs sm:text-sm py-2 px-3 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 shadow-2xs flex items-center justify-center tabular-nums font-mono"
-            >
-              +{amount.toLocaleString("ru-RU")}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center gap-2 leading-snug">
-          <span>ℹ️</span>
-          <span>Количество рассчитывается автоматически на основе введенного списка комментариев.</span>
-        </p>
-      )}
+      {/* Compact limits hint */}
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium px-1">
+        <span>Мин: <strong className="text-foreground font-mono">{min.toLocaleString("ru-RU")}</strong></span>
+        <span>Макс: <strong className="text-foreground font-mono">{max.toLocaleString("ru-RU")}</strong></span>
+      </div>
     </div>
   );
 }

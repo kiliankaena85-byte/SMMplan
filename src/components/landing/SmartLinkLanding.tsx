@@ -441,23 +441,7 @@ export function SmartLinkLanding({
 
       {/* ══════════ ACTIVE CHECKOUT VARIANT OVERLAYS ══════════ */}
       {!engine.isMassMode && !showSmartCart && (
-        <>
-          {checkoutMode === "modal" && (
-            <CenteredDialogCheckout {...checkoutVariantProps} />
-          )}
-
-          {checkoutMode === "wizard" && (
-            <StepWizardCheckout {...checkoutVariantProps} />
-          )}
-
-          {checkoutMode === "hud" && (
-            <FloatingHudCheckout {...checkoutVariantProps} />
-          )}
-
-          {checkoutMode === "bottom" && (
-            <BottomSheetCheckout {...checkoutVariantProps} />
-          )}
-        </>
+        <StepWizardCheckout {...checkoutVariantProps} />
       )}
 
       {/* ══════════ LINK MODAL (Progressive Disclosure) ══════════ */}

@@ -30,37 +30,42 @@ export function DrawerOrderSummary({
   const networkName = selectedNetworkObj?.name || "Платформа";
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-5 space-y-4 shadow-sm">
+    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-4.5 space-y-3 shadow-sm">
       {/* Platform & Service Header */}
-      <div className="flex items-start gap-3.5">
-        <div className="p-2.5 bg-background rounded-xl border border-border/80 shadow-xs shrink-0 flex items-center justify-center">
-          <SocialIcon slug={networkSlug} size={32} colored />
+      <div className="flex items-start gap-3">
+        <div className="p-2 bg-background rounded-xl border border-border/80 shadow-xs shrink-0 flex items-center justify-center">
+          <SocialIcon slug={networkSlug} size={28} colored />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-xs font-black text-primary uppercase tracking-wider">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-[11px] font-black text-primary uppercase tracking-wider">
               {networkName}
             </span>
-            <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-background border border-border/80 text-foreground/80">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-background border border-border/80 text-foreground/80">
               #{selectedService.numericId}
             </span>
+            {selectedService.speed && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                Запуск: {selectedService.speed}
+              </span>
+            )}
           </div>
-          <h4 className="text-base font-black text-foreground leading-snug break-words">
+          <h4 className="text-sm sm:text-base font-black text-foreground leading-snug break-words">
             {selectedService.name}
           </h4>
 
           {selectedService.description && (
-            <div className="mt-2.5">
+            <div className="mt-1.5">
               <button
                 type="button"
                 onClick={() => setIsDescExpanded(!isDescExpanded)}
-                className="text-xs font-black text-primary hover:text-primary/80 flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="text-[11px] font-bold text-primary hover:text-primary/80 flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <span>{isDescExpanded ? "Скрыть описание" : "Подробнее о тарифе"}</span>
               </button>
               
               {isDescExpanded && (
-                <div className="mt-2 text-xs font-medium text-foreground/90 bg-background border border-border/80 rounded-xl p-3.5 whitespace-pre-wrap leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="mt-2 text-xs font-medium text-foreground/90 bg-background border border-border/80 rounded-xl p-3 whitespace-pre-wrap leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200 max-h-36 overflow-y-auto">
                   {selectedService.description}
                 </div>
               )}
@@ -70,9 +75,9 @@ export function DrawerOrderSummary({
       </div>
 
       {/* Target Link Info */}
-      <div className="bg-background border border-border/80 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Link2 className="w-4.5 h-4.5 text-primary shrink-0" />
+      <div className="bg-background border border-border/80 rounded-xl p-2.5 sm:p-3 flex items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-2 min-w-0">
+          <Link2 className="w-4 h-4 text-primary shrink-0" />
           <p 
             className="text-xs sm:text-sm font-bold text-foreground truncate"
             title={url || "Ссылка не указана"}
@@ -83,7 +88,7 @@ export function DrawerOrderSummary({
         <button
           type="button"
           onClick={() => setShowLinkModal(true)}
-          className="p-2 hover:bg-content2 text-primary hover:text-primary/80 rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 flex items-center gap-1 text-xs font-bold"
+          className="p-1.5 hover:bg-content2 text-primary hover:text-primary/80 rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 flex items-center gap-1 text-xs font-bold"
           title="Изменить ссылку"
         >
           <Edit3 className="w-3.5 h-3.5" />
@@ -91,27 +96,10 @@ export function DrawerOrderSummary({
         </button>
       </div>
 
-      {/* Limits & Details Badge Info */}
-      <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs font-bold text-foreground">
-        {selectedService.speed && (
-          <div className="px-3 py-1.5 bg-background border border-border/80 rounded-xl shadow-2xs">
-            Запуск: <span className="text-primary font-black ml-1">{selectedService.speed}</span>
-          </div>
-        )}
-        <div className="px-3 py-1.5 bg-background border border-border/80 rounded-xl shadow-2xs">
-          Мин: <span className="font-black text-foreground ml-1">{selectedService.minQty}</span>
-        </div>
-        {selectedService.maxQty && (
-          <div className="px-3 py-1.5 bg-background border border-border/80 rounded-xl shadow-2xs">
-            Макс: <span className="font-black text-foreground ml-1">{selectedService.maxQty.toLocaleString("ru-RU")}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Warranty indicator */}
+      {/* Warranty indicator (if no guarantee) */}
       {selectedService.name.toLowerCase().includes("без гарант") && (
-        <div className="flex items-center gap-2 p-3 bg-danger/10 border border-danger/30 text-danger text-xs font-bold rounded-xl">
-          <ShieldAlert className="w-4 h-4 shrink-0" />
+        <div className="flex items-center gap-2 p-2.5 bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-bold rounded-xl">
+          <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
           <span>Тариф без гарантийного восстановления в случае списаний.</span>
         </div>
       )}

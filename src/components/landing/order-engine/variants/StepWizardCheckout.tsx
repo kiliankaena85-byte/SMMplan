@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, ArrowLeft, ArrowRight, CheckCircle2, Loader2, Sparkles, ShieldCheck } from "lucide-react";
+import { X, ArrowLeft, ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { CheckoutVariantProps } from "./types";
 import { DrawerOrderSummary } from "../drawer/DrawerOrderSummary";
 import { DrawerQuantityCard } from "../drawer/DrawerQuantityCard";
@@ -70,7 +70,7 @@ export function StepWizardCheckout({
   return (
     <AnimatePresence>
       {selectedService && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
           {/* Backdrop Blur */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -80,31 +80,31 @@ export function StepWizardCheckout({
             className="fixed inset-0 bg-background/70 backdrop-blur-md cursor-pointer"
           />
 
-          {/* Wizard Card */}
+          {/* Wizard Card (No vertical scroll on desktop; graceful scroll on small mobile) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ type: "spring", damping: 26, stiffness: 260 }}
-            className="relative w-full max-w-2xl bg-card border border-border shadow-2xl rounded-3xl overflow-hidden flex flex-col max-h-[92vh] z-10"
+            className="relative w-full max-w-2xl bg-card border border-border shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[92vh] z-10"
           >
-            {/* Top Wizard HUD */}
-            <div className="px-6 py-4 border-b border-border/80 bg-muted/20 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+            {/* Top Wizard Header */}
+            <div className="px-4 sm:px-5 py-3 border-b border-border/80 bg-muted/20 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
                   ID {selectedService.numericId}
                 </span>
-                <span className="text-sm font-black text-foreground truncate max-w-[280px] sm:max-w-[360px]">
+                <span className="text-xs sm:text-sm font-black text-foreground truncate max-w-[280px] sm:max-w-[420px]">
                   {selectedService.name}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-9 h-9 rounded-full bg-content2 hover:bg-content3 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-all cursor-pointer shrink-0"
+                className="w-8 h-8 rounded-full bg-content2 hover:bg-content3 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-all cursor-pointer shrink-0"
                 title="Закрыть"
               >
-                <X className="w-4.5 h-4.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -122,7 +122,7 @@ export function StepWizardCheckout({
                         setStep(s.num as 1 | 2 | 3);
                       }
                     }}
-                    className={`py-3 px-3 sm:px-4 text-left transition-all border-b-2 flex items-center gap-2.5 cursor-pointer ${
+                    className={`py-2.5 px-2.5 sm:px-4 text-left transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
                       isActive
                         ? "border-primary bg-primary/5 text-primary"
                         : isPassed
@@ -130,7 +130,7 @@ export function StepWizardCheckout({
                         : "border-transparent text-muted-foreground/60 hover:text-muted-foreground"
                     }`}
                   >
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 transition-all ${
+                    <div className={`w-5.5 h-5.5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 transition-all ${
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : isPassed
@@ -139,11 +139,11 @@ export function StepWizardCheckout({
                     }`}>
                       {isPassed ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.num}
                     </div>
-                    <div className="hidden sm:block">
-                      <p className={`text-xs font-black leading-tight ${isActive ? "text-primary" : "text-foreground"}`}>
+                    <div className="hidden sm:block min-w-0">
+                      <p className={`text-xs font-black leading-tight truncate ${isActive ? "text-primary" : "text-foreground"}`}>
                         {s.title}
                       </p>
-                      <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
+                      <p className="text-[10px] text-muted-foreground leading-none mt-0.5 truncate">
                         {s.desc}
                       </p>
                     </div>
@@ -153,14 +153,14 @@ export function StepWizardCheckout({
             </div>
 
             {/* Wizard Dynamic Content Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 scrollbar-thin">
               {/* STEP 1: QUANTITY */}
               {step === 1 && (
                 <motion.div
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
-                  className="space-y-4"
+                  className="space-y-3"
                 >
                   <DrawerOrderSummary
                     selectedService={selectedService}
@@ -187,7 +187,7 @@ export function StepWizardCheckout({
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
-                  className="space-y-4"
+                  className="space-y-3"
                 >
                   <DrawerOrderSummary
                     selectedService={selectedService}
@@ -205,18 +205,6 @@ export function StepWizardCheckout({
                     emailHasError={emailHasError}
                     engine={engine}
                   />
-
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-xs font-black text-foreground uppercase tracking-wide">
-                        Умная валидация ссылки
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                        Система автоматически проверит формат ссылки перед отправкой на исполнение в провайдер.
-                      </p>
-                    </div>
-                  </div>
                 </motion.div>
               )}
 
@@ -226,7 +214,7 @@ export function StepWizardCheckout({
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
-                  className="space-y-4"
+                  className="space-y-3"
                 >
                   <DrawerPaymentSelector
                     gateway={gateway}
@@ -235,23 +223,23 @@ export function StepWizardCheckout({
                     totalCents={pricing?.totalCents || 0}
                   />
 
-                  <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-2">
-                    <div className="flex items-center justify-between text-xs">
+                  <div className="p-3.5 rounded-2xl bg-muted/40 border border-border space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">Услуга:</span>
-                      <span className="font-bold text-foreground">{selectedService.name}</span>
+                      <span className="font-bold text-foreground truncate max-w-[280px]">{selectedService.name}</span>
                     </div>
-                    <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">Количество:</span>
                       <span className="font-bold text-foreground font-mono">{quantity.toLocaleString("ru-RU")} шт</span>
                     </div>
                     {url && (
-                      <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center justify-between">
                         <span className="text-muted-foreground font-medium">Цель:</span>
-                        <span className="font-mono text-primary truncate max-w-[200px]">{url}</span>
+                        <span className="font-mono text-primary truncate max-w-[260px]">{url}</span>
                       </div>
                     )}
                     {email && (
-                      <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center justify-between">
                         <span className="text-muted-foreground font-medium">Чек на email:</span>
                         <span className="font-bold text-foreground">{email}</span>
                       </div>
@@ -278,22 +266,22 @@ export function StepWizardCheckout({
             </div>
 
             {/* Wizard Navigation Footer */}
-            <div className="border-t border-border/80 bg-muted/10 p-5 sm:p-6 shrink-0 flex items-center justify-between">
+            <div className="border-t border-border/80 bg-muted/10 px-4 sm:px-5 py-3.5 shrink-0 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">
                   Итого к оплате
                 </span>
-                <p className="text-2xl font-black text-foreground tabular-nums font-mono">
-                  {formattedTotal} <span className="text-primary text-xl">₽</span>
+                <p className="text-xl sm:text-2xl font-black text-foreground tabular-nums font-mono">
+                  {formattedTotal} <span className="text-primary text-lg sm:text-xl">₽</span>
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 {step > 1 && (
                   <button
                     type="button"
                     onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-                    className="min-h-[48px] h-12 px-4 rounded-xl bg-content2 hover:bg-content3 border border-border text-foreground font-bold text-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="min-h-[44px] h-11 px-3.5 sm:px-4 rounded-xl bg-content2 hover:bg-content3 border border-border text-foreground font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Назад</span>
@@ -304,23 +292,23 @@ export function StepWizardCheckout({
                   <button
                     type="button"
                     onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-                    className="min-h-[48px] h-12 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+                    className="min-h-[44px] h-11 px-5 sm:px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
                   >
                     <span>Далее: {steps[step].title}</span>
-                    <ArrowRight className="w-4.5 h-4.5" />
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => handleCheckout(gateway)}
                     disabled={isSubmitting || isCalculating}
-                    className="min-h-[48px] h-12 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                    className="min-h-[44px] h-11 px-5 sm:px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                   >
                     {isSubmitting ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        <ShieldCheck className="w-4.5 h-4.5" />
+                        <ShieldCheck className="w-4 h-4" />
                         <span>{getButtonText()}</span>
                       </>
                     )}
