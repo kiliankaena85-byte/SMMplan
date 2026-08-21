@@ -15,7 +15,6 @@ import { Wallet, TrendingUp, TrendingDown, DollarSign, PieChart, Calculator, Ale
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
-import { TenantSelector } from '@/components/admin/tenant-selector';
 
 export const dynamic = 'force-dynamic';
 
@@ -129,9 +128,6 @@ export default async function FinanceDashboard({ searchParams }: Props) {
         icon={Wallet}
         title="Финансовый учёт & Касса"
         description="Метрики эффективности, P&L, реестр платежей, проводки и сверка счетов"
-        action={showTenantSelector ? (
-          <TenantSelector tenants={tenants} activeFilter={selectedTenant || 'all'} />
-        ) : undefined}
         tabs={FINANCE_TABS}
         onboardingKey="finance"
         onboarding={ONBOARDING_CONFIGS.finance}

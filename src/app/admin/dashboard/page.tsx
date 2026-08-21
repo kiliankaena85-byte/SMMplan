@@ -38,7 +38,6 @@ import { StormRadarWidget } from './StormRadarWidget';
 import { stormDetectorService } from '@/services/admin/storm-detector.service';
 import { CollapsibleWaveChart } from './CollapsibleWaveChart';
 import { PeriodSelector } from './PeriodSelector';
-import { AdminTenantSelector } from '@/components/admin/AdminTenantSelector';
 import { formatEta } from '@/utils/format-eta';
 import { formatKopecks } from '@/utils/format-kopecks';
 

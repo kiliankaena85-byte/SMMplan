@@ -7,7 +7,6 @@ import { Users, Download, Search, Building2, Wallet, ShieldAlert, Sparkles } fro
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
-import { TenantSelector } from '@/components/admin/tenant-selector';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export const dynamic = 'force-dynamic';
@@ -83,9 +82,6 @@ export default async function AdminClientsPage({ searchParams }: Props) {
         }
         action={(
           <div className="flex items-center gap-3">
-            {showTenantSelector && (
-              <TenantSelector tenants={tenants} activeFilter={selectedTenant || 'all'} />
-            )}
             <a
               href={`/api/admin/export?type=users&q=${encodeURIComponent(search)}`}
               className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-foreground bg-card/80 backdrop-blur-md border border-border shadow-xs rounded-xl hover:bg-muted transition-all active:scale-95"

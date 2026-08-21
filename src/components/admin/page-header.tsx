@@ -1,7 +1,6 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
-import { AdminTenantSelector } from '@/components/admin/AdminTenantSelector';
 
 interface BreadcrumbItem {
   label: string;
@@ -25,8 +24,6 @@ export function AdminPageHeader({
   description, 
   action, 
   breadcrumbs,
-  showTenantSelector = true,
-  currentTenant,
 }: AdminPageHeaderProps) {
   return (
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-border/50 mb-6">
@@ -63,7 +60,6 @@ export function AdminPageHeader({
         )}
       </div>
       <div className="flex items-center gap-2 flex-wrap">
-        {showTenantSelector && <AdminTenantSelector currentTenant={currentTenant} />}
         {action}
       </div>
     </div>
