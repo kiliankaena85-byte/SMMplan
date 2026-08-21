@@ -150,6 +150,12 @@ export function ChatMessageList({
             const isExpired =
               Date.now() - new Date(msg.createdAt).getTime() > 48 * 60 * 60 * 1000;
 
+            const isMyMessage = isStaff ? msg.sender !== 'USER' : msg.sender === 'USER';
+            const showAvatar = !isMyMessage;
+            const avatarInitial = isStaff ? getInitials(msg.sender, clientEmail) : 'OP';
+            const avatarGradient = isStaff ? getAvatarGradient(clientEmail || 'client') : 'from-blue-600 to-indigo-600';
+            const avatarTitle = isStaff ? 'Клиент' : 'Поддержка';
+
             return (
               <motion.div
                 key={messageKeysRef.current[msg.id] || msg.id}
@@ -177,28 +183,26 @@ export function ChatMessageList({
                   )}
                 <div
                   className={`flex ${
-                    msg.sender === 'USER' ? 'justify-start' : 'justify-end'
-                  } items-end mb-4 gap-4`}
+                    isMyMessage ? 'justify-end' : 'justify-start'
+                  } items-end mb-4 gap-3`}
                 >
-                  {msg.sender === 'USER' && (
+                  {showAvatar && (
                     <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-primary-foreground font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${getAvatarGradient(
-                        clientEmail || 'client'
-                      )} shrink-0`}
-                      title="Клиент"
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${avatarGradient} shrink-0`}
+                      title={avatarTitle}
                     >
-                      {getInitials(msg.sender, clientEmail)}
+                      {avatarInitial}
                     </div>
                   )}
                   <div
-                    className={`group relative max-w-[75%] p-4 shadow-xs transition-all duration-300 ${
+                    className={`group relative max-w-[75%] p-3.5 shadow-xs transition-all duration-300 ${
                       msg.isDeleted
-                        ? 'bg-default-100 text-default-400 opacity-80 rounded-[12px]'
-                        : msg.sender === 'USER'
-                        ? 'bg-card text-foreground rounded-tl-[12px] rounded-tr-[12px] rounded-br-[12px] rounded-bl-none'
+                        ? 'bg-default-100 text-default-400 opacity-80 rounded-[14px]'
+                        : isMyMessage
+                        ? 'bg-primary text-primary-foreground rounded-tl-[16px] rounded-tr-[16px] rounded-bl-[16px] rounded-br-[3px]'
                         : msg.sender === 'INTERNAL'
-                        ? 'bg-warning/10 text-warning-text rounded-tl-[12px] rounded-tr-[12px] rounded-bl-[12px] rounded-br-none'
-                        : 'bg-secondary text-secondary-foreground rounded-tl-[12px] rounded-tr-[12px] rounded-bl-[12px] rounded-br-none'
+                        ? 'bg-warning/10 text-warning-text border border-warning/30 rounded-tl-[16px] rounded-tr-[16px] rounded-br-[16px] rounded-bl-[3px]'
+                        : 'bg-card text-foreground border border-border/80 rounded-tl-[16px] rounded-tr-[16px] rounded-br-[16px] rounded-bl-[3px]'
                     } ${
                       msg.id.startsWith('temp-')
                         ? 'opacity-60 saturate-50 animate-pulse'
@@ -207,47 +211,33 @@ export function ChatMessageList({
                   >
                     {/* Telegram Bubble Tail */}
                     {!msg.isDeleted &&
-                      (msg.sender === 'USER' ? (
-                        <div className="absolute left-[-6px] bottom-0 w-[6px] h-4 pointer-events-none select-none">
+                      (!isMyMessage ? (
+                        <div className="absolute left-[-5px] bottom-0 w-[5px] h-3.5 pointer-events-none select-none">
                           <svg
-                            width="6"
-                            height="16"
-                            viewBox="0 0 6 16"
-                            className="text-card"
+                            width="5"
+                            height="14"
+                            viewBox="0 0 5 14"
+                            className={msg.sender === 'INTERNAL' ? 'text-warning/10' : 'text-card'}
                           >
                             <path
-                              d="M6 16 L0 16 C2 15 4.5 10 6 0 Z"
+                              d="M5 14 L0 14 C1.5 13 3.5 9 5 0 Z"
                               fill="currentColor"
                             />
                           </svg>
                         </div>
                       ) : (
-                        <div className="absolute right-[-6px] bottom-0 w-[6px] h-4 pointer-events-none select-none">
-                          {msg.sender === 'INTERNAL' ? (
-                            <svg
-                              width="6"
-                              height="16"
-                              viewBox="0 0 6 16"
-                              className="text-warning/10"
-                            >
-                              <path
-                                d="M0 16 L6 16 C4 15 1.5 10 0 0 Z"
-                                fill="currentColor"
-                              />
-                            </svg>
-                          ) : (
-                            <svg
-                              width="6"
-                              height="16"
-                              viewBox="0 0 6 16"
-                              className="text-secondary"
-                            >
-                              <path
-                                d="M0 16 L6 16 C4 15 1.5 10 0 0 Z"
-                                fill="currentColor"
-                              />
-                            </svg>
-                          )}
+                        <div className="absolute right-[-5px] bottom-0 w-[5px] h-3.5 pointer-events-none select-none">
+                          <svg
+                            width="5"
+                            height="14"
+                            viewBox="0 0 5 14"
+                            className="text-primary"
+                          >
+                            <path
+                              d="M0 14 L5 14 C3.5 13 1.5 9 0 0 Z"
+                              fill="currentColor"
+                            />
+                          </svg>
                         </div>
                       ))}
 
