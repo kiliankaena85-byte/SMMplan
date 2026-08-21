@@ -41,12 +41,16 @@ interface RegularUser extends User {
   _count: { orders: number; tickets: number };
 }
 
+interface StaffRoleWithPermissions extends StaffRole {
+  permissions: { id: string; name: string; section: string; canView: boolean; canEdit: boolean }[];
+}
+
 interface TeamManagementProps {
   staffUsers: StaffUser[];
   regularUsers: RegularUser[];
   searchQuery: string;
   currentAdminRole?: string;
-  staffRoles?: (StaffRole & { permissions: { id: string; name: string }[] })[];
+  staffRoles?: StaffRoleWithPermissions[];
 }
 
 export function TeamManagement({ 
@@ -101,16 +105,14 @@ export function TeamManagement({
       } else {
         toast.error(res.error);
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err) {
+    } catch {
       toast.error('Ошибка при обновлении лимита');
     }
   }
 
   async function handleUpdateRole(formData: FormData) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const res = await updateUserRole(formData);
+      await updateUserRole(formData);
       toast.success('Роль пользователя обновлена');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Ошибка при обновлении роли');
@@ -121,8 +123,7 @@ export function TeamManagement({
   const handleTogglePermission = (roleId: string, section: string, currentVal: boolean, type: 'view' | 'edit') => {
     startTransition(async () => {
       const existing = staffRoles.find(r => r.id === roleId);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const perm = existing?.permissions?.find((p: any) => p.section === section);
+      const perm = existing?.permissions?.find((p) => p.section === section);
       
       const nextView = type === 'view' ? !currentVal : (perm?.canView || false);
       const nextEdit = type === 'edit' ? !currentVal : (perm?.canEdit || false);
@@ -557,8 +558,7 @@ export function TeamManagement({
                     {/* Permissions Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
                       {['orders', 'finance', 'catalog', 'settings'].map((sec) => {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const perm = role.permissions?.find((p: any) => p.section === sec) || { canView: false, canEdit: false };
+                        const perm = role.permissions?.find((p) => p.section === sec) || { canView: false, canEdit: false };
                         return (
                           <div key={sec} className="p-3 rounded-lg border border-border/50 bg-background flex flex-col gap-2">
                             <span className="text-[10px] font-black uppercase tracking-widest text-foreground/80 border-b border-border/30 pb-1.5">

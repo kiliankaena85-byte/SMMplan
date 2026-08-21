@@ -166,7 +166,6 @@ export default async function AdminSettingsPage({
               <div className="p-0">
                 <DataTable 
                   columns={auditColumns} 
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   data={recentLogs}
                   searchKey="action"
                   searchPlaceholder="Поиск по действию..."
