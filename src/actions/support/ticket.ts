@@ -249,7 +249,7 @@ export async function changeTicketStatus(formData: FormData) {
     const isGlobalStaff = ['OWNER', 'ADMIN'].includes(admin.role);
     const oldTicket = await db.ticket.findFirst({
       where: isGlobalStaff ? { id: ticketId } : { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
-      select: { status: true }
+      select: { status: true, user: { select: { telegramId: true } } }
     });
 
     await db.ticket.update({
@@ -272,6 +272,16 @@ export async function changeTicketStatus(formData: FormData) {
       ipAddress
     });
 
+    // CSAT: When ticket is closed, send interactive rating buttons to user in Telegram
+    if (status === 'CLOSED' && oldTicket?.user?.telegramId) {
+      try {
+        const { supportBotService } = await import('@/services/support/support-bot.service');
+        await supportBotService.sendTicketClosedRating(oldTicket.user.telegramId, ticketId);
+      } catch (e) {
+        console.error('[changeTicketStatus] Error sending Telegram CSAT rating:', e);
+      }
+    }
+
     revalidatePath(`/admin/tickets/${ticketId}`);
     revalidatePath(`/admin/tickets`);
   });
@@ -283,7 +293,7 @@ const editMessageSchema = z.object({
 });
 
 export async function editTicketMessage(formData: FormData) {
-  return requireStaffPermission('orders', 'edit', async (user) => {
+  return requireStaffPermission('support', 'edit', async (user) => {
     const parsed = editMessageSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Ошибка редактирования сообщения');
     const { messageId, newText } = parsed.data;
@@ -332,6 +342,63 @@ export async function editTicketMessage(formData: FormData) {
       } catch (e) {
         console.error('[editTicketMessage] Error syncing edit to Telegram:', e);
         // We don't throw here to avoid failing the web UI if Telegram is temporarily down
+      }
+    }
+
+    revalidatePath(`/admin/tickets/${msg.ticketId}`);
+  });
+}
+
+const deleteMessageSchema = z.object({
+  messageId: z.string().min(1)
+});
+
+export async function deleteTicketMessage(formData: FormData) {
+  return requireStaffPermission('support', 'edit', async (user) => {
+    const parsed = deleteMessageSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!parsed.success) throw new Error('Ошибка удаления сообщения');
+    const { messageId } = parsed.data;
+
+    const msg = await db.ticketMessage.findUnique({ 
+      where: { id: messageId },
+      include: { ticket: { include: { user: true } } }
+    });
+    if (!msg) throw new Error('Message not found');
+    if (msg.sender === 'USER') {
+      throw new Error('Нельзя удалять сообщения пользователя');
+    }
+
+    const ipAddress = await getClientIp('unknown');
+    await db.$transaction(async (tx) => {
+      await tx.ticketMessage.update({
+        where: { id: messageId },
+        data: { 
+          isDeleted: true,
+          text: '[Сообщение удалено оператором]'
+        }
+      });
+
+      await tx.adminAuditLog.create({
+        data: {
+          adminId: user.id,
+          adminEmail: user.email,
+          action: 'TICKET_MESSAGE_DELETED',
+          target: msg.id,
+          targetType: 'TICKET_MESSAGE',
+          oldValue: msg.text,
+          newValue: '[DELETED]',
+          ipAddress
+        }
+      });
+    });
+
+    // Sync deletion to Telegram if applicable
+    if (msg.telegramMsgId && msg.ticket.user.telegramId && msg.sender === 'STAFF') {
+      try {
+        const { supportBotService } = await import('@/services/support/support-bot.service');
+        await supportBotService.deleteSupportReply(msg.ticket.user.telegramId, msg.telegramMsgId);
+      } catch (e) {
+        console.error('[deleteTicketMessage] Error deleting from Telegram:', e);
       }
     }
 

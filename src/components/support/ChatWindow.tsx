@@ -14,6 +14,7 @@ interface ChatWindowProps {
   initialTemplates?: { id: string, label: string, text: string }[];
   onSendMessage: (formData: FormData) => Promise<unknown>;
   editTicketMessage?: (formData: FormData) => Promise<unknown>;
+  deleteTicketMessage?: (formData: FormData) => Promise<unknown>;
   initialNextCursor?: string | null;
   isClosed?: boolean;
   initialOrders?: { id: string; numericId: number; status: string; serviceName: string; charge: number }[];
@@ -30,6 +31,7 @@ export default function ChatWindow({
   initialTemplates = EMPTY_TEMPLATES,
   onSendMessage,
   editTicketMessage,
+  deleteTicketMessage,
   initialNextCursor = null,
   isClosed = false,
   initialOrders = [],
@@ -112,6 +114,7 @@ export default function ChatWindow({
         onLoadOlder={handleLoadOlder}
         onSetReplyingTo={setReplyingTo}
         editTicketMessage={editTicketMessage}
+        deleteTicketMessage={deleteTicketMessage}
         setMessages={setMessages}
         isStaff={isStaff}
         onSelectOrder={onSelectOrder}

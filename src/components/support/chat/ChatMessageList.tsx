@@ -48,6 +48,8 @@ interface ChatMessageListProps {
   onSetReplyingTo: (msg: Message) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editTicketMessage?: (formData: FormData) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deleteTicketMessage?: (formData: FormData) => Promise<any>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   isStaff?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,6 +65,7 @@ export function ChatMessageList({
   onLoadOlder,
   onSetReplyingTo,
   editTicketMessage,
+  deleteTicketMessage,
   setMessages,
   isStaff,
   onSelectOrder,
@@ -115,6 +118,36 @@ export function ChatMessageList({
       // Rollback to original text
       setMessages((prev) =>
         prev.map((m) => (m.id === msgId ? { ...m, text: originalText } : m))
+      );
+    }
+  };
+
+  const handleDeleteSubmit = async (msgId: string) => {
+    if (!deleteTicketMessage) return;
+
+    const originalMsg = messages.find(m => m.id === msgId);
+    if (!originalMsg) return;
+
+    // Optimistic update
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? { ...m, isDeleted: true, text: '[Сообщение удалено]' } : m))
+    );
+
+    const fd = new FormData();
+    fd.set('messageId', msgId);
+
+    try {
+      const res = (await deleteTicketMessage(fd)) as { success?: boolean; error?: string } | null | undefined;
+      if (res && res.success === false) {
+        throw new Error(res.error || 'Ошибка при удалении сообщения');
+      }
+      toast.success('Сообщение удалено из чата и Telegram');
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Не удалось удалить сообщение';
+      toast.error(errMsg);
+      // Rollback
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msgId ? originalMsg : m))
       );
     }
   };
@@ -317,6 +350,34 @@ export function ChatMessageList({
                               </svg>
                             </button>
                           )
+                        )}
+
+                        {deleteTicketMessage && msg.sender !== 'USER' && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Удалить это сообщение из чата и Telegram?')) {
+                                handleDeleteSubmit(msg.id);
+                              }
+                            }}
+                            className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-destructive rounded-full bg-card shadow-sm border border-default-200 cursor-pointer"
+                            title="Удалить сообщение"
+                            aria-label="Удалить сообщение"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                          </button>
                         )}
                       </div>
                     )}

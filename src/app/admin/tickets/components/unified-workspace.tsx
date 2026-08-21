@@ -17,7 +17,8 @@ import {
 import { formatBalance } from '@/lib/utils';
 import { 
   adminReplyTicket, 
-  editTicketMessage 
+  editTicketMessage,
+  deleteTicketMessage
 } from '@/actions/support/ticket';
 import { cancelOrderAction, restartOrderAction } from '@/actions/admin/orders';
 import ChatWindow from '@/components/support/ChatWindow';
@@ -547,6 +548,7 @@ export function UnifiedTicketsWorkspace({
                     initialTemplates={templates}
                     onSendMessage={adminReplyTicket}
                     editTicketMessage={editTicketMessage}
+                    deleteTicketMessage={deleteTicketMessage}
                     initialNextCursor={activeTicket.nextCursor}
                     onSelectOrder={handleOpenOrderDrawer}
                     clientEmail={activeTicket.user.email}

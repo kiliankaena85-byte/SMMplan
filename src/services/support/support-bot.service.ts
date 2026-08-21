@@ -277,6 +277,34 @@ class SupportBotService {
     }
   }
 
+  /**
+   * CSAT: Send interactive rating buttons when ticket is closed
+   */
+  async sendTicketClosedRating(telegramId: string, ticketId: string): Promise<string | null> {
+    try {
+      const res = await this.tgCall('sendMessage', {
+        chat_id: telegramId,
+        text: '✅ <b>Ваш вопрос решён и тикет закрыт.</b>\n\nПожалуйста, оцените работу службы поддержки:',
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '⭐ 1', callback_data: `rate:${ticketId}:1` },
+              { text: '⭐ 2', callback_data: `rate:${ticketId}:2` },
+              { text: '⭐ 3', callback_data: `rate:${ticketId}:3` },
+              { text: '⭐ 4', callback_data: `rate:${ticketId}:4` },
+              { text: '⭐ 5', callback_data: `rate:${ticketId}:5` },
+            ]
+          ]
+        }
+      });
+      return res.result ? String(res.result.message_id) : null;
+    } catch (e) {
+      console.error('[SupportBot] Failed to send CSAT rating:', e);
+      return null;
+    }
+  }
+
   // --- Helper ---
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async downloadTelegramFile(ctx: any, fileId: string, ext: string, ticketId: string, fileSize?: number): Promise<string | null> {

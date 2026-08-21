@@ -490,6 +490,37 @@ bot.hears('📦 Мои заказы', async (ctx: any) => {
   await ctx.reply(text, { parse_mode: 'HTML' });
 });
 
+// ── CSAT RATING CALLBACK ──
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+bot.action(/^rate:([^:]+):(\d+)$/, async (ctx: any) => {
+  try {
+    await ctx.answerCbQuery('Спасибо за вашу оценку!').catch(() => {});
+    const ticketId = ctx.match[1];
+    const score = Number(ctx.match[2]);
+
+    try {
+      const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
+      if (ticket) {
+        const newTags = Array.from(new Set([...(ticket.tags || []), `CSAT_${score}_STAR`]));
+        await db.ticket.update({
+          where: { id: ticketId },
+          data: { tags: newTags }
+        });
+      }
+    } catch (dbErr) {
+      console.error('[Bot] Error saving CSAT rating to DB:', dbErr);
+    }
+
+    const stars = '⭐'.repeat(score);
+    await ctx.editMessageText(
+      `✅ <b>Тикет закрыт.</b>\n\nСпасибо за вашу оценку: ${stars} (${score}/5)!\nЕсли у вас возникнут новые вопросы, просто напишите в этот чат.`,
+      { parse_mode: 'HTML' }
+    ).catch(() => {});
+  } catch (e) {
+    console.error('[Bot] Rating action error:', e);
+  }
+});
+
 // ── CATCH-ALL (SUPPORT DIRECT CHAT MODE) ──
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 'location'], async (ctx: any, next: any) => {
