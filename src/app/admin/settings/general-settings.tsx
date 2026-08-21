@@ -20,10 +20,10 @@ import {
   SlidersHorizontal,
   Eye
 } from 'lucide-react';
+import { SystemSettings } from '@prisma/client';
 
 interface GeneralSettingsProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  settings: any;
+  settings: SystemSettings;
 }
 
 export function GeneralSettings({ settings }: GeneralSettingsProps) {
@@ -57,8 +57,13 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
 
   // Bot test states
   const [isTestingBot, setIsTestingBot] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [botTestResult, setBotTestResult] = useState<any>(null);
+  interface BotTestResult {
+    success: boolean;
+    username?: string;
+    pingMs?: number;
+    error?: string;
+  }
+  const [botTestResult, setBotTestResult] = useState<BotTestResult | null>(null);
 
   const handleTestBot = async () => {
     setIsTestingBot(true);
