@@ -14,6 +14,7 @@ import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 const paymentsParamsSchema = z.object({
   status:   z.enum(['ALL', 'PENDING', 'SUCCEEDED', 'CANCELED']).default('ALL'),
   period:   z.enum(['today', 'week', 'month', 'all']).default('month'),
+  gateway:  z.string().optional(),
   search:   z.string().max(255).optional(),
   cursor:   z.string().optional(),
   pageSize: z.number().int().min(1).max(200).default(50),
@@ -73,6 +74,7 @@ export async function getPaymentsAction(params: Partial<PaymentsParams>): Promis
 
     const where = {
       ...(p.status !== 'ALL' ? { status: p.status } : {}),
+      ...(p.gateway ? { gateway: p.gateway } : {}),
       ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
       ...(activeTenantId && activeTenantId !== 'all' ? { tenantId: activeTenantId } : {}),
       ...(searchTrim ? {

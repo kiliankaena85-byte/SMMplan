@@ -124,11 +124,11 @@ export default async function FinanceDashboard({ searchParams }: Props) {
   ];
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10 w-full animate-in fade-in duration-300">
       <AdminTabbedHeader
         icon={Wallet}
-        title="Финансовый учёт"
-        description="Метрики эффективности, балансы и история транзакций"
+        title="Финансовый учёт & Касса"
+        description="Метрики эффективности, P&L, реестр платежей, проводки и сверка счетов"
         action={showTenantSelector ? (
           <TenantSelector tenants={tenants} activeFilter={selectedTenant || 'all'} />
         ) : undefined}
@@ -137,94 +137,16 @@ export default async function FinanceDashboard({ searchParams }: Props) {
         onboarding={ONBOARDING_CONFIGS.finance}
       />
 
-      <QuarantineList entries={quarantineList} />
-
-      {/* ── KPI Grid ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {KPI.map(k => (
-          <div 
-            key={k.label} 
-            className="rounded-[24px] border border-border/60 shadow-xs bg-card/60 backdrop-blur-md overflow-hidden ring-1 ring-border/5 transition-all duration-200 hover:shadow-md hover:scale-[1.01] hover:border-border"
-          >
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div className={`p-2.5 rounded-xl ${k.color} text-primary-foreground shadow-md`}>
-                  <k.icon className="w-5 h-5" />
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{k.label}</p>
-                  <p className={`text-xl font-black font-mono tabular-nums mt-1 ${k.textColor}`}>{k.value}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 mt-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-tighter">{k.sub}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Breakdown & Settings ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-[24px] border border-border/50 shadow-sm bg-card/60 backdrop-blur-md overflow-hidden ring-1 ring-border/5">
-          <div className="p-8">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-primary/20 text-primary rounded-lg">
-                <PieChart className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Расчёт чистой прибыли</h3>
-            </div>
-
-            <div className="space-y-6">
-              {[
-                { label: 'Комиссии шлюзов',               value: -metrics.gatewayFees,  color: 'text-destructive',  desc: 'ЮKassa (3.5%) и CryptoBot (1%)' },
-                { label: 'Валовая маржа',                 value: metrics.marginGross,   color: 'text-foreground', desc: 'После вычета COGS, возвратов и комиссий' },
-                { label: `Налоги (${metrics.effectiveTaxRate.toFixed(1)}%)`, value: -metrics.taxes,        color: 'text-destructive',  desc: 'Оценочный налог на прибыль' },
-                { label: 'OPEX (Постоянные расходы)',     value: -metrics.opex,         color: 'text-destructive',  desc: 'Хостинг, софт, персонал' },
-              ].map(r => (
-                <div key={r.label} className="flex justify-between items-start group">
-                  <div className="space-y-0.5">
-                    <span className="text-sm font-bold text-foreground block">{r.label}</span>
-                    <span className="text-[11px] text-muted-foreground font-medium">{r.desc}</span>
-                  </div>
-                  <span className={`font-black tabular-nums text-sm ${r.color}`}>{fmt(Math.abs(r.value))}</span>
-                </div>
-              ))}
-
-              <div className={`mt-8 p-6 rounded-3xl flex justify-between items-center transition-all ${metrics.profitNet >= 0 ? 'bg-success text-primary-foreground shadow-success/20' : 'bg-destructive text-primary-foreground shadow-destructive/20'} shadow-2xl`}>
-                <div className="space-y-0.5">
-                  <span className="text-xs font-black uppercase tracking-widest opacity-80">Чистая прибыль (EBITDA)</span>
-                  <p className="text-[10px] font-bold opacity-60">За выбранный период: {period}</p>
-                </div>
-                <div className="text-3xl font-black tabular-nums">
-                  {fmt(metrics.profitNet)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-1 space-y-6">
-          <FinanceSettingsForm 
-            initialTaxRate={settings.taxRate} 
-            initialOpex={settings.opexMonthly} 
-          />
-          <VatThresholdWidget
-            annualRevenue={metrics.annualRevenue}
-            effectiveTaxRate={metrics.effectiveTaxRate}
-            isVatThresholdExceeded={metrics.isVatThresholdExceeded}
-          />
-        </div>
-      </div>
-
-      {/* ── Tabs: Ledger, Payments, Reconciliation & Topup ── */}
+      {/* ── 4 Clean Modular Tabs: Overview (P&L), Payments, Ledger, Reconciliation ── */}
       <FinanceClient 
         initialLedger={initialLedger} 
         initialPayments={initialPayments} 
         initialPeriod={period} 
         tenantId={activeTenantId} 
         initialReconciliationSummary={'error' in reconciliationSummaryResult ? undefined : reconciliationSummaryResult}
+        metrics={metrics}
+        settings={settings}
+        quarantineList={quarantineList}
       />
     </div>
   );
