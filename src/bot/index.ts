@@ -527,12 +527,15 @@ bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 
 // ── LAUNCH ──
 if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SKIP_BOT !== 'true') {
   if (TOKEN && TOKEN !== 'dummy_token') {
-    bot.launch().then(() => {
-      console.info('[Bot] ✅ Telegram bot launched successfully');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }).catch((e: any) => {
-      console.error('[Bot] ❌ Failed to launch:', e.message);
-    });
+    // Delete any lingering webhook (prevents 409 Conflict on polling restart)
+    bot.telegram.deleteWebhook({ drop_pending_updates: true })
+      .then(() => bot.launch({ dropPendingUpdates: true }))
+      .then(() => {
+        console.info('[Bot] ✅ Telegram bot launched successfully');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }).catch((e: any) => {
+        console.error('[Bot] ❌ Failed to launch:', e.message);
+      });
   }
 }
 
