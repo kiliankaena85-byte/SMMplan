@@ -31,7 +31,6 @@ import { useTheme } from 'next-themes';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { OrderDetailsModal } from '@/components/admin/OrderDetailsModal';
 import TemplateManagerModal from '@/components/support/TemplateManagerModal';
-import ManualRefillModal from '@/components/support/ManualRefillModal';
 
 
 
@@ -107,7 +106,6 @@ export function UnifiedTicketsWorkspace({
   const [isPending, startTransition] = useTransition();
   // Modal states — hoisted here so modals survive dropdown unmount (fixes crash on open)
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -427,10 +425,6 @@ export function UnifiedTicketsWorkspace({
                     <TicketActionsDropdown
                       ticketId={activeTicket.id}
                       currentStatus={activeTicket.status}
-                      templates={templates}
-                      supportLimitCents={supportLimitCents}
-                      onOpenRefill={() => setIsRefillModalOpen(true)}
-                      onOpenTemplates={() => setIsTemplateModalOpen(true)}
                     />
                     <Button
                       intent="ghost"
@@ -657,19 +651,11 @@ export function UnifiedTicketsWorkspace({
 
     {/* ── GLOBAL MODALS (hoisted above dropdown to survive unmount) ── */}
     {activeTicket && (
-      <>
-        <TemplateManagerModal
-          open={isTemplateModalOpen}
-          onClose={() => setIsTemplateModalOpen(false)}
-          templates={templates}
-        />
-        <ManualRefillModal
-          open={isRefillModalOpen}
-          onClose={() => setIsRefillModalOpen(false)}
-          ticketId={activeTicket.id}
-          supportLimitCents={supportLimitCents}
-        />
-      </>
+      <TemplateManagerModal
+        open={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+        templates={templates}
+      />
     )}
     </>
   );
