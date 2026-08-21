@@ -11,10 +11,10 @@ import { useActionState, useEffect, useState } from 'react';
 import { Loader2, Calculator, TrendingUp, Coins, Sparkles } from 'lucide-react';
 import { applyBeautifulRounding } from '@/lib/financial-constants';
 import { formatPricePerUnit, formatRubles } from '@/utils/format-price';
+import { SystemSettings } from '@prisma/client';
 
 interface CatalogSettingsProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  settings: any;
+  settings: SystemSettings;
 }
 
 export function CatalogSettings({ settings }: CatalogSettingsProps) {

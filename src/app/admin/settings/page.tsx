@@ -16,8 +16,18 @@ import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { SettingsProvider } from '@/lib/settings';
 import { SystemHealthOverview } from '@/components/admin/settings/system-health-overview';
+import { AdminAuditLog, User, StaffRole, SupportTemplate, SystemSettings } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
+
+interface SettingsPageData {
+  staffUsers: Awaited<ReturnType<typeof settingsService.listStaffUsers>>;
+  users: Awaited<ReturnType<typeof settingsService.listUsers>>;
+  settings: SystemSettings;
+  recentLogs: AdminAuditLog[];
+  staffRoles: (StaffRole & { permissions: { id: string; name: string }[] })[];
+  templates: SupportTemplate[];
+}
 
 export default async function AdminSettingsPage({
   searchParams,
@@ -30,14 +40,25 @@ export default async function AdminSettingsPage({
   const activeTab = params.tab || 'system';
   const searchQuery = params.q || '';
 
-  const [staffUsers, users, settings, recentLogs, staffRoles, templates] = await Promise.all([
-    settingsService.listStaffUsers(),
-    searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
-    settingsService.getSystemSettings(),
-    db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
-    db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
-    db.supportTemplate.findMany({ orderBy: { sort: 'asc' } }),
-  ]);
+  let pageData: SettingsPageData;
+
+  try {
+    const [staffUsers, users, settings, recentLogs, staffRoles, templates] = await Promise.all([
+      settingsService.listStaffUsers(),
+      searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
+      settingsService.getSystemSettings(),
+      db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
+      db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
+      db.supportTemplate.findMany({ orderBy: { sort: 'asc' } }),
+    ]);
+
+    pageData = { staffUsers, users, settings, recentLogs, staffRoles, templates };
+  } catch (error) {
+    console.error('[AdminSettingsPage] Failed to load settings data:', error);
+    throw new Error('Не удалось загрузить данные настроек. Попробуйте обновить страницу.');
+  }
+
+  const { staffUsers, users, settings, recentLogs, staffRoles, templates } = pageData;
 
   const sanitizedSettings = {
     ...settings,
@@ -146,7 +167,7 @@ export default async function AdminSettingsPage({
                 <DataTable 
                   columns={auditColumns} 
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  data={recentLogs as any} 
+                  data={recentLogs}
                   searchKey="action"
                   searchPlaceholder="Поиск по действию..."
                 />

@@ -10,10 +10,10 @@ import { updateGlobalSettings, generateInboundSecretAction } from '@/actions/adm
 import { toast } from 'sonner';
 import { useActionState, useEffect } from 'react';
 import { Loader2, Eye, EyeOff, Key, Sparkles, Bot, ShieldCheck } from 'lucide-react';
+import { SystemSettings } from '@prisma/client';
 
 interface IntegrationsSettingsProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  settings: any;
+  settings: SystemSettings;
 }
 
 export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {

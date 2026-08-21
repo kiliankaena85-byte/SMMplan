@@ -9,19 +9,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { upsertTemplate, deleteTemplate } from '@/actions/support/template';
 import { toast } from 'sonner';
 import { useState, useTransition } from 'react';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Loader2, Plus, Edit2, Trash2, Tag, Zap, Activity } from 'lucide-react';
+import { SupportTemplate } from '@prisma/client';
+
+interface TemplateWithUseCount extends SupportTemplate {
+  useCount?: number;
+}
 
 interface SupportTemplatesSettingsProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialTemplates: any[];
+  initialTemplates: TemplateWithUseCount[];
 }
 
 export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesSettingsProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [templates, setTemplates] = useState<any[]>(initialTemplates);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
+  const [templates, setTemplates] = useState<TemplateWithUseCount[]>(initialTemplates);
+  const [editingTemplate, setEditingTemplate] = useState<TemplateWithUseCount | null>(null);
   const [label, setLabel] = useState('');
   const [shortcut, setShortcut] = useState('');
   const [text, setText] = useState('');
@@ -30,8 +31,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
   const [sort, setSort] = useState(0);
   const [isPending, startTransition] = useTransition();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleEditClick = (t: any) => {
+  const handleEditClick = (t: TemplateWithUseCount) => {
     setEditingTemplate(t);
     setLabel(t.label);
     setShortcut(t.shortcut || '');
@@ -117,9 +117,9 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
         setTemplates(updatedTemplates);
         
         handleCancel();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error('Ошибка сохранения шаблона: ' + err.message);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
+        toast.error('Ошибка сохранения шаблона: ' + errorMessage);
       }
     });
   };
@@ -134,9 +134,9 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
         await deleteTemplate(formData);
         toast.success('Шаблон удален');
         setTemplates(prev => prev.filter(t => t.id !== id));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error('Ошибка удаления: ' + err.message);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
+        toast.error('Ошибка удаления: ' + errorMessage);
       }
     });
   };
