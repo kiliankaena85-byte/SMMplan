@@ -35,6 +35,14 @@ export function StepWizardCheckout({
 }: CheckoutVariantProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [gateway, setGateway] = useState<"yookassa" | "cryptobot" | "balance">("yookassa");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -56,7 +64,7 @@ export function StepWizardCheckout({
 
   const getButtonText = () => {
     if (isSubmitting) return "Секунду...";
-    if (gateway === "cryptobot") return "Оплатить через CryptoBot";
+    if (gateway === "cryptobot") return "Оплатить CryptoBot";
     if (gateway === "balance") return "Оплатить балансом";
     return "Оплатить картой РФ / СБП";
   };
@@ -70,7 +78,7 @@ export function StepWizardCheckout({
   return (
     <AnimatePresence>
       {selectedService && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-5 overflow-hidden">
           {/* Backdrop Blur */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -80,21 +88,34 @@ export function StepWizardCheckout({
             className="fixed inset-0 bg-background/70 backdrop-blur-md cursor-pointer"
           />
 
-          {/* Wizard Card (No vertical scroll on desktop; graceful scroll on small mobile) */}
+          {/* Wizard: Mobile Slide-up Bottom Sheet (92vh) + Desktop Centered Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 10 }}
-            transition={{ type: "spring", damping: 26, stiffness: 260 }}
-            className="relative w-full max-w-2xl bg-card border border-border shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[92vh] z-10"
+            drag={isMobile ? "y" : false}
+            dragConstraints={{ top: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100 || info.velocity.y > 500) {
+                onClose();
+              }
+            }}
+            initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96, y: 15 }}
+            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96, y: 15 }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            className="relative w-full sm:max-w-2xl bg-card border-t sm:border border-border shadow-2xl rounded-t-[32px] sm:rounded-3xl overflow-hidden flex flex-col max-h-[92vh] h-[92vh] sm:h-auto z-10"
           >
+            {/* Mobile Drag Handle Pill */}
+            <div className="pt-2.5 pb-1 flex justify-center sm:hidden shrink-0 cursor-grab active:cursor-grabbing">
+              <div className="w-12 h-1.5 rounded-full bg-muted-foreground/30" />
+            </div>
+
             {/* Top Wizard Header */}
-            <div className="px-4 sm:px-5 py-3 border-b border-border/80 bg-muted/20 flex items-center justify-between shrink-0">
+            <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-b border-border/80 bg-muted/20 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">
                   ID {selectedService.numericId}
                 </span>
-                <span className="text-xs sm:text-sm font-black text-foreground truncate max-w-[280px] sm:max-w-[420px]">
+                <span className="text-xs sm:text-sm font-black text-foreground truncate max-w-[240px] sm:max-w-[420px]">
                   {selectedService.name}
                 </span>
               </div>
@@ -122,7 +143,7 @@ export function StepWizardCheckout({
                         setStep(s.num as 1 | 2 | 3);
                       }
                     }}
-                    className={`py-2.5 px-2.5 sm:px-4 text-left transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+                    className={`py-2.5 px-2 sm:px-4 text-left transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
                       isActive
                         ? "border-primary bg-primary/5 text-primary"
                         : isPassed
@@ -147,6 +168,9 @@ export function StepWizardCheckout({
                         {s.desc}
                       </p>
                     </div>
+                    <span className="sm:hidden text-[11px] font-bold text-foreground truncate">
+                      {s.title}
+                    </span>
                   </button>
                 );
               })}
@@ -226,7 +250,7 @@ export function StepWizardCheckout({
                   <div className="p-3.5 rounded-2xl bg-muted/40 border border-border space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">Услуга:</span>
-                      <span className="font-bold text-foreground truncate max-w-[280px]">{selectedService.name}</span>
+                      <span className="font-bold text-foreground truncate max-w-[240px] sm:max-w-[280px]">{selectedService.name}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">Количество:</span>
@@ -235,7 +259,7 @@ export function StepWizardCheckout({
                     {url && (
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground font-medium">Цель:</span>
-                        <span className="font-mono text-primary truncate max-w-[260px]">{url}</span>
+                        <span className="font-mono text-primary truncate max-w-[220px] sm:max-w-[260px]">{url}</span>
                       </div>
                     )}
                     {email && (
@@ -265,8 +289,8 @@ export function StepWizardCheckout({
               )}
             </div>
 
-            {/* Wizard Navigation Footer */}
-            <div className="border-t border-border/80 bg-muted/10 px-4 sm:px-5 py-3.5 shrink-0 flex items-center justify-between">
+            {/* Wizard Navigation Footer (Sticky with Safe Area padding on mobile) */}
+            <div className="border-t border-border/80 bg-muted/10 px-4 sm:px-5 pt-3 pb-6 sm:pb-3.5 shrink-0 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">
                   Итого к оплате
@@ -276,15 +300,15 @@ export function StepWizardCheckout({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 {step > 1 && (
                   <button
                     type="button"
                     onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-                    className="min-h-[44px] h-11 px-3.5 sm:px-4 rounded-xl bg-content2 hover:bg-content3 border border-border text-foreground font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    className="min-h-[44px] h-11 px-3 sm:px-4 rounded-xl bg-content2 hover:bg-content3 border border-border text-foreground font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Назад</span>
+                    <span className="hidden xs:inline">Назад</span>
                   </button>
                 )}
 
@@ -292,7 +316,7 @@ export function StepWizardCheckout({
                   <button
                     type="button"
                     onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-                    className="min-h-[44px] h-11 px-5 sm:px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+                    className="min-h-[44px] h-11 px-4 sm:px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
                   >
                     <span>Далее: {steps[step].title}</span>
                     <ArrowRight className="w-4 h-4" />
@@ -302,13 +326,13 @@ export function StepWizardCheckout({
                     type="button"
                     onClick={() => handleCheckout(gateway)}
                     disabled={isSubmitting || isCalculating}
-                    className="min-h-[44px] h-11 px-5 sm:px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                    className="min-h-[44px] h-11 px-4 sm:px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                   >
                     {isSubmitting ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        <ShieldCheck className="w-4 h-4" />
+                        <ShieldCheck className="w-4.5 h-4.5" />
                         <span>{getButtonText()}</span>
                       </>
                     )}
