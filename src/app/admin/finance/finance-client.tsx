@@ -299,11 +299,11 @@ export function FinanceClient({
     <div className="space-y-6 w-full">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
         {/* Navigation Tabs Header */}
-        <div className="border-b border-border/80 pb-px">
-          <TabsList className="bg-muted/40 p-1 rounded-2xl border border-border/60 gap-1 flex flex-wrap sm:inline-flex">
+        <div className="border-b border-border/80 pb-3">
+          <TabsList className="bg-muted/40 p-1.5 rounded-2xl border border-border/60 gap-1.5 flex flex-wrap sm:inline-flex shadow-xs">
             <TabsTrigger 
               value="overview" 
-              className="gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary"
+              className="gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all duration-200 cursor-pointer"
             >
               <PieChart className="w-4 h-4" />
               <span>1. Обзор & P&L</span>
@@ -311,7 +311,7 @@ export function FinanceClient({
 
             <TabsTrigger 
               value="payments" 
-              className="gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary"
+              className="gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all duration-200 cursor-pointer"
             >
               <Receipt className="w-4 h-4" />
               <span>2. Реестр Платежей</span>
@@ -319,7 +319,7 @@ export function FinanceClient({
 
             <TabsTrigger 
               value="ledger" 
-              className="gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary"
+              className="gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all duration-200 cursor-pointer"
             >
               <FileSpreadsheet className="w-4 h-4" />
               <span>3. Проводки Ledger</span>
@@ -327,7 +327,7 @@ export function FinanceClient({
 
             <TabsTrigger 
               value="reconciliation" 
-              className="gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary"
+              className="gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all duration-200 cursor-pointer"
             >
               <Scale className="w-4 h-4" />
               <span>4. Сверка & Балансы</span>
