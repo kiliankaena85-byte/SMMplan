@@ -775,11 +775,27 @@ function CreateServiceModal({
         isActive: true
       });
 
-      if (res.success && (res as any).service) {
+      if (res.success && res.serviceId) {
         toast.success("Услуга успешно создана");
-        onCreated((res as any).service);
+        // Fetch the created service to add to the tree
+        const newService: TreeService = {
+          id: res.serviceId,
+          numericId: Date.now(),
+          name: name.trim(),
+          rate: parseFloat(rate) || 0.1,
+          markup: parseFloat(markup) || 3.0,
+          pricePer1000Cents: Math.round((parseFloat(rate) || 0.1) * (parseFloat(markup) || 3.0) * 10000),
+          minQty: parseInt(minQty, 10) || 10,
+          maxQty: parseInt(maxQty, 10) || 50000,
+          externalId: externalId.trim() || null,
+          targetType,
+          isActive: true,
+          isQuarantined: false,
+          provider: providers.find(p => p.id === providerId) || null
+        };
+        onCreated(newService);
       } else {
-        toast.error((res as any).error || "Ошибка создания услуги");
+        toast.error((res as { error?: string }).error || "Ошибка создания услуги");
       }
     });
   };

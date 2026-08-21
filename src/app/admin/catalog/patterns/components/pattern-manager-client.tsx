@@ -25,6 +25,31 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+interface SandboxTestResult {
+  matches?: boolean;
+  isMatch?: boolean;
+  cleanedUrl?: string;
+  isValid?: boolean;
+  isSafe?: boolean;
+  executionTimeMs?: number;
+  extractedGroups?: string[];
+  extractedData?: Record<string, string>;
+  error?: string;
+  warning?: string;
+}
+
+interface DryRunResult {
+  totalTested: number;
+  matchCount: number;
+  matchRate: number;
+  executionTimeMs: number;
+  sampleMatches: Array<{
+    orderId: string;
+    url: string;
+    matchGroups: string[];
+  }>;
+}
+
 export interface PatternItem {
   id: string;
   networkId: string;
@@ -85,13 +110,11 @@ export function PatternManagerClient({
   // Live Sandbox state
   const [sandboxUrl, setSandboxUrl] = useState("");
   const [sandboxPattern, setSandboxPattern] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [sandboxResult, setSandboxResult] = useState<any>(null);
+  const [sandboxResult, setSandboxResult] = useState<SandboxTestResult | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
   // Dry Run state
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [dryRunResult, setDryRunResult] = useState<any>(null);
+  const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
   const [isRunningDry, setIsRunningDry] = useState(false);
 
   // Filtered patterns

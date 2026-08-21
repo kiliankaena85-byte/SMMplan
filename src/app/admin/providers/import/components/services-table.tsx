@@ -11,9 +11,37 @@ import {
 } from "@/components/ui/select";
 import { formatPricePerUnit } from "@/utils/format-price";
 
+interface ServiceItem {
+  service: string | number;
+  name: string;
+  cleanName?: string;
+  pricePerUnitProcurementRub?: number;
+  alreadyImported?: boolean;
+  min?: string;
+  refill?: boolean;
+  metrics?: {
+    platform?: string;
+    geo?: string;
+    warranty?: number;
+    anomalyScore?: number;
+  };
+  [key: string]: unknown;
+}
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  network: {
+    name: string;
+  };
+  [key: string]: unknown;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FiltersState = any;
+
 interface ServicesTableProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  services: any[];
+  services: ServiceItem[];
   selectedIds: Set<string>;
   toggleSelection: (id: string) => void;
   toggleAll: () => void;
@@ -21,11 +49,10 @@ interface ServicesTableProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filters: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setFilters: (f: any) => void;
+  setFilters: React.Dispatch<React.SetStateAction<any>> | ((f: any) => void);
   pagination: { page: number; totalPages: number; total: number; pageSize: number };
   markup?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories: any[];
+  categories: CategoryItem[];
   selectedCategories: Record<string, string>;
   onCategoryChange: (serviceId: string, categoryId: string) => void;
   autoMappedCategories: Record<string, string>;
@@ -67,7 +94,6 @@ export function ServicesTable({
   categories = [],
   selectedCategories = {},
   onCategoryChange,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   autoMappedCategories = {},
   aiConfidence = {},
   showCategoryColumn = false,
@@ -180,7 +206,7 @@ export function ServicesTable({
             ) : (
               services.map((s) => {
                 const metrics = s.metrics || {};
-                const hasAnomaly = metrics.anomalyScore > 0;
+                const hasAnomaly = Number(metrics.anomalyScore || 0) > 0;
                 const pricePerUnitProcurement = s.pricePerUnitProcurementRub || 0;
                 const pricePerUnitRetail = pricePerUnitProcurement * (1 + markup / 100);
                 const isFreeProcurement = pricePerUnitProcurement <= 0;
@@ -243,7 +269,7 @@ export function ServicesTable({
                             {metrics.geo}
                           </span>
                         )}
-                        {(s.refill || metrics.warranty > 0) && (
+                        {(s.refill || (metrics.warranty !== undefined && metrics.warranty > 0)) && (
                           <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap" title="Гарантия">
                             ♻️ {metrics.warranty || 30}D
                           </span>
@@ -253,7 +279,7 @@ export function ServicesTable({
                             ⚠️ {metrics.anomalyScore}
                           </span>
                         )}
-                        {parseInt(s.min, 10) > 0 && (
+                        {parseInt(String(s.min || '0'), 10) > 0 && (
                           <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap" title="Минимальный заказ">
                             от {s.min} шт
                           </span>
@@ -382,9 +408,9 @@ export function ServicesTable({
                           );
                         })()}
                         {metrics.geo && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">{metrics.geo}</span>}
-                        {(s.refill || metrics.warranty > 0) && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">♻️ {metrics.warranty || 30}D</span>}
+                        {(s.refill || (metrics.warranty !== undefined && metrics.warranty > 0)) && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">♻️ {metrics.warranty || 30}D</span>}
                         {hasAnomaly && <span className="bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">⚠️ {metrics.anomalyScore}</span>}
-                        {parseInt(s.min, 10) > 0 && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">от {s.min} шт</span>}
+                        {parseInt(String(s.min || '0'), 10) > 0 && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">от {s.min} шт</span>}
                       </div>
 
                       <div className="flex justify-between items-end ml-7 pt-2 border-t border-border/40 mt-2">

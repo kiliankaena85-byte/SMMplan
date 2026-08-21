@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import {
   Activity,
   CheckCircle2,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   AlertTriangle,
   XCircle,
   Eye,
@@ -16,13 +15,11 @@ import {
   Sparkles,
   Search,
   X,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ExternalLink,
 } from 'lucide-react';
 import {
   createProvider,
   updateProvider,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   checkProviderConnection,
   probeProviderAction,
   getProviderCatalogPreviewAction,
@@ -44,17 +41,63 @@ const inputCls =
 
 const labelCls = 'block text-sm font-medium text-foreground mb-1';
 
+type HttpMethod = 'POST' | 'GET';
+type ContentType = 'form' | 'json';
+type AuthType = 'body' | 'query' | 'header';
+type IntegrationMode = 'standard' | 'visual' | 'json';
+
+interface MappingState {
+  httpMethod: 'POST' | 'GET';
+  contentType: 'form' | 'json';
+  authType: 'body' | 'query' | 'header';
+  authField: string;
+  authPrefix: string;
+  serviceField: string;
+  linkField: string;
+  quantityField: string;
+  orderIdField: string;
+  errorField: string;
+  itemsPath: string;
+  serviceIdField: string;
+  nameField: string;
+  priceField: string;
+  minField: string;
+  maxField: string;
+  typeField: string;
+  descField: string;
+  balancePath: string;
+  currencyPath: string;
+}
+
+interface InferredSchema {
+  catalogKeys: string[];
+  balanceKeys: string[];
+  itemsPath: string;
+}
+
+interface PreviewService {
+  service: string | number;
+  name: string;
+  rate: number | string;
+  min?: number | string;
+  max?: number | string;
+  category?: string;
+  description?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
 export function ProviderForm({ initialData }: ProviderFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [checkLoading, setCheckLoading] = useState(false);
   const [inferLoading, setInferLoading] = useState(false);
-  const [inferredSchema, setInferredSchema] = useState<{ catalogKeys: string[]; balanceKeys: string[]; itemsPath: string; } | null>(null);
+  const [inferredSchema, setInferredSchema] = useState<InferredSchema | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   const isInitiallyCustom = !!initialData?.mapping;
 
-  const [integrationMode, setIntegrationMode] = useState<'standard' | 'visual' | 'json'>(
+  const [integrationMode, setIntegrationMode] = useState<IntegrationMode>(
      isInitiallyCustom ? 'visual' : 'standard'
   );
   
@@ -71,7 +114,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
     ticketUrl:       initialData?.ticketUrl       || '',
   });
 
-  const [mapping, setMapping] = useState({
+  const [mapping, setMapping] = useState<MappingState>({
     httpMethod: initialData?.mapping?.httpMethod || 'POST',
     contentType: initialData?.mapping?.contentType || 'form',
     authType: initialData?.mapping?.auth?.type || 'body',
@@ -95,7 +138,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
     currencyPath: initialData?.mapping?.balance?.currencyPath || 'currency',
   });
 
-  function handleModeChange(mode: 'standard' | 'visual' | 'json') {
+  function handleModeChange(mode: IntegrationMode) {
      if (mode === 'json' && integrationMode === 'visual') {
         const payload = {
           httpMethod: mapping.httpMethod,
@@ -144,8 +187,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
              balancePath: parsed?.balance?.balancePath || 'balance',
              currencyPath: parsed?.balance?.currencyPath || 'currency',
            });
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch(e) {
+        } catch {
            // Invalid JSON, ignore
         }
      }
@@ -269,8 +311,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
   const [probeResult, setProbeResult] = useState<ProviderProbeResult | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [previewServices, setPreviewServices] = useState<any[]>([]);
+  const [previewServices, setPreviewServices] = useState<PreviewService[]>([]);
   const [previewSearch, setPreviewSearch] = useState('');
   const [previewTotal, setPreviewTotal] = useState(0);
 
@@ -315,10 +356,8 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
         mapping: integrationMode === 'visual' ? mapping : undefined,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ('error' in res && typeof (res as any).error === 'string') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const errorMsg = (res as any).error;
+      if ('error' in res && typeof res.error === 'string') {
+        const errorMsg = res.error;
         toast.error(errorMsg || 'Ошибка доступа');
         setProbeResult({
           success: false,
@@ -393,10 +432,8 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
        const res = await inferProviderSchema(
            formData.apiUrl, 
            formData.apiKey, 
-           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-           mapping.httpMethod as any, 
-           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-           mapping.contentType as any, 
+           mapping.httpMethod, 
+           mapping.contentType, 
            { type: mapping.authType, field: mapping.authField, prefix: mapping.authPrefix },
            initialData?.id
        );
@@ -426,9 +463,9 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
        } else {
           toast.error(`Ошибка: ${res.error || 'Не удалось получить схему'}`);
        }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch(e: any) {
-       toast.error(`Ошибка: ${e.message}`);
+    } catch(e: unknown) {
+       const errMsg = e instanceof Error ? e.message : 'Ошибка получения схемы';
+       toast.error(`Ошибка: ${errMsg}`);
     } finally {
        setInferLoading(false);
     }
@@ -689,8 +726,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
                         <select
                           className={inputCls}
                           value={mapping.httpMethod}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          onChange={(e) => setMapping({...mapping, httpMethod: e.target.value as any})}
+                          onChange={(e) => setMapping({...mapping, httpMethod: e.target.value as 'POST' | 'GET'})}
                         >
                           <option value="POST">POST</option>
                           <option value="GET">GET</option>
@@ -701,8 +737,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
                         <select
                           className={inputCls}
                           value={mapping.contentType}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          onChange={(e) => setMapping({...mapping, contentType: e.target.value as any})}
+                          onChange={(e) => setMapping({...mapping, contentType: e.target.value as 'form' | 'json'})}
                           disabled={mapping.httpMethod === 'GET'}
                         >
                           <option value="form">x-www-form-urlencoded (Стандарт)</option>
@@ -725,8 +760,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
                         <select
                           className={inputCls}
                           value={mapping.authType}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          onChange={(e) => setMapping({...mapping, authType: e.target.value as any})}
+                          onChange={(e) => setMapping({...mapping, authType: e.target.value as 'body' | 'query' | 'header'})}
                         >
                           <option value="body">В теле запроса (Body / POST)</option>
                           <option value="query">В адресе (Query ?key=...)</option>
@@ -1156,9 +1190,9 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
                       {previewServices
                         .filter(s => 
                           !previewSearch || 
-                          s.name.toLowerCase().includes(previewSearch.toLowerCase()) || 
-                          s.service.includes(previewSearch) ||
-                          s.category.toLowerCase().includes(previewSearch.toLowerCase())
+                          (s.name && String(s.name).toLowerCase().includes(previewSearch.toLowerCase())) || 
+                          (s.service !== undefined && String(s.service).includes(previewSearch)) ||
+                          (s.category && String(s.category).toLowerCase().includes(previewSearch.toLowerCase()))
                         )
                         .map((s, idx) => (
                           <tr key={idx} className="hover:bg-muted/40 transition-colors">
