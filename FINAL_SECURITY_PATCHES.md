@@ -118,6 +118,22 @@ model LedgerEntry {
 
 ---
 
+### 8. [PATCH-SEC-008] Защита от Header Injection / DoS и обхода Rate Limiting
+- **Файлы:** `src/app/api/order-status/route.ts`, `src/utils/ip.ts`
+- **Уязвимость:** Использование незащищённого заголовка `cf-connecting-ip` позволяло злоумышленнику подделывать IP и обходить `RateLimitService`.
+- **Внедрённый патч:**
+```diff
++ import { getClientIp } from '@/utils/ip';
+
+  export async function GET(req: NextRequest) {
+    try {
+-     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
++     const ip = await getClientIp(req);
+      const isAllowed = await RateLimitService.check(`order_status:${ip}`, 30, 60);
+```
+
+---
+
 ## 🏁 Финальная верификация системы:
 1. **TypeScript Typecheck:** `npx tsc --noEmit` ➔ **0 errors (100% Zero-any)**.
 2. **Next.js 16 Production Build:** `npm run build` ➔ **Exit Code 0 (Все 100+ роутов скомпилированы)**.

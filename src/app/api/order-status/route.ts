@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { SettingsManager } from '@/lib/settings';
 import { RateLimitService } from '@/services/core/rate-limit.service';
+import { getClientIp } from '@/utils/ip';
 
 /**
  * GET /api/order-status?orderId=xxx
@@ -13,7 +14,7 @@ import { RateLimitService } from '@/services/core/rate-limit.service';
  */
 export async function GET(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+    const ip = await getClientIp(req);
     const isAllowed = await RateLimitService.check(`order_status:${ip}`, 30, 60);
     if (!isAllowed) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
