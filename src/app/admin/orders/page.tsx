@@ -122,7 +122,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         where: { id: editOrderId },
         include: {
           user: { select: { id: true, email: true } },
-          provider: { select: { name: true } },
+          provider: { select: { name: true, ticketUrl: true } },
           service: { 
             select: { 
               id: true, 
@@ -139,43 +139,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         }
       });
       if (extraOrder) {
-        // Преобразуем заказ к типу OrderColumn для добавления в список
-        const typedOrder: OrderColumn = {
-          id: extraOrder.id,
-          numericId: extraOrder.numericId,
-          externalId: extraOrder.externalId ?? null,
-          link: extraOrder.link,
-          quantity: extraOrder.quantity,
-          remains: extraOrder.remains,
-          status: extraOrder.status,
-          charge: extraOrder.charge.toString(),
-          providerCost: (extraOrder.providerCost ?? BigInt(0)).toString(),
-          createdAt: extraOrder.createdAt,
-          updatedAt: extraOrder.updatedAt,
-          isDripFeed: extraOrder.isDripFeed,
-          dripExternalIds: extraOrder.dripExternalIds,
-          runs: extraOrder.runs ?? null,
-          interval: extraOrder.interval ?? null,
-          currentRun: extraOrder.currentRun,
-          error: extraOrder.error ?? null,
-          tenantId: extraOrder.tenantId,
-          user: { email: extraOrder.user.email },
-          providerName: extraOrder.provider?.name ?? null,
-          providerTicketUrl: extraOrder.provider?.ticketUrl ?? null,
-          service: {
-            name: extraOrder.service.name,
-            etaP50Seconds: extraOrder.service.etaP50Seconds,
-            etaP90Seconds: extraOrder.service.etaP90Seconds,
-            etaSampleCount: extraOrder.service.etaSampleCount,
-            etaSpeedClass: extraOrder.service.etaSpeedClass,
-            etaUpdatedAt: extraOrder.service.etaUpdatedAt?.toISOString() ?? null,
-            category: {
-              name: extraOrder.service.category.name,
-              network: extraOrder.service.category.network ?? null,
-            },
-          },
-        };
-        orders.unshift(typedOrder);
+        orders.unshift(extraOrder as unknown as (typeof orders)[number]);
       }
     }
   }
