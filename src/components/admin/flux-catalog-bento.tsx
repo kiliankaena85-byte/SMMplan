@@ -98,7 +98,7 @@ export function FluxCatalogBento({
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="col-span-12 md:col-span-8 bg-gradient-to-br from-primary/10 via-background to-background border border-border/40 rounded-[32px] p-8 shadow-sm flex flex-col justify-between"
+            className="col-span-12 md:col-span-8 bg-gradient-to-br from-primary/10 via-background to-background border border-border/40 rounded-3xl p-8 shadow-sm flex flex-col justify-between"
           >
             <div>
               <h2 className="text-xl font-medium text-foreground mb-1">Total Services</h2>
@@ -118,7 +118,7 @@ export function FluxCatalogBento({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="col-span-12 md:col-span-4 bg-card border border-border/40 rounded-[32px] p-8 shadow-sm flex flex-col justify-between"
+            className="col-span-12 md:col-span-4 bg-card border border-border/40 rounded-3xl p-8 shadow-sm flex flex-col justify-between"
           >
              <div>
               <h2 className="text-xl font-medium text-foreground mb-1">Average Margin</h2>
@@ -134,7 +134,7 @@ export function FluxCatalogBento({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="col-span-12 md:col-span-6 lg:col-span-4 bg-card border border-border/40 rounded-[32px] p-6 shadow-sm flex flex-col"
+            className="col-span-12 md:col-span-6 lg:col-span-4 bg-card border border-border/40 rounded-3xl p-6 shadow-sm flex flex-col"
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-medium text-foreground">Top Margin Services</h2>
@@ -162,7 +162,7 @@ export function FluxCatalogBento({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="col-span-12 md:col-span-6 lg:col-span-8 bg-card border border-border/40 rounded-[32px] p-8 shadow-sm flex flex-col justify-between relative overflow-hidden"
+            className="col-span-12 md:col-span-6 lg:col-span-8 bg-card border border-border/40 rounded-3xl p-8 shadow-sm flex flex-col justify-between relative overflow-hidden"
           >
             <div className="absolute -right-10 -top-10 w-40 h-40 bg-rose-500/10 rounded-full blur-3xl" />
             <div>
