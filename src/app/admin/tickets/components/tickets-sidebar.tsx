@@ -14,8 +14,7 @@ const formatTicketDate = (dateStr: string) => {
       return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
     return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (e) {
+  } catch {
     return '';
   }
 };
@@ -52,12 +51,27 @@ const renderSourceBadge = (source: string) => {
   );
 };
 
+interface TicketSidebarItem {
+  id: string;
+  subject: string;
+  status: string;
+  source: string;
+  user: { email: string };
+  createdAt: string;
+  lastMessageAt?: string;
+}
+
+interface TicketStats {
+  open: number;
+  pending: number;
+  closed: number;
+  [key: string]: number;
+}
+
 export interface TicketsSidebarProps {
   isMobile: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activeTicket: any | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  stats: any;
+  activeTicket: TicketSidebarItem | null;
+  stats: TicketStats;
   searchVal: string;
   setSearchVal: (val: string) => void;
   handleSearchSubmit: (e: React.FormEvent) => void;
@@ -67,8 +81,7 @@ export interface TicketsSidebarProps {
   handleSourceFilter: (source: string) => void;
   currentIsB2b: boolean;
   handleB2bToggle: (isB2b: boolean) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tickets: any[];
+  tickets: TicketSidebarItem[];
   handleSelectTicket: (id: string) => void;
   totalPages: number;
   currentPage: number;

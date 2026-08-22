@@ -4,12 +4,10 @@ import React, { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   User, 
   ExternalLink, 
   Mail, 
   Wallet, 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   MessageSquare, 
   ChevronLeft,
   Info
@@ -52,17 +50,70 @@ function useMediaQuery(query: string): boolean {
 import { AttachedOrdersGrid } from './attached-orders-grid';
 
 
+interface TicketMessage {
+  id: string;
+  content: string;
+  senderId: string;
+  createdAt: string;
+  attachments?: string[];
+}
+
+interface TicketUser {
+  id: string;
+  email: string;
+  balance: number | bigint;
+  totalSpent?: number | bigint;
+  b2bConfig?: { isB2b: boolean };
+  orders: Array<{ id: string; numericId: number; charge: number; status: string }>;
+  payments: Array<{ id: string; amount: number; status: string }>;
+}
+
+interface TicketOrder {
+  id: string;
+  numericId: number;
+  status: string;
+  serviceName: string;
+  charge: number;
+  remains: number;
+  quantity: number;
+  externalId?: string;
+  provider?: { apiUrl?: string };
+}
+
+interface TicketDetails {
+  id: string;
+  subject: string;
+  status: string;
+  source: string;
+  userId: string;
+  user: TicketUser;
+  order?: TicketOrder | null;
+  messages: TicketMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface TicketStats {
+  open: number;
+  pending: number;
+  closed: number;
+  [key: string]: number;
+}
+
+interface Template {
+  id: string;
+  title: string;
+  content: string;
+  categoryId?: string;
+}
+
 interface UnifiedTicketsWorkspaceProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tickets: any[];
+  tickets: TicketDetails[];
   totalPages: number;
   currentPage: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  stats: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activeTicket: any | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  templates: any[];
+  stats: TicketStats;
+  activeTicket: TicketDetails | null;
+  templates: Template[];
   supportLimitCents: number;
   supportSpentTodayCents?: number;
   currentStatus: string;
@@ -96,8 +147,7 @@ export function UnifiedTicketsWorkspace({
   const isMobile = useMediaQuery('(max-width: 1023px)');
   const [showProfile, setShowProfile] = useState(false);
   const [isOrderDrawerOpen, setIsOrderDrawerOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<TicketOrder | null>(null);
   const [searchVal, setSearchVal] = useState(currentSearch);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'cancel' | 'restart' | null>(null);
@@ -111,22 +161,6 @@ export function UnifiedTicketsWorkspace({
     }
   }, []);
   const isDark = mounted ? (theme?.includes('dark') || theme === 'dark') : true;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const headerBg = isDark
-    ? figmaStyles.colors.miniAppHeaderBackground.dark
-    : figmaStyles.colors.miniAppHeaderBackground.light;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const headerTextColor = figmaStyles.colors.miniAppHeaderTextColor;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const inputBg = isDark
-    ? figmaStyles.colors.miniAppInputBackground.dark
-    : figmaStyles.colors.miniAppInputBackground.light;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const cardBg = isDark
-    ? figmaStyles.colors.miniAppCardBackground.dark
-    : figmaStyles.colors.miniAppCardBackground.light;
-
 
   // Sync selectedOrder when activeTicket changes
   useEffect(() => {
@@ -241,8 +275,7 @@ export function UnifiedTicketsWorkspace({
       try {
         const url = new URL(order.provider.apiUrl);
         providerUrl = `${url.protocol}//${url.hostname}/tickets`;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (err) {
+      } catch {
         // use fallback
       }
     }
@@ -291,8 +324,7 @@ export function UnifiedTicketsWorkspace({
   };
 
   // 6. Open Order Drawer Helper
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleOpenOrderDrawer = (order: any) => {
+  const handleOpenOrderDrawer = (order: TicketOrder) => {
     setSelectedOrder(order);
     setIsOrderDrawerOpen(true);
   };
@@ -561,10 +593,8 @@ export function UnifiedTicketsWorkspace({
                       ...activeTicket.user,
                       balance: Number(activeTicket.user.balance),
                       totalSpent: Number(activeTicket.user.totalSpent),
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      orders: activeTicket.user.orders.map((o: any) => ({ ...o, charge: Number(o.charge) })),
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      payments: activeTicket.user.payments.map((p: any) => ({ ...p, amount: Number(p.amount) }))
+                      orders: activeTicket.user.orders.map((o) => ({ ...o, charge: Number(o.charge) })),
+                      payments: activeTicket.user.payments.map((p) => ({ ...p, amount: Number(p.amount) }))
                     }}
                   />
                 </div>
@@ -587,10 +617,8 @@ export function UnifiedTicketsWorkspace({
                             ...activeTicket.user,
                             balance: Number(activeTicket.user.balance),
                             totalSpent: Number(activeTicket.user.totalSpent),
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            orders: activeTicket.user.orders.map((o: any) => ({ ...o, charge: Number(o.charge) })),
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            payments: activeTicket.user.payments.map((p: any) => ({ ...p, amount: Number(p.amount) }))
+                            orders: activeTicket.user.orders.map((o) => ({ ...o, charge: Number(o.charge) })),
+                            payments: activeTicket.user.payments.map((p) => ({ ...p, amount: Number(p.amount) }))
                           }}
                         />
                       </Drawer.Body>
