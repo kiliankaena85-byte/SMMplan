@@ -13,16 +13,23 @@ import type { NextRequest } from 'next/server';
  * при прямом обращении к серверу в обход CDN для обхода Rate Limiting.
  */
 export async function getClientIp(
-  reqOrHeaders?: NextRequest | Headers | null,
+  reqOrHeadersOrFallback?: NextRequest | Headers | string | null,
   fallback: string = '127.0.0.1'
 ): Promise<string> {
   try {
-    let reqHeaders: Headers;
-    if (reqOrHeaders) {
-      reqHeaders = 'headers' in reqOrHeaders ? reqOrHeaders.headers : reqOrHeaders;
-    } else {
+    let reqHeaders: Headers | undefined;
+    let effectiveFallback = fallback;
+
+    if (typeof reqOrHeadersOrFallback === 'string') {
+      effectiveFallback = reqOrHeadersOrFallback;
+    } else if (reqOrHeadersOrFallback) {
+      reqHeaders = 'headers' in reqOrHeadersOrFallback ? reqOrHeadersOrFallback.headers : reqOrHeadersOrFallback;
+    }
+
+    if (!reqHeaders) {
       reqHeaders = await headers();
     }
+
     const realIp = reqHeaders.get('x-real-ip');
     if (realIp) return realIp.trim();
 
@@ -30,8 +37,8 @@ export async function getClientIp(
     if (forwardedFor) {
       return forwardedFor.split(',')[0].trim();
     }
-    return fallback;
+    return effectiveFallback;
   } catch {
-    return fallback;
+    return typeof reqOrHeadersOrFallback === 'string' ? reqOrHeadersOrFallback : fallback;
   }
 }
