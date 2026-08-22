@@ -11,8 +11,7 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 
 const serviceIdSchema = z.string().min(1);
 
@@ -37,10 +36,8 @@ export async function softDeleteServiceAction(serviceId: string) {
     });
 
     revalidatePath('/admin/catalog');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)('catalog');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)('services');
+    revalidateTag('catalog', 'default');
+    revalidateTag('services', 'default');
     return { success: true as const };
   });
 }

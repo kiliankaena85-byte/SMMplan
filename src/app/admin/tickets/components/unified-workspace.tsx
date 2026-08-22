@@ -1,4 +1,6 @@
 'use client';
+import type { OrderStatus } from '@prisma/client';
+import type { AdminTicketItem, TicketStatsDTO, ActiveTicketDTO, TicketTemplateDTO, AttachedOrderDTO, ActiveTicketUserOrder, ActiveTicketUserPayment } from '../types';
 
 import React, { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -29,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import figmaStyles from '@/utils/figma-styles.json';
 import { useTheme } from 'next-themes';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
-import { OrderDetailsModal } from '@/components/admin/OrderDetailsModal';
+import { OrderDetailsModal, type OrderModalColumn } from '@/components/admin/OrderDetailsModal';
 import TemplateManagerModal from '@/components/support/TemplateManagerModal';
 
 
@@ -55,16 +57,12 @@ import { AttachedOrdersGrid } from './attached-orders-grid';
 
 
 interface UnifiedTicketsWorkspaceProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tickets: any[];
+    tickets: AdminTicketItem[];
   totalPages: number;
   currentPage: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  stats: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activeTicket: any | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  templates: any[];
+    stats: TicketStatsDTO;
+    activeTicket: ActiveTicketDTO | null;
+    templates: TicketTemplateDTO[];
   supportLimitCents: number;
   supportSpentTodayCents?: number;
   currentStatus: string;
@@ -98,8 +96,7 @@ export function UnifiedTicketsWorkspace({
   const isMobile = useMediaQuery('(max-width: 1023px)');
   const [showProfile, setShowProfile] = useState(false);
   const [isOrderDrawerOpen, setIsOrderDrawerOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+    const [selectedOrder, setSelectedOrder] = useState<OrderModalColumn | null>(null);
   const [searchVal, setSearchVal] = useState(currentSearch);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'cancel' | 'restart' | null>(null);
@@ -234,7 +231,7 @@ export function UnifiedTicketsWorkspace({
   // 4. Support bridge handler
   const handleProviderSupportBridge = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const order = selectedOrder;
+    const order = selectedOrder as unknown as AttachedOrderDTO;
     if (!order || !order.externalId) return;
 
     navigator.clipboard.writeText(order.externalId);
@@ -272,7 +269,7 @@ export function UnifiedTicketsWorkspace({
     
     startTransition(async () => {
       const fd = new FormData();
-      fd.set('orderId', activeTicket.order.id);
+      fd.set('orderId', activeTicket.order?.id || '');
       
       if (confirmAction === 'cancel') {
         const res = await cancelOrderAction(fd);
@@ -295,8 +292,7 @@ export function UnifiedTicketsWorkspace({
   };
 
   // 6. Open Order Drawer Helper
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleOpenOrderDrawer = (order: any) => {
+    const handleOpenOrderDrawer = (order: OrderModalColumn) => {
     setSelectedOrder(order);
     setIsOrderDrawerOpen(true);
   };
@@ -398,7 +394,7 @@ export function UnifiedTicketsWorkspace({
                     <div className="hidden md:flex items-center justify-center flex-1 px-4">
                       <button
                         type="button"
-                        onClick={() => handleOpenOrderDrawer(activeTicket.order)}
+                        onClick={() => activeTicket.order && handleOpenOrderDrawer({ ...activeTicket.order, remains: 0, quantity: 1, link: '' } as unknown as OrderModalColumn)}
                         className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/30 transition-all duration-200 cursor-pointer shadow-sm text-xs font-bold"
                         title="Управление прикрепленным заказом"
                       >
@@ -441,7 +437,7 @@ export function UnifiedTicketsWorkspace({
                 {activeTicket.order && (
                   <div className="p-3 border-b border-border/50 bg-card/60 backdrop-blur-md shrink-0 select-none">
                     <div 
-                      onClick={() => handleOpenOrderDrawer(activeTicket.order)}
+                      onClick={() => activeTicket.order && handleOpenOrderDrawer({ ...activeTicket.order, remains: 0, quantity: 1, link: '' } as unknown as OrderModalColumn)}
                       className="bg-primary/5 border border-primary/10 rounded-xl p-3 flex items-center justify-between gap-3 shadow-sm cursor-pointer hover:bg-primary/10 transition-colors"
                     >
                       <div className="flex items-start gap-3 min-w-0">
@@ -546,7 +542,10 @@ export function UnifiedTicketsWorkspace({
                     editTicketMessage={editTicketMessage}
                     deleteTicketMessage={deleteTicketMessage}
                     initialNextCursor={activeTicket.nextCursor}
-                    onSelectOrder={handleOpenOrderDrawer}
+                    onSelectOrder={(order) => {
+                      const full = activeTicket.user.orders.find((o: ActiveTicketUserOrder) => o.id === order.id);
+                      handleOpenOrderDrawer((full ? { ...full, remains: 0, link: '' } : { id: order.id, numericId: order.numericId || 0, status: order.status as OrderStatus, charge: 0, remains: 0, quantity: 1, link: '', createdAt: new Date().toISOString(), serviceName: order.serviceName || '' }) as unknown as OrderModalColumn);
+                    }}
                     clientEmail={activeTicket.user.email}
                     initialOrders={activeTicket.user.orders}
                   />
@@ -567,10 +566,8 @@ export function UnifiedTicketsWorkspace({
                       ...activeTicket.user,
                       balance: Number(activeTicket.user.balance),
                       totalSpent: Number(activeTicket.user.totalSpent),
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      orders: activeTicket.user.orders.map((o: any) => ({ ...o, charge: Number(o.charge) })),
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      payments: activeTicket.user.payments.map((p: any) => ({ ...p, amount: Number(p.amount) }))
+                                            orders: activeTicket.user.orders.map((o: ActiveTicketUserOrder) => ({ ...o, charge: Number(o.charge) })),
+                                            payments: activeTicket.user.payments.map((p: ActiveTicketUserPayment) => ({ ...p, amount: Number(p.amount) }))
                     }}
                   />
                 </div>
@@ -593,10 +590,8 @@ export function UnifiedTicketsWorkspace({
                             ...activeTicket.user,
                             balance: Number(activeTicket.user.balance),
                             totalSpent: Number(activeTicket.user.totalSpent),
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            orders: activeTicket.user.orders.map((o: any) => ({ ...o, charge: Number(o.charge) })),
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            payments: activeTicket.user.payments.map((p: any) => ({ ...p, amount: Number(p.amount) }))
+                                                        orders: activeTicket.user.orders.map((o: ActiveTicketUserOrder) => ({ ...o, charge: Number(o.charge) })),
+                                                        payments: activeTicket.user.payments.map((p: ActiveTicketUserPayment) => ({ ...p, amount: Number(p.amount) }))
                           }}
                         />
                       </Drawer.Body>

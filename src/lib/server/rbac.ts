@@ -85,8 +85,7 @@ export async function requireStaffPermission<T>(
     }
 
     return await action(user, user.staffRole, tenantId);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[RBAC] Execution Error:", error);
     const localized = handleServerError(error);
     return { success: false, error: localized.message };
@@ -111,8 +110,7 @@ export async function requireOwnerPermission<T>(
 
     const tenantId = user.tenantId ?? 'smmplan';
     return await action(user, tenantId);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[RBAC] Execution Error:", error);
     const localized = handleServerError(error);
     return { success: false, error: localized.message };

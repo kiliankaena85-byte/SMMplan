@@ -72,9 +72,8 @@ export function SmartDripDashboardClient({ initialCampaigns }: SmartDripDashboar
         } else {
           toast.error('Не удалось изменить статус кампании');
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message || 'Ошибка выполнения действия');
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)) || 'Ошибка выполнения действия');
       }
     });
   };

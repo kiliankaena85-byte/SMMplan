@@ -88,9 +88,8 @@ export async function GET(req: NextRequest) {
                   checkAmount = Math.round(parseFloat(data.amount.value) * 100);
                 }
               }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (e: any) {
-              console.error('[order-status] YooKassa sync fallback failed:', e.message);
+            } catch (e: unknown) {
+              console.error('[order-status] YooKassa sync fallback failed:', (e instanceof Error ? e.message : String(e)));
             }
           }
         } else if (gateway === 'cryptobot' || gateway === 'robokassa') {
@@ -100,9 +99,8 @@ export async function GET(req: NextRequest) {
             if (gatewaySvc.checkStatusSync) {
               isActuallyPaid = await gatewaySvc.checkStatusSync(gatewayId);
             }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } catch (e: any) {
-            console.error(`[order-status] ${gateway} sync fallback failed:`, e.message);
+          } catch (e: unknown) {
+            console.error(`[order-status] ${gateway} sync fallback failed:`, (e instanceof Error ? e.message : String(e)));
           }
         }
 
@@ -187,9 +185,8 @@ export async function GET(req: NextRequest) {
                   checkAmount = Math.round(parseFloat(data.amount.value) * 100);
                 }
               }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (e: any) {
-              console.error('[order-status] YooKassa sync fallback failed:', e.message);
+            } catch (e: unknown) {
+              console.error('[order-status] YooKassa sync fallback failed:', (e instanceof Error ? e.message : String(e)));
             }
           }
         } else if (gateway === 'cryptobot' || gateway === 'robokassa') {
@@ -199,9 +196,8 @@ export async function GET(req: NextRequest) {
             if (gatewaySvc.checkStatusSync) {
               isActuallyPaid = await gatewaySvc.checkStatusSync(gatewayId);
             }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } catch (e: any) {
-            console.error(`[order-status] ${gateway} sync fallback failed:`, e.message);
+          } catch (e: unknown) {
+            console.error(`[order-status] ${gateway} sync fallback failed:`, (e instanceof Error ? e.message : String(e)));
           }
         }
 
@@ -236,9 +232,8 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Bad Request' }, { status: 400 });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error('[order-status] Error:', error.message);
+  } catch (error: unknown) {
+    console.error('[order-status] Error:', (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

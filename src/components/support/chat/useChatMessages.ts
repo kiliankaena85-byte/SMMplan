@@ -19,19 +19,19 @@ export interface Message {
     id: string;
     url: string;
     type: string;
-    mimeType: string;
-    name: string;
+    mimeType?: string | null;
+    name?: string | null;
     size?: number | null;
     createdAt: string;
   }>;
   orderId?: string | null;
   order?: {
     id: string;
-    numericId: number;
+    numericId?: number;
     status: string;
     charge: number;
-    createdAt: string;
-    serviceName: string;
+    createdAt?: string;
+    serviceName?: string;
   } | null;
 }
 

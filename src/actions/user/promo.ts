@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import { Prisma } from '@prisma/client';
 
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
@@ -72,16 +73,16 @@ export async function activatePromoCodeAction(code: string) {
 
         return { success: true, amount: promo.amount };
       }, { isolationLevel: 'Serializable' });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      if (error.code === 'P2002' && error.meta?.target?.includes('idempotencyKey')) {
-        throw new Error("Вы уже активировали этот промокод", { cause: error });
-      }
-      if (error.code === 'P2034' && attempt < 2) {
-        continue; // Retry on serialization failure
-      }
-      if (error.code === 'P2034') {
-        throw new Error("Транзакция в обработке, пожалуйста, попробуйте еще раз.", { cause: error });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        const metaTarget = Array.isArray(error.meta?.target) ? (error.meta.target as string[]) : [];
+        if (error.code === 'P2002' && metaTarget.includes('idempotencyKey')) {
+          throw new Error("Вы уже активировали этот промокод", { cause: error });
+        }
+        if (error.code === 'P2034') {
+          if (attempt < 2) continue; // Retry on serialization failure
+          throw new Error("Транзакция в обработке, пожалуйста, попробуйте еще раз.", { cause: error });
+        }
       }
       throw error;
     }

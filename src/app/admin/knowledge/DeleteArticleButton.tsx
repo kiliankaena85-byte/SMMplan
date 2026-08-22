@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { deleteArticle } from "@/actions/knowledge";
 import { useRouter } from "next/navigation";

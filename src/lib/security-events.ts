@@ -7,8 +7,7 @@ export type SecurityEventPayload = {
   tenantId?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  details?: Record<string, any>;
+    details?: Record<string, any>;
 };
 
 /**

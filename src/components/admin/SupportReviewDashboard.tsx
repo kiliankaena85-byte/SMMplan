@@ -1,12 +1,23 @@
 'use client';
+interface SupportReviewItem {
+  id: string;
+  createdAt: string | Date;
+  staff: { email: string; name?: string | null };
+  ipAddress?: string | null;
+  target: { email: string; name?: string | null };
+  amountRub: number | string;
+  ticketId?: string | null;
+  reasonNote?: string | null;
+  reviewStatus: string;
+}
+
 
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Download, Filter } from 'lucide-react';
 import { getSupportActionsReviewListAction, reviewSupportFinancialAction, exportSupportActionsCSVAction } from '@/actions/admin/support-review';
 
 export function SupportReviewDashboard() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<SupportReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [reviewNoteMap, setReviewNoteMap] = useState<Record<string, string>>({});
@@ -43,9 +54,8 @@ export function SupportReviewDashboard() {
       } else {
         alert(res.error);
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      alert(err.message || 'Ошибка обновления статуса');
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || 'Ошибка обновления статуса');
     }
   };
 
@@ -61,9 +71,8 @@ export function SupportReviewDashboard() {
         a.click();
         URL.revokeObjectURL(url);
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      alert(err.message || 'Ошибка экспорта CSV');
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || 'Ошибка экспорта CSV');
     }
   };
 

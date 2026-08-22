@@ -33,9 +33,8 @@ export class CBRRateService {
             }
           }
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        console.warn("[CBRRateService] Official CBR XML API fetch failed, trying mirror:", err.message);
+      } catch (err: unknown) {
+        console.warn("[CBRRateService] Official CBR XML API fetch failed, trying mirror:", (err instanceof Error ? err.message : String(err)));
       }
 
       // 2. Fallback to the CBR daily JSON mirror
@@ -63,9 +62,8 @@ export class CBRRateService {
       await SettingsManager.setExchangeRateUSD(systemRate, tenantId);
 
       return { nominalRate: usdRate, systemRate, updated: true };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("[CBRRateService] CBR sync failed:", error.message);
+    } catch (error: unknown) {
+      console.error("[CBRRateService] CBR sync failed:", (error instanceof Error ? error.message : String(error)));
       // Fallback to existing settings on failure
       const existingRate = await SettingsManager.getExchangeRateUSD(tenantId);
       return { nominalRate: existingRate, systemRate: existingRate, updated: false };

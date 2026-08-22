@@ -8,8 +8,7 @@ export interface LocalizedError {
  * Maps system, database, authentication, and integration errors to highly clear,
  * Russian-localized messages with unique error codes.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function handleServerError(error: any): LocalizedError {
+export function handleServerError(error: unknown): LocalizedError {
   if (!error) {
     return {
       code: 'ERR_UNKNOWN',
@@ -17,8 +16,9 @@ export function handleServerError(error: any): LocalizedError {
     };
   }
 
-  const message = typeof error === 'string' ? error : error.message || '';
-  const code = error.code || '';
+  const errObj = (typeof error === 'object' && error !== null ? error : {}) as { message?: string; code?: string; name?: string };
+  const message = typeof error === 'string' ? error : errObj.message || '';
+  const code = errObj.code || '';
 
   // 1. Connection / Timeout Errors (Anti-Stall & Network Resilience)
   if (
@@ -46,19 +46,19 @@ export function handleServerError(error: any): LocalizedError {
   }
 
   // 1.b Wallet Balance Errors
-  if (error.name === 'WalletInsufficientFundsError') {
+  if (errObj.name === 'WalletInsufficientFundsError') {
     return {
       code: 'ERR_BUSINESS_LOGIC',
       message: `Недостаточно средств на балансе. Пожалуйста, пополните счет.`
     };
   }
-  if (error.name === 'WalletUserNotFoundError') {
+  if (errObj.name === 'WalletUserNotFoundError') {
     return {
       code: 'ERR_BUSINESS_LOGIC',
       message: `Пользователь не найден. Пожалуйста, авторизуйтесь заново.`
     };
   }
-  if (error.name === 'WalletInvalidAmountError') {
+  if (errObj.name === 'WalletInvalidAmountError') {
     return {
       code: 'ERR_BUSINESS_LOGIC',
       message: `Некорректная сумма операции.`

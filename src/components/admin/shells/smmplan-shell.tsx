@@ -19,7 +19,7 @@ export function SMMplanShell({
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20 pointer-events-none z-0" />
 
       <AdminSidebar 
-        userEmail={user.email}
+        userEmail={user.email || user.name || "Администратор"}
         roleInfo={roleInfo}
         navigation={navigation}
         siteName={siteName}

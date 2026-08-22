@@ -10,7 +10,10 @@ import {
 } from './base-provider';
 import { ApiMappingDTO } from '../admin/provider.service';
 import { CircuitBreaker } from '@/lib/circuit-breaker';
+import { assertSafeUrl } from '@/utils/ssrf-guard';
 import { z } from 'zod';
+
+export type { ApiMappingDTO };
 
 const ProviderServiceSchema = z.object({
   service: z.union([z.string(), z.number()]).transform(String),
@@ -32,87 +35,86 @@ const ProviderServicesArraySchema = z.array(ProviderServiceSchema);
 export class UniversalProvider implements BaseProvider {
   private apiUrl: string;
   private apiKey: string;
-  private mapping: ApiMappingDTO | null;
-  private userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  private mapping: ApiMappingDTO | null = null;
 
-  constructor(apiUrl: string, apiKey: string, metadata?: { mapping?: ApiMappingDTO | null }) {
-    // Automatically strip trailing slashes to prevent 301 redirect issues
-    this.apiUrl = apiUrl ? apiUrl.trim().replace(/\/+$/, '') : apiUrl;
-    // W0-4 FIX: Accept already-decrypted key. Decryption happens in ProviderService.
-    // Previously had double-decrypt here which caused silent failures with keys containing ':'
+  constructor(apiUrl: string, apiKey: string, metadata?: Record<string, unknown> | null) {
+    this.apiUrl = apiUrl;
     this.apiKey = apiKey;
-    this.mapping = metadata?.mapping || null;
-  }
-
-  // Prevent leaking plaintext API key when provider instances are logged or serialized
-  toJSON() {
-    return {
-      apiUrl: this.apiUrl,
-      apiKey: '[REDACTED]',
-      mapping: this.mapping
-    };
-  }
-
-  get [Symbol.toStringTag]() {
-    return `UniversalProvider(${this.apiUrl})`;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private extractNested(obj: any, path: string): any {
-     if (!path || !obj || path === '$') return obj;
-     return path.split('.').reduce((acc, part) => acc && acc[part], obj);
-  }
-
-  /**
-   * Core request engine providing WAF bypass, correct Form serialization, and Timeout safety
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async request<T>(payload: Record<string, any>, retries = 2): Promise<T> {
-    const params = new URLSearchParams();
-    
-    let authHeaderValue: string | undefined;
-    if (this.mapping && this.mapping.auth) {
-      const auth = this.mapping.auth;
-      if (auth.type === 'body' || auth.type === 'query') {
-        params.append(auth.field, (auth.prefix || '') + this.apiKey);
-      } else if (auth.type === 'header') {
-        authHeaderValue = (auth.prefix || '') + this.apiKey;
-      }
-    } else {
-      params.append('key', this.apiKey); // Fallback standard v2
+    if (metadata && typeof metadata === 'object' && metadata.mapping) {
+      this.mapping = metadata.mapping as ApiMappingDTO;
     }
-    
-    for (const [k, v] of Object.entries(payload)) {
-      if (v !== undefined && v !== null) {
-        params.append(k, v.toString());
+  }
+
+  private extractNested(obj: unknown, path: string): unknown {
+    if (!path || path === '$') return obj;
+    const parts = path.split('.');
+    let current: unknown = obj;
+    for (const part of parts) {
+      if (current === undefined || current === null) return undefined;
+      if (typeof current === 'object' && current !== null && part in current) {
+        current = (current as Record<string, unknown>)[part];
+      } else {
+        return undefined;
       }
     }
+    return current;
+  }
+
+  async request<T>(paramsOrPayload: Record<string, unknown>, retries = 2): Promise<T> {
+    await assertSafeUrl(this.apiUrl);
+    await CircuitBreaker.check(this.apiUrl);
+
+    let httpMethod: 'GET' | 'POST' = 'POST';
+    let contentType: 'form' | 'json' = 'form';
+    let authType: 'body' | 'query' | 'header' = 'body';
+    let authField = 'key';
+    let authPrefix = '';
+
+    if (this.mapping) {
+      httpMethod = this.mapping.httpMethod || 'POST';
+      contentType = this.mapping.contentType || 'form';
+      if (this.mapping.auth) {
+        authType = this.mapping.auth.type || 'body';
+        authField = this.mapping.auth.field || 'key';
+        authPrefix = this.mapping.auth.prefix || '';
+      }
+    }
+
+    const authValue = authPrefix ? `${authPrefix}${this.apiKey}` : this.apiKey;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
-        await CircuitBreaker.check(this.apiUrl);
-        
-        const httpMethod = this.mapping?.httpMethod || 'POST';
-        const contentType = this.mapping?.contentType || 'form';
-        
+        let finalUrl = this.apiUrl;
         const headers: Record<string, string> = {
-          'User-Agent': this.userAgent,
-          'Accept': 'application/json'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         };
-        
-        if (httpMethod === 'POST') {
-          headers['Content-Type'] = contentType === 'json' ? 'application/json' : 'application/x-www-form-urlencoded';
-        }
-        
-        if (authHeaderValue && this.mapping?.auth?.field) {
-           headers[this.mapping.auth.field] = authHeaderValue;
+
+        if (contentType === 'json') {
+          headers['Content-Type'] = 'application/json';
+        } else {
+          headers['Content-Type'] = 'application/x-www-form-urlencoded';
         }
 
-        let finalUrl = this.apiUrl;
-        let body: string | undefined;
+        const params = new URLSearchParams();
+
+        if (authType === 'header') {
+          headers[authField] = authValue;
+        } else if (authType === 'query') {
+          params.append(authField, authValue);
+        } else {
+          params.append(authField, authValue);
+        }
+
+        for (const [key, value] of Object.entries(paramsOrPayload)) {
+          if (value !== undefined && value !== null) {
+            params.append(key, String(value));
+          }
+        }
+
+        let body: string | undefined = undefined;
 
         if (httpMethod === 'GET') {
           const qs = params.toString();
@@ -121,9 +123,8 @@ export class UniversalProvider implements BaseProvider {
           }
         } else {
           if (contentType === 'json') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const jsonObj: Record<string, any> = {};
-            params.forEach((value, key) => jsonObj[key] = value);
+            const jsonObj: Record<string, unknown> = {};
+            params.forEach((value, key) => { jsonObj[key] = value; });
             body = JSON.stringify(jsonObj);
           } else {
             body = params.toString();
@@ -134,20 +135,17 @@ export class UniversalProvider implements BaseProvider {
           method: httpMethod,
           headers,
           body,
-          redirect: 'follow',
+          redirect: 'error',
           signal: controller.signal
         });
 
-        // W5-2: Check Content-Length for DoS prevention
         const contentLength = response.headers.get('content-length');
-        if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) { // 10MB limit
+        if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) {
            throw new Error('Provider response exceeds size limit (10MB)');
         }
 
-        // Handle Rate Limits (429)
         if (response.status === 429) {
           if (attempt < retries) {
-            // W5-3: Correct Retry-After parsing
             const retryAfter = response.headers.get('Retry-After');
             const parsed = parseInt(retryAfter || '', 10);
             const waitTime = (!isNaN(parsed) && parsed > 0) ? Math.min(parsed * 1000, 60000) : 30000;
@@ -155,13 +153,12 @@ export class UniversalProvider implements BaseProvider {
             await new Promise(resolve => setTimeout(resolve, waitTime));
             continue;
           }
-          throw new Error(`Provider Rate Limit Exceeded (429)`);
+          throw new Error('Provider Rate Limit Exceeded (429)');
         }
 
-        // Handle Server Errors (50x)
         if (!response.ok) {
           if (response.status >= 500 && attempt < retries) {
-             const backoff = Math.pow(2, attempt) * 1500; // 1.5s, 3s
+             const backoff = Math.pow(2, attempt) * 1500;
              console.warn(`[API] ${response.status} Error from ${this.apiUrl}. Retrying in ${backoff}ms...`);
              await new Promise(resolve => setTimeout(resolve, backoff));
              continue;
@@ -188,14 +185,13 @@ export class UniversalProvider implements BaseProvider {
           const data = JSON.parse(text) as T;
           await CircuitBreaker.recordSuccess(this.apiUrl);
           return data;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (jsonErr: any) {
+        } catch (jsonErr: unknown) {
           throw new Error(`Provider returned invalid JSON: ${text.substring(0, 100)}...`, { cause: jsonErr });
         }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
+      } catch (error: unknown) {
+        const errName = error instanceof Error ? error.name : '';
+        if (errName === 'AbortError') {
            if (attempt < retries) {
               console.warn(`[API] Timeout from ${this.apiUrl}. Retrying...`);
               continue;
@@ -204,8 +200,7 @@ export class UniversalProvider implements BaseProvider {
            throw new Error('Provider Request Timeout (15s)', { cause: error });
         }
         
-        // Don't record failure if the circuit was already OPEN
-        if (error.name !== 'CircuitBreakerOpenException' && attempt === retries) {
+        if (errName !== 'CircuitBreakerOpenException' && attempt === retries) {
           await CircuitBreaker.recordFailure(this.apiUrl);
         }
 
@@ -218,8 +213,7 @@ export class UniversalProvider implements BaseProvider {
   }
 
   async getBalance(): Promise<ProviderBalanceDto> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await this.request<any>({ action: 'balance' });
+    const res = await this.request<Record<string, unknown>>({ action: 'balance' });
     
     if (this.mapping && this.mapping.balance) {
       const bPath = this.mapping.balance.balancePath || 'balance';
@@ -228,44 +222,35 @@ export class UniversalProvider implements BaseProvider {
       const balanceVal = this.extractNested(res, bPath);
       const currencyVal = this.extractNested(res, cPath);
       
-      // Strict Schema Drift protection
       if (balanceVal === undefined) {
          throw new Error(`Schema Drift Error: Ожидался ключ баланса '${bPath}', но он не найден в ответе.`);
       }
 
       return {
-        balance: balanceVal?.toString() || "0",
-        currency: currencyVal?.toString() || "USD"
+        balance: String(balanceVal || '0'),
+        currency: String(currencyVal || 'USD')
       };
     }
 
-    // Standard Fallback
-    if (res.error) throw new Error(res.error);
+    if (res.error) throw new Error(String(res.error));
     return {
-      balance: res.balance?.toString() || "0",
-      currency: res.currency || "USD"
+      balance: String(res.balance || '0'),
+      currency: String(res.currency || 'USD')
     };
   }
 
   async getServices(): Promise<ProviderServiceDto[]> {
-    // Increase retries for large requests
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await this.request<any>({ action: 'services' }, 3);
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let servicesArray: any[];
+    const res = await this.request<unknown>({ action: 'services' }, 3);
+    let servicesArray: unknown[];
 
     if (this.mapping && this.mapping.catalog) {
       const c = this.mapping.catalog;
-      // Extract array based on itemsPath
       const extracted = this.extractNested(res, c.itemsPath || '');
       
       if (!Array.isArray(extracted)) {
-         // Fallback: search for the first array if the explicit path failed
-         const possibleArray = Object.values(res).find(Array.isArray);
+         const possibleArray = (typeof res === 'object' && res !== null) ? Object.values(res).find(Array.isArray) : undefined;
          if (possibleArray) {
-             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-             servicesArray = possibleArray as any[];
+             servicesArray = possibleArray as unknown[];
          } else {
              throw new Error(`Schema Drift Error: Ожидался массив услуг по пути '${c.itemsPath || '$'}', но получен ${typeof extracted}`);
          }
@@ -273,11 +258,10 @@ export class UniversalProvider implements BaseProvider {
          servicesArray = extracted;
       }
 
-      // Map dynamic fields to Canonical Schema
       servicesArray = servicesArray.map(item => ({
          service: this.extractNested(item, c.serviceIdField || 'service'),
          name: this.extractNested(item, c.nameField || 'name'),
-         category: this.extractNested(item, c.typeField || 'category'), // Notice we map their category/type
+         category: this.extractNested(item, c.typeField || 'category'),
          rate: this.extractNested(item, c.priceField || 'rate'),
          min: this.extractNested(item, c.minField || 'min'),
          max: this.extractNested(item, c.maxField || 'max'),
@@ -286,36 +270,31 @@ export class UniversalProvider implements BaseProvider {
          description: this.extractNested(item, c.descField || 'description'),
       }));
 
-      // Schema Drift check on first item
-      if (servicesArray.length > 0 && servicesArray[0].service === undefined) {
+      if (servicesArray.length > 0 && (servicesArray[0] as Record<string, unknown>).service === undefined) {
          throw new Error(`Schema Drift Error: Ожидался ключ ID услуги '${c.serviceIdField || 'service'}', но он не найден.`);
       }
 
     } else {
-      // Standard Fallback
-      if (res.error) throw new Error(res.error);
+      if (typeof res === 'object' && res !== null && 'error' in res) throw new Error(String((res as Record<string, unknown>).error));
       if (!Array.isArray(res)) throw new Error('Invalid services payload');
       servicesArray = res;
     }
     
-    // Zod validation to ensure no crash from malformed data
     try {
       const parsed = ProviderServicesArraySchema.parse(servicesArray);
-      // Normalize 'description' to 'desc' if needed
       return parsed.map(s => ({
          ...s,
          desc: s.desc || s.description || ""
       })) as ProviderServiceDto[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      console.error("[API] Zod parsing failed for getServices:", err);
-      throw new Error(`Provider schema validation failed: ${err.message}`, { cause: err });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[API] Zod parsing failed for getServices:", errMsg);
+      throw new Error(`Provider schema validation failed: ${errMsg}`, { cause: err });
     }
   }
 
   async createOrder(params: OrderCreationParams): Promise<ProviderOrderResponseDto> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let payload: any;
+    let payload: Record<string, unknown>;
     
     if (this.mapping && this.mapping.order) {
       payload = { action: 'add' };
@@ -331,50 +310,45 @@ export class UniversalProvider implements BaseProvider {
       payload = { action: 'add', ...params };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await this.request<any>(payload, 0);
+    const res = await this.request<Record<string, unknown>>(payload, 0);
     
     if (this.mapping && this.mapping.response) {
        const err = this.extractNested(res, this.mapping.response.errorField);
-       if (err) throw new Error(err);
+       if (err) throw new Error(String(err));
        
        const orderId = this.extractNested(res, this.mapping.response.orderIdField);
        if (!orderId) throw new Error("Order ID not found in provider response");
        
-       return { order: orderId.toString() };
+       return { order: String(orderId) };
     } else {
-       if (res.error) throw new Error(res.error);
-       return res as ProviderOrderResponseDto;
+       if (res.error) throw new Error(String(res.error));
+       return res as unknown as ProviderOrderResponseDto;
     }
   }
 
   async getOrderStatus(orderId: string | number): Promise<ProviderOrderStatusDto> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await this.request<any>({ action: 'status', order: orderId });
-    if (res.error) throw new Error(res.error);
-    if (typeof res === 'string') throw new Error(res); // Handles weird APIs returning string exact errors
-    return res as ProviderOrderStatusDto;
+    const res = await this.request<Record<string, unknown>>({ action: 'status', order: orderId });
+    if (res.error) throw new Error(String(res.error));
+    if (typeof res === 'string') throw new Error(res);
+    return res as unknown as ProviderOrderStatusDto;
   }
 
   async getMultiOrderStatus(orderIds: (string | number)[]): Promise<ProviderMultiStatusResponse> {
     if (orderIds.length === 0) return {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await this.request<any>({ action: 'status', orders: orderIds.join(',') });
-    if (res.error) throw new Error(res.error);
-    return res as ProviderMultiStatusResponse;
+    const res = await this.request<Record<string, unknown>>({ action: 'status', orders: orderIds.join(',') });
+    if (res.error) throw new Error(String(res.error));
+    return res as unknown as ProviderMultiStatusResponse;
   }
 
   async refill(orderId: string | number): Promise<{ refill?: string | number; error?: string }> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await this.request<any>({ action: 'refill', order: orderId }, 0);
+    const res = await this.request<{ refill?: string | number; error?: string }>({ action: 'refill', order: orderId }, 0);
     if (res.error) return { error: res.error };
-    return res as { refill?: string | number; error?: string };
+    return res;
   }
 
   async getRefillStatus(refillId: string | number): Promise<{ status?: string; error?: string }> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await this.request<any>({ action: 'refill_status', refill: refillId });
+    const res = await this.request<{ status?: string; error?: string }>({ action: 'refill_status', refill: refillId });
     if (res.error) return { error: res.error };
-    return res as { status?: string; error?: string };
+    return res;
   }
 }

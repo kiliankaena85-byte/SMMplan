@@ -501,7 +501,7 @@ export function StaffScheduleTab({
                 <label className="text-xs font-bold text-foreground">Шаблон смен:</label>
                 <select
                   value={templateType}
-                  onChange={(e) => setTemplateType(e.target.value as any)}
+                  onChange={(e) => setTemplateType(e.target.value as "2_2_DAY" | "2_2_NIGHT" | "5_2" | "DAILY")}
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground"
                 >
                   <option value="2_2_DAY">2 через 2 (Дневные смены 09:00–21:00)</option>

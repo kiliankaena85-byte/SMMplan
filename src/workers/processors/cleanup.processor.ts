@@ -100,7 +100,7 @@ export async function runCleanup(): Promise<void> {
         await orderService.failOrderTerminalFast(pOrder.id, 'PENDING_CHECK auto-resolved: provider timeout exceeded 6h');
         log.info(`[Cleanup] Auto-failed stale PENDING_CHECK Order #${pOrder.numericId}`);
       } catch (err) {
-        log.error(`[Cleanup] Failed to auto-resolve PENDING_CHECK Order #${pOrder.numericId}`, { error: err instanceof Error ? err.message : String(err) });
+        log.error(`[Cleanup] Failed to auto-resolve PENDING_CHECK Order #${pOrder.numericId}`, { error: err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err) });
       }
     }
   }
@@ -184,7 +184,7 @@ export async function runCleanup(): Promise<void> {
           zombie.user.email,
           zombie.numericId.toString(),
           zombie.service.name
-        ).catch(err => log.error('Failed to send zombie cancellation email', { orderId: zombie.id, error: err.message }));
+        ).catch(err => log.error('Failed to send zombie cancellation email', { orderId: zombie.id, error: (err instanceof Error ? err.message : String(err)) }));
       }
     }
 
@@ -268,11 +268,10 @@ export async function runOrphanSweep(): Promise<void> {
           jobExists = true;
           jobState = await job.getState();
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (redisErr: any) {
-        const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans getJob. Order ${orphan.id} remains PENDING. Error: ${redisErr.message}`;
+      } catch (redisErr: unknown) {
+        const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans getJob. Order ${orphan.id} remains PENDING. Error: ${(redisErr instanceof Error ? redisErr.message : String(redisErr))}`;
         log.error(msg);
-        criticalAlerts.push(`🚨 Ошибка Redis при проверке заказа #${orphan.numericId}: ${redisErr.message}`);
+        criticalAlerts.push(`🚨 Ошибка Redis при проверке заказа #${orphan.numericId}: ${(redisErr instanceof Error ? redisErr.message : String(redisErr))}`);
         continue;
       }
 
@@ -314,11 +313,10 @@ export async function runOrphanSweep(): Promise<void> {
               // failOrderTerminal returned null = order was already terminal
               log.info(`[ARCH-2] Order ${orphan.id} already terminal, no action needed`);
             }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } catch (recoveryErr: any) {
+          } catch (recoveryErr: unknown) {
             // Auto-recovery failed — escalate to manual
             const refundRub = (Number(orphan.charge) / 100).toFixed(2);
-            const msg = `[CRITICAL][ACTION REQUIRED] ARCH-2 auto-recovery failed. Order ${orphan.id}, User ${orphan.userId}, Amount ${refundRub} RUB. Error: ${recoveryErr.message}`;
+            const msg = `[CRITICAL][ACTION REQUIRED] ARCH-2 auto-recovery failed. Order ${orphan.id}, User ${orphan.userId}, Amount ${refundRub} RUB. Error: ${(recoveryErr instanceof Error ? recoveryErr.message : String(recoveryErr))}`;
             log.error(msg);
             criticalAlerts.push(
               `🚨 КРИТИЧНО: Авто-восстановление НЕ УДАЛОСЬ. Заказ #${orphan.numericId} (ID: \`${orphan.id}\`), Пользователь: \`${orphan.userId}\`. Сумма: ${refundRub} ₽. Требуется ручной возврат.`
@@ -338,11 +336,10 @@ export async function runOrphanSweep(): Promise<void> {
         const minutesPending = Math.round((Date.now() - orphan.createdAt.getTime()) / 60000);
         log.warn(`[WARNING] recovered orphan orderId=${orphan.id} jobId=${jobId}`);
         sweptDetails.push(`• Восстановлен: ID \`${orphan.id}\` (#${orphan.numericId}), висел ${minutesPending} мин`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (addErr: any) {
-        const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans add. Order ${orphan.id} remains PENDING. Error: ${addErr.message}`;
+      } catch (addErr: unknown) {
+        const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans add. Order ${orphan.id} remains PENDING. Error: ${(addErr instanceof Error ? addErr.message : String(addErr))}`;
         log.error(msg);
-        criticalAlerts.push(`🚨 Ошибка Redis при переотправке заказа #${orphan.numericId}: ${addErr.message}`);
+        criticalAlerts.push(`🚨 Ошибка Redis при переотправке заказа #${orphan.numericId}: ${(addErr instanceof Error ? addErr.message : String(addErr))}`);
       }
     }
     
@@ -433,14 +430,13 @@ export async function runInProgressTTLSweep(): Promise<void> {
               remains = parsedRemains;
             }
           }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (apiErr: any) {
-          log.error('Failed to get status from provider during TTL sweep, falling back to local database values', { orderId: order.id, error: apiErr.message });
-          if (apiErr.message?.includes('Incorrect order ID') || apiErr.message?.includes('not found') || apiErr.message?.includes('not exist')) {
+        } catch (apiErr: unknown) {
+          log.error('Failed to get status from provider during TTL sweep, falling back to local database values', { orderId: order.id, error: (apiErr instanceof Error ? apiErr.message : String(apiErr)) });
+          if ((apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes('Incorrect order ID') || (apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes('not found') || (apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes('not exist')) {
             remains = order.quantity;
             statusFromProvider = 'error';
           } else {
-            log.warn(`Skipping order ${order.id} TTL sweep due to transient provider API error: ${apiErr.message}`);
+            log.warn(`Skipping order ${order.id} TTL sweep due to transient provider API error: ${(apiErr instanceof Error ? apiErr.message : String(apiErr))}`);
             continue;
           }
         }
@@ -534,10 +530,9 @@ export async function runInProgressTTLSweep(): Promise<void> {
           );
         }, { isolationLevel: 'Serializable' });
 
-        CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on TTL sweep', { orderId: order.id, error: err.message }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (orderErr: any) {
-        log.error(`runInProgressTTLSweep: failed to sweep order ${order.id}`, { error: orderErr.message });
+        CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on TTL sweep', { orderId: order.id, error: (err instanceof Error ? err.message : String(err)) }));
+      } catch (orderErr: unknown) {
+        log.error(`runInProgressTTLSweep: failed to sweep order ${order.id}`, { error: (orderErr instanceof Error ? orderErr.message : String(orderErr)) });
       }
     }
 
@@ -603,13 +598,12 @@ async function runPendingCheckTTLSweep(): Promise<void> {
         const provider = await providerService.getWorkerProviderInstance(order.service.provider);
         const providerStatus = await provider.getOrderStatus(order.externalId);
         statusFromProvider = providerStatus.status?.toLowerCase() || null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (apiErr: any) {
-        log.error('Failed to get status from provider during PENDING_CHECK TTL sweep', { orderId: order.id, error: apiErr.message });
-        if (apiErr.message?.includes('Incorrect order ID') || apiErr.message?.includes('not found') || apiErr.message?.includes('not exist')) {
+      } catch (apiErr: unknown) {
+        log.error('Failed to get status from provider during PENDING_CHECK TTL sweep', { orderId: order.id, error: (apiErr instanceof Error ? apiErr.message : String(apiErr)) });
+        if ((apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes('Incorrect order ID') || (apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes('not found') || (apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes('not exist')) {
           statusFromProvider = 'error';
         } else {
-          log.warn(`Skipping order ${order.id} PENDING_CHECK TTL sweep due to transient provider API error: ${apiErr.message}`);
+          log.warn(`Skipping order ${order.id} PENDING_CHECK TTL sweep due to transient provider API error: ${(apiErr instanceof Error ? apiErr.message : String(apiErr))}`);
           continue;
         }
       }
@@ -652,9 +646,9 @@ async function runPendingCheckTTLSweep(): Promise<void> {
         processedCount++;
       }, { isolationLevel: 'Serializable' });
 
-      CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on pending check TTL sweep', { orderId: order.id, error: err.message }));
+      CompensationService.trackCompensation(order.id).catch(err => log.error('Failed to track compensation on pending check TTL sweep', { orderId: order.id, error: (err instanceof Error ? err.message : String(err)) }));
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
+      const errMsg = err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err);
       log.error(`runPendingCheckTTLSweep: failed for order ${order.id}`, { error: errMsg });
     }
   }

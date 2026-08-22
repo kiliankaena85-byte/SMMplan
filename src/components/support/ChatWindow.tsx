@@ -1,28 +1,29 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useTheme } from 'next-themes';
 import { Message, useChatMessages } from './chat/useChatMessages';
 import { useChatSSE } from './chat/useChatSSE';
 import { ChatMessageList } from './chat/ChatMessageList';
-import { ChatInput } from './chat/ChatInput';
+import { ChatInput, type ChatInputOrder } from './chat/ChatInput';
+import type { SupportTemplateDTO } from './chat/ChatTemplateManager';
 
 interface ChatWindowProps {
   ticketId: string;
   initialMessages: Message[];
   isStaff?: boolean;
-  initialTemplates?: { id: string, label: string, text: string }[];
-  onSendMessage: (formData: FormData) => Promise<unknown>;
-  editTicketMessage?: (formData: FormData) => Promise<unknown>;
-  deleteTicketMessage?: (formData: FormData) => Promise<unknown>;
+  initialTemplates?: SupportTemplateDTO[];
+  onSendMessage: (formData: FormData) => Promise<{ success: boolean; error?: string } | void>;
+  editTicketMessage?: (formData: FormData) => Promise<{ success: boolean; error?: string } | void>;
+  deleteTicketMessage?: (formData: FormData) => Promise<{ success: boolean; error?: string } | void>;
   initialNextCursor?: string | null;
   isClosed?: boolean;
-  initialOrders?: { id: string; numericId: number; status: string; serviceName: string; charge: number }[];
-  onSelectOrder?: (order: { id: string; numericId: number; status: string; serviceName: string; charge: number }) => void;
+  initialOrders?: ChatInputOrder[];
+  onSelectOrder?: (order: ChatInputOrder) => void;
   clientEmail?: string;
 }
 
-const EMPTY_TEMPLATES: { id: string, label: string, text: string }[] = [];
+const EMPTY_TEMPLATES: SupportTemplateDTO[] = [];
 
 export default function ChatWindow({
   ticketId,

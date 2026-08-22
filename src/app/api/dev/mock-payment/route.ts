@@ -79,9 +79,8 @@ export async function GET(req: NextRequest) {
     } else {
       return NextResponse.redirect(new URL(`/dashboard/add-funds?success=1`, req.url));
     }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[MockPayment] Error:", error);
-    return new NextResponse(`Mock Payment Error: ${error.message}`, { status: 500 });
+    return new NextResponse(`Mock Payment Error: ${(error instanceof Error ? error.message : String(error))}`, { status: 500 });
   }
 }

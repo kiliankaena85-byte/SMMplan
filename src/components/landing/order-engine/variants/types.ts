@@ -16,8 +16,7 @@ export interface CheckoutVariantProps {
   setShowLinkModal: (val: boolean) => void;
   quantity: number;
   setQuantity: (val: number) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  pricing: any;
+    pricing: OrderEngine["pricing"];
   email: string;
   setEmail: (val: string) => void;
   promoCode: string;

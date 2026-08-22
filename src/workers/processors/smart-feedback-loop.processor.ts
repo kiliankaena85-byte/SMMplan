@@ -24,8 +24,7 @@ export class SmartFeedbackLoopProcessor {
     /*
     try {
       // ... original code
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (globalErr: any) {
+    } catch (globalErr: unknown) {
       log.error('[Smart Drip 2.5] Global error in feedback loop tick:', globalErr.message);
     }
     */

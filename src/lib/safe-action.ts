@@ -12,8 +12,7 @@ type ServerActionResponse<T> =
  */
 export async function createSafeAction<TInput, TOutput>(
   schema: z.Schema<TInput> | null,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  input: any,
+  input: unknown,
   handler: (validatedInput: TInput) => Promise<TOutput>
 ): Promise<ServerActionResponse<TOutput>> {
   try {
@@ -34,13 +33,12 @@ export async function createSafeAction<TInput, TOutput>(
 
     const data = await handler(parsedInput);
     return { success: true, data };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 1. Log the full detailed error securely on the server
     console.error('[SAFE_ACTION_ERROR]', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
+      name: error instanceof Error ? error.name : 'UnknownError',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     });
 
     // 2. Standardize and localize the error for the client (Task 1.2)

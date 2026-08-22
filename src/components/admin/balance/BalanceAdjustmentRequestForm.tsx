@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from "react";
 import { BALANCE_ADJUSTMENT_REASONS } from "@/constants/balance-adjustments";

@@ -1,3 +1,4 @@
+import type { AdminTicketItem, TicketStatsDTO, ActiveTicketDTO } from '../types';
 import React from 'react';
 import { Headphones, Search, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,10 +55,8 @@ const renderSourceBadge = (source: string) => {
 
 export interface TicketsSidebarProps {
   isMobile: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activeTicket: any | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  stats: any;
+  activeTicket: ActiveTicketDTO | null;
+  stats: TicketStatsDTO;
   searchVal: string;
   setSearchVal: (val: string) => void;
   handleSearchSubmit: (e: React.FormEvent) => void;
@@ -67,8 +66,7 @@ export interface TicketsSidebarProps {
   handleSourceFilter: (source: string) => void;
   currentIsB2b: boolean;
   handleB2bToggle: (isB2b: boolean) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tickets: any[];
+  tickets: AdminTicketItem[];
   handleSelectTicket: (id: string) => void;
   totalPages: number;
   currentPage: number;
@@ -218,7 +216,7 @@ export function TicketsSidebar({
       <div className="flex-grow overflow-y-auto flex flex-col gap-1.5 p-2 custom-scrollbar bg-background">
         {tickets.map((ticket) => {
           const isActive = activeTicket?.id === ticket.id;
-          const lastMsg = ticket.messages?.[0]?.text || "Нет сообщений";
+          const lastMsg = (ticket.messages && ticket.messages.length > 0) ? ticket.messages[0].text : "Нет сообщений";
           const croppedMsg = lastMsg.length > 55 ? `${lastMsg.substring(0, 55)}...` : lastMsg;
 
           return (
@@ -234,7 +232,7 @@ export function TicketsSidebar({
               <div className="flex items-start gap-3">
                 {/* Premium Circular Avatar */}
                 <div className="relative w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary text-xs shrink-0 select-none">
-                  {ticket.user.email.substring(0, 2).toUpperCase()}
+                  {(ticket.user?.email || "Аноним").substring(0, 2).toUpperCase()}
                   {/* Social Network Icon Badge based on ticket source */}
                   {renderSourceBadge(ticket.source)}
                 </div>
@@ -243,8 +241,8 @@ export function TicketsSidebar({
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-[11px] font-bold text-foreground truncate max-w-[100px] sm:max-w-[145px]" title={ticket.user.email}>
-                        {ticket.user.email}
+                      <span className="text-[11px] font-bold text-foreground truncate max-w-[100px] sm:max-w-[145px]" title={ticket.user.email || "Аноним"}>
+                        {ticket.user.email || "Аноним"}
                       </span>
                       {ticket.user.b2bConfig?.isB2b && (
                         <span className="px-1.5 py-0.5 bg-warning/10 text-warning-text border border-warning/20 rounded text-[8px] font-black uppercase shrink-0 select-none">
@@ -255,7 +253,7 @@ export function TicketsSidebar({
                     <div className="flex items-center gap-2 shrink-0">
                       <StatusBadge status={ticket.status} className="h-4 px-1.5 text-[8px]" />
                       <span className="text-[9px] font-medium text-muted-foreground">
-                        {formatTicketDate(ticket.updatedAt)}
+                        {formatTicketDate(typeof ticket.updatedAt === "string" ? ticket.updatedAt : ticket.updatedAt.toISOString())}
                       </span>
                     </div>
                   </div>

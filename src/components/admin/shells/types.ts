@@ -12,8 +12,7 @@ export interface AdminNavGroup {
 }
 
 export interface AdminShellProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  user: any;
+    user: { name?: string | null; email?: string | null; role?: string | null; [key: string]: unknown };
   roleInfo: { label: string; color: string };
   navigation: AdminNavGroup[];
   siteName: string;

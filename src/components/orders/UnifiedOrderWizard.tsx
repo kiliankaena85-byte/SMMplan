@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Copy, CheckCircle2, Trash2, ArrowRight, Wand2, Plus } from 'lucide-react';
@@ -83,9 +83,8 @@ export function UnifiedOrderWizard({
       } else {
         window.location.href = `/dashboard?paymentId=${res.data.paymentId}`;
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      setError(e.message || "Ошибка при оплате");
+    } catch (e: unknown) {
+      setError((e instanceof Error ? e.message : String(e)) || "Ошибка при оплате");
     } finally {
       setIsLoading(false);
     }

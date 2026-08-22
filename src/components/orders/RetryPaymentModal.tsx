@@ -53,8 +53,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
       } else {
         toast.error(res.error || 'Платёжная система временно недоступна. Попробуйте позже или выберите другой способ оплаты.');
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-    } catch (e: any) {
+        } catch {
       toast.error('Проблема с интернет-соединением. Проверьте связь и попробуйте снова.');
     } finally {
       setIsProcessing(false);

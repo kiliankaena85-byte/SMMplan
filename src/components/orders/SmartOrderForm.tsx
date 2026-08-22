@@ -45,8 +45,7 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
     
     // Filter by warranty
     if (filterWarranty) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      result = result.filter((s: any) => 
+            result = result.filter((s) => 
         s.badge === 'ГАРАНТИЯ' || 
         s.name.toLowerCase().includes('гарант') || 
         (s.description && s.description.toLowerCase().includes('гарант'))
@@ -118,8 +117,7 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
   }).filter(p => p.name !== IntelligencePlatform.OTHER);
 
   // Platform select handler
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handlePlatformSelect = (pId: string, pName: any) => {
+    const handlePlatformSelect = (pId: string, pName: IntelligencePlatform) => {
     engine.setNetworkId(pId);
     engine.setManualPlatform(pName);
     const netObj = unfilteredCatalog.find(n => n.id === pId);
@@ -245,8 +243,7 @@ export function SmartOrderForm({ userBalanceCents = 0, userEmail = "" }: { userB
                 <div className="flex-1">
                   <select
                     value={sortType}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    onChange={(e) => setSortType(e.target.value as any)}
+                                        onChange={(e) => setSortType(e.target.value as "default" | "price_asc" | "price_desc")}
                     className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 appearance-none cursor-pointer"
                   >
                     <option value="default">Сортировка по умолчанию</option>

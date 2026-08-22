@@ -1,3 +1,29 @@
+interface YooKassaWebhookPayload {
+  type?: string;
+  event?: string;
+  created_at?: string;
+  object?: {
+    id?: string;
+    status?: string;
+    paid?: boolean;
+    amount?: {
+      value?: string;
+      currency?: string;
+    };
+    created_at?: string;
+    metadata?: {
+      paymentId?: string;
+      userId?: string;
+      orderId?: string;
+      source?: string;
+      [key: string]: unknown;
+    };
+    receipt_registration?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
@@ -72,8 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     const providedSignature = req.headers.get('x-sha256-signature') || req.headers.get('digest');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let rawBody: Record<string, any>;
+        let rawBody: YooKassaWebhookPayload;
 
     if (providedSignature && expectedSecret) {
       const rawText = await req.text();
@@ -141,7 +166,7 @@ export async function POST(req: NextRequest) {
       
       const userId = rawBody.object.metadata?.userId;
       const internalPaymentId = rawBody.object.metadata?.paymentId;
-      const metadataType = rawBody.object.metadata?.type;
+      const metadataType = typeof rawBody.object.metadata?.type === "string" ? rawBody.object.metadata.type : undefined;
 
       const receiptId = rawBody.object.receipt_registration === 'succeeded' 
         ? `yookassa_receipt_${gatewayId}` 
@@ -196,9 +221,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ status: 'Ignored unsupported event' }, { status: 200 });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error('Webhook error:', error.message);
+  } catch (error: unknown) {
+    console.error('Webhook error:', (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

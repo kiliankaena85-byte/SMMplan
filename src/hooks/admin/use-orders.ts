@@ -20,8 +20,7 @@ export function useOrderManagement({ initialData }: { initialData: OrderColumn[]
     (state, update: { id: string, status: string, remains?: number }) => {
       return state.map(order => 
         order.id === update.id 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ? { ...order, status: update.status as any, remains: update.remains ?? order.remains } 
+                    ? { ...order, status: update.status as OrderColumn["status"], remains: update.remains ?? order.remains } 
           : order
       );
     }
@@ -90,12 +89,12 @@ export function useOrderManagement({ initialData }: { initialData: OrderColumn[]
         } else {
           toast.error('Неизвестная ошибка при пакетной отмене');
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
-        if (e.name === 'AbortError') {
+            } catch (e: unknown) {
+        const err = e as Error;
+        if (err.name === 'AbortError') {
           toast.error('Превышено время ожидания ответа от сервера');
         } else {
-          toast.error(e.message || 'Ошибка пакетной отмены');
+          toast.error(err.message || 'Ошибка пакетной отмены');
         }
       }
     });

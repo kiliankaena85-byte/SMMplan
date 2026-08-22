@@ -107,8 +107,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
 
   // Map to strict DTO — no raw Prisma objects on client
   const services: CatalogServiceDTO[] = rawServices.map(s => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = s as any;
+        
     return {
       id: s.id,
       numericId: s.numericId,
@@ -123,23 +122,23 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       minQty: s.minQty,
       maxQty: s.maxQty,
       isActive: s.isActive,
-      isQuarantined: raw.isQuarantined ?? false,
-      quarantineReason: raw.quarantineReason ?? null,
+      isQuarantined: !!s.isQuarantined,
+      quarantineReason: s.quarantineReason ?? null,
       isDripFeedEnabled: s.isDripFeedEnabled,
       isRefillEnabled: s.isRefillEnabled,
-      isCancelEnabled: raw.isCancelEnabled ?? false,
+      isCancelEnabled: !!s.isCancelEnabled,
       ordersCount: s._count?.orders ?? 0,
       description: s.description ?? null,
-      targetType: raw.targetType ?? null,
-      customDataType: raw.customDataType ?? "NONE",
-      customDataLabel: raw.customDataLabel ?? null,
-      isMediaGroupAware: raw.isMediaGroupAware ?? false,
+      targetType: s.targetType ?? null,
+      customDataType: s.customDataType ?? "NONE",
+      customDataLabel: s.customDataLabel ?? null,
+      isMediaGroupAware: !!s.isMediaGroupAware,
       providerId: s.providerId ?? null,
-      requireWarning: raw.requireWarning ?? false,
-      warningMessage: raw.warningMessage ?? null,
-      cooldownReason: raw.cooldownReason ?? null,
-      qualityTier: raw.qualityTier ?? null,
-      createdAt: raw.createdAt ?? null,
+      requireWarning: !!s.requireWarning,
+      warningMessage: s.warningMessage ?? null,
+      cooldownReason: s.cooldownReason ?? null,
+      qualityTier: s.qualityTier ?? null,
+      createdAt: s.createdAt ?? null,
     };
   });
   return (

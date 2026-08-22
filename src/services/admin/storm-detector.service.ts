@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 
 export interface StormServiceAlert {
@@ -72,8 +73,7 @@ class StormDetectorService {
     const cutoffDate = new Date(Date.now() - windowHours * 60 * 60 * 1000);
 
     // Fetch all orders created in the rolling window
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {
+        const where: Prisma.OrderWhereInput = {
       createdAt: { gte: cutoffDate },
     };
     if (isSingleTenant) {

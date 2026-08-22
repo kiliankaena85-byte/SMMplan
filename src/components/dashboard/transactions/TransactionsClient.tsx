@@ -428,8 +428,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
           {/* Date Selector */}
           <select
             value={dateFilter}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onChange={(e) => setDateFilter(e.target.value as any)}
+                        onChange={(e) => setDateFilter(e.target.value as "ALL" | "TODAY" | "WEEK" | "MONTH")}
             className="h-11 w-full sm:w-auto bg-content2 border border-border/60 rounded-xl px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary cursor-pointer select-none"
             aria-label="Фильтр по дате"
           >

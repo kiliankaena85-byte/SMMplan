@@ -1,4 +1,27 @@
 'use client';
+export interface CatalogTableCategory {
+  id: string;
+  name: string;
+  serviceCount?: number;
+  _count?: { services: number };
+  network?: {
+    id?: string;
+    name: string;
+    slug?: string;
+  } | null;
+}
+
+export interface CatalogTableProvider {
+  id: string;
+  name: string;
+}
+
+export interface CatalogTableNetwork {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 // audit-disable STR-002
 
 import { useState, useTransition, useMemo } from 'react';
@@ -196,10 +219,8 @@ export function EditServiceModal({
   usdToRub,
 }: {
   service: CatalogServiceDTO;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories?: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  providers?: any[];
+    categories?: unknown[];
+    providers?: unknown[];
   onSuccess?: () => void;
   usdToRub?: number;
 }) {
@@ -260,12 +281,9 @@ function CatalogTableRow({
   canSeeRates?: boolean;
   isChecked: boolean;
   onToggle: (e?: React.MouseEvent | React.ChangeEvent) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  providers: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  router: any;
+  categories: Array<{ id: string; name: string }>;
+  providers: Array<{ id: string; name: string }>;
+    router: unknown;
   currency: 'RUB' | 'USD';
   volume: 'UNIT' | '1K';
   onDeleted?: (id: string) => void;
@@ -396,7 +414,7 @@ function CatalogTableRow({
   }
 
   const cleanActivity = formatCleanActivityName(s.categoryName || '', s.networkName || undefined);
-  const providerObj = providers.find(p => p.id === s.providerId);
+  const providerObj = providers.find(p => (p as { id: string; name: string }).id === s.providerId);
 
   return (
     <Table.Row
@@ -603,12 +621,9 @@ export function CatalogTable({
   canEdit?: boolean,
   canEditFinance?: boolean,
   canSeeRates?: boolean,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories?: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  providers?: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  networks?: any[],
+    categories?: CatalogTableCategory[],
+  providers?: CatalogTableProvider[],
+  networks?: CatalogTableNetwork[],
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -904,7 +919,7 @@ export function CatalogTable({
                   {(value: string) => {
                     if (value === 'all') return 'Все провайдеры';
                     if (value === 'none') return 'Без провайдера (вручную)';
-                    return providers.find(p => p.id === value)?.name ?? value;
+                    return providers.find(p => (p as { id: string; name: string }).id === value)?.name ?? value;
                   }}
                 </SelectValue>
               </SelectTrigger>
@@ -912,7 +927,7 @@ export function CatalogTable({
                 <SelectItem value="all" label="Все провайдеры" className="text-xs cursor-pointer">Все провайдеры</SelectItem>
                 <SelectItem value="none" label="Без провайдера (вручную)" className="text-xs cursor-pointer">Без провайдера (вручную)</SelectItem>
                 {providers.map(p => (
-                  <SelectItem key={p.id} value={p.id} label={p.name} className="text-xs cursor-pointer">{p.name}</SelectItem>
+                  <SelectItem key={(p as { id: string; name: string }).id} value={(p as { id: string; name: string }).id} label={(p as { id: string; name: string }).name} className="text-xs cursor-pointer">{(p as { id: string; name: string }).name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

@@ -3,11 +3,14 @@ import React from 'react';
 export interface BaseUserProps {
   id?: string;
   email: string;
-  balance: bigint;
-  totalSpent?: bigint;
-  referralCode?: string;
+  balance?: bigint;
+  balanceCents?: number;
+  totalSpent?: bigint | number;
+  referralCode?: string | null;
   tenantId: string;
   role?: string;
+  unreadTicketsCount?: number;
+  createdAt?: Date | string;
 }
 
 export interface OrderViewData {
@@ -52,7 +55,7 @@ export interface NetworkViewData {
   name: string;
 }
 
-export interface ITenantDashboardStrategy<TUser extends BaseUserProps = BaseUserProps, TOrder = unknown> {
+export interface ITenantDashboardStrategy<TUser = BaseUserProps, TOrder = unknown> {
   ShellLayout: React.ComponentType<{ user: TUser; children: React.ReactNode }>;
   HomeView: React.ComponentType<{
     user: TUser;
@@ -81,7 +84,7 @@ export interface ITenantDashboardStrategy<TUser extends BaseUserProps = BaseUser
     countsMap: Record<string, number>;
   }>;
   TransactionsView?: React.ComponentType<{
-    initialEntries: any[];
+    initialEntries: unknown[];
     userEmail: string;
     currentBalanceRub?: number;
   }>;

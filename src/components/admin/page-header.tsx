@@ -8,8 +8,7 @@ interface BreadcrumbItem {
 }
 
 interface AdminPageHeaderProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  icon?: any;
+    icon?: React.ComponentType<{ className?: string }>;
   title: string;
   description?: React.ReactNode;
   action?: React.ReactNode;

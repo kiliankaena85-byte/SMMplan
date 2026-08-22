@@ -32,8 +32,7 @@ export default async function SmartDripAdminPage() {
 
       <SmartDripClient
         initialCampaigns={campaigns}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        initialServices={services as any}
+                initialServices={services}
         initialGlobalDisabled={globalDisabled}
       />
     </div>

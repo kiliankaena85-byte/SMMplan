@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import { IntelligenceLinkAnalyzer } from "@/services/analyzer/link-analyzer";
 import { RateLimitService } from '@/services/core/rate-limit.service';
@@ -47,9 +47,8 @@ export async function analyzeUrl(url: string): Promise<{ success: boolean; data?
     const { assertSafeUrl } = await import('@/utils/ssrf-guard');
     try {
       await assertSafeUrl(url);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      return { success: false, error: e.message || "This URL format is not supported for analysis." };
+    } catch (e: unknown) {
+      return { success: false, error: (e instanceof Error ? e.message : String(e)) || "This URL format is not supported for analysis." };
     }
 
     const { getClientIp } = await import('@/utils/ip');

@@ -45,9 +45,8 @@ export function EmployeeConsentModalGuard({ children }: { children: React.ReactN
         setHasConsent(true);
         setIsOpen(false);
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      alert(err.message || 'Ошибка принятия согласия');
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || 'Ошибка принятия согласия');
     } finally {
       setLoading(false);
     }

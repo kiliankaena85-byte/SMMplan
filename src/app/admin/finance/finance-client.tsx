@@ -1,5 +1,7 @@
 'use client';
 
+
+
 /**
  * FinanceClient v4 — Clean FinTech Operating Hub for SMMpanel 1.0
  *
@@ -54,7 +56,7 @@ import { ReconciliationTab } from './components/reconciliation-tab';
 import type { ReconciliationSummaryDTO } from '@/services/financial/ledger-reconciliation.service';
 import { VatThresholdWidget } from './vat-threshold-widget';
 import { FinanceSettingsForm } from './finance-settings-form';
-import { QuarantineList } from './quarantine-list';
+import { QuarantineList, type QuarantineEntry } from './quarantine-list';
 
 const PERIOD_OPTIONS = [
   { value: 'today', label: 'Сегодня' },
@@ -279,8 +281,7 @@ export interface FinanceClientProps {
     taxRate: number;
     opexMonthly: number;
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  quarantineList: any[];
+  quarantineList: QuarantineEntry[];
 }
 
 export function FinanceClient({

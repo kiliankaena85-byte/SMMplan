@@ -1,4 +1,5 @@
-"use client";
+'use client';
+import type { ExternalServiceItem, CategoryItem } from "../types";
 
 import React from "react";
 import { X, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -74,8 +75,7 @@ export function ConfirmationModal({
                 <button
                   key={t.id}
                   type="button"
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  onClick={() => onTargetTenantChange(t.id as any)}
+                                    onClick={() => onTargetTenantChange(t.id as "smmplan" | "flux" | "both")}
                   className={`py-2 px-3 text-xs font-extrabold rounded-lg border transition-all cursor-pointer ${
                     targetTenant === t.id
                       ? 'bg-primary text-primary-foreground border-primary shadow-sm'

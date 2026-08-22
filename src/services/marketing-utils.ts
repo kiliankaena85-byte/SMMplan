@@ -1,5 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function logPromoCodeUsageIfNeeded(tx: any, orderId: string, userId: string) {
+import { Prisma } from '@prisma/client';
+export async function logPromoCodeUsageIfNeeded(tx: Prisma.TransactionClient, orderId: string, userId: string) {
   const order = await tx.order.findUnique({
     where: { id: orderId },
     select: {

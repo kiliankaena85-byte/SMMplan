@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db as prisma } from '@/lib/db';
 import { SmartCampaignStatus, SmartTaskStatus } from '@prisma/client';
 import { marketingService } from '@/services/marketing.service';
@@ -106,9 +107,9 @@ export class SmartDripService {
         providerCostCents: pricing.providerCostCents,
         markup,
       };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      return { success: false, basePriceCents: 0, finalPriceCents: 0, providerCostCents: 0, markup: 0, error: err.message || 'Ошибка расчета цен' };
+        } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : "Ошибка расчета цен";
+      return { success: false, basePriceCents: 0, finalPriceCents: 0, providerCostCents: 0, markup: 0, error: errMessage };
     }
   }
 
@@ -117,8 +118,7 @@ export class SmartDripService {
    * Вызывается внутри Checkout транзакции при успешной оплате/оформлении.
    */
   static async createCampaign(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tx: any, // Prisma Transaction client
+        tx: Prisma.TransactionClient,
     params: {
       userId: string;
       serviceId: string;

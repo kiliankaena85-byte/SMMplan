@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import { db as prisma } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";

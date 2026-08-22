@@ -62,9 +62,8 @@ export class PromoAutomationService {
           }
         }
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error(`PromoAutomationService Error for User ${userId}:`, e.message);
+    } catch (e: unknown) {
+      console.error(`PromoAutomationService Error for User ${userId}:`, (e instanceof Error ? e.message : String(e)));
     }
   }
 }

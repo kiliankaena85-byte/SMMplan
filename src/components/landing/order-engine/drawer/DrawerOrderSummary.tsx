@@ -1,4 +1,5 @@
-"use client";
+'use client';
+import { PublicService } from '@/actions/order/catalog';
 
 import React from "react";
 import { Link2, Edit3, ShieldAlert } from "lucide-react";
@@ -6,8 +7,7 @@ import { SocialIcon } from "@/components/ui/SocialIcon";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 
 interface DrawerOrderSummaryProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  selectedService: any;
+    selectedService: PublicService | null;
   url: string;
   setShowLinkModal: (show: boolean) => void;
   engine?: OrderEngine;
@@ -20,6 +20,7 @@ export function DrawerOrderSummary({
   engine
 }: DrawerOrderSummaryProps) {
   const [isDescExpanded, setIsDescExpanded] = React.useState(false);
+  if (!selectedService) return null;
 
   const selectedNetworkObj = React.useMemo(() => {
     if (!engine) return null;

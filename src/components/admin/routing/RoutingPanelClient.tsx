@@ -35,7 +35,7 @@ interface RoutingAuditLog {
   toProviderId?: string | null;
 }
 
-interface RoutingComparisonItem {
+export interface RoutingComparisonItem {
   routeId: string;
   limitsMismatch: boolean;
   providerName: string;
@@ -59,7 +59,8 @@ interface RoutingComparisonItem {
   max?: number;
 }
 
-interface RoutingService {
+export interface RoutingService {
+  [key: string]: unknown;
   id: string;
 }
 
@@ -110,7 +111,7 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
         setPreviewData(res.data as unknown as SwapPreviewData);
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err));
     }
   };
 
@@ -135,9 +136,8 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
         });
         toast.success("Маршрут изменен");
         onClose();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message);
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)));
       }
     });
   };
@@ -157,9 +157,8 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
         toast.success("Маршрут добавлен");
         setNewProviderId("");
         setNewExternalId("");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message);
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)));
       }
     });
   };
@@ -169,9 +168,8 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
       try {
         await toggleRouteStatus(routeId);
         toast.success("Статус изменен");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message);
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)));
       }
     });
   };
@@ -180,9 +178,8 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
     startTransition(async () => {
       try {
         await changeRoutePriority(routeId, direction);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message);
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)));
       }
     });
   };
@@ -201,9 +198,8 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
       try {
         await deleteServiceRoute(routeId);
         toast.success("Маршрут удален");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message);
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)));
       }
     });
   };

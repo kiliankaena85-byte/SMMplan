@@ -9,7 +9,7 @@ function safeRevalidatePath(path: string, type?: 'layout' | 'page') {
   try {
     revalidatePath(path, type);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err);
     console.warn(`[Cache] revalidatePath failed for ${path}:`, msg);
   }
 }
@@ -62,9 +62,8 @@ export class PaymentService {
                 } else {
                     throw new Error(`GATEWAY_ERROR: Failed to contact YooKassa API or Payment Not Found (${response.status})`);
                 }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (e: any) {
-                console.error(`[Payment] Verification Exploit Blocked: ${e.message}`);
+            } catch (e: unknown) {
+                console.error(`[Payment] Verification Exploit Blocked: ${(e instanceof Error ? e.message : String(e))}`);
                 return false; // Reject payment
             }
         } else {
@@ -264,9 +263,8 @@ export class PaymentService {
       });
 
       return true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error('[PaymentService] Error confirming payment:', e.message);
+    } catch (e: unknown) {
+      console.error('[PaymentService] Error confirming payment:', (e instanceof Error ? e.message : String(e)));
       return false;
     }
   }
@@ -410,9 +408,8 @@ export class PaymentService {
       }
 
       return true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error('[PaymentService] Error:', e.message);
+    } catch (e: unknown) {
+      console.error('[PaymentService] Error:', (e instanceof Error ? e.message : String(e)));
       return false;
     }
   }

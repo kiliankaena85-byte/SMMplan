@@ -72,7 +72,7 @@ export class ProviderDiagnosticService {
    * Translates raw API / Network errors into user-friendly actionable Russian text.
    */
   static translateError(error: unknown, targetUrl: string): { message: string; suggestedFix?: string; suggestedUrl?: string } {
-    const rawMsg = error instanceof Error ? error.message : String(error || '');
+    const rawMsg = error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error || '');
 
     if (rawMsg.includes('Invalid API key') || rawMsg.includes('API key') || rawMsg.includes('Unauthorized') || rawMsg.includes('401')) {
       return {
@@ -169,9 +169,8 @@ export class ProviderDiagnosticService {
 
     try {
       await assertSafeUrl(cleanUrl);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      result.errorMessage = `URL заблокирован политикой безопасности: ${e.message}`;
+    } catch (e: unknown) {
+      result.errorMessage = `URL заблокирован политикой безопасности: ${(e instanceof Error ? e.message : String(e))}`;
       return result;
     }
 

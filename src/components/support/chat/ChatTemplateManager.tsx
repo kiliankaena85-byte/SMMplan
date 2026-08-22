@@ -16,18 +16,27 @@ const CATEGORIES: Record<string, string> = {
   ACCOUNT: '👤 Аккаунт',
 };
 
+
+export interface SupportTemplateDTO {
+  id: string;
+  shortcut: string | null;
+  label: string;
+  text: string;
+  category?: string;
+  sort?: number;
+  isActive?: boolean;
+  useCount?: number;
+}
+
 export function ChatTemplateManager({
   templatesList,
   setTemplatesList,
   onSelectTemplate,
   onOpenStateChange,
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  templatesList: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setTemplatesList: React.Dispatch<React.SetStateAction<any[]>>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSelectTemplate: (t: any) => void;
+  templatesList: SupportTemplateDTO[];
+  setTemplatesList: React.Dispatch<React.SetStateAction<SupportTemplateDTO[]>>;
+  onSelectTemplate: (t: SupportTemplateDTO) => void;
   onOpenStateChange?: (isOpen: boolean) => void;
 }) {
   const [isOpenDropdown, setIsOpenDropdown] = useState(false);
@@ -126,9 +135,8 @@ export function ChatTemplateManager({
       setNewTemplateLabel('');
       setNewTemplateShortcut('');
       setNewTemplateText('');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error('Ошибка создания шаблона: ' + err.message);
+    } catch (err: unknown) {
+      toast.error('Ошибка создания шаблона: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setCreatingTemplate(false);
     }

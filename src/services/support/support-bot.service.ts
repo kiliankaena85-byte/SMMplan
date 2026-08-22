@@ -1,3 +1,23 @@
+import type { Context } from 'telegraf';
+interface TelegramIncomingMessage {
+  message_id?: number;
+  text?: string;
+  caption?: string;
+  photo?: Array<{ file_id: string; file_size?: number }>;
+  document?: { file_id: string; file_size?: number; mime_type?: string };
+  voice?: { file_id: string; file_size?: number };
+  reply_to_message?: { message_id?: number };
+}
+
+interface TelegramIncomingContext {
+  message?: TelegramIncomingMessage;
+  reply: (text: string, extra?: Record<string, unknown>) => Promise<unknown>;
+  react?: (reaction: unknown) => Promise<unknown>;
+  telegram: {
+    getFileLink: (fileId: string) => Promise<URL | string>;
+  };
+}
+
 import { db } from '@/lib/db';
 import { ticketService } from '@/services/support/ticket.service';
 import fs from 'fs';
@@ -15,35 +35,35 @@ class SupportBotService {
   /**
    * INBOUND: Handle messages from Telegram Bot and save to Database
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async handleIncomingMessage(ctx: any, userId: string) {
+    async handleIncomingMessage(ctx: Context, userId: string) {
     let text = '';
     let mediaUrl: string | null = null;
     let mediaType: string | null = null;
+    const msg = (ctx.message as unknown as TelegramIncomingMessage) || {};
 
     // 1. Text
-    if (ctx.message.text) {
-      text = ctx.message.text;
+    if (msg.text) {
+      text = msg.text;
     }
 
     // Find or Create Active Ticket FIRST, because we need ticketId for media storage
-    const subject = ctx.message.text?.substring(0, 50) || ctx.message.caption?.substring(0, 50) || 'Медиа сообщение';
+    const subject = msg.text?.substring(0, 50) || msg.caption?.substring(0, 50) || 'Медиа сообщение';
     const ticket = await ticketService.getOrCreateTicket(userId, subject, 'TELEGRAM');
 
     // 2. Photo
-    if (ctx.message.photo && ctx.message.photo.length > 0) {
-      text = ctx.message.caption || '';
+    if (msg.photo && msg.photo.length > 0) {
+      text = msg.caption || '';
       mediaType = 'image';
-      const photo = ctx.message.photo[ctx.message.photo.length - 1];
+      const photo = msg.photo[msg.photo.length - 1];
       mediaUrl = await this.downloadTelegramFile(ctx, photo.file_id, 'jpg', ticket.id, photo.file_size);
       if (!mediaUrl) return; 
     }
 
     // 3. Document
-    if (ctx.message.document) {
-      text = ctx.message.caption || '';
+    if (msg.document) {
+      text = msg.caption || '';
       mediaType = 'document';
-      const doc = ctx.message.document;
+      const doc = msg.document;
       
       let ext = 'file';
       if (doc.mime_type === 'image/png') ext = 'png';
@@ -55,10 +75,10 @@ class SupportBotService {
     }
 
     // 4. Voice
-    if (ctx.message.voice) {
+    if (msg.voice) {
       text = '🎤 Голосовое сообщение';
       mediaType = 'audio';
-      mediaUrl = await this.downloadTelegramFile(ctx, ctx.message.voice.file_id, 'ogg', ticket.id, ctx.message.voice.file_size);
+      mediaUrl = await this.downloadTelegramFile(ctx, msg.voice.file_id, 'ogg', ticket.id, msg.voice.file_size);
       if (!mediaUrl) return;
     }
 
@@ -68,8 +88,8 @@ class SupportBotService {
 
     // 5. Detect Replies (Swipe to reply in Telegram)
     let replyToId: string | null = null;
-    if (ctx.message.reply_to_message?.message_id) {
-      const originalTgMsgId = String(ctx.message.reply_to_message.message_id);
+    if (msg.reply_to_message?.message_id) {
+      const originalTgMsgId = String(msg.reply_to_message.message_id);
       // Find internal message by telegramMsgId
       const originalMsg = await db.ticketMessage.findFirst({
         where: { telegramMsgId: originalTgMsgId }
@@ -79,8 +99,6 @@ class SupportBotService {
       }
     }
 
-
-
     // 7. Save Message to DB & Update Ticket Status via ticketService
     await ticketService.addMessage(
       ticket.id,
@@ -89,7 +107,7 @@ class SupportBotService {
       mediaUrl || undefined,
       mediaType || undefined,
       replyToId || undefined,
-      String(ctx.message.message_id)
+      msg.message_id ? String(msg.message_id) : undefined
     );
 
     // 9. Client-Centric Reaction/Ack
@@ -99,13 +117,12 @@ class SupportBotService {
     });
 
     if (userMessageCount <= 1) {
-      await ctx.reply('✅ Ваше сообщение передано в поддержку. Ожидайте ответа.', { reply_to_message_id: ctx.message.message_id }).catch(() => {});
+      await (ctx.reply as Function)('✅ Ваше сообщение передано в поддержку. Ожидайте ответа.', msg.message_id ? { reply_to_message_id: msg.message_id } : undefined).catch(() => {});
     } else {
       // For subsequent messages, just react to avoid spam
       try {
-        await ctx.react('👨‍💻');
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch(e) {
+        if (ctx.react) await ctx.react('👨‍💻');
+      } catch {
         // Ignored. Not all chats support reactions.
       }
     }
@@ -201,8 +218,7 @@ class SupportBotService {
           const absolutePath = path.join(process.cwd(), 'private', 'uploads', mediaUrl);
           const source = fs.existsSync(absolutePath) ? { source: absolutePath } : mediaUrl;
           const { bot } = await import('@/bot');
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const extra: any = { ...baseParams, caption };
+                    const extra: Record<string, unknown> = { ...baseParams, caption };
           let msg;
           if (mediaType === 'image') msg = await bot.telegram.sendPhoto(telegramId, source, extra);
           else if (mediaType === 'audio') msg = await bot.telegram.sendAudio(telegramId, source, extra);
@@ -229,10 +245,10 @@ class SupportBotService {
 
       console.log(`[SupportBot] sendSupportReply OK, messageId=${messageId}`);
       return messageId ? String(messageId) : null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error('[SupportBot] Failed to send to telegram:', e.message);
-      if (e.message?.includes('message to reply not found') && replyToTgMsgId) {
+        } catch (e: unknown) {
+      const err = e as Error;
+      console.error('[SupportBot] Failed to send to telegram:', err.message);
+      if (err.message?.includes('message to reply not found') && replyToTgMsgId) {
         return this.sendSupportReply(telegramId, text, undefined, mediaUrl, mediaType);
       }
       return null;
@@ -252,11 +268,11 @@ class SupportBotService {
         parse_mode: 'HTML',
       });
       return true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error('[SupportBot] Failed to edit telegram message:', e.message);
-      if (e.message.includes('message is not modified')) return true; // It's fine
-      throw new Error(e.message, { cause: e }); // throw to show Toast in Admin
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      console.error('[SupportBot] Failed to edit telegram message:', err.message);
+      if (err.message.includes('message is not modified')) return true; // It's fine
+      throw err;
     }
   }
 
@@ -270,10 +286,10 @@ class SupportBotService {
         message_id: Number(telegramMsgId),
       });
       return true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error('[SupportBot] Failed to delete telegram message:', e.message);
-      throw new Error(e.message, { cause: e });
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      console.error('[SupportBot] Failed to delete telegram message:', err.message);
+      throw err;
     }
   }
 
@@ -306,8 +322,7 @@ class SupportBotService {
   }
 
   // --- Helper ---
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async downloadTelegramFile(ctx: any, fileId: string, ext: string, ticketId: string, fileSize?: number): Promise<string | null> {
+    private async downloadTelegramFile(ctx: Context, fileId: string, ext: string, ticketId: string, fileSize?: number): Promise<string | null> {
     const MAX_SIZE = 10 * 1024 * 1024; // 10 MB (Reduced from 20MB for safety)
     if (fileSize && fileSize > MAX_SIZE) {
       await ctx.reply('⚠️ Файл слишком большой (макс. 10 МБ). Загрузите его на файлообменник и отправьте ссылку.');

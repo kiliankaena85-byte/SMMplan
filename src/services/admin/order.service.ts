@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { calculatePartialRefund } from '@/utils/refund';
 import { WalletOps } from '../financial/wallet-ops';
@@ -92,8 +93,8 @@ class AdminOrderService {
     } = params;
 
     // Build dynamic WHERE clause
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: Record<string, any> = {};
+    const andConditions: Prisma.OrderWhereInput[] = [];
+    const where: Prisma.OrderWhereInput = {};
 
     if (userId && userId.trim()) {
       where.userId = userId.trim();
@@ -111,7 +112,7 @@ class AdminOrderService {
       } else if (status === 'COMPLETED_ALL') {
         where.status = { in: ['COMPLETED', 'PARTIAL'] };
       } else {
-        where.status = status;
+        where.status = status as import("@prisma/client").OrderStatus;
       }
     }
 
@@ -130,16 +131,16 @@ class AdminOrderService {
     if (serviceName && serviceName.trim()) {
       const tokens = serviceName.trim().split(/\s+/).filter(Boolean);
       if (tokens.length > 0) {
-        where.AND = where.AND || [];
+        
         tokens.forEach(token => {
           if (token.startsWith('-') && token.length > 1) {
-            where.AND.push({
+            andConditions.push({
               service: {
-                name: { not: { contains: token.substring(1), mode: 'insensitive' } }
+                name: { not: { contains: token.substring(1) } }
               }
             });
           } else {
-            where.AND.push({
+            andConditions.push({
               service: {
                 name: { contains: token, mode: 'insensitive' }
               }
@@ -150,8 +151,8 @@ class AdminOrderService {
     }
 
     if (networkSlug && networkSlug !== 'ALL') {
-      where.AND = where.AND || [];
-      where.AND.push({
+      
+      andConditions.push({
         service: {
           category: {
             network: {
@@ -163,18 +164,18 @@ class AdminOrderService {
     }
 
     if (params.activityType && params.activityType !== 'ALL') {
-      where.AND = where.AND || [];
+      
       if (ACTIVITY_TYPE_KEYWORDS[params.activityType]) {
         const kws = ACTIVITY_TYPE_KEYWORDS[params.activityType];
-        where.AND.push({
+        andConditions.push({
           OR: [
-            ...kws.map(kw => ({ service: { name: { contains: kw, mode: 'insensitive' } } })),
-            ...kws.map(kw => ({ service: { category: { name: { contains: kw, mode: 'insensitive' } } } })),
+            ...kws.map(kw => ({ service: { name: { contains: kw, mode: 'insensitive' as Prisma.QueryMode } } })),
+            ...kws.map(kw => ({ service: { category: { name: { contains: kw, mode: 'insensitive' as Prisma.QueryMode } } } })),
           ]
         });
       } else {
         // Direct category slug match
-        where.AND.push({
+        andConditions.push({
           service: {
             category: {
               slug: params.activityType
@@ -254,11 +255,10 @@ class AdminOrderService {
     }
 
     if (computedDateFrom || computedDateTo) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dateFilter: any = {};
+      const dateFilter: Prisma.DateTimeFilter = {};
       if (computedDateFrom) dateFilter.gte = computedDateFrom;
       if (computedDateTo) dateFilter.lte = computedDateTo;
-      where.createdAt = { ...where.createdAt, ...dateFilter };
+      where.createdAt = dateFilter;
     }
 
     // ── Omni-Search Parser (Strict Intent Hierarchy) ──
@@ -636,10 +636,7 @@ class AdminOrderService {
    */
   async getTopServices(limit = 6, startDate?: Date, endDate?: Date, tenantId?: string) {
     const isSingleTenant = tenantId && tenantId !== 'all';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {
-      status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] }
-    };
+    const where: Prisma.OrderWhereInput = { status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] } };
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
@@ -719,8 +716,7 @@ class AdminOrderService {
    */
   async getRefundAndFailureStats(startDate?: Date, endDate?: Date, tenantId?: string) {
     const isSingleTenant = tenantId && tenantId !== 'all';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const where: Prisma.OrderWhereInput = { AND: [] };
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }

@@ -46,8 +46,7 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
   ]);
 
   // 2. Fetch full active ticket chat details if ticketId query parameter exists
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let activeTicket: any = null;
+  let activeTicket: Awaited<ReturnType<typeof adminTicketService.getTicketDetails>> | null = null;
   let supportLimitCents = 0;
   let supportSpentTodayCents = 0;
 

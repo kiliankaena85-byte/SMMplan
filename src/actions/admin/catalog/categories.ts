@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
@@ -44,10 +44,8 @@ export async function createCategory(rawData: { name: string; networkId: string;
     });
 
     revalidatePath("/admin/catalog/categories");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("services");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
     return { success: true, error: undefined, categoryId: cat.id };
   });
 }
@@ -79,10 +77,8 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
     });
 
     revalidatePath("/admin/catalog/categories");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("services");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
     return { success: true, error: undefined };
   });
 }
@@ -112,10 +108,8 @@ export async function deleteCategory(rawId: string) {
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog/tree");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("services");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
     return { success: true, error: undefined };
   });
 }
@@ -152,10 +146,8 @@ export async function hideCategoryAndServicesAction(categoryId: string) {
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog/tree");
     revalidatePath("/admin/catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("services");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
 
     return { 
       success: true as const, 
@@ -213,10 +205,8 @@ export async function mergeCategoriesAction(sourceCategoryId: string, targetCate
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("services");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
 
     return { success: true as const };
   });
@@ -269,8 +259,7 @@ export async function createNetworkAction(rawData: { name: string; slug: string;
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
+    revalidateTag("catalog", 'default');
 
     return { success: true as const, networkId: network.id };
   });
@@ -330,8 +319,7 @@ export async function updateNetworkAction(id: string, rawData: { name: string; s
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
+    revalidateTag("catalog", 'default');
 
     return { success: true as const };
   });
@@ -372,8 +360,7 @@ export async function deleteNetworkAction(id: string) {
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
+    revalidateTag("catalog", 'default');
 
     return { success: true as const };
   });

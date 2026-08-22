@@ -44,8 +44,7 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
   const [paymentGateway, setPaymentGateway] = useState('yookassa');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
+    const [selectedOrderDetails, setSelectedOrderDetails] = useState<Record<string, unknown> | null>(null);
 
   // PromoCode State (R4)
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -62,8 +61,7 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
   const [isRequisitesSaved, setIsRequisitesSaved] = useState(false);
 
   // Telegram Chat States
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [chatMessages, setChatMessages] = useState<any[]>(DASHBOARD_DATA.chatHistory);
+    const [chatMessages, setChatMessages] = useState<typeof DASHBOARD_DATA.chatHistory>(DASHBOARD_DATA.chatHistory);
   const [chatInput, setChatInput] = useState('');
   const [isOperatorTyping, setIsOperatorTyping] = useState(false);
 

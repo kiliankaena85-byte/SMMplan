@@ -956,7 +956,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setMatrixLtv(item.id as any)}
+                      onClick={() => setMatrixLtv(item.id as "NOVICE" | "REGULAR" | "VIP" | "ABUSER")}
                       className={`w-full text-left p-2.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
                         matrixLtv === item.id
                           ? 'bg-primary/10 border-primary text-foreground font-bold ring-1 ring-primary/20'
@@ -982,7 +982,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setMatrixRefill(item.id as any)}
+                      onClick={() => setMatrixRefill(item.id as "NO_REFILL" | "REFILL")}
                       className={`w-full text-left p-2.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
                         matrixRefill === item.id
                           ? 'bg-primary/10 border-primary text-foreground font-bold ring-1 ring-primary/20'
@@ -1011,7 +1011,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setMatrixIssue(item.id as any)}
+                      onClick={() => setMatrixIssue(item.id as "DROP" | "STUCK" | "COUNTER_LAG" | "WRONG_LINK" | "PRIVATE")}
                       className={`w-full text-left p-2.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
                         matrixIssue === item.id
                           ? 'bg-primary/10 border-primary text-foreground font-bold ring-1 ring-primary/20'

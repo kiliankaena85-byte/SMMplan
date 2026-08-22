@@ -1,64 +1,58 @@
-/**
- * Universal cursor-based pagination helper for Prisma.
- * 
- * Pattern: take N+1 rows, if got N+1 → hasMore=true, slice to N.
- * Avoids expensive COUNT(*) on large tables.
- */
-
-export type PaginatedResult<T> = {
-  items: T[];
-  nextCursor: string | null;
-  hasMore: boolean;
-};
-
-type PaginationInput = {
-  cursor?: string | null;
+export interface PaginationParams {
+  cursor?: string;
   pageSize?: number;
-};
+  where?: Record<string, unknown>;
+  orderBy?: Record<string, unknown> | Array<Record<string, unknown>>;
+  include?: Record<string, unknown>;
+}
 
-/**
- * Wraps a Prisma findMany call with cursor-based pagination.
- * 
- * Usage:
- * ```ts
- * const result = await paginatedQuery(db.user, {
- *   cursor: searchParams.cursor,
- *   pageSize: 50,
- *   where: { role: 'USER' },
- *   orderBy: { createdAt: 'desc' },
- *   select: { id: true, email: true },
- * });
- * ```
- */
-export async function paginatedQuery<T extends { id: string }>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  model: any,
-  options: PaginationInput & {
-    where?: Record<string, unknown>;
-    orderBy?: Record<string, string> | Record<string, string>[];
-    select?: Record<string, unknown>;
-    include?: Record<string, unknown>;
-  }
+export interface PaginatedResult<T> {
+  items: T[];
+  nextCursor?: string;
+  hasMore: boolean;
+  totalCount: number;
+}
+
+export async function paginatedQuery<T>(
+  model: {
+    findMany: (...args: never[]) => unknown;
+    count: (...args: never[]) => unknown;
+  },
+  params: PaginationParams
 ): Promise<PaginatedResult<T>> {
-  const take = options.pageSize || 50;
+  const { cursor, pageSize = 50, where = {}, orderBy = { id: 'desc' }, include } = params;
+  const take = pageSize + 1;
 
-  const items: T[] = await model.findMany({
-    take: take + 1,
-    cursor: options.cursor ? { id: options.cursor } : undefined,
-    skip: options.cursor ? 1 : 0, // skip the cursor item itself
-    where: options.where,
-    orderBy: options.orderBy || { createdAt: 'desc' },
-    select: options.select,
-    include: options.select ? undefined : options.include, // select and include are mutually exclusive
-  });
+  const queryOptions: Record<string, unknown> = {
+    take,
+    where,
+    orderBy,
+  };
 
-  const hasMore = items.length > take;
-  const data = hasMore ? items.slice(0, -1) : items;
-  const nextCursor = hasMore && data.length > 0 ? data[data.length - 1].id : null;
+  if (cursor) {
+    queryOptions.cursor = { id: cursor };
+    queryOptions.skip = 1;
+  }
+
+  if (include) {
+    queryOptions.include = include;
+  }
+
+  const [items, totalCount] = await Promise.all([
+    (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions),
+    (model.count as (opts: unknown) => Promise<number>)({ where }),
+  ]);
+
+  const hasNextPage = items.length > pageSize;
+  const paginatedItems = hasNextPage ? items.slice(0, pageSize) : items;
+  const nextCursor = hasNextPage && paginatedItems.length > 0
+    ? (paginatedItems[paginatedItems.length - 1] as unknown as { id: string })?.id
+    : undefined;
 
   return {
-    items: data,
+    items: paginatedItems,
     nextCursor,
-    hasMore,
+    hasMore: hasNextPage,
+    totalCount,
   };
 }

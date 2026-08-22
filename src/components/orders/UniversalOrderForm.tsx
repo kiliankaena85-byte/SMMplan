@@ -1,4 +1,4 @@
-"use client";
+'use client';
 // audit-disable STR-002
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -117,9 +117,8 @@ export function UniversalOrderForm({
       } else {
         window.location.href = `/dashboard?paymentId=${res.data.paymentId}`;
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      setError(e.message || "Ошибка при оплате");
+    } catch (e: unknown) {
+      setError((e instanceof Error ? e.message : String(e)) || "Ошибка при оплате");
     } finally {
       setIsLoading(false);
     }

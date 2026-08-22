@@ -63,8 +63,7 @@ const itemVariants: Variants = {
 };
 
 interface FluxOrderClientProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialCatalog?: any;
+    initialCatalog?: FluxNetwork[];
   initialEmail?: string;
   tenantId?: string;
 }
@@ -201,12 +200,11 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
     if (!url) return;
     setIsAnalyzing(true);
     
-    let matchedNetwork = detectNetworkByUrl(url, initialCatalog);
-    if (!matchedNetwork && initialCatalog.length > 0) matchedNetwork = initialCatalog[0];
+    let matchedNetwork = detectNetworkByUrl(url, initialCatalog || []);
+    if (!matchedNetwork && initialCatalog && initialCatalog.length > 0) matchedNetwork = initialCatalog[0];
       
     if (matchedNetwork) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setActiveNetwork(matchedNetwork as any);
+            setActiveNetwork(matchedNetwork);
       setActiveCategory(null);
       setServices([]);
       setSelectedService(null);
@@ -377,7 +375,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                 animate="show"
                 className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 w-full"
               >
-                {initialCatalog.map((network: FluxNetwork) => (
+                {(initialCatalog || []).map((network: FluxNetwork) => (
                   <motion.button
                     variants={itemVariants}
                     key={network.id}

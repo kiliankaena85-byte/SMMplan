@@ -1,4 +1,5 @@
 'use server';
+import type { Prisma } from '@prisma/client';
 
 import { verifySession } from '@/lib/session';
 import { extractOrderIds } from '@/utils/ticket-parser';
@@ -26,9 +27,8 @@ export async function generateSmartReplyAction(ticketId: string) {
     try {
       const reply = await aiSupportService.generateReply(ticketId, admin.tenantId ?? 'smmplan');
       return { success: true, reply };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      return { success: false, error: (err instanceof Error ? err.message : String(err)) };
     }
   });
 }
@@ -628,9 +628,8 @@ export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[
 
           createdRefills.push({ id: refill.id });
           processedCount++;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-          errors.push(`Ошибка по заказу ${orderId}: ${err.message}`);
+        } catch (err: unknown) {
+          errors.push(`Ошибка по заказу ${orderId}: ${(err instanceof Error ? err.message : String(err))}`);
         }
       }
     });
@@ -678,8 +677,7 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
 
     const { calculatePartialRefund } = await import('@/utils/refund');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const calculatedRefunds: any[] = [];
+    const calculatedRefunds: { order: { id: string; numericId: number; userId: string; remains: number; quantity: number; charge: bigint }; calculatedAmount: number }[] = [];
 
     await db.$transaction(async (tx) => {
       // Calculate total refund cents first
@@ -766,7 +764,7 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
 import { getMSKMidnightUTC } from '@/services/admin/escrow.service';
 
 // Internal helper for limit calculation (not an exported Server Action)
-async function getAdminSpentToday(adminId: string, tx?: any): Promise<number> {
+async function getAdminSpentToday(adminId: string, tx?: Prisma.TransactionClient): Promise<number> {
   const todayStart = getMSKMidnightUTC();
 
   const client = tx || db;
@@ -780,8 +778,7 @@ async function getAdminSpentToday(adminId: string, tx?: any): Promise<number> {
     }
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ledgerCompensations.reduce((acc: number, entry: any) => {
+  return ledgerCompensations.reduce((acc: number, entry: { amount: bigint }) => {
     const amt = Number(entry.amount);
     return acc + Math.abs(amt);
   }, 0);

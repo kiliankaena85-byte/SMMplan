@@ -69,9 +69,8 @@ export async function GET(req: NextRequest) {
         ? `Exchange rate updated successfully. Built-in 3% spread applied.` 
         : `Exchange rate unchanged (CBR API issue or rate already current).`
     });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error('[Cron] CBR Sync API error:', error.message);
+  } catch (error: unknown) {
+    console.error('[Cron] CBR Sync API error:', (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -189,13 +189,12 @@ class OrderService {
       // 3. Dispatch to Queues (Drip-feed is now passed natively to the provider)
       try {
         await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: 3 * 60 * 1000 });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (queueError: any) {
+      } catch (queueError: unknown) {
         // [FIN-006] Premortem Bugfix: Ghost Order Prevention.
         // If Redis is down, we MUST NOT fail the request since the balance is already charged 
         // and the DB order is committed. Returning 500 would make the user retry and get double charged.
         // The sweep-orphans cron job will pick up this PENDING order later.
-        console.error('[OrderService] Non-fatal queue dispatch error:', queueError.message);
+        console.error('[OrderService] Non-fatal queue dispatch error:', (queueError instanceof Error ? queueError.message : String(queueError)));
       }
 
       // 4. Return success instantly to User Interface. No delays!
@@ -212,11 +211,10 @@ class OrderService {
 
       return { success: true, orderId: newOrder.id };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error('[OrderService] Creation failed:', e.message);
-      // We return e.message here so that WalletOps throw "Insufficient funds" bubbles up to UI
-      return { success: false, error: e.message || 'Internal system error during order compilation.' };
+    } catch (e: unknown) {
+      console.error('[OrderService] Creation failed:', (e instanceof Error ? e.message : String(e)));
+      // We return (e instanceof Error ? e.message : String(e)) here so that WalletOps throw "Insufficient funds" bubbles up to UI
+      return { success: false, error: (e instanceof Error ? e.message : String(e)) || 'Internal system error during order compilation.' };
     }
   }
 
@@ -284,9 +282,8 @@ class OrderService {
 
         return { success: true };
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error('[OrderService] cancelPendingOrderClient failed:', e.message);
+    } catch (e: unknown) {
+      console.error('[OrderService] cancelPendingOrderClient failed:', (e instanceof Error ? e.message : String(e)));
       return { success: false, error: 'Внутренняя ошибка при отмене заказа' };
     }
   }
@@ -396,9 +393,8 @@ class OrderService {
         return { success: true, orderId: order.id, status: internalStatus };
       });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error(`[OrderService] processStatusUpdate failed for extId ${externalId}:`, e.message);
+    } catch (e: unknown) {
+      console.error(`[OrderService] processStatusUpdate failed for extId ${externalId}:`, (e instanceof Error ? e.message : String(e)));
       return { success: false };
     }
   }
@@ -458,20 +454,18 @@ class OrderService {
         try {
           const { sendOrderCanceledMail } = await import('../../lib/smtp');
           await sendOrderCanceledMail(txResult.email, txResult.numericId, txResult.serviceName);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (mailErr: any) {
-          console.error(`[OrderService] Failed to send cancellation email for ${orderId}:`, mailErr.message);
+        } catch (mailErr: unknown) {
+          console.error(`[OrderService] Failed to send cancellation email for ${orderId}:`, (mailErr instanceof Error ? mailErr.message : String(mailErr)));
         }
       }
 
       CompensationService.trackCompensation(orderId).catch(err => console.error('[OrderService] Failed to track compensation', err));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e.message);
+    } catch (e: unknown) {
+      console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, (e instanceof Error ? e.message : String(e)));
       try {
         const { sendAdminAlert } = await import('@/lib/notifications');
         sendAdminAlert(
-          `🚨 failOrderTerminal ERROR\n\norderId: ${orderId}\nreason: ${reason}\nerror: ${e.message}`,
+          `🚨 failOrderTerminal ERROR\n\norderId: ${orderId}\nreason: ${reason}\nerror: ${(e instanceof Error ? e.message : String(e))}`,
           'CRITICAL'
         );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -567,14 +561,13 @@ class OrderService {
       }
 
       CompensationService.trackCompensation(orderId).catch(err => console.error('[OrderService] Failed to track compensation', err));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error(`[OrderService] failOrderTerminalFast failed for ${orderId}:`, e.message);
+    } catch (e: unknown) {
+      console.error(`[OrderService] failOrderTerminalFast failed for ${orderId}:`, (e instanceof Error ? e.message : String(e)));
       // Last-resort admin alert
       try {
         const { sendAdminAlert } = await import('@/lib/notifications');
         sendAdminAlert(
-          `🚨 failOrderTerminalFast CRITICAL ERROR\n\norderId: ${orderId}\nreason: ${reason}\nerror: ${e.message}`,
+          `🚨 failOrderTerminalFast CRITICAL ERROR\n\norderId: ${orderId}\nreason: ${reason}\nerror: ${(e instanceof Error ? e.message : String(e))}`,
           'CRITICAL'
         );
       } catch (err) { console.error('[OrderService] Sync fail recovery failed:', err); }

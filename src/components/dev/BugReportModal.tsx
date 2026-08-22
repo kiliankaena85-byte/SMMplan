@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -182,7 +182,7 @@ ${description || "Описание не указано"}
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => setPriority(p.id as any)}
+                    onClick={() => setPriority(p.id as "LOW" | "NORMAL" | "CRITICAL")}
                     className={`h-8 px-2 rounded-lg border text-[11px] transition-all cursor-pointer flex items-center justify-center ${
                       priority === p.id
                         ? p.activeCls

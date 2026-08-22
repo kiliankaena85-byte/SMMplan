@@ -61,16 +61,15 @@ export default async function paymentGatewayProcessor(job: Job<PaymentGatewayJob
       throw new Error(`Failed to generate URL for ${gateway}`);
     }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
-    log.error(`Payment gateway generation error for ${paymentId}: ${err.message}`, { cause: err });
+  } catch (err: unknown) {
+    log.error(`Payment gateway generation error for ${paymentId}: ${(err instanceof Error ? err.message : String(err))}`, { cause: err });
     
     // Set status to failed if job is exhausted, or leave it for retry
     if (job.attemptsMade >= (job.opts.attempts || 3) - 1) {
       await db.payment.update({
         where: { id: paymentId },
         data: { status: 'CANCELED' }
-      }).catch(e => log.error(`Fallback DB update failed: ${e.message}`));
+      }).catch(e => log.error(`Fallback DB update failed: ${(e instanceof Error ? e.message : String(e))}`));
     }
     throw err; // BullMQ will retry
   }

@@ -25,7 +25,7 @@ import {
   getProviderCatalogPreviewAction,
   inferProviderSchema,
 } from '@/actions/admin/providers/crud';
-import type { ProviderDetailDTO } from '@/services/admin/provider.service';
+import type { ApiMappingDTO, ProviderDetailDTO } from '@/services/admin/provider.service';
 import type { ProviderProbeResult } from '@/services/admin/provider-diagnostic.service';
 
 interface ProviderFormProps {
@@ -202,6 +202,50 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   }
 
+  function getMappingPayload(): ApiMappingDTO | null {
+    if (integrationMode === 'visual') {
+      return {
+        httpMethod: mapping.httpMethod,
+        contentType: mapping.contentType,
+        auth: {
+          type: mapping.authType,
+          field: mapping.authField,
+          prefix: mapping.authPrefix || undefined
+        },
+        order: {
+          serviceField: mapping.serviceField,
+          linkField: mapping.linkField,
+          quantityField: mapping.quantityField
+        },
+        response: {
+          orderIdField: mapping.orderIdField,
+          errorField: mapping.errorField
+        },
+        catalog: {
+          itemsPath: mapping.itemsPath,
+          serviceIdField: mapping.serviceField,
+          nameField: mapping.nameField,
+          priceField: mapping.priceField,
+          minField: mapping.minField,
+          maxField: mapping.maxField,
+          typeField: mapping.typeField,
+          descField: mapping.descField
+        },
+        balance: {
+          balancePath: mapping.balancePath,
+          currencyPath: mapping.currencyPath
+        }
+      };
+    } else if (integrationMode === 'json') {
+      try {
+        return JSON.parse(jsonText) as ApiMappingDTO;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
   async function handleSave() {
     try {
       setLoading(true);
@@ -213,47 +257,10 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
         return;
       }
 
-      let mappingPayload = null;
-      if (integrationMode === 'visual') {
-        mappingPayload = {
-          httpMethod: mapping.httpMethod,
-          contentType: mapping.contentType,
-          auth: {
-            type: mapping.authType,
-            field: mapping.authField,
-            prefix: mapping.authPrefix || undefined
-          },
-          order: {
-            serviceField: mapping.serviceField,
-            linkField: mapping.linkField,
-            quantityField: mapping.quantityField
-          },
-          response: {
-            orderIdField: mapping.orderIdField,
-            errorField: mapping.errorField
-          },
-          catalog: {
-            itemsPath: mapping.itemsPath,
-            serviceIdField: mapping.serviceField,
-            nameField: mapping.nameField,
-            priceField: mapping.priceField,
-            minField: mapping.minField,
-            maxField: mapping.maxField,
-            typeField: mapping.typeField,
-            descField: mapping.descField
-          },
-          balance: {
-            balancePath: mapping.balancePath,
-            currencyPath: mapping.currencyPath
-          }
-        };
-      } else if (integrationMode === 'json') {
-        try {
-           mappingPayload = JSON.parse(jsonText);
-        } catch {
-           setFieldErrors(prev => ({ ...prev, jsonMapping: ['JSON маппинг имеет неверный формат. Проверьте синтаксис.'] }));
-           throw new Error("JSON маппинг имеет неверный формат. Проверьте синтаксис.");
-        }
+      const mappingPayload = getMappingPayload();
+      if (integrationMode === 'json' && !mappingPayload) {
+        setFieldErrors(prev => ({ ...prev, jsonMapping: ['JSON маппинг имеет неверный формат. Проверьте синтаксис.'] }));
+        throw new Error("JSON маппинг имеет неверный формат. Проверьте синтаксис.");
       }
 
       const payload = {
@@ -353,7 +360,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
         providerId: initialData?.id,
         apiUrl: cleanUrl,
         apiKey: cleanKey,
-        mapping: integrationMode === 'visual' ? mapping : undefined,
+        mapping: getMappingPayload(),
       });
 
       if ('error' in res && typeof res.error === 'string') {
@@ -399,7 +406,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
         providerId: initialData?.id,
         apiUrl: formData.apiUrl,
         apiKey: formData.apiKey,
-        mapping: integrationMode === 'visual' ? mapping : undefined,
+        mapping: getMappingPayload(),
       });
 
       if (res.success && res.services) {

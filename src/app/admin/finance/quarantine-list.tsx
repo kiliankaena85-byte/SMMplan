@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { useTransition } from 'react';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 
-interface QuarantineEntry {
+export interface QuarantineEntry {
+  [key: string]: unknown;
   id: string;
   userId: string;
   userEmail: string;

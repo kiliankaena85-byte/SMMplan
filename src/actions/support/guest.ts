@@ -96,8 +96,7 @@ export async function createGuestTicketAction(formData: FormData) {
     });
 
     return { success: true };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[createGuestTicketAction]', error);
     return { success: false, error: "Внутренняя ошибка сервера" };
   }

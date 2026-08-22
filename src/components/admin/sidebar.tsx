@@ -35,8 +35,7 @@ interface SidebarProps {
   tenantId?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   Home, Users, Package, RefreshCw, ShoppingCart, AlertTriangle,
   MessageSquare, CreditCard, Link: LinkIcon, Gift, FileText, Settings, BarChart, BarChart3, Inbox, Shield,
   ToggleLeft, Activity, Cpu, BookOpen, ArrowLeftRight, Globe, FolderTree, Layers, TrendingUp

@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { aiCatalogEnricherService, RawServiceToEnrich } from "@/services/admin/ai-catalog-enricher.service";

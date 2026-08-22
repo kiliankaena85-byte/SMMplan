@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getServiceFlags(selectedService: any) {
+export function getServiceFlags(selectedService: { name?: string | null; customDataType?: string | null; customDataLabel?: string | null; features?: unknown; [key: string]: unknown } | null | undefined) {
   const sName = selectedService?.name?.toLowerCase() || "";
   const cType = selectedService?.customDataType;
   

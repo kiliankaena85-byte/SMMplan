@@ -34,8 +34,7 @@ export default async function OperatorTicketsPage({ searchParams }: Props) {
   });
 
   // Retrieve ticket messages detail if selected
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let activeTicket: any = null;
+    let activeTicket: Awaited<ReturnType<typeof adminTicketService.getTicketDetails>> = null;
   if (activeTicketId) {
     activeTicket = await adminTicketService.getTicketDetails(activeTicketId);
   }
@@ -64,11 +63,11 @@ export default async function OperatorTicketsPage({ searchParams }: Props) {
           id: activeTicket.user.id,
           email: activeTicket.user.email,
         },
-        messages: activeTicket.messages.map((m: { id: string; sender: string; text: string; createdAt: Date }) => ({
+        messages: activeTicket.messages.map((m: { id: string; sender: string; text: string; createdAt: Date | string }) => ({
           id: m.id,
           sender: m.sender,
           text: m.text,
-          createdAt: m.createdAt,
+          createdAt: typeof m.createdAt === 'string' ? m.createdAt : new Date(m.createdAt).toISOString(),
         })),
       }
     : null;

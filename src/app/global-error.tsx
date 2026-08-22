@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 export default function GlobalError({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

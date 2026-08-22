@@ -105,9 +105,8 @@ export default async function refillProcessor(job: Job<RefillJobPayload>) {
     });
 
     log.info(`[RefillProcessor] Successfully dispatched refill ${refill.id} for order ${order.id} | External ID: ${extId}`);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    log.error(`[RefillProcessor] Failed to process refill ${refill.id}: ${error.message}`);
+  } catch (error: unknown) {
+    log.error(`[RefillProcessor] Failed to process refill ${refill.id}: ${(error instanceof Error ? error.message : String(error))}`);
     await redis.del(mutexKey).catch(() => {});
     throw error;
   }

@@ -45,8 +45,7 @@ export function GuestSupportOptions({
   const isFlux = searchParams.get('tenant') === 'flux' || searchParams.get('tenant') === 'smmflux';
 
   const [state, action, isPending] = useActionState(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async (prevState: any, formData: FormData) => {
+        async (_prevState: unknown, formData: FormData) => {
       if (isPaymentError) {
         return await createOfflineTicketAction({
           serviceId,

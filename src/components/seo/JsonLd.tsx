@@ -12,8 +12,7 @@ export type JsonLdType = 'Organization' | 'Product' | 'FAQPage' | 'BreadcrumbLis
 export interface JsonLdData {
   '@context': string;
   '@type': string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface JsonLdProps {

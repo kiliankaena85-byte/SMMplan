@@ -82,9 +82,7 @@ export async function updateBalanceAction(formData: FormData) {
       }
     }
 
-    // 3. Policy Engine for SUPPORT & Non-OWNER staff (Green corridor / limit check)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let policyCheck: any = null;
+    let policyCheck: Awaited<ReturnType<typeof SupportBalancePolicyService.validateAndReserveSupportOperation>> | null = null;
     if (admin.role !== 'OWNER') {
       policyCheck = await db.$transaction(async (tx) => {
         return SupportBalancePolicyService.validateAndReserveSupportOperation(tx, {

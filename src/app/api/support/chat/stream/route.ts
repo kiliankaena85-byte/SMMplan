@@ -79,13 +79,13 @@ export async function GET(req: NextRequest) {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`));
 
       // Message listener — pushes new messages to SSE stream
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const listener = (message: any) => {
+            const listener = (message: unknown) => {
+    const msg = message as { ticketId: string; [key: string]: unknown };
         try {
-          if (message?.sender === 'INTERNAL' && !isStaff) {
+          if (msg.sender === 'INTERNAL' && !isStaff) {
             return; // Skip sending internal notes to normal clients
           }
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(message)}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(msg)}\n\n`));
         } catch {
           // Stream already closed, cleanup will handle
         }

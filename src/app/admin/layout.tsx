@@ -98,8 +98,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       if (user.role === 'OWNER' || user.role === 'ADMIN') return true;
       if (!user.staffRole) return false;
       const requiredPerm = SECTION_MAP[item.section] || item.section;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return user.staffRole.permissions.some((p: any) => p.section === requiredPerm && p.canView);
+            return user.staffRole.permissions.some((p: { section: string; canView: boolean }) => p.section === requiredPerm && p.canView);
     })
   })).filter(group => group.items.length > 0);
 

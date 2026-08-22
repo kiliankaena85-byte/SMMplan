@@ -64,10 +64,8 @@ export async function calculatePriceAction(
       discountCents: Math.round(result.discountCents * multiplier)
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return { success: true, data: safeResult as any };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+    return { success: true, data: safeResult as unknown as PricingResult };
+  } catch (error: unknown) {
     const localized = handleServerError(error);
     return { success: false, error: localized.message };
   }
@@ -249,8 +247,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         if (!u.hostname.includes('.')) {
           throw new Error("Указан некорректный домен ссылки.");
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error(`[Checkout] Link mutation failed for ${safeUrlForLog(link)}:`, e);
         throw new Error("Неверный формат ссылки.", { cause: e });
       }
@@ -699,13 +696,11 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
 
       paymentUrl = gatewayResult.paymentUrl || `/payment-redirect?id=${result.paymentId}`;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (gatewayErr: any) {
+    } catch (gatewayErr: unknown) {
       // 7.b ROLLBACK: If Queue push failed, restore PromoCode and mark Payment as ERROR safely
       console.error('[Checkout] Queue sequence failed, rolling back sequence', gatewayErr);
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rollbackPromises: Promise<any>[] = [
+      const rollbackPromises: Promise<unknown>[] = [
         Promise.resolve(db.payment.update({
           where: { id: result.paymentId },
           data: { status: 'CANCELED' }
@@ -713,7 +708,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         
         Promise.resolve(db.order.update({
           where: { id: result.orderId },
-          data: { status: 'ERROR', error: gatewayErr.message || 'Ошибка генерации платежа' }
+          data: { status: 'ERROR', error: (gatewayErr instanceof Error ? gatewayErr.message : String(gatewayErr)) || 'Ошибка генерации платежа' }
         })).catch(e => console.error('[Checkout] Failed to error order:', e))
       ];
 
@@ -738,7 +733,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       if (gatewayErr instanceof WalletInvalidAmountError) {
         throw new Error('Некорректная сумма операции.', { cause: gatewayErr });
       }
-      throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
+      throw new Error((gatewayErr instanceof Error ? gatewayErr.message : String(gatewayErr)) || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
     }
 
     // 8. Auto-Login using cookies (Frictionless checkout)
@@ -752,8 +747,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         user.email,
         result.numericId.toString(),
         service.name
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ).catch((err: any) => console.error('[H1] sendOrderPaidMail balance failed', err));
+      ).catch((err: unknown) => console.error('[H1] sendOrderPaidMail balance failed', err));
     }
 
     if (isLinkOverridden) {
@@ -766,11 +760,9 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
           `Email: ${email}\n` +
           `Ссылка: ${link}`,
           'WARNING'
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ) as any;
+        ) as unknown as Promise<unknown>;
         if (alertPromise && typeof alertPromise.catch === 'function') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          alertPromise.catch((err: any) => console.error('[Checkout] Failed to send bypass admin alert:', err));
+          alertPromise.catch((err: unknown) => console.error('[Checkout] Failed to send bypass admin alert:', err));
         }
       } catch (err) {
         console.error('[Checkout] Failed to import/send bypass admin alert:', err);
@@ -830,8 +822,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const isAllowed = await RateLimitService.check("retryCheckoutCore", 10, 60, true);
     if (!isAllowed) throw new Error("Слишком много запросов. Попробуйте через минуту.");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let reqHeaders: any;
+    let reqHeaders: { get: (key: string) => string | null };
     try {
       reqHeaders = await headers();
     } catch (e) {
@@ -1060,7 +1051,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
 
     } catch (gatewayErr: unknown) {
       console.error('[RetryCheckout] Gateway failed', gatewayErr);
-      const errMsg = gatewayErr instanceof Error ? gatewayErr.message : 'Ошибка генерации платежа';
+      const errMsg = gatewayErr instanceof Error ? (gatewayErr instanceof Error ? gatewayErr.message : String(gatewayErr)) : 'Ошибка генерации платежа';
       
       const rollbackPromises: Promise<unknown>[] = [
         db.payment.update({
@@ -1104,12 +1095,11 @@ export async function getAvailableGatewaysAction() {
         isTestMode: isTest
       }
     };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[getAvailableGatewaysAction] Error:', err);
     return {
       success: false,
-      error: err.message || 'Ошибка проверки настроек платежных шлюзов'
+      error: (err instanceof Error ? err.message : String(err)) || 'Ошибка проверки настроек платежных шлюзов'
     };
   }
 }

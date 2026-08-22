@@ -156,7 +156,7 @@ export async function runSmartDripfeedTick() {
           // Запуск тихого сканирования качества подписчиков (неблокирующий вызов)
           const { scanSubscriberQuality } = await import('./quality-detector.processor');
           void scanSubscriberQuality(campaign.id, exec.qtySent, campaign.link).catch((err) =>
-            log.error('[Dripfeed] Failed to run silent quality scanner:', err)
+            log.error('[Dripfeed] Failed to run silent quality scanner:', { error: err })
           );
 
           await checkAndCompleteCampaign(campaign.id);
@@ -187,11 +187,10 @@ export async function runSmartDripfeedTick() {
           });
         }
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
+    } catch (err: unknown) {
       log.error(
         `[Dripfeed Status Sync] Не удалось синхронизировать статус выполнения ${exec.id}:`,
-        err.message
+        (err instanceof Error ? err.message : String(err))
       );
     }
   }
@@ -249,7 +248,7 @@ export async function runSmartDripfeedTick() {
         // Запуск тихого сканирования качества подписчиков (неблокирующий вызов)
         const { scanSubscriberQuality } = await import('./quality-detector.processor');
         void scanSubscriberQuality(campaign.id, task.quantity, campaign.link).catch((err) =>
-          log.error('[Dripfeed] Failed to run silent quality scanner:', err)
+          log.error('[Dripfeed] Failed to run silent quality scanner:', { error: err })
         );
 
         await checkAndCompleteCampaign(campaign.id);
@@ -303,12 +302,11 @@ export async function runSmartDripfeedTick() {
       log.info(
         `[Dripfeed Worker] Задача ${task.id} успешно отправлена провайдеру. External ID: ${extOrderId}`
       );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      log.error(`[Dripfeed Worker] Ошибка обработки задачи ${task.id}:`, err.message);
+    } catch (err: unknown) {
+      log.error(`[Dripfeed Worker] Ошибка обработки задачи ${task.id}:`, (err instanceof Error ? err.message : String(err)));
       await prisma.smartTask.update({
         where: { id: task.id },
-        data: { status: SmartTaskStatus.ERROR, error: err.message },
+        data: { status: SmartTaskStatus.ERROR, error: (err instanceof Error ? err.message : String(err)) },
       });
       await checkAndCompleteCampaign(task.campaignId);
     }

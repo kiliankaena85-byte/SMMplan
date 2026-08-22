@@ -171,10 +171,8 @@ export async function createServiceAction(rawData: unknown) {
     });
 
     revalidatePath("/admin/catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("services");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
 
     return { success: true as const, serviceId: service.id };
   });
@@ -307,10 +305,8 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     });
 
     revalidatePath("/admin/catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("services");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
 
     return { success: true as const, serviceId: updatedService.id };
   });
@@ -355,10 +351,8 @@ export async function deleteOrArchiveServiceAction(id: string) {
 
         revalidatePath("/admin/catalog");
         revalidatePath("/admin/catalog/tree");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (revalidateTag as any)("catalog");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (revalidateTag as any)("services");
+        revalidateTag("catalog", 'default');
+        revalidateTag("services", 'default');
 
         return { 
           success: true as const, 
@@ -392,10 +386,8 @@ export async function deleteOrArchiveServiceAction(id: string) {
 
         revalidatePath("/admin/catalog");
         revalidatePath("/admin/catalog/tree");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (revalidateTag as any)("catalog");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (revalidateTag as any)("services");
+        revalidateTag("catalog", 'default');
+        revalidateTag("services", 'default');
 
         return { 
           success: true as const, 
@@ -429,10 +421,8 @@ export async function deleteOrArchiveServiceAction(id: string) {
 
       revalidatePath("/admin/catalog");
       revalidatePath("/admin/catalog/tree");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)("catalog");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)("services");
+      revalidateTag("catalog", 'default');
+      revalidateTag("services", 'default');
 
       return { 
         success: true as const, 
@@ -478,10 +468,8 @@ export async function toggleServiceStatusAction(id: string, isActive: boolean) {
 
     revalidatePath("/admin/catalog");
     revalidatePath("/admin/catalog/tree");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("services");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
 
     return { success: true as const, isActive };
   });
@@ -537,10 +525,8 @@ export async function bulkDeleteOrArchiveServicesAction(serviceIds: string[]) {
 
     revalidatePath("/admin/catalog");
     revalidatePath("/admin/catalog/tree");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("catalog");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)("services");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
 
     return { 
       success: true as const, 

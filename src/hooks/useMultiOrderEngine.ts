@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";

@@ -57,8 +57,7 @@ export class RateLimitService {
           }
           return true;
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (redisError: any) {
+      } catch (redisError: unknown) {
         console.warn("[RATE_LIMIT:REDIS] Redis check failed, falling back to PostgreSQL:", (redisError as Error).message);
       }
 
@@ -99,8 +98,7 @@ export class RateLimitService {
       }
 
       return true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("[RATE_LIMIT] Fatal Failure:", e);
       if (failClosed) {
         console.warn(`[RATE_LIMIT] Failing CLOSED for endpoint ${endpoint}`);
@@ -155,8 +153,7 @@ export class RateLimitService {
           }
           return true;
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (redisError: any) {
+      } catch (redisError: unknown) {
         console.warn("[RATE_LIMIT_CUSTOM:REDIS] Redis check failed, falling back to PostgreSQL:", (redisError as Error).message);
       }
 
@@ -190,8 +187,7 @@ export class RateLimitService {
          return false;
       }
       return true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("[RATE_LIMIT_CUSTOM] Fatal Failure:", e);
       if (failClosed) {
         console.warn(`[RATE_LIMIT_CUSTOM] Failing CLOSED for key ${key}`);

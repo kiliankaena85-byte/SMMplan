@@ -74,8 +74,8 @@ async function dispatch(result: TransporterResult, options: DispatchOptions) {
       ...(options.replyTo ? { reply_to: options.replyTo } : {}),
     });
     if (error) {
-      log.error('Resend delivery failed', { to: options.to, subject: options.subject, code: error.name });
-      throw new Error(`Resend error: ${error.message}`);
+      log.error('Resend delivery failed', { to: options.to, subject: options.subject, code: (error instanceof Error ? error.name : 'Error') });
+      throw new Error(`Resend error: ${(error instanceof Error ? error.message : String(error))}`);
     }
   } else {
     log.info('Sending via SMTP', { to: options.to, subject: options.subject });
@@ -124,12 +124,11 @@ export async function sendMagicLink(email: string, token: string) {
 
   try {
     await dispatch(result, { companyName, to: email, subject: 'Ваша ссылка для входа', html: htmlContent });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (process.env.NODE_ENV === 'production' && process.env.DEV_MOCK_SMTP !== 'true') {
       throw err;
     } else {
-      log.error('SMTP send failed (printed link above instead)', { error: err.message });
+      log.error('SMTP send failed (printed link above instead)', { error: (err instanceof Error ? err.message : String(err)) });
     }
   }
 
@@ -150,12 +149,11 @@ export async function sendMail(email: string, subject: string, htmlContent: stri
 
   try {
     await dispatch(result, { companyName, to: email, subject, html: htmlContent, replyTo });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (process.env.NODE_ENV === 'production' && process.env.DEV_MOCK_SMTP !== 'true') {
       throw err;
     } else {
-      log.error('SMTP email delivery failed', { to: email, subject, error: err.message });
+      log.error('SMTP email delivery failed', { to: email, subject, error: (err instanceof Error ? err.message : String(err)) });
     }
   }
 

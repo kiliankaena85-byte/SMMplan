@@ -12,8 +12,7 @@ import {
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Home, Users, Package, RefreshCw, ShoppingCart, AlertTriangle,
   MessageSquare, CreditCard, Link: LinkIcon, Gift, FileText, Settings,
   ToggleLeft, Activity, Cpu, BookOpen

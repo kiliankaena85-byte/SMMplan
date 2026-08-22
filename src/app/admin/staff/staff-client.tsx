@@ -21,8 +21,7 @@ import { StaffPayrollTab } from './components/staff-payroll-tab';
 interface StaffClientProps {
   initialStaff: StaffMemberSummary[];
   selectedDate: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  staffRoles: any[];
+  staffRoles: Array<{ id: string; name: string; description?: string | null }>;
   currentUserRole: string;
 }
 

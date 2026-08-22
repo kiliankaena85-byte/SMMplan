@@ -51,6 +51,34 @@ const TOP_LAUNCHPAD = [
   { slug: 'twitch', name: 'Twitch', desc: 'Зрители на стрим, Фолловеры', bg: 'hover:border-purple-500/40 hover:shadow-purple-500/10' },
 ];
 
+
+export interface ClassicDashboardUser {
+  id: string;
+  email?: string | null;
+  balance: number | bigint;
+  totalSpent?: number | bigint;
+  referralCode?: string | null;
+  referralBalance?: number | bigint;
+}
+
+export interface ClassicDashboardOrder {
+  id: string;
+  numericId: number;
+  status: string;
+  charge: number | bigint;
+  quantity: number;
+  link: string;
+  serviceId: string;
+  service?: {
+    name: string;
+    category?: {
+      network?: {
+        slug: string;
+      } | null;
+    } | null;
+  } | null;
+}
+
 export function ClassicDashboardHome({
   user,
   orders,
@@ -59,10 +87,8 @@ export function ClassicDashboardHome({
   hasPendingPayments,
   origin,
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  user: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  orders: any[];
+  user: ClassicDashboardUser;
+  orders: ClassicDashboardOrder[];
   referralCount: number;
   activeOrders: number;
   hasPendingPayments: boolean;

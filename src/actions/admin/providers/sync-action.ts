@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 /**
  * Admin: Provider Catalog Sync Action

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from "react";
 import {
@@ -12,26 +12,47 @@ import {
 import { cn } from "@/lib/utils";
 export { Button } from "@/components/ui/button";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-const TableColumn = ({ children, className, isRowHeader }: any) => (
+interface TableColumnProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
+  children?: React.ReactNode;
+  className?: string;
+  isRowHeader?: boolean;
+}
+
+const TableColumn = ({ children, className }: TableColumnProps) => (
   <TableHead className={cn("text-muted-foreground font-bold border-b border-border/80 bg-muted/30 py-4 px-6 text-xs uppercase tracking-wider", className)}>{children}</TableHead>
 );
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TableHeaderComponent = ({ children }: any) => (
-  <TableHeader>
+
+const TableHeaderComponent = ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+  <TableHeader className={className}>
     <TableRow className="hover:bg-transparent border-b border-border/80">{children}</TableRow>
   </TableHeader>
 );
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TableCellComponent = ({ children, className }: any) => (
+
+interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
+  children?: React.ReactNode;
+  className?: string;
+}
+
+const TableCellComponent = ({ children, className }: TableCellProps) => (
   <TableCell className={cn("text-foreground border-b border-border/50 align-middle py-5 px-6", className)}>{children}</TableCell>
 );
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TableRowComponent = ({ children, className }: any) => (
+
+interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  children?: React.ReactNode;
+  className?: string;
+}
+
+const TableRowComponent = ({ children, className }: TableRowProps) => (
   <TableRow className={cn("hover:bg-muted/50 even:bg-muted/20 border-b border-border/50 transition-all duration-150 group", className)}>{children}</TableRow>
 );
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TableBodyComponent = ({ children, emptyContent, renderEmptyState }: any) => {
+
+interface TableBodyProps {
+  children?: React.ReactNode;
+  emptyContent?: React.ReactNode;
+  renderEmptyState?: () => React.ReactNode;
+}
+
+const TableBodyComponent = ({ children, emptyContent, renderEmptyState }: TableBodyProps) => {
   const content = React.Children.toArray(children).filter(Boolean);
   if (content.length === 0) {
     return (
@@ -47,22 +68,36 @@ const TableBodyComponent = ({ children, emptyContent, renderEmptyState }: any) =
   return <TableBody>{children}</TableBody>;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TableScrollContainer = ({ children }: any) => (
-  <div className="rounded-xl border border-warm-border/60 shadow-[0_8px_30px_rgba(39,39,42,0.02)] bg-warm-card overflow-hidden">
+interface TableScrollContainerProps extends React.HTMLAttributes<HTMLDivElement> {
+  children?: React.ReactNode;
+  className?: string;
+}
+
+const TableScrollContainer = ({ children, className, ...props }: TableScrollContainerProps) => (
+  <div className={cn("rounded-xl border border-warm-border/60 shadow-[0_8px_30px_rgba(39,39,42,0.02)] bg-warm-card overflow-hidden", className)} {...props}>
     {children}
   </div>
 );
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TableContent = ({ children, "aria-label": ariaLabel, className }: any) => (
+
+interface TableContentProps extends React.TableHTMLAttributes<HTMLTableElement> {
+  children?: React.ReactNode;
+  className?: string;
+}
+
+const TableContent = ({ children, "aria-label": ariaLabel, className }: TableContentProps) => (
   <ShadcnTable aria-label={ariaLabel} className={className}>
     {children}
   </ShadcnTable>
 );
 
+interface MainTableProps extends React.HTMLAttributes<HTMLDivElement> {
+  children?: React.ReactNode;
+  className?: string;
+  "aria-label"?: string;
+}
+
 export const Table = Object.assign(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ({ children, "aria-label": ariaLabel, className }: any) => {
+  ({ children, "aria-label": ariaLabel, className }: MainTableProps) => {
     let hasWrapperChild = false;
     React.Children.forEach(children, (child) => {
       if (React.isValidElement(child)) {
@@ -81,9 +116,11 @@ export const Table = Object.assign(
     }
 
     return (
-      <ShadcnTable aria-label={ariaLabel} className={className}>
-        {children}
-      </ShadcnTable>
+      <div className={cn("relative w-full rounded-2xl border border-border/80 bg-card overflow-hidden", className)}>
+        <ShadcnTable aria-label={ariaLabel}>
+          {children}
+        </ShadcnTable>
+      </div>
     );
   },
   {
@@ -92,6 +129,7 @@ export const Table = Object.assign(
     Body: TableBodyComponent,
     Row: TableRowComponent,
     Cell: TableCellComponent,
+    Container: TableScrollContainer,
     ScrollContainer: TableScrollContainer,
     Content: TableContent,
   }

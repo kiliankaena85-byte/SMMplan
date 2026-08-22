@@ -7,23 +7,20 @@ export function ActionForm({
   className,
   formRef
 }: { 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  action: (formData: FormData) => Promise<any>, 
+    action: (formData: FormData) => Promise<unknown>, 
   children: React.ReactNode | ((props: { isPending: boolean }) => React.ReactNode),
   className?: string,
   formRef?: React.RefObject<HTMLFormElement | null>
 }) {
-   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-   const [state, formAction, isPending] = useActionState(async (prevState: any, formData: FormData) => {
+      const [state, formAction, isPending] = useActionState(async (_prevState: unknown, formData: FormData) => {
        try {
            const result = await action(formData);
-           if (result && typeof result === 'object' && result.error) {
-               return { error: result.error };
+           if (result && typeof result === 'object' && 'error' in result && typeof (result as { error: unknown }).error === 'string') {
+               return { error: (result as { error: string }).error };
            }
            return { success: true };
-       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-       } catch (err: any) {
-           return { error: err.message || "System error" };
+       } catch (err: unknown) {
+           return { error: err instanceof Error ? err.message : "System error" };
        }
    }, null);
 

@@ -38,8 +38,7 @@ export function NetworkSelector({ engine }: { engine: OrderEngine }) {
     }
   }, [DEFAULT_TOP]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleNetworkSelect = (net: any) => {
+    const handleNetworkSelect = (net: { id: string; slug: string; categories?: Array<{ id: string }> }) => {
     setNetworkId(net.id);
     engine.setSelectedService(null);
     if (net.categories && net.categories.length > 0) {

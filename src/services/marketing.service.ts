@@ -55,8 +55,7 @@ class MarketingService {
     serviceId: string,
     quantity: number,
     promoCodeStr?: string | null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    preloadedContext?: { user?: any | null, service?: any | null }
+        preloadedContext?: { user?: Prisma.UserGetPayload<object> | null, service?: Prisma.ServiceGetPayload<object> | null }
   ): Promise<PricingResult> {
     let user = null;
     if (userId) {
@@ -195,9 +194,22 @@ class MarketingService {
    * Evaluates volume discount for an array of services and formats them for B2B API Standards.
    * Protects pricing from dropping below the safety floor.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async getB2BFormattedServices(user: any, services: any[]) {
-    const volumeTier = this.getVolumeTier(user.totalSpent);
+    async getB2BFormattedServices(
+    user: { totalSpent: number | bigint; personalDiscount?: number | null },
+    services: {
+      numericId: number;
+      name: string;
+      category: { name: string };
+      rate: number;
+      markup: number;
+      providerCurrency?: string | null;
+      minQty: number;
+      maxQty: number;
+      isDripFeedEnabled?: boolean;
+      isCancelEnabled?: boolean;
+    }[]
+  ) {
+    const volumeTier = this.getVolumeTier(Number(user.totalSpent));
     let maxDiscountPercent = Math.max(user.personalDiscount || 0, volumeTier.discountPercent);
 
     // Apply hard ceiling

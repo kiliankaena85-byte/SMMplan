@@ -1,4 +1,5 @@
 'use server';
+import { Prisma } from '@prisma/client';
 
 import crypto from 'crypto';
 import { requireStaffPermission, requireOwnerPermission } from '@/lib/server/rbac';
@@ -120,8 +121,7 @@ export async function updateGlobalSettings(formData: FormData) {
 
     const oldSettings = await db.systemSettings.findUnique({ where: { id: 'global' } });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dataToUpdate: any = {};
+    const dataToUpdate: Prisma.SystemSettingsUpdateInput = {};
     if (formData.has('_isGeneralSettings')) {
       dataToUpdate.maintenanceMode = formData.has('maintenanceMode');
     }
@@ -220,7 +220,7 @@ export async function updateGlobalSettings(formData: FormData) {
       dataToUpdate.geminiApiKeys = VaultService.encrypt(rawGeminiKeys.trim());
     }
 
-    await settingsService.updateSystemSettings(dataToUpdate);
+    await settingsService.updateSystemSettings(dataToUpdate as Parameters<typeof settingsService.updateSystemSettings>[0]);
 
     // Atomic Re-pricing: trigger background sync if rate changed
     if (isRateChanged && finalExchangeRate) {
@@ -235,18 +235,15 @@ export async function updateGlobalSettings(formData: FormData) {
 
     const sensitiveKeys = ['yookassaSecretKey', 'yookassaTestSecretKey', 'cryptoBotToken', 'robokassaPassword', 'robokassaWebhookPassword', 'resendApiKey', 'smtpPassword', 'inboundEmailWebhookSecret', 'geminiApiKeys'];
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const safeDataToUpdate: any = { ...dataToUpdate };
+    const safeDataToUpdate: Record<string, unknown> = { ...dataToUpdate };
     for (const key of sensitiveKeys) {
       if (safeDataToUpdate[key]) safeDataToUpdate[key] = '***';
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const oldValueToLog: any = {};
+    const oldValueToLog: Record<string, unknown> = {};
     for (const key of Object.keys(safeDataToUpdate)) {
       if (oldSettings && key in oldSettings) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        oldValueToLog[key] = sensitiveKeys.includes(key) ? '***' : (oldSettings as any)[key];
+        oldValueToLog[key] = sensitiveKeys.includes(key) ? '***' : (oldSettings as Record<string, unknown>)[key];
       }
     }
 

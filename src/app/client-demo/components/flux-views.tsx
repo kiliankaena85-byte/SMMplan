@@ -87,8 +87,7 @@ export function SmmFluxFullApp({ initialTab = 'dashboard' }: { initialTab?: Flux
   const [isRequisitesSaved, setIsRequisitesSaved] = useState(false);
 
   // Telegram Chat States
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [chatMessages, setChatMessages] = useState<any[]>(DASHBOARD_DATA.chatHistory);
+    const [chatMessages, setChatMessages] = useState<any[]>(DASHBOARD_DATA.chatHistory);
   const [chatInput, setChatInput] = useState('');
   const [isOperatorTyping, setIsOperatorTyping] = useState(false);
 

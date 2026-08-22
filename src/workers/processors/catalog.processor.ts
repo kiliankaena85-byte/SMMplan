@@ -54,7 +54,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
       case 'SYNC_PROVIDER_CATALOG': {
         const { providerId, admin } = payload;
         log.info(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
-        const stats = await adminCatalogService.syncProviderCatalog(providerId, admin);
+        const stats = await adminCatalogService.syncProviderCatalog(providerId, admin as { id: string; email: string });
         log.info(`[CatalogProcessor] Catalog sync completed. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
         
         // Apply blacklists, reclassification, and maxQty caps
@@ -70,7 +70,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
       }
       
       case 'BULK_MARKUP': {
-        const { markupPercent, filter, admin } = payload;
+        const { markupPercent, filter, admin } = payload as { markupPercent: number; filter: { categoryId?: string; platform?: string; search?: string }; admin: { id: string; email: string } };
         log.info(`[CatalogProcessor] Starting background bulk markup...`);
         // We reuse the existing logic, but from a worker context
         const result = await adminCatalogService.bulkUpdateMarkup(
@@ -86,9 +86,8 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
       default:
         throw new Error(`Unknown catalog mutation type`);
     }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    log.error(`[CatalogProcessor] Failed processing job ${job.id}: ${error.message}`);
+  } catch (error: unknown) {
+    log.error(`[CatalogProcessor] Failed processing job ${job.id}: ${(error instanceof Error ? error.message : String(error))}`);
     throw error; // Let BullMQ retry and eventually DLQ
   }
 }

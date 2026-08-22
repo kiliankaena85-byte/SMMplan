@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { requireStaffPermission } from '@/lib/server/rbac';
 
@@ -192,8 +193,7 @@ export async function searchShadowServices(params: {
 }): Promise<ShadowServiceSearchResult[]> {
   const { query, providerId, platform, targetType, limit = 25 } = params;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {};
+    const where: Prisma.ShadowServiceWhereInput = {};
 
   if (providerId) {
     where.providerId = providerId;

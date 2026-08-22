@@ -15,12 +15,12 @@ dotenv.config();
 import { Scenes, session, Telegraf, Markup } from 'telegraf';
 import { db } from '@/lib/db';
 import { WalletOps } from '@/services/financial/wallet-ops';
+import type { BotContext } from './types/bot-context';
 
 // Scenes — only import wizards that have been migrated to Lite core
 import { orderWizard, ORDER_WIZARD } from './scenes/order.wizard';
 import { depositWizard, DEPOSIT_WIZARD } from './scenes/deposit.wizard';
 import { referralWizard, REFERRAL_WIZARD } from './scenes/referral.wizard';
-// import { catalogWizard } from './scenes/catalog.wizard';
 
 // ── BOT INSTANCE ──
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -28,31 +28,27 @@ if (!TOKEN || TOKEN === 'dummy_token') {
   console.warn('[Bot] TELEGRAM_BOT_TOKEN not set. Telegram bot will NOT start.');
 }
 
-export const bot = new Telegraf(TOKEN || 'dummy_token');
+export const bot = new Telegraf<BotContext>(TOKEN || 'dummy_token');
 
 const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
 const botSiteName = (botTenantId === 'flux' || botTenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
 
 // ── STAGE ──
-const stage = new Scenes.Stage<Scenes.WizardContext>([
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  orderWizard as any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  depositWizard as any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  referralWizard as any,
+const stage = new Scenes.Stage<BotContext>([
+  orderWizard,
+  depositWizard,
+  referralWizard,
 ]);
 
 // ── MIDDLEWARE ──
 bot.use(session());
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.use(stage.middleware() as any);
+bot.use(stage.middleware());
 
 // ── ERROR HANDLER ──
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.catch(async (err: any, ctx: any) => {
+bot.catch(async (err: unknown, ctx: unknown) => {
   try {
-    const description = err?.response?.description || err?.message || '';
+    const errorObj = err as { response?: { description?: string }; message?: string };
+    const description = errorObj?.response?.description || errorObj?.message || '';
     // Ignore common non-critical Telegram errors
     if (
       description.includes('query is too old') ||
@@ -65,10 +61,11 @@ bot.catch(async (err: any, ctx: any) => {
       return;
     }
 
-    console.error(`[Bot] ERROR [${ctx?.updateType || 'unknown'}]:`, err);
+    const contextObj = ctx as { updateType?: string; reply?: (text: string) => Promise<unknown> };
+    console.error(`[Bot] ERROR [${contextObj?.updateType || 'unknown'}]:`, err);
 
-    if (ctx && typeof ctx.reply === 'function') {
-      await ctx.reply('⚠️ Произошла техническая ошибка. Мы уже исправляем её.').catch(() => {});
+    if (contextObj && typeof contextObj.reply === 'function') {
+      await contextObj.reply('⚠️ Произошла техническая ошибка. Мы уже исправляем её.').catch(() => {});
     }
   } catch (e) {
     console.error('[Bot] Error in catch handler:', e);
@@ -76,8 +73,7 @@ bot.catch(async (err: any, ctx: any) => {
 });
 
 // ── KYC & SYBIL PROTECTION ──
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.command('bind', async (ctx: any) => {
+bot.command('bind', async (ctx: BotContext) => {
   await ctx.reply(
     `🔗 <b>Привязка аккаунта ${botSiteName}</b>\n\n` +
     'Для безопасной привязки Telegram к вашему аккаунту без передачи телефонных номеров:\n\n' +
@@ -88,10 +84,9 @@ bot.command('bind', async (ctx: any) => {
   );
 });
 
-
 // ── COMMANDS ──
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.start(async (ctx: any) => {
+bot.start(async (ctx: BotContext) => {
+  if (!ctx.from) return;
   const tgId = String(ctx.from.id);
   const payload = ctx.payload;
 
@@ -135,179 +130,248 @@ bot.start(async (ctx: any) => {
               const reasonDebit = `Списание баланса при авто-слиянии Telegram ${tempUser.email} с ${webUserId}`;
               const reasonCredit = `Перенос баланса со старого аккаунта Telegram ${tempUser.email}`;
               
-              // Debit tempUser
-              // Debit tempUser
               await WalletOps.charge(tx, tempUser.id, amount, reasonDebit, {
                 idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}`
               });
 
-              // Credit webUser
               await WalletOps.credit(tx, webUserId, amount, reasonCredit, {
                 idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}`
               });
             }
-
-            // Deactivate and archive the temp user instead of deleting, because of onDelete: Restrict on LedgerEntry
-            if (tempUser.email.startsWith('tg_')) {
-              await tx.user.update({
-                where: { id: tempUser.id },
-                data: {
-                  isActive: false,
-                  isDeleted: true,
-                  telegramId: null,
-                  email: `merged_tg_${tempUser.id}@smmplan.stub`
-                }
-              });
-            } else {
-              await tx.user.update({ where: { id: tempUser.id }, data: { telegramId: null } });
-            }
-
-            // Task 6: Audit Log for the Silent Smart Bind Merge
-            await tx.adminAuditLog.create({
-              data: {
-                adminId: 'telegram_bot',
-                adminEmail: 'telegram_bot@smmplan.bot',
-                action: 'TELEGRAM_SMART_BIND_MERGE',
-                target: webUserId,
-                targetType: 'USER',
-                oldValue: JSON.stringify({ tempUserId: tempUser.id, tempUserEmail: tempUser.email }),
-                newValue: JSON.stringify({ mergedIntoUserId: webUserId, telegramId: tgId }),
-                ipAddress: 'telegram-smart-bind'
+            
+            // Re-assign telegramId and mark tempUser merged
+            await tx.user.update({
+              where: { id: tempUser.id },
+              data: { 
+                telegramId: null
               }
             });
           }
 
-          // Bind to Web User
+          // Link telegramId to web account
           await tx.user.update({
             where: { id: webUserId },
-            data: { telegramId: tgId, isKycVerified: true }
+            data: { telegramId: tgId }
           });
         });
 
-        await ctx.reply(
-          `✅ <b>Telegram успешно привязан!</b>\n\n` +
-          `Оператор службы поддержки теперь видит вашу историю заказов. Лимиты на оплату картой YooKassa успешно сняты! Чем я могу помочь?`,
+        return ctx.reply(
+          '🎉 <b>Аккаунт успешно привязан!</b>\n\n' +
+          'Теперь вы можете управлять заказами и балансом прямо через Telegram-бота.',
+          {
+            parse_mode: 'HTML',
+            ...Markup.keyboard([
+              ['🛍 Каталог услуг', '📦 Мои заказы'],
+              ['💰 Пополнить', '👤 Профиль'],
+              ['🆘 Поддержка', '👥 Рефералы']
+            ]).resize()
+          }
+        );
+      } catch (err: unknown) {
+        console.error('[Bot Auth Bind] Transaction failed:', err);
+        return ctx.reply(
+          '❌ <b>Ошибка привязки</b>\n\n' +
+          (err instanceof Error ? err.message : 'Не удалось привязать аккаунт. Попробуйте создать новую ссылку в личном кабинете.'),
           { parse_mode: 'HTML' }
         );
-      } catch (err) {
-        console.error('[Bot Bind] Merge error:', err);
-        await ctx.reply('⚠️ Произошла ошибка при привязке аккаунта. Пожалуйста, обратитесь в поддержку.');
       }
-      return;
     } else {
-      await ctx.reply('❌ Ссылка для привязки недействительна или устарела. Пожалуйста, авторизуйтесь на сайте и нажмите кнопку поддержки снова.');
-      // Continue normal flow just in case
+      return ctx.reply(
+        '⚠️ <b>Ссылка недействительна</b>\n\n' +
+        'Срок действия ссылки истек или она уже была использована. Получите новую ссылку на сайте.',
+        { parse_mode: 'HTML' }
+      );
     }
   }
 
-  // Upsert user by telegramId
-  let user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
-  if (!user) {
-    // P1.3 Anti-Fraud: Global rate limit for Telegram Bot Registrations (Max 100 per hour)
-    const { RateLimitService } = await import('@/services/core/rate-limit.service');
-    const isGlobalAllowed = await RateLimitService.check('auth:register:telegram_global', 100, 3600);
-    
-    if (!isGlobalAllowed) {
-      console.warn(`[Anti-Fraud] Global Telegram registration limit exceeded. Blocked tgId: ${tgId}`);
-      return ctx.reply('⚠️ Регистрация временно приостановлена из-за высокой нагрузки. Попробуйте позже.');
+  // Level 2: Referral start parameter (?start=ref_CODE)
+  let referredByUserId: string | undefined;
+  if (payload && payload.startsWith('ref_')) {
+    const refCode = payload.replace('ref_', '');
+    const referrer = await db.user.findFirst({
+      where: { referralCode: refCode, tenantId: botTenantId }
+    });
+    if (referrer) {
+      referredByUserId = referrer.id;
     }
+  }
 
-    const emailStub = `tg_${tgId}@${botTenantId}.bot`;
+  // Auto-register or fetch user
+  const emailStub = `tg_${tgId}@${botTenantId}.bot`;
+  let user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
+
+  if (!user) {
     user = await db.user.upsert({
       where: { email_tenantId: { email: emailStub, tenantId: botTenantId } },
       update: { telegramId: tgId },
       create: {
         email: emailStub,
         telegramId: tgId,
+        referredById: referredByUserId,
         tenantId: botTenantId,
       }
     });
-  }
 
-  if (payload === 'support') {
-    await ctx.reply(
-      `🎧 <b>Служба поддержки ${botSiteName}</b>\n\n` +
-      `Просто напишите ваш вопрос, отправьте фото или голосовое сообщение прямо в этот чат, и оператор ответит вам здесь же.`,
-      {
-        parse_mode: 'HTML',
-        reply_markup: {
-          keyboard: [
-            [{ text: '🛍 Каталог' }, { text: '📦 Мои заказы' }],
-            [{ text: '💰 Пополнить' }, { text: '🆘 Поддержка' }],
-            [{ text: '👥 Рефералы' }]
-          ],
-          resize_keyboard: true,
-        }
-      }
-    );
-    return;
-  }
-
-  await ctx.reply(
-    `👋 <b>Добро пожаловать в ${botSiteName}!</b>\n\n` +
-    `💰 Ваш баланс: <b>${(Number(user.balance) / 100).toFixed(2)}₽</b>\n\n` +
-    `Используйте меню ниже:`,
-    {
-      parse_mode: 'HTML',
-      reply_markup: {
-        keyboard: [
-          [{ text: '🛍 Каталог' }, { text: '📦 Мои заказы' }],
-          [{ text: '💰 Пополнить' }, { text: '🆘 Поддержка' }],
-          [{ text: '👥 Рефералы' }]
-        ],
-        resize_keyboard: true,
+    // Notify referrer
+    if (referredByUserId) {
+      const refUser = await db.user.findUnique({ where: { id: referredByUserId } });
+      if (refUser?.telegramId) {
+        bot.telegram.sendMessage(
+          refUser.telegramId,
+          `🎉 <b>Новый реферал!</b>\n\nПо вашей ссылке зарегистрировался новый пользователь.`,
+          { parse_mode: 'HTML' }
+        ).catch(() => {});
       }
     }
-  );
-});
-
-// Helper to render network list (Catalog Level 1)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function renderNetworkCatalog(ctx: any) {
-  const networks = await db.network.findMany({
-    where: {
-      isActive: true,
-      categories: { some: { services: { some: { isActive: true } } } }
-    },
-    orderBy: { sort: 'asc' }
-  });
-  if (networks.length === 0) {
-    const text = '😔 Каталог пока пуст.';
-    return ctx.callbackQuery ? ctx.editMessageText(text) : ctx.reply(text);
   }
 
-  const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
-  const text = '🛍 <b>Каталог услуг SMMplan</b>\nВыберите интересующую вас социальную сеть:';
+  const welcomeText =
+    `👋 <b>Добро пожаловать в ${botSiteName}!</b>\n\n` +
+    `Платформа автоматического продвижения в социальных сетях.\n\n` +
+    `💰 Ваш баланс: <b>${(Number(user.balance) / 100).toFixed(2)} ₽</b>\n\n` +
+    `Выберите действие в меню ниже:`;
 
-  if (ctx.callbackQuery) {
-    await ctx.answerCbQuery();
-    await ctx.editMessageText(text, {
-      parse_mode: 'HTML',
-      ...Markup.inlineKeyboard(buttons)
-    }).catch(() => {});
-  } else {
-    await ctx.reply(text, {
+  return ctx.reply(welcomeText, {
+    parse_mode: 'HTML',
+    ...Markup.keyboard([
+      ['🛍 Каталог услуг', '📦 Мои заказы'],
+      ['💰 Пополнить', '👤 Профиль'],
+      ['🆘 Поддержка', '👥 Рефералы']
+    ]).resize()
+  });
+});
+
+bot.command('shop', async (ctx: BotContext) => {
+  try {
+    const networks = await db.network.findMany({
+      where: { isActive: true },
+      orderBy: { sort: 'asc' }
+    });
+
+    if (networks.length === 0) {
+      return ctx.reply('🛍 Каталог услуг временно недоступен.');
+    }
+
+    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
+
+    await ctx.reply('🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:', {
       parse_mode: 'HTML',
       ...Markup.inlineKeyboard(buttons)
     });
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.hears('🛍 Каталог', async (ctx: any) => {
-  try {
-    await renderNetworkCatalog(ctx);
   } catch (err) {
     console.error('[Bot Catalog] Error:', err);
-    await ctx.reply('⚠️ Ошибка при загрузке каталога. Попробуйте позже.');
+    await ctx.reply('Произошла ошибка при загрузке каталога.');
   }
 });
 
-// Callback handler: Back to networks list
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.action('cat_back_networks', async (ctx: any) => {
+bot.hears('🛍 Каталог услуг', async (ctx: BotContext) => {
   try {
-    await renderNetworkCatalog(ctx);
+    const networks = await db.network.findMany({
+      where: { isActive: true },
+      orderBy: { sort: 'asc' }
+    });
+
+    if (networks.length === 0) {
+      return ctx.reply('🛍 Каталог услуг временно недоступен.');
+    }
+
+    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
+
+    await ctx.reply('🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:', {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard(buttons)
+    });
+  } catch (err) {
+    console.error('[Bot Catalog] Error:', err);
+    await ctx.reply('Произошла ошибка при загрузке каталога.');
+  }
+});
+
+bot.hears('👤 Профиль', async (ctx: BotContext) => {
+  if (!ctx.from) return;
+  const tgId = String(ctx.from.id);
+  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
+  if (!user) return ctx.reply('Используйте /start для регистрации.');
+
+  const orderCount = await db.order.count({ where: { userId: user.id } });
+
+  const text =
+    `👤 <b>Ваш профиль</b>\n\n` +
+    `🆔 ID: <code>${user.id.slice(0, 8)}</code>\n` +
+    `💰 Баланс: <b>${(Number(user.balance) / 100).toFixed(2)} ₽</b>\n` +
+    `📦 Всего заказов: <b>${orderCount}</b>\n` +
+    `👥 Реферальный код: <code>${user.referralCode || '—'}</code>`;
+
+  await ctx.reply(text, {
+    parse_mode: 'HTML',
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback('💰 Пополнить баланс', 'deposit')],
+      [Markup.button.callback('👥 Реферальная программа', 'referral')]
+    ])
+  });
+});
+
+// Inline buttons from profile
+bot.action('deposit', async (ctx: BotContext) => {
+  await ctx.answerCbQuery();
+  return ctx.scene.enter(DEPOSIT_WIZARD);
+});
+bot.action('referral', async (ctx: BotContext) => {
+  await ctx.answerCbQuery();
+  return ctx.scene.enter(REFERRAL_WIZARD);
+});
+bot.action('shop', async (ctx: BotContext) => {
+  await ctx.answerCbQuery();
+  try {
+    const networks = await db.network.findMany({
+      where: { isActive: true },
+      orderBy: { sort: 'asc' }
+    });
+    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
+    await ctx.reply('🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:', {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard(buttons)
+    });
+  } catch (err) {
+    console.error('[Bot Shop Action] Error:', err);
+  }
+});
+bot.action('my_orders', async (ctx: BotContext) => {
+  await ctx.answerCbQuery();
+  if (!ctx.from) return;
+  const tgId = String(ctx.from.id);
+  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
+  if (!user) return;
+  const orders = await db.order.findMany({
+    where: { userId: user.id },
+    take: 5,
+    orderBy: { createdAt: 'desc' },
+    include: { service: { select: { name: true } } }
+  });
+  if (orders.length === 0) {
+    return ctx.reply('📦 У вас пока нет заказов.');
+  }
+  let text = '📦 <b>Последние заказы:</b>\n\n';
+  for (const o of orders) {
+    text += `#${o.numericId} — ${o.service?.name || 'Услуга'}\n` +
+      `   ${o.quantity} шт. | ${(Number(o.charge) / 100).toFixed(2)}₽ | ${o.status}\n\n`;
+  }
+  await ctx.reply(text, { parse_mode: 'HTML' });
+});
+
+// ── CATALOG NAVIGATION ──
+bot.action('cat_back_networks', async (ctx: BotContext) => {
+  try {
+    const networks = await db.network.findMany({
+      where: { isActive: true },
+      orderBy: { sort: 'asc' }
+    });
+    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
+    await ctx.answerCbQuery();
+    await ctx.editMessageText('🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:', {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard(buttons)
+    }).catch(() => {});
   } catch (err) {
     console.error('[Bot Catalog Back Networks] Error:', err);
     await ctx.answerCbQuery('Произошла ошибка');
@@ -315,8 +379,8 @@ bot.action('cat_back_networks', async (ctx: any) => {
 });
 
 // Callback handler: Select Network -> Show Categories
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.action(/^cat_net_(.+)$/, async (ctx: any) => {
+bot.action(/^cat_net_(.+)$/, async (ctx: BotContext) => {
+  if (!ctx.match) return;
   const netId = ctx.match[1];
   try {
     const network = await db.network.findUnique({ where: { id: netId } });
@@ -349,8 +413,8 @@ bot.action(/^cat_net_(.+)$/, async (ctx: any) => {
 });
 
 // Callback handler: Select Category -> Show Services
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.action(/^cat_ctg_(.+)$/, async (ctx: any) => {
+bot.action(/^cat_ctg_(.+)$/, async (ctx: BotContext) => {
+  if (!ctx.match) return;
   const catId = ctx.match[1];
   try {
     const category = await db.category.findUnique({
@@ -373,8 +437,7 @@ bot.action(/^cat_ctg_(.+)$/, async (ctx: any) => {
       return ctx.answerCbQuery('В этой категории пока нет доступных тарифов');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const buttons = services.map((s: any) => {
+    const buttons = services.map((s: { id: string; name: string; rate: number; markup: number; providerCurrency: string }) => {
       const pricePerUnit = calculatePricePerUnit(s, usdToRub);
       const label = `${s.name} — ${formatPricePerUnit(pricePerUnit)} ₽ / шт`;
       return [Markup.button.callback(label, `order_svc_${s.id}`)];
@@ -393,8 +456,8 @@ bot.action(/^cat_ctg_(.+)$/, async (ctx: any) => {
 });
 
 // Callback handler: Back to categories from service confirmation
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.action(/^cat_back_net_(.+)$/, async (ctx: any) => {
+bot.action(/^cat_back_net_(.+)$/, async (ctx: BotContext) => {
+  if (!ctx.match) return;
   const netId = ctx.match[1];
   try {
     const network = await db.network.findUnique({ where: { id: netId } });
@@ -423,8 +486,8 @@ bot.action(/^cat_back_net_(.+)$/, async (ctx: any) => {
 });
 
 // Inline handler: Start order wizard with pre-selected service
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.action(/^order_svc_(.+)$/, async (ctx: any) => {
+bot.action(/^order_svc_(.+)$/, async (ctx: BotContext) => {
+  if (!ctx.match) return;
   const serviceId = ctx.match[1];
   const service = await db.service.findUnique({
     where: { id: serviceId },
@@ -441,24 +504,21 @@ bot.action(/^order_svc_(.+)$/, async (ctx: any) => {
   return ctx.scene.enter(ORDER_WIZARD, { preSelectedService: service });
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.hears('💰 Пополнить', async (ctx: any) => {
+bot.hears('💰 Пополнить', async (ctx: BotContext) => {
   return ctx.scene.enter(DEPOSIT_WIZARD);
 });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.hears('🆘 Поддержка', async (ctx: any) => {
+bot.hears('🆘 Поддержка', async (ctx: BotContext) => {
   await ctx.reply(
     '🎧 <b>Я всегда на связи!</b>\n\n' +
     'Просто напишите ваш вопрос, отправьте фото или голосовое сообщение прямо в этот чат, и оператор ответит вам здесь же.',
     { parse_mode: 'HTML' }
   );
 });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.hears('👥 Рефералы', async (ctx: any) => {
+bot.hears('👥 Рефералы', async (ctx: BotContext) => {
   return ctx.scene.enter(REFERRAL_WIZARD);
 });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.hears('📦 Мои заказы', async (ctx: any) => {
+bot.hears('📦 Мои заказы', async (ctx: BotContext) => {
+  if (!ctx.from) return;
   const tgId = String(ctx.from.id);
   const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
   if (!user) return ctx.reply('Используйте /start для регистрации.');
@@ -491,8 +551,8 @@ bot.hears('📦 Мои заказы', async (ctx: any) => {
 });
 
 // ── CSAT RATING CALLBACK ──
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.action(/^rate:([^:]+):(\d+)$/, async (ctx: any) => {
+bot.action(/^rate:([^:]+):(\d+)$/, async (ctx: BotContext) => {
+  if (!ctx.match) return;
   try {
     await ctx.answerCbQuery('Спасибо за вашу оценку!').catch(() => {});
     const ticketId = ctx.match[1];
@@ -522,14 +582,15 @@ bot.action(/^rate:([^:]+):(\d+)$/, async (ctx: any) => {
 });
 
 // ── CATCH-ALL (SUPPORT DIRECT CHAT MODE) ──
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 'location'], async (ctx: any, next: any) => {
+bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 'location'], async (ctx: BotContext) => {
   // 1. Check if user sent an unsupported format
-  if (ctx.message?.video || ctx.message?.sticker || ctx.message?.video_note || ctx.message?.location) {
+  const msg = ctx.message as Record<string, unknown> | undefined;
+  if (msg && (msg.video || msg.sticker || msg.video_note || msg.location)) {
     return ctx.reply('⚠️ К сожалению, мы не можем просматривать стикеры, кружочки или геолокации. Пожалуйста, отправьте текст, скриншот (фото) или голосовое сообщение.');
   }
 
   // 2. Resolve or Auto-Create User for Telegram Support
+  if (!ctx.from) return;
   const tgId = String(ctx.from.id);
   let user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
   if (!user) {
@@ -548,8 +609,7 @@ bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 
   try {
     const { supportBotService } = await import('@/services/support/support-bot.service');
     await supportBotService.handleIncomingMessage(ctx, user.id);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[Bot] Catch-all Support Error:', e);
     await ctx.reply('❌ Ошибка при отправке сообщения в поддержку.').catch(() => {});
   }
@@ -563,9 +623,8 @@ if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SK
       .then(() => bot.launch({ dropPendingUpdates: true }))
       .then(() => {
         console.info('[Bot] ✅ Telegram bot launched successfully');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }).catch((e: any) => {
-        console.error('[Bot] ❌ Failed to launch:', e.message);
+      }).catch((e: unknown) => {
+        console.error('[Bot] ❌ Failed to launch:', e instanceof Error ? e.message : String(e));
       });
   }
 }
@@ -576,30 +635,13 @@ if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SK
  */
 async function handleShutdown(signal: string) {
   console.info(`[Bot] --- Signal ${signal} received. Graceful shutdown ---`);
-
   try {
-    // 1. Stop the Telegram bot polling
-    if (bot) {
-      console.info('[Bot] Stopping bot polling...');
-      bot.stop(signal);
-    }
-
-    // 2. Close database connection pool
-    try {
-      await db.$disconnect();
-      console.info('[Bot] Prisma connection pool closed.');
-    } catch (e) {
-      console.error('[Bot] Error disconnecting Prisma:', e);
-    }
-
-    console.info('[Bot] --- All processes stopped. Exiting. ---');
-    process.exit(0);
-  } catch (err) {
-    console.error('[Bot] Error during graceful shutdown:', err);
-    process.exit(1);
+    bot.stop(signal);
+  } catch (err: unknown) {
+    console.error('[Bot] Error stopping bot:', err);
   }
+  process.exit(0);
 }
 
-process.on('SIGTERM', () => handleShutdown('SIGTERM'));
-process.on('SIGINT', () => handleShutdown('SIGINT'));
-
+process.once('SIGINT', () => handleShutdown('SIGINT'));
+process.once('SIGTERM', () => handleShutdown('SIGTERM'));

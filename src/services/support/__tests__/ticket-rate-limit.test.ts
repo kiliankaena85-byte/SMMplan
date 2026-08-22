@@ -74,7 +74,7 @@ describe('Ticket Actions Rate Limiting', () => {
       // We expect redirect to be called (which vitest handles or will throw/reject with redirect logic)
       try {
         await createTicket(formData);
-      } catch (err: any) {
+      } catch (err: unknown) {
         // expect redirect to have been called
       }
 

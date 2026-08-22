@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 
 export class LoyaltyService {
@@ -29,8 +30,7 @@ export class LoyaltyService {
    * Awards a commission to the referrer when a referred user makes a deposit.
    * Safe to run inside an existing PostgreSQL transaction.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async awardCommission(tx: any, referredUserId: string, depositAmountCents: number, orderId: string): Promise<void> {
+    static async awardCommission(tx: Prisma.TransactionClient, referredUserId: string, depositAmountCents: number, orderId: string): Promise<void> {
     const user = await tx.user.findUnique({
       where: { id: referredUserId },
       select: { referredById: true }
@@ -90,8 +90,7 @@ export class LoyaltyService {
    * Confirms a pending commission when an order completes.
    * Moves it from PENDING to CONFIRMED.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async confirmCommission(tx: any, orderId: string): Promise<void> {
+    static async confirmCommission(tx: Prisma.TransactionClient, orderId: string): Promise<void> {
     const commissions = await tx.commission.findMany({
       where: { orderId, status: 'PENDING' }
     });
@@ -105,7 +104,7 @@ export class LoyaltyService {
       // Increment referrer's referral balance ONLY upon confirmation
       await tx.user.update({
         where: { id: comm.referrerId },
-        data: { referralBalance: { increment: comm.amount } }
+        data: { referralBalance: { increment: Number(comm.amount) } }
       });
 
       await tx.auditLog.create({
@@ -121,8 +120,7 @@ export class LoyaltyService {
   /**
    * Partially confirms a commission proportional to the delivered quantity.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async handlePartialCommission(tx: any, orderId: string, remains: number, quantity: number): Promise<void> {
+    static async handlePartialCommission(tx: Prisma.TransactionClient, orderId: string, remains: number, quantity: number): Promise<void> {
     const commissions = await tx.commission.findMany({
       where: { orderId, status: 'PENDING' }
     });
@@ -183,8 +181,7 @@ export class LoyaltyService {
    * Reverses a pending or confirmed commission if the order fails.
    * Moves it to REVERSED and decrements referralBalance only if it was confirmed.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async reverseCommission(tx: any, orderId: string): Promise<void> {
+    static async reverseCommission(tx: Prisma.TransactionClient, orderId: string): Promise<void> {
     const commissions = await tx.commission.findMany({
       where: { orderId, status: { in: ['PENDING', 'CONFIRMED'] } }
     });
@@ -201,7 +198,7 @@ export class LoyaltyService {
       if (wasConfirmed) {
         await tx.user.update({
           where: { id: comm.referrerId },
-          data: { referralBalance: { decrement: comm.amount } }
+          data: { referralBalance: { decrement: Number(comm.amount) } }
         });
       }
 

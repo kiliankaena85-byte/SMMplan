@@ -1,4 +1,5 @@
 'use client';
+import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 
 import React from 'react';
 import { Search, Loader2 } from 'lucide-react';
@@ -8,17 +9,13 @@ interface LinkInputFieldProps {
   url: string;
   setUrl: (val: string) => void;
   isLoading: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  platform: any;
+  platform: IntelligencePlatform | null;
   networkId: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  manualPlatform: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setManualPlatform: (val: any) => void;
+  manualPlatform: IntelligencePlatform | null;
+  setManualPlatform: (val: IntelligencePlatform | null) => void;
   validationErrors: { link?: string };
   urlMutatedTrigger: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  availablePlatforms: any[];
+  availablePlatforms: Array<{ id: string; name: IntelligencePlatform; icon?: React.ReactNode }>;
   onBlur?: () => void;
   isLinkOverridden?: boolean;
   setIsLinkOverridden?: (val: boolean) => void;

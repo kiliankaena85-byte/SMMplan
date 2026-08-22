@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from "react";
 import { getBalanceAdjustmentStatsAction } from "@/actions/admin/balance-adjustments";

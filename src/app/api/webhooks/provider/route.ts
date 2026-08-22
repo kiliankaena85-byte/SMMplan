@@ -170,9 +170,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, verifiedStatus: providerStatus });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error(`[Webhook] Fatal error:`, error.message);
+  } catch (error: unknown) {
+    console.error(`[Webhook] Fatal error:`, (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

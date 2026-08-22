@@ -139,9 +139,8 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json({ error: 'Confirm failed' }, { status: 400 });
     }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.error('[Robokassa Webhook] Error:', error.message);
+  } catch (error: unknown) {
+    console.error('[Robokassa Webhook] Error:', (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ error: 'Webhook execution failed' }, { status: 500 });
   }
 }

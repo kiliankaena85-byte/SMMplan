@@ -1,4 +1,5 @@
-"use client";
+'use client';
+import type { ExternalServiceItem, CategoryItem, FilterState } from "../types";
 
 import React from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -14,7 +15,7 @@ import { formatPricePerUnit } from "@/utils/format-price";
 interface ServiceItem {
   service: string | number;
   name: string;
-  cleanName?: string;
+  cleanName?: string | null;
   pricePerUnitProcurementRub?: number;
   alreadyImported?: boolean;
   min?: string;
@@ -28,34 +29,20 @@ interface ServiceItem {
   [key: string]: unknown;
 }
 
-interface CategoryItem {
-  id: string;
-  name: string;
-  network: {
-    name: string;
-  };
-  [key: string]: unknown;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FiltersState = any;
-
 interface ServicesTableProps {
-  services: ServiceItem[];
+  services: ExternalServiceItem[];
   selectedIds: Set<string>;
   toggleSelection: (id: string) => void;
   toggleAll: () => void;
   loading: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  filters: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setFilters: React.Dispatch<React.SetStateAction<any>> | ((f: any) => void);
+  filters: FilterState;
+  setFilters: React.Dispatch<React.SetStateAction<FilterState>> | ((f: FilterState) => void);
   pagination: { page: number; totalPages: number; total: number; pageSize: number };
   markup?: number;
-  categories: CategoryItem[];
-  selectedCategories: Record<string, string>;
-  onCategoryChange: (serviceId: string, categoryId: string) => void;
-  autoMappedCategories: Record<string, string>;
+  categories?: CategoryItem[];
+  selectedCategories?: Record<string, string>;
+  onCategoryChange?: (serviceId: string, categoryId: string) => void;
+  autoMappedCategories?: Record<string, string>;
   aiConfidence?: Record<string, boolean>;
   showCategoryColumn?: boolean;
   validationErrors?: Set<string>;
@@ -312,21 +299,21 @@ export function ServicesTable({
                             <div className="flex flex-col gap-1 w-full min-w-0">
                               <Select
                                 value={selectedCategories[String(s.service)] || ""}
-                                onValueChange={(val) => onCategoryChange(String(s.service), val || "")}
+                                onValueChange={(val) => onCategoryChange?.(String(s.service), val || "")}
                               >
                                 <SelectTrigger size="sm" className={`w-full bg-background text-xs rounded-[8px] border h-9 py-1 px-2 ${validationErrors.has(String(s.service)) ? 'border-destructive ring-1 ring-destructive' : 'border-border'}`}>
                                   <SelectValue placeholder="Выберите">
                                     {(value: string) => {
                                       if (!value) return "Выберите";
                                       const cat = categories.find((c) => c.id === value);
-                                      return cat ? `${cat.network.name} • ${cat.name}` : value;
+                                      return cat ? `${(cat.network?.name || "")} • ${cat.name}` : value;
                                     }}
                                   </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent className="bg-popover text-popover-foreground border border-border rounded-[8px] max-h-60 w-[220px]">
                                   {categories.map((c) => (
                                     <SelectItem key={c.id} value={c.id} className="text-xs cursor-pointer">
-                                      {c.network.name} • {c.name}
+                                      {(c.network?.name || "")} • {c.name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -434,20 +421,20 @@ export function ServicesTable({
                             </span>
                           ) : (
                             <div className="flex flex-col gap-1 w-full">
-                              <Select value={selectedCategories[String(s.service)] || ""} onValueChange={(val) => onCategoryChange(String(s.service), val || "")}>
+                              <Select value={selectedCategories[String(s.service)] || ""} onValueChange={(val) => onCategoryChange?.(String(s.service), val || "")}>
                                 <SelectTrigger size="sm" className={`w-full bg-background text-xs rounded-[8px] border h-10 px-3 ${validationErrors.has(String(s.service)) ? 'border-destructive ring-1 ring-destructive' : 'border-border'}`}>
                                   <SelectValue placeholder="Выберите категорию">
                                     {(value: string) => {
                                       if (!value) return "Выберите категорию";
                                       const cat = categories.find((c) => c.id === value);
-                                      return cat ? `${cat.network.name} • ${cat.name}` : value;
+                                      return cat ? `${(cat.network?.name || "")} • ${cat.name}` : value;
                                     }}
                                   </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent className="bg-popover text-popover-foreground border border-border rounded-[8px] max-h-60 w-[90vw] max-w-[400px]">
                                   {categories.map((c) => (
                                     <SelectItem key={c.id} value={c.id} className="text-xs cursor-pointer py-2">
-                                      {c.network.name} • {c.name}
+                                      {(c.network?.name || "")} • {c.name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>

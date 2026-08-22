@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from "react";
 import { Check, CreditCard, Coins, Wallet } from "lucide-react";

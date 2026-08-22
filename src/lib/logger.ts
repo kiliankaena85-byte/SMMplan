@@ -62,7 +62,7 @@ const baseLogger = pino({
 
 // ─── Logger Proxy (auto-injects correlationId from AsyncLocalStorage) ──────
 
-type LogFn = (message: string, context?: Record<string, unknown>) => void;
+type LogFn = (message: string, context?: unknown) => void;
 
 interface Logger {
   info: LogFn;
@@ -74,13 +74,16 @@ interface Logger {
 }
 
 function createLoggerFromBase(pinoInstance: pino.Logger): Logger {
-  const log = (level: pino.Level) => (message: string, context?: Record<string, unknown>) => {
+  const log = (level: pino.Level) => (message: string, context?: unknown) => {
     const store = logContextStorage.getStore();
+    const extra = (typeof context === 'object' && context !== null && !Array.isArray(context))
+      ? (context as Record<string, unknown>)
+      : (context !== undefined ? { detail: context } : {});
     const merged = {
       ...(store?.correlationId ? { correlationId: store.correlationId } : {}),
       ...(store?.userId ? { userId: store.userId } : {}),
       ...(store?.component ? { component: store.component } : {}),
-      ...context,
+      ...extra,
     };
     pinoInstance[level](merged, message);
   };

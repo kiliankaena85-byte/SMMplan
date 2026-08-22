@@ -194,8 +194,7 @@ export class GeminiClient {
             headers: { 'Content-Type': 'application/json' },
             dispatcher,
             signal: AbortSignal.timeout(5000),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any);
+            } as unknown as RequestInit);
 
           if (res.ok) {
             const data = await res.json();
@@ -301,8 +300,7 @@ export class GeminiClient {
               body: JSON.stringify(body),
               dispatcher,
               signal: AbortSignal.timeout(payload.timeoutMs || 25000),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
+              } as unknown as RequestInit);
 
             if (res.status === 429 || res.status === 403) {
               const errText = await res.text();

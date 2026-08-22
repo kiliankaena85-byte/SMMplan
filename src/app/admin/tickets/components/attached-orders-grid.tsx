@@ -12,8 +12,7 @@ import {
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 export interface AttachedOrdersGridProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  orders: any[];
+  orders: Array<{ id: string; numericId: number; status: import("@prisma/client").OrderStatus; charge: number; remains: number; quantity: number; link: string; createdAt: string; serviceName: string }>;
   ticketId: string;
   isB2bClient: boolean;
 }

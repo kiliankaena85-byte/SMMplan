@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from "react";
 import { X, ChevronLeft, ChevronRight, Share2, Copy, BookOpen } from "lucide-react";

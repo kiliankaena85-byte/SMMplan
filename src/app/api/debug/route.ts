@@ -30,8 +30,7 @@ export async function GET(req: NextRequest) {
   const revalidate = searchParams.get('revalidate');
   
   if (revalidate) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (revalidateTag as any)(revalidate);
+        revalidateTag(revalidate, "default");
     return NextResponse.json({ success: true, revalidated: revalidate });
   }
 

@@ -7,8 +7,7 @@ type PaymentMetadata = {
   source?: string;
   serviceId?: string;
   promoId?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export class UnifiedPaymentService {
@@ -72,9 +71,8 @@ export class UnifiedPaymentService {
         confirmationUrl: gatewayResult.paymentUrl || `/payment-redirect?id=${payment.id}`
       };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      console.error('[UnifiedPayment] System error:', e.message);
+    } catch (e: unknown) {
+      console.error('[UnifiedPayment] System error:', (e instanceof Error ? e.message : String(e)));
       return { success: false, error: 'Internal logic exception' };
     }
   }

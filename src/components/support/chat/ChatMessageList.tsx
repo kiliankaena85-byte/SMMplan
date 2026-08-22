@@ -1,3 +1,4 @@
+import type { ChatInputOrder } from './ChatInput';
 // audit-disable STR-002
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,14 +47,11 @@ interface ChatMessageListProps {
   loadingOlder: boolean;
   onLoadOlder: () => void;
   onSetReplyingTo: (msg: Message) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  editTicketMessage?: (formData: FormData) => Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  deleteTicketMessage?: (formData: FormData) => Promise<any>;
+  editTicketMessage?: (formData: FormData) => Promise<{ success: boolean; error?: string } | void>;
+  deleteTicketMessage?: (formData: FormData) => Promise<{ success: boolean; error?: string } | void>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   isStaff?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSelectOrder?: (order: any) => void;
+  onSelectOrder?: (order: ChatInputOrder) => void;
 }
 
 export function ChatMessageList({
@@ -466,7 +464,9 @@ export function ChatMessageList({
                           {isStaff && onSelectOrder ? (
                             <button
                               type="button"
-                              onClick={() => onSelectOrder(msg.order)}
+                              onClick={() => {
+                                if (msg.order) onSelectOrder(msg.order as unknown as ChatInputOrder);
+                              }}
                               className={`text-[11px] font-black px-3 h-11 rounded-xl transition-all duration-200 flex items-center justify-center gap-0.5 shadow-xs cursor-pointer hover:scale-[1.02] active:scale-[0.98] border-0 ${
                                 msg.sender === 'USER'
                                   ? 'bg-primary text-primary-foreground hover:bg-primary/90'
@@ -541,15 +541,15 @@ export function ChatMessageList({
                               <div className="relative group/att mb-2 inline-block max-w-full">
                                 <img
                                   src={`/api/media/${encodeURIComponent(file.url)}`}
-                                  alt={file.name}
+                                  alt={file.name || "Файл"}
                                   onClick={() => setZoomedImage(file.url)}
                                   className="rounded-xl max-h-60 cursor-zoom-in border border-default-200 hover:opacity-90 transition-all duration-200 object-cover"
                                 />
                                 <div
                                   className="absolute bottom-2 left-2 right-2 bg-background/90 backdrop-blur-sm text-foreground text-[10px] px-2 py-1 rounded-md opacity-0 group-hover/att:opacity-100 transition-opacity duration-200 truncate"
-                                  title={file.name}
+                                  title={file.name || "Файл"}
                                 >
-                                  {file.name}
+                                  {file.name || "Файл"}
                                 </div>
                               </div>
                             );
@@ -564,9 +564,9 @@ export function ChatMessageList({
                                 />
                                 <div
                                   className="text-[10px] text-muted-foreground mt-1 truncate"
-                                  title={file.name}
+                                  title={file.name || "Файл"}
                                 >
-                                  {file.name}
+                                  {file.name || "Файл"}
                                 </div>
                               </div>
                             );
@@ -581,9 +581,9 @@ export function ChatMessageList({
                                 />
                                 <div
                                   className="text-[10px] text-muted-foreground mt-1 truncate"
-                                  title={file.name}
+                                  title={file.name || "Файл"}
                                 >
-                                  {file.name}
+                                  {file.name || "Файл"}
                                 </div>
                               </div>
                             );
@@ -594,13 +594,13 @@ export function ChatMessageList({
                               <div className="text-2xl drop-shadow-sm shrink-0">📄</div>
                               <div
                                 className="text-sm font-semibold truncate flex-1 leading-tight text-foreground/90 min-w-0"
-                                title={file.name}
+                                title={file.name || "Файл"}
                               >
-                                {file.name}
+                                {file.name || "Файл"}
                               </div>
                               <a
                                 href={`/api/media/${encodeURIComponent(file.url)}`}
-                                download={file.name}
+                                download={file.name || "Файл"}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-primary text-[10px] font-bold px-2.5 py-1.5 bg-background shadow-sm border border-default-200 rounded-md hover:bg-default-50 transition-colors shrink-0"
@@ -624,14 +624,14 @@ export function ChatMessageList({
                                   >
                                     <img
                                       src={`/api/media/${encodeURIComponent(file.url)}`}
-                                      alt={file.name}
+                                      alt={file.name || "Файл"}
                                       className="w-full h-full object-cover group-hover/att:scale-105 transition-transform duration-200"
                                     />
                                     <div
                                       className="absolute inset-x-0 bottom-0 bg-background/90 backdrop-blur-sm text-foreground text-[10px] px-2 py-1 opacity-0 group-hover/att:opacity-100 transition-opacity duration-200 truncate"
-                                      title={file.name}
+                                      title={file.name || "Файл"}
                                     >
-                                      {file.name}
+                                      {file.name || "Файл"}
                                     </div>
                                   </div>
                                 );
@@ -649,9 +649,9 @@ export function ChatMessageList({
                                     />
                                     <div
                                       className="absolute inset-x-0 bottom-0 bg-background/90 backdrop-blur-sm text-foreground text-[10px] px-2 py-1 opacity-0 group-hover/att:opacity-100 transition-opacity duration-200 truncate"
-                                      title={file.name}
+                                      title={file.name || "Файл"}
                                     >
-                                      {file.name}
+                                      {file.name || "Файл"}
                                     </div>
                                   </div>
                                 );
@@ -669,9 +669,9 @@ export function ChatMessageList({
                                     />
                                     <div
                                       className="text-[9px] text-muted-foreground truncate mt-1 min-w-0"
-                                      title={file.name}
+                                      title={file.name || "Файл"}
                                     >
-                                      {file.name}
+                                      {file.name || "Файл"}
                                     </div>
                                   </div>
                                 );
@@ -685,13 +685,13 @@ export function ChatMessageList({
                                   <div className="text-xl drop-shadow-sm shrink-0">📄</div>
                                   <div
                                     className="text-[11px] font-semibold truncate flex-1 leading-tight text-foreground/90 min-w-0"
-                                    title={file.name}
+                                    title={file.name || "Файл"}
                                   >
-                                    {file.name}
+                                    {file.name || "Файл"}
                                   </div>
                                   <a
                                     href={`/api/media/${encodeURIComponent(file.url)}`}
-                                    download={file.name}
+                                    download={file.name || "Файл"}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-primary text-[9px] font-bold px-2.5 py-1 bg-background shadow-sm border border-default-200 rounded-md hover:bg-default-50 transition-colors shrink-0"

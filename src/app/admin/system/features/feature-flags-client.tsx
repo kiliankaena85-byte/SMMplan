@@ -45,8 +45,8 @@ export function FeatureFlagsClient({ initialFlags }: Props) {
   const flagMap = new Map(optimisticFlags.map(f => [f.key, f]));
 
   // Build groups including any uncategorized flags dynamically
-  const groupedKeys = new Set(PREDEFINED_GROUPS.flatMap(g => g.keys));
-  const ungroupedFlags = optimisticFlags.filter(f => !groupedKeys.has(f.key as any));
+  const groupedKeys = new Set<string>(PREDEFINED_GROUPS.flatMap(g => g.keys));
+  const ungroupedFlags = optimisticFlags.filter(f => !groupedKeys.has(f.key));
 
   const allGroups = [
     ...PREDEFINED_GROUPS.map(g => ({

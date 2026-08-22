@@ -297,8 +297,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   }
 
   // Schema.org structured data setup
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const schemas: any[] = [
+    const schemas: Record<string, unknown>[] = [
     {
       "@context": "https://schema.org",
       "@type": "Article",

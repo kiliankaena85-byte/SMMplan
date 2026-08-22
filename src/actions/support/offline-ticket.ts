@@ -191,8 +191,7 @@ export async function createOfflineTicketAction(input: OfflineTicketInput) {
       ticketId: result.ticketId 
     };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[createOfflineTicketAction] Unexpected core failure:', error);
     return { 
       success: false, 

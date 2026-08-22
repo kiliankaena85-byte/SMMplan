@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * Balance Requests Management v3 — SMMplan Design System & 1-Click CSV

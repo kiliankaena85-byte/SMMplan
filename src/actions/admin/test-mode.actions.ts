@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
@@ -58,8 +58,7 @@ export async function adminClearTestData() {
         success: true, 
         message: `Cleared ${resultOrders.count} test orders and associated data.` 
       };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Failed to clear test data:", e);
       return { success: false, error: "Failed to perform Nucleus Clear." };
     }

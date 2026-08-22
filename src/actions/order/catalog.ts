@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import { db } from "@/lib/db";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -84,8 +84,7 @@ export type PublicService = {
   etaP50Seconds?: number | null;
   etaP90Seconds?: number | null;
   etaSpeedClass?: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  features?: any;
+  features?: unknown;
   cooldownUntil?: string | null;
   smartConfig?: {
     isEnabled: boolean;
@@ -259,17 +258,16 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
        const pricePer1kRub = applyBeautifulRounding(s.rate * s.markup * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub));
        const pricePerUnitRub = pricePer1kRub / 1000;
 
-       // 4-Tier Hybrid Execution Metrics
-       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-       const feat = (s.features || {}) as any;
-       const fallbackAnalysis = (!feat.speedText || !feat.startTime)
-         ? SmartAnalyzerLogic.detectSync(s.name, s.description || '')
-         : null;
+        // 4-Tier Hybrid Execution Metrics
+        const feat = (s.features && typeof s.features === 'object' ? s.features : {}) as Record<string, unknown>;
+        const fallbackAnalysis = (!feat.speedText || !feat.startTime)
+          ? SmartAnalyzerLogic.detectSync(s.name, s.description || '')
+          : null;
 
-       const startTime = feat.startTime || fallbackAnalysis?.startTime || '5–15 мин';
-       const speedDisplay = feat.speedText || fallbackAnalysis?.speedText || (s.name.toLowerCase().includes('быстр') ? 'Быстрая' : 'Стандартная');
-       const warrantyDays = feat.warrantyDays ?? fallbackAnalysis?.warranty ?? (s.isRefillEnabled ? 30 : null);
-       const qualityLabel = feat.qualityLabel || fallbackAnalysis?.qualityLabel || (badge || 'Стандарт');
+        const startTime = (feat.startTime as string | undefined) || fallbackAnalysis?.startTime || '5–15 мин';
+        const speedDisplay = (feat.speedText as string | undefined) || fallbackAnalysis?.speedText || (s.name.toLowerCase().includes('быстр') ? 'Быстрая' : 'Стандартная');
+        const warrantyDays = (typeof feat.warrantyDays === 'number' ? feat.warrantyDays : undefined) ?? fallbackAnalysis?.warranty ?? (s.isRefillEnabled ? 30 : null);
+        const qualityLabel = (feat.qualityLabel as string | undefined) || fallbackAnalysis?.qualityLabel || (badge || 'Стандарт');
 
        return {
           id: s.id,

@@ -1,3 +1,4 @@
+import type { BotContext } from '../types/bot-context';
 /**
  * (c) 2024-2026 SMMplan. All rights reserved.
  * Created by Artem (http://artmspektr.ru)
@@ -23,13 +24,14 @@ async function resolveUser(tgId: number) {
 // ──────────────────────────────────────────────────────────────
 // WIZARD DEFINITION
 // ──────────────────────────────────────────────────────────────
-export const referralWizard = new Scenes.WizardScene(
+export const referralWizard = new Scenes.WizardScene<BotContext>(
   REFERRAL_WIZARD,
 
   // ШАГ 1: Показать статистику и ссылку
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async (ctx: any) => {
-    const tgId = ctx.from.id;
+  
+  async (ctx: BotContext) => {
+    if (!ctx.from) return ctx.scene.leave();
+  const tgId = ctx.from.id;
     const user = await resolveUser(tgId);
 
     if (!user) {
@@ -72,13 +74,12 @@ export const referralWizard = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-  async (_ctx: any) => { return; }
+    async () => { return; }
 );
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-referralWizard.use(async (ctx: any, next: any) => {
-  if (ctx.callbackQuery?.data === 'close_ref') {
+
+referralWizard.use(async (ctx, next) => {
+  if (ctx.callbackQuery && 'data' in ctx.callbackQuery && ctx.callbackQuery.data === 'close_ref') {
     await ctx.answerCbQuery();
     await ctx.deleteMessage().catch(() => {});
     return ctx.scene.leave();

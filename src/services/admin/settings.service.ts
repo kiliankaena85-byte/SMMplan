@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { UsnScheme } from '@prisma/client';
 
@@ -48,10 +49,9 @@ class SettingsService {
     const validRoles = ['USER', 'SUPPORT', 'MANAGER', 'ADMIN', 'OWNER', 'BANNED'];
     if (!validRoles.includes(role)) throw new Error(`Invalid role: ${role}`);
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dataToUpdate: any = { role };
+        const dataToUpdate: Prisma.UserUpdateInput = { role };
     if (staffRoleId !== undefined) {
-      dataToUpdate.staffRoleId = staffRoleId;
+      dataToUpdate.staffRole = staffRoleId ? { connect: { id: staffRoleId } } : { disconnect: true };
     }
     
     return db.user.update({

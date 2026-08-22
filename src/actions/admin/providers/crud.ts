@@ -1,4 +1,5 @@
-"use server";
+'use server';
+import type { ApiMappingDTO } from '@/services/providers/universal.provider';
 
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
@@ -69,8 +70,7 @@ export async function createProvider(rawData: {
   isActive: boolean;
   balanceCurrency: string;
   ticketUrl?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mapping?: any;
+  mapping?: ApiMappingDTO | null;
 }) {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
     try {
@@ -133,8 +133,7 @@ export async function updateProvider(rawId: string, rawData: {
   isActive: boolean;
   balanceCurrency: string;
   ticketUrl?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mapping?: any;
+  mapping?: ApiMappingDTO | null;
 }) {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
     try {
@@ -159,8 +158,7 @@ export async function updateProvider(rawId: string, rawData: {
       const { assertSafeUrl } = await import('@/utils/ssrf-guard');
       await assertSafeUrl(normalizedApiUrl);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         name: data.name,
         apiUrl: normalizedApiUrl,
         isActive: data.isActive,
@@ -206,8 +204,7 @@ export async function checkProviderConnection(rawId: string) {
             
             const { ProviderDiagnosticService } = await import('@/services/admin/provider-diagnostic.service');
             const decryptedKey = VaultService.decrypt(providerRecord.apiKey) || providerRecord.apiKey;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const mapping = providerRecord.metadata && typeof providerRecord.metadata === 'object' ? (providerRecord.metadata as any).mapping : null;
+            const mapping = providerRecord.metadata && typeof providerRecord.metadata === "object" ? ((providerRecord.metadata as Record<string, unknown>).mapping as unknown as ApiMappingDTO | undefined) : undefined;
 
             const probeResult = await ProviderDiagnosticService.probe(
               providerRecord.apiUrl,
@@ -232,9 +229,9 @@ export async function checkProviderConnection(rawId: string) {
                 servicesCount: probeResult.servicesCount,
                 latencyMs: probeResult.latencyMs
             };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
-            return { success: false, error: e.message || "Connection failed" };
+        } catch (e: unknown) {
+            const err = e instanceof Error ? e.message : "Connection failed";
+            return { success: false, error: err };
         }
     });
 }
@@ -243,15 +240,14 @@ export async function probeProviderAction(params: {
   providerId?: string;
   apiUrl?: string;
   apiKey?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mapping?: any;
+  mapping?: ApiMappingDTO | null;
 }) {
   return requireStaffPermission('catalog', 'view', async () => {
     const { ProviderDiagnosticService } = await import('@/services/admin/provider-diagnostic.service');
     
     let targetUrl = params.apiUrl || '';
     let targetKey = params.apiKey || '';
-    let mapping = params.mapping;
+    let mapping = params.mapping as ApiMappingDTO | undefined;
 
     if (params.providerId) {
       const p = await db.provider.findUnique({ where: { id: params.providerId } });
@@ -261,8 +257,7 @@ export async function probeProviderAction(params: {
           targetKey = VaultService.decrypt(p.apiKey) || p.apiKey;
         }
         if (!mapping && p.metadata && typeof p.metadata === 'object') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          mapping = (p.metadata as any).mapping;
+          mapping = (p.metadata as Record<string, unknown>).mapping as unknown as ApiMappingDTO | undefined;
         }
       }
     }
@@ -275,13 +270,12 @@ export async function getProviderCatalogPreviewAction(params: {
   providerId?: string;
   apiUrl?: string;
   apiKey?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mapping?: any;
+  mapping?: ApiMappingDTO | null;
 }) {
   return requireStaffPermission('catalog', 'view', async () => {
     let targetUrl = params.apiUrl || '';
     let targetKey = params.apiKey || '';
-    let mapping = params.mapping;
+    let mapping = params.mapping as ApiMappingDTO | undefined;
 
     if (params.providerId) {
       const p = await db.provider.findUnique({ where: { id: params.providerId } });
@@ -291,8 +285,7 @@ export async function getProviderCatalogPreviewAction(params: {
           targetKey = VaultService.decrypt(p.apiKey) || p.apiKey;
         }
         if (!mapping && p.metadata && typeof p.metadata === 'object') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          mapping = (p.metadata as any).mapping;
+          mapping = (p.metadata as Record<string, unknown>).mapping as unknown as ApiMappingDTO | undefined;
         }
       }
     }
@@ -374,15 +367,14 @@ export async function syncProviderCatalogAction(rawId: string) {
                 success: true,
                 stats
             };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
-            return { success: false, error: e.message || "Синхронизация не удалась" };
+        } catch (e: unknown) {
+            const err = e instanceof Error ? e.message : "Connection failed";
+            return { success: false, error: err };
         }
     });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMethod: 'GET'|'POST', contentType: 'form'|'json', authConfig: any, providerId?: string) {
+export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMethod: "GET" | "POST", contentType: "form" | "json", authConfig: ApiMappingDTO["auth"], providerId?: string) {
     return requireStaffPermission('catalog', 'edit', async () => {
         try {
             let finalApiKey = apiKey;
@@ -412,10 +404,8 @@ export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMe
                 }
             };
             
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const instance = await providerService.getProviderInstance(mockProvider as any);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const servicesResponse = await (instance as any).request({ action: 'services' }, 0);
+            const instance = await providerService.getProviderInstance(mockProvider as unknown as Parameters<typeof providerService.getProviderInstance>[0]);
+            const servicesResponse = await (instance as unknown as { request: (body: unknown, idx?: number) => Promise<unknown> }).request({ action: "services" }, 0);
             
             let servicesKeys: string[] = [];
             let itemsPath = '$';
@@ -432,8 +422,7 @@ export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMe
                 }
             }
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const balanceResponse = await (instance as any).request({ action: 'balance' }, 0);
+            const balanceResponse = await (instance as unknown as { request: (body: unknown, idx?: number) => Promise<unknown> }).request({ action: "balance" }, 0);
             let balanceKeys: string[] = [];
             if (typeof balanceResponse === 'object' && balanceResponse !== null) {
                 balanceKeys = Object.keys(balanceResponse);
@@ -446,9 +435,9 @@ export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMe
                     balance: { keys: balanceKeys }
                 }
             };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
-            return { success: false, error: e.message || "Failed to infer schema" };
+        } catch (e: unknown) {
+            const err = e instanceof Error ? e.message : "Connection failed";
+            return { success: false, error: err };
         }
     });
 }

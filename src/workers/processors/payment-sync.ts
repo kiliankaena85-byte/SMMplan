@@ -45,12 +45,12 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
         });
         log.info(`Stale non-YooKassa payment ${payment.id} expired successfully.`);
       } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
+        const errMsg = err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err);
         log.error(`Failed to expire stale payment ${payment.id}: ${errMsg}`);
       }
     }
   } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
+    const errMsg = err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err);
     log.error(`Error during stale payments cleanup: ${errMsg}`);
   }
 
@@ -145,9 +145,8 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
         });
         log.info(`Successfully marked payment ${payment.id} as CANCELED.`);
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      log.error(`Exception while syncing payment ${payment.id}: ${err.message}`, { cause: err });
+    } catch (err: unknown) {
+      log.error(`Exception while syncing payment ${payment.id}: ${(err instanceof Error ? err.message : String(err))}`, { cause: err });
     }
   }
 

@@ -1,6 +1,7 @@
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
+import { Prisma, OrderStatus } from '@prisma/client';
 import Link from 'next/link';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
@@ -91,13 +92,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   if (!user) redirect('/login');
 
   // Build the DB where filter dynamically
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {
+  const where: Prisma.OrderWhereInput = {
     userId: session.userId,
   };
 
   if (status && status !== 'ALL') {
-    where.status = status;
+    where.status = status as OrderStatus;
   }
 
   if (network && network !== 'ALL') {

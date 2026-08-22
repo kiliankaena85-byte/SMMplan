@@ -17,8 +17,7 @@ const schema = z.object({
 });
 
 /** @public Public user login action */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function loginWithPasswordAction(prevState: any, formData: FormData) {
+export async function loginWithPasswordAction(prevState: unknown, formData: FormData) {
   if (!formData || typeof formData.entries !== 'function') {
     return { error: "Некорректные данные формы", success: false };
   }
@@ -131,9 +130,8 @@ export async function loginWithPasswordAction(prevState: any, formData: FormData
     }
 
     return { success: true, error: null, redirectTo };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    log.error('Password login action failed', { error: error.message, email: cleanEmail });
+  } catch (error: unknown) {
+    log.error('Password login action failed', { error: (error instanceof Error ? error.message : String(error)), email: cleanEmail });
     return { error: "Ошибка сервера при авторизации. Попробуйте позже.", success: false };
   }
 }

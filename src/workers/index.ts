@@ -1,4 +1,4 @@
-import { Worker } from 'bullmq';
+import { Worker, type WorkerOptions as BullWorkerOptions } from 'bullmq';
 import { getRedisConnection } from '../lib/queue-manager';
 import { db } from '../lib/db';
 import { logger } from '../lib/logger';
@@ -45,27 +45,19 @@ const connection = getRedisConnection();
 import { jitteredBackoff } from '../lib/queue-manager';
 
 // ── Worker instances ──────────────────────────────────────────────────────────
-const workerConfig = { 
+const workerConfig: BullWorkerOptions = { 
   connection,
   lockDuration: 60000,     // 60s lock to prevent false stalls during slow provider APIs (our breaker is 15s)
   stalledInterval: 30000,  // Check for stalled jobs every 30s
   maxStalledCount: 1,      // Only retry a stalled job once before failing
    
   settings: {
-    backoffStrategies: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      jittered: (attemptsMade: number, type: string, err: Error, job: any) => {
-        const delay = job.opts.backoff?.delay || 5000;
-        return jitteredBackoff(attemptsMade, delay);
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      exponential: (attemptsMade: number, type: string, err: Error, job: any) => {
-        const delay = job.opts.backoff?.delay || 5000;
-        return jitteredBackoff(attemptsMade, delay);
-      }
+    backoffStrategy: (attemptsMade, type, err, job) => {
+      const bo = job?.opts?.backoff;
+      const delay = typeof bo === 'number' ? bo : (typeof bo === 'object' && bo !== null ? bo.delay || 5000 : 5000);
+      return jitteredBackoff(attemptsMade, delay);
     }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any
+  }
 };
 
 const orderWorker = new Worker('ordersQueue', orderProcessor, workerConfig);
@@ -130,8 +122,7 @@ async function handleDeadLetter(
 
       // 🔥 Option B: Automatic Refund & State transition
       if (queueName === 'ordersQueue') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const payload = job.data as any;
+                const payload = job.data as { orderId?: string; refillId?: string };
         if (payload?.orderId) {
            await orderService.failOrderTerminal(payload.orderId, err.message);
            log.info(`Auto-refunded dead-letter order ${payload.orderId}`);
@@ -139,8 +130,7 @@ async function handleDeadLetter(
       }
 
       if (queueName === 'refillQueue') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const payload = job.data as any;
+                const payload = job.data as { orderId?: string; refillId?: string };
         if (payload?.refillId) {
           await db.refill.update({
             where: { id: payload.refillId },

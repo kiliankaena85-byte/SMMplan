@@ -6,8 +6,8 @@
 /**
  * Экранирует спецсимволы HTML для безопасной отправки в Telegram с parse_mode: HTML.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function escapeHtml(text: any): string {
+
+export function escapeHtml(text: unknown): string {
     if (text === null || text === undefined) return '';
     const str = String(text);
     return str

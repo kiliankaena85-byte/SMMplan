@@ -46,13 +46,11 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
         }
         return async () => {};
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as unknown as Queue<PayloadType, any, string>;
+    }) as unknown as Queue<PayloadType, unknown, string>;
   }
 
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new Queue<PayloadType, any, string>(name, {
+    return new Queue<PayloadType, any, string>(name, {
     connection: getRedisConnection(),
     defaultJobOptions: {
       removeOnComplete: { count: 50, age: 3600 },
@@ -66,12 +64,9 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
 
 export type CatalogMutationPayload = 
   | { type: 'SYNC_PRICES'; usdToRub: number }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | { type: 'SYNC_PROVIDER_CATALOG'; providerId: string; admin: any }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | { type: 'SYNC_ALL_CATALOGS'; admin: any }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  | { type: 'BULK_MARKUP'; filter: { categoryId?: string; platform?: string }; markupPercent: number; admin: any };
+    | { type: 'SYNC_PROVIDER_CATALOG'; providerId: string; admin: unknown }
+    | { type: 'SYNC_ALL_CATALOGS'; admin: unknown }
+    | { type: 'BULK_MARKUP'; filter: { categoryId?: string; platform?: string }; markupPercent: number; admin: unknown };
 
 export interface OrderJobPayload {
   orderId: string;
@@ -163,8 +158,7 @@ export interface PaymentGatewayJobPayload {
   description: string;
   isTestMode: boolean;
   gateway: 'yookassa' | 'cryptobot' | 'robokassa';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: any;
+    metadata?: Record<string, unknown>;
 }
 export const paymentGatewayQueue = createQueue<PaymentGatewayJobPayload>('paymentGatewayQueue', {
   attempts: 3,

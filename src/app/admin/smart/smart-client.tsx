@@ -67,10 +67,10 @@ interface ServiceDTO {
   name: string;
   category: {
     name: string;
-    network: {
+    network?: {
       name: string;
       slug: string;
-    };
+    } | null;
   };
   smartConfig: {
     isEnabled: boolean;
@@ -138,9 +138,8 @@ export function SmartDripClient({
         } else {
           toast.error('Не удалось изменить глобальный статус');
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message || 'Ошибка выполнения действия');
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)) || 'Ошибка выполнения действия');
       }
     });
   };
@@ -162,9 +161,8 @@ export function SmartDripClient({
         } else {
           toast.error('Не удалось изменить статус кампании');
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message || 'Ошибка выполнения действия');
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)) || 'Ошибка выполнения действия');
       }
     });
   };
@@ -211,9 +209,8 @@ export function SmartDripClient({
         } else {
           toast.error('Не удалось выполнить массовое обновление настроек');
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message || 'Ошибка выполнения массового действия');
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)) || 'Ошибка выполнения массового действия');
       }
     });
   };
@@ -258,9 +255,8 @@ export function SmartDripClient({
         } else {
           toast.error('Не удалось сохранить настройки');
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        toast.error(err.message || 'Ошибка сохранения настроек');
+      } catch (err: unknown) {
+        toast.error((err instanceof Error ? err.message : String(err)) || 'Ошибка сохранения настроек');
       }
     });
   };

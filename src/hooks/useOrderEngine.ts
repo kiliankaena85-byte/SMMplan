@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { analyzeUrl } from "@/actions/order/analyze-url";
@@ -51,8 +51,7 @@ function getCategoryDemandScore(name: string): number {
   return 999;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sortCategories(categories: any[]) {
+function sortCategories<T extends { name: string }>(categories: T[]): T[] {
   return [...categories].sort((a, b) => {
     const scoreA = getCategoryDemandScore(a.name);
     const scoreB = getCategoryDemandScore(b.name);
@@ -170,8 +169,7 @@ export function useOrderEngine(
     totalCents: number;
     validCount: number;
     errors: { line: number; text: string; error: string }[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    validOrders: any[];
+        validOrders: Array<{ priceRub?: number; serviceId: string; numericId?: number; link: string; quantity: number; providerId?: string | null; providerServiceId?: string | null; costRub?: number }>;
   } | null>(null);
   const [isMassCalculating, setIsMassCalculating] = useState(false);
   const isMassMode = url.includes("\n") || url.split(/\s+/).filter(Boolean).length > 1;
@@ -569,13 +567,13 @@ export function useOrderEngine(
             validOrders: []
           });
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
+            } catch (e: unknown) {
+        const err = e as Error;
         setMassCalculation({
           totalRub: 0,
           totalCents: 0,
           validCount: 0,
-          errors: [{ line: 0, text: "", error: e.message || "Неизвестная ошибка" }],
+          errors: [{ line: 0, text: "", error: err.message || "Неизвестная ошибка" }],
           validOrders: []
         });
       } finally {

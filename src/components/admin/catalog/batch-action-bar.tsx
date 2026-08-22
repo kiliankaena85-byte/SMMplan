@@ -42,8 +42,7 @@ function ReassignCategoryModal({
   startTransition,
 }: {
   selectedIds: string[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories: any[];
+  categories: Array<{ id: string; name: string }>;
   onSuccess: () => void;
   isPending: boolean;
   startTransition: (cb: () => void) => void;
@@ -146,8 +145,7 @@ export function BatchActionBar({
   selectedIds: string[];
   onClear: () => void;
   canEditFinance: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories: any[];
+  categories: Array<{ id: string; name: string }>;
 }) {
   const [isPending, startTransition] = useTransition();
   const [markupPercentInput, setMarkupPercentInput] = useState('');

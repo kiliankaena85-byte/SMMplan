@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import type { MessageAttachment } from '@prisma/client';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -52,8 +53,7 @@ class AdminTicketService {
     }
     if (params.search?.trim()) {
       const q = params.search.trim();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const orConditions: any[] = [
+      const orConditions: Prisma.TicketWhereInput[] = [
         { subject: { contains: q, mode: 'insensitive' } },
         { user: { email: { contains: q, mode: 'insensitive' } } },
         { messages: { some: { text: { contains: q, mode: 'insensitive' } } } }
@@ -113,8 +113,7 @@ class AdminTicketService {
     ]);
 
     // Priority B2B sorting: Float B2B tickets with prioritySupport flag to the top of the queue
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    items.sort((a: any, b: any) => {
+    items.sort((a, b) => {
       const aPri = a.user?.b2bConfig?.prioritySupport ? 1 : 0;
       const bPri = b.user?.b2bConfig?.prioritySupport ? 1 : 0;
       return bPri - aPri;
@@ -341,8 +340,7 @@ class AdminTicketService {
     historicalTickets.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
     // Map Message DTO helper
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mapMessage = (m: any, isHistorical = false, histTicketId?: string, histSubject?: string) => ({
+    const mapMessage = (m: Record<string, unknown> & { id: string; sender: string; text: string; mediaUrl?: string | null; mediaType?: string | null; createdAt: Date; isDeleted?: boolean; isEdited?: boolean; originalText?: string | null; orderId?: string | null; order?: { id: string; numericId: number; status: string; charge: bigint | number; createdAt: Date; service?: { name: string } | null } | null; replyTo?: { id: string; text: string; sender: string } | null; attachments?: Array<{ id: string; url: string; type: string; mimeType?: string | null; name?: string | null; size?: number | null; createdAt: Date }> }, isHistorical = false, histTicketId?: string, histSubject?: string) => ({
       id: m.id,
       sender: m.sender,
       text: m.text,
@@ -366,7 +364,7 @@ class AdminTicketService {
         text: m.replyTo.text,
         sender: m.replyTo.sender
       } : null,
-      attachments: m.attachments ? m.attachments.map((a: MessageAttachment) => ({
+      attachments: m.attachments ? (m.attachments as Array<{ id: string; url: string; type: string; mimeType?: string | null; name?: string | null; size?: number | null; createdAt: Date }>).map((a) => ({
         id: a.id,
         url: a.url,
         type: a.type,
@@ -380,8 +378,7 @@ class AdminTicketService {
       historicalSubject: histSubject
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stitchedMessages: any[] = [];
+    const stitchedMessages: ReturnType<typeof mapMessage>[] = [];
     
     // 1. Add historical messages
     for (const hist of historicalTickets) {
@@ -405,8 +402,7 @@ class AdminTicketService {
     const allText = [ticket.subject, ...ticket.messages.map(m => m.text)].join(' ');
     const extractedIds = extractOrderIds(allText);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let attachedOrders: any[] = [];
+    let attachedOrders: Array<{ id: string; numericId: number; status: import("@prisma/client").OrderStatus; charge: number; remains: number; quantity: number; link: string; createdAt: string; serviceName: string }> = [];
     if (extractedIds.length > 0) {
       const orders = await db.order.findMany({
         where: {

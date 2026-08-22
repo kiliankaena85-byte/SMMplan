@@ -1,4 +1,5 @@
 'use server';
+import { Prisma } from '@prisma/client';
 
 import { createSafeAction } from '@/lib/safe-action';
 import { z } from 'zod';
@@ -125,9 +126,8 @@ const parseMassOrderText = async (text: string) => {
           order.providerId = service.providerId;
           order.providerServiceId = service.externalId;
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
-        errors.push({ line: i + 1, text: `${order.numericId} | ${order.link} | ${order.quantity}`, error: e.message || 'Ошибка валидации ссылки' });
+      } catch (e: unknown) {
+        errors.push({ line: i + 1, text: `${order.numericId} | ${order.link} | ${order.quantity}`, error: (e instanceof Error ? e.message : String(e)) || 'Ошибка валидации ссылки' });
       }
     }
   }
@@ -168,9 +168,8 @@ export const massOrderCalculateAction = async (input: { text: string }) => {
          );
          totalCents += pricing.totalCents;
          validOrders.push({ ...order, priceRub: pricing.totalCents / 100 });
-       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-       } catch (e: any) {
-         errors.push({ line: -1, text: order.link, error: e.message });
+       } catch (e: unknown) {
+         errors.push({ line: -1, text: order.link, error: (e instanceof Error ? e.message : String(e)) });
        }
      }
 
@@ -247,8 +246,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     if (orders.length === 0) throw new Error("Нет валидных строк для заказа");
 
     let totalCents = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const orderCreationData: any[] = [];
+    const orderCreationData: Prisma.OrderCreateManyInput[] = [];
     
     // W2-3: Generate unique keys for each order in the batch, rather than re-using the checkout request's idempotency key
     const crypto = (await import('crypto')).default;
@@ -287,8 +285,6 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
          email: user.email,
          isDripFeed: false,
          remains: order.quantity,
-         consentIp,
-         consentUserAgent,
          idempotencyKey: idempotencyKey ? `${idempotencyKey}_order_${idx}` : crypto.randomUUID(),
          isTest: isTestMode
        });
@@ -388,8 +384,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       
       paymentUrl = `/payment-redirect?id=${result.paymentId}`;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (gatewayErr: any) {
+    } catch (gatewayErr: unknown) {
       console.error('[MassCheckout] Queue push failed', gatewayErr);
       await db.payment.update({
         where: { id: result.paymentId },
@@ -397,7 +392,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       });
       await db.order.updateMany({
         where: { paymentId: result.paymentId },
-        data: { status: 'ERROR', error: gatewayErr.message || 'Ошибка генерации платежа' }
+        data: { status: 'ERROR', error: (gatewayErr instanceof Error ? gatewayErr.message : String(gatewayErr)) || 'Ошибка генерации платежа' }
       });
       
       if (gatewayErr instanceof WalletInsufficientFundsError) {
@@ -409,7 +404,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       if (gatewayErr instanceof WalletInvalidAmountError) {
         throw new Error('Некорректная сумма операции.', { cause: gatewayErr });
       }
-      throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
+      throw new Error((gatewayErr instanceof Error ? gatewayErr.message : String(gatewayErr)) || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
     }
 
     if (!session && isNewUser) {
@@ -477,8 +472,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let reqHeaders: any;
+    let reqHeaders: { get: (key: string) => string | null };
     try {
       reqHeaders = await headers();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -495,8 +489,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
     let totalCents = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const orderCreationData: any[] = [];
+    const orderCreationData: Prisma.OrderCreateManyInput[] = [];
     const isTestMode = await SettingsManager.isTestMode();
 
     const serviceIds = rawOrders.map(o => o.serviceId);
@@ -551,8 +544,6 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
          email: user.email,
          isDripFeed: false,
          remains: order.quantity,
-         consentIp,
-         consentUserAgent,
          idempotencyKey: idempotencyKey ? `${idempotencyKey}_order_${idx}` : crypto.randomUUID(),
          isTest: isTestMode
        });
@@ -645,8 +636,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       
       paymentUrl = `/payment-redirect?id=${result.paymentId}`;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (gatewayErr: any) {
+    } catch (gatewayErr: unknown) {
       console.error('[MassCheckout] Gateway failed', gatewayErr);
       await db.payment.update({
         where: { id: result.paymentId },
@@ -654,7 +644,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       });
       await db.order.updateMany({
         where: { paymentId: result.paymentId },
-        data: { status: 'ERROR', error: gatewayErr.message || 'Ошибка генерации платежа' }
+        data: { status: 'ERROR', error: (gatewayErr instanceof Error ? gatewayErr.message : String(gatewayErr)) || 'Ошибка генерации платежа' }
       });
       
       if (gatewayErr instanceof WalletInsufficientFundsError) {
@@ -666,7 +656,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       if (gatewayErr instanceof WalletInvalidAmountError) {
         throw new Error('Некорректная сумма операции.', { cause: gatewayErr });
       }
-      throw new Error(gatewayErr.message || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
+      throw new Error((gatewayErr instanceof Error ? gatewayErr.message : String(gatewayErr)) || 'Ошибка на стороне платежного шлюза. Попробуйте другой метод', { cause: gatewayErr });
     }
 
     if (!session && isNewUser) {

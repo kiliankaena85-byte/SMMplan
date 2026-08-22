@@ -15,8 +15,7 @@ import { DripFeedSettings } from '@/components/orders/DripFeedSettings';
 
 interface OrderSummaryCardProps {
   userBalanceCents: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  engine: any;
+    engine: ReturnType<typeof import("@/hooks/useOrderEngine").useOrderEngine>;
 }
 
 const inputCls =
@@ -83,8 +82,7 @@ export function OrderSummaryCard({
 
   useEffect(() => {
     setRequirementsConfirmed(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const reqs = (selectedService?.features as any)?.requirements;
+        const reqs = (selectedService as unknown as { features?: { requirements?: string[] } })?.features?.requirements;
     if (reqs && Array.isArray(reqs) && reqs.length > 0) {
        setModalRequirements(reqs);
     } else {
@@ -224,9 +222,9 @@ export function OrderSummaryCard({
       }
 
       return res;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      const errorMessage = e.message || "Ошибка платежного шлюза.";
+        } catch (e: unknown) {
+      const err = e as Error;
+      const errorMessage = err.message || "Ошибка платежного шлюза.";
       window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${selectedService?.id || ''}&gateway=${gateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(url)}`;
       return { success: false, error: undefined };
     } finally {

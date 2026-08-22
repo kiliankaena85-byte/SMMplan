@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from "react";
 import { getBalancePoliciesAction, upsertBalancePolicyAction } from "@/actions/admin/balance-policy";

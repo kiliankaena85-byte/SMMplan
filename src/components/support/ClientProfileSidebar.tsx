@@ -1,4 +1,10 @@
 'use client';
+interface TelegramBindPreviewData {
+  tempUserOrders?: number;
+  targetEmail?: string;
+  targetBalance?: number | string;
+}
+
 // audit-disable STR-002
 
 import { useState, useTransition } from 'react';
@@ -70,8 +76,7 @@ export default function ClientProfileSidebar({
 }) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [previewData, setPreviewData] = useState<any>(null);
+    const [previewData, setPreviewData] = useState<TelegramBindPreviewData | null>(null);
   const [emailVal, setEmailVal] = useState('');
 
   if (!isOpen) {
@@ -156,11 +161,10 @@ export default function ClientProfileSidebar({
                       fd.set('targetEmail', emailVal);
                       console.info('[Sidebar] Calling adminManualTelegramBind with email:', emailVal);
                       // Safe type cast to resolve the requireStaffPermission wrapper union type
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      const res = (await adminManualTelegramBind(fd)) as { preview?: boolean; data?: any; success?: boolean };
+                                            const res = (await adminManualTelegramBind(fd)) as { preview?: boolean; data?: TelegramBindPreviewData; success?: boolean };
                       console.info('[Sidebar] adminManualTelegramBind result Step 1:', JSON.stringify(res));
                       if (res && res.preview) {
-                        setPreviewData(res.data);
+                        setPreviewData(res.data || null);
                       } else if (res && res.success) {
                         setPreviewData(null);
                         setEmailVal('');
@@ -193,7 +197,7 @@ export default function ClientProfileSidebar({
                       onClick={() => startTransition(async () => {
                         const fd = new FormData();
                         fd.set('ticketId', ticketId);
-                        fd.set('targetEmail', previewData.targetEmail);
+                        fd.set('targetEmail', previewData.targetEmail || '');
                         fd.set('confirm', 'true');
                         console.info('[Sidebar] Confirming adminManualTelegramBind with email:', previewData.targetEmail);
                         const res = await adminManualTelegramBind(fd);

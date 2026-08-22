@@ -1,3 +1,19 @@
+interface OrchestratorCheckoutParams {
+  isMassMode?: boolean;
+  text?: string;
+  email?: string;
+  expectedTotalRub?: number;
+  serviceId?: string;
+  link?: string;
+  quantity?: number;
+  runs?: number;
+  interval?: number;
+  idempotencyKey?: string;
+  isLinkOverridden?: boolean;
+  isRequirementsConfirmed?: boolean;
+  [key: string]: unknown;
+}
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { OrderEngine } from '@/hooks/useOrderEngine';
@@ -26,8 +42,7 @@ export function useCheckoutOrchestrator({
   const [emailHasError, setEmailHasError] = useState(false);
   const [termsHasError, setTermsHasError] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [pendingCheckoutParams, setPendingCheckoutParams] = useState<any>(null);
+    const [pendingCheckoutParams, setPendingCheckoutParams] = useState<OrchestratorCheckoutParams | null>(null);
 
   useEffect(() => {
     if (engine.email && engine.email.includes('@')) {
@@ -381,10 +396,10 @@ export function useCheckoutOrchestrator({
             window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${checkoutParams.serviceId}&gateway=${directGateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(finalUrl)}&paymentId=&orderId=`;
           }
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
+            } catch (e: unknown) {
         setIsSubmitting(false);
-        const errorMessage = e.message || "Ошибка платежного шлюза.";
+        const err = e as Error;
+        const errorMessage = err.message || "Ошибка платежного шлюза.";
         window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${checkoutParams.serviceId}&gateway=${directGateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(finalUrl)}&paymentId=&orderId=`;
       }
       return;
@@ -401,8 +416,8 @@ export function useCheckoutOrchestrator({
       if (pendingCheckoutParams.isMassMode) {
         const { massOrderCheckoutAction } = await import('@/actions/order/mass');
         const res = await massOrderCheckoutAction({
-          text: pendingCheckoutParams.text,
-          email: pendingCheckoutParams.email,
+          text: pendingCheckoutParams.text || "",
+          email: pendingCheckoutParams.email || "",
           gateway: gateway as 'yookassa' | 'cryptobot' | 'balance',
           expectedTotalRub: pendingCheckoutParams.expectedTotalRub
         });
@@ -413,18 +428,26 @@ export function useCheckoutOrchestrator({
             window.location.href = res.data.paymentUrl;
           } else {
             const errorMessage = 'Ошибка: не удалось получить ссылку на оплату.';
-            window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email)}&url=${encodeURIComponent(pendingCheckoutParams.text)}&paymentId=&orderId=`;
+            window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&url=${encodeURIComponent(pendingCheckoutParams.text || '')}&paymentId=&orderId=`;
           }
         } else {
           const errorMessage = res.error || 'Ошибка создания заказа. Попробуйте еще раз.';
-          window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email)}&url=${encodeURIComponent(pendingCheckoutParams.text)}&paymentId=&orderId=`;
+          window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&url=${encodeURIComponent(pendingCheckoutParams.text || '')}&paymentId=&orderId=`;
         }
         return;
       }
 
       const { checkoutAction } = await import('@/actions/order/checkout');
       const res = await checkoutAction({
-        ...pendingCheckoutParams,
+        email: pendingCheckoutParams.email || "",
+        link: pendingCheckoutParams.link || "",
+        quantity: pendingCheckoutParams.quantity || 0,
+        serviceId: pendingCheckoutParams.serviceId || "",
+        runs: pendingCheckoutParams.runs,
+        interval: pendingCheckoutParams.interval,
+        idempotencyKey: pendingCheckoutParams.idempotencyKey,
+        isLinkOverridden: pendingCheckoutParams.isLinkOverridden,
+        isRequirementsConfirmed: pendingCheckoutParams.isRequirementsConfirmed,
         gateway
       });
       setIsSubmitting(false);
@@ -466,10 +489,10 @@ export function useCheckoutOrchestrator({
           window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${serviceId}&gateway=${gateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(url)}&paymentId=${paymentId}&orderId=${orderId}`;
         }
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
+        } catch (e: unknown) {
       setIsSubmitting(false);
-      const errorMessage = e.message || "Ошибка платежного шлюза.";
+      const err = e as Error;
+      const errorMessage = err.message || "Ошибка платежного шлюза.";
       if (errorMessage.includes("Telegram-аккаунт") || errorMessage.includes("привяжите ваш Telegram-аккаунт")) {
         toast.error(errorMessage, {
           position: 'top-center',

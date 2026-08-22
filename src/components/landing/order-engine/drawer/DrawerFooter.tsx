@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from "react";
 import { motion } from "framer-motion";
@@ -7,8 +7,7 @@ import { LegalCheckbox } from "../LegalCheckbox";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 
 interface DrawerFooterProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  pricing: any;
+    pricing: OrderEngine["pricing"];
   gateway: "yookassa" | "cryptobot" | "balance";
   isCalculating: boolean;
   isSubmitting: boolean;

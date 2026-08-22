@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from "react";
 import { approveBalanceAdjustmentAction, rejectBalanceAdjustmentAction, cancelBalanceAdjustmentRequestAction } from "@/actions/admin/balance-adjustments";

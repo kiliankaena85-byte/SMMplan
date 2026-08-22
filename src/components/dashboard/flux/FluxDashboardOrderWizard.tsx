@@ -117,14 +117,12 @@ function FluxDashboardOrderWizardInner({
     getPublicCatalogAction().then(res => {
       if (res.success && res.data) {
         // Map public networks to FluxNetwork format
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mappedCatalog: FluxNetwork[] = res.data.map((net: any) => ({
+                const mappedCatalog: FluxNetwork[] = res.data.map((net: { id: string; name: string; slug: string; icon?: string | null; categories?: { id: string; name: string; slug?: string; icon?: string | null }[] }) => ({
           id: net.id,
           name: net.name,
           slug: net.slug,
           icon: net.icon || `/icons/${net.slug}.svg`,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          categories: (net.categories || []).map((cat: any) => ({
+                    categories: (net.categories || []).map((cat: { id: string; name: string; slug?: string; icon?: string | null }) => ({
             id: cat.id,
             name: cat.name,
             slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
@@ -153,9 +151,8 @@ function FluxDashboardOrderWizardInner({
           setActiveCategory(targetCat);
           setIsLoadingServices(true);
           getServicesByCategoryAction(categoryId).then(res => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const srvList: FluxService[] = (res || []).map((s: any) => {
-              const unitPrice = s.pricePerUnitRub || (s.pricePer1000Cents ? s.pricePer1000Cents / 100000 : 0.1);
+                        const srvList: FluxService[] = (res || []).map((s) => {
+              const unitPrice = s.pricePerUnitRub || 0.1;
               return {
                 id: s.id,
                 name: s.name,
@@ -238,9 +235,8 @@ function FluxDashboardOrderWizardInner({
 
     try {
       const data = await getServicesByCategoryAction(cat.id);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const srvList: FluxService[] = (data || []).map((s: any) => {
-        const unitPrice = s.pricePerUnitRub || (s.pricePer1000Cents ? s.pricePer1000Cents / 100000 : 0.1);
+            const srvList: FluxService[] = (data || []).map((s) => {
+        const unitPrice = s.pricePerUnitRub || 0.1;
         return {
           id: s.id,
           name: s.name,

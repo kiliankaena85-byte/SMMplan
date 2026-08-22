@@ -153,8 +153,7 @@ export class SettingsProvider {
 
     try {
       if (SettingsProvider.isTestEnvironment()) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        localSettingsCache[targetTenantId] = undefined as any;
+        delete localSettingsCache[targetTenantId];
         const fresh = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
         if (fresh) return fresh;
         return await db.systemSettings.upsert({
@@ -165,9 +164,9 @@ export class SettingsProvider {
       }
       try {
         return await this.getCached(normalizedSlug);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        if (err.message?.includes('incrementalCache') || err.message?.includes('Invariant')) {
+      } catch (err: unknown) {
+        const errMessage = err instanceof Error ? err.message : String(err);
+        if (errMessage.includes('incrementalCache') || errMessage.includes('Invariant')) {
           // Check local memory cache first
           const now = Date.now();
           const cached = localSettingsCache[targetTenantId];
@@ -190,9 +189,9 @@ export class SettingsProvider {
         }
         throw err;
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (dbErr: any) {
-      console.warn(`[SettingsProvider] Failed to fetch system settings for ${normalizedSlug} from DB, using fallback:`, dbErr.message);
+    } catch (dbErr: unknown) {
+      const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      console.warn(`[SettingsProvider] Failed to fetch system settings for ${normalizedSlug} from DB, using fallback:`, dbErrMsg);
       const defaultName = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'SMMflux' : 'SMMplan';
       const defaultEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro';
       const defaultPrivacyEmail = (normalizedSlug === 'flux' || normalizedSlug === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro';
@@ -431,8 +430,7 @@ export class SettingsProvider {
       create: { id: activeTenantId, exchangeRateUSD: rate, exchangeRateUpdatedAt: new Date() }
     });
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)('settings');
+      revalidateTag('settings', 'default');
     } catch (cacheErr) {
       console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
     }
@@ -448,8 +446,7 @@ export class SettingsProvider {
     const { redis } = await import('./redis');
     await redis.set(`settings:${activeTenantId}:isTestMode`, String(enable));
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)('settings');
+      revalidateTag('settings', 'default');
     } catch (cacheErr) {
       console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
     }
@@ -465,8 +462,7 @@ export class SettingsProvider {
     const { redis } = await import('./redis');
     await redis.set(`settings:${activeTenantId}:maintenanceMode`, String(enable));
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)('settings');
+      revalidateTag('settings', 'default');
     } catch (cacheErr) {
       console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
     }
@@ -491,8 +487,7 @@ export class SettingsProvider {
     const { redis } = await import('./redis');
     await redis.set(`settings:${activeTenantId}:isRefillModuleEnabled`, String(enable));
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (revalidateTag as any)('settings');
+      revalidateTag('settings', 'default');
     } catch (cacheErr) {
       console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
     }

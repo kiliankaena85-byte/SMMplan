@@ -45,8 +45,7 @@ export async function POST(request: NextRequest) {
   const sendResponse = (res: NextResponse) => {
     if (currentHashedKey) {
       const latencyMs = Date.now() - startTime;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const paramsObj: Record<string, any> = {};
+      const paramsObj: Record<string, string> = {};
       if (currentFormData) {
         currentFormData.forEach((val, k) => {
           if (k !== 'key') paramsObj[k] = val.toString();
@@ -131,8 +130,7 @@ export async function POST(request: NextRequest) {
       default:
         return sendResponse(NextResponse.json({ error: 'Incorrect action' }, { status: 400 }));
     }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API v2 Error]:', error);
     return sendResponse(NextResponse.json({ error: 'Internal server error' }, { status: 500 }));
   }
@@ -143,8 +141,7 @@ export async function POST(request: NextRequest) {
 // ACTION HANDLERS
 // ----------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleServices(user: any, formData: FormData) {
+async function handleServices(user: User, formData: FormData) {
   const offset = formData.get('offset')?.toString() || '0';
   const skip = parseInt(offset, 10);
 
@@ -175,8 +172,7 @@ const addSchema = z.object({
   interval: z.coerce.number().int().positive().optional()
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleAdd(user: any, formData: FormData) {
+async function handleAdd(user: User, formData: FormData) {
   const payload = Object.fromEntries(formData.entries());
   const parsed = addSchema.safeParse(payload);
 
@@ -235,13 +231,13 @@ async function handleAdd(user: any, formData: FormData) {
 
     const createdOrder = await db.order.findUnique({ where: { id: result.orderId }, select: { numericId: true }});
     return NextResponse.json({ order: createdOrder?.numericId });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof Error && err.message === 'INSUFFICIENT_FUNDS') {
       return NextResponse.json({ error: 'Not enough funds on balance' }, { status: 400 });
     }
     // Prisma transaction conflict codes: P2034 (Serializable conflict), P2028 (Deadlock)
-    if (err?.code === 'P2034' || err?.code === 'P2028') {
+    const errCode = (typeof err === "object" && err !== null && "code" in err) ? (err as { code: unknown }).code : undefined;
+    if (errCode === "P2034" || errCode === "P2028") {
       return NextResponse.json({ error: 'Not enough funds on balance' }, { status: 400 });
     }
     console.error('[API v2 Error]:', err);
@@ -249,8 +245,7 @@ async function handleAdd(user: any, formData: FormData) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseOrders(formData: FormData): any[] | null { // Justified: parsing dynamic reseller payload format types
+function parseOrders(formData: FormData): unknown[] | null { // Justified: parsing dynamic reseller payload format types
   const ordersStr = formData.get('orders')?.toString();
   if (ordersStr) {
     try {
@@ -261,8 +256,7 @@ function parseOrders(formData: FormData): any[] | null { // Justified: parsing d
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ordersMap: Record<number, any> = {}; // Justified: building index map of arbitrary form fields
+    const ordersMap: Record<number, any> = {}; // Justified: building index map of arbitrary form fields
   let hasEntries = false;
   for (const [key, value] of formData.entries()) {
     const match = key.match(/^orders\[(\d+)\]\[(\w+)\]$/);
@@ -285,8 +279,7 @@ function parseOrders(formData: FormData): any[] | null { // Justified: parsing d
     .map(index => ordersMap[index]);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleAddMulti(user: any, formData: FormData) { // Justified: user object can be any Prisma User model
+async function handleAddMulti(user: User, formData: FormData) { // Justified: user object can be any Prisma User model
   const rawOrders = parseOrders(formData);
 
   if (!rawOrders || !Array.isArray(rawOrders) || rawOrders.length === 0) {
@@ -298,8 +291,7 @@ async function handleAddMulti(user: any, formData: FormData) { // Justified: use
     return NextResponse.json({ error: 'Batch size too large (max 50 orders)' }, { status: 400 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const results: any[] = []; // Justified: dynamic results array containing orders or errors
+    const results: unknown[] = []; // Justified: dynamic results array containing orders or errors
   const userTenantId = user.tenantId || 'smmplan';
 
   for (const rawOrder of rawOrders) {
@@ -362,11 +354,11 @@ async function handleAddMulti(user: any, formData: FormData) { // Justified: use
       });
 
       results.push({ order: createdOrder?.numericId });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) { // Justified: catching dynamic database or business logic errors
+    } catch (err: unknown) { // Justified: catching dynamic database or business logic errors
+      const errCode = (typeof err === 'object' && err !== null && 'code' in err) ? (err as { code: unknown }).code : undefined;
       if (err instanceof Error && err.message === 'INSUFFICIENT_FUNDS') {
         results.push({ error: 'Not enough funds on balance' });
-      } else if (err?.code === 'P2034' || err?.code === 'P2028') {
+      } else if (errCode === 'P2034' || errCode === 'P2028') {
         results.push({ error: 'Not enough funds on balance' });
       } else {
         console.error('[API v2 add_multi item error]:', err);
@@ -422,8 +414,7 @@ async function handleStatus(user: User, formData: FormData) {
       }
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resultMap: Record<string, any> = {};
+    const resultMap: Record<string, Record<string, unknown>> = {};
     for (const id of ids) {
       resultMap[id.toString()] = { error: 'Incorrect order ID' };
     }
@@ -467,8 +458,7 @@ async function handleCancel(user: User, formData: FormData) {
     where: { numericId: { in: ids }, userId: user.id, tenantId: userTenantId }
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const resultMap: Record<string, any> = {};
+  const resultMap: Record<string, { cancel?: boolean; error?: string }> = {};
 
   for (const id of ids) {
     const order = orders.find(o => o.numericId === id);
@@ -492,24 +482,22 @@ async function handleCancel(user: User, formData: FormData) {
   // If it's a single order request, standard SMM API returns error/success at root level
   if (!formData.get('orders') && ids.length === 1) {
     const singleResult = resultMap[ids[0].toString()];
-    if (singleResult.cancel) {
+    if (singleResult?.cancel) {
        return NextResponse.json({ cancel: true });
     }
-    return NextResponse.json({ error: singleResult.error }, { status: 400 });
+    return NextResponse.json({ error: singleResult?.error || 'Cancellation failed' }, { status: 400 });
   }
 
   return NextResponse.json(resultMap);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleRefill(user: User, formData: FormData) {
   // Reseller Safety: Automated Refill is completely disabled.
   // We do not pass refills to upstream automatically to prevent silent failures and provider conflicts.
   return NextResponse.json({ error: 'Refill is only available manually via support ticket for reseller platforms.' }, { status: 400 });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleRefillStatus(user: any, formData: FormData) {
+async function handleRefillStatus(user: User, formData: FormData) {
   const refillStr = formData.get('refill')?.toString();
   const userTenantId = user.tenantId || 'smmplan';
 
@@ -522,8 +510,7 @@ async function handleRefillStatus(user: any, formData: FormData) {
         where: { numericId: { in: ids }, order: { userId: user.id, tenantId: userTenantId } }
       });
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const resultMap: any[] = [];
+            const resultMap: unknown[] = [];
       for (const refill of refills) {
         resultMap.push({
            refill: refill.numericId,

@@ -11,8 +11,7 @@ interface ProviderServiceSearchModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   providerId: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSelect: (service: any) => void;
+    onSelect: (service: unknown) => void;
 }
 
 export function ProviderServiceSearchModal({
@@ -23,8 +22,7 @@ export function ProviderServiceSearchModal({
 }: ProviderServiceSearchModalProps) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [services, setServices] = useState<any[]>([]);
+    const [services, setServices] = useState<any[]>([]);
   const [isPending, startTransition] = useTransition();
 
   // Debounce query
@@ -62,12 +60,11 @@ export function ProviderServiceSearchModal({
           maxPrice: '',
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const res: any = await fetchPaginatedExternalServices(providerId, filters, 1, 20);
+                const res = await fetchPaginatedExternalServices(providerId, filters, 1, 20);
         
         if (res.success && res.data) {
           setServices(res.data);
-        } else if (res.emptyCache) {
+        } else if ('emptyCache' in res && res.emptyCache) {
           toast.error(res.error || 'Кэш провайдера пуст. Сначала синхронизируйте его в разделе "Провайдеры".');
           setServices([]);
         } else {
@@ -81,8 +78,7 @@ export function ProviderServiceSearchModal({
     });
   }, [isOpen, providerId, debouncedQuery]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleSelect = (service: any) => {
+    const handleSelect = (service: unknown) => {
     onSelect(service);
     onOpenChange(false);
   };

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -25,8 +25,7 @@ function createPrismaClient(): PrismaClient {
   }).$extends({
     query: {
       service: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        async deleteMany({ args, query }: { args: any; query: (args: any) => Promise<any> }) {
+                async deleteMany({ args, query }: { args: Prisma.ServiceDeleteManyArgs; query: (args: Prisma.ServiceDeleteManyArgs) => Promise<Prisma.BatchPayload> }) {
           if (!args?.where || Object.keys(args.where).length === 0) {
             if (process.env.APP_ENV !== 'test' && process.env.ALLOW_UNSAFE_PURGE !== 'true') {
               throw new Error('🚨 [SAFE-GUARD] Unconditional Service.deleteMany() is blocked to prevent catalog loss!');
@@ -36,8 +35,7 @@ function createPrismaClient(): PrismaClient {
         },
       },
       category: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        async deleteMany({ args, query }: { args: any; query: (args: any) => Promise<any> }) {
+                async deleteMany({ args, query }: { args: Prisma.ServiceDeleteManyArgs; query: (args: Prisma.ServiceDeleteManyArgs) => Promise<Prisma.BatchPayload> }) {
           if (!args?.where || Object.keys(args.where).length === 0) {
             if (process.env.APP_ENV !== 'test' && process.env.ALLOW_UNSAFE_PURGE !== 'true') {
               throw new Error('🚨 [SAFE-GUARD] Unconditional Category.deleteMany() is blocked to prevent catalog loss!');
@@ -47,8 +45,7 @@ function createPrismaClient(): PrismaClient {
         },
       },
       network: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        async deleteMany({ args, query }: { args: any; query: (args: any) => Promise<any> }) {
+                async deleteMany({ args, query }: { args: Prisma.ServiceDeleteManyArgs; query: (args: Prisma.ServiceDeleteManyArgs) => Promise<Prisma.BatchPayload> }) {
           if (!args?.where || Object.keys(args.where).length === 0) {
             if (process.env.APP_ENV !== 'test' && process.env.ALLOW_UNSAFE_PURGE !== 'true') {
               throw new Error('🚨 [SAFE-GUARD] Unconditional Network.deleteMany() is blocked to prevent catalog loss!');

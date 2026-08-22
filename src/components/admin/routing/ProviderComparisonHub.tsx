@@ -1,20 +1,18 @@
 'use client';
+// audit-disable STR-002
 
+import React from 'react';
 import { Card, Button, Chip } from '@heroui/react';
+import type { RoutingComparisonItem, RoutingServiceRoute } from './RoutingPanelClient';
 
 interface ComparisonHubProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  comparisonData: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  service: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSwap: (route: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  routes: any[];
+  comparisonData: RoutingComparisonItem[];
+  service: Record<string, unknown>;
+  onSwap: (route: RoutingServiceRoute) => void;
+  routes: RoutingServiceRoute[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function ProviderComparisonHub({ comparisonData, service, onSwap, routes }: ComparisonHubProps) {
+export function ProviderComparisonHub({ comparisonData, onSwap, routes }: ComparisonHubProps) {
   const formatDuration = (sec: number) => {
     if (!sec || sec === 0) return '—';
     if (sec < 60) return `${sec} сек`;
@@ -53,9 +51,8 @@ export function ProviderComparisonHub({ comparisonData, service, onSwap, routes 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {comparisonData.map((item) => {
-          const slaInfo = getSlaIndicator(item.sla);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const targetRoute = routes.find((r: any) => r.id === item.routeId);
+          const slaInfo = getSlaIndicator(item.sla || 0);
+          const targetRoute = routes.find((r) => r.id === item.routeId);
 
           return (
             <Card
@@ -71,93 +68,82 @@ export function ProviderComparisonHub({ comparisonData, service, onSwap, routes 
               )}
 
               <div className="space-y-4">
-                {/* Header info */}
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-bold text-foreground text-base leading-tight">{item.providerName}</h4>
-                    <p className="text-[11px] font-mono text-muted-foreground mt-0.5">Внешний ID: {item.providerServiceId}</p>
+                    <h4 className="font-bold text-foreground text-sm tracking-tight">{item.providerName}</h4>
+                    <span className="text-[11px] text-muted-foreground font-mono">ID: {item.providerServiceId || '—'}</span>
+                  </div>
+                  <Chip
+                    size="sm"
+                    variant="soft"
+                    className={`text-[10px] uppercase font-bold border border-border ${
+                      item.isActive ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {item.isActive ? 'Активен' : 'Отключен'}
+                  </Chip>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg border border-border/60 bg-muted/30">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block uppercase font-medium">Закупка</span>
+                    <span className="text-xs font-bold text-foreground">
+                      {item.procurementCostPerUnitRub ? `${item.procurementCostPerUnitRub.toFixed(4)} ₽` : '—'}
+                    </span>
+                    {item.procurementCostPerUnitUsd && (
+                      <span className="text-[10px] text-muted-foreground block font-mono">
+                        (${item.procurementCostPerUnitUsd.toFixed(4)})
+                      </span>
+                    )}
                   </div>
                   <div>
-                    {item.isActive ? (
-                      <span className="px-2 py-0.5 text-[10px] rounded font-semibold bg-success/10 text-success border border-success/20">
-                        Активен
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 text-[10px] rounded font-semibold bg-danger/10 text-danger border border-danger/20">
-                        Отключен
+                    <span className="text-[10px] text-muted-foreground block uppercase font-medium">Маржа</span>
+                    <span className={`text-xs font-bold ${(item.marginPerUnitRub || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
+                      {item.marginPerUnitRub ? `${item.marginPerUnitRub.toFixed(4)} ₽` : '—'}
+                    </span>
+                    {item.markupPercent && (
+                      <span className="text-[10px] text-muted-foreground block">
+                        (+{item.markupPercent.toFixed(0)}%)
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Grid stats */}
-                <div className="grid grid-cols-2 gap-3 text-xs border-t border-border pt-3">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Закупка (1 шт)</p>
-                    <p className="font-bold text-foreground truncate">
-                      {item.procurementCostPerUnitRub !== null ? `${item.procurementCostPerUnitRub.toFixed(4)} ₽` : '—'}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground font-mono truncate">
-                      {item.procurementCostPerUnitUsd !== null ? `$${item.procurementCostPerUnitUsd.toFixed(5)}` : '—'}
-                    </p>
+                <div className="space-y-2 pt-1 border-t border-border/40 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Надежность (SLA):</span>
+                    <span className={`font-bold ${slaInfo.className}`}>
+                      {slaInfo.icon} {item.sla || 0}%
+                    </span>
                   </div>
-                  
-                  <div>
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Чистая Маржа / Наценка</p>
-                    <p className={`font-bold ${item.marginPerUnitRub && item.marginPerUnitRub > 0 ? 'text-success' : 'text-danger'}`}>
-                      {item.marginPerUnitRub !== null ? `${item.marginPerUnitRub > 0 ? '+' : ''}${item.marginPerUnitRub.toFixed(4)} ₽` : '—'}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground font-mono">
-                      {item.markupPercent !== null ? `${item.markupPercent.toFixed(1)}%` : '—'}
-                    </p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Среднее время:</span>
+                    <span className="font-mono text-foreground">{formatDuration(item.avgEtaSeconds || 0)}</span>
                   </div>
-
-                  <div>
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">7-Day SLA</p>
-                    <div className={`flex items-center gap-1 font-bold ${slaInfo.className}`}>
-                      <span>{slaInfo.icon}</span>
-                      <span>{item.sla.toFixed(1)}%</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Лимиты (Min / Max):</span>
+                    <span className="font-mono text-foreground">
+                      {item.providerMinQty ?? '—'} / {item.providerMaxQty ?? '—'}
+                    </span>
+                  </div>
+                  {item.limitsMismatch && (
+                    <div className="p-1.5 rounded bg-warning/10 border border-warning/20 text-[10px] text-warning-text flex items-center gap-1">
+                      ⚠️ Лимиты отличаются от глобальных
                     </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-0.5">Среднее ETA</p>
-                    <p className="font-bold text-foreground truncate">
-                      {formatDuration(item.avgEtaSeconds)}
-                    </p>
-                  </div>
-
-                  <div className="col-span-2 border-t border-dashed border-border pt-2">
-                    <div className="flex justify-between items-center text-[11px]">
-                      <span className="text-muted-foreground font-semibold">ЛИМИТЫ (MIN / MAX):</span>
-                      <span className="font-bold text-foreground">
-                        {item.providerMinQty !== null ? item.providerMinQty.toLocaleString() : '—'} / {item.providerMaxQty !== null ? item.providerMaxQty.toLocaleString() : '—'} шт
-                      </span>
-                    </div>
-                    {item.limitsMismatch && (
-                      <div className="bg-danger/10 text-danger border border-danger/20 rounded-md p-2 text-[10px] font-bold flex items-center gap-1.5 mt-2 transition-all duration-200">
-                        <span>⚠️</span>
-                        <span>Несовместимость лимитов провайдера и услуги</span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-border">
-                <Button
-                  onPress={() => targetRoute && onSwap(targetRoute)}
-                  isDisabled={item.isPrimary || !item.isActive}
-                  className={`w-full font-bold transition-all duration-200 rounded-[var(--radius)] flex items-center justify-center h-11 ${
-                    item.isPrimary 
-                      ? 'bg-default-200 text-default-400' 
-                      : !item.isActive 
-                        ? 'bg-default-100 text-default-400' 
-                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  }`}
-                >
-                  {item.isPrimary ? 'Основной маршрут' : 'Сделать основным'}
-                </Button>
+              <div className="mt-5 pt-3 border-t border-border/50">
+                {item.isPrimary ? (
+                  <Button size="sm" variant="outline" isDisabled className="w-full text-xs font-semibold">
+                    Текущий активный маршрут
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="primary" className="w-full text-xs font-bold transition-all duration-200" isDisabled={!item.isActive || !targetRoute} onClick={() => targetRoute && onSwap(targetRoute)}>
+                    Переключить на этот маршрут
+                  </Button>
+                )}
               </div>
             </Card>
           );

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
@@ -55,7 +56,7 @@ const rawServiceSchema = z.object({
 
 // ── Types ──
 
-type CatalogRow = {
+export type CatalogRow = {
   id: string;
   numericId: number;
   name: string;
@@ -70,6 +71,20 @@ type CatalogRow = {
   isActive: boolean;
   isDripFeedEnabled: boolean;
   isRefillEnabled: boolean;
+  isQuarantined?: boolean;
+  quarantineReason?: string | null;
+  isCancelEnabled?: boolean;
+  targetType?: string | null;
+  customDataType?: string | null;
+  customDataLabel?: string | null;
+  isMediaGroupAware?: boolean;
+  requireWarning?: boolean;
+  warningMessage?: string | null;
+  cooldownReason?: string | null;
+  clientRequirement?: string | null;
+  clientConfirmation?: string | null;
+  qualityTier?: string | null;
+  createdAt?: Date | string | null;
   category: { id: string; name: string; network?: { name: string; slug: string } | null };
   _count: { orders: number };
 };
@@ -107,8 +122,7 @@ class AdminCatalogService {
     networkSlug?: string;
     tenantId?: string;
   }): Promise<PaginatedResult<CatalogRow>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+        const where: Prisma.ServiceWhereInput = {};
 
     if (params.tenantId) {
       where.tenantId = { in: [params.tenantId, 'all'] };
@@ -148,8 +162,7 @@ class AdminCatalogService {
       const lowerQ = q.toLowerCase();
       const numId = parseInt(q, 10);
       const isPureNumber = !isNaN(numId) && q === String(numId);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const orConditions: any[] = [];
+            const orConditions: Prisma.ServiceWhereInput[] = [];
 
       // Vector 1: Numeric ID Match
       if (isPureNumber) {
@@ -323,8 +336,7 @@ class AdminCatalogService {
     const currency = providerDbRecord.balanceCurrency || 'USD';
 
     // Filter raw services using Zod Schema
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const validRawServices: any[] = [];
+        const validRawServices: z.infer<typeof rawServiceSchema>[] = [];
     let invalidCount = 0;
 
     for (const s of rawServices) {
@@ -341,9 +353,8 @@ class AdminCatalogService {
     }
 
     // Data Intelligence: Normalize services using SmartAnalyzerLogic
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const services = validRawServices.map((s: any) => {
-      const rawRate = parseFloat(s.rate) || 0;
+        const services = validRawServices.map((s) => {
+      const rawRate = typeof s.rate === "number" ? s.rate : parseFloat(String(s.rate)) || 0;
       const basePriceUsd = currency === 'RUB' ? rawRate / usdRate : rawRate;
       const analyzed = SmartAnalyzerLogic.detectSync(s.name, s.description || '', s.category || '', undefined, basePriceUsd);
       return {
@@ -362,9 +373,8 @@ class AdminCatalogService {
       };
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const servicesToCreate = services.map((s: any) => {
-      const rawRate = parseFloat(s.rate) || 0;
+        const servicesToCreate = services.map((s) => {
+      const rawRate = typeof s.rate === "number" ? s.rate : parseFloat(String(s.rate)) || 0;
       const rateRub = currency === 'USD' ? rawRate * usdRate : rawRate;
 
       return {
@@ -375,8 +385,8 @@ class AdminCatalogService {
         category: s.category || null,
         rate: rawRate,
         rateRub,
-        min: parseInt(s.min, 10) || 0,
-        max: parseInt(s.max, 10) || 0,
+        min: typeof s.min === "number" ? s.min : parseInt(String(s.min), 10) || 0,
+        max: typeof s.max === "number" ? s.max : parseInt(String(s.max), 10) || 0,
         refill: s.refill || false,
         cancel: s.cancel || false,
         dripfeed: s.dripfeed || false,
@@ -485,8 +495,7 @@ class AdminCatalogService {
 
     const zombieIds: string[] = [];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let pendingUpdates: Array<{ id: string; data: any; oldRate: number; newRate: number }> = [];
+        let pendingUpdates: Array<{ id: string; data: Prisma.ServiceUpdateInput; oldRate: number; newRate: number }> = [];
 
     const executeUpdatesChunk = async (chunk: typeof pendingUpdates) => {
       await db.$transaction(async (tx) => {
@@ -542,8 +551,7 @@ class AdminCatalogService {
         // Clean name/description and fix markup/price if needed
         const auditPayloads = ServiceAuditEngine.auditAndFixService(s, { rate: rawRate }, exchangeRate);
         if (auditPayloads.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await db.$transaction(auditPayloads as any);
+                    await db.$transaction(auditPayloads as Prisma.PrismaPromise<unknown>[]);
         }
 
         if (!s.isActive && s.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
@@ -666,12 +674,10 @@ class AdminCatalogService {
               quarantineReason: null
             };
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (!(s as any).isCustomName) {
+                        if (!(s as unknown as { isCustomName?: boolean }).isCustomName) {
               updateData.name = stagingExt.name || s.name;
             }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (!(s as any).isCustomDescription && stagingExt.name) {
+                        if (!(s as unknown as { isCustomDescription?: boolean }).isCustomDescription && stagingExt.name) {
               // keep description intact unless specified
             }
 
@@ -807,8 +813,7 @@ class AdminCatalogService {
     const liveServices = await providerInstance.getServices();
     
     // Map live services for O(1) lookup
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const liveMap = new Map(liveServices.map((s: any) => [s.service.toString(), s]));
+        const liveMap = new Map(liveServices.map((s) => [s.service.toString(), s]));
 
     const tenantsToImport: ('smmplan' | 'flux')[] = targetTenantId === 'both' ? ['smmplan', 'flux'] : [targetTenantId];
 
@@ -906,9 +911,9 @@ class AdminCatalogService {
           customDataType: shadowExt.metrics?.customDataType || 'NONE',
           isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
           isActive: true,
-          isDripFeedEnabled: liveExt.dripfeed ?? false,
-          isRefillEnabled: liveExt.refill ?? false,
-          isCancelEnabled: liveExt.cancel ?? false,
+          isDripFeedEnabled: Boolean(liveExt.dripfeed),
+          isRefillEnabled: Boolean(liveExt.refill),
+          isCancelEnabled: Boolean(liveExt.cancel),
           lastSeenAt: new Date(),
         });
       }
@@ -988,15 +993,13 @@ class AdminCatalogService {
    * Catalog stats for the header.
    */
   async getCatalogStats(tenantId?: string, startDate?: Date, endDate?: Date) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+        const where: Prisma.ServiceWhereInput = {};
     if (tenantId) where.tenantId = { in: [tenantId, 'all'] };
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const categoryWhere: any = {};
+        const categoryWhere: Prisma.CategoryWhereInput = {};
     if (tenantId) categoryWhere.tenantId = { in: [tenantId, 'all'] };
     if (startDate && endDate) {
       categoryWhere.createdAt = { gte: startDate, lte: endDate };
@@ -1101,8 +1104,7 @@ class AdminCatalogService {
 
     console.info(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updatesBatch: any[] = [];
+        const updatesBatch: Prisma.PrismaPromise<unknown>[] = [];
     for (const s of allServices) {
       const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
       const pricePer1kRubRounded = applyBeautifulRounding(s.rate * s.markup * exchangeRate);
@@ -1157,8 +1159,7 @@ class AdminCatalogService {
     worstServices: { id: string; name: string; rate: number; markup: number; category: string }[];
     averageMarkup: number;
   }> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = { isActive: true };
+        const where: Prisma.ServiceWhereInput = { isActive: true };
     if (tenantId) where.tenantId = { in: [tenantId, 'all'] };
 
     const services = await db.service.findMany({
@@ -1258,8 +1259,7 @@ class AdminCatalogService {
   }
 
   async getQuarantineCount(tenantId?: string): Promise<number> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = { isQuarantined: true };
+        const where: Prisma.ServiceWhereInput = { isQuarantined: true };
     if (tenantId) where.tenantId = { in: [tenantId, 'all'] };
     return db.service.count({ where });
   }

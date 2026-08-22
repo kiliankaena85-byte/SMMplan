@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
@@ -271,8 +272,7 @@ class AdminUserService {
    * Get aggregate user stats for the header.
    */
   async getUserStats(startDate?: Date, endDate?: Date, tenantId?: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
@@ -303,8 +303,7 @@ class AdminUserService {
    */
   async getTopSpenders(limit = 6, tenantId?: string) {
     const isSingleTenant = tenantId && tenantId !== 'all';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = { role: { not: 'BANNED' } };
+    const where: Prisma.UserWhereInput = { role: { not: 'BANNED' } };
     if (isSingleTenant) {
       where.tenantId = tenantId;
     }

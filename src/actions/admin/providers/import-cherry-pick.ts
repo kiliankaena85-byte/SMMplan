@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import { revalidatePath } from "next/cache";
 import { requireStaffPermission } from "@/lib/server/rbac";
@@ -6,12 +6,31 @@ import { adminCatalogService } from "@/services/admin/catalog.service";
 import { db } from "@/lib/db";
 import { handleServerError } from "@/utils/error-handler";
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
-// --- [NEW] Pagination & Filtering API ---
+export interface ImportCherryPickFilters {
+    category?: string;
+    providerCategory?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    importStatus?: string;
+    platform?: string;
+    geo?: string;
+    velocity?: string;
+    hasRefill?: boolean;
+    hasAnomaly?: boolean;
+    retailReady?: boolean;
+    hideImported?: boolean;
+    minPrice?: string | number;
+    maxPrice?: string | number;
+    activityType?: string;
+}
+
+// --- Pagination & Filtering API ---
 export async function fetchPaginatedExternalServices(
     providerId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    filters: any,
+    filters: ImportCherryPickFilters,
     page: number,
     pageSize: number
 ) {
@@ -39,8 +58,7 @@ export async function fetchPaginatedExternalServices(
             const importedExternalIds = existingServices.map(s => s.externalId).filter(Boolean) as string[];
 
             // 2. Build where conditions
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const andConditions: any[] = [{ providerId }];
+            const andConditions: Prisma.ShadowServiceWhereInput[] = [{ providerId }];
 
             if (filters.category && filters.category !== 'ALL') {
                 andConditions.push({ normalizedCategory: filters.category });
@@ -85,13 +103,13 @@ export async function fetchPaginatedExternalServices(
                 andConditions.push({ min: { gt: 0, lte: 100 } });
             }
             if (filters.minPrice !== undefined && filters.minPrice !== '') {
-                const minP = parseFloat(filters.minPrice);
+                const minP = typeof filters.minPrice === 'number' ? filters.minPrice : parseFloat(filters.minPrice);
                 if (!isNaN(minP)) {
                     andConditions.push({ rateRub: { gte: minP } });
                 }
             }
             if (filters.maxPrice !== undefined && filters.maxPrice !== '') {
-                const maxP = parseFloat(filters.maxPrice);
+                const maxP = typeof filters.maxPrice === 'number' ? filters.maxPrice : parseFloat(filters.maxPrice);
                 if (!isNaN(maxP)) {
                     andConditions.push({ rateRub: { lte: maxP } });
                 }
@@ -119,7 +137,7 @@ export async function fetchPaginatedExternalServices(
                 andConditions.push({ externalId: { in: importedExternalIds } });
             }
 
-            const whereWithoutPlatform = { AND: andConditions };
+            const whereWithoutPlatform: Prisma.ShadowServiceWhereInput = { AND: andConditions };
 
             // 3. Platform counts based on whereWithoutPlatform
             const platformGroups = await db.shadowService.groupBy({
@@ -161,8 +179,7 @@ export async function fetchPaginatedExternalServices(
             };
 
             // 4. Platform filter apply
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let finalWhere: any = { ...whereWithoutPlatform };
+            let finalWhere: Prisma.ShadowServiceWhereInput = { ...whereWithoutPlatform };
             if (filters.platform && filters.platform !== 'ALL') {
                 if (filters.platform === 'other') {
                     finalWhere = {
@@ -204,8 +221,7 @@ export async function fetchPaginatedExternalServices(
             })).sort((a, b) => a.name.localeCompare(b.name));
 
             // 6. Sorting
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let orderBy: any = {};
+            let orderBy: Prisma.ShadowServiceOrderByWithRelationInput = {};
             if (filters.sortBy === 'price_asc') {
                 orderBy = { rateRub: 'asc' };
             } else if (filters.sortBy === 'price_desc') {
@@ -303,9 +319,7 @@ export async function fetchPaginatedExternalServices(
                     pageSize
                 }
             };
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
+        } catch (e: unknown) {
             const localized = handleServerError(e);
             return { success: false, error: localized.message };
         }
@@ -384,12 +398,9 @@ export async function importSelectedServices(
             revalidatePath('/admin/services');
             
             return { success: true, imported: res.importedCount };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (e: any) {
+        } catch (e: unknown) {
              const localized = handleServerError(e);
              return { success: false, error: localized.message };
         }
     });
 }
-
-

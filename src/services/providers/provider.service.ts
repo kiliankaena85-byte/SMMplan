@@ -28,8 +28,7 @@ export class ProviderService {
       decryptedKey = config.apiKey;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, config.metadata as any);
+        return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, (config.metadata as Record<string, unknown> | undefined));
   }
 
   /**
@@ -81,8 +80,7 @@ export class ProviderService {
         throw new Error('MOCK_PROVIDER_KEY is not set. Configure it in .env to use test mode.');
       }
       const baseUrl = await getBaseUrlAsync();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, mockKey, config.metadata as any);
+            return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, mockKey, (config.metadata as Record<string, unknown> | undefined));
     }
     // Production path: decrypt and use real provider
     let decryptedKey: string;
@@ -91,8 +89,7 @@ export class ProviderService {
     } catch {
       decryptedKey = config.apiKey;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, config.metadata as any);
+        return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, (config.metadata as Record<string, unknown> | undefined));
   }
 
   /**

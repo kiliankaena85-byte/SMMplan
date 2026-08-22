@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -17,8 +17,7 @@ const schema = z.object({
 });
 
 /** @public Public magic link request action */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function requestMagicLink(prevState: any, formData: FormData) {
+export async function requestMagicLink(prevState: unknown, formData: FormData) {
   if (!formData || typeof formData.entries !== 'function') {
     return { error: "Некорректные данные формы", success: false };
   }

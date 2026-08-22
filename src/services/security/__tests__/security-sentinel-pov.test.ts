@@ -17,8 +17,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
   describe('SEC-AUTH-001: Missing auth guard', () => {
     it('detects FunctionDeclaration without auth guard', () => {
       const code = `
-        'use server';
-        export async function deleteUserAction(userId: string) {
+                export async function deleteUserAction(userId: string) {
           await db.user.delete({ where: { id: userId } });
         }
       `;
@@ -30,8 +29,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
 
     it('detects ArrowFunction without auth guard (BLIND-01 fix)', () => {
       const code = `
-        'use server';
-        export const unsafeAction = async (input: { data: string }) => {
+                export const unsafeAction = async (input: { data: string }) => {
           await db.order.create({ data: { name: input.data } });
         };
       `;
@@ -43,8 +41,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
 
     it('does NOT flag function with verifySession (no false positive)', () => {
       const code = `
-        'use server';
-        export async function safeAction(data: { name: string }) {
+                export async function safeAction(data: { name: string }) {
           const session = await verifySession();
           await db.order.create({ data: { name: data.name, userId: session.userId } });
         }
@@ -56,8 +53,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
 
     it('does NOT flag function with /** @public */ JSDoc', () => {
       const code = `
-        'use server';
-        /** @public */
+                /** @public */
         export async function getCatalogAction() {
           return db.service.findMany({ where: { isActive: true } });
         }
@@ -74,8 +70,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
   describe('SEC-IDOR-001: Direct userId IDOR', () => {
     it('detects userId parameter without ownership check', () => {
       const code = `
-        'use server';
-        export async function getUserOrders(userId: string) {
+                export async function getUserOrders(userId: string) {
           const session = await verifySession();
           return db.order.findMany({ where: { userId } });
         }
@@ -88,8 +83,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
 
     it('does NOT flag userId when requireAdmin is present', () => {
       const code = `
-        'use server';
-        export async function adminGetUserOrders(userId: string) {
+                export async function adminGetUserOrders(userId: string) {
           await requireAdmin();
           return db.order.findMany({ where: { userId } });
         }
@@ -106,8 +100,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
   describe('SEC-IDOR-002: Destructured userId', () => {
     it('detects userId destructured from parsed.data', () => {
       const code = `
-        'use server';
-        export async function updateBalance(data: unknown) {
+                export async function updateBalance(data: unknown) {
           const session = await verifySession();
           const parsed = schema.safeParse(data);
           const { userId, amount } = parsed.data;
@@ -122,8 +115,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
 
     it('detects userId from formData.get("userId")', () => {
       const code = `
-        'use server';
-        export async function adjustBalance(formData: FormData) {
+                export async function adjustBalance(formData: FormData) {
           const session = await verifySession();
           const userId = formData.get("userId") as string;
           await doSomething(userId);
@@ -136,8 +128,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
 
     it('does NOT flag destructured userId when requireAdmin is present', () => {
       const code = `
-        'use server';
-        export async function adminBlockUser(data: unknown) {
+                export async function adminBlockUser(data: unknown) {
           await requireAdmin();
           const parsed = schema.safeParse(data);
           const { userId } = parsed.data;
@@ -250,8 +241,7 @@ describe('🛡️ Security Sentinel v3.0 PoV Suite', () => {
   describe('SEC-VAL-001: Missing Zod validation', () => {
     it('detects action with complex input but no Zod', () => {
       const code = `
-        'use server';
-        export async function updateProfile(data: { name: string; bio: string }) {
+                export async function updateProfile(data: { name: string; bio: string }) {
           const session = await verifySession();
           await db.user.update({ where: { id: session.userId }, data });
         }

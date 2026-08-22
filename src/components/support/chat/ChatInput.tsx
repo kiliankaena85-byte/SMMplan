@@ -6,21 +6,33 @@ import { toast } from 'sonner';
 import { generateSmartReplyAction, changeTicketStatus } from '@/actions/support/ticket';
 
 import { Message } from './useChatMessages';
-import { ChatTemplateManager } from './ChatTemplateManager';
+import { ChatTemplateManager, type SupportTemplateDTO } from './ChatTemplateManager';
 import { incrementTemplateUsage } from '@/actions/support/template';
+
+
+export interface ChatInputOrder {
+  id: string;
+  numericId?: number;
+  status: string;
+  charge: number;
+  serviceName?: string;
+  link?: string;
+  quantity?: number;
+  createdAt?: string | Date;
+  service?: {
+    name: string;
+  };
+}
 
 interface ChatInputProps {
   ticketId: string;
   isClosed: boolean;
   isStaff: boolean;
   clientEmail?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialOrders: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialTemplates: any[];
+  initialOrders: ChatInputOrder[];
+  initialTemplates: SupportTemplateDTO[];
   messages: Message[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onSendMessage: (formData: FormData) => Promise<any>;
+  onSendMessage: (formData: FormData) => Promise<unknown>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   replyingTo: Message | null;
   setReplyingTo: (msg: Message | null) => void;
@@ -43,8 +55,7 @@ export function ChatInput({
   const [isInternal, setIsInternal] = useState(false);
   const [sending, setSending] = useState(false);
   const [templatesList, setTemplatesList] = useState(initialTemplates);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+    const [selectedOrder, setSelectedOrder] = useState<ChatInputOrder | null>(null);
   const [showOrdersDropdown, setShowOrdersDropdown] = useState(false);
   const [isAiPending, startAiTransition] = useTransition();
 
@@ -54,8 +65,7 @@ export function ChatInput({
 
   const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false);
   const [activeTemplateIndex, setActiveTemplateIndex] = useState(0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [filteredTemplates, setFilteredTemplates] = useState<any[]>([]);
+    const [filteredTemplates, setFilteredTemplates] = useState<SupportTemplateDTO[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -217,10 +227,10 @@ export function ChatInput({
     const activeOrFallbackOrder = selectedOrder || (initialOrders && initialOrders.length > 0 ? initialOrders[0] : null);
 
     if (activeOrFallbackOrder) {
-      const orderNumStr = activeOrFallbackOrder.numericId.toString();
+      const orderNumStr = String(activeOrFallbackOrder.numericId || activeOrFallbackOrder.id.slice(0, 8));
       result = result.replace(/{order_id}/g, orderNumStr);
       result = result.replace(/{orderId}/g, orderNumStr);
-      result = result.replace(/{service_name}/g, activeOrFallbackOrder.serviceName);
+      result = result.replace(/{service_name}/g, activeOrFallbackOrder.serviceName || activeOrFallbackOrder.service?.name || 'услуге');
       
       let statusRu = activeOrFallbackOrder.status;
       if (activeOrFallbackOrder.status === 'COMPLETED') statusRu = 'Выполнен';
@@ -282,7 +292,7 @@ export function ChatInput({
       
       if (lastWord && lastWord.startsWith('/')) {
         const prefix = lastWord.slice(1).toLowerCase().trim();
-        const filtered = templatesList.filter((t: { shortcut?: string; label?: string; text?: string }) => {
+        const filtered = templatesList.filter((t: SupportTemplateDTO) => {
           if (!prefix) return true; // show all on standalone "/"
           const matchShortcut = t.shortcut && t.shortcut.toLowerCase().includes(prefix);
           const matchLabel = t.label && t.label.toLowerCase().includes(prefix);
@@ -366,11 +376,11 @@ export function ChatInput({
       orderId: selectedOrder?.id || null,
       order: selectedOrder ? {
         id: selectedOrder.id,
-        numericId: selectedOrder.numericId,
+        numericId: selectedOrder.numericId ?? 0,
         status: selectedOrder.status,
         charge: Number(selectedOrder.charge),
-        createdAt: selectedOrder.createdAt,
-        serviceName: selectedOrder.serviceName
+        createdAt: String(selectedOrder.createdAt || new Date().toISOString()),
+        serviceName: selectedOrder.serviceName || selectedOrder.service?.name || ''
       } : null
     };
     setMessages(prev => [...prev, optimisticMsg]);
@@ -437,10 +447,9 @@ export function ChatInput({
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const res: any = await onSendMessage(formData);
-      if (res && typeof res === 'object' && res.success === false) {
-        throw new Error(res.error || 'Ошибка отправки сообщения');
+            const res = await onSendMessage(formData);
+      if (res && typeof res === 'object' && 'success' in res && (res as { success?: boolean }).success === false) {
+        throw new Error((res as { error?: string }).error || 'Ошибка отправки сообщения');
       }
 
       if (shouldCloseAfterSubmit) {
@@ -714,7 +723,7 @@ export function ChatInput({
                       Выберите заказ для привязки:
                     </div>
                     <div className="max-h-60 overflow-y-auto">
-                      {initialOrders.map((order: { id: string; numericId: number; status: string; serviceName: string; charge: number }) => (
+                      {initialOrders.map((order: ChatInputOrder) => (
                         <button
                           key={order.id}
                           type="button"
@@ -725,7 +734,7 @@ export function ChatInput({
                           className="w-full text-left px-3 py-2 hover:bg-default-50 flex flex-col gap-0.5 border-b border-divider last:border-0 transition-colors"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-xs text-foreground">Заказ #{order.numericId}</span>
+                            <span className="font-bold text-xs text-foreground">Заказ #{order.numericId || order.id.slice(0, 8)}</span>
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
                               order.status === 'COMPLETED' ? 'bg-success/15 text-success-text' :
                               order.status === 'IN_PROGRESS' ? 'bg-primary/15 text-primary' :

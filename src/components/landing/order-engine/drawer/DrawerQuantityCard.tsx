@@ -1,4 +1,5 @@
-"use client";
+'use client';
+import { PublicService } from '@/actions/order/catalog';
 
 import React from "react";
 import { Plus, Minus, Lock } from "lucide-react";
@@ -7,12 +8,10 @@ import { getServiceFlags } from "@/utils/url-analyzer";
 import { formatPricePerUnit } from "@/utils/format-price";
 
 interface DrawerQuantityCardProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  selectedService: any;
+    selectedService: PublicService | null;
   quantity: number;
   setQuantity: (q: number) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  pricing: any;
+    pricing: OrderEngine["pricing"];
   engine: OrderEngine;
 }
 
@@ -21,7 +20,9 @@ export function DrawerQuantityCard({
   quantity,
   setQuantity,
   pricing,
+  engine
 }: DrawerQuantityCardProps) {
+  if (!selectedService) return null;
   const min = selectedService.minQty || 10;
   const max = selectedService.maxQty || 100000;
 

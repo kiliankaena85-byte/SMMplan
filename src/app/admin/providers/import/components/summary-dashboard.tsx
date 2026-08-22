@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from "react";
 import { Package, Sparkles, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";

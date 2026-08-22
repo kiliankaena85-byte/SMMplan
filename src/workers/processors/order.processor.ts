@@ -1,3 +1,10 @@
+class DatabaseOrderError extends Error {
+  isDatabaseError = true;
+  constructor(message: string) {
+    super(message);
+    this.name = 'DatabaseOrderError';
+  }
+}
 import { Job, UnrecoverableError } from 'bullmq';
 import { db } from '../../lib/db';
 import { OrderJobPayload } from '../queues';
@@ -95,8 +102,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     
     // API Parameter Mapping for V2 APIs
     const serviceName = order.service.name.toLowerCase();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payload: any = {
+        const payload: Record<string, unknown> = {
       service: order.providerServiceId || order.service.externalId || '',
       link: order.link,
       quantity: runQty,
@@ -150,7 +156,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     // Set the dispatch lock in Redis
     await connection.set(redisKey, '1', 'EX', 3600);
 
-    const response = await provider.createOrder(payload);
+    const response = await provider.createOrder(payload as Parameters<typeof provider.createOrder>[0]);
 
     if (response.error && !response.order) {
       throw new Error(response.error);
@@ -172,23 +178,21 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
         }
       });
     } catch (dbError) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (dbError as any).isDatabaseError = true;
+            throw new DatabaseOrderError(dbError instanceof Error ? dbError.message : String(dbError));
       throw dbError;
     }
 
     log.info(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    if (error.isDatabaseError) {
+  } catch (error: unknown) {
+    if (error instanceof DatabaseOrderError || (typeof error === "object" && error !== null && "isDatabaseError" in error)) {
       throw error;
     }
     // === AMBIGUOUS TIMEOUT PROTECTION (P0) ===
     // If the error is a network timeout (not an explicit API rejection), the provider 
     // MIGHT have accepted the order but failed to respond. A fail-fast refund here
     // would result in a free delivery at our expense.
-    const errMsg = error.message.toLowerCase();
+    const errMsg = (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)).toLowerCase();
     const isNetworkTimeout = errMsg.includes('timeout') || 
                              errMsg.includes('etimedout') ||
                              errMsg.includes('econnreset') ||
@@ -202,7 +206,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
         where: { id: order.id },
         data: { 
           status: 'PENDING_CHECK', 
-          error: `Сетевой таймаут при отправке: ${error.message}` 
+          error: `Сетевой таймаут при отправке: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}` 
         }
       });
 
@@ -217,27 +221,26 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
         );
       } catch { /* ignore */ }
 
-      throw new UnrecoverableError(`Ambiguous Timeout: ${error.message}`);
+      throw new UnrecoverableError(`Ambiguous Timeout: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}`);
     }
 
     // === FAIL-FAST ARCHITECTURE ===
     // Any explicit provider error (API rejection, bad credentials, insufficient funds)
     // instantly cancels the order and refunds the client. Zero retries.
-    log.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}: ${error.message}`);
+    log.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}`);
 
     try {
       const { QuarantineService } = await import('../../services/providers/quarantine.service');
-      await QuarantineService.evaluateTriggerA(order.serviceId, error.message);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (quarantineErr: any) {
-      log.error(`[OrderProcessor] Quarantine evaluation failed: ${quarantineErr.message}`);
+      await QuarantineService.evaluateTriggerA(order.serviceId, (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)));
+    } catch (quarantineErr: unknown) {
+      log.error(`[OrderProcessor] Quarantine evaluation failed: ${(quarantineErr instanceof Error ? quarantineErr.message : String(quarantineErr))}`);
     }
 
     const { orderService } = await import('../../services/core/order.service');
-    await orderService.failOrderTerminalFast(order.id, error.message);
+    await orderService.failOrderTerminalFast(order.id, (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)));
 
     // UnrecoverableError tells BullMQ to NOT retry this job
-    throw new UnrecoverableError(`Fail-Fast: ${error.message}`);
+    throw new UnrecoverableError(`Fail-Fast: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}`);
   }
 }
 

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
@@ -66,8 +66,7 @@ export function ThemeSwitcher() {
         {accents.map((t) => (
           <button
             key={t.name}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onClick={() => setAccent(t.name as any)}
+            onClick={() => setAccent(t.name as "sky" | "emerald" | "violet" | "warm" | "telegram")}
             className={`w-5 h-5 rounded-full transition-transform cursor-pointer ${t.color} ${currentAccent === t.name ? 'scale-125 ring-2 ring-offset-2 ring-foreground/20' : 'hover:scale-110'}`}
             title={`Switch to ${t.name} accent`}
             aria-label={`Switch to ${t.name} accent`}

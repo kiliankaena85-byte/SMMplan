@@ -1,4 +1,12 @@
-"use client";
+'use client';
+interface SearchSuggestionItem {
+  id: string;
+  title: string;
+  slug: string;
+  category?: string;
+  description?: string;
+}
+
 
 import React, { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -14,8 +22,7 @@ interface SearchAutocompleteProps {
 
 export function SearchAutocomplete({ initialSearch = "", activeCategory = "Все", isFlux = false }: SearchAutocompleteProps) {
   const [query, setQuery] = useState(initialSearch);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [suggestions, setSuggestions] = useState<SearchSuggestionItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isPending, startTransition] = useTransition();

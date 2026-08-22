@@ -1,4 +1,4 @@
-"use client";
+'use client';
 // audit-disable STR-002
 
 import React, { useState, useMemo, useEffect } from "react";

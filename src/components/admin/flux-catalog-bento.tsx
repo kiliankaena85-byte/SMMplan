@@ -27,10 +27,8 @@ export function FluxCatalogBento({
   sortOrder
 }: { 
   services: CatalogServiceDTO[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  categories: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  providers: any[],
+    categories: { id: string; name: string; slug?: string }[],
+    providers: { id: string; name: string }[],
   usdToRub: number,
   canEdit: boolean,
   canSeeRates: boolean,

@@ -34,8 +34,7 @@ export interface AnalyzedService {
     startTime?: string;
     speedText?: string;
     qualityLabel?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    metrics?: ProcurementMetrics;
+        metrics?: ProcurementMetrics;
     cleanName?: string;
     customDataType?: 'NONE' | 'TEXTAREA' | 'NUMBER';
     isMediaGroupAware?: boolean;
@@ -615,8 +614,7 @@ export const SmartAnalyzerLogic = class {
         return {
             platform: platformEnum,
             platformSlug,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            category: category as any,
+                        category: category as Category,
             targetType,
             isPrivate,
             description_ru: finalDescription,
