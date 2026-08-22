@@ -134,8 +134,33 @@ model LedgerEntry {
 
 ---
 
+### 9. [PATCH-SEC-009] Укрепление связей и неизменяемости схемы БД (Prisma / PostgreSQL)
+- **Файл:** `prisma/schema.prisma`
+- **Уязвимость:** Каскадное удаление AuditLog при удалении User, отсутствие явного tenantId в ShadowService.
+- **Внедрённый патч:**
+```prisma
+// 1. Неизменяемый аудит-след: запрет каскадного удаления
+model AuditLog {
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+// 2. Изоляция ShadowService по сайтам
+model ShadowService {
+  tenantId String? @default("all")
+  @@index([tenantId])
+}
+
+// 3. Композитный индекс тикетов
+model Ticket {
+  @@index([userId, status])
+}
+```
+
+---
+
 ## 🏁 Финальная верификация системы:
 1. **TypeScript Typecheck:** `npx tsc --noEmit` ➔ **0 errors (100% Zero-any)**.
 2. **Next.js 16 Production Build:** `npm run build` ➔ **Exit Code 0 (Все 100+ роутов скомпилированы)**.
 3. **Prisma Schema:** `npx prisma validate` ➔ **The schema is valid 🚀**.
-4. **Unit / Integration Tests:** `link-analyzer-full.test.ts` ➔ **12/12 Passed**.
+4. **PostgreSQL DB Push:** `npx prisma db push` ➔ **Database in sync (public + test)**.
+5. **Unit / Integration Tests:** `link-analyzer-full.test.ts` ➔ **12/12 Passed**.

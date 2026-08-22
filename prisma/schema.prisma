@@ -362,12 +362,14 @@ model ShadowService {
   geo               String?
   velocity          Int      @default(0)
   anomalyScore      Float    @default(0.0)
+  tenantId          String?  @default("all")
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@unique([providerId, externalId])
   @@index([providerId])
+  @@index([tenantId])
   @@index([providerId, normalizedCategory, rateRub])
   @@index([platform])
   @@index([normalizedCategory])
@@ -664,6 +666,7 @@ model Ticket {
   tenantId String @default("smmplan")
 
   @@index([userId])
+  @@index([userId, status])
   @@index([tenantId])
   @@index([tenantId, userId])
   @@index([tenantId, status, createdAt])
@@ -734,7 +737,7 @@ model Page {
 model AuditLog {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   action    String
   details   String
   createdAt DateTime @default(now())
