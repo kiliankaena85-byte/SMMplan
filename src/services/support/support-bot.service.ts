@@ -187,8 +187,8 @@ class SupportBotService {
     try {
       const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const safeText = escapeHtml(text);
-      const caption = `👨‍💻 <b>Саппорт:</b>\n\n${safeText}`;
-      const plainCaption = `👨‍💻 Саппорт:\n\n${text}`;
+      const caption = safeText;
+      const plainCaption = text;
 
       const baseParams: Record<string, unknown> = { chat_id: telegramId, parse_mode: 'HTML' };
       if (replyToTgMsgId) baseParams.reply_to_message_id = Number(replyToTgMsgId);
@@ -248,7 +248,7 @@ class SupportBotService {
       await this.tgCall('editMessageText', {
         chat_id: telegramId,
         message_id: Number(telegramMsgId),
-        text: `👨‍💻 <b>Саппорт:</b>\n\n${escapeHtml(newText)}\n\n<i>(изменено)</i>`,
+        text: `${escapeHtml(newText)}\n\n<i>(изменено)</i>`,
         parse_mode: 'HTML',
       });
       return true;
