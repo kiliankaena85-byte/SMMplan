@@ -1,5 +1,4 @@
 import * as React from 'react';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { OrderColumn, RowActions, STATUS_LABELS, STATUS_STYLES, SPEED_CLASS_META } from './columns';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -16,7 +15,6 @@ interface FluxOrdersGridProps {
   isPendingBulk: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function FluxOrdersGrid({ data, canSeeRates, onSelect, selectedIds, onBulkCancel, isPendingBulk }: FluxOrdersGridProps) {
   function handleCopyIds() {
     const idsToCopy = Array.from(selectedIds).map(id => {
